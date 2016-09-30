@@ -65,13 +65,19 @@ public class QueryEngine {
     }
 
     public void processQuery(String sqlQuery) {
+
+        // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
         Node root = ksqlParser.buildAST(sqlQuery);
+
+        // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis,metaStore);
         analyzer.process(root, new AnalysisContext(null, null));
 
+        // Build a physical plan
         PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
+
 
 
         Properties props = new Properties();
@@ -83,12 +89,9 @@ public class QueryEngine {
 
         KStreamBuilder builder = new KStreamBuilder();
 
-
+        //Build a physical plan, in this case a Kafka Streams DSL
         PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
         SchemaStream schemaStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-
-//        schemaStream.getkStream().
-
 
         KafkaStreams streams = new KafkaStreams(builder, props);
         streams.start();

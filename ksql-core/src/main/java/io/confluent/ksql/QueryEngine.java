@@ -64,7 +64,7 @@ public class QueryEngine {
         metaStore.putSource(kafkaTopic);
     }
 
-    public void processQuery(String sqlQuery) {
+    public KafkaStreams processQuery(String sqlQuery) {
 
         // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
@@ -96,16 +96,18 @@ public class QueryEngine {
         KafkaStreams streams = new KafkaStreams(builder, props);
         streams.start();
 
+        return streams;
+
         // usually the stream application would be running forever,
         // in this example we just let it run for some time and stop since the input data is finite.
-        try {
-            Thread.sleep(1000000L);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        streams.close();
-        System.out.print("");
+//        try {
+//            Thread.sleep(1000000L);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//
+//        streams.close();
+//        System.out.print("");
     }
 
     public QueryEngine() {

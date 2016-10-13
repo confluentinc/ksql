@@ -60,27 +60,8 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
         for (SelectItem selectItem : node.getSelectItems()) {
             if (selectItem instanceof AllColumns) {
                 // expand * and T.*
-//                Optional<QualifiedName> starPrefix = ((AllColumns) item).getPrefix();
-//
-//                List<Field> fields = tupleDescriptor.resolveFieldsWithPrefix(starPrefix);
-//                if (fields.isEmpty()) {
-//                    if (starPrefix.isPresent()) {
-//                        throw new SemanticException(MISSING_TABLE, item, "Table '%s' not found", starPrefix.get());
-//                    }
-//                    throw new SemanticException(WILDCARD_WITHOUT_FROM, item, "SELECT * not allowed in queries without FROM clause");
-//                }
-//
-//                for (Field field : fields) {
-//                    int fieldIndex = tupleDescriptor.indexOf(field);
-//                    FieldReference expression = new FieldReference(fieldIndex);
-//                    outputExpressionBuilder.add(expression);
-//                    ExpressionAnalysis expressionAnalysis = analyzeExpression(expression, tupleDescriptor, context);
-//
-//                    Type type = expressionAnalysis.getType(expression);
-//                    if (node.getSelect().isDistinct() && !type.isComparable()) {
-//                        throw new SemanticException(TYPE_MISMATCH, node.getSelect(), "DISTINCT can only be applied to comparable types (actual: %s)", type);
-//                    }
-//                }
+                throw new IllegalArgumentException("Unsupported SelectItem type: " + selectItem.getClass().getName());
+
             }
             else if (selectItem instanceof SingleColumn) {
                 SingleColumn column = (SingleColumn) selectItem;
@@ -90,28 +71,12 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
                 } else {
                     throw new RuntimeException("Only single column is supported. ");
                 }
-
-//                process(column, context);
-//                ExpressionAnalysis expressionAnalysis = analyzeExpression(column.getExpression(), tupleDescriptor, context);
-//                analysis.recordSubqueries(node, expressionAnalysis);
-//                outputExpressionBuilder.add(column.getExpression());
-//
-//                Type type = expressionAnalysis.getType(column.getExpression());
-//                if (node.getSelect().isDistinct() && !type.isComparable()) {
-//                    throw new SemanticException(TYPE_MISMATCH, node.getSelect(), "DISTINCT can only be applied to comparable types (actual: %s): %s", type, column.getExpression());
-//                }
             }
             else {
                 throw new IllegalArgumentException("Unsupported SelectItem type: " + selectItem.getClass().getName());
             }
         }
 
-//        ImmutableList<Expression> result = outputExpressionBuilder.build();
-//        analysis.setOutputExpressions(node, result);
-//
-//        for(SelectItem selectItem: node.getSelectItems()) {
-//            process(selectItem, new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
-//        }
         return null;
     }
 
@@ -126,13 +91,8 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
         return null;
     }
 
-//    visitTable(Table node, C context)
-
     private void analyzeWhere(Node node, AnalysisContext context) {
-        if(node instanceof ComparisonExpression) {
-            analysis.setWhereExpression((ComparisonExpression)node);
-        }
-
+        analysis.setWhereExpression((Expression) node);
         System.out.println(node.toString());
     }
 

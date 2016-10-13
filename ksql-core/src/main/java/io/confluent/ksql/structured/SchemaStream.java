@@ -1,6 +1,7 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.Schema;
@@ -29,11 +30,17 @@ public class SchemaStream {
         return  this;
     }
 
-    public SchemaStream filter(ComparisonExpression comparisonExpression) {
-        SQLPredicate predicate = new SQLPredicate(comparisonExpression, schema);
+    public SchemaStream filter(Expression filterExpression) throws Exception {
+        SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
         KStream filteredKStream = kStream.filter(predicate.getPredicate());
         return new SchemaStream(schema.duplicate(), filteredKStream);
     }
+
+//    public SchemaStream filter(ComparisonExpression comparisonExpression) {
+//        SQLPredicate predicate = new SQLPredicate(comparisonExpression, schema);
+//        KStream filteredKStream = kStream.filter(predicate.getPredicate());
+//        return new SchemaStream(schema.duplicate(), filteredKStream);
+//    }
 
     public SchemaStream select(Schema selectSchema) {
         KStream projectedKStream = kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>>() {
@@ -44,6 +51,7 @@ public class SchemaStream {
                     newColumns.add(row.getColumns().get(schema.getFieldIndexByName(schemaField.getFieldName())));
                 }
                 GenericRow newRow = new GenericRow(newColumns);
+                System.out.println(newRow.toString());
                 return new KeyValue<String, GenericRow>(key, newRow);
             }
         });

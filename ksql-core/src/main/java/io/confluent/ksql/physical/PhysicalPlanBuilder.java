@@ -30,13 +30,13 @@ public class PhysicalPlanBuilder {
         this.builder = builder;
     }
 
-    public SchemaStream buildPhysicalPlan(PlanNode logicalPlanRoot) {
+    public SchemaStream buildPhysicalPlan(PlanNode logicalPlanRoot) throws Exception {
         SchemaStream resultSchemaStream = resultsSchemaStream((OutputNode)logicalPlanRoot);
 //        resultSchemaStream.getkStream().
         return resultSchemaStream;
     }
 
-    private SchemaStream resultsSchemaStream(OutputNode outputNode) {
+    private SchemaStream resultsSchemaStream(OutputNode outputNode) throws Exception {
         SchemaStream projectedSchemaStream = projectedSchemaStream((ProjectNode)outputNode.getSource());
         if(outputNode instanceof OutputKafkaTopicNode) {
             OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)outputNode;
@@ -46,16 +46,16 @@ public class PhysicalPlanBuilder {
         return null;
     }
 
-    private SchemaStream projectedSchemaStream(ProjectNode projectNode) {
+    private SchemaStream projectedSchemaStream(ProjectNode projectNode) throws Exception {
         SchemaStream filteredSchemaStream = buildFilter((FilterNode) projectNode.getSource());
         SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getSchema());
         return projectedSchemaStream;
     }
 
 
-    private SchemaStream buildFilter(FilterNode filterNode) {
+    private SchemaStream buildFilter(FilterNode filterNode) throws Exception {
         SchemaStream sourceSchemaStream = buildSource((SourceNode)filterNode.getSource());
-        SchemaStream filteredSchemaStream = sourceSchemaStream.filter((ComparisonExpression) filterNode.getPredicate());
+        SchemaStream filteredSchemaStream = sourceSchemaStream.filter(filterNode.getPredicate());
         return filteredSchemaStream;
     }
 

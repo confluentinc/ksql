@@ -41,6 +41,7 @@ public class LogicalPlanner
     private ProjectNode buildProjectNode(Schema inputSchema, PlanNode sourcePlanNode) {
         List<SchemaField> projectionFields = new ArrayList<>();
         List<String> fieldNames = new ArrayList<>();
+
         for(Expression expression: analysis.getSelectExpressions()) {
             if(expression instanceof QualifiedNameReference) {
                 QualifiedNameReference qualifiedNameReference = (QualifiedNameReference)expression;

@@ -13,6 +13,7 @@
  */
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.parser.CodegenExpressionFormatter;
 import io.confluent.ksql.parser.ExpressionFormatter;
 
 import java.util.Optional;
@@ -38,5 +39,10 @@ public abstract class Expression
     public final String toString()
     {
         return ExpressionFormatter.formatExpression(this);
+    }
+
+    public final String getCodegenString()
+    {
+        return CodegenExpressionFormatter.formatExpression(this);
     }
 }

@@ -64,7 +64,7 @@ public class QueryEngine {
         metaStore.putSource(kafkaTopic);
     }
 
-    public KafkaStreams processQuery(String sqlQuery) {
+    public KafkaStreams processQuery(String sqlQuery) throws Exception {
 
         // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
@@ -115,12 +115,12 @@ public class QueryEngine {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         QueryEngine queryEngine = new QueryEngine();
 //        queryEngine.processQuery("SELECT timeField, idField, itemIdField, unitsField FROM ordersStream WHERE idField = 100".toLowerCase());
 //        queryEngine.processQuery("SELECT t1, unitsField INTO test FROM ordersStream WHERE idField = 100;".toUpperCase());
-        queryEngine.processQuery("SELECT ordertime, orderid, orderunits FROM orders WHERE orderunits > 5 ;".toUpperCase());
+        queryEngine.processQuery("SELECT ordertime, orderid, orderunits FROM orders WHERE NOT (orderunits > 5 AND orderunits < 8);".toUpperCase());
 
     }
 }

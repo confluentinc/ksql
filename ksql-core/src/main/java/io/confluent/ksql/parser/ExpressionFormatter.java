@@ -513,7 +513,8 @@ public final class ExpressionFormatter
         private static String formatIdentifier(String s)
         {
             // TODO: handle escaping properly
-            return '"' + s + '"';
+//            return '"' + s + '"';
+            return s ;
         }
     }
 

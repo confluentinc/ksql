@@ -15,21 +15,23 @@ public final class QueryUtil
         return new QualifiedNameReference(QualifiedName.of(name));
     }
 
-    public static SelectItem unaliasedName(String name)
-    {
-        return new SingleColumn(nameReference(name));
-    }
-
-    public static SelectItem aliasedName(String name, String alias)
-    {
-        return new SingleColumn(nameReference(name), alias);
-    }
+//    public static SelectItem unaliasedName(String name)
+//    {
+//        return new SingleColumn(nameReference(name));
+//    }
+//
+//    public static SelectItem aliasedName(String name, String alias)
+//    {
+//        return new SingleColumn(nameReference(name), alias);
+//    }
 
     public static Select selectList(Expression... expressions)
     {
         ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
+        int index = 0;
         for (Expression expression : expressions) {
             items.add(new SingleColumn(expression));
+            index++;
         }
         return new Select(false, items.build());
     }
@@ -94,10 +96,10 @@ public final class QueryUtil
         return new AliasedRelation(relation, alias, columnAliases);
     }
 
-    public static SelectItem aliasedNullToEmpty(String column, String alias)
-    {
-        return new SingleColumn(new CoalesceExpression(nameReference(column), new StringLiteral("")), alias);
-    }
+//    public static SelectItem aliasedNullToEmpty(String column, String alias)
+//    {
+//        return new SingleColumn(new CoalesceExpression(nameReference(column), new StringLiteral("")), alias);
+//    }
 
     public static List<SortItem> ordering(SortItem... items)
     {

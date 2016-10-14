@@ -16,9 +16,9 @@ public class Analysis {
     List<Expression> selectExpressions = new ArrayList<>();
     List<String> selectExpressionAlias = new ArrayList<>();
 
-    public void addSelectItem(Expression expression) {
+    public void addSelectItem(Expression expression, String alias) {
         selectExpressions.add(expression);
-//        selectExpressionAlias.add(alias);
+        selectExpressionAlias.add(alias);
     }
 
     public DataSource getInto() {

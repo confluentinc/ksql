@@ -48,7 +48,8 @@ public class PhysicalPlanBuilder {
 
     private SchemaStream projectedSchemaStream(ProjectNode projectNode) throws Exception {
         SchemaStream filteredSchemaStream = buildFilter((FilterNode) projectNode.getSource());
-        SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getSchema());
+//        SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getSchema());
+        SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getProjectExpressions(), projectNode.getSchema());
         return projectedSchemaStream;
     }
 

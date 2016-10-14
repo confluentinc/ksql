@@ -81,7 +81,7 @@ public class QueryEngine {
 
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamExample1-GenericRow-Processor");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamExample1-GenericRow-Processor2");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 
         // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
@@ -120,7 +120,8 @@ public class QueryEngine {
         QueryEngine queryEngine = new QueryEngine();
 //        queryEngine.processQuery("SELECT timeField, idField, itemIdField, unitsField FROM ordersStream WHERE idField = 100".toLowerCase());
 //        queryEngine.processQuery("SELECT t1, unitsField INTO test FROM ordersStream WHERE idField = 100;".toUpperCase());
-        queryEngine.processQuery("SELECT ordertime, orderid, orderunits FROM orders WHERE NOT (orderunits > 5 AND orderunits < 8);".toUpperCase());
+//        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10 FROM orders WHERE NOT (orderunits > 5 AND orderunits < 8);".toUpperCase());
+        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
 
     }
 }

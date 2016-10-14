@@ -23,6 +23,8 @@ class AstBuilder
         extends SqlBaseBaseVisitor<Node>
 {
 
+    int selectItemIndex = 0;
+
     @Override public Node visitStatements(SqlBaseParser.StatementsContext context) {
         List<Statement> statementList = new ArrayList<>();
         for(SqlBaseParser.SingleStatementContext singleStatementContext: context.singleStatement()) {
@@ -283,9 +285,18 @@ class AstBuilder
     @Override
     public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context)
     {
+        Expression selectItemExpression = (Expression) visit(context.expression());
         Optional<String> alias = getTextIfPresent(context.identifier());
-
-        return new SingleColumn(getLocation(context), (Expression) visit(context.expression()), alias);
+        if(!alias.isPresent()) {
+            if(selectItemExpression instanceof QualifiedNameReference) {
+                QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) selectItemExpression;
+                alias = Optional.of(qualifiedNameReference.getName().getSuffix());
+            } else {
+                alias = Optional.of("KSQL_COL_" + selectItemIndex);
+            }
+        }
+        selectItemIndex++;
+        return new SingleColumn(getLocation(context), selectItemExpression, alias);
     }
 
     @Override

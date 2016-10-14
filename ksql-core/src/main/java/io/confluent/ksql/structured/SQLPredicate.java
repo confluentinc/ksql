@@ -17,7 +17,6 @@ import java.util.Map;
 public class SQLPredicate {
 
     Expression filterExpression;
-    final ComparisonExpression comparisonExpression;
     final Schema schema;
     // Now here's where the story begins...
     IExpressionEvaluator ee;
@@ -25,7 +24,6 @@ public class SQLPredicate {
 
     public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
         this.filterExpression = filterExpression;
-        this.comparisonExpression = null;
         this.schema = schema;
 
         ExpressionUtil expressionUtil = new ExpressionUtil();
@@ -47,25 +45,13 @@ public class SQLPredicate {
         ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
         // The expression will have two "int" parameters: "a" and "b".
-//        ee.setParameters(new String[] { "a", "b" }, new Class[] { int.class, int.class });
         ee.setParameters(parameterNames, parameterTypes);
 
         // And the expression (i.e. "result") type is also "int".
-//        ee.setExpressionType(int.class);
         ee.setExpressionType(boolean.class);
 
         // And now we "cook" (scan, parse, compile and load) the fabulous expression.
-//        ee.cook("a + b");
         ee.cook(expressionStr);
-
-        // Eventually we evaluate the expression - and that goes super-fast.
-//        int result = (Integer) ee.evaluate(new Object[] { 19, 23 });
-//        boolean result = (Boolean) ee.evaluate(new Object[] { 119, 23 });
-    }
-
-    public SQLPredicate(ComparisonExpression comparisonExpression, Schema schema) {
-        this.comparisonExpression = comparisonExpression;
-        this.schema = schema;
     }
 
     public Predicate getPredicate() {

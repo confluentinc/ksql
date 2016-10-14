@@ -65,12 +65,7 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
             }
             else if (selectItem instanceof SingleColumn) {
                 SingleColumn column = (SingleColumn) selectItem;
-                if(column.getExpression() instanceof QualifiedNameReference) {
-                    analysis.addSelectItem((QualifiedNameReference)column.getExpression());
-
-                } else {
-                    throw new RuntimeException("Only single column is supported. ");
-                }
+                analysis.addSelectItem(column.getExpression(), column.getAlias().get());
             }
             else {
                 throw new IllegalArgumentException("Unsupported SelectItem type: " + selectItem.getClass().getName());

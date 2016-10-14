@@ -6,6 +6,8 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.*;
+import io.confluent.ksql.planner.types.ExpressionTypeManager;
+import io.confluent.ksql.planner.types.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,18 +44,20 @@ public class LogicalPlanner
         List<SchemaField> projectionFields = new ArrayList<>();
         List<String> fieldNames = new ArrayList<>();
 
-        for(Expression expression: analysis.getSelectExpressions()) {
-            if(expression instanceof QualifiedNameReference) {
-                QualifiedNameReference qualifiedNameReference = (QualifiedNameReference)expression;
-                SchemaField schemaField = inputSchema.getFieldByName(qualifiedNameReference.getName().getSuffix());
-                if(schemaField == null) {
-                    throw new RuntimeException("Cannot find the select field in the available fields: "+qualifiedNameReference.getName().getSuffix());
-                }
-                projectionFields.add(schemaField.duplicate());
-                fieldNames.add(schemaField.getFieldName());
-            }
+        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
+        for(int i = 0; i < analysis.getSelectExpressions().size(); i++) {
+            Expression expression = analysis.getSelectExpressions().get(i);
+            String alias = analysis.getSelectExpressionAlias().get(i);
+
+            Type expressionType = expressionTypeManager.getExpressionType(expression);
+
+            SchemaField schemaField = new SchemaField(alias, expressionType);
+            projectionFields.add(schemaField.duplicate());
+            fieldNames.add(schemaField.getFieldName());
+
         }
-        return new ProjectNode(new PlanNodeId("Project"), sourcePlanNode, new Schema(projectionFields, fieldNames));
+
+        return new ProjectNode(new PlanNodeId("Project"), sourcePlanNode, new Schema(projectionFields, fieldNames), analysis.getSelectExpressions());
     }
 
     private FilterNode buildFilterNode(Schema inputSchema, PlanNode sourcePlanNode) {

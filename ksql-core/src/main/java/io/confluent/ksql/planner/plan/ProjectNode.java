@@ -33,20 +33,24 @@ public class ProjectNode
 {
     private final PlanNode source;
     private final Schema schema;
+    private final List<Expression> projectExpressions;
 
     // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
     @JsonCreator
     public ProjectNode(@JsonProperty("id") PlanNodeId id,
             @JsonProperty("source") PlanNode source,
-            @JsonProperty("schema") Schema schema)
+            @JsonProperty("schema") Schema schema,
+            @JsonProperty("projectExpressions") List<Expression> projectExpressions)
     {
         super(id);
 
         requireNonNull(source, "source is null");
         requireNonNull(schema, "schema is null");
+        requireNonNull(projectExpressions, "projectExpressions is null");
 
         this.source = source;
         this.schema = schema;
+        this.projectExpressions = projectExpressions;
     }
 
 
@@ -63,6 +67,10 @@ public class ProjectNode
     }
 
     public Schema getSchema() { return schema; }
+
+    public List<Expression> getProjectExpressions() {
+        return projectExpressions;
+    }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context)

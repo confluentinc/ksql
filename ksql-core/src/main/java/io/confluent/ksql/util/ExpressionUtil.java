@@ -3,10 +3,10 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.*;
-import io.confluent.ksql.planner.operators.BigintOperators;
-import io.confluent.ksql.planner.operators.DoubleOperators;
-import io.confluent.ksql.planner.operators.IntegerOperators;
-import io.confluent.ksql.planner.types.*;
+import io.confluent.ksql.planner.types.ExpressionTypeManager;
+import io.confluent.ksql.planner.types.Type;
+import org.codehaus.commons.compiler.CompilerFactoryFactory;
+import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +17,40 @@ public class ExpressionUtil {
         Visitor visitor = new Visitor(schema);
         visitor.process(expression, null);
         return visitor.parameterMap;
+    }
+
+    public Pair<IExpressionEvaluator, int[]> getExpressionEvaluator(Expression expression, Schema schema) throws Exception {
+        ExpressionUtil expressionUtil = new ExpressionUtil();
+        Map<String, Class> parameterMap = expressionUtil.getParameterInfo(expression, schema);
+
+        String[] parameterNames = new String[parameterMap.size()];
+        Class[] parameterTypes = new Class[parameterMap.size()];
+        int[] columnIndexes = new int[parameterMap.size()];
+
+        int index = 0;
+        for (String parameterName: parameterMap.keySet()) {
+            parameterNames[index] = parameterName;
+            parameterTypes[index] = parameterMap.get(parameterName);
+            columnIndexes[index] = schema.getFieldIndexByName(parameterName);
+            index++;
+        }
+
+        String expressionStr = expression.getCodegenString();
+        IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+
+        // The expression will have two "int" parameters: "a" and "b".
+        ee.setParameters(parameterNames, parameterTypes);
+
+        // And the expression (i.e. "result") type is also "int".
+        ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
+        Type expressionType = expressionTypeManager.getExpressionType(expression);
+
+        ee.setExpressionType(expressionType.getJavaType());
+
+        // And now we "cook" (scan, parse, compile and load) the fabulous expression.
+        ee.cook(expressionStr);
+
+        return new Pair<>(ee, columnIndexes);
     }
 
     private class Visitor

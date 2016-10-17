@@ -35,7 +35,7 @@ public class LogicalPlanner
         DataSource intoDataSource = analysis.getInto();
         if(intoDataSource instanceof KafkaTopic) {
             KafkaTopic kafkaTopic = (KafkaTopic) intoDataSource;
-            return new OutputKafkaTopicNode(new PlanNodeId("Output"), sourcePlanNode, inputSchema, kafkaTopic.getTopicName());
+            return new OutputKafkaTopicNode(new PlanNodeId(kafkaTopic.getTopicName()), sourcePlanNode, inputSchema, kafkaTopic.getTopicName());
         }
         throw new RuntimeException("INTO should be a kafka topic.");
     }

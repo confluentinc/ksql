@@ -40,15 +40,113 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 */
 	void exitSingleExpression(SqlBaseParser.SingleExpressionContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link SqlBaseParser#statement}.
+	 * Enter a parse tree produced by the {@code querystatement}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
 	 * @param ctx the parse tree
 	 */
-	void enterStatement(SqlBaseParser.StatementContext ctx);
+	void enterQuerystatement(SqlBaseParser.QuerystatementContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link SqlBaseParser#statement}.
+	 * Exit a parse tree produced by the {@code querystatement}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
 	 * @param ctx the parse tree
 	 */
-	void exitStatement(SqlBaseParser.StatementContext ctx);
+	void exitQuerystatement(SqlBaseParser.QuerystatementContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code showTables}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterShowTables(SqlBaseParser.ShowTablesContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code showTables}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitShowTables(SqlBaseParser.ShowTablesContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code showTopics}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterShowTopics(SqlBaseParser.ShowTopicsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code showTopics}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitShowTopics(SqlBaseParser.ShowTopicsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code showColumns}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterShowColumns(SqlBaseParser.ShowColumnsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code showColumns}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitShowColumns(SqlBaseParser.ShowColumnsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code printTopic}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrintTopic(SqlBaseParser.PrintTopicContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code printTopic}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrintTopic(SqlBaseParser.PrintTopicContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code showQueries}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterShowQueries(SqlBaseParser.ShowQueriesContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code showQueries}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitShowQueries(SqlBaseParser.ShowQueriesContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code terminateQuery}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterTerminateQuery(SqlBaseParser.TerminateQueryContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code terminateQuery}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitTerminateQuery(SqlBaseParser.TerminateQueryContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code setProperty}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterSetProperty(SqlBaseParser.SetPropertyContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code setProperty}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitSetProperty(SqlBaseParser.SetPropertyContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code loadProperties}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterLoadProperties(SqlBaseParser.LoadPropertiesContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code loadProperties}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitLoadProperties(SqlBaseParser.LoadPropertiesContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link SqlBaseParser#query}.
 	 * @param ctx the parse tree

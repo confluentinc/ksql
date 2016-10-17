@@ -42,7 +42,7 @@ class AstBuilder
         return statement;
     }
 
-    @Override public Node visitStatement(SqlBaseParser.StatementContext ctx) {
+    @Override public Node visitQuerystatement(SqlBaseParser.QuerystatementContext ctx) {
         Statement statement = (Statement) visitChildren(ctx);
         return statement;
     }
@@ -303,6 +303,39 @@ class AstBuilder
     public Node visitTable(SqlBaseParser.TableContext context)
     {
         return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+    }
+
+
+    @Override
+    public Node visitShowTables(SqlBaseParser.ShowTablesContext context)
+    {
+        return new ShowTables(
+                getLocation(context),
+                Optional.ofNullable(context.qualifiedName())
+                        .map(AstBuilder::getQualifiedName),
+                getTextIfPresent(context.pattern)
+                        .map(AstBuilder::unquote));
+    }
+
+    @Override
+    public Node visitShowTopics(SqlBaseParser.ShowTopicsContext context) {
+        return new ShowTopics(Optional.ofNullable(getLocation(context)));
+    }
+
+    @Override public Node visitShowQueries(SqlBaseParser.ShowQueriesContext context) {
+        return new ShowQueries(Optional.ofNullable(getLocation(context)));
+    }
+
+    @Override public Node visitTerminateQuery(SqlBaseParser.TerminateQueryContext context) {
+        return new TerminateQuery(getLocation(context), getQualifiedName(context.qualifiedName()));
+    }
+
+    @Override public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
+        return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
+    }
+
+    @Override public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
+        return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()));
     }
 
     @Override

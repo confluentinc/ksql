@@ -50,7 +50,6 @@ public class SchemaStream {
                     newColumns.add(row.getColumns().get(schema.getFieldIndexByName(schemaField.getFieldName())));
                 }
                 GenericRow newRow = new GenericRow(newColumns);
-                System.out.println(newRow.toString());
                 return new KeyValue<String, GenericRow>(key, newRow);
             }
         });
@@ -88,7 +87,6 @@ public class SchemaStream {
 
                 }
                 GenericRow newRow = new GenericRow(newColumns);
-                System.out.println(newRow.toString());
                 return new KeyValue<String, GenericRow>(key, newRow);
             }
         });

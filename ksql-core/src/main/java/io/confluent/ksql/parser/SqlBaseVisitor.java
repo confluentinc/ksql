@@ -31,11 +31,68 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSingleExpression(SqlBaseParser.SingleExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SqlBaseParser#statement}.
+	 * Visit a parse tree produced by the {@code querystatement}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitStatement(SqlBaseParser.StatementContext ctx);
+	T visitQuerystatement(SqlBaseParser.QuerystatementContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code showTables}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitShowTables(SqlBaseParser.ShowTablesContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code showTopics}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitShowTopics(SqlBaseParser.ShowTopicsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code showColumns}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitShowColumns(SqlBaseParser.ShowColumnsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code printTopic}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrintTopic(SqlBaseParser.PrintTopicContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code showQueries}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitShowQueries(SqlBaseParser.ShowQueriesContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code terminateQuery}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTerminateQuery(SqlBaseParser.TerminateQueryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code setProperty}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSetProperty(SqlBaseParser.SetPropertyContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code loadProperties}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLoadProperties(SqlBaseParser.LoadPropertiesContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#query}.
 	 * @param ctx the parse tree

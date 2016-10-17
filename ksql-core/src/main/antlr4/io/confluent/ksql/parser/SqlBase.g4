@@ -36,7 +36,15 @@ singleExpression
     ;
 
 statement
-    : query
+    : query                                                            #querystatement
+    | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
+    | SHOW TOPICS                                                      #showTopics
+    | DESCRIBE qualifiedName                                           #showColumns
+    | PRINT qualifiedName                                              #printTopic
+    | SHOW QUERIES                                                     #showQueries
+    | TERMINATE qualifiedName                                          #terminateQuery
+    | SET qualifiedName EQ expression                                  #setProperty
+    | LOAD expression                                                  #loadProperties
     ;
 
 query
@@ -494,6 +502,7 @@ DELETE: 'DELETE';
 INTO: 'INTO';
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
+PRINT: 'PRINT';
 GRANT: 'GRANT';
 REVOKE: 'REVOKE';
 PRIVILEGES: 'PRIVILEGES';
@@ -512,6 +521,10 @@ CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
 TABLES: 'TABLES';
+TOPICS: 'TOPICS';
+QUERIES: 'QUERIES';
+TERMINATE: 'TERMINATE';
+LOAD: 'LOAD';
 SCHEMAS: 'SCHEMAS';
 CATALOGS: 'CATALOGS';
 COLUMNS: 'COLUMNS';

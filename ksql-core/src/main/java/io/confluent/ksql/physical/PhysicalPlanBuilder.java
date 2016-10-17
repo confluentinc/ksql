@@ -24,6 +24,7 @@ public class PhysicalPlanBuilder {
 
     static Serde<GenericRow> genericRowSerde = null;
     KStreamBuilder builder;
+    OutputKafkaTopicNode planSink = null;
 
     public PhysicalPlanBuilder(KStreamBuilder builder) {
 
@@ -41,6 +42,7 @@ public class PhysicalPlanBuilder {
         if(outputNode instanceof OutputKafkaTopicNode) {
             OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)outputNode;
             SchemaStream resultSchemaStream = projectedSchemaStream.into(outputKafkaTopicNode.getKafkaTopicName());
+            this.planSink = outputKafkaTopicNode;
             return resultSchemaStream;
         }
         return null;
@@ -85,5 +87,13 @@ public class PhysicalPlanBuilder {
             genericRowSerde = Serdes.serdeFrom(genericRowSerializer,  genericRowDeserializer);
         }
         return genericRowSerde;
+    }
+
+    public KStreamBuilder getBuilder() {
+        return builder;
+    }
+
+    public OutputKafkaTopicNode getPlanSink() {
+        return planSink;
     }
 }

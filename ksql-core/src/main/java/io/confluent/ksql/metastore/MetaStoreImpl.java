@@ -1,6 +1,7 @@
 package io.confluent.ksql.metastore;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MetaStoreImpl implements MetaStore {
@@ -15,5 +16,10 @@ public class MetaStoreImpl implements MetaStore {
     @Override
     public void putSource(DataSource dataSource) {
         dataSourceMap.put(dataSource.getName(), dataSource);
+    }
+
+    @Override
+    public Map<String, DataSource> getAllDataSources() {
+        return dataSourceMap;
     }
 }

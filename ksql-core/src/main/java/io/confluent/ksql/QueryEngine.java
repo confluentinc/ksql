@@ -154,6 +154,8 @@ public class QueryEngine {
 
 //        queryEngine.processStatements("show queries; SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ; ".toUpperCase());
 //        queryEngine.processStatements("show queries".toUpperCase());
+//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
+//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE itemid = 'Item_5' ;".toUpperCase());
         queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
     }
 }

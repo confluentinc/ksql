@@ -41,7 +41,7 @@ public class SQLPredicate {
             index++;
         }
 
-        String expressionStr = filterExpression.getCodegenString();
+        String expressionStr = filterExpression.getCodegenString(schema);
         ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
         // The expression will have two "int" parameters: "a" and "b".

@@ -4,6 +4,9 @@ package io.confluent.ksql.parser;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.types.*;
+import io.confluent.ksql.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,96 +18,110 @@ public class CodegenExpressionFormatter {
 
     private CodegenExpressionFormatter() {}
 
-    public static String formatExpression(Expression expression)
+    static Schema schema;
+
+    public static String formatExpression(Expression expression, Schema schema)
     {
+        CodegenExpressionFormatter.schema = schema;
         return formatExpression(expression, true);
     }
 
     public static String formatExpression(Expression expression, boolean unmangleNames)
     {
-        return new CodegenExpressionFormatter.Formatter().process(expression, unmangleNames);
+        Pair<String, Type> expressionFormatterResult = new CodegenExpressionFormatter.Formatter().process(expression, unmangleNames);
+        return expressionFormatterResult.getLeft();
     }
+
+
     public static class Formatter
-            extends AstVisitor<String, Boolean>
+            extends AstVisitor<Pair<String, Type>, Boolean>
     {
         @Override
-        protected String visitNode(Node node, Boolean unmangleNames)
+        protected Pair<String, Type> visitNode(Node node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        protected String visitExpression(Expression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitExpression(Expression node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException(format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
-        protected String visitBooleanLiteral(BooleanLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitBooleanLiteral(BooleanLiteral node, Boolean unmangleNames)
         {
-            return String.valueOf(node.getValue());
+            return new Pair<>(String.valueOf(node.getValue()), BooleanType.BOOLEAN);
         }
 
         @Override
-        protected String visitStringLiteral(StringLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitStringLiteral(StringLiteral node, Boolean unmangleNames)
         {
-            return "'"+node.getValue()+"'";
+            return new Pair<>("\""+node.getValue()+"\"", StringType.STRING);
         }
 
         @Override
-        protected String visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames)
         {
-            return "X'" + node.toHexString() + "'";
+            throw new UnsupportedOperationException();
+//            return new Pair<>("X'" + node.toHexString() + "'", StringType.STRING);
         }
 
         @Override
-        protected String visitLongLiteral(LongLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitLongLiteral(LongLiteral node, Boolean unmangleNames)
         {
-            return Long.toString(node.getValue());
+            return new Pair<>(Long.toString(node.getValue()), LongType.LONG);
         }
 
         @Override
-        protected String visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames)
         {
-            return Double.toString(node.getValue());
+            return new Pair<>(Double.toString(node.getValue()), DoubleType.DOUBLE);
         }
 
         @Override
-        protected String visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames)
         {
-            return "DECIMAL '" + node.getValue() + "'";
+            throw new UnsupportedOperationException();
+//            return "DECIMAL '" + node.getValue() + "'";
         }
 
         @Override
-        protected String visitGenericLiteral(GenericLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitGenericLiteral(GenericLiteral node, Boolean unmangleNames)
         {
-            return node.getType() + " " + node.getValue();
+            throw new UnsupportedOperationException();
+//            return node.getType() + " " + node.getValue();
         }
 
         @Override
-        protected String visitNullLiteral(NullLiteral node, Boolean unmangleNames)
+        protected Pair<String, Type> visitNullLiteral(NullLiteral node, Boolean unmangleNames)
         {
-            return "null";
+            throw new UnsupportedOperationException();
+//            return new Pair<>("null", StringType.STRING);
         }
 
 
         @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
+        protected Pair<String, Type> visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
         {
-            return formatQualifiedName(node.getName());
+
+            // TODO: FInd the type from the schema.
+            return new Pair<>(formatQualifiedName(node.getName()), IntegerType.INTEGER);
         }
 
         @Override
-        protected String visitSymbolReference(SymbolReference node, Boolean context)
+        protected Pair<String, Type> visitSymbolReference(SymbolReference node, Boolean context)
         {
-            return formatIdentifier(node.getName());
+            // TODO: FInd the type from the schema.
+            return new Pair<>(formatIdentifier(node.getName()), StringType.STRING);
         }
 
         @Override
-        protected String visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
         {
-            String baseString = process(node.getBase(), unmangleNames);
-            return baseString + "." + formatIdentifier(node.getFieldName());
+            throw new UnsupportedOperationException();
+//            String baseString = process(node.getBase(), unmangleNames);
+//            return baseString + "." + formatIdentifier(node.getFieldName());
         }
 
         private static String formatQualifiedName(QualifiedName name)
@@ -117,133 +134,145 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        public String visitFieldReference(FieldReference node, Boolean unmangleNames)
+        public Pair<String, Type> visitFieldReference(FieldReference node, Boolean unmangleNames)
         {
+            throw new UnsupportedOperationException();
             // add colon so this won't parse
-            return ":input(" + node.getFieldIndex() + ")";
+//            return ":input(" + node.getFieldIndex() + ")";
         }
 
         @Override
-        protected String visitFunctionCall(FunctionCall node, Boolean unmangleNames)
+        protected Pair<String, Type> visitFunctionCall(FunctionCall node, Boolean unmangleNames)
         {
-            StringBuilder builder = new StringBuilder();
-
-            String arguments = joinExpressions(node.getArguments(), unmangleNames);
-            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
-                arguments = "*";
-            }
-            if (node.isDistinct()) {
-                arguments = "DISTINCT " + arguments;
-            }
-
-            builder.append(formatQualifiedName(node.getName()))
-                    .append('(').append(arguments).append(')');
-
-            if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
-            }
-
-            return builder.toString();
+//            StringBuilder builder = new StringBuilder();
+//
+//            String arguments = joinExpressions(node.getArguments(), unmangleNames);
+//            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
+//                arguments = "*";
+//            }
+//            if (node.isDistinct()) {
+//                arguments = "DISTINCT " + arguments;
+//            }
+//
+//            builder.append(formatQualifiedName(node.getName()))
+//                    .append('(').append(arguments).append(')');
+//
+//            if (node.getWindow().isPresent()) {
+//                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
+//            }
+//
+//            return builder.toString();
+            throw new UnsupportedOperationException();
         }
 
         @Override
-        protected String visitLogicalBinaryExpression(LogicalBinaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitLogicalBinaryExpression(LogicalBinaryExpression node, Boolean unmangleNames)
         {
             if(node.getType() == LogicalBinaryExpression.Type.OR) {
-                return formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames);
+                return new Pair<>(formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
             } else if(node.getType() == LogicalBinaryExpression.Type.AND) {
-                return formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames);
+                return new Pair<>(formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
             }
             throw new UnsupportedOperationException(format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
-        protected String visitNotExpression(NotExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitNotExpression(NotExpression node, Boolean unmangleNames)
         {
-            return "(! " + process(node.getValue(), unmangleNames) + ")";
+            throw new UnsupportedOperationException();
+//            return "(! " + process(node.getValue(), unmangleNames) + ")";
         }
 
         @Override
-        protected String visitComparisonExpression(ComparisonExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitComparisonExpression(ComparisonExpression node, Boolean unmangleNames)
         {
-            return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames);
+            return new Pair<>(formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
         }
 
         @Override
-        protected String visitIsNullPredicate(IsNullPredicate node, Boolean unmangleNames)
+        protected Pair<String, Type> visitIsNullPredicate(IsNullPredicate node, Boolean unmangleNames)
         {
-            return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
+            throw new UnsupportedOperationException();
+//            return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
         }
 
         @Override
-        protected String visitIsNotNullPredicate(IsNotNullPredicate node, Boolean unmangleNames)
+        protected Pair<String, Type> visitIsNotNullPredicate(IsNotNullPredicate node, Boolean unmangleNames)
         {
-            return "(" + process(node.getValue(), unmangleNames) + " == null)";
+            throw new UnsupportedOperationException();
+//            return "(" + process(node.getValue(), unmangleNames) + " == null)";
         }
 
         @Override
-        protected String visitArithmeticUnary(ArithmeticUnaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitArithmeticUnary(ArithmeticUnaryExpression node, Boolean unmangleNames)
         {
-            String value = process(node.getValue(), unmangleNames);
-
-            switch (node.getSign()) {
-                case MINUS:
-                    // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-                    String separator = value.startsWith("-") ? " " : "";
-                    return "-" + separator + value;
-                case PLUS:
-                    return "+" + value;
-                default:
-                    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
-            }
+            throw new UnsupportedOperationException();
+//            String value = process(node.getValue(), unmangleNames);
+//
+//            switch (node.getSign()) {
+//                case MINUS:
+//                    // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
+//                    String separator = value.startsWith("-") ? " " : "";
+//                    return "-" + separator + value;
+//                case PLUS:
+//                    return "+" + value;
+//                default:
+//                    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+//            }
         }
 
         @Override
-        protected String visitArithmeticBinary(ArithmeticBinaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Type> visitArithmeticBinary(ArithmeticBinaryExpression node, Boolean unmangleNames)
         {
-            return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames);
+            Pair<String, Type> left = process(node.getLeft(), unmangleNames);
+            Pair<String, Type> right = process(node.getRight(), unmangleNames);
+            return new Pair<>("(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")", DoubleType.DOUBLE);
+//            return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames);
         }
 
         @Override
-        protected String visitLikePredicate(LikePredicate node, Boolean unmangleNames)
+        protected Pair<String, Type> visitLikePredicate(LikePredicate node, Boolean unmangleNames)
         {
-            StringBuilder builder = new StringBuilder();
-
-            builder.append('(')
-                    .append(process(node.getValue(), unmangleNames))
-                    .append(" LIKE ")
-                    .append(process(node.getPattern(), unmangleNames));
-
-            if (node.getEscape() != null) {
-                builder.append(" ESCAPE ")
-                        .append(process(node.getEscape(), unmangleNames));
-            }
-
-            builder.append(')');
-
-            return builder.toString();
+            throw new UnsupportedOperationException();
+//            StringBuilder builder = new StringBuilder();
+//
+//            builder.append('(')
+//                    .append(process(node.getValue(), unmangleNames))
+//                    .append(" LIKE ")
+//                    .append(process(node.getPattern(), unmangleNames));
+//
+//            if (node.getEscape() != null) {
+//                builder.append(" ESCAPE ")
+//                        .append(process(node.getEscape(), unmangleNames));
+//            }
+//
+//            builder.append(')');
+//
+//            return builder.toString();
         }
 
         @Override
-        protected String visitAllColumns(AllColumns node, Boolean unmangleNames)
+        protected Pair<String, Type> visitAllColumns(AllColumns node, Boolean unmangleNames)
         {
-            if (node.getPrefix().isPresent()) {
-                return node.getPrefix().get() + ".*";
-            }
-
-            return "*";
+            throw new UnsupportedOperationException();
+//            if (node.getPrefix().isPresent()) {
+//                return node.getPrefix().get() + ".*";
+//            }
+//
+//            return "*";
         }
 
         @Override
-        protected String visitBetweenPredicate(BetweenPredicate node, Boolean unmangleNames)
+        protected Pair<String, Type> visitBetweenPredicate(BetweenPredicate node, Boolean unmangleNames)
         {
-            return "(" + process(node.getValue(), unmangleNames) + " BETWEEN " +
-                    process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(), unmangleNames) + ")";
+            throw new UnsupportedOperationException();
+//            return "(" + process(node.getValue(), unmangleNames) + " BETWEEN " +
+//                    process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(), unmangleNames) + ")";
         }
 
         private String formatBinaryExpression(String operator, Expression left, Expression right, boolean unmangleNames)
         {
-            return '(' + process(left, unmangleNames) + ' ' + operator + ' ' + process(right, unmangleNames) + ')';
+            return "(" + process(left, unmangleNames) + " " + operator + " " + process(right, unmangleNames) + ")";
         }
 
         private static String formatIdentifier(String s)

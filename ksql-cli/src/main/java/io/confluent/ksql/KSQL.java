@@ -49,7 +49,7 @@ public class KSQL {
             console = new ConsoleReader();
             console.setPrompt("ksql> ");
             console.println("KSQL 0.0.1");
-            console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where", "terminate", "exit", "describe", "topics", "queries"));
+            console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where", "terminate", "exit", "describe", "topics", "queries", "print"));
             String line = null;
             while ((line = console.readLine().toUpperCase()) != null) {
                 if (line.trim().toLowerCase().startsWith("exit")) {

@@ -15,6 +15,7 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.CodegenExpressionFormatter;
 import io.confluent.ksql.parser.ExpressionFormatter;
+import io.confluent.ksql.planner.Schema;
 
 import java.util.Optional;
 
@@ -41,8 +42,8 @@ public abstract class Expression
         return ExpressionFormatter.formatExpression(this);
     }
 
-    public final String getCodegenString()
+    public final String getCodegenString(Schema schema)
     {
-        return CodegenExpressionFormatter.formatExpression(this);
+        return CodegenExpressionFormatter.formatExpression(this, schema);
     }
 }

@@ -101,7 +101,7 @@ public class QueryEngine {
 
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamExample1-GenericRow-Processor2");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL_"+System.currentTimeMillis());
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 
         // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
@@ -153,6 +153,7 @@ public class QueryEngine {
 //        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ; show queries;".toUpperCase());
 
 //        queryEngine.processStatements("show queries; SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ; ".toUpperCase());
-        queryEngine.processStatements("show queries".toUpperCase());
+//        queryEngine.processStatements("show queries".toUpperCase());
+        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
     }
 }

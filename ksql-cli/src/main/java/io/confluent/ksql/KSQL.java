@@ -49,7 +49,7 @@ public class KSQL {
             console = new ConsoleReader();
             console.setPrompt("ksql> ");
             console.println("KSQL 0.0.1");
-            console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where"));
+            console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where", "terminate", "exit", "describe", "topics", "queries"));
             String line = null;
             while ((line = console.readLine().toUpperCase()) != null) {
                 if (line.trim().toLowerCase().startsWith("exit")) {
@@ -61,7 +61,9 @@ public class KSQL {
                     System.exit(0);
                 }
                 Statement statement = getSingleStatement(line);
-                processStatement(statement, line);
+                if(statement != null) {
+                    processStatement(statement, line);
+                }
             }
         } catch(IOException e) {
             e.printStackTrace();
@@ -96,7 +98,13 @@ public class KSQL {
             return;
         } else if (statement instanceof PrintTopic) {
             PrintTopic printTopic = (PrintTopic) statement;
-            printTopic(printTopic.getTopic().getSuffix());
+            DataSource dataSource = queryEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toLowerCase());
+            if(dataSource instanceof KafkaTopic) {
+                KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+                String topicsName = kafkaTopic.getTopicName();
+                printTopic(topicsName);
+            }
+
             return;
         } else if (statement instanceof SetProperty) {
 
@@ -114,15 +122,24 @@ public class KSQL {
         return statements;
     }
 
-    public Statement getSingleStatement(String statementString) {
+    public Statement getSingleStatement(String statementString) throws IOException {
         if (!statementString.endsWith(";")) {
             statementString = statementString + ";";
         }
-        List<Statement> statements = parseStatements(statementString);
-        if(statements.size() != 1) {
-            throw new KSQLException("KSQL CLI Processes one statement/command at a time.");
+        List<Statement> statements = null;
+        try {
+            statements = parseStatements(statementString);
+        } catch (Exception ex) {
         }
-        return statements.get(0);
+
+        if((statements == null) || (statements.size() != 1)) {
+//            throw new KSQLException("KSQL CLI Processes one statement/command at a time.");
+            console.println("KSQL CLI Processes one statement/command at a time.");
+            console.flush();
+            return null;
+        } else {
+            return statements.get(0);
+        }
     }
 
     private  void startQuery(String queryString, Query query) throws Exception {
@@ -162,7 +179,12 @@ public class KSQL {
         console.println("Available topics: ");
         console.println("---------------------");
         for(String datasourceName: allDataSources.keySet()) {
-            console.println(" "+datasourceName);
+            DataSource dataSource = allDataSources.get(datasourceName);
+            if(dataSource instanceof KafkaTopic) {
+                KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+                console.println(" "+datasourceName+"   | "+kafkaTopic.getTopicName());
+            }
+
         }
         console.println("---------------------");
         console.println("( "+allDataSources.size()+" rows)");
@@ -170,7 +192,7 @@ public class KSQL {
     }
 
     private void showColumns(String name) throws IOException {
-        DataSource dataSource = queryEngine.getMetaStore().getSource(name);
+        DataSource dataSource = queryEngine.getMetaStore().getSource(name.toLowerCase());
         if(dataSource == null) {
             console.println("Could not find topic "+name+" in the metastore!");
             console.flush();
@@ -200,7 +222,7 @@ public class KSQL {
     }
 
     private void printTopic(String topicName) {
-        new TopicPrinter().printGenericRowTopic(topicName);
+        new TopicPrinter().printGenericRowTopic(topicName, console);
     }
 
     private String getNextQueryId() {

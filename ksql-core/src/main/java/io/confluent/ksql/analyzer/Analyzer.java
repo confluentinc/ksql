@@ -29,9 +29,11 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
 
         process(node.getInto().get() , new AnalysisContext(null, AnalysisContext.ParentType.INTO));
         process(node.getFrom().get() , new AnalysisContext(null, AnalysisContext.ParentType.FROM));
-//        process(node.getWhere().get(), new AnalysisContext(null, AnalysisContext.ParentType.WHERE));
 
-        analyzeWhere(node.getWhere().get(), context);
+        if(node.getWhere().isPresent()) {
+            analyzeWhere(node.getWhere().get(), context);
+        }
+
         return null;
     }
 
@@ -43,11 +45,9 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
             KafkaTopic kafkaTopic = new KafkaTopic(node.getName().getSuffix(), null, DataSource.DataSourceType.STREAM, node.getName().getSuffix());
             analysis.setInto(kafkaTopic);
         } else if(context.getParentType().equals(AnalysisContext.ParentType.FROM)) {
-            analysis.getFromDataSources().add(metaStore.getSource(node.getName().getSuffix()));
+            analysis.getFromDataSources().add(metaStore.getSource(node.getName().getSuffix().toLowerCase()));
         }
 
-//        DataSource dataSource = metaStore.getSource(node.getName().getSuffix());
-//        KafkaTopic kafkaTopic = new KafkaTopic();
         return null;
     }
 

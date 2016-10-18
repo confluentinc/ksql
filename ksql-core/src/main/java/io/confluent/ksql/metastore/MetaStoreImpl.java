@@ -15,7 +15,7 @@ public class MetaStoreImpl implements MetaStore {
 
     @Override
     public void putSource(DataSource dataSource) {
-        dataSourceMap.put(dataSource.getName(), dataSource);
+        dataSourceMap.put(dataSource.getName().toLowerCase(), dataSource);
     }
 
     @Override

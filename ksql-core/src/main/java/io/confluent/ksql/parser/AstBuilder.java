@@ -182,25 +182,10 @@ class AstBuilder
             into = (Table) visitRelation(context.into);
         } else {
             // TODO: Generate a unique name
-            into = new Table(QualifiedName.of("Table_"+System.currentTimeMillis()));
+            into = new Table(QualifiedName.of("Stream_"+System.currentTimeMillis()));
         }
 
         Table from = (Table) visitRelation(context.from);
-//        Optional<Relation> from = Optional.empty();
-//
-//        List<Relation> relations = visit(context.relation(), Relation.class);
-////        List<Relation> relations = visit(context., Relation.class);
-//        if (!relations.isEmpty()) {
-//            // synthesize implicit join nodes
-//            Iterator<Relation> iterator = relations.iterator();
-//            Relation relation = iterator.next();
-//
-//            if (iterator.hasNext()) {
-//                relation = new Join(getLocation(context), Join.Type.IMPLICIT, relation, iterator.next(), Optional.<JoinCriteria>empty());
-//            }
-//
-//            from = Optional.of(relation);
-//        }
 
         return new QuerySpecification(
                 getLocation(context),

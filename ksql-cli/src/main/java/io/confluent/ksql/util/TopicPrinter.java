@@ -1,9 +1,11 @@
 package io.confluent.ksql.util;
 
 
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.JsonPOJODeserializer;
 import io.confluent.ksql.serde.JsonPOJOSerializer;
+import jline.console.ConsoleReader;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -14,13 +16,15 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class TopicPrinter {
 
     static Serde<GenericRow> genericRowSerde = null;
 
-    public void printGenericRowTopic(String topicName) {
+    public void printGenericRowTopic(String topicName, ConsoleReader console) {
 
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, topicName+"_"+System.currentTimeMillis());
@@ -33,7 +37,17 @@ public class TopicPrinter {
 
         KStream<String, GenericRow> source = builder.stream(Serdes.String(), getGenericRowSerde(), topicName);
 
-        source.print();
+        source.map(new KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>>() {
+            @Override
+            public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+                try {
+                    console.println(row.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return new KeyValue<String, GenericRow>(key, row);
+            }
+        });
 
         KafkaStreams streams = new KafkaStreams(builder, props);
         streams.start();
@@ -41,7 +55,7 @@ public class TopicPrinter {
         // usually the stream application would be running forever,
         // in this example we just let it run for some time and stop since the input data is finite.
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(1000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

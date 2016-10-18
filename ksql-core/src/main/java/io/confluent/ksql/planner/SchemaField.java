@@ -8,7 +8,7 @@ public class SchemaField {
     final Type fieldType;
 
     public SchemaField(String fieldName, Type fieldType) {
-        this.fieldName = fieldName;
+        this.fieldName = fieldName.toLowerCase();
         this.fieldType = fieldType;
     }
 

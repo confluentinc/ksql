@@ -7,6 +7,7 @@ import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.serde.JsonPOJODeserializer;
 import io.confluent.ksql.serde.JsonPOJOSerializer;
 import io.confluent.ksql.structured.SchemaStream;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -32,43 +33,59 @@ public class PhysicalPlanBuilder {
     }
 
     public SchemaStream buildPhysicalPlan(PlanNode logicalPlanRoot) throws Exception {
-        SchemaStream resultSchemaStream = resultsSchemaStream((OutputNode)logicalPlanRoot);
-//        resultSchemaStream.getkStream().
-        return resultSchemaStream;
+        return kafkaStreamsDSL(logicalPlanRoot);
     }
 
-    private SchemaStream resultsSchemaStream(OutputNode outputNode) throws Exception {
-        SchemaStream projectedSchemaStream = projectedSchemaStream((ProjectNode)outputNode.getSource());
+    private SchemaStream kafkaStreamsDSL(PlanNode planNode) throws Exception {
+        if(planNode instanceof SourceNode) {
+            return buildSource((SourceNode) planNode);
+        } else if (planNode instanceof ProjectNode) {
+            ProjectNode projectNode = (ProjectNode) planNode;
+            SchemaStream projectedSchemaStream = projectedSchemaStream(projectNode);
+            return projectedSchemaStream;
+        } else if (planNode instanceof FilterNode) {
+            FilterNode filterNode = (FilterNode) planNode;
+            SchemaStream filteredSchemaStream = buildFilter(filterNode);
+            return filteredSchemaStream;
+        } else if (planNode instanceof OutputNode) {
+            OutputNode outputNode = (OutputNode) planNode;
+            SchemaStream outputSchemaStream = buildOutput(outputNode);
+            return outputSchemaStream;
+        }
+        throw new KSQLException("Unsupported logical plan node: "+planNode.getId()+" , Type: "+planNode.getClass().getName());
+    }
+
+    private SchemaStream buildOutput(OutputNode outputNode) throws Exception {
+        SchemaStream schemaStream = kafkaStreamsDSL(outputNode.getSource());
         if(outputNode instanceof OutputKafkaTopicNode) {
             OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)outputNode;
-            SchemaStream resultSchemaStream = projectedSchemaStream.into(outputKafkaTopicNode.getKafkaTopicName());
+            SchemaStream resultSchemaStream = schemaStream.into(outputKafkaTopicNode.getKafkaTopicName());
             this.planSink = outputKafkaTopicNode;
             return resultSchemaStream;
         }
-        return null;
+        throw new KSQLException("Unsupported output logical node: "+outputNode.getClass().getName());
     }
 
     private SchemaStream projectedSchemaStream(ProjectNode projectNode) throws Exception {
-        SchemaStream filteredSchemaStream = buildFilter((FilterNode) projectNode.getSource());
-//        SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getSchema());
-        SchemaStream projectedSchemaStream = filteredSchemaStream.select(projectNode.getProjectExpressions(), projectNode.getSchema());
+        SchemaStream schemaStream = kafkaStreamsDSL(projectNode.getSource());
+        SchemaStream projectedSchemaStream = schemaStream.select(projectNode.getProjectExpressions(), projectNode.getSchema());
         return projectedSchemaStream;
     }
 
 
     private SchemaStream buildFilter(FilterNode filterNode) throws Exception {
-        SchemaStream sourceSchemaStream = buildSource((SourceNode)filterNode.getSource());
-        SchemaStream filteredSchemaStream = sourceSchemaStream.filter(filterNode.getPredicate());
+        SchemaStream schemaStream = kafkaStreamsDSL(filterNode.getSource());
+        SchemaStream filteredSchemaStream = schemaStream.filter(filterNode.getPredicate());
         return filteredSchemaStream;
     }
 
-    private  SchemaStream buildSource(SourceNode sourceNode) {
+    private SchemaStream buildSource(SourceNode sourceNode) {
         if(sourceNode instanceof SourceKafkaTopicNode) {
             SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode) sourceNode;
             KStream kStream = builder.stream(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
             return new SchemaStream(sourceKafkaTopicNode.getSchema(), kStream);
         }
-        return null;
+        throw new KSQLException("Unsupported source logical node: "+sourceNode.getClass().getName());
     }
 
 

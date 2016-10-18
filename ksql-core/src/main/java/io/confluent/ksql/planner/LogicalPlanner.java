@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LogicalPlanner
-//        extends DefaultTraversalVisitor<RelationPlan, Void>
 {
 
     Analysis analysis;
@@ -25,8 +24,12 @@ public class LogicalPlanner
     public PlanNode buildPlan() {
 
         SourceNode sourceNode = buildSourceNode();
-        FilterNode filterNode = buildFilterNode(sourceNode.getSchema(), sourceNode);
-        ProjectNode projectNode = buildProjectNode(filterNode.getSchema(), filterNode);
+        PlanNode currentNode = sourceNode;
+        if(analysis.getWhereExpression() != null) {
+            FilterNode filterNode = buildFilterNode(currentNode.getSchema(), currentNode);
+            currentNode = filterNode;
+        }
+        ProjectNode projectNode = buildProjectNode(currentNode.getSchema(), currentNode);
         OutputNode outputNode = buildOutputNode(projectNode.getSchema(), projectNode);
         return outputNode;
     }

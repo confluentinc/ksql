@@ -8,4 +8,9 @@ public class LongType extends AbstractType {
     {
         super(long.class);
     }
+
+    @Override
+    public String getTypeName() {
+        return "LONG";
+    }
 }

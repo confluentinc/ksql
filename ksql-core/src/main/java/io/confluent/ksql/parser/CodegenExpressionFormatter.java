@@ -5,7 +5,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.SchemaField;
 import io.confluent.ksql.planner.types.*;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 
 import java.util.ArrayList;
@@ -104,16 +106,23 @@ public class CodegenExpressionFormatter {
         @Override
         protected Pair<String, Type> visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
         {
-
-            // TODO: FInd the type from the schema.
-            return new Pair<>(formatQualifiedName(node.getName()), IntegerType.INTEGER);
+            String fieldName = formatQualifiedName(node.getName());
+            SchemaField schemaField = schema.getFieldByName(fieldName);
+            if(schemaField == null) {
+                throw new KSQLException("Field not found: "+schemaField.getFieldName());
+            }
+            return new Pair<>(fieldName, schemaField.getFieldType());
         }
 
         @Override
         protected Pair<String, Type> visitSymbolReference(SymbolReference node, Boolean context)
         {
-            // TODO: FInd the type from the schema.
-            return new Pair<>(formatIdentifier(node.getName()), StringType.STRING);
+            String fieldName = formatIdentifier(node.getName());
+            SchemaField schemaField = schema.getFieldByName(fieldName);
+            if(schemaField == null) {
+                throw new KSQLException("Field not found: "+schemaField.getFieldName());
+            }
+            return new Pair<>(fieldName, schemaField.getFieldType());
         }
 
         @Override
@@ -186,7 +195,18 @@ public class CodegenExpressionFormatter {
         @Override
         protected Pair<String, Type> visitComparisonExpression(ComparisonExpression node, Boolean unmangleNames)
         {
-            return new Pair<>(formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
+            Pair<String, Type> left = process(node.getLeft(), unmangleNames);
+            Pair<String, Type> right = process(node.getRight(), unmangleNames);
+            if ((left.getRight() == StringType.STRING) || (right.getRight() == StringType.STRING)) {
+                if(node.getType().getValue().equals("=")) {
+                    return new Pair<>(left.getLeft()+".equalsIgnoreCase("+right.getLeft()+")", BooleanType.BOOLEAN);
+                }
+            }
+            String typeStr = node.getType().getValue();
+            if (typeStr.equalsIgnoreCase("=")) {
+                typeStr = "==";
+            }
+            return new Pair<>("("+left.getLeft()+" "+typeStr+" "+right.getLeft()+")", BooleanType.BOOLEAN);
         }
 
         @Override

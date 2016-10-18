@@ -10,4 +10,8 @@ public class BooleanType extends AbstractType {
 
     }
 
+    @Override
+    public String getTypeName() {
+        return "BOOLEAN";
+    }
 }

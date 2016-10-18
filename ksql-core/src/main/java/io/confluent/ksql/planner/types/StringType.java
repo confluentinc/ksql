@@ -8,4 +8,9 @@ public class StringType extends AbstractType {
     {
         super(String.class);
     }
+
+    @Override
+    public String getTypeName() {
+        return "STRING";
+    }
 }

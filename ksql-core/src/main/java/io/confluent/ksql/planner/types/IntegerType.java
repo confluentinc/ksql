@@ -8,4 +8,9 @@ public class IntegerType extends AbstractType {
     {
         super(int.class);
     }
+
+    @Override
+    public String getTypeName() {
+        return "INTEGER";
+    }
 }

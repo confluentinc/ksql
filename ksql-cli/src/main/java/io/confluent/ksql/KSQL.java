@@ -59,6 +59,9 @@ public class KSQL {
                     console.flush();
                     console.close();
                     System.exit(0);
+                } else if (line.trim().toLowerCase().startsWith("help")) {
+                    printCommandList();
+                    continue;
                 }
                 Statement statement = getSingleStatement(line);
                 if(statement != null) {
@@ -142,6 +145,20 @@ public class KSQL {
         }
     }
 
+    private void printCommandList() throws IOException {
+        console.println("KSQL cli commands: ");
+        console.println("------------------------------------------------------------------------------------ ");
+        console.println("show topics           .................... Show the list of available topics/streams.");
+        console.println("describe <topic name> .................... Show the schema of the given topic/stream.");
+        console.println("show queries          .................... Show the list of running queries.");
+        console.println("print <topic name>    .................... Print the content of a given topic/stream.");
+        console.println("terminate <query id>  .................... Terminate the running query with the given id.");
+        console.println();
+        console.println("For more information refer to www.ksql.confluent.io");
+        console.println();
+        console.flush();
+    }
+
     private  void startQuery(String queryString, Query query) throws Exception {
         Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = queryEngine.processQuery(query);
         String queryId = getNextQueryId();
@@ -176,17 +193,17 @@ public class KSQL {
             console.println("No topic is available.");
             return;
         }
-        console.println("Available topics: ");
-        console.println("---------------------");
+        console.println("        KSQL topic          |       Corresponding Kafka topic     ");
+        console.println("----------------------------+-------------------------------------");
         for(String datasourceName: allDataSources.keySet()) {
             DataSource dataSource = allDataSources.get(datasourceName);
             if(dataSource instanceof KafkaTopic) {
                 KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
-                console.println(" "+datasourceName+"   | "+kafkaTopic.getTopicName());
+                console.println(" "+padRight(datasourceName, 27)+"|  "+padRight(kafkaTopic.getTopicName(),26));
             }
 
         }
-        console.println("---------------------");
+        console.println("----------------------------+-------------------------------------");
         console.println("( "+allDataSources.size()+" rows)");
         console.flush();
     }
@@ -201,8 +218,9 @@ public class KSQL {
         console.println("      Column       |         Type         |                   Comment                   ");
         console.println("-------------------+----------------------+---------------------------------------------");
         for(SchemaField schemaField: dataSource.getSchema().getSchemaFields()) {
-            console.println(padRight(schemaField.getFieldName(), 19)+"|  "+padRight(schemaField.getFieldType().getJavaType().getName(), 18)+"  |");
+            console.println(padRight(schemaField.getFieldName(), 19)+"|  "+padRight(schemaField.getFieldType().getTypeName(), 18)+"  |");
         }
+        console.println("-------------------+----------------------+---------------------------------------------");
         console.println("( "+dataSource.getSchema().getSchemaFields().size()+" rows)");
         console.flush();
     }
@@ -211,11 +229,11 @@ public class KSQL {
         console.println("Running queries: ");
         console.println(" Query ID   |         Query                                                                    |         Query Sink Topic");
         for(String queryId: liveQueries.keySet()) {
-            console.println("------------+--------------------------------------------------------------------------------+------------------------");
+            console.println("------------+----------------------------------------------------------------------------------+------------------------");
             Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = liveQueries.get(queryId);
             console.println(padRight(queryId, 12)+"|   "+padRight(queryInfo.getFirst(), 80)+"|   "+queryInfo.getThird().getKafkaTopicName());
         }
-        console.println("---------------------------------------------------------------------");
+        console.println("------------+----------------------------------------------------------------------------------+------------------------");
         console.println("( "+liveQueries.size()+" rows)");
         console.flush();
 

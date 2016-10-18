@@ -13,6 +13,8 @@ public interface Type {
      */
     boolean isOrderable();
 
+    String getTypeName();
+
     /**
      * Gets the Java class type used to represent this value on the stack during
      * expression execution. This value is used to determine which method should

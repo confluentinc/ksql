@@ -1,6 +1,7 @@
 package io.confluent.ksql;
 
 
+import io.confluent.ksql.ddl.DDLEngine;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -35,7 +36,7 @@ import java.util.Properties;
 
 public class KSQL {
 
-    QueryEngine queryEngine = new QueryEngine();
+    KSQLEngine ksqlEngine = new KSQLEngine();
     Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
     static final String queryIdPrefix = "ksql_";
     int queryIdCounter = 0;
@@ -83,6 +84,12 @@ public class KSQL {
         if (statement instanceof Query) {
             startQuery(statementStr, (Query) statement);
             return;
+        } else if (statement instanceof CreateTable) {
+            ksqlEngine.getDdlEngine().createTopic((CreateTable) statement);
+            return;
+        } else if (statement instanceof DropTable) {
+            ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
+            return;
         } else if (statement instanceof ShowQueries) {
             showQueries();
             return;
@@ -101,7 +108,7 @@ public class KSQL {
             return;
         } else if (statement instanceof PrintTopic) {
             PrintTopic printTopic = (PrintTopic) statement;
-            DataSource dataSource = queryEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toLowerCase());
+            DataSource dataSource = ksqlEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toLowerCase());
             if(dataSource instanceof KafkaTopic) {
                 KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
                 String topicsName = kafkaTopic.getTopicName();
@@ -121,7 +128,7 @@ public class KSQL {
         if (!statementString.endsWith(";")) {
             statementString = statementString + ";";
         }
-        List<Statement> statements = queryEngine.getStatements(statementString);
+        List<Statement> statements = ksqlEngine.getStatements(statementString);
         return statements;
     }
 
@@ -160,14 +167,14 @@ public class KSQL {
     }
 
     private  void startQuery(String queryString, Query query) throws Exception {
-        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = queryEngine.processQuery(query);
+        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(query);
         String queryId = getNextQueryId();
         Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = new Triplet<>(queryString, queryPairInfo.getLeft(), queryPairInfo.getRight());
         liveQueries.put(queryId , queryInfo);
         KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema().duplicate(), DataSource.DataSourceType.STREAM, queryInfo.getThird().getKafkaTopicName());
-        queryEngine.getMetaStore().putSource(kafkaTopic);
+        ksqlEngine.getMetaStore().putSource(kafkaTopic);
         console.println("Added the result topic to the metastore:");
-        console.println("Topic count: "+queryEngine.getMetaStore().getAllDataSources().size());
+        console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
         console.println("");
     }
 
@@ -187,7 +194,7 @@ public class KSQL {
     }
 
     private void showTables() throws IOException {
-        MetaStore metaStore = queryEngine.getMetaStore();
+        MetaStore metaStore = ksqlEngine.getMetaStore();
         Map<String, DataSource> allDataSources = metaStore.getAllDataSources();
         if (allDataSources.isEmpty()) {
             console.println("No topic is available.");
@@ -209,7 +216,7 @@ public class KSQL {
     }
 
     private void showColumns(String name) throws IOException {
-        DataSource dataSource = queryEngine.getMetaStore().getSource(name.toLowerCase());
+        DataSource dataSource = ksqlEngine.getMetaStore().getSource(name.toLowerCase());
         if(dataSource == null) {
             console.println("Could not find topic "+name+" in the metastore!");
             console.flush();

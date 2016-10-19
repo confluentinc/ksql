@@ -157,6 +157,8 @@ public class QueryEngine {
 //        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
 //        queryEngine.processStatements("SELECT ordertime AS timeValue, itemid, orderid, orderunits*10+5 FROM orders WHERE itemid = 'Item_5' ;".toUpperCase());
 //        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
-        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits = 5 ;".toUpperCase());
+//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits = 5 ;".toUpperCase());
+
+        queryEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
     }
 }

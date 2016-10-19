@@ -94,6 +94,20 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLoadProperties(SqlBaseParser.LoadPropertiesContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code createTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCreateTable(SqlBaseParser.CreateTableContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code dropTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDropTable(SqlBaseParser.DropTableContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#query}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

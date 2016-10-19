@@ -45,6 +45,10 @@ statement
     | TERMINATE qualifiedName                                          #terminateQuery
     | SET qualifiedName EQ expression                                  #setProperty
     | LOAD expression                                                  #loadProperties
+    | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
+            '(' tableElement (',' tableElement)* ')'
+            (WITH tableProperties)?                                    #createTable
+    | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTable
     ;
 
 query
@@ -495,6 +499,8 @@ RECURSIVE: 'RECURSIVE';
 VALUES: 'VALUES';
 CREATE: 'CREATE';
 TABLE: 'TABLE';
+TOPIC: 'TOPIC';
+STREAM: 'STREAM';
 VIEW: 'VIEW';
 REPLACE: 'REPLACE';
 INSERT: 'INSERT';

@@ -103,6 +103,17 @@ class AstBuilder
         return new Isolation(getLocation(context), Isolation.Level.SERIALIZABLE);
     }
 
+    @Override
+    public Node visitCreateTable(SqlBaseParser.CreateTableContext context)
+    {
+        return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()), visit(context.tableElement(), TableElement.class), context.EXISTS() != null, processTableProperties(context.tableProperties()));
+    }
+
+    @Override
+    public Node visitDropTable(SqlBaseParser.DropTableContext context)
+    {
+        return new DropTable(getLocation(context), getQualifiedName(context.qualifiedName()), context.EXISTS() != null);
+    }
 
     // ********************** query expressions ********************
 

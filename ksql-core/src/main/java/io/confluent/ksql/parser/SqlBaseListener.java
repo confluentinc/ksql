@@ -148,6 +148,30 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 */
 	void exitLoadProperties(SqlBaseParser.LoadPropertiesContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code createTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreateTable(SqlBaseParser.CreateTableContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code createTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreateTable(SqlBaseParser.CreateTableContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code dropTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterDropTable(SqlBaseParser.DropTableContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code dropTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitDropTable(SqlBaseParser.DropTableContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link SqlBaseParser#query}.
 	 * @param ctx the parse tree
 	 */

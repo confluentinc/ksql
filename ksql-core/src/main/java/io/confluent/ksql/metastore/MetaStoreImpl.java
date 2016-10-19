@@ -19,6 +19,11 @@ public class MetaStoreImpl implements MetaStore {
     }
 
     @Override
+    public void deleteSource(String sourceName) {
+        dataSourceMap.remove(sourceName);
+    }
+
+    @Override
     public Map<String, DataSource> getAllDataSources() {
         return dataSourceMap;
     }

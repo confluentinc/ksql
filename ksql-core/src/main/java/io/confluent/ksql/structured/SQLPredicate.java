@@ -1,11 +1,8 @@
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.ExpressionUtil;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -17,12 +14,11 @@ import java.util.Map;
 public class SQLPredicate {
 
     Expression filterExpression;
-    final Schema schema;
-    // Now here's where the story begins...
+    final KSQLSchema schema;
     IExpressionEvaluator ee;
     int[] columnIndexes;
 
-    public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
+    public SQLPredicate(Expression filterExpression, KSQLSchema schema) throws Exception {
         this.filterExpression = filterExpression;
         this.schema = schema;
 

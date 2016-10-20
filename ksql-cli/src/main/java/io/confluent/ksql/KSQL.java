@@ -1,37 +1,24 @@
 package io.confluent.ksql;
 
 
-import io.confluent.ksql.ddl.DDLEngine;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.physical.PhysicalPlanBuilder;
-import io.confluent.ksql.planner.SchemaField;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
-import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TopicPrinter;
 import io.confluent.ksql.util.Triplet;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
-import kafka.consumer.KafkaStream;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 
 public class KSQL {
@@ -44,8 +31,6 @@ public class KSQL {
     ConsoleReader console = null;
 
     public void startConsole() throws Exception {
-        KafkaStreams kafkaStreams = null;
-        KafkaStreams printKafkaStreams = null;
         try {
             console = new ConsoleReader();
             console.setPrompt("ksql> ");
@@ -54,6 +39,10 @@ public class KSQL {
             String line = null;
             while ((line = console.readLine().toUpperCase()) != null) {
                 if (line.trim().toLowerCase().startsWith("exit")) {
+                    // Close all running queries first!
+                    for (String runningQueryId: liveQueries.keySet()) {
+                        liveQueries.get(runningQueryId).getSecond().close();
+                    }
                     console.println("");
                     console.println("Goodbye!");
                     console.println("");
@@ -167,11 +156,11 @@ public class KSQL {
     }
 
     private  void startQuery(String queryString, Query query) throws Exception {
-        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(query);
+        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(query, ksqlEngine.metaStore);
         String queryId = getNextQueryId();
         Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = new Triplet<>(queryString, queryPairInfo.getLeft(), queryPairInfo.getRight());
         liveQueries.put(queryId , queryInfo);
-        KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema().duplicate(), DataSource.DataSourceType.STREAM, queryInfo.getThird().getKafkaTopicName());
+        KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(), DataSource.DataSourceType.STREAM, queryInfo.getThird().getKafkaTopicName());
         ksqlEngine.getMetaStore().putSource(kafkaTopic);
         console.println("Added the result topic to the metastore:");
         console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
@@ -224,11 +213,11 @@ public class KSQL {
         }
         console.println("      Column       |         Type         |                   Comment                   ");
         console.println("-------------------+----------------------+---------------------------------------------");
-        for(SchemaField schemaField: dataSource.getSchema().getSchemaFields()) {
-            console.println(padRight(schemaField.getFieldName(), 19)+"|  "+padRight(schemaField.getFieldType().getTypeName(), 18)+"  |");
+        for(Field schemaField: dataSource.getKSQLSchema().fields()) {
+            console.println(padRight(schemaField.name(), 19)+"|  "+padRight(schemaField.schema().type().getName(), 18)+"  |");
         }
         console.println("-------------------+----------------------+---------------------------------------------");
-        console.println("( "+dataSource.getSchema().getSchemaFields().size()+" rows)");
+        console.println("( "+dataSource.getKSQLSchema().fields().size()+" rows)");
         console.flush();
     }
 

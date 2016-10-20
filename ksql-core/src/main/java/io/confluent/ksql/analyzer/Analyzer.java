@@ -6,13 +6,9 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.DefaultTraversalVisitor;
-import io.confluent.ksql.planner.Schema;
-import io.confluent.ksql.planner.plan.SourceNode;
+import io.confluent.ksql.planner.KSQLSchema;
 
-import java.util.List;
-import java.util.Optional;
-
-public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
+public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContext> {
 
     Analysis analysis;
     MetaStore metaStore;
@@ -23,7 +19,7 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
     }
 
     @Override
-    protected Schema visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
+    protected KSQLSchema visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
 
         process(node.getSelect() , new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
 
@@ -38,9 +34,8 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
     }
 
     @Override
-    protected Schema visitTable(Table node, AnalysisContext context) {
+    protected KSQLSchema visitTable(Table node, AnalysisContext context) {
 
-        System.out.println(node.getName().getSuffix());
         if(context.getParentType() == AnalysisContext.ParentType.INTO) {
             KafkaTopic kafkaTopic = new KafkaTopic(node.getName().getSuffix(), null, DataSource.DataSourceType.STREAM, node.getName().getSuffix());
             analysis.setInto(kafkaTopic);
@@ -53,7 +48,7 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
 
 
     @Override
-    protected Schema visitSelect(Select node, AnalysisContext context)
+    protected KSQLSchema visitSelect(Select node, AnalysisContext context)
     {
         ImmutableList.Builder<Expression> outputExpressionBuilder = ImmutableList.builder();
 
@@ -76,7 +71,7 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
     }
 
     @Override
-    protected Schema visitQualifiedNameReference(QualifiedNameReference node, AnalysisContext context)
+    protected KSQLSchema visitQualifiedNameReference(QualifiedNameReference node, AnalysisContext context)
     {
         return visitExpression(node, context);
     }

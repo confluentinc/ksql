@@ -2,27 +2,25 @@ package io.confluent.ksql.parser;
 
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.Schema;
-import io.confluent.ksql.planner.SchemaField;
-import io.confluent.ksql.planner.types.*;
+import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
 public class CodegenExpressionFormatter {
 
     private CodegenExpressionFormatter() {}
 
-    static Schema schema;
+    static KSQLSchema schema;
 
-    public static String formatExpression(Expression expression, Schema schema)
+    public static String formatExpression(Expression expression, KSQLSchema schema)
     {
         CodegenExpressionFormatter.schema = schema;
         return formatExpression(expression, true);
@@ -30,73 +28,73 @@ public class CodegenExpressionFormatter {
 
     public static String formatExpression(Expression expression, boolean unmangleNames)
     {
-        Pair<String, Type> expressionFormatterResult = new CodegenExpressionFormatter.Formatter().process(expression, unmangleNames);
+        Pair<String, Schema.Type> expressionFormatterResult = new CodegenExpressionFormatter.Formatter().process(expression, unmangleNames);
         return expressionFormatterResult.getLeft();
     }
 
 
     public static class Formatter
-            extends AstVisitor<Pair<String, Type>, Boolean>
+            extends AstVisitor<Pair<String, Schema.Type>, Boolean>
     {
         @Override
-        protected Pair<String, Type> visitNode(Node node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitNode(Node node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        protected Pair<String, Type> visitExpression(Expression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitExpression(Expression node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException(format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
-        protected Pair<String, Type> visitBooleanLiteral(BooleanLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitBooleanLiteral(BooleanLiteral node, Boolean unmangleNames)
         {
-            return new Pair<>(String.valueOf(node.getValue()), BooleanType.BOOLEAN);
+            return new Pair<>(String.valueOf(node.getValue()), Schema.Type.BOOLEAN);
         }
 
         @Override
-        protected Pair<String, Type> visitStringLiteral(StringLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitStringLiteral(StringLiteral node, Boolean unmangleNames)
         {
-            return new Pair<>("\""+node.getValue()+"\"", StringType.STRING);
+            return new Pair<>("\""+node.getValue()+"\"", Schema.Type.STRING);
         }
 
         @Override
-        protected Pair<String, Type> visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return new Pair<>("X'" + node.toHexString() + "'", StringType.STRING);
         }
 
         @Override
-        protected Pair<String, Type> visitLongLiteral(LongLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitLongLiteral(LongLiteral node, Boolean unmangleNames)
         {
-            return new Pair<>(Long.toString(node.getValue()), LongType.LONG);
+            return new Pair<>(Long.toString(node.getValue()), Schema.Type.INT64);
         }
 
         @Override
-        protected Pair<String, Type> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames)
         {
-            return new Pair<>(Double.toString(node.getValue()), DoubleType.DOUBLE);
+            return new Pair<>(Double.toString(node.getValue()), Schema.Type.FLOAT64);
         }
 
         @Override
-        protected Pair<String, Type> visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return "DECIMAL '" + node.getValue() + "'";
         }
 
         @Override
-        protected Pair<String, Type> visitGenericLiteral(GenericLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitGenericLiteral(GenericLiteral node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return node.getType() + " " + node.getValue();
         }
 
         @Override
-        protected Pair<String, Type> visitNullLiteral(NullLiteral node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitNullLiteral(NullLiteral node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return new Pair<>("null", StringType.STRING);
@@ -104,29 +102,29 @@ public class CodegenExpressionFormatter {
 
 
         @Override
-        protected Pair<String, Type> visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
         {
             String fieldName = formatQualifiedName(node.getName());
-            SchemaField schemaField = schema.getFieldByName(fieldName);
+            Field schemaField = schema.getFieldByName(fieldName);
             if(schemaField == null) {
-                throw new KSQLException("Field not found: "+schemaField.getFieldName());
+                throw new KSQLException("Field not found: "+schemaField.name());
             }
-            return new Pair<>(fieldName, schemaField.getFieldType());
+            return new Pair<>(fieldName, schemaField.schema().type());
         }
 
         @Override
-        protected Pair<String, Type> visitSymbolReference(SymbolReference node, Boolean context)
+        protected Pair<String, Schema.Type> visitSymbolReference(SymbolReference node, Boolean context)
         {
             String fieldName = formatIdentifier(node.getName());
-            SchemaField schemaField = schema.getFieldByName(fieldName);
+            Field schemaField = schema.getFieldByName(fieldName);
             if(schemaField == null) {
-                throw new KSQLException("Field not found: "+schemaField.getFieldName());
+                throw new KSQLException("Field not found: "+schemaField.name());
             }
-            return new Pair<>(fieldName, schemaField.getFieldType());
+            return new Pair<>(fieldName, schemaField.schema().type());
         }
 
         @Override
-        protected Pair<String, Type> visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            String baseString = process(node.getBase(), unmangleNames);
@@ -143,7 +141,7 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        public Pair<String, Type> visitFieldReference(FieldReference node, Boolean unmangleNames)
+        public Pair<String, Schema.Type> visitFieldReference(FieldReference node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
             // add colon so this won't parse
@@ -151,7 +149,7 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        protected Pair<String, Type> visitFunctionCall(FunctionCall node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitFunctionCall(FunctionCall node, Boolean unmangleNames)
         {
 //            StringBuilder builder = new StringBuilder();
 //
@@ -175,56 +173,56 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        protected Pair<String, Type> visitLogicalBinaryExpression(LogicalBinaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitLogicalBinaryExpression(LogicalBinaryExpression node, Boolean unmangleNames)
         {
             if(node.getType() == LogicalBinaryExpression.Type.OR) {
-                return new Pair<>(formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
+                return new Pair<>(formatBinaryExpression(" || ", node.getLeft(), node.getRight(), unmangleNames), Schema.Type.BOOLEAN);
             } else if(node.getType() == LogicalBinaryExpression.Type.AND) {
-                return new Pair<>(formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames), BooleanType.BOOLEAN);
+                return new Pair<>(formatBinaryExpression(" && ", node.getLeft(), node.getRight(), unmangleNames), Schema.Type.BOOLEAN);
             }
             throw new UnsupportedOperationException(format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
-        protected Pair<String, Type> visitNotExpression(NotExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitNotExpression(NotExpression node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return "(! " + process(node.getValue(), unmangleNames) + ")";
         }
 
         @Override
-        protected Pair<String, Type> visitComparisonExpression(ComparisonExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitComparisonExpression(ComparisonExpression node, Boolean unmangleNames)
         {
-            Pair<String, Type> left = process(node.getLeft(), unmangleNames);
-            Pair<String, Type> right = process(node.getRight(), unmangleNames);
-            if ((left.getRight() == StringType.STRING) || (right.getRight() == StringType.STRING)) {
+            Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
+            Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
+            if ((left.getRight() == Schema.Type.STRING) || (right.getRight() == Schema.Type.STRING)) {
                 if(node.getType().getValue().equals("=")) {
-                    return new Pair<>(left.getLeft()+".equalsIgnoreCase("+right.getLeft()+")", BooleanType.BOOLEAN);
+                    return new Pair<>(left.getLeft()+".equalsIgnoreCase("+right.getLeft()+")", Schema.Type.BOOLEAN);
                 }
             }
             String typeStr = node.getType().getValue();
             if (typeStr.equalsIgnoreCase("=")) {
                 typeStr = "==";
             }
-            return new Pair<>("("+left.getLeft()+" "+typeStr+" "+right.getLeft()+")", BooleanType.BOOLEAN);
+            return new Pair<>("("+left.getLeft()+" "+typeStr+" "+right.getLeft()+")", Schema.Type.BOOLEAN);
         }
 
         @Override
-        protected Pair<String, Type> visitIsNullPredicate(IsNullPredicate node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitIsNullPredicate(IsNullPredicate node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
         }
 
         @Override
-        protected Pair<String, Type> visitIsNotNullPredicate(IsNotNullPredicate node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitIsNotNullPredicate(IsNotNullPredicate node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return "(" + process(node.getValue(), unmangleNames) + " == null)";
         }
 
         @Override
-        protected Pair<String, Type> visitArithmeticUnary(ArithmeticUnaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitArithmeticUnary(ArithmeticUnaryExpression node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            String value = process(node.getValue(), unmangleNames);
@@ -242,16 +240,16 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        protected Pair<String, Type> visitArithmeticBinary(ArithmeticBinaryExpression node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitArithmeticBinary(ArithmeticBinaryExpression node, Boolean unmangleNames)
         {
-            Pair<String, Type> left = process(node.getLeft(), unmangleNames);
-            Pair<String, Type> right = process(node.getRight(), unmangleNames);
-            return new Pair<>("(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")", DoubleType.DOUBLE);
+            Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
+            Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
+            return new Pair<>("(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")", Schema.Type.FLOAT64);
 //            return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames);
         }
 
         @Override
-        protected Pair<String, Type> visitLikePredicate(LikePredicate node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitLikePredicate(LikePredicate node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            StringBuilder builder = new StringBuilder();
@@ -272,7 +270,7 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        protected Pair<String, Type> visitAllColumns(AllColumns node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitAllColumns(AllColumns node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            if (node.getPrefix().isPresent()) {
@@ -283,7 +281,7 @@ public class CodegenExpressionFormatter {
         }
 
         @Override
-        protected Pair<String, Type> visitBetweenPredicate(BetweenPredicate node, Boolean unmangleNames)
+        protected Pair<String, Schema.Type> visitBetweenPredicate(BetweenPredicate node, Boolean unmangleNames)
         {
             throw new UnsupportedOperationException();
 //            return "(" + process(node.getValue(), unmangleNames) + " BETWEEN " +

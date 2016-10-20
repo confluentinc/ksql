@@ -1,25 +1,20 @@
 package io.confluent.ksql.physical;
 
 
-import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.planner.Schema;
 import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.serde.JsonPOJODeserializer;
 import io.confluent.ksql.serde.JsonPOJOSerializer;
 import io.confluent.ksql.structured.SchemaStream;
 import io.confluent.ksql.util.KSQLException;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 public class PhysicalPlanBuilder {
 

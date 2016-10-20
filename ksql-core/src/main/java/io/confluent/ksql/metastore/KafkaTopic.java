@@ -1,13 +1,13 @@
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.KSQLSchema;
 
 public class KafkaTopic extends AbstractDataSource {
 
     final String topicName;
 
-    public KafkaTopic(String datasourceName, Schema schema, DataSourceType dataSourceType, String topicName) {
-        super(datasourceName, schema, dataSourceType);
+    public KafkaTopic(String datasourceName, KSQLSchema ksqlSchema, DataSourceType dataSourceType, String topicName) {
+        super(datasourceName, ksqlSchema, dataSourceType);
         this.topicName = topicName;
     }
 
@@ -17,8 +17,8 @@ public class KafkaTopic extends AbstractDataSource {
     }
 
     @Override
-    public Schema getSchema() {
-        return this.schema;
+    public KSQLSchema getKSQLSchema() {
+        return this.ksqlSchema;
     }
 
     @Override

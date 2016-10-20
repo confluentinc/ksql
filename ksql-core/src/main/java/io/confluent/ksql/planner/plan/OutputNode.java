@@ -15,9 +15,8 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.KSQLSchema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
@@ -29,12 +28,12 @@ public abstract class OutputNode
         extends PlanNode
 {
     private final PlanNode source;
-    private final Schema schema;
+    private final KSQLSchema schema;
 
     @JsonCreator
     protected OutputNode(@JsonProperty("id") PlanNodeId id,
                       @JsonProperty("source") PlanNode source,
-                      @JsonProperty("schema")Schema schema)
+                      @JsonProperty("schema")KSQLSchema schema)
     {
         super(id);
 
@@ -46,7 +45,7 @@ public abstract class OutputNode
     }
 
     @Override
-    public Schema getSchema() {
+    public KSQLSchema getSchema() {
         return this.schema;
     }
 

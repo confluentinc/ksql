@@ -1,8 +1,5 @@
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.planner.Schema;
-
-import java.util.List;
 import java.util.Map;
 
 public interface MetaStore {

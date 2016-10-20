@@ -1,32 +1,33 @@
-package io.confluent.ksql.planner.types;
+package io.confluent.ksql.util;
 
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.planner.PlanException;
-import io.confluent.ksql.planner.Schema;
-import io.confluent.ksql.planner.SchemaField;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 public class ExpressionTypeManager extends DefaultASTVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-    final Schema schema;
+    final KSQLSchema schema;
 
-    public ExpressionTypeManager(Schema schema) {
+    public ExpressionTypeManager(KSQLSchema schema) {
         this.schema = schema;
     }
 
-    public Type getExpressionType(Expression expression) {
+    public Schema.Type getExpressionType(Expression expression) {
         ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
         process(expression, expressionTypeContext);
         return expressionTypeContext.getType();
     }
 
     class ExpressionTypeContext {
-        Type type;
+        Schema.Type type;
 
-        public Type getType() {
+        public Schema.Type getType() {
             return type;
         }
 
-        public void setType(Type type) {
+        public void setType(Schema.Type type) {
             this.type = type;
         }
     }
@@ -35,9 +36,9 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
     protected Expression visitArithmeticBinary(ArithmeticBinaryExpression node, ExpressionTypeContext expressionTypeContext)
     {
         process(node.getLeft(), expressionTypeContext);
-        Type leftType = expressionTypeContext.getType();
+        Schema.Type leftType = expressionTypeContext.getType();
         process(node.getRight(), expressionTypeContext);
-        Type rightType = expressionTypeContext.getType();
+        Schema.Type rightType = expressionTypeContext.getType();
         expressionTypeContext.setType(resolveArithmaticType(leftType, rightType));
         return null;
     }
@@ -45,31 +46,31 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
     @Override
     protected Expression visitComparisonExpression(ComparisonExpression node, ExpressionTypeContext expressionTypeContext)
     {
-        expressionTypeContext.setType(BooleanType.BOOLEAN);
+        expressionTypeContext.setType(Schema.Type.BOOLEAN);
         return null;
     }
 
     @Override
     protected Expression visitQualifiedNameReference(QualifiedNameReference node, ExpressionTypeContext expressionTypeContext)
     {
-        SchemaField schemaField = schema.getFieldByName(node.getName().getSuffix());
-        expressionTypeContext.setType(schemaField.getFieldType());
+        Field schemaField = schema.getFieldByName(node.getName().getSuffix());
+        expressionTypeContext.setType(schemaField.schema().type());
         return null;
     }
 
-    private Type resolveArithmaticType(Type leftType, Type rightType) {
+    private Schema.Type resolveArithmaticType(Schema.Type leftType, Schema.Type rightType) {
         if(leftType == rightType) {
             return  leftType;
-        } else if((leftType == StringType.STRING) || (rightType == StringType.STRING)) {
+        } else if((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING)) {
             throw new PlanException("Incompatible types.");
-        } else if((leftType == BooleanType.BOOLEAN) || (rightType == BooleanType.BOOLEAN)) {
+        } else if((leftType == Schema.Type.BOOLEAN) || (rightType == Schema.Type.BOOLEAN)) {
             throw new PlanException("Incompatible types.");
-        } else if((leftType == DoubleType.DOUBLE) || (rightType == DoubleType.DOUBLE)) {
-            return DoubleType.DOUBLE;
-        } else if((leftType == LongType.LONG) || (rightType == LongType.LONG)) {
-            return LongType.LONG;
-        } else if((leftType == IntegerType.INTEGER) || (rightType == IntegerType.INTEGER)) {
-            return IntegerType.INTEGER;
+        } else if((leftType == Schema.Type.FLOAT64) || (rightType == Schema.Type.FLOAT64)) {
+            return Schema.Type.FLOAT64;
+        } else if((leftType == Schema.Type.INT64) || (rightType == Schema.Type.INT64)) {
+            return Schema.Type.INT64;
+        } else if((leftType == Schema.Type.INT32) || (rightType == Schema.Type.INT32)) {
+            return Schema.Type.INT32;
         }
 
         throw new PlanException("Unsupported types.");

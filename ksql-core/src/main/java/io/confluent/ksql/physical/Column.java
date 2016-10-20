@@ -1,12 +1,12 @@
 package io.confluent.ksql.physical;
 
-import io.confluent.ksql.planner.types.Type;
+import org.apache.kafka.connect.data.Schema;
 
 public class Column {
     public final String name;
-    public final Type type;
+    public final Schema.Type type;
 
-    public Column(String name, Type type) {
+    public Column(String name, Schema.Type type) {
         this.name = name;
         this.type = type;
     }

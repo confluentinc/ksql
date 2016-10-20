@@ -1,7 +1,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.KSQLSchema;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public abstract class PlanNode {
         return id;
     }
 
-    public abstract Schema getSchema();
+    public abstract KSQLSchema getSchema();
 
     public abstract List<PlanNode> getSources();
 

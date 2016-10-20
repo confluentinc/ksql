@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.planner.Schema;
+import io.confluent.ksql.planner.KSQLSchema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
@@ -28,7 +28,7 @@ public class FilterNode
 {
     private final PlanNode source;
     private final Expression predicate;
-    private final Schema schema;
+    private final KSQLSchema schema;
 
     @JsonCreator
     public FilterNode(@JsonProperty("id") PlanNodeId id,
@@ -38,7 +38,7 @@ public class FilterNode
         super(id);
 
         this.source = source;
-        this.schema = source.getSchema().duplicate();
+        this.schema = source.getSchema();
         this.predicate = predicate;
     }
 
@@ -49,7 +49,7 @@ public class FilterNode
     }
 
     @Override
-    public Schema getSchema() { return this.schema; }
+    public KSQLSchema getSchema() { return this.schema; }
 
     @Override
     public List<PlanNode> getSources()

@@ -1,13 +1,13 @@
 package io.confluent.ksql.metastore;
 
 
-import io.confluent.ksql.planner.KSQLSchema;
+import org.apache.kafka.connect.data.Schema;
 
 public interface DataSource {
 
     public static enum DataSourceType {STREAM, TABLE};
 
     public String getName();
-    public KSQLSchema getKSQLSchema();
+    public Schema getSchema();
     public DataSourceType getDataSourceType();
 }

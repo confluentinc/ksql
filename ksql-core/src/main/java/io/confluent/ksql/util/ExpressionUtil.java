@@ -13,13 +13,13 @@ import java.util.Map;
 
 public class ExpressionUtil {
 
-    public Map<String, Class> getParameterInfo(Expression expression, KSQLSchema schema) {
+    public Map<String, Class> getParameterInfo(Expression expression, Schema schema) {
         Visitor visitor = new Visitor(schema);
         visitor.process(expression, null);
         return visitor.parameterMap;
     }
 
-    public Pair<IExpressionEvaluator, int[]> getExpressionEvaluator(Expression expression, KSQLSchema schema) throws Exception {
+    public Pair<IExpressionEvaluator, int[]> getExpressionEvaluator(Expression expression, Schema schema) throws Exception {
         ExpressionUtil expressionUtil = new ExpressionUtil();
         Map<String, Class> parameterMap = expressionUtil.getParameterInfo(expression, schema);
 
@@ -31,7 +31,7 @@ public class ExpressionUtil {
         for (String parameterName: parameterMap.keySet()) {
             parameterNames[index] = parameterName;
             parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = schema.getFieldIndexByName(parameterName);
+            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
             index++;
         }
 
@@ -45,7 +45,7 @@ public class ExpressionUtil {
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
         Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
 
-        ee.setExpressionType(getJavaType(expressionType));
+        ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
         // And now we "cook" (scan, parse, compile and load) the fabulous expression.
         ee.cook(expressionStr);
@@ -53,29 +53,13 @@ public class ExpressionUtil {
         return new Pair<>(ee, columnIndexes);
     }
 
-    public Class getJavaType(Schema.Type type) {
-        if(type == Schema.Type.BOOLEAN) {
-            return Boolean.class;
-        } else if(type == Schema.Type.INT32) {
-            return Integer.class;
-        } else if(type == Schema.Type.INT64) {
-            return Long.class;
-        } else if(type == Schema.Type.FLOAT64) {
-            return Double.class;
-        } else if(type == Schema.Type.STRING) {
-            return String.class;
-        }
-        throw new KSQLException("Type is not supported: "+type);
-    }
-
-
     private class Visitor
             extends AstVisitor<Object, Object> {
 
-        final KSQLSchema schema;
+        final Schema schema;
         final Map<String, Class> parameterMap;
 
-        Visitor(KSQLSchema schema) {
+        Visitor(Schema schema) {
             this.schema = schema;
             this.parameterMap = new HashMap<>();
         }
@@ -109,11 +93,11 @@ public class ExpressionUtil {
 
         @Override
         protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
-            Field schemaField = schema.getFieldByName(node.getName().getSuffix());
+            Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
             if (schemaField == null) {
                 throw new RuntimeException("Cannot find the select field in the available fields: " + node.getName().getSuffix());
             }
-            parameterMap.put(schemaField.name(), getJavaType(schemaField.schema().type()));
+            parameterMap.put(schemaField.name(), SchemaUtil.getJavaType(schemaField.schema().type()));
             return null;
         }
     }

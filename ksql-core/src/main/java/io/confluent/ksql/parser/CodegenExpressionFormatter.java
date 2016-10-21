@@ -3,9 +3,9 @@ package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -18,9 +18,10 @@ public class CodegenExpressionFormatter {
 
     private CodegenExpressionFormatter() {}
 
-    static KSQLSchema schema;
+    static Schema schema;
 
-    public static String formatExpression(Expression expression, KSQLSchema schema)
+
+    public static String formatExpression(Expression expression, Schema schema)
     {
         CodegenExpressionFormatter.schema = schema;
         return formatExpression(expression, true);
@@ -105,7 +106,7 @@ public class CodegenExpressionFormatter {
         protected Pair<String, Schema.Type> visitQualifiedNameReference(QualifiedNameReference node, Boolean unmangleNames)
         {
             String fieldName = formatQualifiedName(node.getName());
-            Field schemaField = schema.getFieldByName(fieldName);
+            Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
             if(schemaField == null) {
                 throw new KSQLException("Field not found: "+schemaField.name());
             }
@@ -116,7 +117,7 @@ public class CodegenExpressionFormatter {
         protected Pair<String, Schema.Type> visitSymbolReference(SymbolReference node, Boolean context)
         {
             String fieldName = formatIdentifier(node.getName());
-            Field schemaField = schema.getFieldByName(fieldName);
+            Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
             if(schemaField == null) {
                 throw new KSQLException("Field not found: "+schemaField.name());
             }

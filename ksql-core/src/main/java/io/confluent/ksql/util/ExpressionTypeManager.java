@@ -1,16 +1,16 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.planner.PlanException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class ExpressionTypeManager extends DefaultASTVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-    final KSQLSchema schema;
+    final Schema schema;
+    SchemaUtil schemaUtil = new SchemaUtil();
 
-    public ExpressionTypeManager(KSQLSchema schema) {
+    public ExpressionTypeManager(Schema schema) {
         this.schema = schema;
     }
 
@@ -53,7 +53,7 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
     @Override
     protected Expression visitQualifiedNameReference(QualifiedNameReference node, ExpressionTypeContext expressionTypeContext)
     {
-        Field schemaField = schema.getFieldByName(node.getName().getSuffix());
+        Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
         expressionTypeContext.setType(schemaField.schema().type());
         return null;
     }

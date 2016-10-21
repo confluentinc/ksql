@@ -7,10 +7,10 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +27,11 @@ public class DDLEngine {
 
         String topicName = createTable.getName().getSuffix();
 
+        SchemaBuilder topicSchema = SchemaBuilder.struct();
         List<Field> topicSchemaFields = new ArrayList<>();
-        for (int i = 0; i < createTable.getElements().size(); i++) {
-            TableElement tableElement = createTable.getElements().get(i);
-            Field schemaField = new Field(tableElement.getName(), i, getKSQLType(tableElement.getType()));
-            topicSchemaFields.add(schemaField);
+        for (TableElement tableElement: createTable.getElements()) {
+            topicSchema = topicSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
         }
-
-        KSQLSchema topicSchema = new KSQLSchema(org.apache.kafka.connect.data.Schema.Type.STRUCT, false, null, "orders", 0, "", null, topicSchemaFields, null, null);
 
         // Create the topic in Kafka
 

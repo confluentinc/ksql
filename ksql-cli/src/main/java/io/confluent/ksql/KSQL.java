@@ -23,10 +23,16 @@ import java.util.Map;
 
 public class KSQL {
 
-    KSQLEngine ksqlEngine = new KSQLEngine();
+    KSQLEngine ksqlEngine;
     Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
     static final String queryIdPrefix = "ksql_";
+
+    public static final String SCHEMA_FILE_PATH = "schema_path";
+
+
     int queryIdCounter = 0;
+
+    Map<String, String> cliProperties = null;
 
     ConsoleReader console = null;
 
@@ -213,11 +219,11 @@ public class KSQL {
         }
         console.println("      Column       |         Type         |                   Comment                   ");
         console.println("-------------------+----------------------+---------------------------------------------");
-        for(Field schemaField: dataSource.getKSQLSchema().fields()) {
+        for(Field schemaField: dataSource.getSchema().fields()) {
             console.println(padRight(schemaField.name(), 19)+"|  "+padRight(schemaField.schema().type().getName(), 18)+"  |");
         }
         console.println("-------------------+----------------------+---------------------------------------------");
-        console.println("( "+dataSource.getKSQLSchema().fields().size()+" rows)");
+        console.println("( "+dataSource.getSchema().fields().size()+" rows)");
         console.flush();
     }
 
@@ -248,12 +254,44 @@ public class KSQL {
     public static String padRight(String s, int n) {
         return String.format("%1$-" + n + "s", s);
     }
-    private KSQL() {}
+    private KSQL(Map<String, String> cliProperties) throws IOException {
+        this.cliProperties = cliProperties;
+        ksqlEngine = new KSQLEngine(cliProperties.get(SCHEMA_FILE_PATH));
+        System.out.println(cliProperties.get(SCHEMA_FILE_PATH));
+    }
+
+    public static void printUsageFromatMessage() {
+
+        System.err.println("Incorrect format: ");
+        System.err.println("Usage: ");
+        System.err.println(" ksql "+SCHEMA_FILE_PATH+"=<path to schema json file> ");
+    }
 
     public static void main(String[] args)
             throws Exception
     {
-        new KSQL().startConsole();
+        Map<String, String> cliProperties = new HashMap<>();
+
+        // For now only pne parameter for CLI
+        if(args.length != 1) {
+            printUsageFromatMessage();
+            System.exit(0);
+        }
+        for (String propertyStr:args) {
+            if(!propertyStr.contains("=")) {
+                printUsageFromatMessage();
+                System.exit(0);
+            }
+        }
+
+        String[] schemaPathProperty = args[0].split("=");
+        if(!schemaPathProperty[0].equalsIgnoreCase(SCHEMA_FILE_PATH)) {
+            printUsageFromatMessage();
+        }
+        cliProperties.put(schemaPathProperty[0], schemaPathProperty[1]);
+
+        System.out.println(cliProperties.get(SCHEMA_FILE_PATH));
+        new KSQL(cliProperties).startConsole();
     }
 
 }

@@ -2,8 +2,9 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.ExpressionUtil;
+import io.confluent.ksql.util.SchemaUtil;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -14,11 +15,11 @@ import java.util.Map;
 public class SQLPredicate {
 
     Expression filterExpression;
-    final KSQLSchema schema;
+    final Schema schema;
     IExpressionEvaluator ee;
     int[] columnIndexes;
 
-    public SQLPredicate(Expression filterExpression, KSQLSchema schema) throws Exception {
+    public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
         this.filterExpression = filterExpression;
         this.schema = schema;
 
@@ -33,7 +34,7 @@ public class SQLPredicate {
         for (String parameterName: parameterMap.keySet()) {
             parameterNames[index] = parameterName;
             parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = schema.getFieldIndexByName(parameterName);
+            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
             index++;
         }
 

@@ -5,11 +5,13 @@ import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +38,7 @@ public class LogicalPlanner
         return outputNode;
     }
 
-    private OutputNode buildOutputNode(KSQLSchema inputSchema, PlanNode sourcePlanNode) {
+    private OutputNode buildOutputNode(Schema inputSchema, PlanNode sourcePlanNode) {
         DataSource intoDataSource = analysis.getInto();
         if(intoDataSource instanceof KafkaTopic) {
             KafkaTopic kafkaTopic = (KafkaTopic) intoDataSource;
@@ -45,30 +47,26 @@ public class LogicalPlanner
         throw new RuntimeException("INTO should be a kafka topic.");
     }
 
-    private ProjectNode buildProjectNode(KSQLSchema inputSchema, PlanNode sourcePlanNode) {
+    private ProjectNode buildProjectNode(Schema inputSchema, PlanNode sourcePlanNode) {
         List<Field> projectionFields = new ArrayList<>();
         List<String> fieldNames = new ArrayList<>();
 
+        SchemaBuilder projectionSchema = SchemaBuilder.struct();
         ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
-        SchemaUtil schemaUtil = new SchemaUtil();
         for(int i = 0; i < analysis.getSelectExpressions().size(); i++) {
             Expression expression = analysis.getSelectExpressions().get(i);
             String alias = analysis.getSelectExpressionAlias().get(i);
 
             Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
 
-            Field schemaField = new Field(alias, i, schemaUtil.getTypeSchema(expressionType));
-            projectionFields.add(schemaField);
-            fieldNames.add(schemaField.name());
+            projectionSchema = projectionSchema.field(alias, SchemaUtil.getTypeSchema(expressionType));
 
         }
-
-        KSQLSchema projectionSchema = new KSQLSchema(Schema.Type.STRUCT, false, null, "Project", 0, "", null, projectionFields, null, null);
 
         return new ProjectNode(new PlanNodeId("Project"), sourcePlanNode, projectionSchema, analysis.getSelectExpressions());
     }
 
-    private FilterNode buildFilterNode(KSQLSchema inputSchema, PlanNode sourcePlanNode) {
+    private FilterNode buildFilterNode(Schema inputSchema, PlanNode sourcePlanNode) {
 
         Expression filterExpression = analysis.getWhereExpression();
         return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
@@ -76,7 +74,7 @@ public class LogicalPlanner
 
     private SourceNode buildSourceNode() {
         DataSource fromDataSource = analysis.getFromDataSources().get(0);
-        KSQLSchema fromSchema = fromDataSource.getKSQLSchema();
+        Schema fromSchema = fromDataSource.getSchema();
         if(fromDataSource instanceof KafkaTopic) {
             KafkaTopic fromKafkaTopic = (KafkaTopic) fromDataSource;
             return new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic"),fromSchema, fromKafkaTopic.getTopicName());

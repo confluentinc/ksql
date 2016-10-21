@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.planner.KSQLSchema;
+import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
@@ -30,14 +30,14 @@ public class ProjectNode
         extends PlanNode
 {
     private final PlanNode source;
-    private final KSQLSchema schema;
+    private final Schema schema;
     private final List<Expression> projectExpressions;
 
     // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
     @JsonCreator
     public ProjectNode(@JsonProperty("id") PlanNodeId id,
             @JsonProperty("source") PlanNode source,
-            @JsonProperty("schema") KSQLSchema schema,
+            @JsonProperty("schema") Schema schema,
             @JsonProperty("projectExpressions") List<Expression> projectExpressions)
     {
         super(id);
@@ -64,7 +64,7 @@ public class ProjectNode
         return source;
     }
 
-    public KSQLSchema getSchema() { return schema; }
+    public Schema getSchema() { return schema; }
 
     public List<Expression> getProjectExpressions() {
         return projectExpressions;

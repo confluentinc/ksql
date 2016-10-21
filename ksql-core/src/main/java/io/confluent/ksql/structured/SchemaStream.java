@@ -3,11 +3,12 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
-import io.confluent.ksql.planner.KSQLSchema;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
@@ -18,10 +19,10 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class SchemaStream {
-    final KSQLSchema schema;
+    final Schema schema;
     final KStream kStream;
 
-    public SchemaStream(KSQLSchema schema, KStream kStream) {
+    public SchemaStream(Schema schema, KStream kStream) {
         this.schema = schema;
         this.kStream = kStream;
     }
@@ -38,14 +39,14 @@ public class SchemaStream {
         return new SchemaStream(schema, filteredKStream);
     }
 
-    public SchemaStream select(KSQLSchema selectSchema) {
+    public SchemaStream select(Schema selectSchema) {
 
         KStream projectedKStream = kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>>() {
             @Override
             public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
                 List<Object> newColumns = new ArrayList();
                 for(Field schemaField : selectSchema.fields()) {
-                    newColumns.add(row.getColumns().get(schema.getFieldIndexByName(schemaField.name())));
+                    newColumns.add(row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name())));
                 }
                 GenericRow newRow = new GenericRow(newColumns);
                 return new KeyValue<String, GenericRow>(key, newRow);
@@ -55,7 +56,7 @@ public class SchemaStream {
         return new SchemaStream(selectSchema, projectedKStream);
     }
 
-    public SchemaStream select(List<Expression> expressions, KSQLSchema selectSchema) throws Exception {
+    public SchemaStream select(List<Expression> expressions, Schema selectSchema) throws Exception {
         ExpressionUtil expressionUtil = new ExpressionUtil();
         // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
         // TODO: Only use code get when we have real expression.
@@ -93,7 +94,7 @@ public class SchemaStream {
     }
 
 
-    public KSQLSchema getSchema() {
+    public Schema getSchema() {
         return schema;
     }
 

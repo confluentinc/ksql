@@ -6,9 +6,9 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.DefaultTraversalVisitor;
-import io.confluent.ksql.planner.KSQLSchema;
+import org.apache.kafka.connect.data.Schema;
 
-public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContext> {
+public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
 
     Analysis analysis;
     MetaStore metaStore;
@@ -19,7 +19,7 @@ public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContex
     }
 
     @Override
-    protected KSQLSchema visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
+    protected Schema visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
 
         process(node.getSelect() , new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
 
@@ -34,7 +34,7 @@ public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContex
     }
 
     @Override
-    protected KSQLSchema visitTable(Table node, AnalysisContext context) {
+    protected Schema visitTable(Table node, AnalysisContext context) {
 
         if(context.getParentType() == AnalysisContext.ParentType.INTO) {
             KafkaTopic kafkaTopic = new KafkaTopic(node.getName().getSuffix(), null, DataSource.DataSourceType.STREAM, node.getName().getSuffix());
@@ -48,7 +48,7 @@ public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContex
 
 
     @Override
-    protected KSQLSchema visitSelect(Select node, AnalysisContext context)
+    protected Schema visitSelect(Select node, AnalysisContext context)
     {
         ImmutableList.Builder<Expression> outputExpressionBuilder = ImmutableList.builder();
 
@@ -71,7 +71,7 @@ public class Analyzer extends DefaultTraversalVisitor<KSQLSchema, AnalysisContex
     }
 
     @Override
-    protected KSQLSchema visitQualifiedNameReference(QualifiedNameReference node, AnalysisContext context)
+    protected Schema visitQualifiedNameReference(QualifiedNameReference node, AnalysisContext context)
     {
         return visitExpression(node, context);
     }

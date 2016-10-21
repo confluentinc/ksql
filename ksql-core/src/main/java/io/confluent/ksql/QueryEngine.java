@@ -3,10 +3,7 @@ package io.confluent.ksql;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
@@ -19,7 +16,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaStream;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -44,11 +40,6 @@ public class QueryEngine {
         throw new StreamsException("Error in parsing. Cannot get the set of statements.");
     }
 
-
-//    public void executeCommand(Statement command) {
-//        System.out.println(command.toString());
-//    }
-
     public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(Query queryNode, MetaStore metaStore) throws Exception {
 
         // Analyze the query to resolve the references and extract oeprations
@@ -58,8 +49,6 @@ public class QueryEngine {
 
         // Build a physical plan
         PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
-
-
 
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL_"+System.currentTimeMillis());
@@ -81,45 +70,9 @@ public class QueryEngine {
 
     }
 
-
-//    public void processStatements(String statementsString) throws Exception {
-//        if (!statementsString.endsWith(";")) {
-//            statementsString = statementsString + ";";
-//        }
-//        List<Statement> statements = getStatements(statementsString);
-//        for(Statement statement: statements) {
-//            if(statement instanceof Query) {
-//                processQuery((Query)statement);
-//            } else {
-//                executeCommand(statement);
-//            }
-//        }
-//    }
-//
-//    public QueryEngine() {
-//        initMetaStore();
-//    }
-//
-//    public MetaStore getMetaStore() {
-//        return metaStore;
-//    }
-
     public static void main(String[] args) throws Exception {
 
         QueryEngine queryEngine = new QueryEngine();
-//        queryEngine.processQuery("SELECT timeField, idField, itemIdField, unitsField FROM ordersStream WHERE idField = 100".toLowerCase());
-//        queryEngine.processQuery("SELECT t1, unitsField INTO test FROM ordersStream WHERE idField = 100;".toUpperCase());
-//        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10 FROM orders WHERE NOT (orderunits > 5 AND orderunits < 8);".toUpperCase());
-//        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
-//        queryEngine.processQuery("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ; show queries;".toUpperCase());
 
-//        queryEngine.processStatements("show queries; SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ; ".toUpperCase());
-//        queryEngine.processStatements("show queries".toUpperCase());
-//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
-//        queryEngine.processStatements("SELECT ordertime AS timeValue, itemid, orderid, orderunits*10+5 FROM orders WHERE itemid = 'Item_5' ;".toUpperCase());
-//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
-//        queryEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits = 5 ;".toUpperCase());
-
-//        queryEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
     }
 }

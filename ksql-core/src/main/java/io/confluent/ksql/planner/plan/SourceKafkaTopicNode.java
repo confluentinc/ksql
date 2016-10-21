@@ -16,7 +16,7 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.planner.KSQLSchema;
+import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
@@ -32,7 +32,7 @@ public class SourceKafkaTopicNode
     // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
     @JsonCreator
     public SourceKafkaTopicNode(@JsonProperty("id") PlanNodeId id,
-                                @JsonProperty("schema") KSQLSchema schema,
+                                @JsonProperty("schema") Schema schema,
                                 @JsonProperty("topicName") String topicName)
     {
         super(id, schema);

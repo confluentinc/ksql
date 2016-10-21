@@ -1,7 +1,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.planner.KSQLSchema;
+import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -10,10 +10,10 @@ import static java.util.Objects.requireNonNull;
 @Immutable
 public abstract class SourceNode extends PlanNode {
 
-    private final KSQLSchema schema;
+    private final Schema schema;
 
     public SourceNode(@JsonProperty("id") PlanNodeId id,
-                      @JsonProperty("schema") KSQLSchema schema)
+                      @JsonProperty("schema") Schema schema)
     {
         super(id);
 
@@ -23,7 +23,7 @@ public abstract class SourceNode extends PlanNode {
     }
 
     @Override
-    public KSQLSchema getSchema() {
+    public Schema getSchema() {
         return schema;
     }
 }

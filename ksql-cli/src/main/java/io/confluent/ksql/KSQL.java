@@ -6,6 +6,7 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TopicPrinter;
 import io.confluent.ksql.util.Triplet;
@@ -26,9 +27,6 @@ public class KSQL {
     KSQLEngine ksqlEngine;
     Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
     static final String queryIdPrefix = "ksql_";
-
-    public static final String SCHEMA_FILE_PATH = "schema_path";
-
 
     int queryIdCounter = 0;
 
@@ -138,7 +136,6 @@ public class KSQL {
         }
 
         if((statements == null) || (statements.size() != 1)) {
-//            throw new KSQLException("KSQL CLI Processes one statement/command at a time.");
             console.println("KSQL CLI Processes one statement/command at a time.");
             console.flush();
             return null;
@@ -162,8 +159,19 @@ public class KSQL {
     }
 
     private  void startQuery(String queryString, Query query) throws Exception {
-        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(query, ksqlEngine.metaStore);
+        if (query.getQueryBody() instanceof  QuerySpecification) {
+            QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+            if (querySpecification.getInto().get() instanceof Table) {
+                Table table = (Table)querySpecification.getInto().get();
+                if(ksqlEngine.metaStore.getSource(table.getName().getSuffix().toLowerCase()) != null) {
+                    console.println("Sink specified in INTO clause already exists: "+table.getName().getSuffix().toLowerCase());
+                    return;
+                }
+            }
+        }
         String queryId = getNextQueryId();
+        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(queryId, query, ksqlEngine.metaStore);
+
         Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = new Triplet<>(queryString, queryPairInfo.getLeft(), queryPairInfo.getRight());
         liveQueries.put(queryId , queryInfo);
         KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(), DataSource.DataSourceType.STREAM, queryInfo.getThird().getKafkaTopicName());
@@ -254,17 +262,18 @@ public class KSQL {
     public static String padRight(String s, int n) {
         return String.format("%1$-" + n + "s", s);
     }
+
     private KSQL(Map<String, String> cliProperties) throws IOException {
         this.cliProperties = cliProperties;
-        ksqlEngine = new KSQLEngine(cliProperties.get(SCHEMA_FILE_PATH));
-        System.out.println(cliProperties.get(SCHEMA_FILE_PATH));
+
+        ksqlEngine = new KSQLEngine(cliProperties);
     }
 
     public static void printUsageFromatMessage() {
 
         System.err.println("Incorrect format: ");
         System.err.println("Usage: ");
-        System.err.println(" ksql "+SCHEMA_FILE_PATH+"=<path to schema json file> ");
+        System.err.println(" ksql "+ KSQLConfig.SCHEMA_FILE_PATH_CONFIG+"=<path to schema json file> "+KSQLConfig.PROP_FILE_PATH_CONFIG+"=<path to the properties file>");
     }
 
     public static void main(String[] args)
@@ -273,7 +282,7 @@ public class KSQL {
         Map<String, String> cliProperties = new HashMap<>();
 
         // For now only pne parameter for CLI
-        if(args.length != 1) {
+        if(args.length != 2) {
             printUsageFromatMessage();
             System.exit(0);
         }
@@ -282,15 +291,16 @@ public class KSQL {
                 printUsageFromatMessage();
                 System.exit(0);
             }
+
+            String[] property = propertyStr.split("=");
+            if(property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG)) {
+
+                cliProperties.put(property[0], property[1]);
+            } else {
+                printUsageFromatMessage();
+            }
         }
 
-        String[] schemaPathProperty = args[0].split("=");
-        if(!schemaPathProperty[0].equalsIgnoreCase(SCHEMA_FILE_PATH)) {
-            printUsageFromatMessage();
-        }
-        cliProperties.put(schemaPathProperty[0], schemaPathProperty[1]);
-
-        System.out.println(cliProperties.get(SCHEMA_FILE_PATH));
         new KSQL(cliProperties).startConsole();
     }
 

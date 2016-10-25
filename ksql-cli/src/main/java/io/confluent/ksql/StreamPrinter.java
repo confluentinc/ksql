@@ -11,9 +11,6 @@ import org.apache.kafka.streams.kstream.KStreamBuilder;
 
 import java.util.Properties;
 
-/**
- * Created by hojjat on 10/6/16.
- */
 public class StreamPrinter {
 
     public void printStream(String streamTopic) {

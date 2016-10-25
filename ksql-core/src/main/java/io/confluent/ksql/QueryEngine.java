@@ -14,6 +14,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaStream;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaStreams;
@@ -21,12 +22,16 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 
 public class QueryEngine {
+
+    KSQLConfig ksqlConfig;
+    public QueryEngine(KSQLConfig ksqlConfig) {
+        this.ksqlConfig = ksqlConfig;
+    }
 
     public List<Statement> getStatements(String sqlString) {
         // First parse the query and build the AST
@@ -40,7 +45,7 @@ public class QueryEngine {
         throw new StreamsException("Error in parsing. Cannot get the set of statements.");
     }
 
-    public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(Query queryNode, MetaStore metaStore) throws Exception {
+    public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(String queryId, Query queryNode, MetaStore metaStore) throws Exception {
 
         // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
@@ -51,11 +56,19 @@ public class QueryEngine {
         PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL_"+System.currentTimeMillis());
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId);
+        if(ksqlConfig.getString(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) {
+            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.getString(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG));
+        } else {
+            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        }
 
-        // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        if(ksqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) != null) {
+            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+        } else {
+            // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
+            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        }
 
         KStreamBuilder builder = new KStreamBuilder();
 
@@ -70,9 +83,4 @@ public class QueryEngine {
 
     }
 
-    public static void main(String[] args) throws Exception {
-
-        QueryEngine queryEngine = new QueryEngine();
-
-    }
 }

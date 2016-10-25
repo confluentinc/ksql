@@ -38,6 +38,7 @@ public class DDLEngine {
         // Add the topic to the metastore
         KafkaTopic kafkaTopic = new KafkaTopic(topicName, topicSchema, DataSource.DataSourceType.STREAM, topicName);
         ksqlEngine.getMetaStore().putSource(kafkaTopic);
+        new DDLUtil().createTopic(topicName, 3, 1);
 
     }
 
@@ -45,6 +46,7 @@ public class DDLEngine {
 
         String topicName = dropTable.getTableName().getSuffix();
         ksqlEngine.getMetaStore().deleteSource(topicName);
+        new DDLUtil().deleteTopic(topicName);
     }
 
     //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!

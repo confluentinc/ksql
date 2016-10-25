@@ -53,7 +53,6 @@ public class MetastoreUtil {
 
     public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws IOException {
         MetaStoreImpl metaStore = new MetaStoreImpl();
-        System.out.println(metastoreJsonFilePath);
         byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode root = objectMapper.readTree(jsonData);

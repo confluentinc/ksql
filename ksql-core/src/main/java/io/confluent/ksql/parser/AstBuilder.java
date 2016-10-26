@@ -291,6 +291,9 @@ class AstBuilder
             if(selectItemExpression instanceof QualifiedNameReference) {
                 QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) selectItemExpression;
                 alias = Optional.of(qualifiedNameReference.getName().getSuffix());
+            } else if(selectItemExpression instanceof DereferenceExpression) {
+                DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
+                alias = Optional.of(dereferenceExpression.getFieldName());
             } else {
                 alias = Optional.of("KSQL_COL_" + selectItemIndex);
             }

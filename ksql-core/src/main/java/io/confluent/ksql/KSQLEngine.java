@@ -113,7 +113,8 @@ public class KSQLEngine {
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
 //        ksqlEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1", "select ordertime, itemId, orderunits into stream1 from orders where orderunits > 5;".toUpperCase());
+        ksqlEngine.processStatements("KSQL_1", "select o.ordertime, o.itemId, orderunits into stream1 from orders o where o.orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select users.userid, pageview.pageid , pageview.viewtime, users.regionid into stream1 from  pageview pv JOIN users u ON users.userid = pageview.userid;".toUpperCase());
     }
 }

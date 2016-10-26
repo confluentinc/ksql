@@ -1,5 +1,6 @@
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.PlanException;
 import org.apache.kafka.connect.data.Field;
@@ -8,10 +9,16 @@ import org.apache.kafka.connect.data.Schema;
 public class ExpressionTypeManager extends DefaultASTVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
     final Schema schema;
+    ImmutableMap<String, Schema> schemaImmutableMap;
     SchemaUtil schemaUtil = new SchemaUtil();
 
     public ExpressionTypeManager(Schema schema) {
         this.schema = schema;
+    }
+
+    public ExpressionTypeManager(Schema schema, ImmutableMap<String, Schema> schemaImmutableMap) {
+        this.schema = schema;
+        this.schemaImmutableMap = schemaImmutableMap;
     }
 
     public Schema.Type getExpressionType(Expression expression) {
@@ -54,6 +61,13 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
     protected Expression visitQualifiedNameReference(QualifiedNameReference node, ExpressionTypeContext expressionTypeContext)
     {
         Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+        expressionTypeContext.setType(schemaField.schema().type());
+        return null;
+    }
+    @Override
+    protected Expression visitDereferenceExpression(DereferenceExpression node, ExpressionTypeContext expressionTypeContext)
+    {
+        Field schemaField = SchemaUtil.getFieldByName(schema, node.getFieldName());
         expressionTypeContext.setType(schemaField.schema().type());
         return null;
     }

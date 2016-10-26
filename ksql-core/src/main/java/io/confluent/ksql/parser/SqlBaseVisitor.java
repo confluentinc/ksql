@@ -270,11 +270,19 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSelectAll(SqlBaseParser.SelectAllContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SqlBaseParser#relation}.
+	 * Visit a parse tree produced by the {@code relationDefault}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitRelation(SqlBaseParser.RelationContext ctx);
+	T visitRelationDefault(SqlBaseParser.RelationDefaultContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code joinRelation}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitJoinRelation(SqlBaseParser.JoinRelationContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#joinType}.
 	 * @param ctx the parse tree
@@ -287,12 +295,6 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitJoinCriteria(SqlBaseParser.JoinCriteriaContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link SqlBaseParser#sampledRelation}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSampledRelation(SqlBaseParser.SampledRelationContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#sampleType}.
 	 * @param ctx the parse tree

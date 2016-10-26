@@ -97,7 +97,7 @@ sortItem
 
 querySpecification
     : SELECT setQuantifier? selectItem (',' selectItem)*
-      (INTO into=relation)?
+      (INTO into=relationPrimary)?
       (FROM from=relation (',' relation)*)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
@@ -140,18 +140,18 @@ selectItem
     | ASTERISK                      #selectAll
     ;
 
-relation
-    : relationPrimary
-    ;
-
 //relation
-//    : left=relation
-//      ( CROSS JOIN right=sampledRelation
-//      | joinType JOIN rightRelation=relation joinCriteria
-//      | NATURAL joinType JOIN right=sampledRelation
-//      )                                           #joinRelation
-//    | sampledRelation                             #relationDefault
+//    : relationPrimary
 //    ;
+
+relation
+    : left=relation
+      ( CROSS JOIN right=aliasedRelation
+      | joinType JOIN rightRelation=relation joinCriteria
+      | NATURAL joinType JOIN right=aliasedRelation
+      )                                           #joinRelation
+    | aliasedRelation                             #relationDefault
+    ;
 
 joinType
     : INNER?
@@ -165,13 +165,13 @@ joinCriteria
     | USING '(' identifier (',' identifier)* ')'
     ;
 
-sampledRelation
-    : aliasedRelation (
-        TABLESAMPLE sampleType '(' percentage=expression ')'
-        RESCALED?
-        (STRATIFY ON '(' stratify+=expression (',' stratify+=expression)* ')')?
-      )?
-    ;
+//sampledRelation
+//    : aliasedRelation (
+//        TABLESAMPLE sampleType '(' percentage=expression ')'
+//        RESCALED?
+//        (STRATIFY ON '(' stratify+=expression (',' stratify+=expression)* ')')?
+//      )?
+//    ;
 
 sampleType
     : BERNOULLI

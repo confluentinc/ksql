@@ -1,6 +1,7 @@
 package io.confluent.ksql.util;
 
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -59,5 +60,12 @@ public class SchemaUtil {
         return -1;
     }
 
+    public static final ImmutableMap<String, String> typeMap = new ImmutableMap.Builder<String, String>()
+            .put("string", "varchar")
+            .put("int64","bigint")
+            .put("int32","integer")
+            .put("float64","double")
+            .put("boolean","boolean")
+            .build();
 
 }

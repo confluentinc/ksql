@@ -6,10 +6,7 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
-import io.confluent.ksql.util.KSQLConfig;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.TopicPrinter;
-import io.confluent.ksql.util.Triplet;
+import io.confluent.ksql.util.*;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
@@ -228,7 +225,7 @@ public class KSQL {
         console.println("      Column       |         Type         |                   Comment                   ");
         console.println("-------------------+----------------------+---------------------------------------------");
         for(Field schemaField: dataSource.getSchema().fields()) {
-            console.println(padRight(schemaField.name(), 19)+"|  "+padRight(schemaField.schema().type().getName(), 18)+"  |");
+            console.println(padRight(schemaField.name(), 19)+"|  "+padRight(SchemaUtil.typeMap.get(schemaField.schema().type().getName().toLowerCase()).toUpperCase() +" ("+schemaField.schema().type().getName()+")", 18)+"  |");
         }
         console.println("-------------------+----------------------+---------------------------------------------");
         console.println("( "+dataSource.getSchema().fields().size()+" rows)");
@@ -286,12 +283,12 @@ public class KSQL {
             printUsageFromatMessage();
             System.exit(0);
         }
+
         for (String propertyStr:args) {
             if(!propertyStr.contains("=")) {
                 printUsageFromatMessage();
                 System.exit(0);
             }
-
             String[] property = propertyStr.split("=");
             if(property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG)) {
 

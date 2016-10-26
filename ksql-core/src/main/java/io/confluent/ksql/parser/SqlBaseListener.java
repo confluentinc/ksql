@@ -446,15 +446,29 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 */
 	void exitSelectAll(SqlBaseParser.SelectAllContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link SqlBaseParser#relation}.
+	 * Enter a parse tree produced by the {@code relationDefault}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
 	 * @param ctx the parse tree
 	 */
-	void enterRelation(SqlBaseParser.RelationContext ctx);
+	void enterRelationDefault(SqlBaseParser.RelationDefaultContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link SqlBaseParser#relation}.
+	 * Exit a parse tree produced by the {@code relationDefault}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
 	 * @param ctx the parse tree
 	 */
-	void exitRelation(SqlBaseParser.RelationContext ctx);
+	void exitRelationDefault(SqlBaseParser.RelationDefaultContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code joinRelation}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
+	 * @param ctx the parse tree
+	 */
+	void enterJoinRelation(SqlBaseParser.JoinRelationContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code joinRelation}
+	 * labeled alternative in {@link SqlBaseParser#relation}.
+	 * @param ctx the parse tree
+	 */
+	void exitJoinRelation(SqlBaseParser.JoinRelationContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link SqlBaseParser#joinType}.
 	 * @param ctx the parse tree
@@ -475,16 +489,6 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitJoinCriteria(SqlBaseParser.JoinCriteriaContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link SqlBaseParser#sampledRelation}.
-	 * @param ctx the parse tree
-	 */
-	void enterSampledRelation(SqlBaseParser.SampledRelationContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SqlBaseParser#sampledRelation}.
-	 * @param ctx the parse tree
-	 */
-	void exitSampledRelation(SqlBaseParser.SampledRelationContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link SqlBaseParser#sampleType}.
 	 * @param ctx the parse tree

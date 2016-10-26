@@ -486,13 +486,25 @@ public class SqlBaseBaseListener implements SqlBaseListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRelation(SqlBaseParser.RelationContext ctx) { }
+	@Override public void enterRelationDefault(SqlBaseParser.RelationDefaultContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitRelation(SqlBaseParser.RelationContext ctx) { }
+	@Override public void exitRelationDefault(SqlBaseParser.RelationDefaultContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterJoinRelation(SqlBaseParser.JoinRelationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJoinRelation(SqlBaseParser.JoinRelationContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -517,18 +529,6 @@ public class SqlBaseBaseListener implements SqlBaseListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitJoinCriteria(SqlBaseParser.JoinCriteriaContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterSampledRelation(SqlBaseParser.SampledRelationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSampledRelation(SqlBaseParser.SampledRelationContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

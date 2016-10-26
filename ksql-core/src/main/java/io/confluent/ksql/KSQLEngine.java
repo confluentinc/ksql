@@ -13,6 +13,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -105,9 +106,14 @@ public class KSQLEngine {
     }
 
     public static void main(String[] args) throws Exception {
-        KSQLEngine ksqlEngine = new KSQLEngine("/Users/hojjat/userschema.json");
+        Map<String,String> ksqlConfProperties = new HashMap<>();
+        ksqlConfProperties.put(KSQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
+        ksqlConfProperties.put(KSQLConfig.PROP_FILE_PATH_CONFIG,"/Users/hojjat/ksql_config.conf");
+        KSQLEngine ksqlEngine = new KSQLEngine(ksqlConfProperties);
+
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
 //        ksqlEngine.processStatements("SELECT ordertime AS timeValue, orderid, orderunits*10+5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
         ksqlEngine.processStatements("KSQL_1", "select ordertime, itemId, orderunits into stream1 from orders where orderunits > 5;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
     }
 }

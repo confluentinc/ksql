@@ -6,7 +6,11 @@ import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.DefaultTraversalVisitor;
+import io.confluent.ksql.util.KSQLException;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+
+import java.util.Optional;
 
 public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
 
@@ -21,10 +25,10 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
     @Override
     protected Schema visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
 
-        process(node.getSelect() , new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
-
         process(node.getInto().get() , new AnalysisContext(null, AnalysisContext.ParentType.INTO));
         process(node.getFrom().get() , new AnalysisContext(null, AnalysisContext.ParentType.FROM));
+
+        process(node.getSelect() , new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
 
         if(node.getWhere().isPresent()) {
             analyzeWhere(node.getWhere().get(), context);
@@ -55,8 +59,14 @@ public class Analyzer extends DefaultTraversalVisitor<Schema, AnalysisContext> {
         for (SelectItem selectItem : node.getSelectItems()) {
             if (selectItem instanceof AllColumns) {
                 // expand * and T.*
-                throw new IllegalArgumentException("Unsupported SelectItem type: " + selectItem.getClass().getName());
-
+                AllColumns allColumns = (AllColumns) selectItem;
+                if( (this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources().isEmpty())) {
+                    throw new KSQLException("FROM clause was not resolved!");
+                }
+                for(Field field: this.analysis.getFromDataSources().get(0).getSchema().fields()) {
+                    QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(field.name()));
+                    analysis.addSelectItem(qualifiedNameReference, field.name());
+                }
             }
             else if (selectItem instanceof SingleColumn) {
                 SingleColumn column = (SingleColumn) selectItem;

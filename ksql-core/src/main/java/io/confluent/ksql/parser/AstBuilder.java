@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.*;
+import jdk.nashorn.internal.scripts.JO;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -190,13 +191,16 @@ class AstBuilder
     {
         Table into;
         if(context.into != null) {
-            into = (Table) visitRelation(context.into);
+            into = (Table) visit(context.into);
         } else {
             // TODO: Generate a unique name
             into = new Table(QualifiedName.of("Stream_"+System.currentTimeMillis()));
         }
 
-        Table from = (Table) visitRelation(context.from);
+//        Table from = (Table) visitRelation(context.from);
+
+
+        Relation from = visit(context.relation(), Relation.class).get(0);
 
         return new QuerySpecification(
                 getLocation(context),
@@ -393,79 +397,79 @@ class AstBuilder
 
     // *************** from clause *****************
 
-//    @Override
-//    public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context)
-//    {
-//        Relation left = (Relation) visit(context.left);
-//        Relation right;
-//
-//        if (context.CROSS() != null) {
-//            right = (Relation) visit(context.right);
-//            return new Join(getLocation(context), Join.Type.CROSS, left, right, Optional.<JoinCriteria>empty());
-//        }
-//
-//        JoinCriteria criteria;
-//        if (context.NATURAL() != null) {
-//            right = (Relation) visit(context.right);
-//            criteria = new NaturalJoin();
-//        }
-//        else {
-//            right = (Relation) visit(context.rightRelation);
-//            if (context.joinCriteria().ON() != null) {
-//                criteria = new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
-//            }
-//            else if (context.joinCriteria().USING() != null) {
-//                List<String> columns = context.joinCriteria()
-//                        .identifier().stream()
-//                        .map(ParseTree::getText)
-//                        .collect(toList());
-//
-//                criteria = new JoinUsing(columns);
-//            }
-//            else {
-//                throw new IllegalArgumentException("Unsupported join criteria");
-//            }
-//        }
-//
-//        Join.Type joinType;
-//        if (context.joinType().LEFT() != null) {
-//            joinType = Join.Type.LEFT;
-//        }
-//        else if (context.joinType().RIGHT() != null) {
-//            joinType = Join.Type.RIGHT;
-//        }
-//        else if (context.joinType().FULL() != null) {
-//            joinType = Join.Type.FULL;
-//        }
-//        else {
-//            joinType = Join.Type.INNER;
-//        }
-//
-//        return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
-//    }
-
     @Override
-    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context)
+    public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context)
     {
-        Relation child = (Relation) visit(context.aliasedRelation());
+        Relation left = (Relation) visit(context.left);
+        Relation right;
 
-        if (context.TABLESAMPLE() == null) {
-            return child;
+        if (context.CROSS() != null) {
+            right = (Relation) visit(context.right);
+            return new Join(getLocation(context), Join.Type.CROSS, left, right, Optional.<JoinCriteria>empty());
         }
 
-        Optional<List<Expression>> stratifyOn = Optional.empty();
-        if (context.STRATIFY() != null) {
-            stratifyOn = Optional.of(visit(context.stratify, Expression.class));
+        JoinCriteria criteria;
+        if (context.NATURAL() != null) {
+            right = (Relation) visit(context.right);
+            criteria = new NaturalJoin();
+        }
+        else {
+            right = (Relation) visit(context.rightRelation);
+            if (context.joinCriteria().ON() != null) {
+                criteria = new JoinOn((Expression) visit(context.joinCriteria().booleanExpression()));
+            }
+            else if (context.joinCriteria().USING() != null) {
+                List<String> columns = context.joinCriteria()
+                        .identifier().stream()
+                        .map(ParseTree::getText)
+                        .collect(toList());
+
+                criteria = new JoinUsing(columns);
+            }
+            else {
+                throw new IllegalArgumentException("Unsupported join criteria");
+            }
         }
 
-        return new SampledRelation(
-                getLocation(context),
-                child,
-                getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
-                (Expression) visit(context.percentage),
-                context.RESCALED() != null,
-                stratifyOn);
+        Join.Type joinType;
+        if (context.joinType().LEFT() != null) {
+            joinType = Join.Type.LEFT;
+        }
+        else if (context.joinType().RIGHT() != null) {
+            joinType = Join.Type.RIGHT;
+        }
+        else if (context.joinType().FULL() != null) {
+            joinType = Join.Type.FULL;
+        }
+        else {
+            joinType = Join.Type.INNER;
+        }
+
+        return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
     }
+
+//    @Override
+//    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context)
+//    {
+//        Relation child = (Relation) visit(context.aliasedRelation());
+//
+//        if (context.TABLESAMPLE() == null) {
+//            return child;
+//        }
+//
+//        Optional<List<Expression>> stratifyOn = Optional.empty();
+//        if (context.STRATIFY() != null) {
+//            stratifyOn = Optional.of(visit(context.stratify, Expression.class));
+//        }
+//
+//        return new SampledRelation(
+//                getLocation(context),
+//                child,
+//                getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
+//                (Expression) visit(context.percentage),
+//                context.RESCALED() != null,
+//                stratifyOn);
+//    }
 
     @Override
     public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context)

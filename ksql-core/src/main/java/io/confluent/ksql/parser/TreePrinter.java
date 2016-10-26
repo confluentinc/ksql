@@ -79,7 +79,7 @@ public class TreePrinter
 
                 if (node.getFrom().isPresent()) {
                     print(indentLevel, "From");
-                    process(node.getFrom().get(), indentLevel + 1);
+//                    process(node.getFrom().get(), indentLevel + 1);
                 }
 
                 if (node.getWhere().isPresent()) {

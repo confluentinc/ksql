@@ -57,13 +57,14 @@ public class QueryEngine {
 
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId);
-        if(ksqlConfig.getString(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) {
-            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.getString(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG));
+
+        if((ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) && (!ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG).isEmpty())){
+            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG));
         } else {
             props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         }
 
-        if(ksqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) != null) {
+        if(ksqlConfig.values().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) != null) {
             props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
         } else {
             // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data

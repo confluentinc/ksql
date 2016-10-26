@@ -149,7 +149,8 @@ public final class QueryUtil
         return query(new QuerySpecification(
                 select,
                 Optional.empty(),
-                Optional.of(from),
+//                Optional.of(from),
+                Optional.empty(),
                 where,
                 groupBy,
                 having,

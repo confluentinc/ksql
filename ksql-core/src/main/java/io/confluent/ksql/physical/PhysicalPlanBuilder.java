@@ -57,9 +57,10 @@ public class PhysicalPlanBuilder {
     }
 
     private SchemaStream buildOutput(OutputNode outputNode) throws Exception {
-        SchemaStream schemaStream = kafkaStreamsDSL(outputNode.getSource());
+
         if(outputNode instanceof OutputKafkaTopicNode) {
             OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)outputNode;
+            SchemaStream schemaStream = kafkaStreamsDSL(outputNode.getSource());
             SchemaStream resultSchemaStream = schemaStream.into(outputKafkaTopicNode.getKafkaTopicName());
             this.planSink = outputKafkaTopicNode;
             return resultSchemaStream;
@@ -68,15 +69,15 @@ public class PhysicalPlanBuilder {
     }
 
     private SchemaStream buildProject(ProjectNode projectNode) throws Exception {
-        SchemaStream schemaStream = kafkaStreamsDSL(projectNode.getSource());
-        SchemaStream projectedSchemaStream = schemaStream.select(projectNode.getProjectExpressions(), projectNode.getSchema());
+//        SchemaStream schemaStream = kafkaStreamsDSL(projectNode.getSource());
+        SchemaStream projectedSchemaStream = kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions(), projectNode.getSchema());
         return projectedSchemaStream;
     }
 
 
     private SchemaStream buildFilter(FilterNode filterNode) throws Exception {
-        SchemaStream schemaStream = kafkaStreamsDSL(filterNode.getSource());
-        SchemaStream filteredSchemaStream = schemaStream.filter(filterNode.getPredicate());
+//        SchemaStream schemaStream = kafkaStreamsDSL(filterNode.getSource());
+        SchemaStream filteredSchemaStream = kafkaStreamsDSL(filterNode.getSource()).filter(filterNode.getPredicate());
         return filteredSchemaStream;
     }
 

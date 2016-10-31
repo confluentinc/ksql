@@ -129,7 +129,7 @@ public class CodegenExpressionFormatter {
         {
             String fieldName = node.toString();
             Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-            return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
+            return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
 //            String baseString = process(node.getBase(), unmangleNames);
 //            return baseString + "." + formatIdentifier(node.getFieldName());
         }

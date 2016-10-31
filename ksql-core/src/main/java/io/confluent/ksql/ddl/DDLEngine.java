@@ -37,7 +37,7 @@ public class DDLEngine {
         new DDLUtil().createTopic(topicName, 3, 1);
 
         // Add the topic to the metastore
-        KafkaTopic kafkaTopic = new KafkaTopic(topicName, topicSchema, DataSource.DataSourceType.STREAM, topicName);
+        KafkaTopic kafkaTopic = new KafkaTopic(topicName, topicSchema, topicSchema.fields().get(0), DataSource.DataSourceType.KSTREAM, topicName);
         ksqlEngine.getMetaStore().putSource(kafkaTopic);
 
 

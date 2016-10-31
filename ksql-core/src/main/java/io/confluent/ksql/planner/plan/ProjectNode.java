@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Expression;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
@@ -31,6 +32,7 @@ public class ProjectNode
 {
     private final PlanNode source;
     private final Schema schema;
+    private final Field keyField;
     private final List<Expression> projectExpressions;
 
     // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
@@ -48,6 +50,7 @@ public class ProjectNode
 
         this.source = source;
         this.schema = schema;
+        this.keyField = source.getKeyField();
         this.projectExpressions = projectExpressions;
     }
 
@@ -64,7 +67,13 @@ public class ProjectNode
         return source;
     }
 
+    @Override
     public Schema getSchema() { return schema; }
+
+    @Override
+    public Field getKeyField() {
+        return keyField;
+    }
 
     public List<Expression> getProjectExpressions() {
         return projectExpressions;

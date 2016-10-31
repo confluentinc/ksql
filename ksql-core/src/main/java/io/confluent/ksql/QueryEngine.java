@@ -14,6 +14,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaStream;
+import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -33,23 +34,23 @@ public class QueryEngine {
         this.ksqlConfig = ksqlConfig;
     }
 
-    public List<Statement> getStatements(String sqlString) {
-        // First parse the query and build the AST
-        KSQLParser ksqlParser = new KSQLParser();
-        Node root = ksqlParser.buildAST(sqlString);
+//    public List<Statement> getStatements(String sqlString) {
+//        // First parse the query and build the AST
+//        KSQLParser ksqlParser = new KSQLParser();
+//        Node root = ksqlParser.buildAST(sqlString);
+//
+//        if(root instanceof Statements) {
+//            Statements statements = (Statements) root;
+//            return statements.statementList;
+//        }
+//        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
+//    }
 
-        if(root instanceof Statements) {
-            Statements statements = (Statements) root;
-            return statements.statementList;
-        }
-        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
-    }
-
-    public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(String queryId, Query queryNode, MetaStore metaStore) throws Exception {
+    public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(String queryId, Query queryNode, MetaStore metaStore, DataSourceExtractor dataSourceExtractor) throws Exception {
 
         // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
-        Analyzer analyzer = new Analyzer(analysis,metaStore);
+        Analyzer analyzer = new Analyzer(analysis,metaStore, dataSourceExtractor);
         analyzer.process(queryNode, new AnalysisContext(null, null));
 
         // Build a physical plan

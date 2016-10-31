@@ -27,8 +27,15 @@ public class LogicalPlanner
 
     public PlanNode buildPlan() {
 
-        SourceNode sourceNode = buildSourceNode();
-        PlanNode currentNode = sourceNode;
+
+
+        PlanNode currentNode;
+        if (analysis.getJoin() != null) {
+            currentNode = analysis.getJoin();
+        } else {
+            SourceNode sourceNode = buildSourceNode();
+            currentNode = sourceNode;
+        }
         if(analysis.getWhereExpression() != null) {
             FilterNode filterNode = buildFilterNode(currentNode.getSchema(), currentNode);
             currentNode = filterNode;
@@ -73,11 +80,13 @@ public class LogicalPlanner
     }
 
     private SourceNode buildSourceNode() {
-        DataSource fromDataSource = analysis.getFromDataSources().get(0);
-        Schema fromSchema = fromDataSource.getSchema();
+
+        DataSource fromDataSource = analysis.getFromDataSources().get(0).getLeft();
+        String alias = analysis.getFromDataSources().get(0).getRight();
+        Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
         if(fromDataSource instanceof KafkaTopic) {
             KafkaTopic fromKafkaTopic = (KafkaTopic) fromDataSource;
-            return new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic"),fromSchema, fromKafkaTopic.getTopicName());
+            return new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic"),fromSchema, fromDataSource.getKeyField() ,fromKafkaTopic.getTopicName(),alias, fromKafkaTopic.getDataSourceType());
         }
 
         throw new RuntimeException("Data source is not suppoted yet.");

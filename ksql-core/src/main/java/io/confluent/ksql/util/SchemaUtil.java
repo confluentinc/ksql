@@ -4,6 +4,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class SchemaUtil {
 
@@ -38,6 +39,7 @@ public class SchemaUtil {
     }
 
     public static Field getFieldByName(Schema schema, String fieldName) {
+        fieldName = fieldName.toUpperCase();
         if (schema.fields() != null) {
             for (Field field: schema.fields()) {
                 if (field.name().equalsIgnoreCase(fieldName)) {
@@ -60,12 +62,20 @@ public class SchemaUtil {
         return -1;
     }
 
+    public static Schema buildSchemaWithAlias(Schema schema, String alias) {
+        SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
+        for (Field field: schema.fields()) {
+            newSchema.field((alias+"."+field.name()).toUpperCase(), field.schema());
+        }
+        return newSchema;
+    }
+
     public static final ImmutableMap<String, String> typeMap = new ImmutableMap.Builder<String, String>()
-            .put("string", "varchar")
-            .put("int64","bigint")
-            .put("int32","integer")
-            .put("float64","double")
-            .put("boolean","boolean")
+            .put("STRING", "VARCHAR")
+            .put("INT64","BIGINT")
+            .put("INT32","INTEGER")
+            .put("FLOAT64","DOUBLE")
+            .put("BOOLEAN","BOOLEAN")
             .build();
 
 }

@@ -6,6 +6,8 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KSQLException;
 import jdk.nashorn.internal.scripts.JO;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -25,6 +27,12 @@ class AstBuilder
 {
 
     int selectItemIndex = 0;
+
+    DataSourceExtractor dataSourceExtractor;
+
+    public  AstBuilder(DataSourceExtractor dataSourceExtractor) {
+        this.dataSourceExtractor = dataSourceExtractor;
+    }
 
     @Override public Node visitStatements(SqlBaseParser.StatementsContext context) {
         List<Statement> statementList = new ArrayList<>();
@@ -197,10 +205,7 @@ class AstBuilder
             into = new Table(QualifiedName.of("Stream_"+System.currentTimeMillis()));
         }
 
-//        Table from = (Table) visitRelation(context.from);
-
-
-        Relation from = visit(context.relation(), Relation.class).get(0);
+        Relation from = (Relation) visit(context.from);
 
         return new QuerySpecification(
                 getLocation(context),
@@ -293,7 +298,11 @@ class AstBuilder
                 alias = Optional.of(qualifiedNameReference.getName().getSuffix());
             } else if(selectItemExpression instanceof DereferenceExpression) {
                 DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
-                alias = Optional.of(dereferenceExpression.getFieldName());
+                if ((dataSourceExtractor.getJoinLeftSchema() != null) && (dataSourceExtractor.getCommonFieldNames().contains(dereferenceExpression.getFieldName()))) {
+                    alias = Optional.of(dereferenceExpression.getBase().toString().toUpperCase()+"_"+dereferenceExpression.getFieldName());
+                } else {
+                    alias = Optional.of(dereferenceExpression.getFieldName());
+                }
             } else {
                 alias = Optional.of("KSQL_COL_" + selectItemIndex);
             }
@@ -301,6 +310,12 @@ class AstBuilder
         selectItemIndex++;
         return new SingleColumn(getLocation(context), selectItemExpression, alias);
     }
+
+    @Override
+    public Node visitQualifiedName(SqlBaseParser.QualifiedNameContext context) {
+        return visitChildren(context);
+    }
+
 
     @Override
     public Node visitTable(SqlBaseParser.TableContext context)
@@ -479,11 +494,17 @@ class AstBuilder
     {
         Relation child = (Relation) visit(context.relationPrimary());
 
-        if (context.identifier() == null) {
-            return child;
+        String alias = null;
+        if (context.children.size() == 1) {
+            Table table = (Table) visit(context.relationPrimary());
+            alias = table.getName().getSuffix();
+
+        } else if (context.children.size() == 2) {
+            alias = context.children.get(1).getText();
         }
 
-        return new AliasedRelation(getLocation(context), child, context.identifier().getText(), getColumnAliases(context.columnAliases()));
+        return new AliasedRelation(getLocation(context), child, alias, getColumnAliases(context.columnAliases()));
+
     }
 
     @Override
@@ -776,13 +797,37 @@ class AstBuilder
     @Override
     public Node visitDereference(SqlBaseParser.DereferenceContext context)
     {
-        return new DereferenceExpression(getLocation(context), (Expression) visit(context.base), context.fieldName.getText());
+        String fieldName = context.getText();
+        String baseSting = context.base.getText();
+        fieldName = fieldName.substring(fieldName.indexOf(baseSting)+baseSting.length()+1);
+        Expression baseExpression = new QualifiedNameReference(getLocation(context), QualifiedName.of(baseSting));
+        DereferenceExpression dereferenceExpression = new DereferenceExpression(getLocation(context), baseExpression, fieldName);
+        return dereferenceExpression;
     }
 
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context)
     {
-        return new QualifiedNameReference(getLocation(context), QualifiedName.of(context.getText()));
+        String columnName = context.getText();
+        // If this is join.
+        if (dataSourceExtractor.getJoinLeftSchema() != null) {
+            if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
+                throw new KSQLException("Field "+columnName+" is ambiguis. ");
+            } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
+                Expression baseExpression = new QualifiedNameReference(getLocation(context), QualifiedName.of(dataSourceExtractor.getLeftAlias()));
+                return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+            } else if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
+                Expression baseExpression = new QualifiedNameReference(getLocation(context), QualifiedName.of(dataSourceExtractor.getRightAlias()));
+                return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+            }
+            else {
+                throw new KSQLException("Field "+columnName+" is ambiguis. ");
+            }
+        } else {
+            Expression baseExpression = new QualifiedNameReference(getLocation(context), QualifiedName.of(dataSourceExtractor.getFromAlias()));
+            return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+        }
+
     }
 
     @Override

@@ -16,13 +16,14 @@ public class MetastoreUtil {
 
     public DataSource createDataSource(JsonNode node) {
 
-        String name = node.get("name").asText();
+        String name = node.get("name").asText().toUpperCase();
         String topicname = node.get("topicname").asText();
         String type = node.get("type").asText();
+        String keyFieldName = node.get("key").asText().toUpperCase();
         SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
         ArrayNode fields = (ArrayNode)node.get("fields");
         for (int i = 0; i < fields.size(); i++) {
-            String fieldName = fields.get(i).get("name").textValue();
+            String fieldName = fields.get(i).get("name").textValue().toUpperCase();
             String fieldType;
             if(fields.get(i).get("type").isArray()) {
                 fieldType = fields.get(i).get("type").get(0).textValue();
@@ -33,7 +34,7 @@ public class MetastoreUtil {
             dataSource.field(fieldName, getKSQLType(fieldType));
         }
 
-        return new KafkaTopic(name, dataSource, DataSource.DataSourceType.STREAM,topicname);
+        return new KafkaTopic(name, dataSource, dataSource.field(keyFieldName), KafkaTopic.getDataSpDataSourceType(type),topicname);
     }
 
     private Schema getKSQLType(String sqlType) {

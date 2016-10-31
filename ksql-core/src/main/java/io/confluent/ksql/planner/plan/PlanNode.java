@@ -1,6 +1,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public abstract class PlanNode {
     }
 
     public abstract Schema getSchema();
+    public abstract Field getKeyField();
 
     public abstract List<PlanNode> getSources();
 

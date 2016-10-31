@@ -127,7 +127,9 @@ public class CodegenExpressionFormatter {
         @Override
         protected Pair<String, Schema.Type> visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
         {
-            throw new UnsupportedOperationException();
+            String fieldName = node.toString();
+            Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+            return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
 //            String baseString = process(node.getBase(), unmangleNames);
 //            return baseString + "." + formatIdentifier(node.getFieldName());
         }

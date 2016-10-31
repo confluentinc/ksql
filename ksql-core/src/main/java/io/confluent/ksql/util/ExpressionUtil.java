@@ -31,11 +31,11 @@ public class ExpressionUtil {
         for (String parameterName: parameterMap.keySet()) {
             parameterNames[index] = parameterName;
             parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName.replace("_","."));
             index++;
         }
 
-        String expressionStr = expression.getCodegenString(schema);
+        String expressionStr = expression.getCodegenString(schema).toUpperCase();
         IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
         // The expression will have two "int" parameters: "a" and "b".
@@ -89,6 +89,17 @@ public class ExpressionUtil {
         protected Object visitNotExpression(NotExpression node, Object context)
         {
             return process(node.getValue(), null);
+        }
+
+        @Override
+        protected Object visitDereferenceExpression(DereferenceExpression node, Object context)
+        {
+            Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+            if (schemaField == null) {
+                throw new RuntimeException("Cannot find the select field in the available fields: " + node.toString());
+            }
+            parameterMap.put(schemaField.name().toUpperCase().replace(".","_"), SchemaUtil.getJavaType(schemaField.schema().type()));
+            return null;
         }
 
         @Override

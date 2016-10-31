@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.lang.reflect.InvocationTargetException;
@@ -19,12 +20,15 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class SchemaStream {
+
     final Schema schema;
     final KStream kStream;
+    final Field keyField;
 
-    public SchemaStream(Schema schema, KStream kStream) {
+    public SchemaStream(Schema schema, KStream kStream, Field keyField) {
         this.schema = schema;
         this.kStream = kStream;
+        this.keyField = keyField;
     }
 
     public SchemaStream into(String kafkaTopicName) {
@@ -36,7 +40,7 @@ public class SchemaStream {
     public SchemaStream filter(Expression filterExpression) throws Exception {
         SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
         KStream filteredKStream = kStream.filter(predicate.getPredicate());
-        return new SchemaStream(schema, filteredKStream);
+        return new SchemaStream(schema, filteredKStream, keyField);
     }
 
     public SchemaStream select(Schema selectSchema) {
@@ -53,7 +57,7 @@ public class SchemaStream {
             }
         });
 
-        return new SchemaStream(selectSchema, projectedKStream);
+        return new SchemaStream(selectSchema, projectedKStream, keyField);
     }
 
     public SchemaStream select(List<Expression> expressions, Schema selectSchema) throws Exception {
@@ -90,9 +94,53 @@ public class SchemaStream {
             }
         });
 
-        return new SchemaStream(selectSchema, projectedKStream);
+        return new SchemaStream(selectSchema, projectedKStream, keyField);
     }
 
+    public SchemaStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey) {
+
+        KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
+            @Override
+            public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
+                List<Object> columns = new ArrayList<>();
+                columns.addAll(leftGenericRow.getColumns());
+                if(rightGenericRow == null) {
+                    for (int i = leftGenericRow.getColumns().size(); i < joinSchema.fields().size(); i++) {
+                        columns.add(null);
+                    }
+                } else {
+                    columns.addAll(rightGenericRow.getColumns());
+                }
+
+                GenericRow joinGenericRow = new GenericRow(columns);
+                return joinGenericRow;
+            }
+        });
+
+        return new SchemaStream(joinSchema, joinedKStream, joinKey);
+    }
+
+    public SchemaStream selectKey(Field newKeyField) {
+        if (keyField.name().equalsIgnoreCase(newKeyField.name())) {
+            return this;
+        }
+
+        KStream keyedKStream = kStream.selectKey(new KeyValueMapper<String, GenericRow, String>() {
+            @Override
+            public String apply(String key, GenericRow value) {
+
+                String newKey = value.getColumns().get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name())).toString();
+//                return new KeyValue<String, GenericRow>(newKey, value);
+                return newKey;
+            }
+        });
+
+        return new SchemaStream(schema, keyedKStream, newKeyField);
+    }
+
+    public Field getKeyField() {
+        return keyField;
+    }
 
     public Schema getSchema() {
         return schema;

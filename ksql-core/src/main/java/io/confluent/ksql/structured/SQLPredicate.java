@@ -34,11 +34,11 @@ public class SQLPredicate {
         for (String parameterName: parameterMap.keySet()) {
             parameterNames[index] = parameterName;
             parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName.replace("_","."));
             index++;
         }
 
-        String expressionStr = filterExpression.getCodegenString(schema);
+        String expressionStr = filterExpression.getCodegenString(schema).toUpperCase();
         ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
         // The expression will have two "int" parameters: "a" and "b".

@@ -10,12 +10,12 @@ public class MetaStoreImpl implements MetaStore {
 
     @Override
     public DataSource getSource(String sourceName) {
-        return dataSourceMap.get(sourceName);
+        return dataSourceMap.get(sourceName.toUpperCase());
     }
 
     @Override
     public void putSource(DataSource dataSource) {
-        dataSourceMap.put(dataSource.getName().toLowerCase(), dataSource);
+        dataSourceMap.put(dataSource.getName().toUpperCase(), dataSource);
     }
 
     @Override

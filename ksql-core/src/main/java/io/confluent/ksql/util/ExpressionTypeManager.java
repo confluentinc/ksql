@@ -67,7 +67,8 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
     @Override
     protected Expression visitDereferenceExpression(DereferenceExpression node, ExpressionTypeContext expressionTypeContext)
     {
-        Field schemaField = SchemaUtil.getFieldByName(schema, node.getFieldName());
+//        Field schemaField = SchemaUtil.getFieldByName(schema, node.getFieldName());
+        Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
         expressionTypeContext.setType(schemaField.schema().type());
         return null;
     }

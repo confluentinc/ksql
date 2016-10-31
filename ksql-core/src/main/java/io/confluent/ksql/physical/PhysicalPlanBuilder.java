@@ -1,17 +1,21 @@
 package io.confluent.ksql.physical;
 
 
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.serde.JsonPOJODeserializer;
 import io.confluent.ksql.serde.JsonPOJOSerializer;
+import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.structured.SchemaStream;
 import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.kstream.KTable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,9 +38,11 @@ public class PhysicalPlanBuilder {
     private SchemaStream kafkaStreamsDSL(PlanNode planNode) throws Exception {
         if(planNode instanceof SourceNode) {
             return buildSource((SourceNode) planNode);
+        } else if(planNode instanceof JoinNode) {
+            return buildJoin((JoinNode) planNode);
         } else if (planNode instanceof ProjectNode) {
             ProjectNode projectNode = (ProjectNode) planNode;
-            SchemaStream projectedSchemaStream = projectedSchemaStream(projectNode);
+            SchemaStream projectedSchemaStream = buildProject(projectNode);
             return projectedSchemaStream;
         } else if (planNode instanceof FilterNode) {
             FilterNode filterNode = (FilterNode) planNode;
@@ -61,7 +67,7 @@ public class PhysicalPlanBuilder {
         throw new KSQLException("Unsupported output logical node: "+outputNode.getClass().getName());
     }
 
-    private SchemaStream projectedSchemaStream(ProjectNode projectNode) throws Exception {
+    private SchemaStream buildProject(ProjectNode projectNode) throws Exception {
         SchemaStream schemaStream = kafkaStreamsDSL(projectNode.getSource());
         SchemaStream projectedSchemaStream = schemaStream.select(projectNode.getProjectExpressions(), projectNode.getSchema());
         return projectedSchemaStream;
@@ -77,12 +83,30 @@ public class PhysicalPlanBuilder {
     private SchemaStream buildSource(SourceNode sourceNode) {
         if(sourceNode instanceof SourceKafkaTopicNode) {
             SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode) sourceNode;
+            if (sourceKafkaTopicNode.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+                KTable kTable = builder.table(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
+                return new SchemaKTable(sourceKafkaTopicNode.getSchema(), kTable, sourceKafkaTopicNode.getKeyField());
+            }
             KStream kStream = builder.stream(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
-            return new SchemaStream(sourceKafkaTopicNode.getSchema(), kStream);
+            return new SchemaStream(sourceKafkaTopicNode.getSchema(), kStream, sourceKafkaTopicNode.getKeyField());
         }
         throw new KSQLException("Unsupported source logical node: "+sourceNode.getClass().getName());
     }
 
+    private SchemaStream buildJoin(JoinNode joinNode) throws Exception {
+        SchemaStream leftSchemaStream = kafkaStreamsDSL(joinNode.getLeft());
+        SchemaStream rightSchemaStream = kafkaStreamsDSL(joinNode.getRight());
+        if(rightSchemaStream instanceof SchemaKTable) {
+            SchemaKTable rightSchemaKTable = (SchemaKTable)rightSchemaStream;
+            if (!leftSchemaStream.getKeyField().name().equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
+                leftSchemaStream = leftSchemaStream.selectKey(SchemaUtil.getFieldByName(leftSchemaStream.getSchema(), joinNode.getLeftKeyFieldName()));
+            }
+            SchemaStream joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+            return joinSchemaStream;
+        }
+
+        throw new KSQLException("Unsupported join logical node: Left: "+joinNode.getLeft()+" , Right: "+joinNode.getRight());
+    }
 
     public static Serde<GenericRow> getGenericRowSerde() {
         if(genericRowSerde == null) {

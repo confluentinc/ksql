@@ -25,7 +25,7 @@ public class DDLEngine {
 
     public void createTopic(CreateTable createTable) {
 
-        String topicName = createTable.getName().getSuffix();
+        String topicName = createTable.getName().getSuffix().toUpperCase();
 
         SchemaBuilder topicSchema = SchemaBuilder.struct();
         List<Field> topicSchemaFields = new ArrayList<>();
@@ -45,7 +45,7 @@ public class DDLEngine {
 
     public void dropTopic(DropTable dropTable) {
 
-        String topicName = dropTable.getTableName().getSuffix();
+        String topicName = dropTable.getTableName().getSuffix().toUpperCase();
         new DDLUtil().deleteTopic(topicName);
         ksqlEngine.getMetaStore().deleteSource(topicName);
     }

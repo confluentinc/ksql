@@ -293,7 +293,7 @@ public class CodegenExpressionFormatter {
 
         private String formatBinaryExpression(String operator, Expression left, Expression right, boolean unmangleNames)
         {
-            return "(" + process(left, unmangleNames) + " " + operator + " " + process(right, unmangleNames) + ")";
+            return "(" + process(left, unmangleNames).getLeft() + " " + operator + " " + process(right, unmangleNames).getLeft() + ")";
         }
 
         private static String formatIdentifier(String s)

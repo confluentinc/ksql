@@ -77,6 +77,7 @@ public class DDLUtil {
 
         ZkClient zkClient = new ZkClient("127.0.0.1:2181", 30 * 1000, 30 * 1000);
         zkClient.createPersistent(ZK_DELETE_TOPIC_PATH + "/" + topic, "", ZooDefs.Ids.OPEN_ACL_UNSAFE);
+
     }
 
     public static void main(String args[]) {

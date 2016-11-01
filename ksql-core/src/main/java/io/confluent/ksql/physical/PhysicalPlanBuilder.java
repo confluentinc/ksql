@@ -85,7 +85,7 @@ public class PhysicalPlanBuilder {
         if(sourceNode instanceof SourceKafkaTopicNode) {
             SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode) sourceNode;
             if (sourceKafkaTopicNode.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
-                KTable kTable = builder.table(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
+                KTable kTable = builder.table(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName(), sourceKafkaTopicNode.getTopicName()+"_store");
                 return new SchemaKTable(sourceKafkaTopicNode.getSchema(), kTable, sourceKafkaTopicNode.getKeyField());
             }
             KStream kStream = builder.stream(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
@@ -102,7 +102,14 @@ public class PhysicalPlanBuilder {
             if (!leftSchemaStream.getKeyField().name().equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
                 leftSchemaStream = leftSchemaStream.selectKey(SchemaUtil.getFieldByName(leftSchemaStream.getSchema(), joinNode.getLeftKeyFieldName()));
             }
-            SchemaStream joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+            SchemaStream joinSchemaStream;// = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+            switch (joinNode.getType()) {
+                case LEFT:
+                    joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+                    break;
+                default:
+                    throw new KSQLException("Join type is not supportd yet: "+joinNode.getType());
+            }
             return joinSchemaStream;
         }
 

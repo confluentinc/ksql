@@ -108,7 +108,7 @@ public class ExpressionUtil {
             if (schemaField == null) {
                 throw new RuntimeException("Cannot find the select field in the available fields: " + node.getName().getSuffix());
             }
-            parameterMap.put(schemaField.name(), SchemaUtil.getJavaType(schemaField.schema().type()));
+            parameterMap.put(schemaField.name().toUpperCase().replace(".","_"), SchemaUtil.getJavaType(schemaField.schema().type()));
             return null;
         }
     }

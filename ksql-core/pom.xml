@@ -16,28 +16,28 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>0.10.0.1</version>
+            <version>0.10.1.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <version>0.10.0.1</version>
+            <version>0.10.1.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>0.10.0.1</version>
+            <version>0.10.1.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/connect-api -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <version>0.10.0.1</version>
+            <version>0.10.1.0</version>
         </dependency>
 
 

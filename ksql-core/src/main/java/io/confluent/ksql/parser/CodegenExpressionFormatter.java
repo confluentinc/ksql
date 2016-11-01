@@ -110,7 +110,7 @@ public class CodegenExpressionFormatter {
             if(schemaField == null) {
                 throw new KSQLException("Field not found: "+schemaField.name());
             }
-            return new Pair<>(fieldName, schemaField.schema().type());
+            return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
         }
 
         @Override

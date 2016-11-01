@@ -115,7 +115,7 @@ public class SchemaStream {
                 GenericRow joinGenericRow = new GenericRow(columns);
                 return joinGenericRow;
             }
-        });
+        }, Serdes.String(), PhysicalPlanBuilder.getGenericRowSerde());
 
         return new SchemaStream(joinSchema, joinedKStream, joinKey);
     }
@@ -130,7 +130,6 @@ public class SchemaStream {
             public String apply(String key, GenericRow value) {
 
                 String newKey = value.getColumns().get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name())).toString();
-//                return new KeyValue<String, GenericRow>(newKey, value);
                 return newKey;
             }
         });

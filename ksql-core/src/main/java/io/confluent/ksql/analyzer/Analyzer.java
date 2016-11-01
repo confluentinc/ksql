@@ -90,8 +90,29 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         SourceKafkaTopicNode leftSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Left"),leftDataSource.getSchema(), leftDataSource.getKeyField() ,leftDataSource.getTopicName(), leftAlias, leftDataSource.getDataSourceType());
         SourceKafkaTopicNode rightSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Right"),rightDataSource.getSchema(), rightDataSource.getKeyField() ,rightDataSource.getTopicName(), rightAlias, rightDataSource.getDataSourceType());
 
+        JoinNode.Type joinType;
+        switch (node.getType()) {
+            case INNER:
+                joinType = JoinNode.Type.INNER;
+                break;
+            case LEFT:
+                joinType = JoinNode.Type.LEFT;
+                break;
+            case RIGHT:
+                joinType = JoinNode.Type.RIGHT;
+                break;
+            case CROSS:
+                joinType = JoinNode.Type.CROSS;
+                break;
+            case FULL:
+                joinType = JoinNode.Type.FULL;
+                break;
+            default:
+                throw new KSQLException("Join type is not supported: "+node.getType().name());
+        }
+
         JoinNode joinNode =
-                new JoinNode(new PlanNodeId("Join"), leftSourceKafkaTopicNode, rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias, rightAlias);
+                new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode, rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias, rightAlias);
 
         analysis.setJoin(joinNode);
 

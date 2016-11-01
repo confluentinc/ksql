@@ -12,6 +12,12 @@ import java.util.List;
 
 public class JoinNode extends PlanNode {
 
+    public enum Type
+    {
+        CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
+    }
+
+    private final Type type;
     private final PlanNode left;
     private final PlanNode right;
     private final Schema schema;
@@ -22,6 +28,7 @@ public class JoinNode extends PlanNode {
     private final String rightAlias;
 
     public JoinNode(@JsonProperty("id") PlanNodeId id,
+                    @JsonProperty("type") Type type,
                     @JsonProperty("left") PlanNode left,
                     @JsonProperty("right") PlanNode right,
                     @JsonProperty("leftKeyFieldName") String leftKeyFieldName,
@@ -31,6 +38,7 @@ public class JoinNode extends PlanNode {
 
         // TODO: Type should be derived.
         super(id);
+        this.type = type;
         this.left = left;
         this.right = right;
         this.leftKeyFieldName =leftKeyFieldName;
@@ -96,5 +104,9 @@ public class JoinNode extends PlanNode {
 
     public String getRightAlias() {
         return rightAlias;
+    }
+
+    public Type getType() {
+        return type;
     }
 }

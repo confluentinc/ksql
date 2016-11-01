@@ -41,11 +41,6 @@ public class KSQLParser {
             DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
             dataSourceExtractor.extractDataSources(tree);
 
-//            Node initialRoot = new AstBuilder(null).visit(tree);
-
-//            DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-//            dataSourceExtractor.extractDataSources(tree);
-
             Node root = new AstBuilder(dataSourceExtractor).visit(tree);
 
             return new Pair<>(root,dataSourceExtractor);

@@ -24,8 +24,9 @@ public class KSQL {
     KSQLEngine ksqlEngine;
     Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
     static final String queryIdPrefix = "ksql_";
-
     int queryIdCounter = 0;
+
+    boolean isCLI = true;
 
     Map<String, String> cliProperties = null;
 
@@ -68,6 +69,16 @@ public class KSQL {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void runQueries(String queryFilePath) throws Exception {
+
+        String queryString = KSQLUtil.readQueryFile(queryFilePath);
+        List<Pair<Statement, DataSourceExtractor>> statementsInfo = parseStatements(queryString);
+        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
+            processStatement(statementInfo, "");
+        }
+
     }
 
     private void processStatement(Pair<Statement, DataSourceExtractor> statementInfo, String statementStr) throws Exception {
@@ -115,11 +126,11 @@ public class KSQL {
         console.println("Command/Statement is incorrect or not supported.");
     }
 
-    private Pair<List<Statement>, DataSourceExtractor> parseStatements(String statementString) {
-        if (!statementString.endsWith(";")) {
+    private List<Pair<Statement, DataSourceExtractor>> parseStatements(String statementString) {
+        if (!statementString.trim().endsWith(";")) {
             statementString = statementString + ";";
         }
-        Pair<List<Statement>, DataSourceExtractor> statementsInfo = ksqlEngine.getStatements(statementString);
+        List<Pair<Statement, DataSourceExtractor>> statementsInfo = ksqlEngine.getStatements(statementString);
         return statementsInfo;
     }
 
@@ -127,18 +138,19 @@ public class KSQL {
         if (!statementString.endsWith(";")) {
             statementString = statementString + ";";
         }
-        Pair<List<Statement>, DataSourceExtractor> statementsInfo = null;
+        List<Pair<Statement, DataSourceExtractor>> statementsInfo = null;
         try {
             statementsInfo = parseStatements(statementString);
         } catch (Exception ex) {
         }
 
-        if((statementsInfo == null) || (statementsInfo.getLeft().size() != 1)) {
+        if((statementsInfo == null) || (statementsInfo.size() != 1)) {
             console.println("KSQL CLI Processes one statement/command at a time.");
             console.flush();
             return null;
         } else {
-            return new Pair<>(statementsInfo.getLeft().get(0), statementsInfo.getRight());
+//            return new Pair<>(statementsInfo.getLeft().get(0), statementsInfo.getRight());
+            return statementsInfo.get(0);
         }
     }
 
@@ -174,9 +186,11 @@ public class KSQL {
         liveQueries.put(queryId , queryInfo);
         KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(), queryInfo.getThird().getKeyField(), DataSource.DataSourceType.KSTREAM, queryInfo.getThird().getKafkaTopicName());
         ksqlEngine.getMetaStore().putSource(kafkaTopic);
-        console.println("Added the result topic to the metastore:");
-        console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
-        console.println("");
+        if (isCLI) {
+            console.println("Added the result topic to the metastore:");
+            console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
+            console.println("");
+        }
     }
 
     private void terminateQuery(TerminateQuery terminateQuery) throws IOException {
@@ -201,17 +215,17 @@ public class KSQL {
             console.println("No topic is available.");
             return;
         }
-        console.println("        KSQL topic          |       Corresponding Kafka topic     ");
-        console.println("----------------------------+-------------------------------------");
+        console.println("        KSQL Topic          |       Corresponding Kafka Topic        |             Topic Key          |          Topic Type                 ");
+        console.println("----------------------------+----------------------------------------+--------------------------------+-------------------------------------");
         for(String datasourceName: allDataSources.keySet()) {
             DataSource dataSource = allDataSources.get(datasourceName);
             if(dataSource instanceof KafkaTopic) {
                 KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
-                console.println(" "+padRight(datasourceName, 27)+"|  "+padRight(kafkaTopic.getTopicName(),26));
+                console.println(" "+padRight(datasourceName, 27)+"|  "+padRight(kafkaTopic.getTopicName(),38)+"|  "+padRight(kafkaTopic.getKeyField().name().toString(),30)+"|          "+padRight(kafkaTopic.getDataSourceType().toString(),30));
             }
 
         }
-        console.println("----------------------------+-------------------------------------");
+        console.println("----------------------------+----------------------------------------+--------------------------------+-------------------------------------");
         console.println("( "+allDataSources.size()+" rows)");
         console.flush();
     }
@@ -223,7 +237,7 @@ public class KSQL {
             console.flush();
             return;
         }
-        console.println("TOPIC: "+name.toUpperCase()+"    Type: "+dataSource.getDataSourceType());
+        console.println("TOPIC: "+name.toUpperCase()+"    Key: "+dataSource.getKeyField().name()+"    Type: "+dataSource.getDataSourceType());
         console.println("");
         console.println("      Column       |         Type         |                   Comment                   ");
         console.println("-------------------+----------------------+---------------------------------------------");
@@ -239,18 +253,17 @@ public class KSQL {
         console.println("Running queries: ");
         console.println(" Query ID   |         Query                                                                    |         Query Sink Topic");
         for(String queryId: liveQueries.keySet()) {
-            console.println("------------+----------------------------------------------------------------------------------+------------------------");
+            console.println("------------+----------------------------------------------------------------------------------+-----------------------------------");
             Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = liveQueries.get(queryId);
-            console.println(padRight(queryId, 12)+"|   "+padRight(queryInfo.getFirst(), 80)+"|   "+queryInfo.getThird().getKafkaTopicName());
+            console.println(padRight(queryId, 12)+"|   "+padRight(queryInfo.getFirst(), 80)+"|   "+queryInfo.getThird().getKafkaTopicName().toUpperCase());
         }
-        console.println("------------+----------------------------------------------------------------------------------+------------------------");
+        console.println("------------+----------------------------------------------------------------------------------+-----------------------------------");
         console.println("( "+liveQueries.size()+" rows)");
         console.flush();
-
     }
 
-    private void printTopic(String topicName) {
-        new TopicPrinter().printGenericRowTopic(topicName, console);
+    private void printTopic(String topicName) throws IOException {
+        new TopicPrinter().printGenericRowTopic(topicName, console, this.cliProperties);
     }
 
     private String getNextQueryId() {
@@ -273,16 +286,23 @@ public class KSQL {
 
         System.err.println("Incorrect format: ");
         System.err.println("Usage: ");
-        System.err.println(" ksql "+ KSQLConfig.SCHEMA_FILE_PATH_CONFIG+"=<path to schema json file> "+KSQLConfig.PROP_FILE_PATH_CONFIG+"=<path to the properties file>");
+        System.err.println(" ksql ["+ KSQLConfig.QUERY_FILE_PATH_CONFIG+"=<cli|path to query file> ] ["+ KSQLConfig.SCHEMA_FILE_PATH_CONFIG+"=<path to schema json file>] ["+KSQLConfig.PROP_FILE_PATH_CONFIG+"=<path to the properties file>]");
+    }
+
+    private static void loadDefaultSettings(Map<String, String> cliProperties) {
+        cliProperties.put(KSQLConfig.QUERY_FILE_PATH_CONFIG, KSQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG);
+        cliProperties.put(KSQLConfig.SCHEMA_FILE_PATH_CONFIG, KSQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG);
+        cliProperties.put(KSQLConfig.PROP_FILE_PATH_CONFIG, KSQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG);
+
     }
 
     public static void main(String[] args)
             throws Exception
     {
         Map<String, String> cliProperties = new HashMap<>();
-
+        loadDefaultSettings(cliProperties);
         // For now only pne parameter for CLI
-        if(args.length != 2) {
+        if(args.length > 3) {
             printUsageFromatMessage();
             System.exit(0);
         }
@@ -293,15 +313,23 @@ public class KSQL {
                 System.exit(0);
             }
             String[] property = propertyStr.split("=");
-            if(property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG)) {
-
+            if(property[0].equalsIgnoreCase(KSQLConfig.QUERY_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG)) {
                 cliProperties.put(property[0], property[1]);
             } else {
                 printUsageFromatMessage();
             }
         }
 
-        new KSQL(cliProperties).startConsole();
+
+        KSQL ksql = new KSQL(cliProperties);
+        if(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase("cli")) {
+            ksql.startConsole();
+        } else {
+            ksql.isCLI = false;
+            ksql.runQueries(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG));
+
+        }
+
     }
 
 }

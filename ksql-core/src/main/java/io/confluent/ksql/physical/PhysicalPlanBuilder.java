@@ -105,7 +105,7 @@ public class PhysicalPlanBuilder {
             SchemaStream joinSchemaStream;// = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
             switch (joinNode.getType()) {
                 case LEFT:
-                    joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+                    joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getSchema().field(joinNode.getLeftAlias()+"."+leftSchemaStream.getKeyField().name()));
                     break;
                 default:
                     throw new KSQLException("Join type is not supportd yet: "+joinNode.getType());

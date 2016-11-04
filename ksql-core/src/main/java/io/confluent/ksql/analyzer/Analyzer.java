@@ -87,8 +87,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         KafkaTopic leftDataSource = (KafkaTopic) metaStore.getSource(leftSideName.toUpperCase());
         KafkaTopic rightDataSource = (KafkaTopic) metaStore.getSource(rightSideName.toUpperCase());
 
-        SourceKafkaTopicNode leftSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Left"),leftDataSource.getSchema(), leftDataSource.getKeyField() ,leftDataSource.getTopicName(), leftAlias, leftDataSource.getDataSourceType());
-        SourceKafkaTopicNode rightSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Right"),rightDataSource.getSchema(), rightDataSource.getKeyField() ,rightDataSource.getTopicName(), rightAlias, rightDataSource.getDataSourceType());
+        SourceKafkaTopicNode leftSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Left"),leftDataSource.getSchema(), leftDataSource.getKeyField() ,leftDataSource.getTopicName(), leftAlias.toUpperCase(), leftDataSource.getDataSourceType());
+        SourceKafkaTopicNode rightSourceKafkaTopicNode = new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Right"),rightDataSource.getSchema(), rightDataSource.getKeyField() ,rightDataSource.getTopicName(), rightAlias.toUpperCase(), rightDataSource.getDataSourceType());
 
         JoinNode.Type joinType;
         switch (node.getType()) {
@@ -122,7 +122,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     @Override
     protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
 
-        Pair<DataSource,String> fromDataSource = new Pair<>(metaStore.getSource(((Table)node.getRelation()).getName().getSuffix().toUpperCase()), node.getAlias());
+        Pair<DataSource,String> fromDataSource = new Pair<>(metaStore.getSource(((Table)node.getRelation()).getName().getSuffix().toUpperCase()), node.getAlias().toUpperCase());
         analysis.getFromDataSources().add(fromDataSource);
         return node;
     }

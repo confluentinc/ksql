@@ -16,6 +16,8 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -24,14 +26,20 @@ public class TopicPrinter {
 
     static Serde<GenericRow> genericRowSerde = null;
 
-    public void printGenericRowTopic(String topicName, ConsoleReader console) {
+    public void printGenericRowTopic(String topicName, ConsoleReader console, Map<String, String> cliProperties) throws IOException {
 
-        Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, topicName+"_"+System.currentTimeMillis());
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        Properties ksqlProperties = new Properties();
+        ksqlProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL-Default-"+System.currentTimeMillis());
+        ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KSQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
+        ksqlProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KSQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
+        if (! cliProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG).equalsIgnoreCase(KSQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
+            ksqlProperties.load(new FileReader(cliProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
+        }
+        ksqlProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, topicName+"_"+System.currentTimeMillis());
+        ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
 
         // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        ksqlProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlProperties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
         KStreamBuilder builder = new KStreamBuilder();
 
@@ -49,7 +57,7 @@ public class TopicPrinter {
             }
         });
 
-        KafkaStreams streams = new KafkaStreams(builder, props);
+        KafkaStreams streams = new KafkaStreams(builder, ksqlProperties);
         streams.start();
 
         // usually the stream application would be running forever,

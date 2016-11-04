@@ -26,6 +26,7 @@ public class JoinNode extends PlanNode {
 
     private final String leftAlias;
     private final String rightAlias;
+    private final Field keyField;
 
     public JoinNode(@JsonProperty("id") PlanNodeId id,
                     @JsonProperty("type") Type type,
@@ -46,6 +47,7 @@ public class JoinNode extends PlanNode {
         this.leftAlias = leftAlias;
         this.rightAlias = rightAlias;
         this.schema = buildSchema(left, right);
+        this.keyField = this.schema.field(leftAlias+"."+leftKeyFieldName);
     }
 
     private Schema buildSchema(PlanNode left, PlanNode right) {
@@ -74,7 +76,7 @@ public class JoinNode extends PlanNode {
 
     @Override
     public Field getKeyField() {
-        return this.left.getKeyField();
+        return this.keyField;
     }
 
     @Override

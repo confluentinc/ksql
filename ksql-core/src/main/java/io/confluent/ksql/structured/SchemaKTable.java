@@ -71,7 +71,6 @@ public class SchemaKTable extends SchemaStream {
                         e.printStackTrace();
                     }
                     newColumns.add(columnValue);
-
                 }
                 GenericRow newRow = new GenericRow(newColumns);
                 return newRow;

@@ -2,6 +2,7 @@ package io.confluent.ksql.parser;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
@@ -11,6 +12,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 
@@ -23,7 +26,7 @@ public class KSQLParser {
      * @param sql
      * @return
      */
-    public Pair<Node, DataSourceExtractor> buildAST(String sql, MetaStore metaStore) {
+    public List<Pair<Statement, DataSourceExtractor>> buildAST(String sql, MetaStore metaStore) {
         SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new ANTLRInputStream(sql));
 
         CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
@@ -38,12 +41,23 @@ public class KSQLParser {
             sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
             tree = parseFunction.apply(sqlBaseParser);
 
-            DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-            dataSourceExtractor.extractDataSources(tree);
+            SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
+            List<Pair<Statement, DataSourceExtractor>> astNodes = new ArrayList<>();
+            for (SqlBaseParser.SingleStatementContext statementContext: statementsContext.singleStatement()) {
+                DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+                dataSourceExtractor.extractDataSources(statementContext);
+                Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
+                Statement statement = (Statement) root;
+                astNodes.add(new Pair<>(statement, dataSourceExtractor));
+            }
+            return astNodes;
 
-            Node root = new AstBuilder(dataSourceExtractor).visit(tree);
-
-            return new Pair<>(root,dataSourceExtractor);
+//            DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+//            dataSourceExtractor.extractDataSources(tree);
+//
+//            Node root = new AstBuilder(dataSourceExtractor).visit(tree);
+//
+//            return new Pair<>(root,dataSourceExtractor);
         }
         catch (ParseCancellationException ex) {
             // if we fail, parse with LL mode

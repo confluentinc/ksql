@@ -34,18 +34,6 @@ public class QueryEngine {
         this.ksqlConfig = ksqlConfig;
     }
 
-//    public List<Statement> getStatements(String sqlString) {
-//        // First parse the query and build the AST
-//        KSQLParser ksqlParser = new KSQLParser();
-//        Node root = ksqlParser.buildAST(sqlString);
-//
-//        if(root instanceof Statements) {
-//            Statements statements = (Statements) root;
-//            return statements.statementList;
-//        }
-//        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
-//    }
-
     public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(String queryId, Query queryNode, MetaStore metaStore, DataSourceExtractor dataSourceExtractor) throws Exception {
 
         // Analyze the query to resolve the references and extract oeprations
@@ -57,19 +45,19 @@ public class QueryEngine {
         PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId);
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId+"-"+System.currentTimeMillis());
 
         if((ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) && (!ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG).isEmpty())){
             props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG));
         } else {
-            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+            props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KSQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
         }
 
         if(ksqlConfig.values().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) != null) {
             props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
         } else {
             // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KSQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
         }
 
         KStreamBuilder builder = new KStreamBuilder();

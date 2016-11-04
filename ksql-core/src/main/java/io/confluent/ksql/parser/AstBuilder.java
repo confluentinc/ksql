@@ -503,7 +503,7 @@ class AstBuilder
             alias = context.children.get(1).getText();
         }
 
-        return new AliasedRelation(getLocation(context), child, alias, getColumnAliases(context.columnAliases()));
+        return new AliasedRelation(getLocation(context), child, alias.toUpperCase(), getColumnAliases(context.columnAliases()));
 
     }
 

@@ -35,7 +35,8 @@ public class ExpressionUtil {
             index++;
         }
 
-        String expressionStr = expression.getCodegenString(schema).toUpperCase();
+//        String expressionStr = expression.getCodegenString(schema).toUpperCase();
+        String expressionStr = expression.getCodegenString(schema);
         IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
         // The expression will have two "int" parameters: "a" and "b".

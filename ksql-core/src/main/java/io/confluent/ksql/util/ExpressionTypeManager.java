@@ -73,6 +73,31 @@ public class ExpressionTypeManager extends DefaultASTVisitor<Expression, Express
         return null;
     }
 
+    protected Expression visitStringLiteral(StringLiteral node, ExpressionTypeContext expressionTypeContext)
+    {
+        expressionTypeContext.setType(Schema.Type.STRING);
+        return null;
+    }
+
+    protected Expression visitBooleanLiteral(BooleanLiteral node, ExpressionTypeContext expressionTypeContext)
+    {
+        expressionTypeContext.setType(Schema.Type.BOOLEAN);
+        return null;
+    }
+
+    protected Expression visitLongLiteral(LongLiteral node, ExpressionTypeContext expressionTypeContext)
+    {
+        expressionTypeContext.setType(Schema.Type.INT64);
+        return null;
+    }
+
+    protected Expression visitDoubleLiteral(DoubleLiteral node, ExpressionTypeContext expressionTypeContext)
+    {
+        expressionTypeContext.setType(Schema.Type.FLOAT64);
+        return null;
+    }
+
+
     private Schema.Type resolveArithmaticType(Schema.Type leftType, Schema.Type rightType) {
         if(leftType == rightType) {
             return  leftType;

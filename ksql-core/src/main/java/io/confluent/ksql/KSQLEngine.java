@@ -15,10 +15,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class KSQLEngine {
 
@@ -45,34 +42,44 @@ public class KSQLEngine {
         metaStore.putSource(kafkaTopic);
     }
 
-    public Pair<List<Statement>, DataSourceExtractor> getStatements(String sqlString) {
+    public List<Pair<Statement, DataSourceExtractor>> getStatements(String sqlString) {
         // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
-        Pair<Node, DataSourceExtractor> builtAST = ksqlParser.buildAST(sqlString, metaStore);
-        Node root = builtAST.getLeft();
-        if(root instanceof Statements) {
-            Statements statements = (Statements) root;
-            return new Pair<>(statements.statementList, builtAST.getRight());
-        }
-        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
+        List<Pair<Statement, DataSourceExtractor>> builtASTStatements = ksqlParser.buildAST(sqlString, metaStore);
+        return builtASTStatements;
+//        Node root = builtAST.getLeft();
+//        List<Pair<Statement, DataSourceExtractor>> statementPairList = new ArrayList<>();
+//        for (Pair<Node, DataSourceExtractor> statementPair: builtASTStatements) {
+//            if(statementPair.getLeft() instanceof Statements) {
+//                Statements statements = (Statements) statementPair.getLeft();
+////                return new Pair<>(statements.statementList, builtAST.getRight());
+//                statementPairList.add(new Pair<>(s))
+//            }
+//        }
+//        return statementPairList;
+//        if(root instanceof Statements) {
+//            Statements statements = (Statements) root;
+//            return new Pair<>(statements.statementList, builtAST.getRight());
+//        }
+//        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
     }
 
     public void processStatements(String queryId, String statementsString) throws Exception {
         if (!statementsString.endsWith(";")) {
             statementsString = statementsString + ";";
         }
-        Pair<List<Statement>, DataSourceExtractor> statementsInfo = getStatements(statementsString);
-        List<Statement> statements = statementsInfo.getLeft();
+        List<Pair<Statement, DataSourceExtractor>> statementsInfo = getStatements(statementsString);
+//        List<Statement> statements = statementsInfo.getLeft();
         int internalIndex = 0;
-        for(Statement statement: statements) {
-            if(statement instanceof Query) {
-                queryEngine.processQuery(queryId+"_"+internalIndex, (Query)statement, metaStore, statementsInfo.getRight());
+        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
+            if(statementInfo.getLeft() instanceof Query) {
+                queryEngine.processQuery(queryId+"_"+internalIndex, (Query)statementInfo.getLeft(), metaStore, statementInfo.getRight());
                 internalIndex++;
-            }  else if (statement instanceof CreateTable) {
-                ddlEngine.createTopic((CreateTable) statement);
+            }  else if (statementInfo.getLeft() instanceof CreateTable) {
+                ddlEngine.createTopic((CreateTable) statementInfo.getLeft());
                 return;
-            } else if (statement instanceof DropTable) {
-                ddlEngine.dropTopic((DropTable) statement);
+            } else if (statementInfo.getLeft() instanceof DropTable) {
+                ddlEngine.dropTopic((DropTable) statementInfo.getLeft());
                 return;
             }
         }
@@ -101,8 +108,14 @@ public class KSQLEngine {
     public KSQLEngine(Map<String, String> ksqlConfProperties) throws IOException {
         String schemaPath = ksqlConfProperties.get(KSQLConfig.SCHEMA_FILE_PATH_CONFIG);
         Properties ksqlProperties = new Properties();
-        ksqlProperties.load(new FileReader(ksqlConfProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
-        ksqlProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL_APP");
+        ksqlProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL-Default-"+System.currentTimeMillis());
+        ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KSQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
+        ksqlProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KSQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
+        if (! ksqlConfProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG).equalsIgnoreCase(KSQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
+            ksqlProperties.load(new FileReader(ksqlConfProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
+        }
+
+
         this.ksqlConfig = new KSQLConfig(ksqlProperties);
         this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaPath);
         this.queryEngine = new QueryEngine(this.ksqlConfig);
@@ -122,10 +135,18 @@ public class KSQLEngine {
 //        ksqlEngine.processStatements("KSQL_1", "select u.userid, p.userid, p.pageid , p.viewtime, regionid into stream1 from  pageview p JOIN users u ON u.userid = p.userid;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME into stream2 FROM pageview JOIN users ON pageview.USERID = users.USERID;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select USERID, REGIONID into stream8 from users where REGIONID = 'Region_5';".toUpperCase());
-//        ksqlEngine.processStatements("KSQL_1", "select * from users where USERID = 'User_58';".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select USERID, REGIONID, userid = '*****', 12 into stream11 from users;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select * into ktable1 from users;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select * from orders;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME into stream6 FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1", "select ORDERTIME, ITEMID, ORDERUNITS into stream6 from orders where ORDERUNITS > 8 AND ITEMID = 'Item_3';".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select ORDERTIME, ITEMID, ORDERUNITS into stream6 from orders where ORDERUNITS > 8 AND ITEMID = 'Item_3';".toUpperCase());
+        ksqlEngine.processStatements("KSQL_1", "select users.userid, pageid, regionid, gender into stream3 from pageview left join users on pageview.userid = users.userid;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "SELECT PAGEVIEW.USERID, PAGEID, REGIONID, GENDER INTO PAGEVIEWJOIN1 FROM PAGEVIEW LEFT JOIN USERS ON PAGEVIEW.USERID = USERS.USERID;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select USERTIME, USERID, REGIONID into stream5 from users;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select ordertime, itemId, orderunits, '**===*' AS t into stream3 from orders;".toUpperCase());
+
+
+
 
 
     }

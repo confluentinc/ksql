@@ -68,11 +68,6 @@ public class CodegenExpressionFormatter {
 //            return new Pair<>("X'" + node.toHexString() + "'", StringType.STRING);
         }
 
-        @Override
-        protected Pair<String, Schema.Type> visitLongLiteral(LongLiteral node, Boolean unmangleNames)
-        {
-            return new Pair<>(Long.toString(node.getValue()), Schema.Type.INT64);
-        }
 
         @Override
         protected Pair<String, Schema.Type> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames)
@@ -150,6 +145,11 @@ public class CodegenExpressionFormatter {
             // add colon so this won't parse
 //            return ":input(" + node.getFieldIndex() + ")";
         }
+        protected Pair<String, Schema.Type> visitLongLiteral(LongLiteral node, Boolean unmangleNames)
+        {
+            return new Pair<>("Long.parseLong(\""+node.getValue()+"\")", Schema.Type.INT64);
+        }
+
 
         @Override
         protected Pair<String, Schema.Type> visitFunctionCall(FunctionCall node, Boolean unmangleNames)

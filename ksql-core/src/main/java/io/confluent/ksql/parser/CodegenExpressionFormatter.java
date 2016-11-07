@@ -213,14 +213,18 @@ public class CodegenExpressionFormatter {
         @Override
         protected Pair<String, Schema.Type> visitIsNullPredicate(IsNullPredicate node, Boolean unmangleNames)
         {
-            throw new UnsupportedOperationException();
+            Pair<String, Schema.Type> value = process(node.getValue(), unmangleNames);
+            return new Pair<>("((" +value.getLeft()+") == null )", Schema.Type.BOOLEAN);
+//            throw new UnsupportedOperationException();
 //            return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
         }
 
         @Override
         protected Pair<String, Schema.Type> visitIsNotNullPredicate(IsNotNullPredicate node, Boolean unmangleNames)
         {
-            throw new UnsupportedOperationException();
+            Pair<String, Schema.Type> value = process(node.getValue(), unmangleNames);
+            return new Pair<>("((" +value.getLeft()+") != null )", Schema.Type.BOOLEAN);
+//            throw new UnsupportedOperationException();
 //            return "(" + process(node.getValue(), unmangleNames) + " == null)";
         }
 

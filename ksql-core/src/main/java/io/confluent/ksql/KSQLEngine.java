@@ -140,14 +140,12 @@ public class KSQLEngine {
 //        ksqlEngine.processStatements("KSQL_1", "select * from orders;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME into stream6 FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select ORDERTIME, ITEMID, ORDERUNITS into stream6 from orders where ORDERUNITS > 8 AND ITEMID = 'Item_3';".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1", "select users.userid, pageid, regionid, gender into stream3 from pageview left join users on pageview.userid = users.userid;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "select users.userid, pageid, regionid, gender into stream3 from pageview left join users on pageview.userid = users.userid;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "SELECT PAGEVIEW.USERID, PAGEID, REGIONID, GENDER INTO PAGEVIEWJOIN1 FROM PAGEVIEW LEFT JOIN USERS ON PAGEVIEW.USERID = USERS.USERID;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select USERTIME, USERID, REGIONID into stream5 from users;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select ordertime, itemId, orderunits, '**===*' AS t into stream3 from orders;".toUpperCase());
-
-
-
-
+        ksqlEngine.processStatements("KSQL_1", "SELECT users.userid AS userid, pageid, regionid, gender INTO enrichedpageview FROM pageview LEFT JOIN users ON pageview.userid = users.userid;".toUpperCase());
+        ksqlEngine.processStatements("KSQL_1", "SELECT userid, pageid, regionid, gender INTO region_pageview FROM enrichedpageview WHERE regionid IS NOT NULL AND regionid = 'Region_5';".toUpperCase());
 
     }
 }

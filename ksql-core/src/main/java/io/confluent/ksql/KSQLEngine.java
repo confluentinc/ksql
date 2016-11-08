@@ -4,12 +4,13 @@ package io.confluent.ksql;
 import io.confluent.ksql.ddl.DDLEngine;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KSQLConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 
@@ -42,6 +43,39 @@ public class KSQLEngine {
         metaStore.putSource(kafkaTopic);
     }
 
+    public void runMultipleQueries(String queriesString) throws Exception {
+        KSQLParser ksqlParser = new KSQLParser();
+        List<SqlBaseParser.SingleStatementContext> parsedStatements =  ksqlParser.getStatements(queriesString);
+        int queryIndex = 0;
+        for (SqlBaseParser.SingleStatementContext singleStatementContext: parsedStatements) {
+            Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(singleStatementContext, metaStore);
+            Statement statement = statementInfo.getLeft();
+            if (statement instanceof Query) {
+                Query query = (Query) statement;
+                if (query.getQueryBody() instanceof  QuerySpecification) {
+                    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+                    if (querySpecification.getInto().get() instanceof Table) {
+                        Table table = (Table)querySpecification.getInto().get();
+                        if(metaStore.getSource(table.getName().getSuffix().toUpperCase()) != null) {
+                            throw  new KSQLException("Sink specified in INTO clause already exists: "+table.getName().getSuffix().toUpperCase());
+                        }
+                    }
+                }
+                Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = queryEngine.processQuery("ksql_"+queryIndex, query, metaStore, statementInfo.getRight());
+
+                KafkaTopic kafkaTopic = new KafkaTopic(queryPairInfo.getRight().getId().toString(), queryPairInfo.getRight().getSchema(), queryPairInfo.getRight().getKeyField(), DataSource.DataSourceType.KSTREAM, queryPairInfo.getRight().getKafkaTopicName());
+                metaStore.putSource(kafkaTopic);
+                Thread.sleep(5000);
+
+            } else if (statement instanceof CreateTable) {
+                ddlEngine.createTopic((CreateTable) statement);
+            } else if (statement instanceof DropTable) {
+                ddlEngine.dropTopic((DropTable) statement);
+            }
+        }
+
+    }
+
     public List<Pair<Statement, DataSourceExtractor>> getStatements(String sqlString) {
         // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
@@ -64,6 +98,8 @@ public class KSQLEngine {
 //        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
     }
 
+
+
     public void processStatements(String queryId, String statementsString) throws Exception {
         if (!statementsString.endsWith(";")) {
             statementsString = statementsString + ";";
@@ -84,6 +120,9 @@ public class KSQLEngine {
             }
         }
     }
+
+
+
 
     public MetaStore getMetaStore() {
         return metaStore;

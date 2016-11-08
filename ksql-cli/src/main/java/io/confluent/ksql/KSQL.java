@@ -74,56 +74,66 @@ public class KSQL {
     public void runQueries(String queryFilePath) throws Exception {
 
         String queryString = KSQLUtil.readQueryFile(queryFilePath);
-        List<Pair<Statement, DataSourceExtractor>> statementsInfo = parseStatements(queryString);
-        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
-            processStatement(statementInfo, "");
-        }
+        ksqlEngine.runMultipleQueries(queryString);
+
+//        List<Pair<Statement, DataSourceExtractor>> statementsInfo = parseStatements(queryString);
+//        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
+//            processStatement(statementInfo, "");
+//        }
 
     }
 
-    private void processStatement(Pair<Statement, DataSourceExtractor> statementInfo, String statementStr) throws Exception {
-        Statement statement = statementInfo.getLeft();
-        if (statement instanceof Query) {
-            startQuery(statementStr, (Query) statement, statementInfo.getRight());
-            return;
-        } else if (statement instanceof CreateTable) {
-            ksqlEngine.getDdlEngine().createTopic((CreateTable) statement);
-            return;
-        } else if (statement instanceof DropTable) {
-            ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
-            return;
-        } else if (statement instanceof ShowQueries) {
-            showQueries();
-            return;
-        } else if (statement instanceof ShowTopics) {
-            showTables();
-            return;
-        } else if (statement instanceof ShowColumns) {
-            ShowColumns showColumns = (ShowColumns) statement;
-            showColumns(showColumns.getTable().getSuffix().toUpperCase());
-            return;
-        } else if (statement instanceof ShowTables) {
-            showTables();
-            return;
-        } else if (statement instanceof TerminateQuery) {
-            terminateQuery((TerminateQuery) statement);
-            return;
-        } else if (statement instanceof PrintTopic) {
-            PrintTopic printTopic = (PrintTopic) statement;
-            DataSource dataSource = ksqlEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toUpperCase());
-            if(dataSource instanceof KafkaTopic) {
-                KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
-                String topicsName = kafkaTopic.getTopicName();
-                printTopic(topicsName);
+
+    private void processStatement(Pair<Statement, DataSourceExtractor> statementInfo, String statementStr) throws IOException {
+        try {
+
+            Statement statement = statementInfo.getLeft();
+            if (statement instanceof Query) {
+                startQuery(statementStr, (Query) statement, statementInfo.getRight());
+                return;
+            } else if (statement instanceof CreateTable) {
+                ksqlEngine.getDdlEngine().createTopic((CreateTable) statement);
+                return;
+            } else if (statement instanceof DropTable) {
+                ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
+                return;
+            } else if (statement instanceof ShowQueries) {
+                showQueries();
+                return;
+            } else if (statement instanceof ShowTopics) {
+                showTables();
+                return;
+            } else if (statement instanceof ShowColumns) {
+                ShowColumns showColumns = (ShowColumns) statement;
+                showColumns(showColumns.getTable().getSuffix().toUpperCase());
+                return;
+            } else if (statement instanceof ShowTables) {
+                showTables();
+                return;
+            } else if (statement instanceof TerminateQuery) {
+                terminateQuery((TerminateQuery) statement);
+                return;
+            } else if (statement instanceof PrintTopic) {
+                PrintTopic printTopic = (PrintTopic) statement;
+                DataSource dataSource = ksqlEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toUpperCase());
+                if(dataSource instanceof KafkaTopic) {
+                    KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+                    String topicsName = kafkaTopic.getTopicName();
+                    printTopic(topicsName);
+                }
+
+                return;
+            } else if (statement instanceof SetProperty) {
+
+            } else if (statement instanceof LoadProperties) {
+
             }
+            console.println("Command/Statement is incorrect or not supported.");
 
-            return;
-        } else if (statement instanceof SetProperty) {
-
-        } else if (statement instanceof LoadProperties) {
-
+        } catch (Exception e) {
+            console.println("Exception: "+e.getMessage());
         }
-        console.println("Command/Statement is incorrect or not supported.");
+
     }
 
     private List<Pair<Statement, DataSourceExtractor>> parseStatements(String statementString) {
@@ -133,6 +143,7 @@ public class KSQL {
         List<Pair<Statement, DataSourceExtractor>> statementsInfo = ksqlEngine.getStatements(statementString);
         return statementsInfo;
     }
+
 
     public Pair<Statement, DataSourceExtractor> getSingleStatement(String statementString) throws IOException {
         if (!statementString.endsWith(";")) {

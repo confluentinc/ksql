@@ -16,28 +16,41 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>0.10.1.0</version>
+            <!--<version>0.10.1.0</version>-->
+            <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <version>0.10.1.0</version>
+            <!--<version>0.10.1.0</version>-->
+            <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>0.10.1.0</version>
+            <!--<version>0.10.1.0</version>-->
+            <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/connect-api -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <version>0.10.1.0</version>
+            <!--<version>0.10.1.0</version> -->
+            <version>0.10.2.0-SNAPSHOT</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/org.apache.kafka/connect-json -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <!--<version>0.10.1.0</version>-->
+            <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
 
 
@@ -103,6 +116,13 @@
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
             <version>1.8.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni -->
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>4.11.2</version>
         </dependency>
 
 

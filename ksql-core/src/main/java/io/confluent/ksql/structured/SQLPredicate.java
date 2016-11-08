@@ -34,7 +34,8 @@ public class SQLPredicate {
         for (String parameterName: parameterMap.keySet()) {
             parameterNames[index] = parameterName;
             parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName.replace("_","."));
+//            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName.replace("_","."));
+            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
             index++;
         }
 

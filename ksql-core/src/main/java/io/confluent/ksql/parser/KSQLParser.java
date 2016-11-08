@@ -65,4 +65,30 @@ public class KSQLParser {
         }
     }
 
+    public List<SqlBaseParser.SingleStatementContext> getStatements(String sql) {
+        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new ANTLRInputStream(sql));
+
+        CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
+
+        SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
+
+        Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
+
+        // first, try parsing with potentially faster SLL mode
+        sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
+        ParserRuleContext tree = parseFunction.apply(sqlBaseParser);
+
+        SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
+        return statementsContext.singleStatement();
+    }
+
+
+    public Pair<Statement, DataSourceExtractor> prepareStatement(SqlBaseParser.SingleStatementContext statementContext, MetaStore metaStore) {
+        DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+        dataSourceExtractor.extractDataSources(statementContext);
+        Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
+        Statement statement = (Statement) root;
+        return new Pair<>(statement, dataSourceExtractor);
+    }
+
 }

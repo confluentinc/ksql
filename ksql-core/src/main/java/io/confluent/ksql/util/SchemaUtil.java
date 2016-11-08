@@ -51,12 +51,24 @@ public class SchemaUtil {
     }
 
     public static int getFieldIndexByName(Schema schema, String fieldName) {
+
         if (schema.fields() != null) {
             for (int i = 0; i < schema.fields().size(); i++) {
                 Field field = schema.fields().get(i);
-                if (field.name().equalsIgnoreCase(fieldName)) {
-                    return  i;
+                int dotIndex = field.name().indexOf(".");
+                if (dotIndex == -1) {
+                    if (field.name().equalsIgnoreCase(fieldName)) {
+                        return  i;
+                    }
+                } else {
+                    if (dotIndex < fieldName.length()) {
+                        String fieldNameWithDot = fieldName.substring(0, dotIndex)+"."+fieldName.substring(dotIndex+1);
+                        if (field.name().equalsIgnoreCase(fieldNameWithDot)) {
+                            return  i;
+                        }
+                    }
                 }
+
             }
         }
         return -1;

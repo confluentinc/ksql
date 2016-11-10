@@ -41,7 +41,7 @@ public class QueryEngine {
         Analyzer analyzer = new Analyzer(analysis,metaStore, dataSourceExtractor);
         analyzer.process(queryNode, new AnalysisContext(null, null));
 
-        // Build a physical plan
+        // Build a logical plan
         PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
 
         Properties props = new Properties();

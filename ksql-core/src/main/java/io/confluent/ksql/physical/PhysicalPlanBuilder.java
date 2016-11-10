@@ -69,14 +69,12 @@ public class PhysicalPlanBuilder {
     }
 
     private SchemaStream buildProject(ProjectNode projectNode) throws Exception {
-//        SchemaStream schemaStream = kafkaStreamsDSL(projectNode.getSource());
         SchemaStream projectedSchemaStream = kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions(), projectNode.getSchema());
         return projectedSchemaStream;
     }
 
 
     private SchemaStream buildFilter(FilterNode filterNode) throws Exception {
-//        SchemaStream schemaStream = kafkaStreamsDSL(filterNode.getSource());
         SchemaStream filteredSchemaStream = kafkaStreamsDSL(filterNode.getSource()).filter(filterNode.getPredicate());
         return filteredSchemaStream;
     }
@@ -102,7 +100,7 @@ public class PhysicalPlanBuilder {
             if (!leftSchemaStream.getKeyField().name().equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
                 leftSchemaStream = leftSchemaStream.selectKey(SchemaUtil.getFieldByName(leftSchemaStream.getSchema(), joinNode.getLeftKeyFieldName()));
             }
-            SchemaStream joinSchemaStream;// = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getKeyField());
+            SchemaStream joinSchemaStream;
             switch (joinNode.getType()) {
                 case LEFT:
                     joinSchemaStream = leftSchemaStream.leftJoin(rightSchemaKTable, joinNode.getSchema(), joinNode.getSchema().field(joinNode.getLeftAlias()+"."+leftSchemaStream.getKeyField().name()));

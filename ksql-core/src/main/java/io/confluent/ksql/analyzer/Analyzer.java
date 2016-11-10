@@ -194,7 +194,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     private void analyzeWhere(Node node, AnalysisContext context) {
         analysis.setWhereExpression((Expression) node);
-        System.out.println(node.toString());
     }
 
     private void analyzeSelect(Select select, AnalysisContext context) {

@@ -55,6 +55,7 @@ public class KSQL {
                     printCommandList();
                     continue;
                 }
+                // Parse the command and create AST.
                 Pair<Statement, DataSourceExtractor> statementInfo = getSingleStatement(line);
                 if(statementInfo != null) {
                     processStatement(statementInfo, line);
@@ -75,12 +76,6 @@ public class KSQL {
 
         String queryString = KSQLUtil.readQueryFile(queryFilePath);
         ksqlEngine.runMultipleQueries(queryString);
-
-//        List<Pair<Statement, DataSourceExtractor>> statementsInfo = parseStatements(queryString);
-//        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
-//            processStatement(statementInfo, "");
-//        }
-
     }
 
 
@@ -116,6 +111,10 @@ public class KSQL {
             } else if (statement instanceof PrintTopic) {
                 PrintTopic printTopic = (PrintTopic) statement;
                 DataSource dataSource = ksqlEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toUpperCase());
+                if (dataSource == null) {
+                    console.println("Topic does not exist: "+ printTopic.getTopic().getSuffix());
+                    return;
+                }
                 if(dataSource instanceof KafkaTopic) {
                     KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
                     String topicsName = kafkaTopic.getTopicName();
@@ -160,7 +159,6 @@ public class KSQL {
             console.flush();
             return null;
         } else {
-//            return new Pair<>(statementsInfo.getLeft().get(0), statementsInfo.getRight());
             return statementsInfo.get(0);
         }
     }

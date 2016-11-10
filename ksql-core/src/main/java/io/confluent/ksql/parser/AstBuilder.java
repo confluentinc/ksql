@@ -202,7 +202,9 @@ class AstBuilder
             into = (Table) visit(context.into);
         } else {
             // TODO: Generate a unique name
-            into = new Table(QualifiedName.of("Stream_"+System.currentTimeMillis()));
+            String intoName = "KSQL_Stream_"+System.currentTimeMillis();
+            into = new Table(QualifiedName.of(intoName));
+            System.out.println("No INTO clause was specified in the query. Writing the results into topic: "+intoName);
         }
 
         Relation from = (Relation) visit(context.from);
@@ -465,29 +467,6 @@ class AstBuilder
 
         return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
     }
-
-//    @Override
-//    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context)
-//    {
-//        Relation child = (Relation) visit(context.aliasedRelation());
-//
-//        if (context.TABLESAMPLE() == null) {
-//            return child;
-//        }
-//
-//        Optional<List<Expression>> stratifyOn = Optional.empty();
-//        if (context.STRATIFY() != null) {
-//            stratifyOn = Optional.of(visit(context.stratify, Expression.class));
-//        }
-//
-//        return new SampledRelation(
-//                getLocation(context),
-//                child,
-//                getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
-//                (Expression) visit(context.percentage),
-//                context.RESCALED() != null,
-//                stratifyOn);
-//    }
 
     @Override
     public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context)

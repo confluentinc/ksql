@@ -27,8 +27,6 @@ public class LogicalPlanner
 
     public PlanNode buildPlan() {
 
-
-
         PlanNode currentNode;
         if (analysis.getJoin() != null) {
             currentNode = analysis.getJoin();

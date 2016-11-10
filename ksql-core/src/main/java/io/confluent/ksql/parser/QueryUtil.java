@@ -15,16 +15,6 @@ public final class QueryUtil
         return new QualifiedNameReference(QualifiedName.of(name));
     }
 
-//    public static SelectItem unaliasedName(String name)
-//    {
-//        return new SingleColumn(nameReference(name));
-//    }
-//
-//    public static SelectItem aliasedName(String name, String alias)
-//    {
-//        return new SingleColumn(nameReference(name), alias);
-//    }
-
     public static Select selectList(Expression... expressions)
     {
         ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
@@ -149,7 +139,6 @@ public final class QueryUtil
         return query(new QuerySpecification(
                 select,
                 Optional.empty(),
-//                Optional.of(from),
                 Optional.empty(),
                 where,
                 groupBy,

@@ -51,13 +51,6 @@ public class KSQLParser {
                 astNodes.add(new Pair<>(statement, dataSourceExtractor));
             }
             return astNodes;
-
-//            DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-//            dataSourceExtractor.extractDataSources(tree);
-//
-//            Node root = new AstBuilder(dataSourceExtractor).visit(tree);
-//
-//            return new Pair<>(root,dataSourceExtractor);
         }
         catch (ParseCancellationException ex) {
             // if we fail, parse with LL mode

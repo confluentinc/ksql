@@ -81,21 +81,6 @@ public class KSQLEngine {
         KSQLParser ksqlParser = new KSQLParser();
         List<Pair<Statement, DataSourceExtractor>> builtASTStatements = ksqlParser.buildAST(sqlString, metaStore);
         return builtASTStatements;
-//        Node root = builtAST.getLeft();
-//        List<Pair<Statement, DataSourceExtractor>> statementPairList = new ArrayList<>();
-//        for (Pair<Node, DataSourceExtractor> statementPair: builtASTStatements) {
-//            if(statementPair.getLeft() instanceof Statements) {
-//                Statements statements = (Statements) statementPair.getLeft();
-////                return new Pair<>(statements.statementList, builtAST.getRight());
-//                statementPairList.add(new Pair<>(s))
-//            }
-//        }
-//        return statementPairList;
-//        if(root instanceof Statements) {
-//            Statements statements = (Statements) root;
-//            return new Pair<>(statements.statementList, builtAST.getRight());
-//        }
-//        throw new StreamsException("Error in parsing. Cannot get the set of statements.");
     }
 
 
@@ -104,8 +89,8 @@ public class KSQLEngine {
         if (!statementsString.endsWith(";")) {
             statementsString = statementsString + ";";
         }
+        // Parse the query and build the AST
         List<Pair<Statement, DataSourceExtractor>> statementsInfo = getStatements(statementsString);
-//        List<Statement> statements = statementsInfo.getLeft();
         int internalIndex = 0;
         for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
             if(statementInfo.getLeft() instanceof Query) {
@@ -167,7 +152,7 @@ public class KSQLEngine {
         KSQLEngine ksqlEngine = new KSQLEngine(ksqlConfProperties);
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
-//        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid, orderunits*10+5 into stream5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
+        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid, orderunits*10+5 into stream5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select o.ordertime+1, o.itemId, orderunits into stream1 from orders o where o.orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select u.userid, p.pageid , p.viewtime, regionid into stream3 from  pageview p LEFT JOIN users u ON u.userid = p.userid;".toUpperCase());
@@ -183,8 +168,8 @@ public class KSQLEngine {
 //        ksqlEngine.processStatements("KSQL_1", "SELECT PAGEVIEW.USERID, PAGEID, REGIONID, GENDER INTO PAGEVIEWJOIN1 FROM PAGEVIEW LEFT JOIN USERS ON PAGEVIEW.USERID = USERS.USERID;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select USERTIME, USERID, REGIONID into stream5 from users;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select ordertime, itemId, orderunits, '**===*' AS t into stream3 from orders;".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1", "SELECT users.userid AS userid, pageid, regionid, gender INTO enrichedpageview FROM pageview LEFT JOIN users ON pageview.userid = users.userid;".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1", "SELECT userid, pageid, regionid, gender INTO region_pageview FROM enrichedpageview WHERE regionid IS NOT NULL AND regionid = 'Region_5';".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "SELECT users.userid AS userid, pageid, regionid, gender INTO enrichedpageview FROM pageview LEFT JOIN users ON pageview.userid = users.userid;".toUpperCase());
+//        ksqlEngine.processStatements("KSQL_1", "SELECT userid, pageid, regionid, gender INTO region_pageview FROM enrichedpageview WHERE regionid IS NOT NULL AND regionid = 'Region_5';".toUpperCase());
 
     }
 }

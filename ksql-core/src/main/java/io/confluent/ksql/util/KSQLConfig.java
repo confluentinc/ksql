@@ -22,5 +22,6 @@ public class KSQLConfig extends StreamsConfig {
 
     public KSQLConfig(Map<?, ?> props) {
         super(props);
+
     }
 }

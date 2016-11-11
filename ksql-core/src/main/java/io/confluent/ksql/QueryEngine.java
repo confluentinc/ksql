@@ -46,6 +46,22 @@ public class QueryEngine {
 
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId+"-"+System.currentTimeMillis());
+        props = initProps(props);
+
+        KStreamBuilder builder = new KStreamBuilder();
+
+        //Build a physical plan, in this case a Kafka Streams DSL
+        PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
+        SchemaStream schemaStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
+
+        KafkaStreams streams = new KafkaStreams(builder, props);
+        streams.start();
+
+        return new Pair<>(streams, physicalPlanBuilder.getPlanSink());
+
+    }
+
+    private Properties initProps(Properties props) {
 
         if((ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) && (!ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG).isEmpty())){
             props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.getList(KSQLConfig.BOOTSTRAP_SERVERS_CONFIG));
@@ -59,18 +75,7 @@ public class QueryEngine {
             // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
             props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KSQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
         }
-
-        KStreamBuilder builder = new KStreamBuilder();
-
-        //Build a physical plan, in this case a Kafka Streams DSL
-        PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-        SchemaStream schemaStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-
-        KafkaStreams streams = new KafkaStreams(builder, props);
-        streams.start();
-
-        return new Pair<>(streams, physicalPlanBuilder.getPlanSink());
-
+        return  props;
     }
 
 }

@@ -36,7 +36,9 @@ public class KSQL {
         try {
             console = new ConsoleReader();
             console.setPrompt("ksql> ");
+            console.println("=========================================================================");
             console.println("KSQL 0.0.1");
+            console.println("=========================================================================");
             console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where", "terminate", "exit", "describe", "topics", "queries", "print"));
             String line = null;
             while ((line = console.readLine().toUpperCase()) != null) {
@@ -74,6 +76,9 @@ public class KSQL {
 
     public void runQueries(String queryFilePath) throws Exception {
 
+        System.out.println("********************************************************************************************************");
+        System.out.println("Starting the KSQL stream processing app with query fila path : "+queryFilePath);
+        System.out.println("********************************************************************************************************");
         String queryString = KSQLUtil.readQueryFile(queryFilePath);
         ksqlEngine.runMultipleQueries(queryString);
     }

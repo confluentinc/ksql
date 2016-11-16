@@ -167,13 +167,6 @@ joinCriteria
     | USING '(' identifier (',' identifier)* ')'
     ;
 
-//sampledRelation
-//    : aliasedRelation (
-//        TABLESAMPLE sampleType '(' percentage=expression ')'
-//        RESCALED?
-//        (STRATIFY ON '(' stratify+=expression (',' stratify+=expression)* ')')?
-//      )?
-//    ;
 
 sampleType
     : BERNOULLI

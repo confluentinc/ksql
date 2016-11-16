@@ -5,8 +5,10 @@ import io.confluent.ksql.ddl.DDLEngine;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.rewrite.KSQLRewriteParser;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -43,30 +45,24 @@ public class KSQLEngine {
         metaStore.putSource(kafkaTopic);
     }
 
-    public void runMultipleQueries(String queriesString) throws Exception {
+    public List<Triplet<String,KafkaStreams, OutputKafkaTopicNode>> runMultipleQueries(String queriesString) throws Exception {
+
+        // Parse and AST creation
         KSQLParser ksqlParser = new KSQLParser();
         List<SqlBaseParser.SingleStatementContext> parsedStatements =  ksqlParser.getStatements(queriesString);
         int queryIndex = 0;
+        List<Pair<String,Query>> queryList = new ArrayList<>();
+        MetaStore tempMetaStore = new MetaStoreImpl();
+        for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+            tempMetaStore.putSource(metaStore.getSource(dataSourceName));
+        }
         for (SqlBaseParser.SingleStatementContext singleStatementContext: parsedStatements) {
-            Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(singleStatementContext, metaStore);
+            Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
             Statement statement = statementInfo.getLeft();
             if (statement instanceof Query) {
                 Query query = (Query) statement;
-                if (query.getQueryBody() instanceof  QuerySpecification) {
-                    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-                    if (querySpecification.getInto().get() instanceof Table) {
-                        Table table = (Table)querySpecification.getInto().get();
-                        if(metaStore.getSource(table.getName().getSuffix().toUpperCase()) != null) {
-                            throw  new KSQLException("Sink specified in INTO clause already exists: "+table.getName().getSuffix().toUpperCase());
-                        }
-                    }
-                }
-                Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = queryEngine.processQuery("ksql_"+queryIndex, query, metaStore, statementInfo.getRight());
-
-                KafkaTopic kafkaTopic = new KafkaTopic(queryPairInfo.getRight().getId().toString(), queryPairInfo.getRight().getSchema(), queryPairInfo.getRight().getKeyField(), DataSource.DataSourceType.KSTREAM, queryPairInfo.getRight().getKafkaTopicName());
-                metaStore.putSource(kafkaTopic);
-                Thread.sleep(5000);
-
+                queryList.add(new Pair("KSQL_QUERY_"+queryIndex,query));
+                queryIndex++;
             } else if (statement instanceof CreateTable) {
                 ddlEngine.createTopic((CreateTable) statement);
             } else if (statement instanceof DropTable) {
@@ -74,12 +70,30 @@ public class KSQLEngine {
             }
         }
 
+        // Logical plan creation from the ASTs
+        List<Pair<String,PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
+
+        // Physical plan creation from logical plans.
+        List<Triplet<String,KafkaStreams, OutputKafkaTopicNode>> runningQueries = queryEngine.buildRunPhysicalPlans(false, metaStore, logicalPlans);
+
+        return runningQueries;
+
     }
 
-    public List<Pair<Statement, DataSourceExtractor>> getStatements(String sqlString) {
+    public Triplet<String, KafkaStreams, OutputKafkaTopicNode> runSingleQuery(Pair<String , Query > queryInfo) throws Exception {
+
+        List<Pair<String,PlanNode>>  logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays.asList(queryInfo));
+
+        // Physical plan creation from logical plans.
+        List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> runningQueries = queryEngine.buildRunPhysicalPlans(true, metaStore, logicalPlans);
+        return runningQueries.get(0);
+
+    }
+
+    public List<Statement> getStatements(String sqlString) {
         // First parse the query and build the AST
         KSQLParser ksqlParser = new KSQLParser();
-        List<Pair<Statement, DataSourceExtractor>> builtASTStatements = ksqlParser.buildAST(sqlString, metaStore);
+        List<Statement> builtASTStatements = ksqlParser.buildAST(sqlString, metaStore);
         return builtASTStatements;
     }
 
@@ -90,17 +104,17 @@ public class KSQLEngine {
             statementsString = statementsString + ";";
         }
         // Parse the query and build the AST
-        List<Pair<Statement, DataSourceExtractor>> statementsInfo = getStatements(statementsString);
+        List<Statement> statements = getStatements(statementsString);
         int internalIndex = 0;
-        for(Pair<Statement, DataSourceExtractor> statementInfo: statementsInfo) {
-            if(statementInfo.getLeft() instanceof Query) {
-                queryEngine.processQuery(queryId+"_"+internalIndex, (Query)statementInfo.getLeft(), metaStore, statementInfo.getRight());
+        for(Statement statement: statements) {
+            if(statement instanceof Query) {
+                queryEngine.processQuery(queryId+"_"+internalIndex, (Query)statement, metaStore);
                 internalIndex++;
-            }  else if (statementInfo.getLeft() instanceof CreateTable) {
-                ddlEngine.createTopic((CreateTable) statementInfo.getLeft());
+            }  else if (statement instanceof CreateTable) {
+                ddlEngine.createTopic((CreateTable) statement);
                 return;
-            } else if (statementInfo.getLeft() instanceof DropTable) {
-                ddlEngine.dropTopic((DropTable) statementInfo.getLeft());
+            } else if (statement instanceof DropTable) {
+                ddlEngine.dropTopic((DropTable) statement);
                 return;
             }
         }
@@ -152,7 +166,7 @@ public class KSQLEngine {
         KSQLEngine ksqlEngine = new KSQLEngine(ksqlConfProperties);
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid, orderunits*10+5 into stream5 FROM orders WHERE orderunits > 5 ;".toUpperCase());
+        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid, orderunits*10+5 into stream5 FROM orders WHERE orderunits > 5 ;");
 //        ksqlEngine.processStatements("KSQL_1", "select o.ordertime+1, o.itemId, orderunits into stream1 from orders o where o.orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select u.userid, p.pageid , p.viewtime, regionid into stream3 from  pageview p LEFT JOIN users u ON u.userid = p.userid;".toUpperCase());

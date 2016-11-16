@@ -1,6 +1,7 @@
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
@@ -26,8 +27,9 @@ public class KSQLParser {
      * @param sql
      * @return
      */
-    public List<Pair<Statement, DataSourceExtractor>> buildAST(String sql, MetaStore metaStore) {
-        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new ANTLRInputStream(sql));
+    public List<Statement> buildAST(String sql, MetaStore metaStore) {
+
+        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
 
         CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
 
@@ -42,13 +44,14 @@ public class KSQLParser {
             tree = parseFunction.apply(sqlBaseParser);
 
             SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
-            List<Pair<Statement, DataSourceExtractor>> astNodes = new ArrayList<>();
+            List<Statement> astNodes = new ArrayList<>();
             for (SqlBaseParser.SingleStatementContext statementContext: statementsContext.singleStatement()) {
                 DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
                 dataSourceExtractor.extractDataSources(statementContext);
                 Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
                 Statement statement = (Statement) root;
-                astNodes.add(new Pair<>(statement, dataSourceExtractor));
+
+                astNodes.add(statement);
             }
             return astNodes;
         }
@@ -59,7 +62,7 @@ public class KSQLParser {
     }
 
     public List<SqlBaseParser.SingleStatementContext> getStatements(String sql) {
-        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new ANTLRInputStream(sql));
+        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
 
         CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
 
@@ -79,8 +82,10 @@ public class KSQLParser {
     public Pair<Statement, DataSourceExtractor> prepareStatement(SqlBaseParser.SingleStatementContext statementContext, MetaStore metaStore) {
         DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
         dataSourceExtractor.extractDataSources(statementContext);
-        Node root = new AstBuilder(dataSourceExtractor).visit(statementContext);
+        AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
+        Node root = astBuilder.visit(statementContext);
         Statement statement = (Statement) root;
+        metaStore.putSource(astBuilder.resultDataSource);
         return new Pair<>(statement, dataSourceExtractor);
     }
 

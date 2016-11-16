@@ -17,12 +17,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public class KSQL {
 
     KSQLEngine ksqlEngine;
-    Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
+//    Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
+    LiveQueryMap liveQueries = new LiveQueryMap();
     static final String queryIdPrefix = "ksql_";
     int queryIdCounter = 0;
 
@@ -39,9 +41,9 @@ public class KSQL {
             console.println("=========================================================================");
             console.println("KSQL 0.0.1");
             console.println("=========================================================================");
-            console.addCompleter(new AnsiStringsCompleter("select", "show", "from", "where", "terminate", "exit", "describe", "topics", "queries", "print"));
+            console.addCompleter(new AnsiStringsCompleter("select", "show topics", "show queries", "from", "where", "terminate", "exit", "describe", "print"));
             String line = null;
-            while ((line = console.readLine().toUpperCase()) != null) {
+            while ((line = console.readLine()) != null) {
                 if (line.trim().toLowerCase().startsWith("exit")) {
                     // Close all running queries first!
                     for (String runningQueryId: liveQueries.keySet()) {
@@ -58,9 +60,9 @@ public class KSQL {
                     continue;
                 }
                 // Parse the command and create AST.
-                Pair<Statement, DataSourceExtractor> statementInfo = getSingleStatement(line);
-                if(statementInfo != null) {
-                    processStatement(statementInfo, line);
+                Statement statement = getSingleStatement(line);
+                if(statement != null) {
+                    processStatement(statement, line);
                 }
             }
         } catch(IOException e) {
@@ -80,16 +82,15 @@ public class KSQL {
         System.out.println("Starting the KSQL stream processing app with query fila path : "+queryFilePath);
         System.out.println("********************************************************************************************************");
         String queryString = KSQLUtil.readQueryFile(queryFilePath);
-        ksqlEngine.runMultipleQueries(queryString);
+        List<Triplet<String,KafkaStreams, OutputKafkaTopicNode>> runningQueries = ksqlEngine.runMultipleQueries(queryString);
+
     }
 
 
-    private void processStatement(Pair<Statement, DataSourceExtractor> statementInfo, String statementStr) throws IOException {
+    private void processStatement(Statement statement, String statementStr) throws IOException {
         try {
-
-            Statement statement = statementInfo.getLeft();
             if (statement instanceof Query) {
-                startQuery(statementStr, (Query) statement, statementInfo.getRight());
+                startQuery(statementStr, (Query) statement);
                 return;
             } else if (statement instanceof CreateTable) {
                 ksqlEngine.getDdlEngine().createTopic((CreateTable) statement);
@@ -140,31 +141,35 @@ public class KSQL {
 
     }
 
-    private List<Pair<Statement, DataSourceExtractor>> parseStatements(String statementString) {
-        if (!statementString.trim().endsWith(";")) {
-            statementString = statementString + ";";
-        }
-        List<Pair<Statement, DataSourceExtractor>> statementsInfo = ksqlEngine.getStatements(statementString);
-        return statementsInfo;
+    private List<Statement> parseStatements(String statementString) {
+        List<Statement> statements = ksqlEngine.getStatements(statementString);
+        return statements;
     }
 
 
-    public Pair<Statement, DataSourceExtractor> getSingleStatement(String statementString) throws IOException {
+    /**
+     * Given a ksql command string, parse the command and return the parse tree.
+     * @param statementString
+     * @return
+     * @throws IOException
+     */
+    public Statement getSingleStatement(String statementString) throws IOException {
         if (!statementString.endsWith(";")) {
             statementString = statementString + ";";
         }
-        List<Pair<Statement, DataSourceExtractor>> statementsInfo = null;
+        List<Statement> statements = null;
         try {
-            statementsInfo = parseStatements(statementString);
+//            statementsInfo = parseStatements(statementString);
+            statements = ksqlEngine.getStatements(statementString);
         } catch (Exception ex) {
         }
 
-        if((statementsInfo == null) || (statementsInfo.size() != 1)) {
+        if((statements == null) || (statements.size() != 1)) {
             console.println("KSQL CLI Processes one statement/command at a time.");
             console.flush();
             return null;
         } else {
-            return statementsInfo.get(0);
+            return statements.get(0);
         }
     }
 
@@ -182,7 +187,7 @@ public class KSQL {
         console.flush();
     }
 
-    private  void startQuery(String queryString, Query query, DataSourceExtractor dataSourceExtractor) throws Exception {
+    private  void startQuery_old(String queryString, Query query) throws Exception {
         if (query.getQueryBody() instanceof  QuerySpecification) {
             QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
             if (querySpecification.getInto().get() instanceof Table) {
@@ -194,12 +199,38 @@ public class KSQL {
             }
         }
         String queryId = getNextQueryId();
-        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(queryId, query, ksqlEngine.metaStore, dataSourceExtractor);
+        Pair<KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.getQueryEngine().processQuery(queryId, query, ksqlEngine.metaStore);
 
         Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = new Triplet<>(queryString, queryPairInfo.getLeft(), queryPairInfo.getRight());
-        liveQueries.put(queryId , queryInfo);
+        liveQueries.put(queryId.toUpperCase() , queryInfo);
         KafkaTopic kafkaTopic = new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(), queryInfo.getThird().getKeyField(), DataSource.DataSourceType.KSTREAM, queryInfo.getThird().getKafkaTopicName());
         ksqlEngine.getMetaStore().putSource(kafkaTopic);
+        if (isCLI) {
+            console.println("Added the result topic to the metastore:");
+            console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
+            console.println("");
+        }
+    }
+
+    private  void startQuery(String queryString, Query query) throws Exception {
+        if (query.getQueryBody() instanceof  QuerySpecification) {
+            QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+            if (querySpecification.getInto().get() instanceof Table) {
+                Table table = (Table)querySpecification.getInto().get();
+                if(ksqlEngine.metaStore.getSource(table.getName().getSuffix().toUpperCase()) != null) {
+                    console.println("Sink specified in INTO clause already exists: "+table.getName().getSuffix().toUpperCase());
+                    return;
+                }
+            }
+        }
+
+        String queryId = getNextQueryId();
+
+        Triplet<String,KafkaStreams, OutputKafkaTopicNode> queryPairInfo = ksqlEngine.runSingleQuery(new Pair<>(queryId, query));
+
+        Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = new Triplet<>(queryString, queryPairInfo.getSecond(), queryPairInfo.getThird());
+        liveQueries.put(queryId.toUpperCase() , queryInfo);
+
         if (isCLI) {
             console.println("Added the result topic to the metastore:");
             console.println("Topic count: "+ksqlEngine.getMetaStore().getAllDataSources().size());
@@ -210,7 +241,7 @@ public class KSQL {
     private void terminateQuery(TerminateQuery terminateQuery) throws IOException {
         String queryId = terminateQuery.getQueryId().toString();
 
-        if(!liveQueries.containsKey(queryId)) {
+        if(!liveQueries.containsKey(queryId.toUpperCase())) {
             console.println("No running query with id = "+queryId+" was found!");
             console.flush();
             return;
@@ -283,7 +314,7 @@ public class KSQL {
     private String getNextQueryId() {
         String queryId = queryIdPrefix+queryIdCounter;
         queryIdCounter++;
-        return queryId;
+        return queryId.toUpperCase();
     }
 
     public static String padRight(String s, int n) {
@@ -336,9 +367,10 @@ public class KSQL {
 
 
         KSQL ksql = new KSQL(cliProperties);
+        // Start the ksql cli ?
         if(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase("cli")) {
             ksql.startConsole();
-        } else {
+        } else { // Use the query file to run the queries.
             ksql.isCLI = false;
             ksql.runQueries(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG));
 
@@ -346,4 +378,31 @@ public class KSQL {
 
     }
 
+    class LiveQueryMap {
+        Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
+
+        public Triplet<String,KafkaStreams, OutputKafkaTopicNode> get(String key) {
+            return liveQueries.get(key.toUpperCase());
+        }
+
+        public void put(String key, Triplet<String,KafkaStreams, OutputKafkaTopicNode> value) {
+            liveQueries.put(key.toUpperCase(), value);
+        }
+
+        public Set<String> keySet() {
+            return liveQueries.keySet();
+        }
+
+        public void remove(String key) {
+            liveQueries.remove(key);
+        }
+
+        public int size() {
+            return liveQueries.size();
+        }
+
+        public boolean containsKey(String key) {
+            return liveQueries.containsKey(key.toUpperCase());
+        }
+    }
 }

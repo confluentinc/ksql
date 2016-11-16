@@ -12,7 +12,7 @@ public class KSQLUtil {
         StringBuilder stringBuilder = new StringBuilder("");
         String queryLine = null;
         while ((queryLine = queryRandomAccessFile.readLine()) != null) {
-          stringBuilder.append(queryLine.toUpperCase()+"   ");
+          stringBuilder.append(queryLine+"   ");
         }
         queryRandomAccessFile.close();
         return stringBuilder.toString();

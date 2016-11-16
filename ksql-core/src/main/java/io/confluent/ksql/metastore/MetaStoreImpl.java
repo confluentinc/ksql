@@ -1,5 +1,7 @@
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.util.KSQLException;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +17,12 @@ public class MetaStoreImpl implements MetaStore {
 
     @Override
     public void putSource(DataSource dataSource) {
-        dataSourceMap.put(dataSource.getName().toUpperCase(), dataSource);
+        if (getSource(dataSource.getName()) == null) {
+            dataSourceMap.put(dataSource.getName().toUpperCase(), dataSource);
+        } else {
+            throw new KSQLException("Cannot add the new data source. Another data source with the same name already exists: "+dataSource.getName());
+        }
+
     }
 
     @Override

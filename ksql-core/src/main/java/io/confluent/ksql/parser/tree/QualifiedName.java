@@ -48,7 +48,7 @@ public class QualifiedName
     {
         requireNonNull(originalParts, "originalParts is null");
         checkArgument(!isEmpty(originalParts), "originalParts is empty");
-        List<String> parts = ImmutableList.copyOf(transform(originalParts, part -> part.toLowerCase(ENGLISH)));
+        List<String> parts = ImmutableList.copyOf(transform(originalParts, part -> part.toUpperCase(ENGLISH)));
 
         return new QualifiedName(ImmutableList.copyOf(originalParts), parts);
     }
@@ -72,7 +72,7 @@ public class QualifiedName
     @Override
     public String toString()
     {
-        return Joiner.on('.').join(parts);
+        return Joiner.on('.').join(parts).toUpperCase();
     }
 
     /**

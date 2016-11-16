@@ -20,12 +20,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     Analysis analysis;
     MetaStore metaStore;
-    DataSourceExtractor dataSourceExtractor;
 
-    public Analyzer(Analysis analysis, MetaStore metaStore, DataSourceExtractor dataSourceExtractor) {
+    public Analyzer(Analysis analysis, MetaStore metaStore) {
         this.analysis = analysis;
         this.metaStore = metaStore;
-        this.dataSourceExtractor = dataSourceExtractor;
     }
 
     @Override

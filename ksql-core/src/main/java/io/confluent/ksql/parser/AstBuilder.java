@@ -3,9 +3,12 @@ package io.confluent.ksql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLException;
 import jdk.nashorn.internal.scripts.JO;
@@ -13,6 +16,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,19 +28,21 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-class AstBuilder
+public class AstBuilder
         extends SqlBaseBaseVisitor<Node>
 {
 
     int selectItemIndex = 0;
 
     DataSourceExtractor dataSourceExtractor;
+    public DataSource resultDataSource = null;
 
     public  AstBuilder(DataSourceExtractor dataSourceExtractor) {
         this.dataSourceExtractor = dataSourceExtractor;
     }
 
-    @Override public Node visitStatements(SqlBaseParser.StatementsContext context) {
+    @Override
+    public Node visitStatements(SqlBaseParser.StatementsContext context) {
         List<Statement> statementList = new ArrayList<>();
         for(SqlBaseParser.SingleStatementContext singleStatementContext: context.singleStatement()) {
             Statement statement = (Statement)visitSingleStatement(singleStatementContext);
@@ -51,7 +59,8 @@ class AstBuilder
         return statement;
     }
 
-    @Override public Node visitQuerystatement(SqlBaseParser.QuerystatementContext ctx) {
+    @Override
+    public Node visitQuerystatement(SqlBaseParser.QuerystatementContext ctx) {
         Statement statement = (Statement) visitChildren(ctx);
         return statement;
     }
@@ -209,9 +218,57 @@ class AstBuilder
 
         Relation from = (Relation) visit(context.from);
 
+        Select select = new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()), visit(context.selectItem(), SelectItem.class));
+
+        List<SelectItem> selectItems = new ArrayList<>();
+        for (SelectItem selectItem : select.getSelectItems()) {
+            if (selectItem instanceof AllColumns) {
+                // expand * and T.*
+                AllColumns allColumns = (AllColumns) selectItem;
+
+                if (from instanceof Join) {
+                    Join join = (Join) from;
+                    AliasedRelation left = (AliasedRelation) join.getLeft();
+                    DataSource leftDataSource = dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
+                    AliasedRelation right = (AliasedRelation) join.getRight();
+                    DataSource rightDataSource = dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
+                    for(Field field: leftDataSource.getSchema().fields()) {
+                        QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(left.getAlias()+"."+field.name()));
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, left.getAlias()+"_"+field.name());
+                        selectItems.add(newSelectItem);
+                    }
+                    for(Field field: rightDataSource.getSchema().fields()) {
+                        QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(right.getAlias()+"."+field.name()));
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, right.getAlias()+"_"+field.name());
+                        selectItems.add(newSelectItem);
+                    }
+                } else {
+                    AliasedRelation fromRel = (AliasedRelation) from;
+                    DataSource fromDataSource = dataSourceExtractor.getMetaStore().getSource(((Table)fromRel.getRelation()).getName().getSuffix());
+                    for(Field field: fromDataSource.getSchema().fields()) {
+                        QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(fromDataSource.getName()+"."+field.name()));
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, field.name());
+                        selectItems.add(newSelectItem);
+                    }
+                }
+
+            }
+            else if (selectItem instanceof SingleColumn) {
+                selectItems.add((SingleColumn) selectItem);
+            }
+            else {
+                throw new IllegalArgumentException("Unsupported SelectItem type: " + selectItem.getClass().getName());
+            }
+            select = new Select(getLocation(context.SELECT()), select.isDistinct(), selectItems);
+        }
+
+
+        this.resultDataSource = getResultDatasource(select, into);
+
         return new QuerySpecification(
                 getLocation(context),
-                new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()), visit(context.selectItem(), SelectItem.class)),
+//                new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()), visit(context.selectItem(), SelectItem.class)),
+                select,
                 Optional.of(into),
                 Optional.of(from),
                 visitIfPresent(context.where, Expression.class),
@@ -297,7 +354,7 @@ class AstBuilder
         if(!alias.isPresent()) {
             if(selectItemExpression instanceof QualifiedNameReference) {
                 QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) selectItemExpression;
-                alias = Optional.of(qualifiedNameReference.getName().getSuffix());
+                alias = Optional.of(qualifiedNameReference.getName().getSuffix().toUpperCase());
             } else if(selectItemExpression instanceof DereferenceExpression) {
                 DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
                 if ((dataSourceExtractor.getJoinLeftSchema() != null) && (dataSourceExtractor.getCommonFieldNames().contains(dereferenceExpression.getFieldName()))) {
@@ -308,6 +365,8 @@ class AstBuilder
             } else {
                 alias = Optional.of("KSQL_COL_" + selectItemIndex);
             }
+        } else {
+            alias = Optional.of(alias.get().toUpperCase());
         }
         selectItemIndex++;
         return new SingleColumn(getLocation(context), selectItemExpression, alias);
@@ -787,7 +846,7 @@ class AstBuilder
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context)
     {
-        String columnName = context.getText();
+        String columnName = context.getText().toUpperCase();
         // If this is join.
         if (dataSourceExtractor.getJoinLeftSchema() != null) {
             if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
@@ -1378,5 +1437,24 @@ class AstBuilder
     {
         requireNonNull(token, "token is null");
         return new NodeLocation(token.getLine(), token.getCharPositionInLine());
+    }
+
+    public DataSource getResultDatasource(Select select, Table into) {
+
+        SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
+
+        for (SelectItem selectItem: select.getSelectItems()) {
+            if (selectItem instanceof SingleColumn) {
+                SingleColumn singleColumn = (SingleColumn) selectItem;
+                String fieldName = singleColumn.getAlias().get();
+                String fieldType = null;
+                dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+            }
+
+
+        }
+
+        KafkaTopic kafkaTopic = new KafkaTopic(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0) , DataSource.DataSourceType.KSTREAM, "");
+        return kafkaTopic;
     }
 }

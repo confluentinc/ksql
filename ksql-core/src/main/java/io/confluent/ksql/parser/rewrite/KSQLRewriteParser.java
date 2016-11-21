@@ -48,7 +48,6 @@ public class KSQLRewriteParser {
             SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
             List<Pair<Statement, DataSourceExtractor>> astNodes = new ArrayList<>();
             for (SqlBaseParser.SingleStatementContext statementContext: statementsContext.singleStatement()) {
-//                DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
                 DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(tempMetaStore);
                 dataSourceExtractor.extractDataSources(statementContext);
                 AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);

@@ -234,20 +234,20 @@ public class AstBuilder
                     DataSource rightDataSource = dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
                     for(Field field: leftDataSource.getSchema().fields()) {
                         QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(left.getAlias()+"."+field.name()));
-                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, left.getAlias()+"_"+field.name());
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, left.getAlias()+"_"+field.name().toUpperCase());
                         selectItems.add(newSelectItem);
                     }
                     for(Field field: rightDataSource.getSchema().fields()) {
                         QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(right.getAlias()+"."+field.name()));
-                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, right.getAlias()+"_"+field.name());
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, right.getAlias()+"_"+field.name().toUpperCase());
                         selectItems.add(newSelectItem);
                     }
                 } else {
                     AliasedRelation fromRel = (AliasedRelation) from;
                     DataSource fromDataSource = dataSourceExtractor.getMetaStore().getSource(((Table)fromRel.getRelation()).getName().getSuffix());
                     for(Field field: fromDataSource.getSchema().fields()) {
-                        QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(fromDataSource.getName()+"."+field.name()));
-                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, field.name());
+                        QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName.of(fromDataSource.getName()+"."+field.name().toUpperCase()));
+                        SingleColumn newSelectItem = new SingleColumn(qualifiedNameReference, field.name().toUpperCase());
                         selectItems.add(newSelectItem);
                     }
                 }

@@ -71,7 +71,7 @@ public class DataSourceExtractor
         }
 
         if (!isJoin) {
-            this.fromAlias = alias;
+            this.fromAlias = alias.toUpperCase();
             DataSource fromDataSource = metaStore.getSource(table.getName().getSuffix().toUpperCase());
             this.fromSchema = fromDataSource.getSchema();
             return null;
@@ -99,11 +99,11 @@ public class DataSourceExtractor
             }
         }
 
-        this.leftAlias = left.getAlias();
+        this.leftAlias = left.getAlias().toUpperCase();
         DataSource leftDataSource = metaStore.getSource(((Table)left.getRelation()).getName().getSuffix().toUpperCase());
         this.joinLeftSchema = leftDataSource.getSchema();
 
-        this.rightAlias = right.getAlias();
+        this.rightAlias = right.getAlias().toUpperCase();
         DataSource rightDataSource = metaStore.getSource(((Table)right.getRelation()).getName().getSuffix().toUpperCase());
         this.joinRightSchema = rightDataSource.getSchema();
 
@@ -115,12 +115,12 @@ public class DataSourceExtractor
         visit(node);
         if (joinLeftSchema != null) {
             for (Field field: joinLeftSchema.fields()) {
-                leftFieldNames.add(field.name());
+                leftFieldNames.add(field.name().toUpperCase());
             }
             for (Field field: joinRightSchema.fields()) {
-                rightFieldNames.add(field.name());
+                rightFieldNames.add(field.name().toUpperCase());
                 if (leftFieldNames.contains(field.name())) {
-                    commonFieldNames.add(field.name());
+                    commonFieldNames.add(field.name().toUpperCase());
                 }
             }
         }

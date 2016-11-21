@@ -53,9 +53,7 @@ public class Table
     @Override
     public String toString()
     {
-        return toStringHelper(this)
-                .addValue(name)
-                .toString();
+        return name.toString();
     }
 
     @Override

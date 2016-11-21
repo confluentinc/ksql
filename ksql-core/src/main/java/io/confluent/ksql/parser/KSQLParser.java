@@ -29,20 +29,8 @@ public class KSQLParser {
      */
     public List<Statement> buildAST(String sql, MetaStore metaStore) {
 
-        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
-
-        CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
-
-        SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
-
-        Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
-
-        ParserRuleContext tree;
         try {
-            // first, try parsing with potentially faster SLL mode
-            sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
-            tree = parseFunction.apply(sqlBaseParser);
-
+            ParserRuleContext tree = getParseTree(sql);
             SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
             List<Statement> astNodes = new ArrayList<>();
             for (SqlBaseParser.SingleStatementContext statementContext: statementsContext.singleStatement()) {
@@ -62,18 +50,8 @@ public class KSQLParser {
     }
 
     public List<SqlBaseParser.SingleStatementContext> getStatements(String sql) {
-        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
 
-        CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
-
-        SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
-
-        Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
-
-        // first, try parsing with potentially faster SLL mode
-        sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
-        ParserRuleContext tree = parseFunction.apply(sqlBaseParser);
-
+        ParserRuleContext tree = getParseTree(sql);
         SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
         return statementsContext.singleStatement();
     }
@@ -89,4 +67,28 @@ public class KSQLParser {
         return new Pair<>(statement, dataSourceExtractor);
     }
 
+
+    private ParserRuleContext getParseTree(String sql) {
+
+        SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
+        CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
+        SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
+        Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
+        ParserRuleContext tree;
+        try {
+            // first, try parsing with potentially faster SLL mode
+            sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
+            tree = parseFunction.apply(sqlBaseParser);
+        }
+        catch (ParseCancellationException ex) {
+            // if we fail, parse with LL mode
+            tokenStream.reset(); // rewind input stream
+            sqlBaseParser.reset();
+
+            sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
+            tree = parseFunction.apply(sqlBaseParser);
+        }
+
+        return tree;
+    }
 }

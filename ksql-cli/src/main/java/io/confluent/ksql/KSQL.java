@@ -159,9 +159,9 @@ public class KSQL {
         }
         List<Statement> statements = null;
         try {
-//            statementsInfo = parseStatements(statementString);
             statements = ksqlEngine.getStatements(statementString);
         } catch (Exception ex) {
+            // Do nothing
         }
 
         if((statements == null) || (statements.size() != 1)) {

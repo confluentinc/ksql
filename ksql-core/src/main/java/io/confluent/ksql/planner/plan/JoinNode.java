@@ -47,7 +47,7 @@ public class JoinNode extends PlanNode {
         this.leftAlias = leftAlias;
         this.rightAlias = rightAlias;
         this.schema = buildSchema(left, right);
-        this.keyField = this.schema.field(leftAlias+"."+leftKeyFieldName);
+        this.keyField = this.schema.field((leftAlias+"."+leftKeyFieldName).toUpperCase());
     }
 
     private Schema buildSchema(PlanNode left, PlanNode right) {
@@ -59,12 +59,12 @@ public class JoinNode extends PlanNode {
 
         for (Field field: leftSchema.fields()) {
             String fieldName = leftAlias+"."+field.name();
-            schemaBuilder.field(fieldName, field.schema());
+            schemaBuilder.field(fieldName.toUpperCase(), field.schema());
         }
 
         for (Field field: rightSchema.fields()) {
             String fieldName = rightAlias+"."+field.name();
-            schemaBuilder.field(fieldName, field.schema());
+            schemaBuilder.field(fieldName.toUpperCase(), field.schema());
         }
         return schemaBuilder.build();
     }

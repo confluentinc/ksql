@@ -119,7 +119,7 @@ public class DataSourceExtractor
             }
             for (Field field: joinRightSchema.fields()) {
                 rightFieldNames.add(field.name().toUpperCase());
-                if (leftFieldNames.contains(field.name())) {
+                if (leftFieldNames.contains(field.name().toUpperCase())) {
                     commonFieldNames.add(field.name().toUpperCase());
                 }
             }

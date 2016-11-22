@@ -33,6 +33,8 @@ public final class SqlFormatterQueryRewrite
     private static final String INDENT = "   ";
     private static final Pattern NAME_PATTERN = Pattern.compile("[a-z_][a-z0-9_]*");
 
+    private boolean isJoin = false;
+
     private SqlFormatterQueryRewrite() {}
 
     public static String formatSql(Node root)

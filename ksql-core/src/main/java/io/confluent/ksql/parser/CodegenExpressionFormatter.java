@@ -199,13 +199,17 @@ public class CodegenExpressionFormatter {
             Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
             Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
             if ((left.getRight() == Schema.Type.STRING) || (right.getRight() == Schema.Type.STRING)) {
-                if(node.getType().getValue().equals("=")) {
-                    return new Pair<>(left.getLeft()+".equalsIgnoreCase("+right.getLeft()+")", Schema.Type.BOOLEAN);
+                if (node.getType().getValue().equals("=")) {
+                    return new Pair<>("("+left.getLeft()+".equalsIgnoreCase("+right.getLeft()+"))", Schema.Type.BOOLEAN);
+                } else if (node.getType().getValue().equals("<>")) {
+                    return new Pair<>(" (!"+left.getLeft()+".equalsIgnoreCase("+right.getLeft()+"))", Schema.Type.BOOLEAN);
                 }
             }
             String typeStr = node.getType().getValue();
             if (typeStr.equalsIgnoreCase("=")) {
                 typeStr = "==";
+            } else if (typeStr.equalsIgnoreCase("<>")) {
+                typeStr = "!=";
             }
             return new Pair<>("("+left.getLeft()+" "+typeStr+" "+right.getLeft()+")", Schema.Type.BOOLEAN);
         }
@@ -252,7 +256,6 @@ public class CodegenExpressionFormatter {
             Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
             Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
             return new Pair<>("(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")", Schema.Type.FLOAT64);
-//            return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(), unmangleNames);
         }
 
         @Override

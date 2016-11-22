@@ -8,6 +8,7 @@ import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -52,18 +53,23 @@ public class MetastoreUtil {
         throw new KSQLException("Unsupported type: "+sqlType);
     }
 
-    public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws IOException {
-        MetaStoreImpl metaStore = new MetaStoreImpl();
-        byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode root = objectMapper.readTree(jsonData);
-        ArrayNode schemaNodes = (ArrayNode)root.get("schemas");
-        for (JsonNode schemaNode : schemaNodes) {
-            DataSource dataSource = createDataSource(schemaNode);
-            metaStore.putSource(dataSource);
+    public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KSQLException {
+        try {
+            MetaStoreImpl metaStore = new MetaStoreImpl();
+            byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(jsonData);
+            ArrayNode schemaNodes = (ArrayNode)root.get("schemas");
+            for (JsonNode schemaNode : schemaNodes) {
+                DataSource dataSource = createDataSource(schemaNode);
+                metaStore.putSource(dataSource);
+            }
+            return metaStore;
+        } catch (FileNotFoundException fnf) {
+            throw new KSQLException("Could not load the schema file from "+metastoreJsonFilePath, fnf);
+        } catch (IOException ioex) {
+            throw new KSQLException("Could not read schema from "+metastoreJsonFilePath, ioex);
         }
-
-        return metaStore;
     }
 
     public static void main(String args[]) throws IOException {

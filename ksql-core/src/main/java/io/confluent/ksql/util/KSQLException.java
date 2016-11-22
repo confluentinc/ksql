@@ -8,4 +8,8 @@ public class KSQLException extends StreamsException {
     public KSQLException(String message) {
         super(message);
     }
+
+    public KSQLException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
 }

@@ -8,6 +8,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.rewrite.KSQLRewriteParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.util.KSQLTestUtil;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,27 +26,7 @@ public class KSQLParserTest {
     @Before
     public void init() {
 
-        metaStore = new MetaStoreImpl();
-
-        SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
-                .field("col0", SchemaBuilder.INT64_SCHEMA)
-                .field("col1", SchemaBuilder.STRING_SCHEMA)
-                .field("col2", SchemaBuilder.STRING_SCHEMA)
-                .field("col3", SchemaBuilder.FLOAT64_SCHEMA);
-
-        KafkaTopic kafkaTopic1 = new KafkaTopic("test1", schemaBuilder1, schemaBuilder1.field("col0"), DataSource.DataSourceType.KSTREAM, "test1-topic");
-        metaStore.putSource(kafkaTopic1);
-
-        SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
-                .field("col0", SchemaBuilder.INT64_SCHEMA)
-                .field("col1", SchemaBuilder.STRING_SCHEMA)
-                .field("col2", SchemaBuilder.STRING_SCHEMA)
-                .field("col3", SchemaBuilder.FLOAT64_SCHEMA)
-                .field("col4", SchemaBuilder.BOOLEAN_SCHEMA);
-
-        KafkaTopic kafkaTopic2 = new KafkaTopic("test2", schemaBuilder2, schemaBuilder2.field("col0"), DataSource.DataSourceType.KSTREAM, "test2-topic");
-        metaStore.putSource(kafkaTopic2);
-
+        metaStore = KSQLTestUtil.getNewMetaStore();
     }
 
     @Test
@@ -110,7 +91,7 @@ public class KSQLParserTest {
         String queryStr = "SELECT t1.col1, t2.col1, col4, t2.col2 INTO testOutput FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
         List<Statement> statements = ksqlParser.buildAST(queryStr, metaStore);
         String sqlStr = SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " ");
-        Assert.assertTrue("testSimpleLeftJoin failes", sqlStr.equalsIgnoreCase("SELECT   T1.COL1  AS COL1 , T2.COL1  AS COL1 , T2.COL4  AS COL4 , T2.COL2  AS COL2 INTO   TESTOUTPUT FROM   TEST1 T1 LEFT JOIN TEST2 T2 ON ((T1.COL1 = T2.COL1)) "));
+        Assert.assertTrue("testSimpleLeftJoin failes", sqlStr.equalsIgnoreCase("SELECT   T1.COL1  AS T1_COL1 , T2.COL1  AS T2_COL1 , T2.COL4  AS COL4 , T2.COL2  AS T2_COL2 INTO   TESTOUTPUT FROM   TEST1 T1 LEFT JOIN TEST2 T2 ON ((T1.COL1 = T2.COL1)) "));
     }
 
     @Test
@@ -118,7 +99,7 @@ public class KSQLParserTest {
         String queryStr = "SELECT t1.col1, t2.col1, col4, t2.col2 INTO testOutput FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
         List<Statement> statements = ksqlParser.buildAST(queryStr, metaStore);
         String sqlStr = SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " ");
-        Assert.assertTrue("testLeftJoinWithFilter failes", sqlStr.equalsIgnoreCase("SELECT   T1.COL1  AS COL1 , T2.COL1  AS COL1 , T2.COL4  AS COL4 , T2.COL2  AS COL2 INTO   TESTOUTPUT FROM   TEST1 T1 LEFT JOIN TEST2 T2 ON ((T1.COL1 = T2.COL1)) WHERE (T2.COL2 = 'test') "));
+        Assert.assertTrue("testLeftJoinWithFilter failes", sqlStr.equalsIgnoreCase("SELECT   T1.COL1  AS T1_COL1 , T2.COL1  AS T2_COL1 , T2.COL4  AS COL4 , T2.COL2  AS T2_COL2 INTO   TESTOUTPUT FROM   TEST1 T1 LEFT JOIN TEST2 T2 ON ((T1.COL1 = T2.COL1)) WHERE (T2.COL2 = 'test') "));
     }
 
     @Test

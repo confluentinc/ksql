@@ -8,6 +8,7 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.rewrite.KSQLRewriteParser;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -77,6 +78,39 @@ public class KSQLEngine {
         List<Triplet<String,KafkaStreams, OutputKafkaTopicNode>> runningQueries = queryEngine.buildRunPhysicalPlans(false, metaStore, logicalPlans);
 
         return runningQueries;
+
+    }
+
+    public void runCLIQuery(String queriesString) throws Exception {
+        // Parse and AST creation
+        KSQLParser ksqlParser = new KSQLParser();
+        List<SqlBaseParser.SingleStatementContext> parsedStatements =  ksqlParser.getStatements(queriesString);
+        int queryIndex = 0;
+        List<Pair<String,Query>> queryList = new ArrayList<>();
+        MetaStore tempMetaStore = new MetaStoreImpl();
+        for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+            tempMetaStore.putSource(metaStore.getSource(dataSourceName));
+        }
+        for (SqlBaseParser.SingleStatementContext singleStatementContext: parsedStatements) {
+            Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
+            Statement statement = statementInfo.getLeft();
+            if (statement instanceof Query) {
+                Query query = (Query) statement;
+                queryList.add(new Pair("KSQL_QUERY_"+queryIndex,query));
+                queryIndex++;
+            } else if (statement instanceof CreateTable) {
+                ddlEngine.createTopic((CreateTable) statement);
+            } else if (statement instanceof DropTable) {
+                ddlEngine.dropTopic((DropTable) statement);
+            }
+        }
+
+        // Logical plan creation from the ASTs
+        List<Pair<String,PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
+
+        // Physical plan creation from logical plans.
+        queryEngine.buildRunSingleConsolePhysicalPlans(metaStore, logicalPlans.get(0));
+
 
     }
 
@@ -165,8 +199,11 @@ public class KSQLEngine {
         ksqlConfProperties.put(KSQLConfig.PROP_FILE_PATH_CONFIG,"/Users/hojjat/ksql_config.conf");
         KSQLEngine ksqlEngine = new KSQLEngine(ksqlConfProperties);
 
+        ksqlEngine.runCLIQuery("SELECT ordertime AS timeValue, orderid , orderunits%10  FROM orders;");
+
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
-        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, trim(orderid) , orderunits%10 into stream5 FROM orders WHERE orderunits > 5 ;");
+//        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");
+//        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE orderid IS NOT NULL ;");
 //        ksqlEngine.processStatements("KSQL_1", "select o.ordertime+1, o.itemId, orderunits into stream1 from orders o where o.orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1", "select u.userid, p.pageid , p.viewtime, regionid into stream3 from  pageview p LEFT JOIN users u ON u.userid = p.userid;".toUpperCase());

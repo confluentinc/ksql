@@ -37,6 +37,18 @@ public class SchemaStream {
         return  this;
     }
 
+    public SchemaStream print() {
+        KStream printKStream = kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>>() {
+            @Override
+            public KeyValue<String, GenericRow> apply(String s, GenericRow genericRow) {
+                System.out.println(genericRow.toString());
+                return new KeyValue<String, GenericRow>(s, genericRow);
+            }
+
+        });
+        return this;
+    }
+
     public SchemaStream filter(Expression filterExpression) throws Exception {
         SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
         KStream filteredKStream = kStream.filter(predicate.getPredicate());

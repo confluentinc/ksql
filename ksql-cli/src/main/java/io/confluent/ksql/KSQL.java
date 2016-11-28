@@ -124,7 +124,13 @@ public class KSQL {
                 if(dataSource instanceof KafkaTopic) {
                     KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
                     String topicsName = kafkaTopic.getTopicName();
-                    printTopic(topicsName);
+                    long interval;
+                    if (printTopic.getIntervalValue() == null) {
+                        interval = -1;
+                    } else {
+                        interval = printTopic.getIntervalValue().getValue();
+                    }
+                    printTopic(topicsName, interval);
                 }
 
                 return;
@@ -164,13 +170,20 @@ public class KSQL {
             // Do nothing
         }
 
-        if((statements == null) || (statements.size() != 1)) {
+        if(statements == null) {
+            console.println();
+            console.println("Oops! Something went wrong!!!...");
+            console.println();
+
+        } else if((statements.size() != 1)) {
+            console.println();
             console.println("KSQL CLI Processes one statement/command at a time.");
-            console.flush();
-            return null;
+            console.println();
         } else {
             return statements.get(0);
         }
+        console.flush();
+        return null;
     }
 
     private void printCommandList() throws IOException {
@@ -307,8 +320,8 @@ public class KSQL {
         console.flush();
     }
 
-    private void printTopic(String topicName) throws IOException {
-        new TopicPrinter().printGenericRowTopic(topicName, console, this.cliProperties);
+    private void printTopic(String topicName, long interval) throws IOException {
+        new TopicPrinter().printGenericRowTopic(topicName, console, interval, this.cliProperties);
     }
 
     private String getNextQueryId() {
@@ -358,7 +371,8 @@ public class KSQL {
                 System.exit(0);
             }
             String[] property = propertyStr.split("=");
-            if(property[0].equalsIgnoreCase(KSQLConfig.QUERY_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG)) {
+            if(property[0].equalsIgnoreCase(KSQLConfig.QUERY_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.PROP_FILE_PATH_CONFIG)
+                    || property[0].equalsIgnoreCase(KSQLConfig.SCHEMA_FILE_PATH_CONFIG) || property[0].equalsIgnoreCase(KSQLConfig.QUERY_CONTENT_CONFIG)) {
                 cliProperties.put(property[0], property[1]);
             } else {
                 printUsageFromatMessage();
@@ -367,15 +381,20 @@ public class KSQL {
 
 
         KSQL ksql = new KSQL(cliProperties);
-        // Start the ksql cli ?
-        if(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase("cli")) {
-            ksql.startConsole();
-        } else { // Use the query file to run the queries.
-            ksql.isCLI = false;
-            ksql.runQueries(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG));
 
+        if (cliProperties.get(KSQLConfig.QUERY_CONTENT_CONFIG) != null) {
+            String queryString = cliProperties.get(KSQLConfig.QUERY_CONTENT_CONFIG);
+            ksql.ksqlEngine.runCLIQuery(queryString);
+        } else {
+            // Start the ksql cli ?
+            if(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase("cli")) {
+                ksql.startConsole();
+            } else { // Use the query file to run the queries.
+                ksql.isCLI = false;
+                ksql.runQueries(cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG));
+
+            }
         }
-
     }
 
     class LiveQueryMap {

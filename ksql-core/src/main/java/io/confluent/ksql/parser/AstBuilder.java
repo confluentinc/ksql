@@ -414,7 +414,21 @@ public class AstBuilder
     }
 
     @Override public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
-        return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()));
+//        return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), visitNumericLiteral(context.n));
+        if (context.number() == null) {
+            return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), null);
+        } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
+            SqlBaseParser.IntegerLiteralContext integerLiteralContext = (SqlBaseParser.IntegerLiteralContext) context.number();
+            return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), (LongLiteral)visitIntegerLiteral(integerLiteralContext));
+        } else {
+            throw new KSQLException("Interval value should be integer in 'PRINT' command!");
+        }
+
+    }
+
+    @Override
+    public Node visitNumericLiteral(SqlBaseParser.NumericLiteralContext ctx) {
+        return visitChildren(ctx);
     }
 
     @Override

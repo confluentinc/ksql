@@ -57,13 +57,14 @@ public class PhysicalPlanBuilder {
     }
 
     private SchemaStream buildOutput(OutputNode outputNode) throws Exception {
-
+        SchemaStream schemaStream = kafkaStreamsDSL(outputNode.getSource());
         if(outputNode instanceof OutputKafkaTopicNode) {
             OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)outputNode;
-            SchemaStream schemaStream = kafkaStreamsDSL(outputNode.getSource());
             SchemaStream resultSchemaStream = schemaStream.into(outputKafkaTopicNode.getKafkaTopicName());
             this.planSink = outputKafkaTopicNode;
             return resultSchemaStream;
+        } else if (outputNode instanceof OutputKSQLConsoleNode) {
+            return schemaStream.print();
         }
         throw new KSQLException("Unsupported output logical node: "+outputNode.getClass().getName());
     }

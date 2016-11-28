@@ -61,7 +61,6 @@ public class AnalyzerTest {
         Assert.assertTrue(analysis.selectExpressionAlias.get(0).equalsIgnoreCase("COL0"));
         Assert.assertTrue(analysis.selectExpressionAlias.get(1).equalsIgnoreCase("COL2"));
         Assert.assertTrue(analysis.selectExpressionAlias.get(2).equalsIgnoreCase("COL3"));
-        System.out.print("");
     }
 
     @Test
@@ -115,7 +114,6 @@ public class AnalyzerTest {
         String select3 = SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2)).replace("\n", " ");
         Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
 
-        System.out.print("");
     }
 
 }

@@ -42,7 +42,7 @@ statement
     | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
     | SHOW TOPICS                                                      #showTopics
     | DESCRIBE qualifiedName                                           #showColumns
-    | PRINT qualifiedName                                              #printTopic
+    | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                                          #printTopic
     | SHOW QUERIES                                                     #showQueries
     | TERMINATE qualifiedName                                          #terminateQuery
     | SET qualifiedName EQ expression                                  #setProperty
@@ -572,6 +572,7 @@ CALL: 'CALL';
 PREPARE: 'PREPARE';
 DEALLOCATE: 'DEALLOCATE';
 EXECUTE: 'EXECUTE';
+SAMPLE: 'SAMPLE';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

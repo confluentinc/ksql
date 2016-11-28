@@ -11,24 +11,31 @@ public class PrintTopic extends Statement
 {
     private final QualifiedName topic;
 
-    public PrintTopic(QualifiedName topic)
+    private final LongLiteral intervalValue;
+
+    public PrintTopic(QualifiedName topic, LongLiteral intervalValue)
     {
-        this(Optional.empty(), topic);
+        this(Optional.empty(), topic, intervalValue);
     }
 
-    public PrintTopic(NodeLocation location, QualifiedName topic)
+    public PrintTopic(NodeLocation location, QualifiedName topic, LongLiteral intervalValue)
     {
-        this(Optional.of(location), topic);
+        this(Optional.of(location), topic, intervalValue);
     }
 
-    private PrintTopic(Optional<NodeLocation> location, QualifiedName topic)
+    private PrintTopic(Optional<NodeLocation> location, QualifiedName topic, LongLiteral intervalValue)
     {
         super(location);
         this.topic = requireNonNull(topic, "table is null");
+        this.intervalValue = intervalValue;
     }
 
     public QualifiedName getTopic() {
         return topic;
+    }
+
+    public LongLiteral getIntervalValue() {
+        return intervalValue;
     }
 
     @Override

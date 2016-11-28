@@ -73,6 +73,7 @@ public class KSQLParser {
         SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
         CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
         SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
+        sqlBaseParser.setErrorHandler(new KSQLParserErrorStrategy());
         Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
         ParserRuleContext tree;
         try {

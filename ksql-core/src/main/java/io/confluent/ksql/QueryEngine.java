@@ -11,6 +11,7 @@ import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
+import io.confluent.ksql.planner.plan.OutputKSQLConsoleNode;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -94,7 +95,7 @@ public class QueryEngine {
         return kafkaTopic;
     }
 
-    public List<Triplet<String,KafkaStreams, OutputKafkaTopicNode>> buildRunPhysicalPlans(boolean isCli, MetaStore metaStore, List<Pair<String, PlanNode>> queryLogicalPlans) throws Exception {
+    public List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> buildRunPhysicalPlans(boolean isCli, MetaStore metaStore, List<Pair<String, PlanNode>> queryLogicalPlans) throws Exception {
 
         List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> physicalPlans = new ArrayList<>();
 
@@ -123,6 +124,26 @@ public class QueryEngine {
         return physicalPlans;
     }
 
+    public void buildRunSingleConsolePhysicalPlans(MetaStore metaStore, Pair<String, PlanNode> queryLogicalPlan) throws Exception {
+        Properties props = new Properties();
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL_CONSOLE_QUERY_"+queryLogicalPlan.getLeft()+"_"+System.currentTimeMillis());
+        props = initProps(props);
+
+        PlanNode logicalPlan = queryLogicalPlan.getRight();
+        OutputKSQLConsoleNode outputKSQLConsoleNode = null;
+        if (logicalPlan instanceof OutputKafkaTopicNode) {
+            outputKSQLConsoleNode = new OutputKSQLConsoleNode(logicalPlan.getId(), ((OutputKafkaTopicNode) logicalPlan).getSource(), logicalPlan.getSchema());
+        }
+
+        KStreamBuilder builder = new KStreamBuilder();
+
+        //Build a physical plan, in this case a Kafka Streams DSL
+        PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
+        SchemaStream schemaStream = physicalPlanBuilder.buildPhysicalPlan(outputKSQLConsoleNode);
+
+        KafkaStreams streams = new KafkaStreams(builder, props);
+        streams.start();
+    }
 
     private Properties initProps(Properties props) {
 

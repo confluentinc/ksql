@@ -72,6 +72,16 @@ public class ExpressionUtil {
             return null;
         }
 
+        protected Object visitIsNotNullPredicate(IsNotNullPredicate node, Object context)
+        {
+            return process(node.getValue(), context);
+        }
+
+        protected Object visitIsNullPredicate(IsNullPredicate node, Object context)
+        {
+            return visitExpression(node, context);
+        }
+
         protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context)
         {
             process(node.getLeft(), null);

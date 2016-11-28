@@ -189,8 +189,10 @@ public class CodegenExpressionFormatter {
         @Override
         protected Pair<String, Schema.Type> visitNotExpression(NotExpression node, Boolean unmangleNames)
         {
-            throw new UnsupportedOperationException();
+//            throw new UnsupportedOperationException();
 //            return "(! " + process(node.getValue(), unmangleNames) + ")";
+            String exprString = process(node.getValue(), unmangleNames).getLeft();
+            return new Pair<>("(!"+exprString+")", Schema.Type.BOOLEAN);
         }
 
         @Override
@@ -219,8 +221,6 @@ public class CodegenExpressionFormatter {
         {
             Pair<String, Schema.Type> value = process(node.getValue(), unmangleNames);
             return new Pair<>("((" +value.getLeft()+") == null )", Schema.Type.BOOLEAN);
-//            throw new UnsupportedOperationException();
-//            return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
         }
 
         @Override
@@ -228,8 +228,6 @@ public class CodegenExpressionFormatter {
         {
             Pair<String, Schema.Type> value = process(node.getValue(), unmangleNames);
             return new Pair<>("((" +value.getLeft()+") != null )", Schema.Type.BOOLEAN);
-//            throw new UnsupportedOperationException();
-//            return "(" + process(node.getValue(), unmangleNames) + " == null)";
         }
 
         @Override

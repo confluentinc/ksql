@@ -26,7 +26,7 @@ public class TopicPrinter {
 
     static Serde<GenericRow> genericRowSerde = null;
 
-    public void printGenericRowTopic(String topicName, ConsoleReader console, Map<String, String> cliProperties) throws IOException {
+    public void printGenericRowTopic(String topicName, ConsoleReader console, long interval, Map<String, String> cliProperties) throws IOException {
 
         Properties ksqlProperties = new Properties();
         ksqlProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "KSQL-Default-"+System.currentTimeMillis());
@@ -45,17 +45,8 @@ public class TopicPrinter {
 
         KStream<String, GenericRow> source = builder.stream(Serdes.String(), getGenericRowSerde(), topicName);
 
-        source.map(new KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>>() {
-            @Override
-            public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-                try {
-                    console.println(row.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return new KeyValue<String, GenericRow>(key, row);
-            }
-        });
+        source.map(new KSQLPrintKeyValueMapper(console, interval));
+
 
         KafkaStreams streams = new KafkaStreams(builder, ksqlProperties);
         streams.start();
@@ -86,6 +77,35 @@ public class TopicPrinter {
             genericRowSerde = Serdes.serdeFrom(genericRowSerializer,  genericRowDeserializer);
         }
         return genericRowSerde;
+    }
+
+    class KSQLPrintKeyValueMapper implements KeyValueMapper<String, GenericRow, KeyValue<String,GenericRow>> {
+
+        long recordIndex = 0;
+        long interval;
+        ConsoleReader console;
+        public KSQLPrintKeyValueMapper(ConsoleReader console, long interval) {
+            this.console = console;
+            this.interval = interval;
+        }
+
+        @Override
+        public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+            try {
+                if (interval > 0) {
+                    if (recordIndex % interval == 0) {
+                        console.println(row.toString());
+                    }
+                } else {
+                    console.println(row.toString());
+                }
+
+                recordIndex++;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return new KeyValue<String, GenericRow>(key, row);
+        }
     }
 
 }

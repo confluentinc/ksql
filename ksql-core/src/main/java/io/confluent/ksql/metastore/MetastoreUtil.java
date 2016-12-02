@@ -4,7 +4,9 @@ package io.confluent.ksql.metastore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import io.confluent.ksql.util.KSQLException;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -15,71 +17,72 @@ import java.nio.file.Paths;
 
 public class MetastoreUtil {
 
-    public DataSource createDataSource(JsonNode node) {
+  public DataSource createDataSource(JsonNode node) {
 
-        String name = node.get("name").asText().toUpperCase();
-        String topicname = node.get("topicname").asText();
-        String type = node.get("type").asText();
-        String keyFieldName = node.get("key").asText().toUpperCase();
-        SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
-        ArrayNode fields = (ArrayNode)node.get("fields");
-        for (int i = 0; i < fields.size(); i++) {
-            String fieldName = fields.get(i).get("name").textValue().toUpperCase();
-            String fieldType;
-            if(fields.get(i).get("type").isArray()) {
-                fieldType = fields.get(i).get("type").get(0).textValue();
-            } else {
-                fieldType = fields.get(i).get("type").textValue();
-            }
+    String name = node.get("name").asText().toUpperCase();
+    String topicname = node.get("topicname").asText();
+    String type = node.get("type").asText();
+    String keyFieldName = node.get("key").asText().toUpperCase();
+    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
+    ArrayNode fields = (ArrayNode) node.get("fields");
+    for (int i = 0; i < fields.size(); i++) {
+      String fieldName = fields.get(i).get("name").textValue().toUpperCase();
+      String fieldType;
+      if (fields.get(i).get("type").isArray()) {
+        fieldType = fields.get(i).get("type").get(0).textValue();
+      } else {
+        fieldType = fields.get(i).get("type").textValue();
+      }
 
-            dataSource.field(fieldName, getKSQLType(fieldType));
-        }
-
-        return new KafkaTopic(name, dataSource, dataSource.field(keyFieldName), KafkaTopic.getDataSpDataSourceType(type),topicname);
+      dataSource.field(fieldName, getKSQLType(fieldType));
     }
 
-    private Schema getKSQLType(String sqlType) {
-        if (sqlType.equalsIgnoreCase("long")) {
-            return Schema.INT64_SCHEMA;
-        } else if (sqlType.equalsIgnoreCase("string")) {
-            return Schema.STRING_SCHEMA;
-        } else if (sqlType.equalsIgnoreCase("double")) {
-            return Schema.FLOAT64_SCHEMA;
-        } else if (sqlType.equalsIgnoreCase("int") || sqlType.equalsIgnoreCase("integer")) {
-            return Schema.INT32_SCHEMA;
-        } else if (sqlType.equalsIgnoreCase("bool") || sqlType.equalsIgnoreCase("boolean")) {
-            return Schema.BOOLEAN_SCHEMA;
-        }
-        throw new KSQLException("Unsupported type: "+sqlType);
-    }
+    return new KafkaTopic(name, dataSource, dataSource.field(keyFieldName),
+                          KafkaTopic.getDataSpDataSourceType(type), topicname);
+  }
 
-    public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KSQLException {
-        try {
-            MetaStoreImpl metaStore = new MetaStoreImpl();
-            byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode root = objectMapper.readTree(jsonData);
-            ArrayNode schemaNodes = (ArrayNode)root.get("schemas");
-            for (JsonNode schemaNode : schemaNodes) {
-                DataSource dataSource = createDataSource(schemaNode);
-                metaStore.putSource(dataSource);
-            }
-            return metaStore;
-        } catch (FileNotFoundException fnf) {
-            throw new KSQLException("Could not load the schema file from "+metastoreJsonFilePath, fnf);
-        } catch (IOException ioex) {
-            throw new KSQLException("Could not read schema from "+metastoreJsonFilePath, ioex);
-        }
+  private Schema getKSQLType(String sqlType) {
+    if (sqlType.equalsIgnoreCase("long")) {
+      return Schema.INT64_SCHEMA;
+    } else if (sqlType.equalsIgnoreCase("string")) {
+      return Schema.STRING_SCHEMA;
+    } else if (sqlType.equalsIgnoreCase("double")) {
+      return Schema.FLOAT64_SCHEMA;
+    } else if (sqlType.equalsIgnoreCase("int") || sqlType.equalsIgnoreCase("integer")) {
+      return Schema.INT32_SCHEMA;
+    } else if (sqlType.equalsIgnoreCase("bool") || sqlType.equalsIgnoreCase("boolean")) {
+      return Schema.BOOLEAN_SCHEMA;
     }
+    throw new KSQLException("Unsupported type: " + sqlType);
+  }
 
-    public static void main(String args[]) throws IOException {
+  public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KSQLException {
+    try {
+      MetaStoreImpl metaStore = new MetaStoreImpl();
+      byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode root = objectMapper.readTree(jsonData);
+      ArrayNode schemaNodes = (ArrayNode) root.get("schemas");
+      for (JsonNode schemaNode : schemaNodes) {
+        DataSource dataSource = createDataSource(schemaNode);
+        metaStore.putSource(dataSource);
+      }
+      return metaStore;
+    } catch (FileNotFoundException fnf) {
+      throw new KSQLException("Could not load the schema file from " + metastoreJsonFilePath, fnf);
+    } catch (IOException ioex) {
+      throw new KSQLException("Could not read schema from " + metastoreJsonFilePath, ioex);
+    }
+  }
+
+  public static void main(String args[]) throws IOException {
 
 //        byte[] jsonData = Files.readAllBytes(Paths.get("/Users/hojjat/userschema.json"));
 //        ObjectMapper objectMapper = new ObjectMapper();
 //        JsonNode root = objectMapper.readTree(jsonData);
 //        new MetastoreUtil().createDataSource(root);
-        new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
-        System.out.println("");
+    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
+    System.out.println("");
 
-    }
+  }
 }

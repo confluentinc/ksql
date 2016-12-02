@@ -23,84 +23,75 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class Explain
-        extends Statement
-{
-    private final Statement statement;
-    private final boolean analyze;
-    private final List<ExplainOption> options;
+    extends Statement {
 
-    public Explain(Statement statement, boolean analyze, List<ExplainOption> options)
-    {
-        this(Optional.empty(), analyze, statement, options);
-    }
+  private final Statement statement;
+  private final boolean analyze;
+  private final List<ExplainOption> options;
 
-    public Explain(NodeLocation location, boolean analyze, Statement statement, List<ExplainOption> options)
-    {
-        this(Optional.of(location), analyze, statement, options);
-    }
+  public Explain(Statement statement, boolean analyze, List<ExplainOption> options) {
+    this(Optional.empty(), analyze, statement, options);
+  }
 
-    private Explain(Optional<NodeLocation> location, boolean analyze, Statement statement, List<ExplainOption> options)
-    {
-        super(location);
-        this.statement = requireNonNull(statement, "statement is null");
-        this.analyze = analyze;
-        if (options == null) {
-            this.options = ImmutableList.of();
-        }
-        else {
-            this.options = ImmutableList.copyOf(options);
-        }
-    }
+  public Explain(NodeLocation location, boolean analyze, Statement statement,
+                 List<ExplainOption> options) {
+    this(Optional.of(location), analyze, statement, options);
+  }
 
-    public Statement getStatement()
-    {
-        return statement;
+  private Explain(Optional<NodeLocation> location, boolean analyze, Statement statement,
+                  List<ExplainOption> options) {
+    super(location);
+    this.statement = requireNonNull(statement, "statement is null");
+    this.analyze = analyze;
+    if (options == null) {
+      this.options = ImmutableList.of();
+    } else {
+      this.options = ImmutableList.copyOf(options);
     }
+  }
 
-    public boolean isAnalyze()
-    {
-        return analyze;
-    }
+  public Statement getStatement() {
+    return statement;
+  }
 
-    public List<ExplainOption> getOptions()
-    {
-        return options;
-    }
+  public boolean isAnalyze() {
+    return analyze;
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitExplain(this, context);
-    }
+  public List<ExplainOption> getOptions() {
+    return options;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(statement, options, analyze);
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitExplain(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        Explain o = (Explain) obj;
-        return Objects.equals(statement, o.statement) &&
-                Objects.equals(options, o.options) &&
-                Objects.equals(analyze, o.analyze);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(statement, options, analyze);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("statement", statement)
-                .add("options", options)
-                .add("analyze", analyze)
-                .toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    Explain o = (Explain) obj;
+    return Objects.equals(statement, o.statement) &&
+           Objects.equals(options, o.options) &&
+           Objects.equals(analyze, o.analyze);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("statement", statement)
+        .add("options", options)
+        .add("analyze", analyze)
+        .toString();
+  }
 }

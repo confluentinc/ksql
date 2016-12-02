@@ -20,70 +20,61 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class Prepare
-        extends Statement
-{
-    private final String name;
-    private final Statement statement;
+    extends Statement {
 
-    public Prepare(NodeLocation location, String name, Statement statement)
-    {
-        this(Optional.of(location), name, statement);
-    }
+  private final String name;
+  private final Statement statement;
 
-    public Prepare(String name, Statement statement)
-    {
-        this(Optional.empty(), name, statement);
-    }
+  public Prepare(NodeLocation location, String name, Statement statement) {
+    this(Optional.of(location), name, statement);
+  }
 
-    private Prepare(Optional<NodeLocation> location, String name, Statement statement)
-    {
-        super(location);
-        this.name = requireNonNull(name, "name is null");
-        this.statement = requireNonNull(statement, "statement is null");
-    }
+  public Prepare(String name, Statement statement) {
+    this(Optional.empty(), name, statement);
+  }
 
-    public String getName()
-    {
-        return name;
-    }
+  private Prepare(Optional<NodeLocation> location, String name, Statement statement) {
+    super(location);
+    this.name = requireNonNull(name, "name is null");
+    this.statement = requireNonNull(statement, "statement is null");
+  }
 
-    public Statement getStatement()
-    {
-        return statement;
-    }
+  public String getName() {
+    return name;
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitPrepare(this, context);
-    }
+  public Statement getStatement() {
+    return statement;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(name, statement);
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitPrepare(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        Prepare o = (Prepare) obj;
-        return Objects.equals(name, o.name) &&
-                Objects.equals(statement, o.statement);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, statement);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("name", name)
-                .add("statement", statement)
-                .toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    Prepare o = (Prepare) obj;
+    return Objects.equals(name, o.name) &&
+           Objects.equals(statement, o.statement);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("name", name)
+        .add("statement", statement)
+        .toString();
+  }
 }

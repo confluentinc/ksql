@@ -16,65 +16,66 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.confluent.ksql.metastore.DataSource;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
 @Immutable
 public class SourceKafkaTopicNode
-        extends SourceNode
-{
-    private final Schema schema;
-    private final String topicName;
-    private final Field keyField;
-    private final String alias;
+    extends SourceNode {
 
-    // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
-    @JsonCreator
-    public SourceKafkaTopicNode(@JsonProperty("id") PlanNodeId id,
-                                @JsonProperty("schema") Schema schema,
-                                @JsonProperty("keyField") Field keyField,
-                                @JsonProperty("topicName") String topicName,
-                                @JsonProperty("alias") String alias,
-                                @JsonProperty("dataSourceType") DataSource.DataSourceType dataSourceType)
-    {
-        super(id, dataSourceType);
+  private final Schema schema;
+  private final String topicName;
+  private final Field keyField;
+  private final String alias;
 
-        this.schema = schema;
-        requireNonNull(topicName, "topicName is null");
+  // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
+  @JsonCreator
+  public SourceKafkaTopicNode(@JsonProperty("id") PlanNodeId id,
+                              @JsonProperty("schema") Schema schema,
+                              @JsonProperty("keyField") Field keyField,
+                              @JsonProperty("topicName") String topicName,
+                              @JsonProperty("alias") String alias,
+                              @JsonProperty("dataSourceType") DataSource.DataSourceType dataSourceType) {
+    super(id, dataSourceType);
 
-        this.topicName = topicName;
-        this.keyField = keyField;
-        this.alias = alias;
-    }
+    this.schema = schema;
+    requireNonNull(topicName, "topicName is null");
 
-    public String getTopicName() {
-        return topicName;
-    }
+    this.topicName = topicName;
+    this.keyField = keyField;
+    this.alias = alias;
+  }
 
-    @Override
-    public Schema getSchema() {
-        return schema;
-    }
+  public String getTopicName() {
+    return topicName;
+  }
 
-    @Override
-    public Field getKeyField() {
-        return keyField;
-    }
+  @Override
+  public Schema getSchema() {
+    return schema;
+  }
 
-    @Override
-    public List<PlanNode> getSources() {
-        return null;
-    }
+  @Override
+  public Field getKeyField() {
+    return keyField;
+  }
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context)
-    {
-        return visitor.visitKafkaTopic(this, context);
-    }
+  @Override
+  public List<PlanNode> getSources() {
+    return null;
+  }
+
+  @Override
+  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    return visitor.visitKafkaTopic(this, context);
+  }
 }

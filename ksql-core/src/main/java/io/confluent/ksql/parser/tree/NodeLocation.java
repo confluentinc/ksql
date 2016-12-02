@@ -14,24 +14,21 @@
 
 package io.confluent.ksql.parser.tree;
 
-public final class NodeLocation
-{
-    private final int line;
-    private final int charPositionInLine;
+public final class NodeLocation {
 
-    public NodeLocation(int line, int charPositionInLine)
-    {
-        this.line = line;
-        this.charPositionInLine = charPositionInLine;
-    }
+  private final int line;
+  private final int charPositionInLine;
 
-    public int getLineNumber()
-    {
-        return line;
-    }
+  public NodeLocation(int line, int charPositionInLine) {
+    this.line = line;
+    this.charPositionInLine = charPositionInLine;
+  }
 
-    public int getColumnNumber()
-    {
-        return charPositionInLine + 1;
-    }
+  public int getLineNumber() {
+    return line;
+  }
+
+  public int getColumnNumber() {
+    return charPositionInLine + 1;
+  }
 }

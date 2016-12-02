@@ -8,43 +8,38 @@ import static java.util.Objects.requireNonNull;
 
 public class TerminateQuery extends Statement {
 
-    private final QualifiedName queryId;
+  private final QualifiedName queryId;
 
-    public TerminateQuery(QualifiedName queryId)
-    {
-        this(Optional.empty(), queryId);
-    }
+  public TerminateQuery(QualifiedName queryId) {
+    this(Optional.empty(), queryId);
+  }
 
-    public TerminateQuery(NodeLocation location, QualifiedName queryId)
-    {
-        this(Optional.of(location), queryId);
-    }
+  public TerminateQuery(NodeLocation location, QualifiedName queryId) {
+    this(Optional.of(location), queryId);
+  }
 
-    private TerminateQuery(Optional<NodeLocation> location, QualifiedName queryId)
-    {
-        super(location);
-        this.queryId = requireNonNull(queryId, "table is null");
-    }
+  private TerminateQuery(Optional<NodeLocation> location, QualifiedName queryId) {
+    super(location);
+    this.queryId = requireNonNull(queryId, "table is null");
+  }
 
-    public QualifiedName getQueryId() {
-        return queryId;
-    }
+  public QualifiedName getQueryId() {
+    return queryId;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash("TerminateQuery");
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash("TerminateQuery");
+  }
 
-    @Override
-    public boolean equals(Object obj) {
-        return this == obj;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj;
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .toString();
-    }
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .toString();
+  }
 }

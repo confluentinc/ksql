@@ -18,47 +18,40 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ShowSession
-        extends Statement
-{
-    public ShowSession()
-    {
-        this(Optional.empty());
-    }
+    extends Statement {
 
-    public ShowSession(NodeLocation location)
-    {
-        this(Optional.of(location));
-    }
+  public ShowSession() {
+    this(Optional.empty());
+  }
 
-    private ShowSession(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+  public ShowSession(NodeLocation location) {
+    this(Optional.of(location));
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitShowSession(this, context);
-    }
+  private ShowSession(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return 0;
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitShowSession(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        return (obj != null) && (getClass() == obj.getClass());
-    }
+  @Override
+  public int hashCode() {
+    return 0;
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this).toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    return (obj != null) && (getClass() == obj.getClass());
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this).toString();
+  }
 }

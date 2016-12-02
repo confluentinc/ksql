@@ -17,45 +17,48 @@
 package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
 
 public class JsonPOJODeserializer<T> implements Deserializer<T> {
-    private ObjectMapper objectMapper = new ObjectMapper();
 
-    private Class<T> tClass;
+  private ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Default constructor needed by Kafka
-     */
-    public JsonPOJODeserializer() {
+  private Class<T> tClass;
+
+  /**
+   * Default constructor needed by Kafka
+   */
+  public JsonPOJODeserializer() {
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void configure(Map<String, ?> props, boolean isKey) {
+    tClass = (Class<T>) props.get("JsonPOJOClass");
+  }
+
+  @Override
+  public T deserialize(String topic, byte[] bytes) {
+    if (bytes == null) {
+      return null;
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public void configure(Map<String, ?> props, boolean isKey) {
-        tClass = (Class<T>) props.get("JsonPOJOClass");
+    T data;
+    try {
+      data = objectMapper.readValue(bytes, tClass);
+    } catch (Exception e) {
+      throw new SerializationException(e);
     }
 
-    @Override
-    public T deserialize(String topic, byte[] bytes) {
-        if (bytes == null)
-            return null;
+    return data;
+  }
 
-        T data;
-        try {
-            data = objectMapper.readValue(bytes, tClass);
-        } catch (Exception e) {
-            throw new SerializationException(e);
-        }
+  @Override
+  public void close() {
 
-        return data;
-    }
-
-    @Override
-    public void close() {
-
-    }
+  }
 }

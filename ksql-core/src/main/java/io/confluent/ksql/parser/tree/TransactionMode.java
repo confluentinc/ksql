@@ -18,16 +18,14 @@ package io.confluent.ksql.parser.tree;
 import java.util.Optional;
 
 public abstract class TransactionMode
-        extends Node
-{
-    public TransactionMode(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+    extends Node {
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitTransactionMode(this, context);
-    }
+  public TransactionMode(Optional<NodeLocation> location) {
+    super(location);
+  }
+
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitTransactionMode(this, context);
+  }
 }

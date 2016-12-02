@@ -23,62 +23,54 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 public class CoalesceExpression
-        extends Expression
-{
-    private final List<Expression> operands;
+    extends Expression {
 
-    public CoalesceExpression(Expression... operands)
-    {
-        this(Optional.empty(), ImmutableList.copyOf(operands));
+  private final List<Expression> operands;
+
+  public CoalesceExpression(Expression... operands) {
+    this(Optional.empty(), ImmutableList.copyOf(operands));
+  }
+
+  public CoalesceExpression(List<Expression> operands) {
+    this(Optional.empty(), operands);
+  }
+
+  public CoalesceExpression(NodeLocation location, List<Expression> operands) {
+    this(Optional.of(location), operands);
+  }
+
+  private CoalesceExpression(Optional<NodeLocation> location, List<Expression> operands) {
+    super(location);
+    requireNonNull(operands, "operands is null");
+    Preconditions.checkArgument(!operands.isEmpty(), "operands is empty");
+
+    this.operands = ImmutableList.copyOf(operands);
+  }
+
+  public List<Expression> getOperands() {
+    return operands;
+  }
+
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitCoalesceExpression(this, context);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    public CoalesceExpression(List<Expression> operands)
-    {
-        this(Optional.empty(), operands);
-    }
+    CoalesceExpression that = (CoalesceExpression) o;
+    return Objects.equals(operands, that.operands);
+  }
 
-    public CoalesceExpression(NodeLocation location, List<Expression> operands)
-    {
-        this(Optional.of(location), operands);
-    }
-
-    private CoalesceExpression(Optional<NodeLocation> location, List<Expression> operands)
-    {
-        super(location);
-        requireNonNull(operands, "operands is null");
-        Preconditions.checkArgument(!operands.isEmpty(), "operands is empty");
-
-        this.operands = ImmutableList.copyOf(operands);
-    }
-
-    public List<Expression> getOperands()
-    {
-        return operands;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitCoalesceExpression(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        CoalesceExpression that = (CoalesceExpression) o;
-        return Objects.equals(operands, that.operands);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return operands.hashCode();
-    }
+  @Override
+  public int hashCode() {
+    return operands.hashCode();
+  }
 }

@@ -13,31 +13,26 @@
  */
 package io.confluent.ksql.planner.plan;
 
-public class PlanVisitor<C, R>
-{
-    protected R visitPlan(PlanNode node, C context)
-    {
-        return null;
-    }
+public class PlanVisitor<C, R> {
 
-    public R visitFilter(FilterNode node, C context)
-    {
-        return visitPlan(node, context);
-    }
+  protected R visitPlan(PlanNode node, C context) {
+    return null;
+  }
 
-    public R visitProject(ProjectNode node, C context)
-    {
-        return visitPlan(node, context);
-    }
+  public R visitFilter(FilterNode node, C context) {
+    return visitPlan(node, context);
+  }
 
-    public R visitKafkaTopic(SourceKafkaTopicNode node, C context)
-    {
-        return visitPlan(node, context);
-    }
+  public R visitProject(ProjectNode node, C context) {
+    return visitPlan(node, context);
+  }
 
-    public R visitOutput(OutputNode node, C context)
-    {
-        return visitPlan(node, context);
-    }
+  public R visitKafkaTopic(SourceKafkaTopicNode node, C context) {
+    return visitPlan(node, context);
+  }
+
+  public R visitOutput(OutputNode node, C context) {
+    return visitPlan(node, context);
+  }
 
 }

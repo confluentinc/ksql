@@ -4,6 +4,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -14,60 +15,60 @@ import java.util.Map;
 
 public class SQLPredicate {
 
-    Expression filterExpression;
-    final Schema schema;
-    IExpressionEvaluator ee;
-    int[] columnIndexes;
+  Expression filterExpression;
+  final Schema schema;
+  IExpressionEvaluator ee;
+  int[] columnIndexes;
 
-    public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
-        this.filterExpression = filterExpression;
-        this.schema = schema;
+  public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
+    this.filterExpression = filterExpression;
+    this.schema = schema;
 
-        ExpressionUtil expressionUtil = new ExpressionUtil();
-        Map<String, Class> parameterMap = expressionUtil.getParameterInfo(filterExpression, schema);
+    ExpressionUtil expressionUtil = new ExpressionUtil();
+    Map<String, Class> parameterMap = expressionUtil.getParameterInfo(filterExpression, schema);
 
-        String[] parameterNames = new String[parameterMap.size()];
-        Class[] parameterTypes = new Class[parameterMap.size()];
-        columnIndexes = new int[parameterMap.size()];
+    String[] parameterNames = new String[parameterMap.size()];
+    Class[] parameterTypes = new Class[parameterMap.size()];
+    columnIndexes = new int[parameterMap.size()];
 
-        int index = 0;
-        for (String parameterName: parameterMap.keySet()) {
-            parameterNames[index] = parameterName;
-            parameterTypes[index] = parameterMap.get(parameterName);
-            columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
-            index++;
+    int index = 0;
+    for (String parameterName : parameterMap.keySet()) {
+      parameterNames[index] = parameterName;
+      parameterTypes[index] = parameterMap.get(parameterName);
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+      index++;
+    }
+
+    String expressionStr = filterExpression.getCodegenString(schema);
+    ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+
+    // The expression will have two "int" parameters: "a" and "b".
+    ee.setParameters(parameterNames, parameterTypes);
+
+    // And the expression (i.e. "result") type is also "int".
+    ee.setExpressionType(boolean.class);
+
+    // And now we "cook" (scan, parse, compile and load) the fabulous expression.
+    ee.cook(expressionStr);
+  }
+
+  public Predicate getPredicate() {
+    return new Predicate<String, GenericRow>() {
+      @Override
+      public boolean test(String key, GenericRow row) {
+        try {
+          Object[] values = new Object[columnIndexes.length];
+          for (int i = 0; i < values.length; i++) {
+            values[i] = row.getColumns().get(columnIndexes[i]);
+          }
+          boolean result = (Boolean) ee.evaluate(values);
+          return result;
+        } catch (InvocationTargetException e) {
+          e.printStackTrace();
         }
-
-        String expressionStr = filterExpression.getCodegenString(schema);
-        ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-
-        // The expression will have two "int" parameters: "a" and "b".
-        ee.setParameters(parameterNames, parameterTypes);
-
-        // And the expression (i.e. "result") type is also "int".
-        ee.setExpressionType(boolean.class);
-
-        // And now we "cook" (scan, parse, compile and load) the fabulous expression.
-        ee.cook(expressionStr);
-    }
-
-    public Predicate getPredicate() {
-        return new Predicate<String, GenericRow>() {
-            @Override
-            public boolean test(String key, GenericRow row) {
-                try {
-                    Object[] values = new Object[columnIndexes.length];
-                    for(int i = 0; i < values.length; i++) {
-                        values[i] = row.getColumns().get(columnIndexes[i]);
-                    }
-                    boolean result = (Boolean) ee.evaluate(values);
-                    return result;
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
-                }
-                throw new RuntimeException("Invalid format.");
-            }
-        };
-    }
+        throw new RuntimeException("Invalid format.");
+      }
+    };
+  }
 
 }

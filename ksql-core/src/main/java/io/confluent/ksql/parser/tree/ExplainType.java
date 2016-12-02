@@ -20,61 +20,53 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class ExplainType
-        extends ExplainOption
-{
-    public enum Type
-    {
-        LOGICAL,
-        DISTRIBUTED
-    }
+    extends ExplainOption {
 
-    private final Type type;
+  public enum Type {
+    LOGICAL,
+    DISTRIBUTED
+  }
 
-    public ExplainType(Type type)
-    {
-        this(Optional.empty(), type);
-    }
+  private final Type type;
 
-    public ExplainType(NodeLocation location, Type type)
-    {
-        this(Optional.of(location), type);
-    }
+  public ExplainType(Type type) {
+    this(Optional.empty(), type);
+  }
 
-    private ExplainType(Optional<NodeLocation> location, Type type)
-    {
-        super(location);
-        this.type = requireNonNull(type, "type is null");
-    }
+  public ExplainType(NodeLocation location, Type type) {
+    this(Optional.of(location), type);
+  }
 
-    public Type getType()
-    {
-        return type;
-    }
+  private ExplainType(Optional<NodeLocation> location, Type type) {
+    super(location);
+    this.type = requireNonNull(type, "type is null");
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(type);
-    }
+  public Type getType() {
+    return type;
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        ExplainType o = (ExplainType) obj;
-        return Objects.equals(type, o.type);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(type);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("type", type)
-                .toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    ExplainType o = (ExplainType) obj;
+    return Objects.equals(type, o.type);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("type", type)
+        .toString();
+  }
 }

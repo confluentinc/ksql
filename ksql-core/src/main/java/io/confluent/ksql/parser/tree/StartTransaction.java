@@ -24,61 +24,55 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 public final class StartTransaction
-        extends Statement
-{
-    private final List<TransactionMode> transactionModes;
+    extends Statement {
 
-    public StartTransaction(List<TransactionMode> transactionModes)
-    {
-        this(Optional.empty(), transactionModes);
-    }
+  private final List<TransactionMode> transactionModes;
 
-    public StartTransaction(NodeLocation location, List<TransactionMode> transactionModes)
-    {
-        this(Optional.of(location), transactionModes);
-    }
+  public StartTransaction(List<TransactionMode> transactionModes) {
+    this(Optional.empty(), transactionModes);
+  }
 
-    private StartTransaction(Optional<NodeLocation> location, List<TransactionMode> transactionModes)
-    {
-        super(location);
-        this.transactionModes = ImmutableList.copyOf(requireNonNull(transactionModes, "transactionModes is null"));
-    }
+  public StartTransaction(NodeLocation location, List<TransactionMode> transactionModes) {
+    this(Optional.of(location), transactionModes);
+  }
 
-    public List<TransactionMode> getTransactionModes()
-    {
-        return transactionModes;
-    }
+  private StartTransaction(Optional<NodeLocation> location,
+                           List<TransactionMode> transactionModes) {
+    super(location);
+    this.transactionModes =
+        ImmutableList.copyOf(requireNonNull(transactionModes, "transactionModes is null"));
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitStartTransaction(this, context);
-    }
+  public List<TransactionMode> getTransactionModes() {
+    return transactionModes;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(transactionModes);
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitStartTransaction(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        final StartTransaction other = (StartTransaction) obj;
-        return Objects.equals(this.transactionModes, other.transactionModes);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(transactionModes);
+  }
 
-    @Override
-    public String toString()
-    {
-        return MoreObjects.toStringHelper(this)
-                .add("transactionModes", transactionModes)
-                .toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    final StartTransaction other = (StartTransaction) obj;
+    return Objects.equals(this.transactionModes, other.transactionModes);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("transactionModes", transactionModes)
+        .toString();
+  }
 }

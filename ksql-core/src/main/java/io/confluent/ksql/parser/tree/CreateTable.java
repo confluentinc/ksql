@@ -25,88 +25,81 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class CreateTable
-        extends Statement
-{
-    private final QualifiedName name;
-    private final List<TableElement> elements;
-    private final boolean notExists;
-    private final Map<String, Expression> properties;
+    extends Statement {
 
-    public CreateTable(QualifiedName name, List<TableElement> elements, boolean notExists, Map<String, Expression> properties)
-    {
-        this(Optional.empty(), name, elements, notExists, properties);
-    }
+  private final QualifiedName name;
+  private final List<TableElement> elements;
+  private final boolean notExists;
+  private final Map<String, Expression> properties;
 
-    public CreateTable(NodeLocation location, QualifiedName name, List<TableElement> elements, boolean notExists, Map<String, Expression> properties)
-    {
-        this(Optional.of(location), name, elements, notExists, properties);
-    }
+  public CreateTable(QualifiedName name, List<TableElement> elements, boolean notExists,
+                     Map<String, Expression> properties) {
+    this(Optional.empty(), name, elements, notExists, properties);
+  }
 
-    private CreateTable(Optional<NodeLocation> location, QualifiedName name, List<TableElement> elements, boolean notExists, Map<String, Expression> properties)
-    {
-        super(location);
-        this.name = requireNonNull(name, "table is null");
-        this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
-        this.notExists = notExists;
-        this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
-    }
+  public CreateTable(NodeLocation location, QualifiedName name, List<TableElement> elements,
+                     boolean notExists, Map<String, Expression> properties) {
+    this(Optional.of(location), name, elements, notExists, properties);
+  }
 
-    public QualifiedName getName()
-    {
-        return name;
-    }
+  private CreateTable(Optional<NodeLocation> location, QualifiedName name,
+                      List<TableElement> elements, boolean notExists,
+                      Map<String, Expression> properties) {
+    super(location);
+    this.name = requireNonNull(name, "table is null");
+    this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
+    this.notExists = notExists;
+    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+  }
 
-    public List<TableElement> getElements()
-    {
-        return elements;
-    }
+  public QualifiedName getName() {
+    return name;
+  }
 
-    public boolean isNotExists()
-    {
-        return notExists;
-    }
+  public List<TableElement> getElements() {
+    return elements;
+  }
 
-    public Map<String, Expression> getProperties()
-    {
-        return properties;
-    }
+  public boolean isNotExists() {
+    return notExists;
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitCreateTable(this, context);
-    }
+  public Map<String, Expression> getProperties() {
+    return properties;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(name, elements, notExists, properties);
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitCreateTable(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        CreateTable o = (CreateTable) obj;
-        return Objects.equals(name, o.name) &&
-                Objects.equals(elements, o.elements) &&
-                Objects.equals(notExists, o.notExists) &&
-                Objects.equals(properties, o.properties);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, elements, notExists, properties);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("name", name)
-                .add("elements", elements)
-                .add("notExists", notExists)
-                .add("properties", properties)
-                .toString();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    CreateTable o = (CreateTable) obj;
+    return Objects.equals(name, o.name) &&
+           Objects.equals(elements, o.elements) &&
+           Objects.equals(notExists, o.notExists) &&
+           Objects.equals(properties, o.properties);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("name", name)
+        .add("elements", elements)
+        .add("notExists", notExists)
+        .add("properties", properties)
+        .toString();
+  }
 }

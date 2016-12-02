@@ -23,97 +23,90 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class Revoke
-        extends Statement
-{
-    private final boolean grantOptionFor;
-    private final Optional<List<String>> privileges; // missing means ALL PRIVILEGES
-    private final boolean table;
-    private final QualifiedName tableName;
-    private final String grantee;
+    extends Statement {
 
-    public Revoke(boolean grantOptionFor, Optional<List<String>> privileges, boolean table, QualifiedName tableName, String grantee)
-    {
-        this(Optional.empty(), grantOptionFor, privileges, table, tableName, grantee);
-    }
+  private final boolean grantOptionFor;
+  private final Optional<List<String>> privileges; // missing means ALL PRIVILEGES
+  private final boolean table;
+  private final QualifiedName tableName;
+  private final String grantee;
 
-    public Revoke(NodeLocation location, boolean grantOptionFor, Optional<List<String>> privileges, boolean table, QualifiedName tableName, String grantee)
-    {
-        this(Optional.of(location), grantOptionFor, privileges, table, tableName, grantee);
-    }
-    private Revoke(Optional<NodeLocation> location, boolean grantOptionFor, Optional<List<String>> privileges, boolean table, QualifiedName tableName, String grantee)
-    {
-        super(location);
-        this.grantOptionFor = grantOptionFor;
-        requireNonNull(privileges, "privileges is null");
-        this.privileges = privileges.map(ImmutableList::copyOf);
-        this.table = table;
-        this.tableName = requireNonNull(tableName, "tableName is null");
-        this.grantee = requireNonNull(grantee, "grantee is null");
-    }
+  public Revoke(boolean grantOptionFor, Optional<List<String>> privileges, boolean table,
+                QualifiedName tableName, String grantee) {
+    this(Optional.empty(), grantOptionFor, privileges, table, tableName, grantee);
+  }
 
-    public boolean isGrantOptionFor()
-    {
-        return grantOptionFor;
-    }
+  public Revoke(NodeLocation location, boolean grantOptionFor, Optional<List<String>> privileges,
+                boolean table, QualifiedName tableName, String grantee) {
+    this(Optional.of(location), grantOptionFor, privileges, table, tableName, grantee);
+  }
 
-    public Optional<List<String>> getPrivileges()
-    {
-        return privileges;
-    }
+  private Revoke(Optional<NodeLocation> location, boolean grantOptionFor,
+                 Optional<List<String>> privileges, boolean table, QualifiedName tableName,
+                 String grantee) {
+    super(location);
+    this.grantOptionFor = grantOptionFor;
+    requireNonNull(privileges, "privileges is null");
+    this.privileges = privileges.map(ImmutableList::copyOf);
+    this.table = table;
+    this.tableName = requireNonNull(tableName, "tableName is null");
+    this.grantee = requireNonNull(grantee, "grantee is null");
+  }
 
-    public boolean isTable()
-    {
-        return table;
-    }
+  public boolean isGrantOptionFor() {
+    return grantOptionFor;
+  }
 
-    public QualifiedName getTableName()
-    {
-        return tableName;
-    }
+  public Optional<List<String>> getPrivileges() {
+    return privileges;
+  }
 
-    public String getGrantee()
-    {
-        return grantee;
-    }
+  public boolean isTable() {
+    return table;
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitRevoke(this, context);
-    }
+  public QualifiedName getTableName() {
+    return tableName;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(grantOptionFor, privileges, table, tableName, grantee);
-    }
+  public String getGrantee() {
+    return grantee;
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        Revoke o = (Revoke) obj;
-        return Objects.equals(grantOptionFor, o.grantOptionFor) &&
-                Objects.equals(privileges, o.privileges) &&
-                Objects.equals(table, o.table) &&
-                Objects.equals(tableName, o.tableName) &&
-                Objects.equals(grantee, o.grantee);
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitRevoke(this, context);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("grantOptionFor", grantOptionFor)
-                .add("privileges", privileges)
-                .add("table", table)
-                .add("tableName", tableName)
-                .add("grantee", grantee)
-                .toString();
+  @Override
+  public int hashCode() {
+    return Objects.hash(grantOptionFor, privileges, table, tableName, grantee);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Revoke o = (Revoke) obj;
+    return Objects.equals(grantOptionFor, o.grantOptionFor) &&
+           Objects.equals(privileges, o.privileges) &&
+           Objects.equals(table, o.table) &&
+           Objects.equals(tableName, o.tableName) &&
+           Objects.equals(grantee, o.grantee);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("grantOptionFor", grantOptionFor)
+        .add("privileges", privileges)
+        .add("table", table)
+        .add("tableName", tableName)
+        .add("grantee", grantee)
+        .toString();
+  }
 }

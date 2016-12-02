@@ -15,35 +15,32 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.CodegenExpressionFormatter;
 import io.confluent.ksql.parser.ExpressionFormatter;
+
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Optional;
 
 public abstract class Expression
-        extends Node
-{
-    protected Expression(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+    extends Node {
 
-    /**
-     * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
-     */
-    @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitExpression(this, context);
-    }
+  protected Expression(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    public final String toString()
-    {
-        return ExpressionFormatter.formatExpression(this);
-    }
+  /**
+   * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
+   */
+  @Override
+  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitExpression(this, context);
+  }
 
-    public final String getCodegenString(Schema schema)
-    {
-        return CodegenExpressionFormatter.formatExpression(this, schema);
-    }
+  @Override
+  public final String toString() {
+    return ExpressionFormatter.formatExpression(this);
+  }
+
+  public final String getCodegenString(Schema schema) {
+    return CodegenExpressionFormatter.formatExpression(this, schema);
+  }
 }

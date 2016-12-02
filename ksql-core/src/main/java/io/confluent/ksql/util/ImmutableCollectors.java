@@ -21,69 +21,67 @@ import com.google.common.collect.ImmutableSet;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
-public final class ImmutableCollectors
-{
-    private ImmutableCollectors() {}
+public final class ImmutableCollectors {
 
-    public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList()
-    {
-        return Collector.<T, ImmutableList.Builder<T>, ImmutableList<T>>of(
-                ImmutableList.Builder::new,
-                ImmutableList.Builder::add,
-                (left, right) -> {
-                    left.addAll(right.build());
-                    return left;
-                },
-                ImmutableList.Builder::build);
-    }
+  private ImmutableCollectors() {
+  }
 
-    public static <T> Collector<T, ?, ImmutableSet<T>> toImmutableSet()
-    {
-        return Collector.<T, ImmutableSet.Builder<T>, ImmutableSet<T>>of(
-                ImmutableSet.Builder::new,
-                ImmutableSet.Builder::add,
-                (left, right) -> {
-                    left.addAll(right.build());
-                    return left;
-                },
-                ImmutableSet.Builder::build,
-                Collector.Characteristics.UNORDERED);
-    }
+  public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
+    return Collector.<T, ImmutableList.Builder<T>, ImmutableList<T>>of(
+        ImmutableList.Builder::new,
+        ImmutableList.Builder::add,
+        (left, right) -> {
+          left.addAll(right.build());
+          return left;
+        },
+        ImmutableList.Builder::build);
+  }
 
-    public static <T> Collector<T, ?, ImmutableMultiset<T>> toImmutableMultiset()
-    {
-        return Collector.<T, ImmutableMultiset.Builder<T>, ImmutableMultiset<T>>of(
-                ImmutableMultiset.Builder::new,
-                ImmutableMultiset.Builder::add,
-                (left, right) -> {
-                    left.addAll(right.build());
-                    return left;
-                },
-                ImmutableMultiset.Builder::build,
-                Collector.Characteristics.UNORDERED);
-    }
+  public static <T> Collector<T, ?, ImmutableSet<T>> toImmutableSet() {
+    return Collector.<T, ImmutableSet.Builder<T>, ImmutableSet<T>>of(
+        ImmutableSet.Builder::new,
+        ImmutableSet.Builder::add,
+        (left, right) -> {
+          left.addAll(right.build());
+          return left;
+        },
+        ImmutableSet.Builder::build,
+        Collector.Characteristics.UNORDERED);
+  }
 
-    public static <K, V> Collector<V, ?, ImmutableMap<K, V>> toImmutableMap(Function<V, K> keyMapper)
-    {
-        return Collector.<V, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>>of(
-                ImmutableMap.Builder::new,
-                (builder, value) -> builder.put(keyMapper.apply(value), value),
-                (left, right) -> {
-                    left.putAll(right.build());
-                    return left;
-                },
-                ImmutableMap.Builder::build);
-    }
+  public static <T> Collector<T, ?, ImmutableMultiset<T>> toImmutableMultiset() {
+    return Collector.<T, ImmutableMultiset.Builder<T>, ImmutableMultiset<T>>of(
+        ImmutableMultiset.Builder::new,
+        ImmutableMultiset.Builder::add,
+        (left, right) -> {
+          left.addAll(right.build());
+          return left;
+        },
+        ImmutableMultiset.Builder::build,
+        Collector.Characteristics.UNORDERED);
+  }
 
-    public static <K, V, O> Collector<O, ?, ImmutableMap<K, V>> toImmutableMap(Function<O, K> keyMapper, Function<O, V> valueMapper)
-    {
-        return Collector.<O, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>>of(
-                ImmutableMap.Builder::new,
-                (builder, object) -> builder.put(keyMapper.apply(object), valueMapper.apply(object)),
-                (left, right) -> {
-                    left.putAll(right.build());
-                    return left;
-                },
-                ImmutableMap.Builder::build);
-    }
+  public static <K, V> Collector<V, ?, ImmutableMap<K, V>> toImmutableMap(
+      Function<V, K> keyMapper) {
+    return Collector.<V, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>>of(
+        ImmutableMap.Builder::new,
+        (builder, value) -> builder.put(keyMapper.apply(value), value),
+        (left, right) -> {
+          left.putAll(right.build());
+          return left;
+        },
+        ImmutableMap.Builder::build);
+  }
+
+  public static <K, V, O> Collector<O, ?, ImmutableMap<K, V>> toImmutableMap(
+      Function<O, K> keyMapper, Function<O, V> valueMapper) {
+    return Collector.<O, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>>of(
+        ImmutableMap.Builder::new,
+        (builder, object) -> builder.put(keyMapper.apply(object), valueMapper.apply(object)),
+        (left, right) -> {
+          left.putAll(right.build());
+          return left;
+        },
+        ImmutableMap.Builder::build);
+  }
 }

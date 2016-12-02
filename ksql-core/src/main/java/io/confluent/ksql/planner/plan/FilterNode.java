@@ -15,65 +15,66 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.common.collect.ImmutableList;
+
 import io.confluent.ksql.parser.tree.Expression;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
+
 import java.util.List;
 
 @Immutable
 public class FilterNode
-        extends PlanNode
-{
-    private final PlanNode source;
-    private final Expression predicate;
-    private final Schema schema;
-    private final Field keyField;
+    extends PlanNode {
 
-    @JsonCreator
-    public FilterNode(@JsonProperty("id") PlanNodeId id,
-            @JsonProperty("source") PlanNode source,
-            @JsonProperty("predicate") Expression predicate)
-    {
-        super(id);
+  private final PlanNode source;
+  private final Expression predicate;
+  private final Schema schema;
+  private final Field keyField;
 
-        this.source = source;
-        this.schema = source.getSchema();
-        this.predicate = predicate;
-        this.keyField = source.getKeyField();
-    }
+  @JsonCreator
+  public FilterNode(@JsonProperty("id") PlanNodeId id,
+                    @JsonProperty("source") PlanNode source,
+                    @JsonProperty("predicate") Expression predicate) {
+    super(id);
 
-    @JsonProperty("predicate")
-    public Expression getPredicate()
-    {
-        return predicate;
-    }
+    this.source = source;
+    this.schema = source.getSchema();
+    this.predicate = predicate;
+    this.keyField = source.getKeyField();
+  }
 
-    @Override
-    public Schema getSchema() { return this.schema; }
+  @JsonProperty("predicate")
+  public Expression getPredicate() {
+    return predicate;
+  }
 
-    @Override
-    public Field getKeyField() {
-        return keyField;
-    }
+  @Override
+  public Schema getSchema() {
+    return this.schema;
+  }
 
-    @Override
-    public List<PlanNode> getSources()
-    {
-        return ImmutableList.of(source);
-    }
+  @Override
+  public Field getKeyField() {
+    return keyField;
+  }
 
-    @JsonProperty("source")
-    public PlanNode getSource()
-    {
-        return source;
-    }
+  @Override
+  public List<PlanNode> getSources() {
+    return ImmutableList.of(source);
+  }
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context)
-    {
-        return visitor.visitFilter(this, context);
-    }
+  @JsonProperty("source")
+  public PlanNode getSource() {
+    return source;
+  }
+
+  @Override
+  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    return visitor.visitFilter(this, context);
+  }
 }

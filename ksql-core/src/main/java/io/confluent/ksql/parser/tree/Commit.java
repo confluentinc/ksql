@@ -18,50 +18,43 @@ package io.confluent.ksql.parser.tree;
 import java.util.Optional;
 
 public final class Commit
-        extends Statement
-{
-    public Commit()
-    {
-        this(Optional.empty());
-    }
+    extends Statement {
 
-    public Commit(NodeLocation location)
-    {
-        this(Optional.of(location));
-    }
+  public Commit() {
+    this(Optional.empty());
+  }
 
-    private Commit(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+  public Commit(NodeLocation location) {
+    this(Optional.of(location));
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitCommit(this, context);
-    }
+  private Commit(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return 0;
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitCommit(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        return true;
-    }
+  @Override
+  public int hashCode() {
+    return 0;
+  }
 
-    @Override
-    public String toString()
-    {
-        return "COMMIT";
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return "COMMIT";
+  }
 }

@@ -1,167 +1,152 @@
 package io.confluent.ksql.parser;
 
 import com.google.common.collect.ImmutableList;
+
 import io.confluent.ksql.parser.tree.*;
 
 import java.util.List;
 import java.util.Optional;
 
-public final class QueryUtil
-{
-    private QueryUtil() {}
+public final class QueryUtil {
 
-    public static Expression nameReference(String name)
-    {
-        return new QualifiedNameReference(QualifiedName.of(name));
-    }
+  private QueryUtil() {
+  }
 
-    public static Select selectList(Expression... expressions)
-    {
-        ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
-        int index = 0;
-        for (Expression expression : expressions) {
-            items.add(new SingleColumn(expression));
-            index++;
-        }
-        return new Select(false, items.build());
-    }
+  public static Expression nameReference(String name) {
+    return new QualifiedNameReference(QualifiedName.of(name));
+  }
 
-    public static Select selectList(SelectItem... items)
-    {
-        return new Select(false, ImmutableList.copyOf(items));
+  public static Select selectList(Expression... expressions) {
+    ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
+    int index = 0;
+    for (Expression expression : expressions) {
+      items.add(new SingleColumn(expression));
+      index++;
     }
+    return new Select(false, items.build());
+  }
 
-    public static Select selectAll(List<SelectItem> items)
-    {
-        return new Select(false, items);
-    }
+  public static Select selectList(SelectItem... items) {
+    return new Select(false, ImmutableList.copyOf(items));
+  }
 
-    public static Table table(QualifiedName name)
-    {
-        return new Table(name);
-    }
+  public static Select selectAll(List<SelectItem> items) {
+    return new Select(false, items);
+  }
 
-    public static Relation subquery(Query query)
-    {
-        return new TableSubquery(query);
-    }
+  public static Table table(QualifiedName name) {
+    return new Table(name);
+  }
 
-    public static SortItem ascending(String name)
-    {
-        return new SortItem(nameReference(name), SortItem.Ordering.ASCENDING, SortItem.NullOrdering.UNDEFINED);
-    }
+  public static Relation subquery(Query query) {
+    return new TableSubquery(query);
+  }
 
-    public static Expression logicalAnd(Expression left, Expression right)
-    {
-        return new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND, left, right);
-    }
+  public static SortItem ascending(String name) {
+    return new SortItem(nameReference(name), SortItem.Ordering.ASCENDING,
+                        SortItem.NullOrdering.UNDEFINED);
+  }
 
-    public static Expression equal(Expression left, Expression right)
-    {
-        return new ComparisonExpression(ComparisonExpression.Type.EQUAL, left, right);
-    }
+  public static Expression logicalAnd(Expression left, Expression right) {
+    return new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND, left, right);
+  }
 
-    public static Expression caseWhen(Expression operand, Expression result)
-    {
-        return new SearchedCaseExpression(ImmutableList.of(new WhenClause(operand, result)), Optional.empty());
-    }
+  public static Expression equal(Expression left, Expression right) {
+    return new ComparisonExpression(ComparisonExpression.Type.EQUAL, left, right);
+  }
 
-    public static Expression functionCall(String name, Expression... arguments)
-    {
-        return new FunctionCall(QualifiedName.of(name), ImmutableList.copyOf(arguments));
-    }
+  public static Expression caseWhen(Expression operand, Expression result) {
+    return new SearchedCaseExpression(ImmutableList.of(new WhenClause(operand, result)),
+                                      Optional.empty());
+  }
 
-    public static Values values(Row... row)
-    {
-        return new Values(ImmutableList.copyOf(row));
-    }
+  public static Expression functionCall(String name, Expression... arguments) {
+    return new FunctionCall(QualifiedName.of(name), ImmutableList.copyOf(arguments));
+  }
 
-    public static Row row(Expression... values)
-    {
-        return new Row(ImmutableList.copyOf(values));
-    }
+  public static Values values(Row... row) {
+    return new Values(ImmutableList.copyOf(row));
+  }
 
-    public static Relation aliased(Relation relation, String alias, List<String> columnAliases)
-    {
-        return new AliasedRelation(relation, alias, columnAliases);
-    }
+  public static Row row(Expression... values) {
+    return new Row(ImmutableList.copyOf(values));
+  }
+
+  public static Relation aliased(Relation relation, String alias, List<String> columnAliases) {
+    return new AliasedRelation(relation, alias, columnAliases);
+  }
 
 //    public static SelectItem aliasedNullToEmpty(String column, String alias)
 //    {
 //        return new SingleColumn(new CoalesceExpression(nameReference(column), new StringLiteral("")), alias);
 //    }
 
-    public static List<SortItem> ordering(SortItem... items)
-    {
-        return ImmutableList.copyOf(items);
-    }
+  public static List<SortItem> ordering(SortItem... items) {
+    return ImmutableList.copyOf(items);
+  }
 
-    public static Query simpleQuery(Select select)
-    {
-        return query(new QuerySpecification(
-                select,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableList.of(),
-                Optional.empty()));
-    }
+  public static Query simpleQuery(Select select) {
+    return query(new QuerySpecification(
+        select,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        ImmutableList.of(),
+        Optional.empty()));
+  }
 
-    public static Query simpleQuery(Select select, Relation from)
-    {
-        return simpleQuery(select, from, Optional.empty(), ImmutableList.of());
-    }
+  public static Query simpleQuery(Select select, Relation from) {
+    return simpleQuery(select, from, Optional.empty(), ImmutableList.of());
+  }
 
-    public static Query simpleQuery(Select select, Relation from, List<SortItem> ordering)
-    {
-        return simpleQuery(select, from, Optional.empty(), ordering);
-    }
+  public static Query simpleQuery(Select select, Relation from, List<SortItem> ordering) {
+    return simpleQuery(select, from, Optional.empty(), ordering);
+  }
 
-    public static Query simpleQuery(Select select, Relation from, Expression where)
-    {
-        return simpleQuery(select, from, Optional.of(where), ImmutableList.of());
-    }
+  public static Query simpleQuery(Select select, Relation from, Expression where) {
+    return simpleQuery(select, from, Optional.of(where), ImmutableList.of());
+  }
 
-    public static Query simpleQuery(Select select, Relation from, Expression where, List<SortItem> ordering)
-    {
-        return simpleQuery(select, from, Optional.of(where), ordering);
-    }
+  public static Query simpleQuery(Select select, Relation from, Expression where,
+                                  List<SortItem> ordering) {
+    return simpleQuery(select, from, Optional.of(where), ordering);
+  }
 
-    public static Query simpleQuery(Select select, Relation from, Optional<Expression> where, List<SortItem> ordering)
-    {
-        return simpleQuery(select, from, where, Optional.empty(), Optional.empty(), ordering, Optional.empty());
-    }
+  public static Query simpleQuery(Select select, Relation from, Optional<Expression> where,
+                                  List<SortItem> ordering) {
+    return simpleQuery(select, from, where, Optional.empty(), Optional.empty(), ordering,
+                       Optional.empty());
+  }
 
-    public static Query simpleQuery(Select select, Relation from, Optional<Expression> where, Optional<GroupBy> groupBy, Optional<Expression> having, List<SortItem> ordering, Optional<String> limit)
-    {
-        return query(new QuerySpecification(
-                select,
-                Optional.empty(),
-                Optional.empty(),
-                where,
-                groupBy,
-                having,
-                ordering,
-                limit));
-    }
+  public static Query simpleQuery(Select select, Relation from, Optional<Expression> where,
+                                  Optional<GroupBy> groupBy, Optional<Expression> having,
+                                  List<SortItem> ordering, Optional<String> limit) {
+    return query(new QuerySpecification(
+        select,
+        Optional.empty(),
+        Optional.empty(),
+        where,
+        groupBy,
+        having,
+        ordering,
+        limit));
+  }
 
-    public static Query singleValueQuery(String columnName, String value)
-    {
-        Relation values = values(row(new StringLiteral((value))));
-        return simpleQuery(
-                selectList(new AllColumns()),
-                aliased(values, "t", ImmutableList.of(columnName)));
-    }
+  public static Query singleValueQuery(String columnName, String value) {
+    Relation values = values(row(new StringLiteral((value))));
+    return simpleQuery(
+        selectList(new AllColumns()),
+        aliased(values, "t", ImmutableList.of(columnName)));
+  }
 
-    public static Query query(QueryBody body)
-    {
-        return new Query(
-                Optional.empty(),
-                body,
-                ImmutableList.of(),
-                Optional.empty(),
-                Optional.empty());
-    }
+  public static Query query(QueryBody body) {
+    return new Query(
+        Optional.empty(),
+        body,
+        ImmutableList.of(),
+        Optional.empty(),
+        Optional.empty());
+  }
 }

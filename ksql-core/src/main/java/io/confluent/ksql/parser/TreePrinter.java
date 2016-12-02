@@ -15,367 +15,339 @@ package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+
 import io.confluent.ksql.parser.tree.*;
 
 import java.io.PrintStream;
 import java.util.IdentityHashMap;
 import java.util.Set;
 
-public class TreePrinter
-{
-    private static final String INDENT = "   ";
+public class TreePrinter {
 
-    private final IdentityHashMap<Expression, QualifiedName> resolvedNameReferences;
-    private final PrintStream out;
+  private static final String INDENT = "   ";
 
-    public TreePrinter(IdentityHashMap<Expression, QualifiedName> resolvedNameReferences, PrintStream out)
-    {
-        this.resolvedNameReferences = new IdentityHashMap<>(resolvedNameReferences);
-        this.out = out;
-    }
+  private final IdentityHashMap<Expression, QualifiedName> resolvedNameReferences;
+  private final PrintStream out;
 
-    public void print(Node root)
-    {
-        AstVisitor<Void, Integer> printer = new DefaultTraversalVisitor<Void, Integer>()
-        {
-            @Override
-            protected Void visitNode(Node node, Integer indentLevel)
-            {
-                throw new UnsupportedOperationException("not yet implemented: " + node);
-            }
+  public TreePrinter(IdentityHashMap<Expression, QualifiedName> resolvedNameReferences,
+                     PrintStream out) {
+    this.resolvedNameReferences = new IdentityHashMap<>(resolvedNameReferences);
+    this.out = out;
+  }
 
-            @Override
-            protected Void visitQuery(Query node, Integer indentLevel)
-            {
-                print(indentLevel, "Query ");
+  public void print(Node root) {
+    AstVisitor<Void, Integer> printer = new DefaultTraversalVisitor<Void, Integer>() {
+      @Override
+      protected Void visitNode(Node node, Integer indentLevel) {
+        throw new UnsupportedOperationException("not yet implemented: " + node);
+      }
 
-                indentLevel++;
+      @Override
+      protected Void visitQuery(Query node, Integer indentLevel) {
+        print(indentLevel, "Query ");
 
-                print(indentLevel, "QueryBody");
-                process(node.getQueryBody(), indentLevel);
+        indentLevel++;
 
-                if (!node.getOrderBy().isEmpty()) {
-                    print(indentLevel, "OrderBy");
-                    for (SortItem sortItem : node.getOrderBy()) {
-                        process(sortItem, indentLevel + 1);
-                    }
-                }
+        print(indentLevel, "QueryBody");
+        process(node.getQueryBody(), indentLevel);
 
-                if (node.getLimit().isPresent()) {
-                    print(indentLevel, "Limit: " + node.getLimit().get());
-                }
+        if (!node.getOrderBy().isEmpty()) {
+          print(indentLevel, "OrderBy");
+          for (SortItem sortItem : node.getOrderBy()) {
+            process(sortItem, indentLevel + 1);
+          }
+        }
 
-                return null;
-            }
+        if (node.getLimit().isPresent()) {
+          print(indentLevel, "Limit: " + node.getLimit().get());
+        }
 
-            @Override
-            protected Void visitQuerySpecification(QuerySpecification node, Integer indentLevel)
-            {
-                print(indentLevel, "QuerySpecification ");
+        return null;
+      }
 
-                indentLevel++;
+      @Override
+      protected Void visitQuerySpecification(QuerySpecification node, Integer indentLevel) {
+        print(indentLevel, "QuerySpecification ");
 
-                process(node.getSelect(), indentLevel);
+        indentLevel++;
 
-                if (node.getFrom().isPresent()) {
-                    print(indentLevel, "From");
+        process(node.getSelect(), indentLevel);
+
+        if (node.getFrom().isPresent()) {
+          print(indentLevel, "From");
 //                    process(node.getFrom().get(), indentLevel + 1);
+        }
+
+        if (node.getWhere().isPresent()) {
+          print(indentLevel, "Where");
+          process(node.getWhere().get(), indentLevel + 1);
+        }
+
+        if (node.getGroupBy().isPresent()) {
+          String distinct = "";
+          if (node.getGroupBy().get().isDistinct()) {
+            distinct = "[DISTINCT]";
+          }
+          print(indentLevel, "GroupBy" + distinct);
+          for (GroupingElement groupingElement : node.getGroupBy().get().getGroupingElements()) {
+            print(indentLevel, "SimpleGroupBy");
+            if (groupingElement instanceof SimpleGroupBy) {
+              for (Expression column : ((SimpleGroupBy) groupingElement).getColumnExpressions()) {
+                process(column, indentLevel + 1);
+              }
+            } else if (groupingElement instanceof GroupingSets) {
+              print(indentLevel + 1, "GroupingSets");
+              for (Set<Expression> column : groupingElement.enumerateGroupingSets()) {
+                print(indentLevel + 2, "GroupingSet[");
+                for (Expression expression : column) {
+                  process(expression, indentLevel + 3);
                 }
-
-                if (node.getWhere().isPresent()) {
-                    print(indentLevel, "Where");
-                    process(node.getWhere().get(), indentLevel + 1);
-                }
-
-                if (node.getGroupBy().isPresent()) {
-                    String distinct = "";
-                    if (node.getGroupBy().get().isDistinct()) {
-                        distinct = "[DISTINCT]";
-                    }
-                    print(indentLevel, "GroupBy" + distinct);
-                    for (GroupingElement groupingElement : node.getGroupBy().get().getGroupingElements()) {
-                        print(indentLevel, "SimpleGroupBy");
-                        if (groupingElement instanceof SimpleGroupBy) {
-                            for (Expression column : ((SimpleGroupBy) groupingElement).getColumnExpressions()) {
-                                process(column, indentLevel + 1);
-                            }
-                        }
-                        else if (groupingElement instanceof GroupingSets) {
-                            print(indentLevel + 1, "GroupingSets");
-                            for (Set<Expression> column : groupingElement.enumerateGroupingSets()) {
-                                print(indentLevel + 2, "GroupingSet[");
-                                for (Expression expression : column) {
-                                    process(expression, indentLevel + 3);
-                                }
-                                print(indentLevel + 2, "]");
-                            }
-                        }
-                        else if (groupingElement instanceof Cube) {
-                            print(indentLevel + 1, "Cube");
-                            for (QualifiedName column : ((Cube) groupingElement).getColumns()) {
-                                print(indentLevel + 1, column.toString());
-                            }
-                        }
-                        else if (groupingElement instanceof Rollup) {
-                            print(indentLevel + 1, "Rollup");
-                            for (QualifiedName column : ((Rollup) groupingElement).getColumns()) {
-                                print(indentLevel + 1, column.toString());
-                            }
-                        }
-                    }
-                }
-
-                if (node.getHaving().isPresent()) {
-                    print(indentLevel, "Having");
-                    process(node.getHaving().get(), indentLevel + 1);
-                }
-
-                if (!node.getOrderBy().isEmpty()) {
-                    print(indentLevel, "OrderBy");
-                    for (SortItem sortItem : node.getOrderBy()) {
-                        process(sortItem, indentLevel + 1);
-                    }
-                }
-
-                if (node.getLimit().isPresent()) {
-                    print(indentLevel, "Limit: " + node.getLimit().get());
-                }
-
-                return null;
+                print(indentLevel + 2, "]");
+              }
+            } else if (groupingElement instanceof Cube) {
+              print(indentLevel + 1, "Cube");
+              for (QualifiedName column : ((Cube) groupingElement).getColumns()) {
+                print(indentLevel + 1, column.toString());
+              }
+            } else if (groupingElement instanceof Rollup) {
+              print(indentLevel + 1, "Rollup");
+              for (QualifiedName column : ((Rollup) groupingElement).getColumns()) {
+                print(indentLevel + 1, column.toString());
+              }
             }
+          }
+        }
 
-            @Override
-            protected Void visitSelect(Select node, Integer indentLevel)
-            {
-                String distinct = "";
-                if (node.isDistinct()) {
-                    distinct = "[DISTINCT]";
-                }
-                print(indentLevel, "Select" + distinct);
+        if (node.getHaving().isPresent()) {
+          print(indentLevel, "Having");
+          process(node.getHaving().get(), indentLevel + 1);
+        }
 
-                super.visitSelect(node, indentLevel + 1); // visit children
+        if (!node.getOrderBy().isEmpty()) {
+          print(indentLevel, "OrderBy");
+          for (SortItem sortItem : node.getOrderBy()) {
+            process(sortItem, indentLevel + 1);
+          }
+        }
 
-                return null;
-            }
+        if (node.getLimit().isPresent()) {
+          print(indentLevel, "Limit: " + node.getLimit().get());
+        }
 
-            @Override
-            protected Void visitAllColumns(AllColumns node, Integer indent)
-            {
-                if (node.getPrefix().isPresent()) {
-                    print(indent, node.getPrefix() + ".*");
-                }
-                else {
-                    print(indent, "*");
-                }
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitSelect(Select node, Integer indentLevel) {
+        String distinct = "";
+        if (node.isDistinct()) {
+          distinct = "[DISTINCT]";
+        }
+        print(indentLevel, "Select" + distinct);
 
-            @Override
-            protected Void visitSingleColumn(SingleColumn node, Integer indent)
-            {
-                if (node.getAlias().isPresent()) {
-                    print(indent, "Alias: " + node.getAlias().get());
-                }
+        super.visitSelect(node, indentLevel + 1); // visit children
 
-                super.visitSingleColumn(node, indent + 1); // visit children
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitAllColumns(AllColumns node, Integer indent) {
+        if (node.getPrefix().isPresent()) {
+          print(indent, node.getPrefix() + ".*");
+        } else {
+          print(indent, "*");
+        }
 
-            @Override
-            protected Void visitComparisonExpression(ComparisonExpression node, Integer indentLevel)
-            {
-                print(indentLevel, node.getType().toString());
+        return null;
+      }
 
-                super.visitComparisonExpression(node, indentLevel + 1);
+      @Override
+      protected Void visitSingleColumn(SingleColumn node, Integer indent) {
+        if (node.getAlias().isPresent()) {
+          print(indent, "Alias: " + node.getAlias().get());
+        }
 
-                return null;
-            }
+        super.visitSingleColumn(node, indent + 1); // visit children
 
-            @Override
-            protected Void visitArithmeticBinary(ArithmeticBinaryExpression node, Integer indentLevel)
-            {
-                print(indentLevel, node.getType().toString());
+        return null;
+      }
 
-                super.visitArithmeticBinary(node, indentLevel + 1);
+      @Override
+      protected Void visitComparisonExpression(ComparisonExpression node, Integer indentLevel) {
+        print(indentLevel, node.getType().toString());
 
-                return null;
-            }
+        super.visitComparisonExpression(node, indentLevel + 1);
 
-            @Override
-            protected Void visitLogicalBinaryExpression(LogicalBinaryExpression node, Integer indentLevel)
-            {
-                print(indentLevel, node.getType().toString());
+        return null;
+      }
 
-                super.visitLogicalBinaryExpression(node, indentLevel + 1);
+      @Override
+      protected Void visitArithmeticBinary(ArithmeticBinaryExpression node, Integer indentLevel) {
+        print(indentLevel, node.getType().toString());
 
-                return null;
-            }
+        super.visitArithmeticBinary(node, indentLevel + 1);
 
-            @Override
-            protected Void visitStringLiteral(StringLiteral node, Integer indentLevel)
-            {
-                print(indentLevel, "String[" + node.getValue() + "]");
-                return null;
-            }
+        return null;
+      }
 
-            @Override
-            protected Void visitBinaryLiteral(BinaryLiteral node, Integer indentLevel)
-            {
-                print(indentLevel, "Binary[" + node.toHexString() + "]");
-                return null;
-            }
+      @Override
+      protected Void visitLogicalBinaryExpression(LogicalBinaryExpression node,
+                                                  Integer indentLevel) {
+        print(indentLevel, node.getType().toString());
 
-            @Override
-            protected Void visitBooleanLiteral(BooleanLiteral node, Integer indentLevel)
-            {
-                print(indentLevel, "Boolean[" + node.getValue() + "]");
-                return null;
-            }
+        super.visitLogicalBinaryExpression(node, indentLevel + 1);
 
-            @Override
-            protected Void visitLongLiteral(LongLiteral node, Integer indentLevel)
-            {
-                print(indentLevel, "Long[" + node.getValue() + "]");
-                return null;
-            }
+        return null;
+      }
 
-            @Override
-            protected Void visitLikePredicate(LikePredicate node, Integer indentLevel)
-            {
-                print(indentLevel, "LIKE");
+      @Override
+      protected Void visitStringLiteral(StringLiteral node, Integer indentLevel) {
+        print(indentLevel, "String[" + node.getValue() + "]");
+        return null;
+      }
 
-                super.visitLikePredicate(node, indentLevel + 1);
+      @Override
+      protected Void visitBinaryLiteral(BinaryLiteral node, Integer indentLevel) {
+        print(indentLevel, "Binary[" + node.toHexString() + "]");
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitBooleanLiteral(BooleanLiteral node, Integer indentLevel) {
+        print(indentLevel, "Boolean[" + node.getValue() + "]");
+        return null;
+      }
 
-            @Override
-            protected Void visitQualifiedNameReference(QualifiedNameReference node, Integer indentLevel)
-            {
-                QualifiedName resolved = resolvedNameReferences.get(node);
-                String resolvedName = "";
-                if (resolved != null) {
-                    resolvedName = "=>" + resolved.toString();
-                }
-                print(indentLevel, "QualifiedName[" + node.getName() + resolvedName + "]");
-                return null;
-            }
+      @Override
+      protected Void visitLongLiteral(LongLiteral node, Integer indentLevel) {
+        print(indentLevel, "Long[" + node.getValue() + "]");
+        return null;
+      }
 
-            @Override
-            protected Void visitDereferenceExpression(DereferenceExpression node, Integer indentLevel)
-            {
-                QualifiedName resolved = resolvedNameReferences.get(node);
-                String resolvedName = "";
-                if (resolved != null) {
-                    resolvedName = "=>" + resolved.toString();
-                }
-                print(indentLevel, "DereferenceExpression[" + node + resolvedName + "]");
-                return null;
-            }
+      @Override
+      protected Void visitLikePredicate(LikePredicate node, Integer indentLevel) {
+        print(indentLevel, "LIKE");
 
-            @Override
-            protected Void visitFunctionCall(FunctionCall node, Integer indentLevel)
-            {
-                String name = Joiner.on('.').join(node.getName().getParts());
-                print(indentLevel, "FunctionCall[" + name + "]");
+        super.visitLikePredicate(node, indentLevel + 1);
 
-                super.visitFunctionCall(node, indentLevel + 1);
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitQualifiedNameReference(QualifiedNameReference node, Integer indentLevel) {
+        QualifiedName resolved = resolvedNameReferences.get(node);
+        String resolvedName = "";
+        if (resolved != null) {
+          resolvedName = "=>" + resolved.toString();
+        }
+        print(indentLevel, "QualifiedName[" + node.getName() + resolvedName + "]");
+        return null;
+      }
 
-            @Override
-            protected Void visitTable(Table node, Integer indentLevel)
-            {
-                String name = Joiner.on('.').join(node.getName().getParts());
-                print(indentLevel, "Table[" + name + "]");
+      @Override
+      protected Void visitDereferenceExpression(DereferenceExpression node, Integer indentLevel) {
+        QualifiedName resolved = resolvedNameReferences.get(node);
+        String resolvedName = "";
+        if (resolved != null) {
+          resolvedName = "=>" + resolved.toString();
+        }
+        print(indentLevel, "DereferenceExpression[" + node + resolvedName + "]");
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitFunctionCall(FunctionCall node, Integer indentLevel) {
+        String name = Joiner.on('.').join(node.getName().getParts());
+        print(indentLevel, "FunctionCall[" + name + "]");
 
-            @Override
-            protected Void visitValues(Values node, Integer indentLevel)
-            {
-                print(indentLevel, "Values");
+        super.visitFunctionCall(node, indentLevel + 1);
 
-                super.visitValues(node, indentLevel + 1);
+        return null;
+      }
 
-                return null;
-            }
+      @Override
+      protected Void visitTable(Table node, Integer indentLevel) {
+        String name = Joiner.on('.').join(node.getName().getParts());
+        print(indentLevel, "Table[" + name + "]");
 
-            @Override
-            protected Void visitRow(Row node, Integer indentLevel)
-            {
-                print(indentLevel, "Row");
+        return null;
+      }
 
-                super.visitRow(node, indentLevel + 1);
+      @Override
+      protected Void visitValues(Values node, Integer indentLevel) {
+        print(indentLevel, "Values");
 
-                return null;
-            }
+        super.visitValues(node, indentLevel + 1);
 
-            @Override
-            protected Void visitAliasedRelation(AliasedRelation node, Integer indentLevel)
-            {
-                print(indentLevel, "Alias[" + node.getAlias() + "]");
+        return null;
+      }
 
-                super.visitAliasedRelation(node, indentLevel + 1);
+      @Override
+      protected Void visitRow(Row node, Integer indentLevel) {
+        print(indentLevel, "Row");
 
-                return null;
-            }
+        super.visitRow(node, indentLevel + 1);
 
-            @Override
-            protected Void visitSampledRelation(SampledRelation node, Integer indentLevel)
-            {
-                String stratifyOn = "";
-                if (node.getColumnsToStratifyOn().isPresent()) {
-                    stratifyOn = " STRATIFY ON (" + node.getColumnsToStratifyOn().get().toString() + ")";
-                }
+        return null;
+      }
 
-                print(indentLevel, "TABLESAMPLE[" + node.getType() + " (" + node.getSamplePercentage() + ")" + stratifyOn + "]");
+      @Override
+      protected Void visitAliasedRelation(AliasedRelation node, Integer indentLevel) {
+        print(indentLevel, "Alias[" + node.getAlias() + "]");
 
-                super.visitSampledRelation(node, indentLevel + 1);
+        super.visitAliasedRelation(node, indentLevel + 1);
 
-                return null;
-            }
+        return null;
+      }
 
-            @Override
-            protected Void visitTableSubquery(TableSubquery node, Integer indentLevel)
-            {
-                print(indentLevel, "SubQuery");
+      @Override
+      protected Void visitSampledRelation(SampledRelation node, Integer indentLevel) {
+        String stratifyOn = "";
+        if (node.getColumnsToStratifyOn().isPresent()) {
+          stratifyOn = " STRATIFY ON (" + node.getColumnsToStratifyOn().get().toString() + ")";
+        }
 
-                super.visitTableSubquery(node, indentLevel + 1);
+        print(indentLevel,
+              "TABLESAMPLE[" + node.getType() + " (" + node.getSamplePercentage() + ")" + stratifyOn
+              + "]");
 
-                return null;
-            }
+        super.visitSampledRelation(node, indentLevel + 1);
 
-            @Override
-            protected Void visitInPredicate(InPredicate node, Integer indentLevel)
-            {
-                print(indentLevel, "IN");
+        return null;
+      }
 
-                super.visitInPredicate(node, indentLevel + 1);
+      @Override
+      protected Void visitTableSubquery(TableSubquery node, Integer indentLevel) {
+        print(indentLevel, "SubQuery");
 
-                return null;
-            }
+        super.visitTableSubquery(node, indentLevel + 1);
 
-            @Override
-            protected Void visitSubqueryExpression(SubqueryExpression node, Integer indentLevel)
-            {
-                print(indentLevel, "SubQuery");
+        return null;
+      }
 
-                super.visitSubqueryExpression(node, indentLevel + 1);
+      @Override
+      protected Void visitInPredicate(InPredicate node, Integer indentLevel) {
+        print(indentLevel, "IN");
 
-                return null;
-            }
-        };
+        super.visitInPredicate(node, indentLevel + 1);
 
-        printer.process(root, 0);
-    }
+        return null;
+      }
 
-    private void print(Integer indentLevel, String value)
-    {
-        out.println(Strings.repeat(INDENT, indentLevel) + value);
-    }
+      @Override
+      protected Void visitSubqueryExpression(SubqueryExpression node, Integer indentLevel) {
+        print(indentLevel, "SubQuery");
+
+        super.visitSubqueryExpression(node, indentLevel + 1);
+
+        return null;
+      }
+    };
+
+    printer.process(root, 0);
+  }
+
+  private void print(Integer indentLevel, String value) {
+    out.println(Strings.repeat(INDENT, indentLevel) + value);
+  }
 }

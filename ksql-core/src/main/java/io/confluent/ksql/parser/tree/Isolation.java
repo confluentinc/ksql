@@ -23,81 +23,70 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 public final class Isolation
-        extends TransactionMode
-{
-    public enum Level
-    {
-        SERIALIZABLE("SERIALIZABLE"),
-        REPEATABLE_READ("REPEATABLE READ"),
-        READ_COMMITTED("READ COMMITTED"),
-        READ_UNCOMMITTED("READ UNCOMMITTED");
+    extends TransactionMode {
 
-        private final String text;
+  public enum Level {
+    SERIALIZABLE("SERIALIZABLE"),
+    REPEATABLE_READ("REPEATABLE READ"),
+    READ_COMMITTED("READ COMMITTED"),
+    READ_UNCOMMITTED("READ UNCOMMITTED");
 
-        Level(String text)
-        {
-            this.text = requireNonNull(text, "text is null");
-        }
+    private final String text;
 
-        public String getText()
-        {
-            return text;
-        }
+    Level(String text) {
+      this.text = requireNonNull(text, "text is null");
     }
 
-    private final Level level;
-
-    public Isolation(Level level)
-    {
-        this(Optional.empty(), level);
+    public String getText() {
+      return text;
     }
+  }
 
-    public Isolation(NodeLocation location, Level level)
-    {
-        this(Optional.of(location), level);
-    }
+  private final Level level;
 
-    private Isolation(Optional<NodeLocation> location, Level level)
-    {
-        super(location);
-        this.level = requireNonNull(level, "level is null");
-    }
+  public Isolation(Level level) {
+    this(Optional.empty(), level);
+  }
 
-    public Level getLevel()
-    {
-        return level;
-    }
+  public Isolation(NodeLocation location, Level level) {
+    this(Optional.of(location), level);
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitIsolationLevel(this, context);
-    }
+  private Isolation(Optional<NodeLocation> location, Level level) {
+    super(location);
+    this.level = requireNonNull(level, "level is null");
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(level);
-    }
+  public Level getLevel() {
+    return level;
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        final Isolation other = (Isolation) obj;
-        return this.level == other.level;
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitIsolationLevel(this, context);
+  }
 
-    @Override
-    public String toString()
-    {
-        return MoreObjects.toStringHelper(this)
-                .add("level", level)
-                .toString();
+  @Override
+  public int hashCode() {
+    return Objects.hash(level);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    final Isolation other = (Isolation) obj;
+    return this.level == other.level;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("level", level)
+        .toString();
+  }
 }

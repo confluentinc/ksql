@@ -15,55 +15,54 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
 @Immutable
 public abstract class OutputNode
-        extends PlanNode
-{
-    private final PlanNode source;
-    private final Schema schema;
+    extends PlanNode {
 
-    @JsonCreator
-    protected OutputNode(@JsonProperty("id") PlanNodeId id,
-                      @JsonProperty("source") PlanNode source,
-                      @JsonProperty("schema")Schema schema)
-    {
-        super(id);
+  private final PlanNode source;
+  private final Schema schema;
 
-        requireNonNull(source, "source is null");
-        requireNonNull(schema, "schema is null");
+  @JsonCreator
+  protected OutputNode(@JsonProperty("id") PlanNodeId id,
+                       @JsonProperty("source") PlanNode source,
+                       @JsonProperty("schema") Schema schema) {
+    super(id);
 
-        this.source = source;
-        this.schema = schema;
-    }
+    requireNonNull(source, "source is null");
+    requireNonNull(schema, "schema is null");
 
-    @Override
-    public Schema getSchema() {
-        return this.schema;
-    }
+    this.source = source;
+    this.schema = schema;
+  }
 
-    @Override
-    public List<PlanNode> getSources()
-    {
-        return ImmutableList.of(source);
-    }
+  @Override
+  public Schema getSchema() {
+    return this.schema;
+  }
 
-    @JsonProperty
-    public PlanNode getSource()
-    {
-        return source;
-    }
+  @Override
+  public List<PlanNode> getSources() {
+    return ImmutableList.of(source);
+  }
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context)
-    {
-        return visitor.visitOutput(this, context);
-    }
+  @JsonProperty
+  public PlanNode getSource() {
+    return source;
+  }
+
+  @Override
+  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    return visitor.visitOutput(this, context);
+  }
 }

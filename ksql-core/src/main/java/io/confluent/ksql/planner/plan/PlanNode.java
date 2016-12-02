@@ -1,6 +1,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -10,27 +11,25 @@ import static java.util.Objects.requireNonNull;
 
 public abstract class PlanNode {
 
-    private final PlanNodeId id;
+  private final PlanNodeId id;
 
-    protected PlanNode(PlanNodeId id)
-    {
-        requireNonNull(id, "id is null");
-        this.id = id;
-    }
+  protected PlanNode(PlanNodeId id) {
+    requireNonNull(id, "id is null");
+    this.id = id;
+  }
 
-    @JsonProperty("id")
-    public PlanNodeId getId()
-    {
-        return id;
-    }
+  @JsonProperty("id")
+  public PlanNodeId getId() {
+    return id;
+  }
 
-    public abstract Schema getSchema();
-    public abstract Field getKeyField();
+  public abstract Schema getSchema();
 
-    public abstract List<PlanNode> getSources();
+  public abstract Field getKeyField();
 
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context)
-    {
-        return visitor.visitPlan(this, context);
-    }
+  public abstract List<PlanNode> getSources();
+
+  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    return visitor.visitPlan(this, context);
+  }
 }

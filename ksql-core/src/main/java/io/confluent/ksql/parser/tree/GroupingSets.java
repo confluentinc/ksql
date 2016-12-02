@@ -22,68 +22,60 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.collectingAndThen;
 
 public class GroupingSets
-        extends GroupingElement
-{
-    private final List<List<QualifiedName>> sets;
+    extends GroupingElement {
 
-    public GroupingSets(List<List<QualifiedName>> groupingSetList)
-    {
-        this(Optional.empty(), groupingSetList);
-    }
+  private final List<List<QualifiedName>> sets;
 
-    public GroupingSets(NodeLocation location, List<List<QualifiedName>> sets)
-    {
-        this(Optional.of(location), sets);
-    }
+  public GroupingSets(List<List<QualifiedName>> groupingSetList) {
+    this(Optional.empty(), groupingSetList);
+  }
 
-    private GroupingSets(Optional<NodeLocation> location, List<List<QualifiedName>> sets)
-    {
-        super(location);
-        requireNonNull(sets);
-        checkArgument(!sets.isEmpty(), "grouping sets cannot be empty");
-        this.sets = sets;
-    }
+  public GroupingSets(NodeLocation location, List<List<QualifiedName>> sets) {
+    this(Optional.of(location), sets);
+  }
 
-    @Override
-    public List<Set<Expression>> enumerateGroupingSets()
-    {
-        return sets.stream()
-                .map(groupingSet -> groupingSet.stream()
-                        .map(QualifiedNameReference::new)
-                        .collect(Collectors.<Expression>toSet()))
-                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
-    }
+  private GroupingSets(Optional<NodeLocation> location, List<List<QualifiedName>> sets) {
+    super(location);
+    requireNonNull(sets);
+    checkArgument(!sets.isEmpty(), "grouping sets cannot be empty");
+    this.sets = sets;
+  }
 
-    @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitGroupingSets(this, context);
-    }
+  @Override
+  public List<Set<Expression>> enumerateGroupingSets() {
+    return sets.stream()
+        .map(groupingSet -> groupingSet.stream()
+            .map(QualifiedNameReference::new)
+            .collect(Collectors.<Expression>toSet()))
+        .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+  }
 
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        GroupingSets groupingSets = (GroupingSets) o;
-        return Objects.equals(sets, groupingSets.sets);
-    }
+  @Override
+  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitGroupingSets(this, context);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(sets);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    GroupingSets groupingSets = (GroupingSets) o;
+    return Objects.equals(sets, groupingSets.sets);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("sets", sets)
-                .toString();
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(sets);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("sets", sets)
+        .toString();
+  }
 }

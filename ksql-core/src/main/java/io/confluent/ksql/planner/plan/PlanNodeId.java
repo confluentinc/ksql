@@ -21,46 +21,42 @@ import javax.annotation.concurrent.Immutable;
 import static java.util.Objects.requireNonNull;
 
 @Immutable
-public class PlanNodeId
-{
-    private final String id;
+public class PlanNodeId {
 
-    @JsonCreator
-    public PlanNodeId(String id)
-    {
-        requireNonNull(id, "id is null");
-        this.id = id;
+  private final String id;
+
+  @JsonCreator
+  public PlanNodeId(String id) {
+    requireNonNull(id, "id is null");
+    this.id = id;
+  }
+
+  @Override
+  @JsonValue
+  public String toString() {
+    return id;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    @Override
-    @JsonValue
-    public String toString()
-    {
-        return id;
+    PlanNodeId that = (PlanNodeId) o;
+
+    if (!id.equals(that.id)) {
+      return false;
     }
 
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    return true;
+  }
 
-        PlanNodeId that = (PlanNodeId) o;
-
-        if (!id.equals(that.id)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return id.hashCode();
-    }
+  @Override
+  public int hashCode() {
+    return id.hashCode();
+  }
 }

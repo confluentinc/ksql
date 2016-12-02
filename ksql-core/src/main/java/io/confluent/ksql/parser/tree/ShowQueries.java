@@ -8,25 +8,23 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ShowQueries extends Statement {
 
-    public ShowQueries(Optional<NodeLocation> location) {
-        super(location);
-    }
+  public ShowQueries(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash("ShowQueries");
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash("ShowQueries");
+  }
 
-    @Override
-    public boolean equals(Object obj) {
-        return this == obj;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj;
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .toString();
-    }
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .toString();
+  }
 }

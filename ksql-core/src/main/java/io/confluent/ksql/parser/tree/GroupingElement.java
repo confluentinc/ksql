@@ -18,18 +18,16 @@ import java.util.Optional;
 import java.util.Set;
 
 public abstract class GroupingElement
-        extends Node
-{
-    public GroupingElement(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+    extends Node {
 
-    public abstract List<Set<Expression>> enumerateGroupingSets();
+  public GroupingElement(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitGroupingElement(this, context);
-    }
+  public abstract List<Set<Expression>> enumerateGroupingSets();
+
+  @Override
+  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitGroupingElement(this, context);
+  }
 }

@@ -27,77 +27,68 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 public class Rollup
-        extends GroupingElement
-{
-    private final List<QualifiedName> columns;
+    extends GroupingElement {
 
-    public Rollup(List<QualifiedName> columns)
-    {
-        this(Optional.empty(), columns);
-    }
+  private final List<QualifiedName> columns;
 
-    public Rollup(NodeLocation location, List<QualifiedName> columns)
-    {
-        this(Optional.of(location), columns);
-    }
+  public Rollup(List<QualifiedName> columns) {
+    this(Optional.empty(), columns);
+  }
 
-    private Rollup(Optional<NodeLocation> location, List<QualifiedName> columns)
-    {
-        super(location);
-        requireNonNull(columns, "columns is null");
-        this.columns = columns;
-    }
+  public Rollup(NodeLocation location, List<QualifiedName> columns) {
+    this(Optional.of(location), columns);
+  }
 
-    public List<QualifiedName> getColumns()
-    {
-        return columns;
-    }
+  private Rollup(Optional<NodeLocation> location, List<QualifiedName> columns) {
+    super(location);
+    requireNonNull(columns, "columns is null");
+    this.columns = columns;
+  }
 
-    @Override
-    public List<Set<Expression>> enumerateGroupingSets()
-    {
-        int numColumns = columns.size();
-        List<Set<Expression>> enumeratedGroupingSets = IntStream.range(0, numColumns)
-                .mapToObj(i -> columns.subList(0, numColumns - i)
-                        .stream()
-                        .map(QualifiedNameReference::new)
-                        .map(Expression.class::cast)
-                        .collect(toSet()))
-                .collect(toList());
-        enumeratedGroupingSets.add(ImmutableSet.of());
-        return enumeratedGroupingSets;
-    }
+  public List<QualifiedName> getColumns() {
+    return columns;
+  }
 
-    @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitRollup(this, context);
-    }
+  @Override
+  public List<Set<Expression>> enumerateGroupingSets() {
+    int numColumns = columns.size();
+    List<Set<Expression>> enumeratedGroupingSets = IntStream.range(0, numColumns)
+        .mapToObj(i -> columns.subList(0, numColumns - i)
+            .stream()
+            .map(QualifiedNameReference::new)
+            .map(Expression.class::cast)
+            .collect(toSet()))
+        .collect(toList());
+    enumeratedGroupingSets.add(ImmutableSet.of());
+    return enumeratedGroupingSets;
+  }
 
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Rollup rollup = (Rollup) o;
-        return Objects.equals(columns, rollup.columns);
-    }
+  @Override
+  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitRollup(this, context);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(columns);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Rollup rollup = (Rollup) o;
+    return Objects.equals(columns, rollup.columns);
+  }
 
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("columns", columns)
-                .toString();
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(columns);
+  }
+
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .add("columns", columns)
+        .toString();
+  }
 }

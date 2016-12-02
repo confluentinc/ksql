@@ -17,50 +17,43 @@ package io.confluent.ksql.parser.tree;
 import java.util.Optional;
 
 public final class Rollback
-        extends Statement
-{
-    public Rollback()
-    {
-        this(Optional.empty());
-    }
+    extends Statement {
 
-    public Rollback(NodeLocation location)
-    {
-        this(Optional.of(location));
-    }
+  public Rollback() {
+    this(Optional.empty());
+  }
 
-    private Rollback(Optional<NodeLocation> location)
-    {
-        super(location);
-    }
+  public Rollback(NodeLocation location) {
+    this(Optional.of(location));
+  }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitRollback(this, context);
-    }
+  private Rollback(Optional<NodeLocation> location) {
+    super(location);
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return 0;
-    }
+  @Override
+  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    return visitor.visitRollback(this, context);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        return true;
-    }
+  @Override
+  public int hashCode() {
+    return 0;
+  }
 
-    @Override
-    public String toString()
-    {
-        return "ROLLBACK";
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if ((obj == null) || (getClass() != obj.getClass())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return "ROLLBACK";
+  }
 }

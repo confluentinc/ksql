@@ -53,7 +53,8 @@ public class KSQLFunctions {
     KSQLFunction ifNull = new KSQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING,
                                                                              Schema.Type.STRING),
                                            "IFNULL", IfNull_KUDF.class);
-
+    KSQLFunction len = new KSQLFunction(Schema.Type.INT32, Arrays.asList(Schema.Type.STRING),
+                                        "LEN", Len_KUDF.class);
 
     /***************************************
      * Math functions                      *
@@ -65,8 +66,6 @@ public class KSQLFunctions {
                                          "CEIL", Ceil_KUDF.class);
     KSQLFunction floor = new KSQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64),
                                           "FLOOR", Floor_KUDF.class);
-    KSQLFunction len = new KSQLFunction(Schema.Type.INT32, Arrays.asList(Schema.Type.STRING),
-                                        "LEN", Len_KUDF.class);
     KSQLFunction round = new KSQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64)
                                       , "ROUND", Round_KUDF.class);
     KSQLFunction random = new KSQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",

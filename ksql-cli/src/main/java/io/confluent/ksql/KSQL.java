@@ -5,7 +5,9 @@ import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.planner.plan.OutputKSQLConsoleNode;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.*;
 
 import jline.TerminalFactory;
@@ -27,6 +29,8 @@ public class KSQL {
   KSQLEngine ksqlEngine;
   //    Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
   LiveQueryMap liveQueries = new LiveQueryMap();
+  Triplet<String, KafkaStreams, OutputKSQLConsoleNode> cliCurrentQuery = null;
+
   static final String queryIdPrefix = "ksql_";
   int queryIdCounter = 0;
 
@@ -39,9 +43,9 @@ public class KSQL {
   public void startConsole() throws Exception {
     try {
       console = new ConsoleReader();
-      console.setPrompt("ksql> ");
+      console.setPrompt("kql> ");
       console.println("=========================================================================");
-      console.println("KSQL 0.0.1");
+      console.println("KQL (Kafka Query Language) 0.0.1");
       console.println("=========================================================================");
       console.addCompleter(
           new AnsiStringsCompleter("select", "show topics", "show queries", "from", "where",
@@ -61,6 +65,11 @@ public class KSQL {
           System.exit(0);
         } else if (line.trim().toLowerCase().startsWith("help")) {
           printCommandList();
+          continue;
+        } else if (line.trim().equalsIgnoreCase("close")) {
+          if (cliCurrentQuery != null) {
+            cliCurrentQuery.getSecond().close();
+          }
           continue;
         }
         // Parse the command and create AST.
@@ -89,7 +98,7 @@ public class KSQL {
     System.out.println(
         "********************************************************************************************************");
     String queryString = KSQLUtil.readQueryFile(queryFilePath);
-    List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>>
+    List<Triplet<String, KafkaStreams, OutputNode>>
         runningQueries =
         ksqlEngine.runMultipleQueries(queryString);
 
@@ -227,25 +236,37 @@ public class KSQL {
       }
     }
     String queryId = getNextQueryId();
-    Pair<KafkaStreams, OutputKafkaTopicNode>
+    Pair<KafkaStreams, OutputNode>
         queryPairInfo =
         ksqlEngine.getQueryEngine().processQuery(queryId, query, ksqlEngine.metaStore);
 
-    Triplet<String, KafkaStreams, OutputKafkaTopicNode>
-        queryInfo =
-        new Triplet<>(queryString, queryPairInfo.getLeft(), queryPairInfo.getRight());
-    liveQueries.put(queryId.toUpperCase(), queryInfo);
-    KafkaTopic
-        kafkaTopic =
-        new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(),
-                       queryInfo.getThird().getKeyField(), DataSource.DataSourceType.KSTREAM,
-                       queryInfo.getThird().getKafkaTopicName());
-    ksqlEngine.getMetaStore().putSource(kafkaTopic);
-    if (isCLI) {
-      console.println("Added the result topic to the metastore:");
-      console.println("Topic count: " + ksqlEngine.getMetaStore().getAllDataSources().size());
-      console.println("");
+
+    if (queryPairInfo.getRight() instanceof OutputKafkaTopicNode) {
+      Triplet<String, KafkaStreams, OutputKafkaTopicNode>
+          queryInfo =
+          new Triplet<>(queryString, queryPairInfo.getLeft(), (OutputKafkaTopicNode) queryPairInfo
+              .getRight());
+      OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)queryInfo.getThird();
+      KafkaTopic
+          kafkaTopic =
+          new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(),
+                         queryInfo.getThird().getKeyField(), DataSource.DataSourceType.KSTREAM,
+                         outputKafkaTopicNode.getKafkaTopicName());
+      ksqlEngine.getMetaStore().putSource(kafkaTopic);
+      liveQueries.put(queryId.toUpperCase(), queryInfo);
+      if (isCLI) {
+        console.println("Added the result topic to the metastore:");
+        console.println("Topic count: " + ksqlEngine.getMetaStore().getAllDataSources().size());
+        console.println("");
+      }
+    } else if (queryPairInfo.getRight() instanceof OutputKSQLConsoleNode) {
+      OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) queryPairInfo
+          .getRight();
+
     }
+
+
+
   }
 
   private void startQuery(String queryString, Query query) throws Exception {
@@ -264,14 +285,19 @@ public class KSQL {
 
     String queryId = getNextQueryId();
 
-    Triplet<String, KafkaStreams, OutputKafkaTopicNode>
+    Triplet<String, KafkaStreams, OutputNode>
         queryPairInfo =
         ksqlEngine.runSingleQuery(new Pair<>(queryId, query));
 
-    Triplet<String, KafkaStreams, OutputKafkaTopicNode>
-        queryInfo =
-        new Triplet<>(queryString, queryPairInfo.getSecond(), queryPairInfo.getThird());
-    liveQueries.put(queryId.toUpperCase(), queryInfo);
+    if (queryPairInfo.getThird() instanceof OutputKafkaTopicNode) {
+      Triplet<String, KafkaStreams, OutputKafkaTopicNode>
+          queryInfo =
+          new Triplet<>(queryString, queryPairInfo.getSecond(), (OutputKafkaTopicNode)
+              queryPairInfo.getThird());
+      liveQueries.put(queryId.toUpperCase(), queryInfo);
+    } else if (queryPairInfo.getThird() instanceof OutputKSQLConsoleNode) {
+      cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (OutputKSQLConsoleNode) queryPairInfo.getThird());
+    }
 
     if (isCLI) {
       console.println("Added the result topic to the metastore:");
@@ -282,7 +308,10 @@ public class KSQL {
 
   private void terminateQuery(TerminateQuery terminateQuery) throws IOException {
     String queryId = terminateQuery.getQueryId().toString();
+    terminateQuery(queryId);
+  }
 
+  private void terminateQuery(String queryId) throws IOException {
     if (!liveQueries.containsKey(queryId.toUpperCase())) {
       console.println("No running query with id = " + queryId + " was found!");
       console.flush();

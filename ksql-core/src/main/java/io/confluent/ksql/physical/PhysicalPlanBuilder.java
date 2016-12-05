@@ -25,7 +25,7 @@ public class PhysicalPlanBuilder {
 
   static Serde<GenericRow> genericRowSerde = null;
   KStreamBuilder builder;
-  OutputKafkaTopicNode planSink = null;
+  OutputNode planSink = null;
 
   public PhysicalPlanBuilder(KStreamBuilder builder) {
 
@@ -67,7 +67,10 @@ public class PhysicalPlanBuilder {
       this.planSink = outputKafkaTopicNode;
       return resultSchemaStream;
     } else if (outputNode instanceof OutputKSQLConsoleNode) {
-      return schemaKStream.print();
+      SchemaKStream resultSchemaStream = schemaKStream.print();
+      OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) outputNode;
+      this.planSink = outputKSQLConsoleNode;
+      return resultSchemaStream;
     }
     throw new KSQLException("Unsupported output logical node: " + outputNode.getClass().getName());
   }
@@ -161,7 +164,7 @@ public class PhysicalPlanBuilder {
     return builder;
   }
 
-  public OutputKafkaTopicNode getPlanSink() {
+  public OutputNode getPlanSink() {
     return planSink;
   }
 }

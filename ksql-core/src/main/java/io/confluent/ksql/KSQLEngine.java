@@ -50,7 +50,7 @@ public class KSQLEngine {
     metaStore.putSource(kafkaTopic);
   }
 
-  public List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> runMultipleQueries(
+  public List<Triplet<String, KafkaStreams, OutputNode>> runMultipleQueries(
       String queriesString) throws Exception {
 
     // Parse and AST creation
@@ -84,7 +84,7 @@ public class KSQLEngine {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>>
+    List<Triplet<String, KafkaStreams, OutputNode>>
         runningQueries =
         queryEngine.buildRunPhysicalPlans(false, metaStore, logicalPlans);
 
@@ -129,7 +129,7 @@ public class KSQLEngine {
 
   }
 
-  public Triplet<String, KafkaStreams, OutputKafkaTopicNode> runSingleQuery(
+  public Triplet<String, KafkaStreams, OutputNode> runSingleQuery(
       Pair<String, Query> queryInfo) throws Exception {
 
     List<Pair<String, PlanNode>>
@@ -137,7 +137,7 @@ public class KSQLEngine {
         queryEngine.buildLogicalPlans(metaStore, Arrays.asList(queryInfo));
 
     // Physical plan creation from logical plans.
-    List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>>
+    List<Triplet<String, KafkaStreams, OutputNode>>
         runningQueries =
         queryEngine.buildRunPhysicalPlans(true, metaStore, logicalPlans);
     return runningQueries.get(0);
@@ -228,7 +228,12 @@ public class KSQLEngine {
 //                                          + "orderunits%10, lcase(itemid) FROM orders");
 
 //    ksqlEngine.processStatements("KSQL_1","SELECT lcase(itemid) into test FROM orders");
-    ksqlEngine.processStatements("KSQL_1","SELECT itemid into test FROM orders WHERE itemid LIKE "
+
+    ksqlEngine.processStatements("KSQL_1","SELECT len(orderid), CAST(substring(itemid,5)  AS "
+                                          + "INTEGER) FROM orders "
+                                          + "WHERE "
+                                          + "itemid "
+                                          + "LIKE "
                                           + "'%5'");
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());

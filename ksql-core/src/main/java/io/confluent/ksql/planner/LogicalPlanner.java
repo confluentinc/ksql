@@ -2,6 +2,7 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -49,6 +50,9 @@ public class LogicalPlanner {
       KafkaTopic kafkaTopic = (KafkaTopic) intoDataSource;
       return new OutputKafkaTopicNode(new PlanNodeId(kafkaTopic.getTopicName()), sourcePlanNode,
                                       inputSchema, kafkaTopic.getTopicName());
+    } else if (intoDataSource instanceof KQL_STDOUT) {
+      return new OutputKSQLConsoleNode(new PlanNodeId(KQL_STDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+                                       inputSchema);
     }
     throw new RuntimeException("INTO should be a kafka topic.");
   }

@@ -56,6 +56,14 @@ public class ExpressionTypeManager
     return null;
   }
 
+  protected Expression visitCast(Cast node, ExpressionTypeContext expressionTypeContext) {
+
+    Schema.Type castType = SchemaUtil.getTypeSchema(node.getType());
+    expressionTypeContext.setType(castType);
+
+    return null;
+  }
+
   @Override
   protected Expression visitComparisonExpression(ComparisonExpression node,
                                                  ExpressionTypeContext expressionTypeContext) {

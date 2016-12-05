@@ -3,6 +3,7 @@ package io.confluent.ksql.analyzer;
 import com.google.common.collect.ImmutableList;
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
@@ -10,13 +11,10 @@ import io.confluent.ksql.planner.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.SourceKafkaTopicNode;
-import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.connect.data.Field;
-
-import java.util.Optional;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
@@ -151,17 +149,26 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitTable(Table node, AnalysisContext context) {
 
-    if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      KafkaTopic
-          kafkaTopic =
+    DataSource into;
+    if (node.isSTDOut) {
+      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, DataSource.DataSourceType
+          .KSTREAM);
+    }
+    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+      into =
           new KafkaTopic(node.getName().getSuffix(), null, null, DataSource.DataSourceType.KSTREAM,
                          node.getName().getSuffix());
-      analysis.setInto(kafkaTopic);
-      return null;
+    } else {
+      throw new KSQLException("INTO clause is not set correctly!");
     }
-    return node;
+    analysis.setInto(into);
+    return null;
   }
 
+  @Override
+  protected Node visitCast(Cast node, AnalysisContext context) {
+    return process(node.getExpression(), context);
+  }
 
   @Override
   protected Node visitSelect(Select node, AnalysisContext context) {

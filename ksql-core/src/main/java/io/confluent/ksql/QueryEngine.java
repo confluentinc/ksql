@@ -4,6 +4,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -12,9 +13,11 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputKSQLConsoleNode;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.Triplet;
 
@@ -36,7 +39,7 @@ public class QueryEngine {
     this.ksqlConfig = ksqlConfig;
   }
 
-  public Pair<KafkaStreams, OutputKafkaTopicNode> processQuery(String queryId, Query queryNode,
+  public Pair<KafkaStreams, OutputNode> processQuery(String queryId, Query queryNode,
                                                                MetaStore metaStore)
       throws Exception {
 
@@ -98,11 +101,11 @@ public class QueryEngine {
     return kafkaTopic;
   }
 
-  public List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> buildRunPhysicalPlans(
+  public List<Triplet<String, KafkaStreams, OutputNode>> buildRunPhysicalPlans(
       boolean isCli, MetaStore metaStore, List<Pair<String, PlanNode>> queryLogicalPlans)
       throws Exception {
 
-    List<Triplet<String, KafkaStreams, OutputKafkaTopicNode>> physicalPlans = new ArrayList<>();
+    List<Triplet<String, KafkaStreams, OutputNode>> physicalPlans = new ArrayList<>();
 
     for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
       Properties props = new Properties();
@@ -124,14 +127,28 @@ public class QueryEngine {
 
       KafkaStreams streams = new KafkaStreams(builder, props);
       streams.start();
-      OutputKafkaTopicNode outputKafkaTopicNode = physicalPlanBuilder.getPlanSink();
-      physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
-      KafkaTopic
-          kafkaTopic =
-          new KafkaTopic(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
-                         outputKafkaTopicNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
-                         outputKafkaTopicNode.getKafkaTopicName());
-      metaStore.putSource(kafkaTopic);
+
+      OutputNode outputNode = physicalPlanBuilder.getPlanSink();
+
+      DataSource sinkDataSource;
+//      OutputKafkaTopicNode outputKafkaTopicNode = physicalPlanBuilder.getPlanSink();
+      if (outputNode instanceof OutputKafkaTopicNode) {
+        OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode) outputNode;
+            physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
+        sinkDataSource =
+            new KafkaTopic(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+                           outputKafkaTopicNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
+                           outputKafkaTopicNode.getKafkaTopicName());
+        metaStore.putSource(sinkDataSource);
+      } else if (outputNode instanceof OutputKSQLConsoleNode) {
+        OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) outputNode;
+        sinkDataSource = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, null);
+        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKSQLConsoleNode));
+      } else {
+        throw new KSQLException("Sink data source is not correct.");
+      }
+
+//      metaStore.putSource(sinkDataSource);
     }
     return physicalPlans;
   }

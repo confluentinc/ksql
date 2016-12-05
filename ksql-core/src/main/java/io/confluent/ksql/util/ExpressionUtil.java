@@ -139,6 +139,12 @@ public class ExpressionUtil {
       return null;
     }
 
+    protected Object visitCast(Cast node, Object context) {
+
+      process(node.getExpression(), context);
+      return null;
+    }
+
     @Override
     protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
       Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());

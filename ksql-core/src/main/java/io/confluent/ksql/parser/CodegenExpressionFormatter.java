@@ -4,6 +4,7 @@ package io.confluent.ksql.parser;
 import com.google.common.base.Joiner;
 
 import io.confluent.ksql.function.KSQLFunction;
+import io.confluent.ksql.function.KSQLFunctionException;
 import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.KSQLException;
@@ -160,7 +161,8 @@ public class CodegenExpressionFormatter {
       StringBuilder builder = new StringBuilder();
       String name = node.getName().getSuffix().toUpperCase();
       KSQLFunction ksqlFunction = KSQLFunctions.getFunction(name);
-      builder.append("(String) "+name+".evaluate(");
+      String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
+      builder.append("("+javaReturnType+") "+name+".evaluate(");
       boolean addComma = false;
       for (Expression argExpr:node.getArguments()) {
         Pair<String, Schema.Type> processedArg = process(argExpr, unmangleNames);
@@ -244,6 +246,63 @@ public class CodegenExpressionFormatter {
                         Schema.Type.BOOLEAN);
     }
 
+    protected Pair<String, Schema.Type> visitCast(Cast node, Boolean context) {
+      Pair<String, Schema.Type> expr = process(node.getExpression(), context);
+      String returnTypeStr = node.getType().toUpperCase();
+      Schema.Type returnType = SchemaUtil.getTypeSchema(returnTypeStr);
+      if (returnTypeStr.equalsIgnoreCase("STRING")) {
+        return new Pair<>("String.valueOf("+expr.getLeft()+")", returnType);
+      } else if (returnTypeStr.equalsIgnoreCase("DOUBLE")) {
+        String exprStr;
+        if (expr.getRight() == Schema.Type.STRING) {
+          exprStr = "Double.parseDouble("+expr.getLeft()+")";
+        } else if (expr.getRight() == Schema.Type.INT32) {
+          exprStr = "((Double)("+expr.getLeft()+"))";
+        } else if (expr.getRight() == Schema.Type.FLOAT64) {
+          exprStr = expr.getLeft();
+        } else if (expr.getRight() == Schema.Type.INT64) {
+          exprStr = "((Long)("+expr.getLeft()+"))";
+        } else {
+          throw new KSQLFunctionException("Invalid cast operation: Cannot cast "
+                                          +expr.getLeft()+" to "+returnTypeStr);
+        }
+        return new Pair<>(exprStr, returnType);
+      } else if (returnTypeStr.equalsIgnoreCase("INTEGER")) {
+        String exprStr;
+        if (expr.getRight() == Schema.Type.STRING) {
+          exprStr = "Integer.parseInt("+expr.getLeft()+")";
+        } else if (expr.getRight() == Schema.Type.INT32) {
+          exprStr = expr.getLeft();
+        } else if (expr.getRight() == Schema.Type.FLOAT64) {
+          exprStr = "("+expr.getLeft()+").intValue()";
+        } else if (expr.getRight() == Schema.Type.INT64) {
+          exprStr = "((Long)("+expr.getLeft()+"))";
+        } else {
+          throw new KSQLFunctionException("Invalid cast operation: Cannot cast "
+                                          +expr.getLeft()+" to "+returnTypeStr);
+        }
+        return new Pair<>(exprStr, returnType);
+      } else if (returnTypeStr.equalsIgnoreCase("BIGINT")) {
+        String exprStr;
+        if (expr.getRight() == Schema.Type.STRING) {
+          exprStr = "Long.parseLong("+expr.getLeft()+")";
+        } else if (expr.getRight() == Schema.Type.INT32) {
+          exprStr = "((Long)("+expr.getLeft()+"))";
+        } else if (expr.getRight() == Schema.Type.FLOAT64) {
+          exprStr = "("+expr.getLeft()+").longValue()";
+        } else if (expr.getRight() == Schema.Type.INT64) {
+          exprStr = expr.getLeft();
+        } else {
+          throw new KSQLFunctionException("Invalid cast operation: Cannot cast "
+                                          +expr.getLeft()+" to "+returnTypeStr);
+        }
+        return new Pair<>(exprStr, returnType);
+      } else if (returnTypeStr.equalsIgnoreCase("BOOLEAN")) {
+        return new Pair<>(" ((Boolean)"+expr.getLeft()+")", returnType);
+      }
+      throw new KSQLFunctionException("Invalid cast operation: "+returnTypeStr);
+    }
+
     @Override
     protected Pair<String, Schema.Type> visitIsNullPredicate(IsNullPredicate node,
                                                              Boolean unmangleNames) {
@@ -290,6 +349,7 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema.Type> visitLikePredicate(LikePredicate node,
                                                            Boolean unmangleNames) {
 
+      // For now we just support simple prefix/suffix cases only.
       String paternString = process(node.getPattern(), true).getLeft().substring(1);
       paternString = paternString.substring(0, paternString.length()-1);
       String valueString = process(node.getValue(), true).getLeft();
@@ -310,21 +370,6 @@ public class CodegenExpressionFormatter {
       }
 
       throw new UnsupportedOperationException();
-//            StringBuilder builder = new StringBuilder();
-//
-//            builder.append('(')
-//                    .append(process(node.getValue(), unmangleNames))
-//                    .append(" LIKE ")
-//                    .append(process(node.getPattern(), unmangleNames));
-//
-//            if (node.getEscape() != null) {
-//                builder.append(" ESCAPE ")
-//                        .append(process(node.getEscape(), unmangleNames));
-//            }
-//
-//            builder.append(')');
-//
-//            return builder.toString();
     }
 
     @Override

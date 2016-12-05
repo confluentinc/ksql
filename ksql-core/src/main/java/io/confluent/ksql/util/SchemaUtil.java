@@ -39,6 +39,22 @@ public class SchemaUtil {
     throw new KSQLException("Type is not supported: " + type);
   }
 
+  public static Schema.Type getTypeSchema(String ksqlType) {
+
+    if (ksqlType.equalsIgnoreCase("STRING")) {
+      return Schema.Type.STRING;
+    } else if (ksqlType.equalsIgnoreCase("INTEGER")) {
+      return Schema.Type.INT32;
+    } else if (ksqlType.equalsIgnoreCase("DOUBLE")) {
+      return Schema.Type.FLOAT64;
+    } else if (ksqlType.equalsIgnoreCase("BIGINT")) {
+      return Schema.Type.INT64;
+    } else if (ksqlType.equalsIgnoreCase("BOOLEAN")) {
+      return Schema.Type.BOOLEAN;
+    }
+    throw new KSQLException("Type is not supported: " + ksqlType);
+  }
+
   public static Field getFieldByName(Schema schema, String fieldName) {
     fieldName = fieldName.toUpperCase();
     if (schema.fields() != null) {

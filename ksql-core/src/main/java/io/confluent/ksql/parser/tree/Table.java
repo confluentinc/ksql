@@ -21,19 +21,29 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 public class Table
     extends QueryBody {
 
+  public final boolean isSTDOut;
   private final QualifiedName name;
 
   public Table(QualifiedName name) {
-    this(Optional.empty(), name);
+    this(Optional.empty(), name, false);
+  }
+
+  public Table(QualifiedName name, boolean isSTDOut) {
+    this(Optional.empty(), name, isSTDOut);
   }
 
   public Table(NodeLocation location, QualifiedName name) {
-    this(Optional.of(location), name);
+    this(Optional.of(location), name, false);
   }
 
-  private Table(Optional<NodeLocation> location, QualifiedName name) {
+  public Table(NodeLocation location, QualifiedName name, boolean isSTDOut) {
+    this(Optional.of(location), name, isSTDOut);
+  }
+
+  private Table(Optional<NodeLocation> location, QualifiedName name, boolean isSTDOut) {
     super(location);
     this.name = name;
+    this.isSTDOut = isSTDOut;
   }
 
   public QualifiedName getName() {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package io.confluent.ksql.serde;
+package io.confluent.ksql.serde.json;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +24,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
 
-public class JsonPOJOSerializer<T> implements Serializer<T> {
+public class KQLJsonPOJOSerializer<T> implements Serializer<T> {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -33,7 +33,7 @@ public class JsonPOJOSerializer<T> implements Serializer<T> {
   /**
    * Default constructor needed by Kafka
    */
-  public JsonPOJOSerializer() {
+  public KQLJsonPOJOSerializer() {
 
   }
 

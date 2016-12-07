@@ -21,6 +21,7 @@ public class KSQLConfig extends StreamsConfig {
   public static final String DEFAULT_BOOTSTRAP_SERVERS_CONFIG = "localhost:9092";
   public static final String DEFAULT_AUTO_OFFSET_RESET_CONFIG = "earliest";
 
+  public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
 
   public KSQLConfig(Map<?, ?> props) {
     super(props);

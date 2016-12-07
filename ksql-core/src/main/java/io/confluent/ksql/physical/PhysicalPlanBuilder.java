@@ -3,8 +3,8 @@ package io.confluent.ksql.physical;
 
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.planner.plan.*;
-import io.confluent.ksql.serde.JsonPOJODeserializer;
-import io.confluent.ksql.serde.JsonPOJOSerializer;
+import io.confluent.ksql.serde.json.KQLJsonPOJODeserializer;
+import io.confluent.ksql.serde.json.KQLJsonPOJOSerializer;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KSQLException;
@@ -147,11 +147,11 @@ public class PhysicalPlanBuilder {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new JsonPOJOSerializer<>();
+      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new JsonPOJODeserializer<>();
+      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowDeserializer.configure(serdeProps, false);
 

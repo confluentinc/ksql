@@ -1,10 +1,9 @@
 package io.confluent.ksql.util;
 
 
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.JsonPOJODeserializer;
-import io.confluent.ksql.serde.JsonPOJOSerializer;
+import io.confluent.ksql.serde.json.KQLJsonPOJODeserializer;
+import io.confluent.ksql.serde.json.KQLJsonPOJOSerializer;
 
 import jline.console.ConsoleReader;
 
@@ -18,10 +17,8 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class TopicPrinter {
@@ -77,11 +74,11 @@ public class TopicPrinter {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new JsonPOJOSerializer<>();
+      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new JsonPOJODeserializer<>();
+      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowDeserializer.configure(serdeProps, false);
 

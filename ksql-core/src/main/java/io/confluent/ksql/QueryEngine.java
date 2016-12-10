@@ -97,6 +97,7 @@ public class QueryEngine {
         kafkaTopic =
         new KafkaTopic(outputNode.getId().toString(), outputNode.getSchema(),
                        outputNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
+                       null,
                        outputNode.getId().toString());
     return kafkaTopic;
   }
@@ -131,13 +132,13 @@ public class QueryEngine {
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
 
       DataSource sinkDataSource;
-//      OutputKafkaTopicNode outputKafkaTopicNode = physicalPlanBuilder.getPlanSink();
       if (outputNode instanceof OutputKafkaTopicNode) {
         OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode) outputNode;
             physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
         sinkDataSource =
             new KafkaTopic(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
                            outputKafkaTopicNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
+                           null,
                            outputKafkaTopicNode.getKafkaTopicName());
         metaStore.putSource(sinkDataSource);
       } else if (outputNode instanceof OutputKSQLConsoleNode) {
@@ -148,7 +149,6 @@ public class QueryEngine {
         throw new KSQLException("Sink data source is not correct.");
       }
 
-//      metaStore.putSource(sinkDataSource);
     }
     return physicalPlans;
   }

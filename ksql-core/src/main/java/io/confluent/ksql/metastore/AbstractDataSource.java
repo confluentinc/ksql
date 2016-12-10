@@ -30,4 +30,5 @@ public abstract class AbstractDataSource implements DataSource {
     }
     throw new KSQLException("DataSource Type is not supported: " + dataSourceTypeName);
   }
+
 }

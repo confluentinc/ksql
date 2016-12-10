@@ -4,11 +4,14 @@ import io.confluent.ksql.function.udf.KUDF;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
+import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.Triplet;
 
+import org.apache.avro.util.Utf8;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -34,9 +37,9 @@ public class SchemaKStream {
     this.keyField = keyField;
   }
 
-  public SchemaKStream into(String kafkaTopicName) {
+  public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
 
-    kStream.to(Serdes.String(), PhysicalPlanBuilder.getGenericRowSerde(), kafkaTopicName);
+    kStream.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
   }
 
@@ -106,9 +109,12 @@ public class SchemaKStream {
                 if (parameterIndexes[j] < 0) {
                   parameterObjects[j] = kudfs[j];
                 } else {
-                  parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
+                  if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
+                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
+                  } else {
+                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
+                  }
                 }
-
               }
               Object columnValue = null;
               try {
@@ -127,7 +133,8 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField);
   }
 
-  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey) {
+  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey,
+                                Serde<GenericRow> resultValueSerDe) {
 
     KStream
         joinedKStream =
@@ -150,7 +157,7 @@ public class SchemaKStream {
                              GenericRow joinGenericRow = new GenericRow(columns);
                              return joinGenericRow;
                            }
-                         }, Serdes.String(), PhysicalPlanBuilder.getGenericRowSerde());
+                         }, Serdes.String(), resultValueSerDe);
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey);
   }

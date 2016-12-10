@@ -92,7 +92,8 @@ public class LogicalPlanner {
       KafkaTopic fromKafkaTopic = (KafkaTopic) fromDataSource;
       return new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic"), fromSchema,
                                       fromDataSource.getKeyField(), fromKafkaTopic.getTopicName(),
-                                      alias, fromKafkaTopic.getDataSourceType());
+                                      alias, fromKafkaTopic.getDataSourceType(),
+                                      ((KafkaTopic) fromDataSource).getKqlTopicSerDe());
     }
 
     throw new RuntimeException("Data source is not suppoted yet.");

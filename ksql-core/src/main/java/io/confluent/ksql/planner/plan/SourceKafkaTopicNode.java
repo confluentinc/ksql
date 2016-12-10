@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.KQLTopicSerDe;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -36,6 +37,7 @@ public class SourceKafkaTopicNode
   private final String topicName;
   private final Field keyField;
   private final String alias;
+  private final KQLTopicSerDe topicSerDe;
 
   // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
@@ -44,7 +46,9 @@ public class SourceKafkaTopicNode
                               @JsonProperty("keyField") Field keyField,
                               @JsonProperty("topicName") String topicName,
                               @JsonProperty("alias") String alias,
-                              @JsonProperty("dataSourceType") DataSource.DataSourceType dataSourceType) {
+                              @JsonProperty("dataSourceType") DataSource.DataSourceType
+                                    dataSourceType,
+                              @JsonProperty("topicSerDe") KQLTopicSerDe topicSerDe) {
     super(id, dataSourceType);
 
     this.schema = schema;
@@ -53,6 +57,7 @@ public class SourceKafkaTopicNode
     this.topicName = topicName;
     this.keyField = keyField;
     this.alias = alias;
+    this.topicSerDe = topicSerDe;
   }
 
   public String getTopicName() {
@@ -67,6 +72,14 @@ public class SourceKafkaTopicNode
   @Override
   public Field getKeyField() {
     return keyField;
+  }
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public KQLTopicSerDe getTopicSerDe() {
+    return topicSerDe;
   }
 
   @Override

@@ -29,8 +29,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
 
-    process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
     process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
+    process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
 
     process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
 
@@ -96,12 +96,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         leftSourceKafkaTopicNode =
         new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
                                  leftDataSource.getKeyField(), leftDataSource.getTopicName(),
-                                 leftAlias.toUpperCase(), leftDataSource.getDataSourceType());
+                                 leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
+                                 leftDataSource.getKqlTopicSerDe());
     SourceKafkaTopicNode
         rightSourceKafkaTopicNode =
         new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Right"), rightDataSource.getSchema(),
                                  rightDataSource.getKeyField(), rightDataSource.getTopicName(),
-                                 rightAlias.toUpperCase(), rightDataSource.getDataSourceType());
+                                 rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
+                                 rightDataSource.getKqlTopicSerDe());
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -157,6 +159,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into =
           new KafkaTopic(node.getName().getSuffix(), null, null, DataSource.DataSourceType.KSTREAM,
+                         null,
                          node.getName().getSuffix());
     } else {
       throw new KSQLException("INTO clause is not set correctly!");

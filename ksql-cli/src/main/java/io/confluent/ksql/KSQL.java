@@ -150,7 +150,7 @@ public class KSQL {
           } else {
             interval = printTopic.getIntervalValue().getValue();
           }
-          printTopic(topicsName, interval);
+          printTopic(kafkaTopic, interval);
         }
 
         return;
@@ -221,54 +221,6 @@ public class KSQL {
     console.println();
     console.flush();
   }
-
-  private void startQuery_old(String queryString, Query query) throws Exception {
-    if (query.getQueryBody() instanceof QuerySpecification) {
-      QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-      if (querySpecification.getInto().get() instanceof Table) {
-        Table table = (Table) querySpecification.getInto().get();
-        if (ksqlEngine.metaStore.getSource(table.getName().getSuffix().toUpperCase()) != null) {
-          console.println(
-              "Sink specified in INTO clause already exists: " + table.getName().getSuffix()
-                  .toUpperCase());
-          return;
-        }
-      }
-    }
-    String queryId = getNextQueryId();
-    Pair<KafkaStreams, OutputNode>
-        queryPairInfo =
-        ksqlEngine.getQueryEngine().processQuery(queryId, query, ksqlEngine.metaStore);
-
-
-    if (queryPairInfo.getRight() instanceof OutputKafkaTopicNode) {
-      Triplet<String, KafkaStreams, OutputKafkaTopicNode>
-          queryInfo =
-          new Triplet<>(queryString, queryPairInfo.getLeft(), (OutputKafkaTopicNode) queryPairInfo
-              .getRight());
-      OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode)queryInfo.getThird();
-      KafkaTopic
-          kafkaTopic =
-          new KafkaTopic(queryInfo.getThird().getId().toString(), queryInfo.getThird().getSchema(),
-                         queryInfo.getThird().getKeyField(), DataSource.DataSourceType.KSTREAM,
-                         outputKafkaTopicNode.getKafkaTopicName());
-      ksqlEngine.getMetaStore().putSource(kafkaTopic);
-      liveQueries.put(queryId.toUpperCase(), queryInfo);
-      if (isCLI) {
-        console.println("Added the result topic to the metastore:");
-        console.println("Topic count: " + ksqlEngine.getMetaStore().getAllDataSources().size());
-        console.println("");
-      }
-    } else if (queryPairInfo.getRight() instanceof OutputKSQLConsoleNode) {
-      OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) queryPairInfo
-          .getRight();
-
-    }
-
-
-
-  }
-
   private void startQuery(String queryString, Query query) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -334,22 +286,25 @@ public class KSQL {
       return;
     }
     console.println(
-        "        KSQL Topic          |       Corresponding Kafka Topic        |             Topic Key          |          Topic Type                 ");
+        "        KSQL Topic          |       Corresponding Kafka Topic        |             Topic"
+        + " Key          |     Topic Type     |          Topic Format           "
+        + "      ");
     console.println(
-        "----------------------------+----------------------------------------+--------------------------------+-------------------------------------");
+        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
     for (String datasourceName : allDataSources.keySet()) {
       DataSource dataSource = allDataSources.get(datasourceName);
       if (dataSource instanceof KafkaTopic) {
         KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
         console.println(
             " " + padRight(datasourceName, 27) + "|  " + padRight(kafkaTopic.getTopicName(), 38)
-            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|          "
-            + padRight(kafkaTopic.getDataSourceType().toString(), 30));
+            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|    "
+            + padRight(kafkaTopic.getDataSourceType().toString(), 16)+ "|          "
+            + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 30));
       }
 
     }
     console.println(
-        "----------------------------+----------------------------------------+--------------------------------+-------------------------------------");
+        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
     console.println("( " + allDataSources.size() + " rows)");
     console.flush();
   }
@@ -397,8 +352,8 @@ public class KSQL {
     console.flush();
   }
 
-  private void printTopic(String topicName, long interval) throws IOException {
-    new TopicPrinter().printGenericRowTopic(topicName, console, interval, this.cliProperties);
+  private void printTopic(KafkaTopic kafkaTopic, long interval) throws IOException {
+    new TopicPrinter().printGenericRowTopic(kafkaTopic, console, interval, this.cliProperties);
   }
 
   private String getNextQueryId() {

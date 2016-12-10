@@ -8,10 +8,14 @@ import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.Triplet;
 
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -29,9 +33,20 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable into(String kafkaTopicName) {
+  public SchemaKTable into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
 
-    kTable.to(Serdes.String(), PhysicalPlanBuilder.getGenericRowSerde(), kafkaTopicName);
+    kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+    return this;
+  }
+
+  public SchemaKStream print() {
+    KTable printKTable = kTable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
+      @Override
+      public GenericRow apply(GenericRow genericRow) {
+        System.out.println(genericRow.toString());
+        return genericRow;
+      }
+    });
     return this;
   }
 
@@ -60,10 +75,20 @@ public class SchemaKTable extends SchemaKStream {
       public GenericRow apply(GenericRow row) {
         List<Object> newColumns = new ArrayList();
         for (int i = 0; i < expressions.size(); i++) {
+          Expression expression = expressions.get(i);
           int[] parameterIndexes = expressionEvaluators.get(i).getSecond();
+          KUDF[] kudfs = expressionEvaluators.get(i).getThird();
           Object[] parameterObjects = new Object[parameterIndexes.length];
           for (int j = 0; j < parameterIndexes.length; j++) {
-            parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
+            if (parameterIndexes[j] < 0) {
+              parameterObjects[j] = kudfs[j];
+            } else {
+              if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
+                parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
+              } else {
+                parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
+              }
+            }
           }
           Object columnValue = null;
           try {

@@ -59,7 +59,11 @@ public class SQLPredicate {
         try {
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
-            values[i] = row.getColumns().get(columnIndexes[i]);
+            if (row.getColumns().get(columnIndexes[i]) instanceof CharSequence) {
+              values[i] = row.getColumns().get(columnIndexes[i]).toString();
+            } else {
+              values[i] = row.getColumns().get(columnIndexes[i]);
+            }
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;

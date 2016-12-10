@@ -23,7 +23,7 @@ public class KSQLTestUtil {
     KafkaTopic
         kafkaTopic1 =
         new KafkaTopic("test1", schemaBuilder1, schemaBuilder1.field("COL0"),
-                       DataSource.DataSourceType.KSTREAM, "test1-topic");
+                       DataSource.DataSourceType.KSTREAM, null,"test1-topic");
     metaStore.putSource(kafkaTopic1);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
@@ -36,7 +36,7 @@ public class KSQLTestUtil {
     KafkaTopic
         kafkaTopic2 =
         new KafkaTopic("test2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                       DataSource.DataSourceType.KSTREAM, "test2-topic");
+                       DataSource.DataSourceType.KSTREAM, null, "test2-topic");
     metaStore.putSource(kafkaTopic2);
     return metaStore;
   }

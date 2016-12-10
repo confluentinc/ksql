@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.confluent.ksql.serde.KQLTopicSerDe;
+import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
 import org.apache.kafka.connect.data.Schema;
@@ -17,11 +20,25 @@ import java.nio.file.Paths;
 
 public class MetastoreUtil {
 
-  public DataSource createDataSource(JsonNode node) {
+  public DataSource createDataSource(JsonNode node) throws IOException {
+
+    KQLTopicSerDe topicSerDe;
 
     String name = node.get("name").asText().toUpperCase();
     String topicname = node.get("topicname").asText();
     String type = node.get("type").asText();
+    String serde = node.get("serde").asText();
+    if (serde.equalsIgnoreCase("avro")) {
+      if (node.get("avroschemafile") == null) {
+        throw new KSQLException("For avro SerDe avro schema file path (avroschemafile) should be "
+                                + "set in the schema.");
+      }
+      String schemaPath = node.get("avroschemafile").asText();
+      String avroSchema = getAvroSchema(schemaPath);
+      topicSerDe = new KQLAvroTopicSerDe(avroSchema);
+    } else {
+      topicSerDe = new KQLJsonTopicSerDe();
+    }
     String keyFieldName = node.get("key").asText().toUpperCase();
     SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
@@ -38,7 +55,8 @@ public class MetastoreUtil {
     }
 
     return new KafkaTopic(name, dataSource, dataSource.field(keyFieldName),
-                          KafkaTopic.getDataSpDataSourceType(type), topicname);
+                          KafkaTopic.getDataSpDataSourceType(type), topicSerDe,
+                          topicname);
   }
 
   private Schema getKSQLType(String sqlType) {
@@ -84,5 +102,12 @@ public class MetastoreUtil {
     new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
     System.out.println("");
 
+  }
+
+  private String getAvroSchema(String schemaFilePath) throws IOException {
+    byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode root = objectMapper.readTree(jsonData);
+    return root.toString();
   }
 }

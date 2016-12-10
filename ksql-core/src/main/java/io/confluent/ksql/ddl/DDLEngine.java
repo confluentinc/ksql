@@ -41,7 +41,7 @@ public class DDLEngine {
     KafkaTopic
         kafkaTopic =
         new KafkaTopic(topicName, topicSchema, topicSchema.fields().get(0),
-                       DataSource.DataSourceType.KSTREAM, topicName);
+                       DataSource.DataSourceType.KSTREAM, null, topicName);
     ksqlEngine.getMetaStore().putSource(kafkaTopic);
 
 

@@ -46,7 +46,6 @@ public class ExpressionUtil {
       index++;
     }
 
-//        String expressionStr = expression.getCodegenString(schema).toUpperCase();
     String expressionStr = expression.getCodegenString(schema);
     IExpressionEvaluator
         ee =

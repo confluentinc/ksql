@@ -56,7 +56,6 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
     } catch (IOException e) {
       throw new SerializationException("Error serializing AVRO message", e);
     }
-    System.out.println(String.valueOf(output.toByteArray())+ " : "+output.toByteArray().length);
     return output.toByteArray();
   }
 

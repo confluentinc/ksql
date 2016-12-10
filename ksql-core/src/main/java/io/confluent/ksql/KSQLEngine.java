@@ -32,24 +32,6 @@ public class KSQLEngine {
 
   MetaStore metaStore = null;
 
-  public void initMetaStore() {
-
-    metaStore = new MetaStoreImpl();
-
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-        .field("ordertime", SchemaBuilder.INT64_SCHEMA)
-        .field("orderid", SchemaBuilder.STRING_SCHEMA)
-        .field("itemid", SchemaBuilder.STRING_SCHEMA)
-        .field("orderunits", SchemaBuilder.FLOAT64_SCHEMA);
-
-    KafkaTopic
-        kafkaTopic =
-        new KafkaTopic("orders", schemaBuilder, schemaBuilder.field("ordertime"),
-                       DataSource.DataSourceType.KSTREAM, "StreamExample1-GenericRow-order");
-
-    metaStore.putSource(kafkaTopic);
-  }
-
   public List<Triplet<String, KafkaStreams, OutputNode>> runMultipleQueries(
       String queriesString) throws Exception {
 
@@ -229,12 +211,24 @@ public class KSQLEngine {
 
 //    ksqlEngine.processStatements("KSQL_1","SELECT lcase(itemid) into test FROM orders");
 
-    ksqlEngine.processStatements("KSQL_1","SELECT len(orderid), CAST(substring(itemid,5)  AS "
-                                          + "INTEGER) FROM orders "
-                                          + "WHERE "
-                                          + "itemid "
-                                          + "LIKE "
-                                          + "'%5'");
+//    ksqlEngine.processStatements("KSQL_1","SELECT len(orderid), CAST(substring(itemid,5)  AS "
+//                                          + "INTEGER) FROM orders "
+//                                          + "WHERE "
+//                                          + "itemid "
+//                                          + "LIKE "
+//                                          + "'%5'");
+//    ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");
+//    ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10"
+//                                          + " into stream1 FROM orders ;");
+//    ksqlEngine.processStatements("KSQL_1","SELECT * "
+//                                          + "  FROM pageview ;");
+
+//    ksqlEngine.processStatements("KSQL_1","SELECT * "
+//                                          + "  FROM users ;");
+//    ksqlEngine.processStatements("KSQL_1","SELECT * "
+//                                          + "  FROM orders ;");
+
+    ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;");
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");

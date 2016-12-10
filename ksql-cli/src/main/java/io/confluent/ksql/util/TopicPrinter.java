@@ -1,6 +1,8 @@
 package io.confluent.ksql.util;
 
 
+import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.json.KQLJsonPOJODeserializer;
 import io.confluent.ksql.serde.json.KQLJsonPOJOSerializer;
@@ -23,9 +25,7 @@ import java.util.*;
 
 public class TopicPrinter {
 
-  static Serde<GenericRow> genericRowSerde = null;
-
-  public void printGenericRowTopic(String topicName, ConsoleReader console, long interval,
+  public void printGenericRowTopic(KafkaTopic kafkaTopic, ConsoleReader console, long interval,
                                    Map<String, String> cliProperties) throws IOException {
 
     Properties ksqlProperties = new Properties();
@@ -40,7 +40,7 @@ public class TopicPrinter {
       ksqlProperties.load(new FileReader(cliProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
     }
     ksqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, topicName + "_" + System.currentTimeMillis());
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaTopic.getName() + "_" + System.currentTimeMillis());
     ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
 
@@ -48,11 +48,12 @@ public class TopicPrinter {
     ksqlProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
                        ksqlProperties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
+
     KStreamBuilder builder = new KStreamBuilder();
 
     KStream<String, GenericRow>
         source =
-        builder.stream(Serdes.String(), getGenericRowSerde(), topicName);
+        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kafkaTopic.getKqlTopicSerDe()), kafkaTopic.getTopicName());
 
     source.map(new KSQLPrintKeyValueMapper(console, interval));
 
@@ -68,23 +69,6 @@ public class TopicPrinter {
     }
 
     streams.close();
-  }
-
-  private static Serde<GenericRow> getGenericRowSerde() {
-    if (genericRowSerde == null) {
-      Map<String, Object> serdeProps = new HashMap<>();
-
-      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
-      serdeProps.put("JsonPOJOClass", GenericRow.class);
-      genericRowSerializer.configure(serdeProps, false);
-
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
-      serdeProps.put("JsonPOJOClass", GenericRow.class);
-      genericRowDeserializer.configure(serdeProps, false);
-
-      genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
-    }
-    return genericRowSerde;
   }
 
   class KSQLPrintKeyValueMapper

@@ -3,27 +3,21 @@ package io.confluent.ksql.physical;
 
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.planner.plan.*;
-import io.confluent.ksql.serde.json.KQLJsonPOJODeserializer;
-import io.confluent.ksql.serde.json.KQLJsonPOJOSerializer;
+import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SerDeUtil;
 
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class PhysicalPlanBuilder {
 
-  static Serde<GenericRow> genericRowSerde = null;
   KStreamBuilder builder;
   OutputNode planSink = null;
 
@@ -63,7 +57,11 @@ public class PhysicalPlanBuilder {
     SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
     if (outputNode instanceof OutputKafkaTopicNode) {
       OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode) outputNode;
-      SchemaKStream resultSchemaStream = schemaKStream.into(outputKafkaTopicNode.getKafkaTopicName());
+      KQLTopicSerDe topicSerDe = getResultTopicSerde(outputKafkaTopicNode);
+
+      SchemaKStream resultSchemaStream = schemaKStream.into(outputKafkaTopicNode
+                                                                .getKafkaTopicName(), SerDeUtil.getRowSerDe
+          (topicSerDe));
       this.planSink = outputKafkaTopicNode;
       return resultSchemaStream;
     } else if (outputNode instanceof OutputKSQLConsoleNode) {
@@ -94,19 +92,25 @@ public class PhysicalPlanBuilder {
   private SchemaKStream buildSource(SourceNode sourceNode) {
     if (sourceNode instanceof SourceKafkaTopicNode) {
       SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode) sourceNode;
+
+      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceKafkaTopicNode
+                                                                    .getTopicSerDe());
+
       if (sourceKafkaTopicNode.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         KTable
             kTable =
             builder
-                .table(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName(),
+                .table(Serdes.String(), genericRowSerde, sourceKafkaTopicNode
+                           .getTopicName(),
                        sourceKafkaTopicNode.getTopicName() + "_store");
         return new SchemaKTable(sourceKafkaTopicNode.getSchema(), kTable,
                                 sourceKafkaTopicNode.getKeyField());
       }
+
       KStream
           kStream =
           builder
-              .stream(Serdes.String(), getGenericRowSerde(), sourceKafkaTopicNode.getTopicName());
+              .stream(Serdes.String(), genericRowSerde, sourceKafkaTopicNode.getTopicName());
       return new SchemaKStream(sourceKafkaTopicNode.getSchema(), kStream,
                                sourceKafkaTopicNode.getKeyField());
     }
@@ -126,11 +130,13 @@ public class PhysicalPlanBuilder {
       SchemaKStream joinSchemaKStream;
       switch (joinNode.getType()) {
         case LEFT:
+          KQLTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
                                         joinNode.getSchema().field(
                                             joinNode.getLeftAlias() + "." + leftSchemaKStream
-                                                .getKeyField().name()));
+                                                .getKeyField().name()), SerDeUtil.getRowSerDe
+                      (joinSerDe));
           break;
         default:
           throw new KSQLException("Join type is not supportd yet: " + joinNode.getType());
@@ -143,22 +149,21 @@ public class PhysicalPlanBuilder {
             .getRight());
   }
 
-  public static Serde<GenericRow> getGenericRowSerde() {
-    if (genericRowSerde == null) {
-      Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
-      serdeProps.put("JsonPOJOClass", GenericRow.class);
-      genericRowSerializer.configure(serdeProps, false);
-
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
-      serdeProps.put("JsonPOJOClass", GenericRow.class);
-      genericRowDeserializer.configure(serdeProps, false);
-
-      genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
-    }
-    return genericRowSerde;
+  private KQLTopicSerDe getResultTopicSerde(PlanNode node) {
+    if (node instanceof SourceKafkaTopicNode) {
+      SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode)node;
+      return sourceKafkaTopicNode.getTopicSerDe();
+    } else if (node instanceof JoinNode) {
+      JoinNode joinNode = (JoinNode) node;
+      KQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());
+      // Keep the left as defult!
+//      KQLTopicSerDe rightTopicSerDe = getResultTopicSerde(joinNode.getRight());
+      return leftTopicSerDe;
+    } else return getResultTopicSerde(node.getSources().get(0));
   }
+
+
 
   public KStreamBuilder getBuilder() {
     return builder;

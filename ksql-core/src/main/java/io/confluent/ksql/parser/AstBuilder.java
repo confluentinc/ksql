@@ -1443,7 +1443,7 @@ public class AstBuilder
     KafkaTopic
         kafkaTopic =
         new KafkaTopic(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                       DataSource.DataSourceType.KSTREAM, "");
+                       DataSource.DataSourceType.KSTREAM, null, "");
     return kafkaTopic;
   }
 }

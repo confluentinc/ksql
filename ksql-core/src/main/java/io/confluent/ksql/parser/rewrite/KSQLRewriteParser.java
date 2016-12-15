@@ -38,7 +38,7 @@ public class KSQLRewriteParser {
     ParserRuleContext tree;
 
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
 

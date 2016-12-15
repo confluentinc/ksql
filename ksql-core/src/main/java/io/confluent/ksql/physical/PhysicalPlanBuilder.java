@@ -2,6 +2,9 @@ package io.confluent.ksql.physical;
 
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQLStream;
+import io.confluent.ksql.metastore.KQLTable;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -90,29 +93,30 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream buildSource(SourceNode sourceNode) {
-    if (sourceNode instanceof SourceKafkaTopicNode) {
-      SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode) sourceNode;
+    if (sourceNode instanceof StructuredDataSourceNode) {
+      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
 
-      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceKafkaTopicNode
-                                                                    .getTopicSerDe());
+      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
+                                                                    .getKafkaTopic().getKqlTopicSerDe());
 
-      if (sourceKafkaTopicNode.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+      if (structuredDataSourceNode.getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
+
+        KQLTable kqlTable = (KQLTable) structuredDataSourceNode.getStructuredDataSource();
         KTable
             kTable =
             builder
-                .table(Serdes.String(), genericRowSerde, sourceKafkaTopicNode
-                           .getTopicName(),
-                       sourceKafkaTopicNode.getTopicName() + "_store");
-        return new SchemaKTable(sourceKafkaTopicNode.getSchema(), kTable,
-                                sourceKafkaTopicNode.getKeyField());
+                .table(Serdes.String(), genericRowSerde, kqlTable.getKafkaTopic().getKafkaTopicName(),
+                       kqlTable.getStateStoreName());
+        return new SchemaKTable(sourceNode.getSchema(), kTable,
+                                sourceNode.getKeyField());
       }
-
+      KQLStream kqlStream = (KQLStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
           kStream =
           builder
-              .stream(Serdes.String(), genericRowSerde, sourceKafkaTopicNode.getTopicName());
-      return new SchemaKStream(sourceKafkaTopicNode.getSchema(), kStream,
-                               sourceKafkaTopicNode.getKeyField());
+              .stream(Serdes.String(), genericRowSerde, kqlStream.getKafkaTopic().getKafkaTopicName());
+      return new SchemaKStream(sourceNode.getSchema(), kStream,
+                               sourceNode.getKeyField());
     }
     throw new KSQLException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
@@ -151,9 +155,9 @@ public class PhysicalPlanBuilder {
 
 
   private KQLTopicSerDe getResultTopicSerde(PlanNode node) {
-    if (node instanceof SourceKafkaTopicNode) {
-      SourceKafkaTopicNode sourceKafkaTopicNode = (SourceKafkaTopicNode)node;
-      return sourceKafkaTopicNode.getTopicSerDe();
+    if (node instanceof StructuredDataSourceNode) {
+      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode)node;
+      return structuredDataSourceNode.getStructuredDataSource().getKafkaTopic().getKqlTopicSerDe();
     } else if (node instanceof JoinNode) {
       JoinNode joinNode = (JoinNode) node;
       KQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());

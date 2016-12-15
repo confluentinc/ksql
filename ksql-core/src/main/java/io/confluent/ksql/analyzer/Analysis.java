@@ -2,6 +2,7 @@ package io.confluent.ksql.analyzer;
 
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -12,9 +13,8 @@ import java.util.List;
 
 public class Analysis {
 
-
-  DataSource into;
-  List<Pair<DataSource, String>> fromDataSources = new ArrayList<>();
+  StructuredDataSource into;
+  List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   JoinNode join;
   Expression whereExpression = null;
   List<Expression> selectExpressions = new ArrayList<>();
@@ -26,20 +26,20 @@ public class Analysis {
     selectExpressionAlias.add(alias);
   }
 
-  public DataSource getInto() {
+  public StructuredDataSource getInto() {
     return into;
   }
 
-  public void setInto(DataSource into) {
+  public void setInto(StructuredDataSource into) {
     this.into = into;
   }
 
 
-  public List<Pair<DataSource, String>> getFromDataSources() {
+  public List<Pair<StructuredDataSource, String>> getFromDataSources() {
     return fromDataSources;
   }
 
-  public void setFromDataSources(List<Pair<DataSource, String>> fromDataSources) {
+  public void setFromDataSources(List<Pair<StructuredDataSource, String>> fromDataSources) {
     this.fromDataSources = fromDataSources;
   }
 

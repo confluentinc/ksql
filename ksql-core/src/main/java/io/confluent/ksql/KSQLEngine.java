@@ -5,18 +5,14 @@ import io.confluent.ksql.ddl.DDLEngine;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.rewrite.KSQLRewriteParser;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.*;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsException;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -43,7 +39,7 @@ public class KSQLEngine {
     int queryIndex = 0;
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
@@ -55,8 +51,8 @@ public class KSQLEngine {
         Query query = (Query) statement;
         queryList.add(new Pair("KSQL_QUERY_" + queryIndex, query));
         queryIndex++;
-      } else if (statement instanceof CreateTable) {
-        ddlEngine.createTopic((CreateTable) statement);
+      } else if (statement instanceof CreateTopic) {
+        ddlEngine.createTopic((CreateTopic) statement);
       } else if (statement instanceof DropTable) {
         ddlEngine.dropTopic((DropTable) statement);
       }
@@ -83,7 +79,7 @@ public class KSQLEngine {
     int queryIndex = 0;
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
@@ -95,8 +91,8 @@ public class KSQLEngine {
         Query query = (Query) statement;
         queryList.add(new Pair("KSQL_QUERY_" + queryIndex, query));
         queryIndex++;
-      } else if (statement instanceof CreateTable) {
-        ddlEngine.createTopic((CreateTable) statement);
+      } else if (statement instanceof CreateTopic) {
+        ddlEngine.createTopic((CreateTopic) statement);
       } else if (statement instanceof DropTable) {
         ddlEngine.dropTopic((DropTable) statement);
       }
@@ -146,7 +142,7 @@ public class KSQLEngine {
         queryEngine.processQuery(queryId + "_" + internalIndex, (Query) statement, metaStore);
         internalIndex++;
       } else if (statement instanceof CreateTable) {
-        ddlEngine.createTopic((CreateTable) statement);
+        ddlEngine.createTopic((CreateTopic) statement);
         return;
       } else if (statement instanceof DropTable) {
         ddlEngine.dropTopic((DropTable) statement);
@@ -197,7 +193,8 @@ public class KSQLEngine {
 
   public static void main(String[] args) throws Exception {
     Map<String, String> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.put(KSQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
+//    ksqlConfProperties.put(KSQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
+    ksqlConfProperties.put(KSQLConfig.SCHEMA_FILE_PATH_CONFIG, "/tmp/ksql/schema.json");
     ksqlConfProperties.put(KSQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/ksql_config.conf");
     KSQLEngine ksqlEngine = new KSQLEngine(ksqlConfProperties);
 
@@ -209,7 +206,7 @@ public class KSQLEngine {
 //    ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , "
 //                                          + "orderunits%10, lcase(itemid) FROM orders");
 
-//    ksqlEngine.processStatements("KSQL_1","SELECT lcase(itemid) into test FROM orders");
+//    ksqlEngine.processStatements("KSQL_1","SELECT lcase(itemid) FROM orders");
 
 //    ksqlEngine.processStatements("KSQL_1","SELECT len(orderid), CAST(substring(itemid,5)  AS "
 //                                          + "INTEGER) FROM orders "
@@ -220,15 +217,17 @@ public class KSQLEngine {
 //    ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");
 //    ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10"
 //                                          + " into stream1 FROM orders ;");
-//    ksqlEngine.processStatements("KSQL_1","SELECT * "
-//                                          + "  FROM pageview ;");
+//    ksqlEngine.processStatements("KSQL_1","SELECT USERID, REGIONID "
+//                                          + "  FROM users where userid = 'User_65';");
+//    ksqlEngine.processStatements("KSQL_1","SELECT USERID, PAGEID "
+//                                          + "  FROM pageview where userid = 'User_65';");
 
-//    ksqlEngine.processStatements("KSQL_1","SELECT * "
-//                                          + "  FROM users ;");
+    ksqlEngine.processStatements("KSQL_1","SELECT * "
+                                          + "  FROM users ;");
 //    ksqlEngine.processStatements("KSQL_1","SELECT * "
 //                                          + "  FROM orders ;");
 
-    ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;");
+//    ksqlEngine.processStatements("KSQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;");
 
 //        ksqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
 //        ksqlEngine.processStatements("KSQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");

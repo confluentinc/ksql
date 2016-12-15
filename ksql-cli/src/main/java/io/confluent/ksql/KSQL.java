@@ -2,12 +2,16 @@ package io.confluent.ksql;
 
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQLStream;
+import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.OutputKSQLConsoleNode;
 import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.ksql.util.*;
 
 import jline.TerminalFactory;
@@ -27,7 +31,6 @@ import java.util.Set;
 public class KSQL {
 
   KSQLEngine ksqlEngine;
-  //    Map<String, Triplet<String,KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
   LiveQueryMap liveQueries = new LiveQueryMap();
   Triplet<String, KafkaStreams, OutputKSQLConsoleNode> cliCurrentQuery = null;
 
@@ -49,7 +52,8 @@ public class KSQL {
       console.println("=========================================================================");
       console.addCompleter(
           new AnsiStringsCompleter("select", "show topics", "show queries", "from", "where",
-                                   "terminate", "exit", "describe", "print"));
+                                   "terminate", "exit", "describe", "print", "list topics",
+                                   "list streams"));
       String line = null;
       while ((line = console.readLine()) != null) {
         if (line.trim().toLowerCase().startsWith("exit")) {
@@ -110,8 +114,8 @@ public class KSQL {
       if (statement instanceof Query) {
         startQuery(statementStr, (Query) statement);
         return;
-      } else if (statement instanceof CreateTable) {
-        ksqlEngine.getDdlEngine().createTopic((CreateTable) statement);
+      } else if (statement instanceof CreateTopic) {
+        ksqlEngine.getDdlEngine().createTopic((CreateTopic) statement);
         return;
       } else if (statement instanceof DropTable) {
         ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
@@ -121,6 +125,12 @@ public class KSQL {
         return;
       } else if (statement instanceof ShowTopics) {
         showTables();
+        return;
+      } else if (statement instanceof ListTopics) {
+        listTopics();
+        return;
+      } else if (statement instanceof ListStreams) {
+        listStreams();
         return;
       } else if (statement instanceof ShowColumns) {
         ShowColumns showColumns = (ShowColumns) statement;
@@ -134,25 +144,21 @@ public class KSQL {
         return;
       } else if (statement instanceof PrintTopic) {
         PrintTopic printTopic = (PrintTopic) statement;
-        DataSource
-            dataSource =
-            ksqlEngine.getMetaStore().getSource(printTopic.getTopic().getSuffix().toUpperCase());
-        if (dataSource == null) {
+        KafkaTopic
+            kafkaTopic =
+            ksqlEngine.getMetaStore().getTopic(printTopic.getTopic().getSuffix().toUpperCase());
+        if (kafkaTopic == null) {
           console.println("Topic does not exist: " + printTopic.getTopic().getSuffix());
           return;
         }
-        if (dataSource instanceof KafkaTopic) {
-          KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
-          String topicsName = kafkaTopic.getTopicName();
-          long interval;
-          if (printTopic.getIntervalValue() == null) {
-            interval = -1;
-          } else {
-            interval = printTopic.getIntervalValue().getValue();
-          }
-          printTopic(kafkaTopic, interval);
+        String topicsName = kafkaTopic.getTopicName();
+        long interval;
+        if (printTopic.getIntervalValue() == null) {
+          interval = -1;
+        } else {
+          interval = printTopic.getIntervalValue().getValue();
         }
-
+        printTopic(kafkaTopic, interval);
         return;
       } else if (statement instanceof SetProperty) {
 
@@ -252,8 +258,8 @@ public class KSQL {
     }
 
     if (isCLI) {
-      console.println("Added the result topic to the metastore:");
-      console.println("Topic count: " + ksqlEngine.getMetaStore().getAllDataSources().size());
+//      console.println("Added the result topic to the metastore:");
+//      console.println("Topic count: " + ksqlEngine.getMetaStore().getAllStructuredDataSource().size());
       console.println("");
     }
   }
@@ -279,27 +285,94 @@ public class KSQL {
   }
 
   private void showTables() throws IOException {
+//    MetaStore metaStore = ksqlEngine.getMetaStore();
+//    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSource();
+//    if (allDataSources.isEmpty()) {
+//      console.println("No topic is available.");
+//      return;
+//    }
+//    console.println(
+//        "        KSQL Topic          |       Corresponding Kafka Topic        |             Topic"
+//        + " Key          |     Topic Type     |          Topic Format           "
+//        + "      ");
+//    console.println(
+//        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
+//    for (String datasourceName : allDataSources.keySet()) {
+//      StructuredDataSource dataSource = allDataSources.get(datasourceName);
+//      if (dataSource instanceof KafkaTopic) {
+//        KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+//        console.println(
+//            " " + padRight(datasourceName, 27) + "|  " + padRight(kafkaTopic.getTopicName(), 38)
+//            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|    "
+//            + padRight(kafkaTopic.getDataSourceType().toString(), 16)+ "|          "
+//            + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 30));
+//      }
+//
+//    }
+//    console.println(
+//        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
+//    console.println("( " + allDataSources.size() + " rows)");
+    console.flush();
+  }
+
+  private void listTopics() throws IOException {
     MetaStore metaStore = ksqlEngine.getMetaStore();
-    Map<String, DataSource> allDataSources = metaStore.getAllDataSources();
+    Map<String, KafkaTopic> topicMap = metaStore.getAllKafkaTopics();
+    if (topicMap.isEmpty()) {
+      console.println("No topic is available.");
+      return;
+    }
+    console.println(
+        "               Kafka Topic                 |        Corresponding Kafka Topic           "
+        + "|  "
+        + "   "
+        + "     Topic Format              "
+        + "      ");
+    console.println(
+        "-------------------------------------------+--------------------------------------------+------------------------------------------");
+    for (String topicName : topicMap.keySet()) {
+      KafkaTopic kafkaTopic = topicMap.get(topicName);
+      String formatStr = kafkaTopic.getKqlTopicSerDe().getSerDe().toString();
+      console.println(
+          " " + padRight(topicName, 42) + "|  " + padRight(kafkaTopic.getKafkaTopicName(), 42)+"| "
+          + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 42));
+    }
+    console.println(
+        "-------------------------------------------+--------------------------------------------+------------------------------------------");
+    console.println("( " + topicMap.size() + " rows)");
+    console.flush();
+  }
+
+  private void listStreams() throws IOException {
+    MetaStore metaStore = ksqlEngine.getMetaStore();
+    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSource();
     if (allDataSources.isEmpty()) {
       console.println("No topic is available.");
       return;
     }
     console.println(
-        "        KSQL Topic          |       Corresponding Kafka Topic        |             Topic"
+        "         Name               |         Corresponding Topic            |             Topic"
         + " Key          |     Topic Type     |          Topic Format           "
         + "      ");
     console.println(
         "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
     for (String datasourceName : allDataSources.keySet()) {
-      DataSource dataSource = allDataSources.get(datasourceName);
-      if (dataSource instanceof KafkaTopic) {
-        KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+      StructuredDataSource dataSource = allDataSources.get(datasourceName);
+      if (dataSource instanceof KQLStream) {
+        KQLStream kqlStream = (KQLStream) dataSource;
         console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kafkaTopic.getTopicName(), 38)
-            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|    "
-            + padRight(kafkaTopic.getDataSourceType().toString(), 16)+ "|          "
-            + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 30));
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKafkaTopic()
+                                                                      .getName().toUpperCase(), 38)
+            + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
+            + padRight(kqlStream.getDataSourceType().toString(), 16)+ "|          "
+            + padRight(kqlStream.getKafkaTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+      } else if (dataSource instanceof KQLTable) {
+        KQLTable kqlTable = (KQLTable) dataSource;
+        console.println(
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKafkaTopic().getName(), 38)
+            + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
+            + padRight(kqlTable.getDataSourceType().toString(), 16)+ "|          "
+            + padRight(kqlTable.getKafkaTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
       }
 
     }
@@ -310,7 +383,7 @@ public class KSQL {
   }
 
   private void showColumns(String name) throws IOException {
-    DataSource dataSource = ksqlEngine.getMetaStore().getSource(name.toUpperCase());
+    StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name.toUpperCase());
     if (dataSource == null) {
       console.println("Could not find topic " + name + " in the metastore!");
       console.flush();

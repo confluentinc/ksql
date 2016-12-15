@@ -40,14 +40,15 @@ public class AnalyzerTest {
 
   @Test
   public void testSimpleQueryAnalysis() throws Exception {
-    String simpleQuery = "SELECT col0, col2, col3 INTO testOutput FROM test1 WHERE col0 > 100;";
+//    String simpleQuery = "SELECT col0, col2, col3 INTO testOutput FROM test1 WHERE col0 > 100;";
+    String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.into);
     Assert.assertNotNull("FROM is null", analysis.fromDataSources);
     Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
     Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
-    Assert.assertTrue("INTO was not analyzed correctly.",
-                      analysis.into.getName().equalsIgnoreCase("testOutput"));
+//    Assert.assertTrue("INTO was not analyzed correctly.",
+//                      analysis.into.getName().equalsIgnoreCase("testOutput"));
     Assert.assertTrue("FROM was not analyzed correctly.",
                       analysis.fromDataSources.get(0).getLeft().getName()
                           .equalsIgnoreCase("test1"));
@@ -83,15 +84,15 @@ public class AnalyzerTest {
   public void testSimpleLeftJoinAnalysis() throws Exception {
     String
         simpleQuery =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 INTO testOutput FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
     Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.into);
     Assert.assertNotNull("JOIN is null", analysis.join);
 
     Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
     Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
-    Assert.assertTrue("INTO was not analyzed correctly.",
-                      analysis.into.getName().equalsIgnoreCase("testOutput"));
+//    Assert.assertTrue("INTO was not analyzed correctly.",
+//                      analysis.into.getName().equalsIgnoreCase("testOutput"));
     Assert.assertTrue("JOIN left hand side was not analyzed correctly.",
                       analysis.join.getLeftAlias().equalsIgnoreCase("t1"));
     Assert.assertTrue("JOIN right hand side was not analyzed correctly.",
@@ -128,15 +129,15 @@ public class AnalyzerTest {
 
   @Test
   public void testBooleanExpressionAnalysis() throws Exception {
-    String queryStr = "SELECT col0 = 10, col2, col3 > col1 INTO testOutput FROM test1;";
+    String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
     Analysis analysis = analyze(queryStr);
 
     Assert.assertNotNull("INTO is null", analysis.into);
     Assert.assertNotNull("FROM is null", analysis.fromDataSources);
     Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
     Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
-    Assert.assertTrue("INTO was not analyzed correctly.",
-                      analysis.into.getName().equalsIgnoreCase("testOutput"));
+//    Assert.assertTrue("INTO was not analyzed correctly.",
+//                      analysis.into.getName().equalsIgnoreCase("testOutput"));
     Assert.assertTrue("FROM was not analyzed correctly.",
                       analysis.fromDataSources.get(0).getLeft().getName()
                           .equalsIgnoreCase("test1"));

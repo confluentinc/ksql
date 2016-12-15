@@ -2,15 +2,14 @@ package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQL_STDOUT;
-import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.planner.plan.SourceKafkaTopicNode;
+import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 
@@ -89,21 +88,21 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     String rightAlias = right.getAlias();
 
-    KafkaTopic leftDataSource = (KafkaTopic) metaStore.getSource(leftSideName.toUpperCase());
-    KafkaTopic rightDataSource = (KafkaTopic) metaStore.getSource(rightSideName.toUpperCase());
+    StructuredDataSource leftDataSource = metaStore.getSource(leftSideName.toUpperCase());
+    StructuredDataSource rightDataSource = metaStore.getSource(rightSideName.toUpperCase());
 
-    SourceKafkaTopicNode
+    StructuredDataSourceNode
         leftSourceKafkaTopicNode =
-        new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                 leftDataSource.getKeyField(), leftDataSource.getTopicName(),
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
+                                 leftDataSource.getKeyField(), leftDataSource.getKafkaTopic().getTopicName(),
                                  leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
-                                 leftDataSource.getKqlTopicSerDe());
-    SourceKafkaTopicNode
+                                 leftDataSource);
+    StructuredDataSourceNode
         rightSourceKafkaTopicNode =
-        new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic_Right"), rightDataSource.getSchema(),
-                                 rightDataSource.getKeyField(), rightDataSource.getTopicName(),
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"), rightDataSource.getSchema(),
+                                 rightDataSource.getKeyField(), rightDataSource.getKafkaTopic().getTopicName(),
                                  rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
-                                 rightDataSource.getKqlTopicSerDe());
+                                 rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -139,7 +138,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
 
-    Pair<DataSource, String>
+    Pair<StructuredDataSource, String>
         fromDataSource =
         new Pair<>(
             metaStore.getSource(((Table) node.getRelation()).getName().getSuffix().toUpperCase()),
@@ -151,16 +150,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitTable(Table node, AnalysisContext context) {
 
-    DataSource into;
+    StructuredDataSource into;
     if (node.isSTDOut) {
-      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, DataSource.DataSourceType
+      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, StructuredDataSource.DataSourceType
           .KSTREAM);
-    }
-    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into =
-          new KafkaTopic(node.getName().getSuffix(), null, null, DataSource.DataSourceType.KSTREAM,
-                         null,
-                         node.getName().getSuffix());
+//    }
+//    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+//      into =
+//          new StructuredDataSourceNode(node.getName().getSuffix(), null, null, StructuredDataSource.DataSourceType.KSTREAM,
+//                         null,
+//                         node.getName().getSuffix());
     } else {
       throw new KSQLException("INTO clause is not set correctly!");
     }
@@ -231,7 +230,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return visitExpression(node, context);
   }
 
-  private DataSource analyzeFrom(QuerySpecification node, AnalysisContext context) {
+  private StructuredDataSource analyzeFrom(QuerySpecification node, AnalysisContext context) {
 
     return null;
   }

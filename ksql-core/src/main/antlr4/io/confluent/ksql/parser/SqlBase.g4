@@ -40,16 +40,20 @@ singleExpression
 statement
     : query                                                            #querystatement
     | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
-    | SHOW TOPICS                                                      #showTopics
+    | SHOW STREAMS                                                      #showTopics
+    | LIST TOPICS                                                      #listTopics
+    | LIST STREAMS                                                     #listStreams
     | DESCRIBE qualifiedName                                           #showColumns
-    | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                                          #printTopic
+    | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
     | SHOW QUERIES                                                     #showQueries
     | TERMINATE qualifiedName                                          #terminateQuery
     | SET qualifiedName EQ expression                                  #setProperty
     | LOAD expression                                                  #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
-            '(' tableElement (',' tableElement)* ')'
-            (WITH tableProperties)?                                    #createTable
+            (WITH tableProperties)?                                    #createTopic
+//    | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
+//                '(' tableElement (',' tableElement)* ')'
+//                (WITH tableProperties)?                                #createTable
     | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTable
     ;
 
@@ -496,6 +500,7 @@ CREATE: 'CREATE';
 TABLE: 'TABLE';
 TOPIC: 'TOPIC';
 STREAM: 'STREAM';
+STREAMS: 'STREAMS';
 VIEW: 'VIEW';
 REPLACE: 'REPLACE';
 INSERT: 'INSERT';
@@ -521,6 +526,7 @@ TRY: 'TRY';
 CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
+LIST: 'LIST';
 TABLES: 'TABLES';
 TOPICS: 'TOPICS';
 QUERIES: 'QUERIES';

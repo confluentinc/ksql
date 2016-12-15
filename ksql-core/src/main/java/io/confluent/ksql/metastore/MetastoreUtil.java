@@ -20,25 +20,22 @@ import java.nio.file.Paths;
 
 public class MetastoreUtil {
 
-  public DataSource createDataSource(JsonNode node) throws IOException {
+  public StructuredDataSource createStructuredDataSource(MetaStore metaStore, JsonNode node)
+      throws
+                                                                                  IOException {
 
     KQLTopicSerDe topicSerDe;
 
     String name = node.get("name").asText().toUpperCase();
-    String topicname = node.get("topicname").asText();
-    String type = node.get("type").asText();
-    String serde = node.get("serde").asText();
-    if (serde.equalsIgnoreCase("avro")) {
-      if (node.get("avroschemafile") == null) {
-        throw new KSQLException("For avro SerDe avro schema file path (avroschemafile) should be "
-                                + "set in the schema.");
-      }
-      String schemaPath = node.get("avroschemafile").asText();
-      String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KQLAvroTopicSerDe(avroSchema);
-    } else {
-      topicSerDe = new KQLJsonTopicSerDe();
+    String topicname = node.get("topic").asText();
+
+    KafkaTopic kafkaTopic = (KafkaTopic) metaStore.getTopic(topicname);
+    if (kafkaTopic == null) {
+      throw new KSQLException("Unable to add the structured data source. The corresponding topic "
+                              + "does not exist: "+topicname);
     }
+
+    String type = node.get("type").asText();
     String keyFieldName = node.get("key").asText().toUpperCase();
     SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
@@ -54,9 +51,41 @@ public class MetastoreUtil {
       dataSource.field(fieldName, getKSQLType(fieldType));
     }
 
-    return new KafkaTopic(name, dataSource, dataSource.field(keyFieldName),
-                          KafkaTopic.getDataSpDataSourceType(type), topicSerDe,
-                          topicname);
+    if (type.equalsIgnoreCase("stream")) {
+      return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
+                           kafkaTopic);
+    } else if (type.equalsIgnoreCase("table")) {
+      // Use the changelog topic name as state store name.
+      if (node.get("statestore") == null) {
+        return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
+                            kafkaTopic, kafkaTopic.getName());
+      }
+      String stateStore = node.get("statestore").asText();
+      return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
+                           kafkaTopic, stateStore);
+    }
+    throw new KSQLException("Type not supported.");
+  }
+
+  public KafkaTopic createKafkaTopicDataSource(JsonNode node) throws IOException {
+
+    KQLTopicSerDe topicSerDe;
+    String topicname = node.get("topicname").asText();
+    String kafkaTopicName = node.get("kafkatopicname").asText();
+    String serde = node.get("serde").asText();
+    if (serde.equalsIgnoreCase("avro")) {
+      if (node.get("avroschemafile") == null) {
+        throw new KSQLException("For avro SerDe avro schema file path (avroschemafile) should be "
+                                + "set in the schema.");
+      }
+      String schemaPath = node.get("avroschemafile").asText();
+      String avroSchema = getAvroSchema(schemaPath);
+      topicSerDe = new KQLAvroTopicSerDe(avroSchema);
+    } else {
+      topicSerDe = new KQLJsonTopicSerDe();
+    }
+
+    return new KafkaTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
   private Schema getKSQLType(String sqlType) {
@@ -80,9 +109,16 @@ public class MetastoreUtil {
       byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode root = objectMapper.readTree(jsonData);
+
+      ArrayNode topicNodes = (ArrayNode) root.get("topics");
+      for (JsonNode schemaNode : topicNodes) {
+        KafkaTopic kafkaTopic = createKafkaTopicDataSource(schemaNode);
+        metaStore.putTopic(kafkaTopic);
+      }
+
       ArrayNode schemaNodes = (ArrayNode) root.get("schemas");
       for (JsonNode schemaNode : schemaNodes) {
-        DataSource dataSource = createDataSource(schemaNode);
+        StructuredDataSource dataSource = createStructuredDataSource(metaStore, schemaNode);
         metaStore.putSource(dataSource);
       }
       return metaStore;
@@ -95,11 +131,8 @@ public class MetastoreUtil {
 
   public static void main(String args[]) throws IOException {
 
-//        byte[] jsonData = Files.readAllBytes(Paths.get("/Users/hojjat/userschema.json"));
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        JsonNode root = objectMapper.readTree(jsonData);
-//        new MetastoreUtil().createDataSource(root);
-    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
+//    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
+    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/kql_catalog.json");
     System.out.println("");
 
   }

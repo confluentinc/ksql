@@ -17,8 +17,8 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.serde.KQLTopicSerDe;
+import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -30,25 +30,25 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 @Immutable
-public class SourceKafkaTopicNode
+public class StructuredDataSourceNode
     extends SourceNode {
 
   private final Schema schema;
   private final String topicName;
   private final Field keyField;
   private final String alias;
-  private final KQLTopicSerDe topicSerDe;
+  StructuredDataSource structuredDataSource;
 
   // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
-  public SourceKafkaTopicNode(@JsonProperty("id") PlanNodeId id,
+  public StructuredDataSourceNode(@JsonProperty("id") PlanNodeId id,
                               @JsonProperty("schema") Schema schema,
                               @JsonProperty("keyField") Field keyField,
                               @JsonProperty("topicName") String topicName,
                               @JsonProperty("alias") String alias,
-                              @JsonProperty("dataSourceType") DataSource.DataSourceType
+                              @JsonProperty("dataSourceType") StructuredDataSource.DataSourceType
                                     dataSourceType,
-                              @JsonProperty("topicSerDe") KQLTopicSerDe topicSerDe) {
+                              @JsonProperty("structuredDataSource") StructuredDataSource structuredDataSource) {
     super(id, dataSourceType);
 
     this.schema = schema;
@@ -57,7 +57,7 @@ public class SourceKafkaTopicNode
     this.topicName = topicName;
     this.keyField = keyField;
     this.alias = alias;
-    this.topicSerDe = topicSerDe;
+    this.structuredDataSource = structuredDataSource;
   }
 
   public String getTopicName() {
@@ -78,8 +78,8 @@ public class SourceKafkaTopicNode
     return alias;
   }
 
-  public KQLTopicSerDe getTopicSerDe() {
-    return topicSerDe;
+  public StructuredDataSource getStructuredDataSource() {
+    return structuredDataSource;
   }
 
   @Override
@@ -89,6 +89,6 @@ public class SourceKafkaTopicNode
 
   @Override
   public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-    return visitor.visitKafkaTopic(this, context);
+    return visitor.visitStructuredDataSourceNode(this, context);
   }
 }

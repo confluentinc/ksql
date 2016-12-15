@@ -1,46 +1,29 @@
 package io.confluent.ksql.metastore;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
-public class KafkaTopic extends AbstractDataSource {
+public class KafkaTopic implements DataSource {
 
   final String topicName;
-  String alias;
+  final String kafkaTopicName;
   final KQLTopicSerDe kqlTopicSerDe;
+  final DataSourceType dataSourceType;
 
-  public KafkaTopic(String datasourceName, Schema schema, Field keyField,
-                    DataSourceType dataSourceType, KQLTopicSerDe kqlTopicSerDe, String
-                        topicName) {
-    super(datasourceName, schema, keyField, dataSourceType);
+  public KafkaTopic(String topicName, String kafkaTopicName, KQLTopicSerDe kqlTopicSerDe) {
     this.topicName = topicName;
+    this.kafkaTopicName = kafkaTopicName;
     this.kqlTopicSerDe = kqlTopicSerDe;
-  }
-
-  @Override
-  public String getName() {
-    return this.dataSourceName;
-  }
-
-  @Override
-  public Schema getSchema() {
-    return this.schema;
-  }
-
-  public Field getKeyField() {
-    return this.keyField;
-  }
-
-  @Override
-  public DataSourceType getDataSourceType() {
-    return this.dataSourceType;
+    this.dataSourceType = DataSourceType.KTOPIC;
   }
 
   public KQLTopicSerDe getKqlTopicSerDe() {
     return kqlTopicSerDe;
+  }
+
+  public String getKafkaTopicName() {
+    return kafkaTopicName;
   }
 
   public String getTopicName() {
@@ -54,5 +37,15 @@ public class KafkaTopic extends AbstractDataSource {
       return DataSourceSerDe.AVRO;
     }
     throw new KSQLException("DataSource Type is not supported: " + dataSourceSerdeName);
+  }
+
+  @Override
+  public String getName() {
+    return topicName;
+  }
+
+  @Override
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
   }
 }

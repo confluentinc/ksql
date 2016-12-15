@@ -4,15 +4,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLException;
-import jdk.nashorn.internal.scripts.JO;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -36,7 +35,7 @@ public class AstBuilder
   int selectItemIndex = 0;
 
   DataSourceExtractor dataSourceExtractor;
-  public DataSource resultDataSource = null;
+  public StructuredDataSource resultDataSource = null;
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
@@ -116,10 +115,17 @@ public class AstBuilder
     return new Isolation(getLocation(context), Isolation.Level.SERIALIZABLE);
   }
 
+//  @Override
+//  public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
+//    return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()),
+//                           visit(context.tableElement(), TableElement.class),
+//                           context.EXISTS() != null,
+//                           processTableProperties(context.tableProperties()));
+//  }
+
   @Override
-  public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
-    return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()),
-                           visit(context.tableElement(), TableElement.class),
+  public Node visitCreateTopic(SqlBaseParser.CreateTopicContext context) {
+    return new CreateTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
                            context.EXISTS() != null,
                            processTableProperties(context.tableProperties()));
   }
@@ -228,11 +234,11 @@ public class AstBuilder
         if (from instanceof Join) {
           Join join = (Join) from;
           AliasedRelation left = (AliasedRelation) join.getLeft();
-          DataSource
+          StructuredDataSource
               leftDataSource =
               dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
           AliasedRelation right = (AliasedRelation) join.getRight();
-          DataSource
+          StructuredDataSource
               rightDataSource =
               dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
           for (Field field : leftDataSource.getSchema().fields()) {
@@ -259,7 +265,7 @@ public class AstBuilder
           }
         } else {
           AliasedRelation fromRel = (AliasedRelation) from;
-          DataSource
+          StructuredDataSource
               fromDataSource =
               dataSourceExtractor.getMetaStore()
                   .getSource(((Table) fromRel.getRelation()).getName().getSuffix());
@@ -424,6 +430,21 @@ public class AstBuilder
   public Node visitShowTopics(SqlBaseParser.ShowTopicsContext context) {
     return new ShowTopics(Optional.ofNullable(getLocation(context)));
   }
+
+  @Override
+  public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
+    if (context.TOPICS() == null) {
+      throw new KSQLException("Syntax error! Did you mean: list topics");
+    }
+    return new ListTopics(Optional.ofNullable(getLocation(context)));
+  }
+
+  @Override
+  public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
+
+    return new ListStreams(Optional.ofNullable(getLocation(context)));
+  }
+
 
   @Override
   public Node visitShowQueries(SqlBaseParser.ShowQueriesContext context) {
@@ -1425,7 +1446,7 @@ public class AstBuilder
     return new NodeLocation(token.getLine(), token.getCharPositionInLine());
   }
 
-  public DataSource getResultDatasource(Select select, Table into) {
+  public StructuredDataSource getResultDatasource(Select select, Table into) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
 
@@ -1440,10 +1461,12 @@ public class AstBuilder
 
     }
 
-    KafkaTopic
-        kafkaTopic =
-        new KafkaTopic(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                       DataSource.DataSourceType.KSTREAM, null, "");
-    return kafkaTopic;
+    KafkaTopic kafkaTopic = new KafkaTopic(into.getName().toString(), into.getName().toString(),
+                                           null);
+    StructuredDataSource
+        resultStream =
+        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),kafkaTopic
+                      );
+    return resultStream;
   }
 }

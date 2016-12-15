@@ -57,7 +57,9 @@ public class SchemaUtil {
 
   public static Field getFieldByName(Schema schema, String fieldName) {
     fieldName = fieldName.toUpperCase();
+
     if (schema.fields() != null) {
+      
       for (Field field : schema.fields()) {
         if (field.name().equalsIgnoreCase(fieldName)) {
           return field;

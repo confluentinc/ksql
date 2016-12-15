@@ -4,7 +4,9 @@ package io.confluent.ksql.ddl;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KSQLException;
@@ -24,27 +26,19 @@ public class DDLEngine {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public void createTopic(CreateTable createTable) {
+  public void createTopic(CreateTopic createTopic) {
 
-    String topicName = createTable.getName().getSuffix().toUpperCase();
+    String topicName = createTopic.getName().getSuffix().toUpperCase();
 
-    SchemaBuilder topicSchema = SchemaBuilder.struct();
-    List<Field> topicSchemaFields = new ArrayList<>();
-    for (TableElement tableElement : createTable.getElements()) {
-      topicSchema = topicSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
-    }
-
+//    SchemaBuilder topicSchema = SchemaBuilder.struct();
     // Create the topic in Kafka
-    new DDLUtil().createTopic(topicName, 3, 1);
+//    new DDLUtil().createTopic(topicName, 3, 1);
 
     // Add the topic to the metastore
     KafkaTopic
         kafkaTopic =
-        new KafkaTopic(topicName, topicSchema, topicSchema.fields().get(0),
-                       DataSource.DataSourceType.KSTREAM, null, topicName);
-    ksqlEngine.getMetaStore().putSource(kafkaTopic);
-
-
+        new KafkaTopic(topicName, topicName, null);
+    ksqlEngine.getMetaStore().putTopic(kafkaTopic);
   }
 
   public void dropTopic(DropTable dropTable) {

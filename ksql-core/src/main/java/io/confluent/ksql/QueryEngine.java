@@ -3,11 +3,12 @@ package io.confluent.ksql;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -73,7 +74,7 @@ public class QueryEngine {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllDataSources().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
 
@@ -91,15 +92,16 @@ public class QueryEngine {
     return logicalPlansList;
   }
 
-  private DataSource getPlanDataSource(PlanNode outputNode) {
+  private StructuredDataSource getPlanDataSource(PlanNode outputNode) {
 
-    KafkaTopic
-        kafkaTopic =
-        new KafkaTopic(outputNode.getId().toString(), outputNode.getSchema(),
-                       outputNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
-                       null,
-                       outputNode.getId().toString());
-    return kafkaTopic;
+
+    KafkaTopic kafkaTopic = new KafkaTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
+    StructuredDataSource
+        structuredDataSource =
+        new KQLStream(outputNode.getId().toString(), outputNode.getSchema(),
+                       outputNode.getKeyField(),
+                      kafkaTopic);
+    return structuredDataSource;
   }
 
   public List<Triplet<String, KafkaStreams, OutputNode>> buildRunPhysicalPlans(
@@ -131,15 +133,15 @@ public class QueryEngine {
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
 
-      DataSource sinkDataSource;
+      StructuredDataSource sinkDataSource;
       if (outputNode instanceof OutputKafkaTopicNode) {
         OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode) outputNode;
             physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
+        KafkaTopic kafkaTopic = metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName());
         sinkDataSource =
-            new KafkaTopic(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
-                           outputKafkaTopicNode.getKeyField(), DataSource.DataSourceType.KSTREAM,
-                           null,
-                           outputKafkaTopicNode.getKafkaTopicName());
+            new KQLStream(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+                          outputKafkaTopicNode.getKeyField(),
+                          kafkaTopic);
         metaStore.putSource(sinkDataSource);
       } else if (outputNode instanceof OutputKSQLConsoleNode) {
         OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) outputNode;

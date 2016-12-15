@@ -40,7 +40,7 @@ public class TopicPrinter {
       ksqlProperties.load(new FileReader(cliProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
     }
     ksqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaTopic.getName() + "_" + System.currentTimeMillis());
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
     ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
 
@@ -53,7 +53,8 @@ public class TopicPrinter {
 
     KStream<String, GenericRow>
         source =
-        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kafkaTopic.getKqlTopicSerDe()), kafkaTopic.getTopicName());
+        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kafkaTopic.getKqlTopicSerDe()),
+                       kafkaTopic.getKafkaTopicName());
 
     source.map(new KSQLPrintKeyValueMapper(console, interval));
 

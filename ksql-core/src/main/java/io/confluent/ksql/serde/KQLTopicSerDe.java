@@ -1,16 +1,16 @@
 package io.confluent.ksql.serde;
 
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.StructuredDataSource;
 
 public abstract class KQLTopicSerDe {
 
-  private final DataSource.DataSourceSerDe serDe;
+  private final StructuredDataSource.DataSourceSerDe serDe;
 
-  protected KQLTopicSerDe(DataSource.DataSourceSerDe serDe) {
+  protected KQLTopicSerDe(StructuredDataSource.DataSourceSerDe serDe) {
     this.serDe = serDe;
   }
 
-  public DataSource.DataSourceSerDe getSerDe() {
+  public StructuredDataSource.DataSourceSerDe getSerDe() {
     return serDe;
   }
 }

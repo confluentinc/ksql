@@ -2,6 +2,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.*;
@@ -70,7 +71,7 @@ public class DataSourceExtractor
 
     if (!isJoin) {
       this.fromAlias = alias.toUpperCase();
-      DataSource fromDataSource = metaStore.getSource(table.getName().getSuffix().toUpperCase());
+      StructuredDataSource fromDataSource = metaStore.getSource(table.getName().getSuffix().toUpperCase());
       this.fromSchema = fromDataSource.getSchema();
       return null;
     }
@@ -96,13 +97,13 @@ public class DataSourceExtractor
     }
 
     this.leftAlias = left.getAlias().toUpperCase();
-    DataSource
+    StructuredDataSource
         leftDataSource =
         metaStore.getSource(((Table) left.getRelation()).getName().getSuffix().toUpperCase());
     this.joinLeftSchema = leftDataSource.getSchema();
 
     this.rightAlias = right.getAlias().toUpperCase();
-    DataSource
+    StructuredDataSource
         rightDataSource =
         metaStore.getSource(((Table) right.getRelation()).getName().getSuffix().toUpperCase());
     this.joinRightSchema = rightDataSource.getSchema();

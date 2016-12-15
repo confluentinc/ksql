@@ -11,28 +11,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.confluent.ksql.planner.plan;
+package io.confluent.ksql.parser.tree;
 
-public class PlanVisitor<C, R> {
+import java.util.Objects;
+import java.util.Optional;
 
-  protected R visitPlan(PlanNode node, C context) {
-    return null;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
+
+public class ListStreams
+    extends Statement {
+
+  public ListStreams(Optional<NodeLocation> location) {
+    super(location);
   }
 
-  public R visitFilter(FilterNode node, C context) {
-    return visitPlan(node, context);
+  @Override
+  public int hashCode() {
+    return Objects.hash("ListStreams");
   }
 
-  public R visitProject(ProjectNode node, C context) {
-    return visitPlan(node, context);
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj;
   }
 
-  public R visitStructuredDataSourceNode(StructuredDataSourceNode node, C context) {
-    return visitPlan(node, context);
+  @Override
+  public String toString() {
+    return toStringHelper(this)
+        .toString();
   }
-
-  public R visitOutput(OutputNode node, C context) {
-    return visitPlan(node, context);
-  }
-
 }

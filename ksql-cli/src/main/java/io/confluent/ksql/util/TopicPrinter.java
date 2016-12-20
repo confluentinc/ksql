@@ -1,19 +1,13 @@
 package io.confluent.ksql.util;
 
 
-import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.json.KQLJsonPOJODeserializer;
-import io.confluent.ksql.serde.json.KQLJsonPOJOSerializer;
 
 import jline.console.ConsoleReader;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
@@ -25,7 +19,7 @@ import java.util.*;
 
 public class TopicPrinter {
 
-  public void printGenericRowTopic(KafkaTopic kafkaTopic, ConsoleReader console, long interval,
+  public void printGenericRowTopic(KQLTopic KQLTopic, ConsoleReader console, long interval,
                                    Map<String, String> cliProperties) throws IOException {
 
     Properties ksqlProperties = new Properties();
@@ -40,7 +34,7 @@ public class TopicPrinter {
       ksqlProperties.load(new FileReader(cliProperties.get(KSQLConfig.PROP_FILE_PATH_CONFIG)));
     }
     ksqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, KQLTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
     ksqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
 
@@ -53,8 +47,8 @@ public class TopicPrinter {
 
     KStream<String, GenericRow>
         source =
-        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kafkaTopic.getKqlTopicSerDe()),
-                       kafkaTopic.getKafkaTopicName());
+        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(KQLTopic.getKqlTopicSerDe()),
+                       KQLTopic.getKafkaTopicName());
 
     source.map(new KSQLPrintKeyValueMapper(console, interval));
 

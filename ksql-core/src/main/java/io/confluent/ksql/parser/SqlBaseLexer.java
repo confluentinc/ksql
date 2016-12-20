@@ -91,7 +91,7 @@ public class SqlBaseLexer extends Lexer {
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "';'", "','", "'('", "')'", "'.'", "'->'", "'['", "']'", "'=>'", 
+		null, "';'", "'('", "','", "')'", "'.'", "'->'", "'['", "']'", "'=>'", 
 		"'SELECT'", "'FROM'", "'ADD'", "'AS'", "'ALL'", "'SOME'", "'ANY'", "'DISTINCT'", 
 		"'WHERE'", "'GROUP'", "'BY'", "'GROUPING'", "'SETS'", "'CUBE'", "'ROLLUP'", 
 		"'ORDER'", "'HAVING'", "'LIMIT'", "'APPROXIMATE'", "'AT'", "'CONFIDENCE'", 
@@ -497,8 +497,8 @@ public class SqlBaseLexer extends Lexer {
 		"\2\2\u01a3\u0732\3\2\2\2\u01a5\u073d\3\2\2\2\u01a7\u0754\3\2\2\2\u01a9"+
 		"\u0770\3\2\2\2\u01ab\u0779\3\2\2\2\u01ad\u077b\3\2\2\2\u01af\u077d\3\2"+
 		"\2\2\u01b1\u078e\3\2\2\2\u01b3\u079d\3\2\2\2\u01b5\u07a3\3\2\2\2\u01b7"+
-		"\u01b8\7=\2\2\u01b8\4\3\2\2\2\u01b9\u01ba\7.\2\2\u01ba\6\3\2\2\2\u01bb"+
-		"\u01bc\7*\2\2\u01bc\b\3\2\2\2\u01bd\u01be\7+\2\2\u01be\n\3\2\2\2\u01bf"+
+		"\u01b8\7=\2\2\u01b8\4\3\2\2\2\u01b9\u01ba\7*\2\2\u01ba\6\3\2\2\2\u01bb"+
+		"\u01bc\7.\2\2\u01bc\b\3\2\2\2\u01bd\u01be\7+\2\2\u01be\n\3\2\2\2\u01bf"+
 		"\u01c0\7\60\2\2\u01c0\f\3\2\2\2\u01c1\u01c2\7/\2\2\u01c2\u01c3\7@\2\2"+
 		"\u01c3\16\3\2\2\2\u01c4\u01c5\7]\2\2\u01c5\20\3\2\2\2\u01c6\u01c7\7_\2"+
 		"\2\u01c7\22\3\2\2\2\u01c8\u01c9\7?\2\2\u01c9\u01ca\7@\2\2\u01ca\24\3\2"+

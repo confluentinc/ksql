@@ -1,17 +1,15 @@
 package io.confluent.ksql;
 
 
-import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.planner.plan.OutputKSQLConsoleNode;
-import io.confluent.ksql.planner.plan.OutputKafkaTopicNode;
+import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.ksql.util.*;
 
 import jline.TerminalFactory;
@@ -32,7 +30,7 @@ public class KSQL {
 
   KSQLEngine ksqlEngine;
   LiveQueryMap liveQueries = new LiveQueryMap();
-  Triplet<String, KafkaStreams, OutputKSQLConsoleNode> cliCurrentQuery = null;
+  Triplet<String, KafkaStreams, KQLConsoleOutputNode> cliCurrentQuery = null;
 
   static final String queryIdPrefix = "ksql_";
   int queryIdCounter = 0;
@@ -51,9 +49,9 @@ public class KSQL {
       console.println("KQL (Kafka Query Language) 0.0.1");
       console.println("=========================================================================");
       console.addCompleter(
-          new AnsiStringsCompleter("select", "show topics", "show queries", "from", "where",
+          new AnsiStringsCompleter("select", "show topics", "show queries",
                                    "terminate", "exit", "describe", "print", "list topics",
-                                   "list streams"));
+                                   "list streams", "create topic"));
       String line = null;
       while ((line = console.readLine()) != null) {
         if (line.trim().toLowerCase().startsWith("exit")) {
@@ -117,6 +115,19 @@ public class KSQL {
       } else if (statement instanceof CreateTopic) {
         ksqlEngine.getDdlEngine().createTopic((CreateTopic) statement);
         return;
+      } else if (statement instanceof CreateStream) {
+        ksqlEngine.getDdlEngine().createStream((CreateStream) statement);
+        return;
+      } else if (statement instanceof CreateTable) {
+        ksqlEngine.getDdlEngine().createTable((CreateTable) statement);
+        return;
+      } else if (statement instanceof CreateStreamAsSelect) {
+        Query query = addInto((CreateStreamAsSelect)statement);
+        startQuery(statementStr, query);
+        return;
+      } else if (statement instanceof CreateTableAsSelect) {
+        ksqlEngine.getDdlEngine().createTable((CreateTable) statement);
+        return;
       } else if (statement instanceof DropTable) {
         ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
         return;
@@ -144,21 +155,21 @@ public class KSQL {
         return;
       } else if (statement instanceof PrintTopic) {
         PrintTopic printTopic = (PrintTopic) statement;
-        KafkaTopic
-            kafkaTopic =
+        KQLTopic
+            KQLTopic =
             ksqlEngine.getMetaStore().getTopic(printTopic.getTopic().getSuffix().toUpperCase());
-        if (kafkaTopic == null) {
+        if (KQLTopic == null) {
           console.println("Topic does not exist: " + printTopic.getTopic().getSuffix());
           return;
         }
-        String topicsName = kafkaTopic.getTopicName();
+        String topicsName = KQLTopic.getTopicName();
         long interval;
         if (printTopic.getIntervalValue() == null) {
           interval = -1;
         } else {
           interval = printTopic.getIntervalValue().getValue();
         }
-        printTopic(kafkaTopic, interval);
+        printTopic(KQLTopic, interval);
         return;
       } else if (statement instanceof SetProperty) {
 
@@ -227,6 +238,39 @@ public class KSQL {
     console.println();
     console.flush();
   }
+
+  private Query addInto(CreateStreamAsSelect createStreamAsSelect) {
+    Query query = createStreamAsSelect.getQuery();
+    QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
+        .getQueryBody();
+//    AliasedRelation fromAliasedRelation = (AliasedRelation)querySpecification.getFrom().get();
+//    String fromName = ((Table)fromAliasedRelation.getRelation()).getName().getSuffix();
+//    StructuredDataSource fromSource = ksqlEngine.getMetaStore().getSource(fromName);
+//    KQLTopic fromKafkaTopic = fromSource.getKQLTopic();
+//    KQLTopic intoKafkaTopic = new KQLTopic(intoName, intoName, fromKafkaTopic
+//        .getKqlTopicSerDe());
+    String intoName = createStreamAsSelect.getName().getSuffix();
+    Table intoTable = new Table(QualifiedName.of(intoName));
+    intoTable.setProperties(createStreamAsSelect.getProperties());
+    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
+                                                                          .getSelect(),
+                                                                      java.util.Optional
+                                                                          .ofNullable(intoTable),
+                                                                      querySpecification.getFrom
+                                                                          (), querySpecification
+                                                                          .getWhere(),
+                                                                      querySpecification
+                                                                          .getGroupBy(),
+                                                                      querySpecification
+                                                                          .getHaving(),
+                                                                      querySpecification
+                                                                          .getOrderBy(),
+                                                                      querySpecification.getLimit
+                                                                          ());
+    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
+        , query.getApproximate());
+  }
+
   private void startQuery(String queryString, Query query) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -247,14 +291,14 @@ public class KSQL {
         queryPairInfo =
         ksqlEngine.runSingleQuery(new Pair<>(queryId, query));
 
-    if (queryPairInfo.getThird() instanceof OutputKafkaTopicNode) {
-      Triplet<String, KafkaStreams, OutputKafkaTopicNode>
+    if (queryPairInfo.getThird() instanceof KQLStructuredDataOutputNode) {
+      Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>
           queryInfo =
-          new Triplet<>(queryString, queryPairInfo.getSecond(), (OutputKafkaTopicNode)
+          new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLStructuredDataOutputNode)
               queryPairInfo.getThird());
       liveQueries.put(queryId.toUpperCase(), queryInfo);
-    } else if (queryPairInfo.getThird() instanceof OutputKSQLConsoleNode) {
-      cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (OutputKSQLConsoleNode) queryPairInfo.getThird());
+    } else if (queryPairInfo.getThird() instanceof KQLConsoleOutputNode) {
+      cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLConsoleOutputNode) queryPairInfo.getThird());
     }
 
     if (isCLI) {
@@ -275,7 +319,7 @@ public class KSQL {
       console.flush();
       return;
     }
-    Triplet<String, KafkaStreams, OutputKafkaTopicNode>
+    Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>
         kafkaStreamsQuery =
         liveQueries.get(queryId);
     console.println("Query: " + kafkaStreamsQuery.getFirst());
@@ -299,8 +343,8 @@ public class KSQL {
 //        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
 //    for (String datasourceName : allDataSources.keySet()) {
 //      StructuredDataSource dataSource = allDataSources.get(datasourceName);
-//      if (dataSource instanceof KafkaTopic) {
-//        KafkaTopic kafkaTopic = (KafkaTopic) dataSource;
+//      if (dataSource instanceof KQLTopic) {
+//        KQLTopic kafkaTopic = (KQLTopic) dataSource;
 //        console.println(
 //            " " + padRight(datasourceName, 27) + "|  " + padRight(kafkaTopic.getTopicName(), 38)
 //            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|    "
@@ -317,7 +361,7 @@ public class KSQL {
 
   private void listTopics() throws IOException {
     MetaStore metaStore = ksqlEngine.getMetaStore();
-    Map<String, KafkaTopic> topicMap = metaStore.getAllKafkaTopics();
+    Map<String, KQLTopic> topicMap = metaStore.getAllKafkaTopics();
     if (topicMap.isEmpty()) {
       console.println("No topic is available.");
       return;
@@ -331,11 +375,11 @@ public class KSQL {
     console.println(
         "-------------------------------------------+--------------------------------------------+------------------------------------------");
     for (String topicName : topicMap.keySet()) {
-      KafkaTopic kafkaTopic = topicMap.get(topicName);
-      String formatStr = kafkaTopic.getKqlTopicSerDe().getSerDe().toString();
+      KQLTopic KQLTopic = topicMap.get(topicName);
+      String formatStr = KQLTopic.getKqlTopicSerDe().getSerDe().toString();
       console.println(
-          " " + padRight(topicName, 42) + "|  " + padRight(kafkaTopic.getKafkaTopicName(), 42)+"| "
-          + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 42));
+          " " + padRight(topicName, 42) + "|  " + padRight(KQLTopic.getKafkaTopicName(), 42) + "| "
+          + padRight(KQLTopic.getKqlTopicSerDe().getSerDe().toString(), 42));
     }
     console.println(
         "-------------------------------------------+--------------------------------------------+------------------------------------------");
@@ -361,18 +405,18 @@ public class KSQL {
       if (dataSource instanceof KQLStream) {
         KQLStream kqlStream = (KQLStream) dataSource;
         console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKafkaTopic()
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKQLTopic()
                                                                       .getName().toUpperCase(), 38)
             + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
             + padRight(kqlStream.getDataSourceType().toString(), 16)+ "|          "
-            + padRight(kqlStream.getKafkaTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+            + padRight(kqlStream.getKQLTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
       } else if (dataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) dataSource;
         console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKafkaTopic().getName(), 38)
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKQLTopic().getName(), 38)
             + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
             + padRight(kqlTable.getDataSourceType().toString(), 16)+ "|          "
-            + padRight(kqlTable.getKafkaTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+            + padRight(kqlTable.getKQLTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
       }
 
     }
@@ -414,7 +458,7 @@ public class KSQL {
     for (String queryId : liveQueries.keySet()) {
       console.println(
           "------------+----------------------------------------------------------------------------------+-----------------------------------");
-      Triplet<String, KafkaStreams, OutputKafkaTopicNode> queryInfo = liveQueries.get(queryId);
+      Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> queryInfo = liveQueries.get(queryId);
       console.println(
           padRight(queryId, 12) + "|   " + padRight(queryInfo.getFirst(), 80) + "|   " + queryInfo
               .getThird().getKafkaTopicName().toUpperCase());
@@ -425,8 +469,8 @@ public class KSQL {
     console.flush();
   }
 
-  private void printTopic(KafkaTopic kafkaTopic, long interval) throws IOException {
-    new TopicPrinter().printGenericRowTopic(kafkaTopic, console, interval, this.cliProperties);
+  private void printTopic(KQLTopic KQLTopic, long interval) throws IOException {
+    new TopicPrinter().printGenericRowTopic(KQLTopic, console, interval, this.cliProperties);
   }
 
   private String getNextQueryId() {
@@ -516,13 +560,13 @@ public class KSQL {
 
   class LiveQueryMap {
 
-    Map<String, Triplet<String, KafkaStreams, OutputKafkaTopicNode>> liveQueries = new HashMap<>();
+    Map<String, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>> liveQueries = new HashMap<>();
 
-    public Triplet<String, KafkaStreams, OutputKafkaTopicNode> get(String key) {
+    public Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> get(String key) {
       return liveQueries.get(key.toUpperCase());
     }
 
-    public void put(String key, Triplet<String, KafkaStreams, OutputKafkaTopicNode> value) {
+    public void put(String key, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> value) {
       liveQueries.put(key.toUpperCase(), value);
     }
 

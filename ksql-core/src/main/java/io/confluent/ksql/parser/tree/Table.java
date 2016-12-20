@@ -13,6 +13,7 @@
  */
 package io.confluent.ksql.parser.tree;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class Table
     extends QueryBody {
 
   public final boolean isSTDOut;
+  Map<String, Expression> properties;
   private final QualifiedName name;
 
   public Table(QualifiedName name) {
@@ -48,6 +50,19 @@ public class Table
 
   public QualifiedName getName() {
     return name;
+  }
+
+  public boolean isSTDOut() {
+    return isSTDOut;
+  }
+
+  public Map<String, Expression> getProperties() {
+    return properties;
+  }
+
+  public void setProperties(
+      Map<String, Expression> properties) {
+    this.properties = properties;
   }
 
   @Override

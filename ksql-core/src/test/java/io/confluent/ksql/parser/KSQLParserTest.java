@@ -1,21 +1,11 @@
 package io.confluent.ksql.parser;
 
 
-import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.rewrite.KSQLRewriteParser;
-import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
-import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.KSQLTestUtil;
 
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 public class KSQLParserTest {
 

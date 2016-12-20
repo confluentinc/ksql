@@ -14,6 +14,8 @@ import java.util.List;
 public class Analysis {
 
   StructuredDataSource into;
+  String intoFormat = null;
+  String intoKafkaTopicName = null;
   List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   JoinNode join;
   Expression whereExpression = null;
@@ -73,5 +75,21 @@ public class Analysis {
 
   public void setJoin(JoinNode join) {
     this.join = join;
+  }
+
+  public void setIntoFormat(String intoFormat) {
+    this.intoFormat = intoFormat;
+  }
+
+  public void setIntoKafkaTopicName(String intoKafkaTopicName) {
+    this.intoKafkaTopicName = intoKafkaTopicName;
+  }
+
+  public String getIntoFormat() {
+    return intoFormat;
+  }
+
+  public String getIntoKafkaTopicName() {
+    return intoKafkaTopicName;
   }
 }

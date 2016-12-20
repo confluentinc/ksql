@@ -8,8 +8,8 @@ public class KQLTable extends StructuredDataSource {
   final String stateStoreName;
 
   public KQLTable(String datasourceName, Schema schema, Field keyField,
-                  KafkaTopic kafkaTopic, String stateStoreName) {
-    super(datasourceName, schema, keyField, DataSourceType.KTABLE, kafkaTopic);
+                  KQLTopic KQLTopic, String stateStoreName) {
+    super(datasourceName, schema, keyField, DataSourceType.KTABLE, KQLTopic);
     this.stateStoreName = stateStoreName;
   }
 

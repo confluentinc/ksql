@@ -4,18 +4,16 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
-public class KafkaTopic implements DataSource {
+public class KQLTopic implements DataSource {
 
   final String topicName;
   final String kafkaTopicName;
   final KQLTopicSerDe kqlTopicSerDe;
-  final DataSourceType dataSourceType;
 
-  public KafkaTopic(String topicName, String kafkaTopicName, KQLTopicSerDe kqlTopicSerDe) {
+  public KQLTopic(String topicName, String kafkaTopicName, KQLTopicSerDe kqlTopicSerDe) {
     this.topicName = topicName;
     this.kafkaTopicName = kafkaTopicName;
     this.kqlTopicSerDe = kqlTopicSerDe;
-    this.dataSourceType = DataSourceType.KTOPIC;
   }
 
   public KQLTopicSerDe getKqlTopicSerDe() {
@@ -46,6 +44,6 @@ public class KafkaTopic implements DataSource {
 
   @Override
   public DataSourceType getDataSourceType() {
-    return dataSourceType;
+    return DataSourceType.KTOPIC;
   }
 }

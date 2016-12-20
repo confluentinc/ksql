@@ -1,15 +1,11 @@
 package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.KQL_STDOUT;
-import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.planner.plan.*;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.SchemaUtil;
@@ -49,16 +45,23 @@ public class LogicalPlanner {
 
   private OutputNode buildOutputNode(Schema inputSchema, PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
-//    if (intoDataSource instanceof StructuredDataSource) {
-////      KafkaTopic kafkaTopic = (KafkaTopic) intoDataSource;
-////      return new OutputKafkaTopicNode(new PlanNodeId(kafkaTopic.getTopicName()), sourcePlanNode,
-////                                      inputSchema, kafkaTopic.getTopicName());
-//      return null;
-//    } else
+
     if (intoDataSource instanceof KQL_STDOUT) {
-      return new OutputKSQLConsoleNode(new PlanNodeId(KQL_STDOUT.KQL_STDOUT_NAME), sourcePlanNode,
-                                       inputSchema);
+      return new KQLConsoleOutputNode(new PlanNodeId(KQL_STDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+                                      inputSchema);
+    } else if (intoDataSource instanceof StructuredDataSource) {
+      StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
+
+      return new KQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()), sourcePlanNode,
+                                             inputSchema, intoStructuredDataSource.getKQLTopic(),
+                                             intoStructuredDataSource.getKQLTopic()
+                                                 .getTopicName());
+//      KQLTopic kafkaTopic = (KQLTopic) intoDataSource;
+//      return new OutputKafkaTopicNode(new PlanNodeId(kafkaTopic.getTopicName()), sourcePlanNode,
+//                                      inputSchema, kafkaTopic.getTopicName());
+//      return null;
     }
+
     throw new RuntimeException("INTO caluse is not supported in SELECT.");
   }
 
@@ -93,30 +96,29 @@ public class LogicalPlanner {
     StructuredDataSource fromDataSource = analysis.getFromDataSources().get(0).getLeft();
     String alias = analysis.getFromDataSources().get(0).getRight();
     Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
-//    if (fromDataSource instanceof KafkaTopic) {
-//      KafkaTopic fromKafkaTopic = (KafkaTopic) fromDataSource;
-//      return new SourceKafkaTopicNode(new PlanNodeId("KafkaTopic"), fromSchema,
+//    if (fromDataSource instanceof KQLTopic) {
+//      KQLTopic fromKafkaTopic = (KQLTopic) fromDataSource;
+//      return new SourceKafkaTopicNode(new PlanNodeId("KQLTopic"), fromSchema,
 //                                      fromDataSource.getKeyField(), fromKafkaTopic.getTopicName(),
 //                                      alias, fromKafkaTopic.getDataSourceType(),
-//                                      ((KafkaTopic) fromDataSource).getKqlTopicSerDe());
+//                                      ((KQLTopic) fromDataSource).getKqlTopicSerDe());
 //    }
 
     if (fromDataSource instanceof KQLStream) {
       KQLStream fromStream = (KQLStream) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KafkaTopic"), fromSchema,
-                                      fromDataSource.getKeyField(), fromStream.getKafkaTopic().getTopicName(),
+      return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
+                                      fromDataSource.getKeyField(), fromStream.getKQLTopic().getTopicName(),
                                       alias, fromStream.getDataSourceType(),
                                       fromStream);
     } else if (fromDataSource instanceof KQLTable) {
       KQLTable fromTable = (KQLTable) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KafkaTopic"), fromSchema,
-                                      fromDataSource.getKeyField(), fromTable.getKafkaTopic().getTopicName(),
+      return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
+                                      fromDataSource.getKeyField(), fromTable.getKQLTopic().getTopicName(),
                                       alias, fromTable.getDataSourceType(),
                                       fromTable);
     }
 
     throw new RuntimeException("Data source is not suppoted yet.");
   }
-
 
 }

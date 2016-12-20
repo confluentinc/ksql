@@ -1,7 +1,6 @@
 package io.confluent.ksql.physical;
 
 
-import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -58,19 +57,25 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildOutput(OutputNode outputNode) throws Exception {
     SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
-    if (outputNode instanceof OutputKafkaTopicNode) {
-      OutputKafkaTopicNode outputKafkaTopicNode = (OutputKafkaTopicNode) outputNode;
-      KQLTopicSerDe topicSerDe = getResultTopicSerde(outputKafkaTopicNode);
+    if (outputNode instanceof KQLStructuredDataOutputNode) {
+      KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
+          outputNode;
+      KQLTopicSerDe topicSerDe = getResultTopicSerde(kqlStructuredDataOutputNode);
 
-      SchemaKStream resultSchemaStream = schemaKStream.into(outputKafkaTopicNode
-                                                                .getKafkaTopicName(), SerDeUtil.getRowSerDe
-          (topicSerDe));
-      this.planSink = outputKafkaTopicNode;
+//      SchemaKStream resultSchemaStream = schemaKStream.into(KQLStructuredDataOutputNode
+//                                                                .getKafkaTopicName(), SerDeUtil.getRowSerDe
+//          (topicSerDe));
+      SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
+                                                                .getKafkaTopicName(),
+                                                            SerDeUtil.getRowSerDe
+                                                                (kqlStructuredDataOutputNode
+                                                                     .getKqlTopic().getKqlTopicSerDe()));
+      this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;
-    } else if (outputNode instanceof OutputKSQLConsoleNode) {
+    } else if (outputNode instanceof KQLConsoleOutputNode) {
       SchemaKStream resultSchemaStream = schemaKStream.print();
-      OutputKSQLConsoleNode outputKSQLConsoleNode = (OutputKSQLConsoleNode) outputNode;
-      this.planSink = outputKSQLConsoleNode;
+      KQLConsoleOutputNode KQLConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
+      this.planSink = KQLConsoleOutputNode;
       return resultSchemaStream;
     }
     throw new KSQLException("Unsupported output logical node: " + outputNode.getClass().getName());
@@ -97,7 +102,7 @@ public class PhysicalPlanBuilder {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
 
       Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                                                    .getKafkaTopic().getKqlTopicSerDe());
+                                                                    .getKQLTopic().getKqlTopicSerDe());
 
       if (structuredDataSourceNode.getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
 
@@ -105,7 +110,7 @@ public class PhysicalPlanBuilder {
         KTable
             kTable =
             builder
-                .table(Serdes.String(), genericRowSerde, kqlTable.getKafkaTopic().getKafkaTopicName(),
+                .table(Serdes.String(), genericRowSerde, kqlTable.getKQLTopic().getKafkaTopicName(),
                        kqlTable.getStateStoreName());
         return new SchemaKTable(sourceNode.getSchema(), kTable,
                                 sourceNode.getKeyField());
@@ -114,7 +119,7 @@ public class PhysicalPlanBuilder {
       KStream
           kStream =
           builder
-              .stream(Serdes.String(), genericRowSerde, kqlStream.getKafkaTopic().getKafkaTopicName());
+              .stream(Serdes.String(), genericRowSerde, kqlStream.getKQLTopic().getKafkaTopicName());
       return new SchemaKStream(sourceNode.getSchema(), kStream,
                                sourceNode.getKeyField());
     }
@@ -157,7 +162,7 @@ public class PhysicalPlanBuilder {
   private KQLTopicSerDe getResultTopicSerde(PlanNode node) {
     if (node instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode)node;
-      return structuredDataSourceNode.getStructuredDataSource().getKafkaTopic().getKqlTopicSerDe();
+      return structuredDataSourceNode.getStructuredDataSource().getKQLTopic().getKqlTopicSerDe();
     } else if (node instanceof JoinNode) {
       JoinNode joinNode = (JoinNode) node;
       KQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());

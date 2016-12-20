@@ -29,8 +29,8 @@ public class MetastoreUtil {
     String name = node.get("name").asText().toUpperCase();
     String topicname = node.get("topic").asText();
 
-    KafkaTopic kafkaTopic = (KafkaTopic) metaStore.getTopic(topicname);
-    if (kafkaTopic == null) {
+    KQLTopic KQLTopic = (KQLTopic) metaStore.getTopic(topicname);
+    if (KQLTopic == null) {
       throw new KSQLException("Unable to add the structured data source. The corresponding topic "
                               + "does not exist: "+topicname);
     }
@@ -53,21 +53,21 @@ public class MetastoreUtil {
 
     if (type.equalsIgnoreCase("stream")) {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
-                           kafkaTopic);
+                           KQLTopic);
     } else if (type.equalsIgnoreCase("table")) {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                            kafkaTopic, kafkaTopic.getName());
+                            KQLTopic, KQLTopic.getName());
       }
       String stateStore = node.get("statestore").asText();
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                           kafkaTopic, stateStore);
+                          KQLTopic, stateStore);
     }
     throw new KSQLException("Type not supported.");
   }
 
-  public KafkaTopic createKafkaTopicDataSource(JsonNode node) throws IOException {
+  public KQLTopic createKafkaTopicDataSource(JsonNode node) throws IOException {
 
     KQLTopicSerDe topicSerDe;
     String topicname = node.get("topicname").asText();
@@ -85,7 +85,7 @@ public class MetastoreUtil {
       topicSerDe = new KQLJsonTopicSerDe();
     }
 
-    return new KafkaTopic(topicname, kafkaTopicName, topicSerDe);
+    return new KQLTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
   private Schema getKSQLType(String sqlType) {
@@ -112,8 +112,8 @@ public class MetastoreUtil {
 
       ArrayNode topicNodes = (ArrayNode) root.get("topics");
       for (JsonNode schemaNode : topicNodes) {
-        KafkaTopic kafkaTopic = createKafkaTopicDataSource(schemaNode);
-        metaStore.putTopic(kafkaTopic);
+        KQLTopic KQLTopic = createKafkaTopicDataSource(schemaNode);
+        metaStore.putTopic(KQLTopic);
       }
 
       ArrayNode schemaNodes = (ArrayNode) root.get("schemas");

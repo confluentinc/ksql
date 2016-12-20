@@ -2,6 +2,10 @@ package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.ksql.ddl.DDLConfig;
+import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.KQLStream;
+import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -10,10 +14,15 @@ import io.confluent.ksql.planner.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.serde.KQLTopicSerDe;
+import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.connect.data.Field;
+
+import java.util.List;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
@@ -29,7 +38,35 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
 
     process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
+
     process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
+    if (!(analysis.getInto() instanceof KQL_STDOUT)) {
+      List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
+
+      StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
+      String intoKafkaTopicName = analysis.getIntoKafkaTopicName();
+      if (intoKafkaTopicName == null) {
+        intoKafkaTopicName = intoStructuredDataSource.getName();
+      }
+
+      KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKQLTopic()
+          .getKqlTopicSerDe();
+      if (analysis.getIntoFormat() != null) {
+        if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+          intoTopicSerde = new KQLAvroTopicSerDe("");
+        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
+          intoTopicSerde = new KQLJsonTopicSerDe();
+        }
+      }
+
+      KQLTopic newIntoKQLTopic = new KQLTopic(intoKafkaTopicName,
+                                              intoKafkaTopicName, intoTopicSerde);
+
+      KQLStream intoKQLStream = new KQLStream(intoStructuredDataSource.getName(),
+                                                null, null, newIntoKQLTopic);
+      analysis.setInto(intoKQLStream);
+    }
+
 
     process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
 
@@ -94,13 +131,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                 leftDataSource.getKeyField(), leftDataSource.getKafkaTopic().getTopicName(),
+                                 leftDataSource.getKeyField(), leftDataSource.getKQLTopic().getTopicName(),
                                  leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
                                  leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"), rightDataSource.getSchema(),
-                                 rightDataSource.getKeyField(), rightDataSource.getKafkaTopic().getTopicName(),
+                                 rightDataSource.getKeyField(), rightDataSource.getKQLTopic().getTopicName(),
                                  rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
                                  rightDataSource);
 
@@ -154,12 +191,34 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.isSTDOut) {
       into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, StructuredDataSource.DataSourceType
           .KSTREAM);
-//    }
-//    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+    }
+    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+      if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
+        String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
+        if (!serde.startsWith("'") && !serde.endsWith("'")) {
+          throw new KSQLException(serde + " value is string and should be enclosed between "
+                                  + "\"'\".");
+        }
+        serde = serde.substring(1,serde.length()-1);
+        analysis.setIntoFormat(serde);
+      }
+
+      if (node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
+        String intoKafkaTopicName = node.getProperties().get(DDLConfig
+                                                                    .KAFKA_TOPIC_NAME_PROPERTY).toString();
+        if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
+          throw new KSQLException(intoKafkaTopicName + " value is string and should be enclosed between "
+                                  + "\"'\".");
+        }
+        intoKafkaTopicName = intoKafkaTopicName.substring(1,intoKafkaTopicName.length()-1);
+        analysis.setIntoKafkaTopicName(intoKafkaTopicName);
+      }
+
 //      into =
-//          new StructuredDataSourceNode(node.getName().getSuffix(), null, null, StructuredDataSource.DataSourceType.KSTREAM,
-//                         null,
-//                         node.getName().getSuffix());
+//          new StructuredDataSourceNode(new PlanNodeId("INTO"), null, null,
+//                         node.getName().getSuffix(), node.getName().getSuffix(),
+//                                       StructuredDataSource.DataSourceType.KSTREAM, null);
+      into = new KQLStream(node.getName().getSuffix(), null, null, null);
     } else {
       throw new KSQLException("INTO clause is not set correctly!");
     }

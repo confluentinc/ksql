@@ -184,6 +184,54 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 */
 	void exitCreateTopic(SqlBaseParser.CreateTopicContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code createStream}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreateStream(SqlBaseParser.CreateStreamContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code createStream}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreateStream(SqlBaseParser.CreateStreamContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code createStreamAs}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreateStreamAs(SqlBaseParser.CreateStreamAsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code createStreamAs}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreateStreamAs(SqlBaseParser.CreateStreamAsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code createTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreateTable(SqlBaseParser.CreateTableContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code createTable}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreateTable(SqlBaseParser.CreateTableContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code createTableAs}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreateTableAs(SqlBaseParser.CreateTableAsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code createTableAs}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreateTableAs(SqlBaseParser.CreateTableAsContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code dropTable}
 	 * labeled alternative in {@link SqlBaseParser#statement}.
 	 * @param ctx the parse tree

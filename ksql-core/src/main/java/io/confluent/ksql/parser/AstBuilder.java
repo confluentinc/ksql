@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -115,19 +115,35 @@ public class AstBuilder
     return new Isolation(getLocation(context), Isolation.Level.SERIALIZABLE);
   }
 
-//  @Override
-//  public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
-//    return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()),
-//                           visit(context.tableElement(), TableElement.class),
-//                           context.EXISTS() != null,
-//                           processTableProperties(context.tableProperties()));
-//  }
+  @Override
+  public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
+    return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()),
+                           visit(context.tableElement(), TableElement.class),
+                           context.EXISTS() != null,
+                           processTableProperties(context.tableProperties()));
+  }
 
   @Override
   public Node visitCreateTopic(SqlBaseParser.CreateTopicContext context) {
     return new CreateTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
                            context.EXISTS() != null,
                            processTableProperties(context.tableProperties()));
+  }
+
+  @Override
+  public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
+    return new CreateStream(getLocation(context), getQualifiedName(context.qualifiedName()),
+                           visit(context.tableElement(), TableElement.class),
+                           context.EXISTS() != null,
+                           processTableProperties(context.tableProperties()));
+  }
+
+  @Override
+  public Node visitCreateStreamAs(SqlBaseParser.CreateStreamAsContext context) {
+    return new CreateStreamAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
+                                    (Query) visitQuery(context.query()),
+                            context.EXISTS() != null,
+                            processTableProperties(context.tableProperties()));
   }
 
   @Override
@@ -1461,11 +1477,12 @@ public class AstBuilder
 
     }
 
-    KafkaTopic kafkaTopic = new KafkaTopic(into.getName().toString(), into.getName().toString(),
-                                           null);
+    KQLTopic KQLTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
+                                     null);
     StructuredDataSource
         resultStream =
-        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),kafkaTopic
+        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
+                      KQLTopic
                       );
     return resultStream;
   }

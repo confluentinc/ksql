@@ -382,6 +382,14 @@ public abstract class DefaultASTVisitor<R, C>
     return visitNode(node, context);
   }
 
+  protected R visitCreateStream(CreateStream node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitCreateStreamAsSelect(CreateStreamAsSelect node, C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitCreateTable(CreateTable node, C context) {
     return visitStatement(node, context);
   }

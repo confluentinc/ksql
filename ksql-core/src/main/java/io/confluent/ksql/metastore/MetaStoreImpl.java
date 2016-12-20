@@ -3,22 +3,21 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.util.KSQLException;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class MetaStoreImpl implements MetaStore {
 
-  Map<String, KafkaTopic> topicMap = new HashMap<>();
+  Map<String, KQLTopic> topicMap = new HashMap<>();
 
   Map<String, StructuredDataSource> dataSourceMap = new HashMap<>();
 
   @Override
-  public KafkaTopic getTopic(String topicName) {
+  public KQLTopic getTopic(String topicName) {
     return topicMap.get(topicName.toUpperCase());
   }
 
   @Override
-  public void putTopic(KafkaTopic topic) {
+  public void putTopic(KQLTopic topic) {
     if (topicMap.get(topic.getName().toUpperCase()) == null) {
       topicMap.put(topic.getName().toUpperCase(), topic);
     } else {
@@ -56,7 +55,7 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public Map<String, KafkaTopic> getAllKafkaTopics() {
+  public Map<String, KQLTopic> getAllKafkaTopics() {
     return topicMap;
   }
 }

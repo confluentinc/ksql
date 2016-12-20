@@ -385,6 +385,18 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
+  protected R visitCreateTopic(CreateTopic node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitCreateStream(CreateStream node, C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitCreateStreamAsSelect(CreateStreamAsSelect node, C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitCreateTable(CreateTable node, C context) {
     return visitStatement(node, context);
   }

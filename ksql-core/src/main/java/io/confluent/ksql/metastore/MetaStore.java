@@ -4,9 +4,9 @@ import java.util.Map;
 
 public interface MetaStore {
 
-  public KafkaTopic getTopic(String topicName);
+  public KQLTopic getTopic(String topicName);
 
-  public void putTopic(KafkaTopic topic);
+  public void putTopic(KQLTopic topic);
 
   public StructuredDataSource getSource(String sourceName);
 
@@ -16,5 +16,5 @@ public interface MetaStore {
 
   public Map<String, StructuredDataSource> getAllStructuredDataSource();
 
-  public Map<String, KafkaTopic> getAllKafkaTopics();
+  public Map<String, KQLTopic> getAllKafkaTopics();
 }

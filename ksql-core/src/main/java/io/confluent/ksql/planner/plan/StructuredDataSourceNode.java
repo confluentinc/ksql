@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.ksql.metastore.KafkaTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 
 import org.apache.kafka.connect.data.Field;

@@ -7,12 +7,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public class OutputKSQLConsoleNode extends OutputNode {
+public class KQLConsoleOutputNode extends OutputNode {
 
   @JsonCreator
-  public OutputKSQLConsoleNode(@JsonProperty("id") PlanNodeId id,
-                               @JsonProperty("source") PlanNode source,
-                               @JsonProperty("schema") Schema schema) {
+  public KQLConsoleOutputNode(@JsonProperty("id") PlanNodeId id,
+                              @JsonProperty("source") PlanNode source,
+                              @JsonProperty("schema") Schema schema) {
     super(id, source, schema);
 
 

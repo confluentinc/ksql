@@ -13,16 +13,16 @@ public abstract class StructuredDataSource implements DataSource {
   final Schema schema;
   final Field keyField;
 
-  final KafkaTopic kafkaTopic;
+  final KQLTopic KQLTopic;
 
 
   public StructuredDataSource(String datasourceName, Schema schema, Field keyField,
-                              DataSourceType dataSourceType, KafkaTopic kafkaTopic) {
+                              DataSourceType dataSourceType, KQLTopic KQLTopic) {
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;
     this.dataSourceType = dataSourceType;
-    this.kafkaTopic = kafkaTopic;
+    this.KQLTopic = KQLTopic;
   }
 
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
@@ -52,7 +52,7 @@ public abstract class StructuredDataSource implements DataSource {
     return this.dataSourceType;
   }
 
-  public KafkaTopic getKafkaTopic() {
-    return kafkaTopic;
+  public KQLTopic getKQLTopic() {
+    return KQLTopic;
   }
 }

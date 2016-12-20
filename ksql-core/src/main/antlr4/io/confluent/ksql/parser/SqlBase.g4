@@ -51,9 +51,16 @@ statement
     | LOAD expression                                                  #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                    #createTopic
-//    | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
-//                '(' tableElement (',' tableElement)* ')'
-//                (WITH tableProperties)?                                #createTable
+    | CREATE STREAM (IF NOT EXISTS)? qualifiedName
+                '(' tableElement (',' tableElement)* ')'
+                (WITH tableProperties)?                                #createStream
+    | CREATE STREAM (IF NOT EXISTS)? qualifiedName
+            (WITH tableProperties)? AS query                           #createStreamAs
+    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+                    '(' tableElement (',' tableElement)* ')'
+                    (WITH tableProperties)?                            #createTable
+    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+            (WITH tableProperties)? AS query                           #createTableAs
     | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTable
     ;
 

@@ -3,10 +3,9 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KafkaTopic;
+import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
 
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -22,14 +21,14 @@ public class KSQLTestUtil {
         .field("COL2", SchemaBuilder.STRING_SCHEMA)
         .field("COL3", SchemaBuilder.FLOAT64_SCHEMA);
 
-    KafkaTopic
-        kafkaTopic1 =
-        new KafkaTopic("test1", "test1", null);
+    KQLTopic
+        KQLTopic1 =
+        new KQLTopic("test1", "test1", null);
 
     KQLStream kqlStream = new KQLStream("test1", schemaBuilder1, schemaBuilder1.field("COL0"),
-                                        kafkaTopic1);
+                                        KQLTopic1);
 
-    metaStore.putTopic(kafkaTopic1);
+    metaStore.putTopic(KQLTopic1);
     metaStore.putSource(kqlStream);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
@@ -39,13 +38,13 @@ public class KSQLTestUtil {
         .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
         .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
 
-    KafkaTopic
-        kafkaTopic2 =
-        new KafkaTopic("test2", "test2", null);
+    KQLTopic
+        KQLTopic2 =
+        new KQLTopic("test2", "test2", null);
     KQLTable kqlTable = new KQLTable("test2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     kafkaTopic2, "test2");
+                                     KQLTopic2, "test2");
 
-    metaStore.putTopic(kafkaTopic2);
+    metaStore.putTopic(KQLTopic2);
     metaStore.putSource(kqlTable);
     return metaStore;
   }

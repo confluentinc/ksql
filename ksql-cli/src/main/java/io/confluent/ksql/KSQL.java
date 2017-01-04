@@ -54,6 +54,9 @@ public class KSQL {
                                    "list streams", "create topic"));
       String line = null;
       while ((line = console.readLine()) != null) {
+        if (line.length() == 0) {
+          continue;
+        }
         if (line.trim().toLowerCase().startsWith("exit")) {
           // Close all running queries first!
           for (String runningQueryId : liveQueries.keySet()) {

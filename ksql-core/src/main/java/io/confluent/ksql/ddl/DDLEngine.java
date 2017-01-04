@@ -16,6 +16,7 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
@@ -80,6 +81,8 @@ public class DDLEngine {
       }
     } else if (serde.equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
       topicSerDe = new KQLJsonTopicSerDe();
+    } else if (serde.equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
+      topicSerDe = new KQLCsvTopicSerDe();
     } else {
       throw new KSQLException("The specified topic serde is not supported.");
     }

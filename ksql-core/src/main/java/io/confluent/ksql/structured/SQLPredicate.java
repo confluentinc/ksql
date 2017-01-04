@@ -3,6 +3,7 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.ExpressionUtil;
+import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.connect.data.Schema;
@@ -20,9 +21,12 @@ public class SQLPredicate {
   IExpressionEvaluator ee;
   int[] columnIndexes;
 
+  GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+
   public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
+    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
 
     ExpressionUtil expressionUtil = new ExpressionUtil();
     Map<String, Class> parameterMap = expressionUtil.getParameterInfo(filterExpression, schema);
@@ -59,11 +63,14 @@ public class SQLPredicate {
         try {
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
-            if (row.getColumns().get(columnIndexes[i]) instanceof CharSequence) {
-              values[i] = row.getColumns().get(columnIndexes[i]).toString();
-            } else {
-              values[i] = row.getColumns().get(columnIndexes[i]);
-            }
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i],row
+                .getColumns().get(columnIndexes[i]));
+
+//            if (row.getColumns().get(columnIndexes[i]) instanceof CharSequence) {
+//              values[i] = row.getColumns().get(columnIndexes[i]).toString();
+//            } else {
+//              values[i] = row.getColumns().get(columnIndexes[i]);
+//            }
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;

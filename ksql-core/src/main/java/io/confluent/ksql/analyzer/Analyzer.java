@@ -16,6 +16,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
@@ -56,6 +57,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           intoTopicSerde = new KQLAvroTopicSerDe("");
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
           intoTopicSerde = new KQLJsonTopicSerDe();
+        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
+          intoTopicSerde = new KQLCsvTopicSerDe();
         }
       }
 

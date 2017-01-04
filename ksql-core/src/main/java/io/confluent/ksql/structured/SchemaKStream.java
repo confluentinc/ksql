@@ -6,6 +6,7 @@ import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.util.ExpressionUtil;
+import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.Triplet;
@@ -30,11 +31,13 @@ public class SchemaKStream {
   final Schema schema;
   final KStream kStream;
   final Field keyField;
+  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
   public SchemaKStream(Schema schema, KStream kStream, Field keyField) {
     this.schema = schema;
     this.kStream = kStream;
     this.keyField = keyField;
+    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
   }
 
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
@@ -109,11 +112,13 @@ public class SchemaKStream {
                 if (parameterIndexes[j] < 0) {
                   parameterObjects[j] = kudfs[j];
                 } else {
-                  if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
-                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
-                  } else {
-                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
-                  }
+                  parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType
+                      (parameterIndexes[j],row.getColumns().get(parameterIndexes[j]));
+//                  if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
+//                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
+//                  } else {
+//                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
+//                  }
                 }
               }
               Object columnValue = null;

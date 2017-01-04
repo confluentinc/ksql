@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
@@ -81,8 +82,12 @@ public class MetastoreUtil {
       String schemaPath = node.get("avroschemafile").asText();
       String avroSchema = getAvroSchema(schemaPath);
       topicSerDe = new KQLAvroTopicSerDe(avroSchema);
-    } else {
+    } else if (serde.equalsIgnoreCase("json")) {
       topicSerDe = new KQLJsonTopicSerDe();
+    } else if (serde.equalsIgnoreCase("csv")) {
+      topicSerDe = new KQLCsvTopicSerDe();
+    } else {
+      throw new KSQLException("Topic serde is not supported.");
     }
 
     return new KQLTopic(topicname, kafkaTopicName, topicSerDe);

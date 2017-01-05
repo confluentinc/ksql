@@ -1,6 +1,7 @@
 package io.confluent.ksql.metastore;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -11,13 +12,16 @@ import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class MetastoreUtil {
 
@@ -81,7 +85,7 @@ public class MetastoreUtil {
       }
       String schemaPath = node.get("avroschemafile").asText();
       String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KQLAvroTopicSerDe(avroSchema);
+      topicSerDe = new KQLAvroTopicSerDe(schemaPath, avroSchema);
     } else if (serde.equalsIgnoreCase("json")) {
       topicSerDe = new KQLJsonTopicSerDe();
     } else if (serde.equalsIgnoreCase("csv")) {
@@ -108,6 +112,21 @@ public class MetastoreUtil {
     throw new KSQLException("Unsupported type: " + sqlType);
   }
 
+  private String getKSQLTypeInJson(Schema schemaType) {
+    if (schemaType == Schema.INT64_SCHEMA) {
+      return "long";
+    } else if (schemaType == Schema.STRING_SCHEMA) {
+      return "string";
+    } else if (schemaType == Schema.FLOAT64_SCHEMA) {
+      return "double";
+    } else if (schemaType == Schema.INT64_SCHEMA) {
+      return "integer";
+    } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
+      return "boolean";
+    }
+    throw new KSQLException("Unsupported type: " + schemaType);
+  }
+
   public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KSQLException {
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
@@ -131,6 +150,93 @@ public class MetastoreUtil {
       throw new KSQLException("Could not load the schema file from " + metastoreJsonFilePath, fnf);
     } catch (IOException ioex) {
       throw new KSQLException("Could not read schema from " + metastoreJsonFilePath, ioex);
+    }
+  }
+
+  private void addTopics(StringBuilder stringBuilder, Map<String, KQLTopic> topicMap) {
+    stringBuilder.append("\"topics\" :[ \n");
+    boolean isFist = true;
+    for (KQLTopic kqlTopic: topicMap.values()) {
+      if (!isFist) {
+        stringBuilder.append("\t\t, \n");
+      } else {
+        isFist = false;
+      }
+      stringBuilder.append("\t\t{\n");
+      stringBuilder.append("\t\t\t \"namespace\": \"kql-topics\", \n");
+      stringBuilder.append("\t\t\t \"topicname\": \""+kqlTopic.getTopicName()+"\", \n");
+      stringBuilder.append("\t\t\t \"kafkatopicname\": \""+kqlTopic.getKafkaTopicName()+"\", \n");
+      stringBuilder.append("\t\t\t \"serde\": \""+kqlTopic.getKqlTopicSerDe().getSerDe()+"\"");
+      if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
+        KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
+        stringBuilder.append(",\n\t\t\t \"avroschemafile\": \""+kqlAvroTopicSerDe.getSchemaFilePath
+            ()+"\"");
+      }
+      stringBuilder.append("\n\t\t}\n");
+
+    }
+    stringBuilder.append("\t\t]\n");
+  }
+
+  private void addSchemas(StringBuilder stringBuilder, Map<String, StructuredDataSource>
+      dataSourceMap) {
+    stringBuilder.append("\t\"schemas\" :[ \n");
+    boolean isFirst = true;
+    for (StructuredDataSource structuredDataSource:dataSourceMap.values()) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        stringBuilder.append("\t\t, \n");
+      }
+      stringBuilder.append("\t\t{ \n");
+      stringBuilder.append("\t\t\t \"namespace\": \"kql\", \n");
+      if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KSTREAM) {
+        stringBuilder.append("\t\t\t \"type\": \"stream\", \n");
+      } else if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KTABLE) {
+        stringBuilder.append("\t\t\t \"type\": \"table\", \n");
+      } else {
+        throw new KSQLException("Incorrect data source type:"+structuredDataSource.dataSourceType);
+      }
+
+      stringBuilder.append("\t\t\t \"name\": \""+structuredDataSource.getName()+"\", \n");
+      stringBuilder.append("\t\t\t \"key\": \""+structuredDataSource.getKeyField().name()+"\", \n");
+      stringBuilder.append("\t\t\t \"topic\": \""+structuredDataSource.getKQLTopic().getName()+"\", \n");
+      if (structuredDataSource instanceof KQLTable) {
+        KQLTable kqlTable = (KQLTable) structuredDataSource;
+        stringBuilder.append("\t\t\t \"statestore\": \"users_statestore\", \n");
+      }
+      stringBuilder.append("\t\t\t \"fields\": [\n");
+      boolean isFirstField = true;
+      for (Field field:structuredDataSource.getSchema().fields()) {
+        if (isFirstField) {
+          isFirstField = false;
+        } else {
+          stringBuilder.append(", \n");
+        }
+        stringBuilder.append("\t\t\t     {\"name\": \""+field.name()+"\", \"type\": "
+                             + "\""+getKSQLTypeInJson(field.schema())+"\"} ");
+      }
+      stringBuilder.append("\t\t\t ]\n");
+      stringBuilder.append("\t\t}\n");
+    }
+    stringBuilder.append("\t ]\n");
+  }
+
+  public void writeMetastoreToFile(String filePath, MetaStoreImpl metaStore) {
+    StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"kql_catalog\",\n ");
+
+    addTopics(stringBuilder, metaStore.getAllKafkaTopics());
+    stringBuilder.append("\n\t, \n");
+    addSchemas(stringBuilder, metaStore.getAllStructuredDataSource());
+    stringBuilder.append("}");
+
+    System.out.println(stringBuilder.toString());
+    try {
+      RandomAccessFile raf = new RandomAccessFile(filePath, "rw");
+      raf.writeBytes(stringBuilder.toString());
+      raf.close();
+    } catch (IOException e) {
+      throw new KSQLException(" Could not write the schema into the file.");
     }
   }
 

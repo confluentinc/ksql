@@ -75,7 +75,7 @@ public class DDLEngine {
       avroSchemFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemFile);
       try {
         String avroSchema = getAvroSchema(avroSchemFile);
-        topicSerDe = new KQLAvroTopicSerDe(avroSchema);
+        topicSerDe = new KQLAvroTopicSerDe(avroSchemFile, avroSchema);
       } catch (IOException e) {
         throw new KSQLException("Could not read avro schema from file: " + avroSchemFile);
       }

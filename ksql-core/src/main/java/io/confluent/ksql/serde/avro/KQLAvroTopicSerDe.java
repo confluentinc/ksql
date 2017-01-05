@@ -6,13 +6,19 @@ import io.confluent.ksql.serde.KQLTopicSerDe;
 public class KQLAvroTopicSerDe extends KQLTopicSerDe {
 
   private final String schemaString;
+  private final String schemaFilePath;
 
-  public KQLAvroTopicSerDe(String schemaString) {
+  public KQLAvroTopicSerDe(String schemaFilePath, String schemaString) {
     super(StructuredDataSource.DataSourceSerDe.AVRO);
     this.schemaString = schemaString;
+    this.schemaFilePath = schemaFilePath;
   }
 
   public String getSchemaString() {
     return schemaString;
+  }
+
+  public String getSchemaFilePath() {
+    return schemaFilePath;
   }
 }

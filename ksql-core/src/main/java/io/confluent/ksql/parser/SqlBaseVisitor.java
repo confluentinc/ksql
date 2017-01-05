@@ -150,6 +150,13 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDropTable(SqlBaseParser.DropTableContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code exportCatalog}
+	 * labeled alternative in {@link SqlBaseParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExportCatalog(SqlBaseParser.ExportCatalogContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#query}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

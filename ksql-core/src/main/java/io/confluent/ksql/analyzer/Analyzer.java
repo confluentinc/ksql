@@ -54,7 +54,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
         if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-          intoTopicSerde = new KQLAvroTopicSerDe("");
+          intoTopicSerde = new KQLAvroTopicSerDe("", "");
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
           intoTopicSerde = new KQLJsonTopicSerDe();
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {

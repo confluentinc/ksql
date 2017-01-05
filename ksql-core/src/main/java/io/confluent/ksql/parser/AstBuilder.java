@@ -443,6 +443,11 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitExportCatalog(SqlBaseParser.ExportCatalogContext context) {
+    return  new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+  }
+
+  @Override
   public Node visitShowTopics(SqlBaseParser.ShowTopicsContext context) {
     return new ShowTopics(Optional.ofNullable(getLocation(context)));
   }

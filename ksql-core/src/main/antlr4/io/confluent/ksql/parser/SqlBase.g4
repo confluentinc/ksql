@@ -62,6 +62,7 @@ statement
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                           #createTableAs
     | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTable
+    | EXPORT CATALOG TO STRING                                         #exportCatalog
     ;
 
 query
@@ -586,6 +587,8 @@ PREPARE: 'PREPARE';
 DEALLOCATE: 'DEALLOCATE';
 EXECUTE: 'EXECUTE';
 SAMPLE: 'SAMPLE';
+EXPORT: 'EXPORT';
+CATALOG: 'CATALOG';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

@@ -1,10 +1,14 @@
 package io.confluent.ksql;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
@@ -133,6 +137,10 @@ public class KSQL {
         return;
       } else if (statement instanceof DropTable) {
         ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
+        return;
+      } else if (statement instanceof ExportCatalog) {
+        ExportCatalog exportCatalog = (ExportCatalog)statement;
+        exportCatalog(exportCatalog.getCatalogFilePath());
         return;
       } else if (statement instanceof ShowQueries) {
         showQueries();
@@ -474,6 +482,14 @@ public class KSQL {
 
   private void printTopic(KQLTopic KQLTopic, long interval) throws IOException {
     new TopicPrinter().printGenericRowTopic(KQLTopic, console, interval, this.cliProperties);
+  }
+
+  private void exportCatalog(String filePath) {
+
+    MetaStoreImpl metaStore = (MetaStoreImpl)ksqlEngine.getMetaStore();
+    MetastoreUtil metastoreUtil = new MetastoreUtil();
+
+    metastoreUtil.writeMetastoreToFile(filePath, metaStore);
   }
 
   private String getNextQueryId() {

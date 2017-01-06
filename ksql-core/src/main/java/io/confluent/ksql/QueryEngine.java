@@ -57,7 +57,8 @@ public class QueryEngine {
     Properties props = new Properties();
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId + "-" + System.currentTimeMillis());
     props = initProps(props);
-    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
+    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
+    props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
     KStreamBuilder builder = new KStreamBuilder();
 
@@ -144,8 +145,8 @@ public class QueryEngine {
       }
 
       props = initProps(props);
-//      props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 1000);
-      props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
+      props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+      props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
 
       KStreamBuilder builder = new KStreamBuilder();
 
@@ -202,7 +203,8 @@ public class QueryEngine {
                   .currentTimeMillis());
 
     props = initProps(props);
-    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
+    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
+    props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
     PlanNode logicalPlan = queryLogicalPlan.getRight();
     KQLConsoleOutputNode KQLConsoleOutputNode = null;

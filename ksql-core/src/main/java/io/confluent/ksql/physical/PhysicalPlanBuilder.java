@@ -141,11 +141,12 @@ public class PhysicalPlanBuilder {
       switch (joinNode.getType()) {
         case LEFT:
           KQLTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
+          String joinKeyFieldName = (joinNode.getLeftAlias() + "." + leftSchemaKStream
+              .getKeyField().name()).toUpperCase();
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
                                         joinNode.getSchema().field(
-                                            joinNode.getLeftAlias() + "." + leftSchemaKStream
-                                                .getKeyField().name()), SerDeUtil.getRowSerDe
+                                            joinKeyFieldName), SerDeUtil.getRowSerDe
                       (joinSerDe));
           break;
         default:

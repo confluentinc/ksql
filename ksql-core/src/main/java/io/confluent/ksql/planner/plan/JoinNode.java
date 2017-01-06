@@ -48,8 +48,8 @@ public class JoinNode extends PlanNode {
     this.leftAlias = leftAlias;
     this.rightAlias = rightAlias;
     this.schema = buildSchema(left, right);
-//    this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName).toUpperCase());
-    this.keyField = this.schema.field((leftAlias + "_" + leftKeyFieldName).toUpperCase());
+    this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName).toUpperCase());
+//    this.keyField = this.schema.field((leftAlias + "_" + leftKeyFieldName).toUpperCase());
   }
 
   private Schema buildSchema(PlanNode left, PlanNode right) {

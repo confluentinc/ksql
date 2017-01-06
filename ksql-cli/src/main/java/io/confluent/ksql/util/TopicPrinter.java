@@ -58,7 +58,7 @@ public class TopicPrinter {
     // usually the stream application would be running forever,
     // in this example we just let it run for some time and stop since the input data is finite.
     try {
-      Thread.sleep(1000L);
+      Thread.sleep(3000L);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }

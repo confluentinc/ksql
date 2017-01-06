@@ -129,11 +129,23 @@ public class KSQL {
         ksqlEngine.getDdlEngine().createTable((CreateTable) statement);
         return;
       } else if (statement instanceof CreateStreamAsSelect) {
-        Query query = addInto((CreateStreamAsSelect)statement);
+        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
+        QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
+            .getQueryBody();
+        Query query = addInto(createStreamAsSelect.getQuery(), querySpecification,
+                              createStreamAsSelect.getName().getSuffix(),createStreamAsSelect
+                                  .getProperties());
         startQuery(statementStr, query);
         return;
       } else if (statement instanceof CreateTableAsSelect) {
-        ksqlEngine.getDdlEngine().createTable((CreateTable) statement);
+        CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
+        QuerySpecification querySpecification = (QuerySpecification)createTableAsSelect.getQuery()
+            .getQueryBody();
+
+        Query query = addInto(createTableAsSelect.getQuery(), querySpecification,
+                              createTableAsSelect.getName().getSuffix(),createTableAsSelect
+                                  .getProperties());
+        startQuery(statementStr, query);
         return;
       } else if (statement instanceof DropTable) {
         ksqlEngine.getDdlEngine().dropTopic((DropTable) statement);
@@ -263,6 +275,30 @@ public class KSQL {
     String intoName = createStreamAsSelect.getName().getSuffix();
     Table intoTable = new Table(QualifiedName.of(intoName));
     intoTable.setProperties(createStreamAsSelect.getProperties());
+    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
+                                                                          .getSelect(),
+                                                                      java.util.Optional
+                                                                          .ofNullable(intoTable),
+                                                                      querySpecification.getFrom
+                                                                          (), querySpecification
+                                                                          .getWhere(),
+                                                                      querySpecification
+                                                                          .getGroupBy(),
+                                                                      querySpecification
+                                                                          .getHaving(),
+                                                                      querySpecification
+                                                                          .getOrderBy(),
+                                                                      querySpecification.getLimit
+                                                                          ());
+    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
+        , query.getApproximate());
+  }
+
+  private Query addInto(Query query, QuerySpecification querySpecification, String intoName,
+                        Map<String,
+      Expression> intoProperties) {
+    Table intoTable = new Table(QualifiedName.of(intoName));
+    intoTable.setProperties(intoProperties);
     QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
                                                                           .getSelect(),
                                                                       java.util.Optional

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQLTopic;
 
 import static java.util.Objects.requireNonNull;
@@ -16,6 +17,7 @@ public class KQLStructuredDataOutputNode extends OutputNode {
   final String kafkaTopicName;
   final KQLTopic kqlTopic;
   private final Field keyField;
+
 
   @JsonCreator
   public KQLStructuredDataOutputNode(@JsonProperty("id") PlanNodeId id,
@@ -41,4 +43,5 @@ public class KQLStructuredDataOutputNode extends OutputNode {
   public KQLTopic getKqlTopic() {
     return kqlTopic;
   }
+
 }

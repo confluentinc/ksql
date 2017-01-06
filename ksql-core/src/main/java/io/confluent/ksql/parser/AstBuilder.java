@@ -147,6 +147,14 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
+    return new CreateTableAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
+                                   (Query) visitQuery(context.query()),
+                                   context.EXISTS() != null,
+                                   processTableProperties(context.tableProperties()));
+  }
+
+  @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
     return new DropTable(getLocation(context), getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);

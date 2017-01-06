@@ -4,6 +4,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.KQLStream;
+import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.MetaStore;
@@ -16,8 +17,8 @@ import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
@@ -56,6 +57,7 @@ public class QueryEngine {
     Properties props = new Properties();
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId + "-" + System.currentTimeMillis());
     props = initProps(props);
+    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
 
     KStreamBuilder builder = new KStreamBuilder();
 
@@ -140,7 +142,10 @@ public class QueryEngine {
       } else {
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryLogicalPlan.getLeft());
       }
+
       props = initProps(props);
+//      props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 1000);
+      props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
 
       KStreamBuilder builder = new KStreamBuilder();
 
@@ -158,14 +163,22 @@ public class QueryEngine {
       StructuredDataSource sinkDataSource;
       if (outputNode instanceof KQLStructuredDataOutputNode) {
         KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
-            physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
+        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
         if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
         }
-        sinkDataSource =
-            new KQLStream(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
-                          outputKafkaTopicNode.getKeyField(),
-                          outputKafkaTopicNode.getKqlTopic());
+        if (schemaKStream instanceof SchemaKTable) {
+          sinkDataSource =
+              new KQLTable(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+                           outputKafkaTopicNode.getKeyField(),
+                           outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
+                                                                   .toString()+"_statestore");
+        } else {
+          sinkDataSource =
+              new KQLStream(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+                            outputKafkaTopicNode.getKeyField(),
+                            outputKafkaTopicNode.getKqlTopic());
+        }
 
         metaStore.putSource(sinkDataSource);
       } else if (outputNode instanceof KQLConsoleOutputNode) {
@@ -187,7 +200,9 @@ public class QueryEngine {
     props.put(StreamsConfig.APPLICATION_ID_CONFIG,
               "KSQL_CONSOLE_QUERY_" + queryLogicalPlan.getLeft() + "_" + System
                   .currentTimeMillis());
+
     props = initProps(props);
+    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 500);
 
     PlanNode logicalPlan = queryLogicalPlan.getRight();
     KQLConsoleOutputNode KQLConsoleOutputNode = null;

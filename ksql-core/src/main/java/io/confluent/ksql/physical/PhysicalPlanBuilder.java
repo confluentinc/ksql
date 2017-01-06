@@ -1,6 +1,7 @@
 package io.confluent.ksql.physical;
 
 
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KQLStream;
 import io.confluent.ksql.metastore.KQLTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -60,7 +61,7 @@ public class PhysicalPlanBuilder {
     if (outputNode instanceof KQLStructuredDataOutputNode) {
       KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
           outputNode;
-      KQLTopicSerDe topicSerDe = getResultTopicSerde(kqlStructuredDataOutputNode);
+//      KQLTopicSerDe topicSerDe = getResultTopicSerde(kqlStructuredDataOutputNode);
 
 //      SchemaKStream resultSchemaStream = schemaKStream.into(KQLStructuredDataOutputNode
 //                                                                .getKafkaTopicName(), SerDeUtil.getRowSerDe

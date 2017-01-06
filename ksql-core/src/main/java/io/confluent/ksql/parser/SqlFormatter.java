@@ -591,11 +591,6 @@ public final class SqlFormatter {
 
       builder.append(" AS ");
       process(node.getQuery(), indent);
-
-      if (!node.isWithData()) {
-        builder.append(" WITH NO DATA");
-      }
-
       return null;
     }
 

@@ -14,6 +14,7 @@ import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.ksql.util.*;
 
 import jline.TerminalFactory;
@@ -132,7 +133,7 @@ public class KSQL {
         CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
         QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
             .getQueryBody();
-        Query query = addInto(createStreamAsSelect.getQuery(), querySpecification,
+        Query query = ksqlEngine.addInto(createStreamAsSelect.getQuery(), querySpecification,
                               createStreamAsSelect.getName().getSuffix(),createStreamAsSelect
                                   .getProperties());
         startQuery(statementStr, query);
@@ -142,7 +143,7 @@ public class KSQL {
         QuerySpecification querySpecification = (QuerySpecification)createTableAsSelect.getQuery()
             .getQueryBody();
 
-        Query query = addInto(createTableAsSelect.getQuery(), querySpecification,
+        Query query = ksqlEngine.addInto(createTableAsSelect.getQuery(), querySpecification,
                               createTableAsSelect.getName().getSuffix(),createTableAsSelect
                                   .getProperties());
         startQuery(statementStr, query);
@@ -157,9 +158,6 @@ public class KSQL {
       } else if (statement instanceof ShowQueries) {
         showQueries();
         return;
-      } else if (statement instanceof ShowTopics) {
-        showTables();
-        return;
       } else if (statement instanceof ListTopics) {
         listTopics();
         return;
@@ -169,9 +167,6 @@ public class KSQL {
       } else if (statement instanceof ShowColumns) {
         ShowColumns showColumns = (ShowColumns) statement;
         showColumns(showColumns.getTable().getSuffix().toUpperCase());
-        return;
-      } else if (statement instanceof ShowTables) {
-        showTables();
         return;
       } else if (statement instanceof TerminateQuery) {
         terminateQuery((TerminateQuery) statement);
@@ -207,10 +202,10 @@ public class KSQL {
 
   }
 
-  private List<Statement> parseStatements(String statementString) {
-    List<Statement> statements = ksqlEngine.getStatements(statementString);
-    return statements;
-  }
+//  private List<Statement> parseStatements(String statementString) {
+//    List<Statement> statements = ksqlEngine.getStatements(statementString);
+//    return statements;
+//  }
 
 
   /**
@@ -260,62 +255,6 @@ public class KSQL {
     console.println("For more information refer to www.ksql.confluent.io");
     console.println();
     console.flush();
-  }
-
-  private Query addInto(CreateStreamAsSelect createStreamAsSelect) {
-    Query query = createStreamAsSelect.getQuery();
-    QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
-        .getQueryBody();
-//    AliasedRelation fromAliasedRelation = (AliasedRelation)querySpecification.getFrom().get();
-//    String fromName = ((Table)fromAliasedRelation.getRelation()).getName().getSuffix();
-//    StructuredDataSource fromSource = ksqlEngine.getMetaStore().getSource(fromName);
-//    KQLTopic fromKafkaTopic = fromSource.getKQLTopic();
-//    KQLTopic intoKafkaTopic = new KQLTopic(intoName, intoName, fromKafkaTopic
-//        .getKqlTopicSerDe());
-    String intoName = createStreamAsSelect.getName().getSuffix();
-    Table intoTable = new Table(QualifiedName.of(intoName));
-    intoTable.setProperties(createStreamAsSelect.getProperties());
-    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
-                                                                          .getSelect(),
-                                                                      java.util.Optional
-                                                                          .ofNullable(intoTable),
-                                                                      querySpecification.getFrom
-                                                                          (), querySpecification
-                                                                          .getWhere(),
-                                                                      querySpecification
-                                                                          .getGroupBy(),
-                                                                      querySpecification
-                                                                          .getHaving(),
-                                                                      querySpecification
-                                                                          .getOrderBy(),
-                                                                      querySpecification.getLimit
-                                                                          ());
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
-        , query.getApproximate());
-  }
-
-  private Query addInto(Query query, QuerySpecification querySpecification, String intoName,
-                        Map<String,
-      Expression> intoProperties) {
-    Table intoTable = new Table(QualifiedName.of(intoName));
-    intoTable.setProperties(intoProperties);
-    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
-                                                                          .getSelect(),
-                                                                      java.util.Optional
-                                                                          .ofNullable(intoTable),
-                                                                      querySpecification.getFrom
-                                                                          (), querySpecification
-                                                                          .getWhere(),
-                                                                      querySpecification
-                                                                          .getGroupBy(),
-                                                                      querySpecification
-                                                                          .getHaving(),
-                                                                      querySpecification
-                                                                          .getOrderBy(),
-                                                                      querySpecification.getLimit
-                                                                          ());
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
-        , query.getApproximate());
   }
 
   private void startQuery(String queryString, Query query) throws Exception {
@@ -375,61 +314,36 @@ public class KSQL {
     console.println("Terminated query with id = " + queryId);
   }
 
-  private void showTables() throws IOException {
-//    MetaStore metaStore = ksqlEngine.getMetaStore();
-//    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSource();
-//    if (allDataSources.isEmpty()) {
-//      console.println("No topic is available.");
-//      return;
-//    }
-//    console.println(
-//        "        KSQL Topic          |       Corresponding Kafka Topic        |             Topic"
-//        + " Key          |     Topic Type     |          Topic Format           "
-//        + "      ");
-//    console.println(
-//        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
-//    for (String datasourceName : allDataSources.keySet()) {
-//      StructuredDataSource dataSource = allDataSources.get(datasourceName);
-//      if (dataSource instanceof KQLTopic) {
-//        KQLTopic kafkaTopic = (KQLTopic) dataSource;
-//        console.println(
-//            " " + padRight(datasourceName, 27) + "|  " + padRight(kafkaTopic.getTopicName(), 38)
-//            + "|  " + padRight(kafkaTopic.getKeyField().name().toString(), 30) + "|    "
-//            + padRight(kafkaTopic.getDataSourceType().toString(), 16)+ "|          "
-//            + padRight(kafkaTopic.getKqlTopicSerDe().getSerDe().toString(), 30));
-//      }
-//
-//    }
-//    console.println(
-//        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
-//    console.println("( " + allDataSources.size() + " rows)");
-    console.flush();
-  }
 
   private void listTopics() throws IOException {
     MetaStore metaStore = ksqlEngine.getMetaStore();
     Map<String, KQLTopic> topicMap = metaStore.getAllKafkaTopics();
     if (topicMap.isEmpty()) {
-      console.println("No topic is available.");
+      console.println("No topic has been defined yet.");
       return;
     }
     console.println(
-        "               Kafka Topic                 |        Corresponding Kafka Topic           "
+        "                 KQL Topic                 |        Corresponding Kafka Topic           "
         + "|  "
         + "   "
-        + "     Topic Format              "
+        + "     Topic Format              |          Notes    "
         + "      ");
     console.println(
-        "-------------------------------------------+--------------------------------------------+------------------------------------------");
+        "-------------------------------------------+--------------------------------------------+------------------------------------+--------------------");
     for (String topicName : topicMap.keySet()) {
-      KQLTopic KQLTopic = topicMap.get(topicName);
-      String formatStr = KQLTopic.getKqlTopicSerDe().getSerDe().toString();
+      KQLTopic kqlTopic = topicMap.get(topicName);
+      String formatStr = kqlTopic.getKqlTopicSerDe().getSerDe().toString();
+      String notes = "";
+      if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
+        KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
+        notes = "Avro schema path: "+kqlAvroTopicSerDe.getSchemaFilePath();
+      }
       console.println(
-          " " + padRight(topicName, 42) + "|  " + padRight(KQLTopic.getKafkaTopicName(), 42) + "| "
-          + padRight(KQLTopic.getKqlTopicSerDe().getSerDe().toString(), 42));
+          " " + padRight(topicName, 42) + "|  " + padRight(kqlTopic.getKafkaTopicName(), 42) + "| "
+          + padRight(kqlTopic.getKqlTopicSerDe().getSerDe().toString(), 35)+"| "+notes);
     }
     console.println(
-        "-------------------------------------------+--------------------------------------------+------------------------------------------");
+        "-------------------------------------------+--------------------------------------------+------------------------------------+--------------------");
     console.println("( " + topicMap.size() + " rows)");
     console.flush();
   }
@@ -438,7 +352,7 @@ public class KSQL {
     MetaStore metaStore = ksqlEngine.getMetaStore();
     Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSource();
     if (allDataSources.isEmpty()) {
-      console.println("No topic is available.");
+      console.println("No streams/tables has been defined yet.");
       return;
     }
     console.println(
@@ -591,6 +505,7 @@ public class KSQL {
 
     KSQL ksql = new KSQL(cliProperties);
 
+    // Run one query received as commandline parameter.
     if (cliProperties.get(KSQLConfig.QUERY_CONTENT_CONFIG) != null) {
       String queryString = cliProperties.get(KSQLConfig.QUERY_CONTENT_CONFIG);
       String terminateInStr = cliProperties.get(KSQLConfig.QUERY_EXECUTION_TIME_CONFIG);
@@ -603,7 +518,7 @@ public class KSQL {
       ksql.ksqlEngine.runCLIQuery(queryString, terminateIn);
     } else {
       // Start the ksql cli ?
-      if (cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase("cli")) {
+      if (cliProperties.get(KSQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase(KSQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG)) {
         ksql.startConsole();
       } else { // Use the query file to run the queries.
         ksql.isCLI = false;

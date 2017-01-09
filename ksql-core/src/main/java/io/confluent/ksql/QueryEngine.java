@@ -9,6 +9,7 @@ import io.confluent.ksql.metastore.KQLTopic;
 import io.confluent.ksql.metastore.KQL_STDOUT;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
@@ -17,6 +18,7 @@ import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KSQLConfig;
@@ -25,6 +27,8 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.Triplet;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
@@ -164,6 +168,9 @@ public class QueryEngine {
       StructuredDataSource sinkDataSource;
       if (outputNode instanceof KQLStructuredDataOutputNode) {
         KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
+//        if (outputKafkaTopicNode.getKqlTopic().getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
+//          outputKafkaTopicNode = addAvroSchemaToResultTopic(outputKafkaTopicNode);
+//        }
         physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
         if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
@@ -252,5 +259,48 @@ public class QueryEngine {
     }
     return props;
   }
+
+  public StructuredDataSource getResultDatasource(Select select, String name) {
+
+    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
+
+    for (SelectItem selectItem : select.getSelectItems()) {
+      if (selectItem instanceof SingleColumn) {
+        SingleColumn singleColumn = (SingleColumn) selectItem;
+        String fieldName = singleColumn.getAlias().get();
+        String fieldType = null;
+        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+      }
+
+
+    }
+
+    KQLTopic KQLTopic = new KQLTopic(name, name,
+                                     null);
+    StructuredDataSource
+        resultStream =
+        new KQLStream(name, dataSource.schema(), dataSource.fields().get(0),
+                      KQLTopic
+        );
+    return resultStream;
+  }
+
+//  private KQLStructuredDataOutputNode addAvroSchemaToResultTopic(KQLStructuredDataOutputNode
+//                                                                     kqlStructuredDataOutputNode) {
+//
+//    String avroSchemaFilePath = "/tmp/"+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
+//    MetastoreUtil metastoreUtil = new MetastoreUtil();
+//    String avroSchema = metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(), kqlStructuredDataOutputNode.getKqlTopic().getName());
+//    metastoreUtil.writeAvroSchemaFile(avroSchema,avroSchemaFilePath);
+//    KQLAvroTopicSerDe kqlAvroTopicSerDe = new KQLAvroTopicSerDe(avroSchemaFilePath, avroSchema);
+//    KQLTopic newKQLTopic = new KQLTopic(kqlStructuredDataOutputNode.getKqlTopic()
+//                                            .getName(), kqlStructuredDataOutputNode
+//                                            .getKqlTopic().getKafkaTopicName(),kqlAvroTopicSerDe);
+//
+//    KQLStructuredDataOutputNode newKQLStructuredDataOutputNode = new KQLStructuredDataOutputNode
+//        (kqlStructuredDataOutputNode.getId(), kqlStructuredDataOutputNode.getSource(),
+//         kqlStructuredDataOutputNode.getSchema(), newKQLTopic, kqlStructuredDataOutputNode.getKafkaTopicName());
+//    return newKQLStructuredDataOutputNode;
+//  }
 
 }

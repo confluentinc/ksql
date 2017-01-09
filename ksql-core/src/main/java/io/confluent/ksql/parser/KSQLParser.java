@@ -62,7 +62,7 @@ public class KSQLParser {
     AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
     Node root = astBuilder.visit(statementContext);
     Statement statement = (Statement) root;
-    metaStore.putSource(astBuilder.resultDataSource);
+//    metaStore.putSource(astBuilder.resultDataSource);
     return new Pair<>(statement, dataSourceExtractor);
   }
 

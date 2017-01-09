@@ -11,6 +11,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.*;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -49,13 +51,57 @@ public class KSQLEngine {
       Statement statement = statementInfo.getLeft();
       if (statement instanceof Query) {
         Query query = (Query) statement;
+        QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+        Table intoTable = (Table)querySpecification.getInto().get();
+        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
+                                                                intoTable.getName().getSuffix()
+                                                                    ));
+        queryList.add(new Pair("KSQL_QUERY_" + queryIndex, query));
+        queryIndex++;
+      } else if (statement instanceof CreateStreamAsSelect) {
+        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
+        QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
+            .getQueryBody();
+        Query query = addInto(createStreamAsSelect.getQuery(), querySpecification,
+                                         createStreamAsSelect.getName().getSuffix(),createStreamAsSelect
+                                             .getProperties());
+        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(), createStreamAsSelect.getName().getSuffix()));
+        queryList.add(new Pair("KSQL_QUERY_" + queryIndex, query));
+        queryIndex++;
+      } else if (statement instanceof CreateTableAsSelect) {
+        CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
+        QuerySpecification querySpecification = (QuerySpecification)createTableAsSelect.getQuery()
+            .getQueryBody();
+
+        Query query = addInto(createTableAsSelect.getQuery(), querySpecification,
+                                         createTableAsSelect.getName().getSuffix(),createTableAsSelect
+                                             .getProperties());
+
+        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(), createTableAsSelect.getName().getSuffix()));
         queryList.add(new Pair("KSQL_QUERY_" + queryIndex, query));
         queryIndex++;
       } else if (statement instanceof CreateTopic) {
-        ddlEngine.createTopic((CreateTopic) statement);
-      } else if (statement instanceof DropTable) {
-        ddlEngine.dropTopic((DropTable) statement);
+        KQLTopic kqlTopic = ddlEngine.createTopic((CreateTopic) statement);
+        if (kqlTopic != null) {
+          tempMetaStore.putTopic(kqlTopic);
+        }
+
+      } else if (statement instanceof CreateStream) {
+        KQLStream kqlStream = ddlEngine.createStream((CreateStream) statement);
+        if (kqlStream != null) {
+          tempMetaStore.putSource(kqlStream);
+        }
+      } else if (statement instanceof CreateTable) {
+        KQLTable kqlTable = ddlEngine.createTable((CreateTable) statement);
+        if (kqlTable != null) {
+          tempMetaStore.putSource(kqlTable);
+        }
       }
+//      else if (statement instanceof CreateTopic) {
+//        ddlEngine.createTopic((CreateTopic) statement);
+//      } else if (statement instanceof DropTable) {
+//        ddlEngine.dropTopic((DropTable) statement);
+//      }
     }
 
     // Logical plan creation from the ASTs
@@ -68,6 +114,33 @@ public class KSQLEngine {
 
     return runningQueries;
 
+  }
+
+
+
+  public StructuredDataSource getResultDatasource(Select select, Table into) {
+
+    SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
+
+    for (SelectItem selectItem : select.getSelectItems()) {
+      if (selectItem instanceof SingleColumn) {
+        SingleColumn singleColumn = (SingleColumn) selectItem;
+        String fieldName = singleColumn.getAlias().get();
+        String fieldType = null;
+        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
+      }
+
+
+    }
+
+    KQLTopic KQLTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
+                                     null);
+    StructuredDataSource
+        resultStream =
+        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
+                      KQLTopic
+        );
+    return resultStream;
   }
 
   public void runCLIQuery(String queriesString, long terminateIn) throws Exception {
@@ -151,6 +224,29 @@ public class KSQLEngine {
     }
   }
 
+  public Query addInto(Query query, QuerySpecification querySpecification, String intoName,
+                        Map<String,
+                            Expression> intoProperties) {
+    Table intoTable = new Table(QualifiedName.of(intoName));
+    intoTable.setProperties(intoProperties);
+    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
+                                                                          .getSelect(),
+                                                                      java.util.Optional
+                                                                          .ofNullable(intoTable),
+                                                                      querySpecification.getFrom
+                                                                          (), querySpecification
+                                                                          .getWhere(),
+                                                                      querySpecification
+                                                                          .getGroupBy(),
+                                                                      querySpecification
+                                                                          .getHaving(),
+                                                                      querySpecification
+                                                                          .getOrderBy(),
+                                                                      querySpecification.getLimit
+                                                                          ());
+    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
+        , query.getApproximate());
+  }
 
   public MetaStore getMetaStore() {
     return metaStore;

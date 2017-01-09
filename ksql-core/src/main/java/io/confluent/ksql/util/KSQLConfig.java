@@ -15,7 +15,7 @@ public class KSQLConfig extends StreamsConfig {
   public final static String QUERY_EXECUTION_TIME_CONFIG = "terminate.in";
 
   public static final String DEFAULT_QUERY_FILE_PATH_CONFIG = "cli";
-  public static final String DEFAULT_SCHEMA_FILE_PATH_CONFIG = "/tmp/ksql/schema.json";
+  public static final String DEFAULT_SCHEMA_FILE_PATH_CONFIG = "NULL";
   public static final String DEFAULT_PROP_FILE_PATH_CONFIG = "";
 
   public static final String DEFAULT_BOOTSTRAP_SERVERS_CONFIG = "localhost:9092";

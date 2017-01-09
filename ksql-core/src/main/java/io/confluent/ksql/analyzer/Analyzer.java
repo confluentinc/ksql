@@ -54,7 +54,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
         if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-          intoTopicSerde = new KQLAvroTopicSerDe("", "");
+          intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
           intoTopicSerde = new KQLJsonTopicSerDe();
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
@@ -196,6 +196,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           .KSTREAM);
     }
     else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+      into = new KQLStream(node.getName().getSuffix(), null, null, null);
+
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
         if (!serde.startsWith("'") && !serde.endsWith("'")) {
@@ -204,6 +206,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         serde = serde.substring(1,serde.length()-1);
         analysis.setIntoFormat(serde);
+        if (serde.equalsIgnoreCase("avro")) {
+          String avroSchemaFilePath = "/tmp/"+into.getName()+".avro";
+          if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
+            avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
+            if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
+              throw new KSQLException(avroSchemaFilePath + " value is string and should be enclosed between "
+                                      + "\"'\".");
+            }
+            avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length()-1);
+          }
+          analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
+        }
       }
 
       if (node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
@@ -221,7 +235,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 //          new StructuredDataSourceNode(new PlanNodeId("INTO"), null, null,
 //                         node.getName().getSuffix(), node.getName().getSuffix(),
 //                                       StructuredDataSource.DataSourceType.KSTREAM, null);
-      into = new KQLStream(node.getName().getSuffix(), null, null, null);
+
     } else {
       throw new KSQLException("INTO clause is not set correctly!");
     }

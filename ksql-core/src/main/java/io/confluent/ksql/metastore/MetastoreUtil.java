@@ -10,6 +10,7 @@ import io.confluent.ksql.serde.KQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 
 import org.apache.kafka.connect.data.Field;
@@ -128,9 +129,16 @@ public class MetastoreUtil {
   }
 
   public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KSQLException {
+
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
-      byte[] jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
+      byte[] jsonData;
+      if (metastoreJsonFilePath.equalsIgnoreCase(KSQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG)) {
+        jsonData = DEFAULT_METASTORE_SCHEMA.getBytes();
+      } else {
+        jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
+      }
+
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode root = objectMapper.readTree(jsonData);
 
@@ -240,12 +248,25 @@ public class MetastoreUtil {
     }
   }
 
+
+  public static final String DEFAULT_METASTORE_SCHEMA = "{\n"
+                                                        + "\t\"name\": \"kql_catalog\",\n"
+                                                        + "\t\"topics\":[],\n"
+                                                        + "\t\"schemas\" :[]\n"
+                                                        + "}";
+
+
   public static void main(String args[]) throws IOException {
 
 //    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
-    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/kql_catalog.json");
+    MetastoreUtil metastoreUtil = new MetastoreUtil();
+//    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile
+//        ("/Users/hojjat/kql_catalog.json");
+    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile
+        ("/Users/hojjat/test_kql_catalog1.json");
     System.out.println("");
-
+//    System.out.println(metastoreUtil.buildAvroSchema(metaStore.getAllStructuredDataSource().get
+//        ("ORDERS")));
   }
 
   private String getAvroSchema(String schemaFilePath) throws IOException {
@@ -253,5 +274,53 @@ public class MetastoreUtil {
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode root = objectMapper.readTree(jsonData);
     return root.toString();
+  }
+
+  public void writeAvroSchemaFile(String avroSchema, String filePath) {
+
+    try {
+      RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw");
+      randomAccessFile.writeBytes(avroSchema);
+      randomAccessFile.close();
+    } catch (IOException e) {
+      throw new KSQLException("Could not write result avro schema file: "+filePath);
+    }
+  }
+
+  public String buildAvroSchema(Schema schema, String name) {
+    StringBuilder stringBuilder = new StringBuilder("{\n\t\"namespace\": \"ksql\",\n");
+    stringBuilder.append("\t\"name\": \""+name+"\",\n");
+    stringBuilder.append("\t\"type\": \"record\",\n");
+    stringBuilder.append("\t\"fields\": [\n");
+    boolean addCamma = false;
+    for (Field field:schema.fields()) {
+      if (addCamma) {
+        stringBuilder.append(",\n");
+      } else {
+        addCamma = true;
+      }
+      stringBuilder.append("\t\t{\"name\": \""+field.name()+"\", \"type\": \""+getAvroTypeName(field
+                                                                                               .schema().type())
+                           +"\"}");
+    }
+    stringBuilder.append("\n\t]\n");
+    stringBuilder.append("}");
+    return stringBuilder.toString();
+  }
+
+  private String getAvroTypeName(Schema.Type type) {
+    if (type == Schema.Type.STRING) {
+      return "string";
+    } else if (type == Schema.Type.BOOLEAN) {
+      return "boolean";
+    } else if (type == Schema.Type.INT64) {
+      return "long";
+    } else if (type == Schema.Type.FLOAT64) {
+      return "double";
+    } else if (type == Schema.Type.INT32) {
+      return "int";
+    } else {
+      throw new KSQLException("Unsupported AVRO type: "+type.name());
+    }
   }
 }

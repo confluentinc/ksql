@@ -35,7 +35,7 @@ public class DDLEngine {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public void createTopic(CreateTopic createTopic) {
+  public KQLTopic createTopic(CreateTopic createTopic) {
 
     String topicName = createTopic.getName().getSuffix().toUpperCase();
     if (ksqlEngine.getMetaStore().getTopic(topicName) != null) {
@@ -44,7 +44,7 @@ public class DDLEngine {
       } else {
         throw new KSQLException("Topic already exists.");
       }
-      return;
+      return null;
     }
 
 
@@ -86,11 +86,12 @@ public class DDLEngine {
     } else {
       throw new KSQLException("The specified topic serde is not supported.");
     }
-    KQLTopic KQLTopic = new KQLTopic(topicName, kafkaTopicName, topicSerDe);
+    KQLTopic kQLTopic = new KQLTopic(topicName, kafkaTopicName, topicSerDe);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putTopic(KQLTopic);
+    ksqlEngine.getMetaStore().putTopic(kQLTopic);
+    return kQLTopic;
   }
 
   private String enforceString(String propertyName, String propertyValue) {
@@ -108,7 +109,7 @@ public class DDLEngine {
     ksqlEngine.getMetaStore().deleteSource(topicName);
   }
 
-  public void createStream(CreateStream createStream) {
+  public KQLStream createStream(CreateStream createStream) {
 
     String streamName = createStream.getName().getSuffix().toUpperCase();
     if (ksqlEngine.getMetaStore().getSource(streamName) != null) {
@@ -117,7 +118,7 @@ public class DDLEngine {
       } else {
         throw new KSQLException("Stream already exists.");
       }
-      return;
+      return null;
     }
 
     if (createStream.getElements().size() == 0) {
@@ -156,9 +157,10 @@ public class DDLEngine {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     ksqlEngine.getMetaStore().putSource(kqlStream);
+    return  kqlStream;
   }
 
-  public void createTable(CreateTable createTable) {
+  public KQLTable createTable(CreateTable createTable) {
 
     String tableName = createTable.getName().getSuffix().toUpperCase();
     if (ksqlEngine.getMetaStore().getSource(tableName) != null) {
@@ -167,7 +169,7 @@ public class DDLEngine {
       } else {
         throw new KSQLException("Topic already exists.");
       }
-      return;
+      return null;
     }
 
     if (createTable.getElements().size() == 0) {
@@ -216,6 +218,7 @@ public class DDLEngine {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     ksqlEngine.getMetaStore().putSource(kqlTable);
+    return kqlTable;
   }
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!

@@ -15,6 +15,8 @@ public class Analysis {
 
   StructuredDataSource into;
   String intoFormat = null;
+  // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
+  String intoAvroSchemaFilePath = null;
   String intoKafkaTopicName = null;
   List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   JoinNode join;
@@ -92,4 +94,13 @@ public class Analysis {
   public String getIntoKafkaTopicName() {
     return intoKafkaTopicName;
   }
+
+  public String getIntoAvroSchemaFilePath() {
+    return intoAvroSchemaFilePath;
+  }
+
+  public void setIntoAvroSchemaFilePath(String intoAvroSchemaFilePath) {
+    this.intoAvroSchemaFilePath = intoAvroSchemaFilePath;
+  }
 }
+

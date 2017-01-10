@@ -72,6 +72,9 @@ public class DataSourceExtractor
     if (!isJoin) {
       this.fromAlias = alias.toUpperCase();
       StructuredDataSource fromDataSource = metaStore.getSource(table.getName().getSuffix().toUpperCase());
+      if (fromDataSource == null) {
+        throw new KSQLException(table.getName().getSuffix().toUpperCase()+" does not exist.");
+      }
       this.fromSchema = fromDataSource.getSchema();
       return null;
     }
@@ -100,12 +103,20 @@ public class DataSourceExtractor
     StructuredDataSource
         leftDataSource =
         metaStore.getSource(((Table) left.getRelation()).getName().getSuffix().toUpperCase());
+    if (leftDataSource == null) {
+      throw new KSQLException(((Table) left.getRelation()).getName().getSuffix()+ " does not "
+                              + "exist.");
+    }
     this.joinLeftSchema = leftDataSource.getSchema();
 
     this.rightAlias = right.getAlias().toUpperCase();
     StructuredDataSource
         rightDataSource =
         metaStore.getSource(((Table) right.getRelation()).getName().getSuffix().toUpperCase());
+    if (rightDataSource == null) {
+      throw new KSQLException(((Table) right.getRelation()).getName().getSuffix()+ " does not "
+                              + "exist.");
+    }
     this.joinRightSchema = rightDataSource.getSchema();
 
     return null;

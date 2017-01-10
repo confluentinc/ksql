@@ -214,19 +214,22 @@ public class QueryEngine {
     props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
     PlanNode logicalPlan = queryLogicalPlan.getRight();
-    KQLConsoleOutputNode KQLConsoleOutputNode = null;
+    KQLConsoleOutputNode kqlConsoleOutputNode = null;
     if (logicalPlan instanceof KQLStructuredDataOutputNode) {
-      KQLConsoleOutputNode =
+      kqlConsoleOutputNode =
           new KQLConsoleOutputNode(logicalPlan.getId(),
                                    ((KQLStructuredDataOutputNode) logicalPlan).getSource(),
                                    logicalPlan.getSchema());
+    } else {
+      kqlConsoleOutputNode =
+          new KQLConsoleOutputNode(logicalPlan.getId(), logicalPlan, logicalPlan.getSchema());
     }
 
     KStreamBuilder builder = new KStreamBuilder();
 
     //Build a physical plan, in this case a Kafka Streams DSL
     PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-    SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(KQLConsoleOutputNode);
+    SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(kqlConsoleOutputNode);
 
     KafkaStreams streams = new KafkaStreams(builder, props);
     streams.start();

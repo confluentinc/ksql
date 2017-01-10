@@ -129,7 +129,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightAlias = right.getAlias();
 
     StructuredDataSource leftDataSource = metaStore.getSource(leftSideName.toUpperCase());
+    if (leftDataSource == null) {
+      throw new KSQLException(leftSideName+" does not exist.");
+    }
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName.toUpperCase());
+    if (rightDataSource == null) {
+      throw new KSQLException(rightSideName+" does not exist.");
+    }
 
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
@@ -177,11 +183,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
-
+    String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix()
+        .toUpperCase();
+    if (metaStore.getSource(structuredDataSourceName) ==
+        null) {
+      throw new KSQLException(structuredDataSourceName + " does not exist.");
+    }
     Pair<StructuredDataSource, String>
         fromDataSource =
         new Pair<>(
-            metaStore.getSource(((Table) node.getRelation()).getName().getSuffix().toUpperCase()),
+            metaStore.getSource(structuredDataSourceName),
             node.getAlias().toUpperCase());
     analysis.getFromDataSources().add(fromDataSource);
     return node;

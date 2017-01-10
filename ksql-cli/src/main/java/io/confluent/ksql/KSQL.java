@@ -220,6 +220,8 @@ public class KSQL {
       statements = ksqlEngine.getStatements(statementString);
     } catch (Exception ex) {
       // Do nothing
+      ex.printStackTrace();
+      System.err.println(ex.getMessage());
     }
 
     if (statements == null) {
@@ -440,6 +442,10 @@ public class KSQL {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
 
     metastoreUtil.writeMetastoreToFile(filePath, metaStore);
+    try {
+      console.println("Wrote the catalog into "+filePath);
+    } catch (IOException e) {
+    }
   }
 
   private String getNextQueryId() {

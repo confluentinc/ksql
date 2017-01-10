@@ -238,7 +238,6 @@ public class MetastoreUtil {
     addSchemas(stringBuilder, metaStore.getAllStructuredDataSource());
     stringBuilder.append("}");
 
-    System.out.println(stringBuilder.toString());
     try {
       RandomAccessFile raf = new RandomAccessFile(filePath, "rw");
       raf.writeBytes(stringBuilder.toString());

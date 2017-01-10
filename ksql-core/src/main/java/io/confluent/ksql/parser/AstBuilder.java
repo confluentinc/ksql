@@ -261,10 +261,16 @@ public class AstBuilder
           StructuredDataSource
               leftDataSource =
               dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
+          if (leftDataSource == null) {
+            throw new KSQLException(left.getRelation().toString()+" does not exist.");
+          }
           AliasedRelation right = (AliasedRelation) join.getRight();
           StructuredDataSource
               rightDataSource =
               dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
+          if (rightDataSource == null) {
+            throw new KSQLException(right.getRelation().toString()+" does not exist.");
+          }
           for (Field field : leftDataSource.getSchema().fields()) {
             QualifiedNameReference
                 qualifiedNameReference =
@@ -293,6 +299,10 @@ public class AstBuilder
               fromDataSource =
               dataSourceExtractor.getMetaStore()
                   .getSource(((Table) fromRel.getRelation()).getName().getSuffix());
+          if (fromDataSource == null) {
+            throw new KSQLException(((Table) fromRel.getRelation()).getName().getSuffix()+" does "
+                                    + "not exist.");
+          }
           for (Field field : fromDataSource.getSchema().fields()) {
             QualifiedNameReference
                 qualifiedNameReference =

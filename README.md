@@ -1,2 +1,2 @@
-# ksql
-SQL on Kafka Streans.
+# kql
+Kafka Query Language!

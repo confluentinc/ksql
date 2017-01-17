@@ -238,8 +238,6 @@ public class AstBuilder
       // TODO: Generate a unique name
       String intoName = "KQL_Stream_" + System.currentTimeMillis();
       into = new Table(QualifiedName.of(intoName), true);
-      System.out.println(
-          "No INTO clause was specified in the query. Writing the results into the console!");
     }
 
     Relation from = (Relation) visit(context.from);

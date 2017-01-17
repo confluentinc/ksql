@@ -29,6 +29,8 @@ public class TopicPrinter {
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
     kqlProperties
         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
+    kqlProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
+    kqlProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     if (!cliProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)
         .equalsIgnoreCase(KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
       kqlProperties.load(new FileReader(cliProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)));
@@ -86,7 +88,12 @@ public class TopicPrinter {
             console.println(row.toString());
           }
         } else {
-          console.println(row.toString());
+          if (row != null){
+            console.println(row.toString());
+          } else {
+            console.println("null");
+          }
+
         }
 
         recordIndex++;

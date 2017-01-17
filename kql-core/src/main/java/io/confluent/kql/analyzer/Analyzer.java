@@ -60,7 +60,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
           intoTopicSerde = new KQLCsvTopicSerDe();
         }
+      } else {
+        if (intoTopicSerde instanceof KQLAvroTopicSerDe) {
+          intoTopicSerde = new KQLAvroTopicSerDe(null, null);
+        }
       }
+
 
       KQLTopic newIntoKQLTopic = new KQLTopic(intoKafkaTopicName,
                                               intoKafkaTopicName, intoTopicSerde);

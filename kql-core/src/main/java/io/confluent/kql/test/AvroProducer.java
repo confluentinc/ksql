@@ -16,8 +16,8 @@ import io.confluent.kql.util.KQLConfig;
 
 public class AvroProducer {
 
-  public static String orderKafkaTopicName = "StreamExample1-GenericRow-order";
-  public static String itemKafkaTopicName = "items";
+  public static String orderKafkaTopicName = "orders_topic";
+  public static String itemKafkaTopicName = "items_topic";
   public static String userProfileTopic = "streams-userprofile-input";
   public static String pageViewTopic = "streams-pageview-input";
 
@@ -59,7 +59,7 @@ public class AvroProducer {
       columns.add(String.valueOf(i+1));
       orderList.add(String.valueOf(i+1));
       //itemid
-      int productId = (int)(10*Math.random());
+      int productId = (int)(100*Math.random());
       columns.add("Item_"+productId);
 
       //units
@@ -383,7 +383,7 @@ public class AvroProducer {
 
   public static void main(String[] args) {
     AvroProducer avroProducer = new AvroProducer();
-//    avroProducer.genericRowItemTable("items");
+//    avroProducer.genericRowItemTable("items_topic");
     List<String> orders = avroProducer.genericRowOrderStream(orderKafkaTopicName);
 //    avroProducer.genericRowShipmentStream("shipments",orders);
 

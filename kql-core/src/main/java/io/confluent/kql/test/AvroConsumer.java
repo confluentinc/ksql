@@ -132,7 +132,7 @@ public class AvroConsumer {
 
   public static void main(String[] args) {
 //    new AvroConsumer().printGenericRowTopic("StreamExample1-GenericRow-order");
-    new AvroConsumer().printGenericRowTopic("stream6");
+    new AvroConsumer().printGenericRowTopic("bigorders_topic");
   }
 
 }

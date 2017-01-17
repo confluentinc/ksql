@@ -199,12 +199,6 @@ public class KQL {
 
   }
 
-//  private List<Statement> parseStatements(String statementString) {
-//    List<Statement> statements = kqlEngine.getStatements(statementString);
-//    return statements;
-//  }
-
-
   /**
    * Given a kql command string, parse the command and return the parse tree.
    */
@@ -242,9 +236,11 @@ public class KQL {
     console.println(
         "------------------------------------------------------------------------------------ ");
     console.println(
-        "show topics           .................... Show the list of available topics/streams.");
+        "list topics           .................... Show the list of available topics.");
     console.println(
-        "describe <topic name> .................... Show the schema of the given topic/stream.");
+            "list streams           .................... Show the list of available streams/tables.");
+    console.println(
+        "describe <stream/table name> .................... Show the schema of the given stream/table.");
     console.println("show queries          .................... Show the list of running queries.");
     console.println(
         "print <topic name>    .................... Print the content of a given topic/stream.");

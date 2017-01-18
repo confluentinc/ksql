@@ -106,7 +106,6 @@ public class QueryEngine {
 
         tempMetaStore.putTopic(kqlStructuredDataOutputNode.getKqlTopic());
         tempMetaStore.putSource(structuredDataSource);
-//        tempMetaStore.putSource(getPlanDataSource(logicalPlan));
       }
 
       logicalPlansList.add(new Pair<String, PlanNode>(query.getLeft(), logicalPlan));
@@ -118,11 +117,6 @@ public class QueryEngine {
 
     KQLTopic
         KQLTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
-//    StructuredDataSource
-//        structuredDataSource =
-//        new KQLStream(outputNode.getId().toString(), outputNode.getSchema(),
-//                       outputNode.getKeyField(),
-//                      KQLTopic);
     StructuredDataSource
         structuredDataSource =
         new KQLStream(outputNode.getId().toString(), outputNode.getSchema(),
@@ -166,9 +160,6 @@ public class QueryEngine {
       StructuredDataSource sinkDataSource;
       if (outputNode instanceof KQLStructuredDataOutputNode) {
         KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
-//        if (outputKafkaTopicNode.getKqlTopic().getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
-//          outputKafkaTopicNode = addAvroSchemaToResultTopic(outputKafkaTopicNode);
-//        }
         physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
         if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
@@ -199,9 +190,13 @@ public class QueryEngine {
     return physicalPlans;
   }
 
-  public void buildRunSingleConsolePhysicalPlans(MetaStore metaStore,
-                                                 Pair<String, PlanNode> queryLogicalPlan, long terminateIn)
+  public void buildRunSingleConsoleQuery(MetaStore metaStore,
+                                                 List<Pair<String, Query>> queryList, long terminateIn)
       throws Exception {
+
+    // Logical plan creation from the ASTs
+    Pair<String, PlanNode> queryLogicalPlan = buildLogicalPlans(metaStore, queryList).get(0);
+
     Properties props = new Properties();
     props.put(StreamsConfig.APPLICATION_ID_CONFIG,
               "KQL_CONSOLE_QUERY_" + queryLogicalPlan.getLeft() + "_" + System
@@ -285,23 +280,4 @@ public class QueryEngine {
         );
     return resultStream;
   }
-
-//  private KQLStructuredDataOutputNode addAvroSchemaToResultTopic(KQLStructuredDataOutputNode
-//                                                                     kqlStructuredDataOutputNode) {
-//
-//    String avroSchemaFilePath = "/tmp/"+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
-//    MetastoreUtil metastoreUtil = new MetastoreUtil();
-//    String avroSchema = metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(), kqlStructuredDataOutputNode.getKqlTopic().getName());
-//    metastoreUtil.writeAvroSchemaFile(avroSchema,avroSchemaFilePath);
-//    KQLAvroTopicSerDe kqlAvroTopicSerDe = new KQLAvroTopicSerDe(avroSchemaFilePath, avroSchema);
-//    KQLTopic newKQLTopic = new KQLTopic(kqlStructuredDataOutputNode.getKqlTopic()
-//                                            .getName(), kqlStructuredDataOutputNode
-//                                            .getKqlTopic().getKafkaTopicName(),kqlAvroTopicSerDe);
-//
-//    KQLStructuredDataOutputNode newKQLStructuredDataOutputNode = new KQLStructuredDataOutputNode
-//        (kqlStructuredDataOutputNode.getId(), kqlStructuredDataOutputNode.getSource(),
-//         kqlStructuredDataOutputNode.getSchema(), newKQLTopic, kqlStructuredDataOutputNode.getKafkaTopicName());
-//    return newKQLStructuredDataOutputNode;
-//  }
-
 }

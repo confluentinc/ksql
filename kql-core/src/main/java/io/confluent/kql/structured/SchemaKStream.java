@@ -110,11 +110,6 @@ public class SchemaKStream {
                 } else {
                   parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType
                       (parameterIndexes[j],row.getColumns().get(parameterIndexes[j]));
-//                  if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
-//                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
-//                  } else {
-//                    parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
-//                  }
                 }
               }
               Object columnValue = null;

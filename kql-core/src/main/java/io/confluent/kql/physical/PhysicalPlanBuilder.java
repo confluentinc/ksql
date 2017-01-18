@@ -11,6 +11,7 @@ import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.structured.SchemaKStream;
+import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.SerDeUtil;
@@ -69,11 +70,6 @@ public class PhysicalPlanBuilder {
         kqlStructuredDataOutputNode = addAvroSchemaToResultTopic(kqlStructuredDataOutputNode,
                                                                  kqlAvroTopicSerDe.getSchemaFilePath());
       }
-//      KQLTopicSerDe topicSerDe = getResultTopicSerde(kqlStructuredDataOutputNode);
-
-//      SchemaKStream resultSchemaStream = schemaKStream.into(KQLStructuredDataOutputNode
-//                                                                .getKafkaTopicName(), SerDeUtil.getRowSerDe
-//          (topicSerDe));
       SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
                                                                 .getKafkaTopicName(),
                                                             SerDeUtil.getRowSerDe
@@ -168,7 +164,6 @@ public class PhysicalPlanBuilder {
             .getRight());
   }
 
-
   private KQLTopicSerDe getResultTopicSerde(PlanNode node) {
     if (node instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode)node;
@@ -176,8 +171,6 @@ public class PhysicalPlanBuilder {
     } else if (node instanceof JoinNode) {
       JoinNode joinNode = (JoinNode) node;
       KQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());
-      // Keep the left as defult!
-//      KQLTopicSerDe rightTopicSerDe = getResultTopicSerde(joinNode.getRight());
       return leftTopicSerDe;
     } else return getResultTopicSerde(node.getSources().get(0));
   }
@@ -196,9 +189,8 @@ public class PhysicalPlanBuilder {
                                                                      kqlStructuredDataOutputNode,
                                                                  String avroSchemaFilePath) {
 
-//    String avroSchemaFilePath = "/tmp/"+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
     if (avroSchemaFilePath == null) {
-      avroSchemaFilePath = "/tmp/"+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
+      avroSchemaFilePath = KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
     }
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     String avroSchema = metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(), kqlStructuredDataOutputNode.getKqlTopic().getName());

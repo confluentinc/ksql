@@ -78,11 +78,8 @@ public class SchemaKTable extends SchemaKStream {
             if (parameterIndexes[j] < 0) {
               parameterObjects[j] = kudfs[j];
             } else {
-              if (row.getColumns().get(parameterIndexes[j]) instanceof CharSequence) {
-                parameterObjects[j] = row.getColumns().get(parameterIndexes[j]).toString();
-              } else {
-                parameterObjects[j] = row.getColumns().get(parameterIndexes[j]);
-              }
+              parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType
+                      (parameterIndexes[j],row.getColumns().get(parameterIndexes[j]));
             }
           }
           Object columnValue = null;

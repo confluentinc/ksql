@@ -85,7 +85,6 @@ public class DDLUtil {
   }
 
   public static void main(String args[]) {
-//        new DDLUtil().createTopic("TestTopic1", 1);
     new DDLUtil().deleteTopic("TestTopic");
   }
 

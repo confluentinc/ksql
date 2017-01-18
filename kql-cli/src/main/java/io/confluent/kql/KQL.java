@@ -51,7 +51,7 @@ public class KQL {
       console.println("KQL (Kafka Query Language) 0.0.1");
       console.println("=========================================================================");
       console.addCompleter(
-          new AnsiStringsCompleter("select", "show topics", "show queries",
+          new AnsiStringsCompleter("select", "show queries",
                                    "terminate", "exit", "describe", "print", "list topics",
                                    "list streams", "create topic"));
       String line = null;
@@ -101,7 +101,7 @@ public class KQL {
     System.out.println(
         "********************************************************************************************************");
     System.out
-        .println("Starting the KQL stream processing app with query fila path : " + queryFilePath);
+        .println("Starting the KQL stream processing app with query file path : " + queryFilePath);
     System.out.println(
         "********************************************************************************************************");
     String queryString = KQLUtil.readQueryFile(queryFilePath);
@@ -252,6 +252,13 @@ public class KQL {
     console.flush();
   }
 
+    /**
+     * Given a KQL query, start the continious query with QueryEngine.
+     *
+     * @param queryString
+     * @param query
+     * @throws Exception
+     */
   private void startQuery(String queryString, Query query) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -279,12 +286,13 @@ public class KQL {
               queryPairInfo.getThird());
       liveQueries.put(queryId.toUpperCase(), queryInfo);
     } else if (queryPairInfo.getThird() instanceof KQLConsoleOutputNode) {
+        if (cliCurrentQuery != null) {
+            console.println("Terminating the currently running console query first. ");
+            cliCurrentQuery.getSecond().close();
+        }
       cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLConsoleOutputNode) queryPairInfo.getThird());
     }
-
     if (isCLI) {
-//      console.println("Added the result topic to the metastore:");
-//      console.println("Topic count: " + kqlEngine.getMetaStore().getAllStructuredDataSource().size());
       console.println("");
     }
   }
@@ -351,7 +359,7 @@ public class KQL {
       return;
     }
     console.println(
-        "         Name               |         Corresponding Topic            |             Topic"
+        "         Name               |               KQL Topic                |             Topic"
         + " Key          |     Topic Type     |          Topic Format           "
         + "      ");
     console.println(
@@ -472,6 +480,7 @@ public class KQL {
     cliProperties
         .put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, KQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG);
     cliProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG);
+    cliProperties.put(KQLConfig.AVRO_SCHEMA_FOLDER_PATH_CONFIG, KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG);
 
   }
 
@@ -516,13 +525,12 @@ public class KQL {
       }
       kql.kqlEngine.runCLIQuery(queryString, terminateIn);
     } else {
-      // Start the kql cli ?
+      // Start the kql cli?
       if (cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase(KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG)) {
         kql.startConsole();
       } else { // Use the query file to run the queries.
         kql.isCLI = false;
         kql.runQueries(cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG));
-
       }
     }
   }

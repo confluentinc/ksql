@@ -23,6 +23,10 @@ public class KQLConfig extends StreamsConfig {
 
   public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
 
+  public static final String AVRO_SCHEMA_FOLDER_PATH_CONFIG = "/tmp/";
+  public static final String DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG = "/tmp/";
+
+
   public KQLConfig(Map<?, ?> props) {
     super(props);
 

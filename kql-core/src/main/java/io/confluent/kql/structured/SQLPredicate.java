@@ -65,12 +65,6 @@ public class SQLPredicate {
           for (int i = 0; i < values.length; i++) {
             values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i],row
                 .getColumns().get(columnIndexes[i]));
-
-//            if (row.getColumns().get(columnIndexes[i]) instanceof CharSequence) {
-//              values[i] = row.getColumns().get(columnIndexes[i]).toString();
-//            } else {
-//              values[i] = row.getColumns().get(columnIndexes[i]);
-//            }
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;

@@ -26,7 +26,6 @@ public class LogicalPlanner {
   }
 
   public PlanNode buildPlan() {
-
     PlanNode currentNode;
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();
@@ -56,12 +55,8 @@ public class LogicalPlanner {
                                              inputSchema, intoStructuredDataSource.getKQLTopic(),
                                              intoStructuredDataSource.getKQLTopic()
                                                  .getTopicName());
-//      KQLTopic kafkaTopic = (KQLTopic) intoDataSource;
-//      return new OutputKafkaTopicNode(new PlanNodeId(kafkaTopic.getTopicName()), sourcePlanNode,
-//                                      inputSchema, kafkaTopic.getTopicName());
-//      return null;
-    }
 
+    }
     throw new RuntimeException("INTO caluse is not supported in SELECT.");
   }
 
@@ -96,13 +91,6 @@ public class LogicalPlanner {
     StructuredDataSource fromDataSource = analysis.getFromDataSources().get(0).getLeft();
     String alias = analysis.getFromDataSources().get(0).getRight();
     Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
-//    if (fromDataSource instanceof KQLTopic) {
-//      KQLTopic fromKafkaTopic = (KQLTopic) fromDataSource;
-//      return new SourceKafkaTopicNode(new PlanNodeId("KQLTopic"), fromSchema,
-//                                      fromDataSource.getKeyField(), fromKafkaTopic.getTopicName(),
-//                                      alias, fromKafkaTopic.getDataSourceType(),
-//                                      ((KQLTopic) fromDataSource).getKqlTopicSerDe());
-//    }
 
     if (fromDataSource instanceof KQLStream) {
       KQLStream fromStream = (KQLStream) fromDataSource;

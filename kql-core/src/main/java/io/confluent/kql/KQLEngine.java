@@ -24,11 +24,8 @@ import java.util.*;
 public class KQLEngine {
 
   KQLConfig kqlConfig;
-
   QueryEngine queryEngine;
   DDLEngine ddlEngine = new DDLEngine(this);
-
-
   MetaStore metaStore = null;
 
   public List<Triplet<String, KafkaStreams, OutputNode>> runMultipleQueries(
@@ -98,11 +95,6 @@ public class KQLEngine {
           tempMetaStore.putSource(kqlTable);
         }
       }
-//      else if (statement instanceof CreateTopic) {
-//        ddlEngine.createTopic((CreateTopic) statement);
-//      } else if (statement instanceof DropTable) {
-//        ddlEngine.dropTopic((DropTable) statement);
-//      }
     }
 
     // Logical plan creation from the ASTs
@@ -116,8 +108,6 @@ public class KQLEngine {
     return runningQueries;
 
   }
-
-
 
   public StructuredDataSource getResultDatasource(Select select, Table into) {
 
@@ -144,12 +134,12 @@ public class KQLEngine {
     return resultStream;
   }
 
-  public void runCLIQuery(String queriesString, long terminateIn) throws Exception {
+  public void runCLIQuery(String queriyString, long terminateIn) throws Exception {
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
     List<SqlBaseParser.SingleStatementContext>
         parsedStatements =
-        kqlParser.getStatements(queriesString);
+        kqlParser.getStatements(queriyString);
     int queryIndex = 0;
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
@@ -172,13 +162,7 @@ public class KQLEngine {
       }
     }
 
-    // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
-
-    // Physical plan creation from logical plans.
-    queryEngine.buildRunSingleConsolePhysicalPlans(metaStore, logicalPlans.get(0), terminateIn);
-
-
+    queryEngine.buildRunSingleConsoleQuery(metaStore, queryList, terminateIn);
   }
 
   public Triplet<String, KafkaStreams, OutputNode> runSingleQuery(

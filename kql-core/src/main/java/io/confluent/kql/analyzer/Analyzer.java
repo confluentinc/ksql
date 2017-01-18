@@ -66,22 +66,17 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
       }
 
-
       KQLTopic newIntoKQLTopic = new KQLTopic(intoKafkaTopicName,
                                               intoKafkaTopicName, intoTopicSerde);
-
       KQLStream intoKQLStream = new KQLStream(intoStructuredDataSource.getName(),
                                                 null, null, newIntoKQLTopic);
       analysis.setInto(intoKQLStream);
     }
 
-
     process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
-
     if (node.getWhere().isPresent()) {
       analyzeWhere(node.getWhere().get(), context);
     }
-
     return null;
   }
 
@@ -89,7 +84,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitJoin(Join node, AnalysisContext context) {
     AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
     AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
-
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
     ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
@@ -175,14 +169,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       default:
         throw new KQLException("Join type is not supported: " + node.getType().name());
     }
-
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
                      rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
                      rightAlias);
-
     analysis.setJoin(joinNode);
-
     return null;
   }
 
@@ -246,12 +237,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         intoKafkaTopicName = intoKafkaTopicName.substring(1,intoKafkaTopicName.length()-1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
       }
-
-//      into =
-//          new StructuredDataSourceNode(new PlanNodeId("INTO"), null, null,
-//                         node.getName().getSuffix(), node.getName().getSuffix(),
-//                                       StructuredDataSource.DataSourceType.KSTREAM, null);
-
     } else {
       throw new KQLException("INTO clause is not set correctly!");
     }
@@ -267,7 +252,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitSelect(Select node, AnalysisContext context) {
     ImmutableList.Builder<Expression> outputExpressionBuilder = ImmutableList.builder();
-
     for (SelectItem selectItem : node.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
         // expand * and T.*
@@ -304,7 +288,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             analysis.addSelectItem(qualifiedNameReference, field.name());
           }
         }
-
       } else if (selectItem instanceof SingleColumn) {
         SingleColumn column = (SingleColumn) selectItem;
         analysis.addSelectItem(column.getExpression(), column.getAlias().get());
@@ -313,7 +296,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             "Unsupported SelectItem type: " + selectItem.getClass().getName());
       }
     }
-
     return null;
   }
 
@@ -323,7 +305,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private StructuredDataSource analyzeFrom(QuerySpecification node, AnalysisContext context) {
-
     return null;
   }
 

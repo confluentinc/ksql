@@ -19,6 +19,7 @@ import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -28,12 +29,14 @@ public class SchemaKStream {
   final KStream kStream;
   final Field keyField;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  final List<SchemaKStream> sourceSchemaKStreams;
 
-  public SchemaKStream(Schema schema, KStream kStream, Field keyField) {
+  public SchemaKStream(Schema schema, KStream kStream, Field keyField, List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
     this.keyField = keyField;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
+    this.sourceSchemaKStreams = sourceSchemaKStreams;
   }
 
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
@@ -59,7 +62,7 @@ public class SchemaKStream {
   public SchemaKStream filter(Expression filterExpression) throws Exception {
     SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
     KStream filteredKStream = kStream.filter(predicate.getPredicate());
-    return new SchemaKStream(schema, filteredKStream, keyField);
+    return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream select(Schema selectSchema) {
@@ -79,7 +82,7 @@ public class SchemaKStream {
           }
         });
 
-    return new SchemaKStream(selectSchema, projectedKStream, keyField);
+    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream select(List<Expression> expressions, Schema selectSchema) throws Exception {
@@ -126,7 +129,7 @@ public class SchemaKStream {
           }
         });
 
-    return new SchemaKStream(selectSchema, projectedKStream, keyField);
+    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey,
@@ -155,7 +158,7 @@ public class SchemaKStream {
                            }
                          }, Serdes.String(), resultValueSerDe);
 
-    return new SchemaKStream(joinSchema, joinedKStream, joinKey);
+    return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));
   }
 
   public SchemaKStream selectKey(Field newKeyField) {
@@ -175,7 +178,7 @@ public class SchemaKStream {
       }
     });
 
-    return new SchemaKStream(schema, keyedKStream, newKeyField);
+    return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this));
   }
 
   public Field getKeyField() {
@@ -188,5 +191,9 @@ public class SchemaKStream {
 
   public KStream getkStream() {
     return kStream;
+  }
+
+  public List<SchemaKStream> getSourceSchemaKStreams() {
+    return sourceSchemaKStreams;
   }
 }

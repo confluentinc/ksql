@@ -22,6 +22,8 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 
+import java.util.ArrayList;
+
 public class PhysicalPlanBuilder {
 
   KStreamBuilder builder;
@@ -118,7 +120,7 @@ public class PhysicalPlanBuilder {
                 .table(Serdes.String(), genericRowSerde, kqlTable.getKQLTopic().getKafkaTopicName(),
                        kqlTable.getStateStoreName());
         return new SchemaKTable(sourceNode.getSchema(), kTable,
-                                sourceNode.getKeyField());
+                                sourceNode.getKeyField(), new ArrayList<>());
       }
       KQLStream kqlStream = (KQLStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
@@ -126,7 +128,7 @@ public class PhysicalPlanBuilder {
           builder
               .stream(Serdes.String(), genericRowSerde, kqlStream.getKQLTopic().getKafkaTopicName());
       return new SchemaKStream(sourceNode.getSchema(), kStream,
-                               sourceNode.getKeyField());
+                               sourceNode.getKeyField(), new ArrayList<>());
     }
     throw new KQLException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }

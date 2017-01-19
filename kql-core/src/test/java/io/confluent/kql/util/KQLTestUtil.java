@@ -7,6 +7,7 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 
+import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class KQLTestUtil {
@@ -23,7 +24,7 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic1 =
-        new KQLTopic("test1", "test1", null);
+        new KQLTopic("test1", "test1", new KQLJsonTopicSerDe());
 
     KQLStream kqlStream = new KQLStream("test1", schemaBuilder1, schemaBuilder1.field("COL0"),
                                         KQLTopic1);
@@ -40,7 +41,7 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic2 =
-        new KQLTopic("test2", "test2", null);
+        new KQLTopic("test2", "test2", new KQLJsonTopicSerDe());
     KQLTable kqlTable = new KQLTable("test2", schemaBuilder2, schemaBuilder2.field("COL0"),
                                      KQLTopic2, "test2");
 
@@ -55,7 +56,7 @@ public class KQLTestUtil {
 
     KQLTopic
             KQLTopicOrders =
-            new KQLTopic("orders_topic", "orders_topic", null);
+            new KQLTopic("orders_topic", "orders_topic", new KQLJsonTopicSerDe());
 
     KQLStream kqlStreamOrders = new KQLStream("orders", schemaBuilderOrders, schemaBuilderOrders.field("ordertime"),
             KQLTopic1);

@@ -16,14 +16,15 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class SchemaKTable extends SchemaKStream {
 
   final KTable kTable;
 
-  public SchemaKTable(Schema schema, KTable kTable, Field keyField) {
-    super(schema, null, keyField);
+  public SchemaKTable(Schema schema, KTable kTable, Field keyField, List<SchemaKStream> sourceSchemaKStreams) {
+    super(schema, null, keyField, sourceSchemaKStreams);
     this.kTable = kTable;
   }
 
@@ -49,7 +50,7 @@ public class SchemaKTable extends SchemaKStream {
   public SchemaKTable filter(Expression filterExpression) throws Exception {
     SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
     KTable filteredKTable = kTable.filter(predicate.getPredicate());
-    return new SchemaKTable(schema, filteredKTable, keyField);
+    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this));
   }
 
   @Override
@@ -95,7 +96,7 @@ public class SchemaKTable extends SchemaKStream {
       }
     });
 
-    return new SchemaKTable(selectSchema, projectedKTable, keyField);
+    return new SchemaKTable(selectSchema, projectedKTable, keyField, Arrays.asList(this));
   }
 
   public KTable getkTable() {

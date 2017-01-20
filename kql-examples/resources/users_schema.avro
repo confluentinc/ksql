@@ -1,0 +1,11 @@
+{
+    "namespace": "kql",
+     "name": "users",
+     "type": "record",
+     "fields": [
+         {"name": "ordertime", "type": "long"},
+         {"name": "userid",  "type": "string"},
+         {"name": "regionid", "type": "string"},
+         {"name": "gender", "type": "string"}
+     ]
+}

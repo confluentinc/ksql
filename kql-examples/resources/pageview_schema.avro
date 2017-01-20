@@ -1,0 +1,10 @@
+{
+    "namespace": "kql",
+     "name": "pageview",
+     "type": "record",
+     "fields": [
+         {"name": "viewtime", "type": "long"},
+         {"name": "userid",  "type": "string"},
+         {"name": "pageid", "type": "string"}
+     ]
+}

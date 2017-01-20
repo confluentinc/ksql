@@ -11,6 +11,7 @@
     <modules>
         <module>kql-core</module>
         <module>kql-cli</module>
+        <module>kql-examples</module>
     </modules>
 
     <dependencies>

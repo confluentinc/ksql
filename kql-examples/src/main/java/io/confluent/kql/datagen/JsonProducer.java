@@ -25,7 +25,7 @@ public class JsonProducer {
 
     public void genericRowOrdersStream(String orderKafkaTopicName) {
         long maxInterval = 10;
-        int messageCount = 100;
+        int messageCount = 1000;
 
         for(int i = 0; i < messageCount; i++) {
             long currentTime = System.currentTimeMillis();

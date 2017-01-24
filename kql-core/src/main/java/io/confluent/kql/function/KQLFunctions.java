@@ -60,7 +60,7 @@ public class KQLFunctions {
      * Math functions                      *
      ***************************************/
 
-    KQLFunction abs = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction abs = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
                                         "ABS", Abs_KUDF.class);
     KQLFunction ceil = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
                                          "CEIL", Ceil_KUDF.class);

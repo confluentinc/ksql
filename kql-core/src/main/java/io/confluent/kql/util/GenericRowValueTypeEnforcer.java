@@ -35,9 +35,16 @@ public class GenericRowValueTypeEnforcer {
   Double enforceDouble(Object value) {
     if (value instanceof Double) {
       return (Double) value;
-    } else if (value instanceof Integer || value instanceof Long || value instanceof Float ||
-               value instanceof Short || value instanceof Byte) {
-      return (Double) value;
+    } else if (value instanceof Integer) {
+      return ((Integer) value).doubleValue();
+    } else if (value instanceof Long) {
+      return ((Long) value).doubleValue();
+    } else if (value instanceof Float) {
+      return ((Float) value).doubleValue();
+    } else if (value instanceof Short) {
+      return ((Short) value).doubleValue();
+    } else if (value instanceof Byte) {
+      return ((Byte) value).doubleValue();
     } else if (value instanceof String || value instanceof CharSequence) {
       return Double.parseDouble(value.toString());
     } else {
@@ -46,8 +53,18 @@ public class GenericRowValueTypeEnforcer {
   }
 
   Long enforceLong(Object value) {
-    if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
+    if (value instanceof Long) {
       return (Long) value;
+    } else if (value instanceof Integer) {
+      return ((Integer) value).longValue();
+    } else if (value instanceof Long) {
+      return ((Long) value).longValue();
+    } else if (value instanceof Float) {
+      return ((Float) value).longValue();
+    } else if (value instanceof Short) {
+      return ((Short) value).longValue();
+    } else if (value instanceof Byte) {
+      return ((Byte) value).longValue();
     } else if (value instanceof String || value instanceof CharSequence) {
       return Long.parseLong(value.toString());
     } else {
@@ -56,8 +73,17 @@ public class GenericRowValueTypeEnforcer {
   }
 
   Integer enforceInteger(Object value) {
-    if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
+
+    if (value instanceof Integer) {
       return (Integer) value;
+    } else if (value instanceof Long) {
+      return ((Long) value).intValue();
+    } else if (value instanceof Float) {
+      return ((Float) value).intValue();
+    } else if (value instanceof Short) {
+      return ((Short) value).intValue();
+    } else if (value instanceof Byte) {
+      return ((Byte) value).intValue();
     } else if (value instanceof String || value instanceof CharSequence) {
       return Integer.parseInt(value.toString());
     } else {

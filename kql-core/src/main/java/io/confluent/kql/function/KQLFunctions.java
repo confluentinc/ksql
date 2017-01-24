@@ -60,13 +60,13 @@ public class KQLFunctions {
      * Math functions                      *
      ***************************************/
 
-    KQLFunction abs = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction abs = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64),
                                         "ABS", Abs_KUDF.class);
-    KQLFunction ceil = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction ceil = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
                                          "CEIL", Ceil_KUDF.class);
-    KQLFunction floor = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction floor = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
                                           "FLOOR", Floor_KUDF.class);
-    KQLFunction round = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64)
+    KQLFunction round = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64)
                                       , "ROUND", Round_KUDF.class);
     KQLFunction random = new KQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",
                                            Random_KUDF.class);

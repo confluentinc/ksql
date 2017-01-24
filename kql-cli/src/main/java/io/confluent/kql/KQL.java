@@ -471,14 +471,14 @@ public class KQL {
     System.err.println("Usage: ");
     System.err.println(
         " kql [" + KQLConfig.QUERY_FILE_PATH_CONFIG + "=<cli|path to query file> ] ["
-        + KQLConfig.SCHEMA_FILE_PATH_CONFIG + "=<path to schema json file>] ["
+        + KQLConfig.CATALOG_FILE_PATH_CONFIG + "=<path to catalog json file>] ["
         + KQLConfig.PROP_FILE_PATH_CONFIG + "=<path to the properties file>]");
   }
 
   private static void loadDefaultSettings(Map<String, String> cliProperties) {
     cliProperties.put(KQLConfig.QUERY_FILE_PATH_CONFIG, KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG);
     cliProperties
-        .put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, KQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG);
+        .put(KQLConfig.CATALOG_FILE_PATH_CONFIG, KQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG);
     cliProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG);
     cliProperties.put(KQLConfig.AVRO_SCHEMA_FOLDER_PATH_CONFIG, KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG);
 
@@ -502,7 +502,7 @@ public class KQL {
       String[] property = propertyStr.split("=");
       if (property[0].equalsIgnoreCase(KQLConfig.QUERY_FILE_PATH_CONFIG) || property[0]
           .equalsIgnoreCase(KQLConfig.PROP_FILE_PATH_CONFIG)
-          || property[0].equalsIgnoreCase(KQLConfig.SCHEMA_FILE_PATH_CONFIG) || property[0]
+          || property[0].equalsIgnoreCase(KQLConfig.CATALOG_FILE_PATH_CONFIG) || property[0]
               .equalsIgnoreCase(KQLConfig.QUERY_CONTENT_CONFIG)|| property[0]
               .equalsIgnoreCase(KQLConfig.QUERY_EXECUTION_TIME_CONFIG)) {
         cliProperties.put(property[0], property[1]);

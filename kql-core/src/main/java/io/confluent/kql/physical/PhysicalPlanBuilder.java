@@ -192,7 +192,7 @@ public class PhysicalPlanBuilder {
                                                                  String avroSchemaFilePath) {
 
     if (avroSchemaFilePath == null) {
-      avroSchemaFilePath = KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG+kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
+      avroSchemaFilePath = KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG +kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
     }
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     String avroSchema = metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(), kqlStructuredDataOutputNode.getKqlTopic().getName());

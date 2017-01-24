@@ -254,7 +254,7 @@ public class KQLEngine {
   }
 
   public KQLEngine(Map<String, String> kqlConfProperties) throws IOException {
-    String schemaPath = kqlConfProperties.get(KQLConfig.SCHEMA_FILE_PATH_CONFIG);
+    String schemaPath = kqlConfProperties.get(KQLConfig.CATALOG_FILE_PATH_CONFIG);
     Properties kqlProperties = new Properties();
     kqlProperties
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "KQL-Default-" + System.currentTimeMillis());
@@ -275,7 +275,7 @@ public class KQLEngine {
   public static void main(String[] args) throws Exception {
     Map<String, String> kqlConfProperties = new HashMap<>();
 //    kqlConfProperties.put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
-    kqlConfProperties.put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, "/tmp/kql/schema.json");
+    kqlConfProperties.put(KQLConfig.CATALOG_FILE_PATH_CONFIG, "/tmp/kql/schema.json");
     kqlConfProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/kql_config.conf");
     KQLEngine kqlEngine = new KQLEngine(kqlConfProperties);
 

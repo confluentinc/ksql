@@ -8,7 +8,7 @@ import java.util.Map;
 public class KQLConfig extends StreamsConfig {
 
   public final static String QUERY_FILE_PATH_CONFIG = "kql.query.file";
-  public final static String SCHEMA_FILE_PATH_CONFIG = "kql.schema.file";
+  public final static String CATALOG_FILE_PATH_CONFIG = "kql.catalog.file";
   public final static String PROP_FILE_PATH_CONFIG = "kql.properties.file";
 
   public final static String QUERY_CONTENT_CONFIG = "query";

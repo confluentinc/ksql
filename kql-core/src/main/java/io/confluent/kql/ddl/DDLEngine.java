@@ -223,9 +223,9 @@ public class DDLEngine {
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
   private Schema getKQLType(String sqlType) {
-    if (sqlType.equalsIgnoreCase("BIGINT")) {
+    if (sqlType.equalsIgnoreCase("BIGINT") || sqlType.equalsIgnoreCase("LONG")) {
       return Schema.INT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("VARCHAR")) {
+    } else if (sqlType.equalsIgnoreCase("VARCHAR") || sqlType.equalsIgnoreCase("STRING")) {
       return Schema.STRING_SCHEMA;
     } else if (sqlType.equalsIgnoreCase("DOUBLE")) {
       return Schema.FLOAT64_SCHEMA;

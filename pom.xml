@@ -13,6 +13,13 @@
         <module>kql-cli</module>
         <module>kql-examples</module>
     </modules>
+    
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
 

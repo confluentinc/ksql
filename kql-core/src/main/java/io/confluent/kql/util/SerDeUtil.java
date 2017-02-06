@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -51,7 +55,7 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getGenericRowAvroSerde(String schemaStr) {
+  public static Serde<GenericRow> getGenericRowAvroSerde(final String schemaStr) {
     Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
@@ -64,7 +68,7 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer,  genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getRowSerDe(KQLTopicSerDe topicSerDe) {
+  public static Serde<GenericRow> getRowSerDe(final KQLTopicSerDe topicSerDe) {
     if (topicSerDe instanceof KQLAvroTopicSerDe) {
       KQLAvroTopicSerDe avroTopicSerDe = (KQLAvroTopicSerDe)topicSerDe;
       return SerDeUtil.getGenericRowAvroSerde(avroTopicSerDe.getSchemaString());

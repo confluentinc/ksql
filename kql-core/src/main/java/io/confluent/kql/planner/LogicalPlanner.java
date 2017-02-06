@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.planner;
 
 import io.confluent.kql.analyzer.Analysis;
@@ -49,7 +53,7 @@ public class LogicalPlanner {
     return outputNode;
   }
 
-  private OutputNode buildOutputNode(Schema inputSchema, PlanNode sourcePlanNode) {
+  private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
     if (intoDataSource instanceof KQL_STDOUT) {
@@ -67,7 +71,7 @@ public class LogicalPlanner {
     throw new RuntimeException("INTO caluse is not supported in SELECT.");
   }
 
-  private AggregateNode buildAggregateNode(Schema inputSchema, PlanNode sourcePlanNode) {
+  private AggregateNode buildAggregateNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
 
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
@@ -86,7 +90,7 @@ public class LogicalPlanner {
 //    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private ProjectNode buildProjectNode(Schema inputSchema, PlanNode sourcePlanNode) {
+  private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     List<Field> projectionFields = new ArrayList<>();
     List<String> fieldNames = new ArrayList<>();
 
@@ -106,7 +110,7 @@ public class LogicalPlanner {
                            analysis.getSelectExpressions());
   }
 
-  private FilterNode buildFilterNode(Schema inputSchema, PlanNode sourcePlanNode) {
+  private FilterNode buildFilterNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
 
     Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);

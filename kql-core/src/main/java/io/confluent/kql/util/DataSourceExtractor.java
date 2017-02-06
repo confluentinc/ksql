@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
 
 import io.confluent.kql.metastore.MetaStore;
@@ -40,24 +44,24 @@ public class DataSourceExtractor
 
   boolean isJoin = false;
 
-  public DataSourceExtractor(MetaStore metaStore) {
+  public DataSourceExtractor(final MetaStore metaStore) {
 
     this.metaStore = metaStore;
   }
 
   @Override
-  public Node visitQuerySpecification(SqlBaseParser.QuerySpecificationContext ctx) {
+  public Node visitQuerySpecification(final SqlBaseParser.QuerySpecificationContext ctx) {
     Relation from = (Relation) visit(ctx.from);
     return visitChildren(ctx);
   }
 
   @Override
-  public Node visitTableName(SqlBaseParser.TableNameContext context) {
+  public Node visitTableName(final SqlBaseParser.TableNameContext context) {
     return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
   }
 
   @Override
-  public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context) {
+  public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
     Table table = (Table) visit(context.relationPrimary());
 
     String alias = null;
@@ -84,7 +88,7 @@ public class DataSourceExtractor
   }
 
   @Override
-  public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context) {
+  public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
     this.isJoin = true;
     AliasedRelation left = (AliasedRelation) visit(context.left);
     AliasedRelation right;
@@ -122,7 +126,7 @@ public class DataSourceExtractor
   }
 
 
-  public void extractDataSources(ParseTree node) {
+  public void extractDataSources(final ParseTree node) {
     visit(node);
     if (joinLeftSchema != null) {
       for (Field field : joinLeftSchema.fields()) {

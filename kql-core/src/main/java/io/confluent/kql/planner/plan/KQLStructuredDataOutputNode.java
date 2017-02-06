@@ -1,5 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.planner.plan;
-
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -19,11 +22,11 @@ public class KQLStructuredDataOutputNode extends OutputNode {
 
 
   @JsonCreator
-  public KQLStructuredDataOutputNode(@JsonProperty("id") PlanNodeId id,
-                                     @JsonProperty("source") PlanNode source,
-                                     @JsonProperty("schema") Schema schema,
-                                     @JsonProperty("kqlTopic") KQLTopic kqlTopic,
-                                     @JsonProperty("topicName") String topicName) {
+  public KQLStructuredDataOutputNode(@JsonProperty("id") final PlanNodeId id,
+                                     @JsonProperty("source") final PlanNode source,
+                                     @JsonProperty("schema") final Schema schema,
+                                     @JsonProperty("kqlTopic") final KQLTopic kqlTopic,
+                                     @JsonProperty("topicName") final String topicName) {
     super(id, source, schema);
     this.kafkaTopicName = topicName;
     this.keyField = source.getKeyField();

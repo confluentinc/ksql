@@ -1,5 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.planner.plan;
-
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -27,14 +30,14 @@ public class JoinNode extends PlanNode {
   private final String rightAlias;
   private final Field keyField;
 
-  public JoinNode(@JsonProperty("id") PlanNodeId id,
-                  @JsonProperty("type") Type type,
-                  @JsonProperty("left") PlanNode left,
-                  @JsonProperty("right") PlanNode right,
-                  @JsonProperty("leftKeyFieldName") String leftKeyFieldName,
-                  @JsonProperty("rightKeyFieldName") String rightKeyFieldName,
-                  @JsonProperty("leftAlias") String leftAlias,
-                  @JsonProperty("rightAlias") String rightAlias) {
+  public JoinNode(@JsonProperty("id") final PlanNodeId id,
+                  @JsonProperty("type") final Type type,
+                  @JsonProperty("left") final PlanNode left,
+                  @JsonProperty("right") final PlanNode right,
+                  @JsonProperty("leftKeyFieldName") final String leftKeyFieldName,
+                  @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
+                  @JsonProperty("leftAlias") final String leftAlias,
+                  @JsonProperty("rightAlias") final String rightAlias) {
 
     // TODO: Type should be derived.
     super(id);
@@ -50,7 +53,7 @@ public class JoinNode extends PlanNode {
 //    this.keyField = this.schema.field((leftAlias + "_" + leftKeyFieldName).toUpperCase());
   }
 
-  private Schema buildSchema(PlanNode left, PlanNode right) {
+  private Schema buildSchema(final PlanNode left, final PlanNode right) {
 
     Schema leftSchema = left.getSchema();
     Schema rightSchema = right.getSchema();

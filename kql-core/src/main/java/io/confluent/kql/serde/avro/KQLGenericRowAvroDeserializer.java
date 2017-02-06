@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.serde.avro;
 
 import org.apache.avro.Schema;
@@ -23,7 +27,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
   GenericDatumReader<GenericRecord> reader;
 
   @Override
-  public void configure(Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
     rowSchema = (String) map.get(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG);
     if (rowSchema == null) {
       throw new SerializationException("Avro schema is not set for the deserializer.");
@@ -34,7 +38,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(String topic, byte[] bytes) {
+  public GenericRow deserialize(final String topic, final byte[] bytes) {
     if (bytes == null) {
       return null;
     }

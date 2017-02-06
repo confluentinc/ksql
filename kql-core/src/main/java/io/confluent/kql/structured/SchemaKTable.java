@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.structured;
 
 import io.confluent.kql.function.udf.KUDF;
@@ -23,13 +27,13 @@ public class SchemaKTable extends SchemaKStream {
 
   final KTable kTable;
 
-  public SchemaKTable(Schema schema, KTable kTable, Field keyField, List<SchemaKStream> sourceSchemaKStreams) {
+  public SchemaKTable(final Schema schema, final KTable kTable, final Field keyField, final List<SchemaKStream> sourceSchemaKStreams) {
     super(schema, null, keyField, sourceSchemaKStreams);
     this.kTable = kTable;
   }
 
   @Override
-  public SchemaKTable into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
+  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
 
     kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
@@ -47,14 +51,14 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable filter(Expression filterExpression) throws Exception {
+  public SchemaKTable filter(final Expression filterExpression) throws Exception {
     SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
     KTable filteredKTable = kTable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this));
   }
 
   @Override
-  public SchemaKTable select(List<Expression> expressions, Schema selectSchema) throws Exception {
+  public SchemaKTable select(final List<Expression> expressions, final Schema selectSchema) throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.

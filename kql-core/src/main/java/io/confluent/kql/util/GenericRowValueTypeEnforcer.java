@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
 
 import org.apache.kafka.connect.data.Field;
@@ -10,12 +14,12 @@ public class GenericRowValueTypeEnforcer {
   Schema schema;
   List<Field> fields;
 
-  public GenericRowValueTypeEnforcer(Schema schema) {
+  public GenericRowValueTypeEnforcer(final Schema schema) {
     this.schema = schema;
     this.fields = schema.fields();
   }
 
-  public Object enforceFieldType(int index, Object value) {
+  public Object enforceFieldType(final int index, final Object value) {
     Field field = fields.get(index);
     if (field.schema().type() == Schema.Type.FLOAT64) {
       return enforceDouble(value);
@@ -32,7 +36,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Double enforceDouble(Object value) {
+  Double enforceDouble(final Object value) {
     if (value instanceof Double) {
       return (Double) value;
     } else if (value instanceof Integer) {
@@ -52,7 +56,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Long enforceLong(Object value) {
+  Long enforceLong(final Object value) {
     if (value instanceof Long) {
       return (Long) value;
     } else if (value instanceof Integer) {
@@ -72,7 +76,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Integer enforceInteger(Object value) {
+  Integer enforceInteger(final Object value) {
 
     if (value instanceof Integer) {
       return (Integer) value;
@@ -91,7 +95,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  String enforceString(Object value) {
+  String enforceString(final Object value) {
     if (value instanceof String || value instanceof CharSequence) {
       return value.toString();
     } else {
@@ -99,7 +103,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Boolean enforceBoolean(Object value) {
+  Boolean enforceBoolean(final Object value) {
     if (value instanceof Boolean) {
       return (Boolean) value;
     } else if (value instanceof String) {

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.serde.csv;
 
 import org.apache.kafka.common.serialization.Serializer;
@@ -16,7 +20,7 @@ public class KQLCsvSerializer implements Serializer<GenericRow> {
   }
 
   @Override
-  public byte[] serialize(String topic, GenericRow genericRow) {
+  public byte[] serialize(final String topic, final GenericRow genericRow) {
     StringBuilder recordString = new StringBuilder();
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       if ( i != 0) {

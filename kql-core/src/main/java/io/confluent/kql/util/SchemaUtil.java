@@ -1,5 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
-
 
 import com.google.common.collect.ImmutableMap;
 
@@ -9,7 +12,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class SchemaUtil {
 
-  public static Schema getTypeSchema(Schema.Type type) {
+  public static Schema getTypeSchema(final Schema.Type type) {
     if (type == Schema.Type.BOOLEAN) {
       return Schema.BOOLEAN_SCHEMA;
     } else if (type == Schema.Type.INT32) {
@@ -24,7 +27,7 @@ public class SchemaUtil {
     throw new KQLException("Type is not supported: " + type);
   }
 
-  public static Class getJavaType(Schema.Type type) {
+  public static Class getJavaType(final Schema.Type type) {
     if (type == Schema.Type.BOOLEAN) {
       return Boolean.class;
     } else if (type == Schema.Type.INT32) {
@@ -39,7 +42,7 @@ public class SchemaUtil {
     throw new KQLException("Type is not supported: " + type);
   }
 
-  public static Schema.Type getTypeSchema(String kqlType) {
+  public static Schema.Type getTypeSchema(final String kqlType) {
 
     if (kqlType.equalsIgnoreCase("STRING")) {
       return Schema.Type.STRING;
@@ -55,13 +58,13 @@ public class SchemaUtil {
     throw new KQLException("Type is not supported: " + kqlType);
   }
 
-  public static Field getFieldByName(Schema schema, String fieldName) {
-    fieldName = fieldName.toUpperCase();
+  public static Field getFieldByName(final Schema schema, final String fieldName) {
+    String fieldNameUppercase = fieldName.toUpperCase();
 
     if (schema.fields() != null) {
       
       for (Field field : schema.fields()) {
-        if (field.name().equalsIgnoreCase(fieldName)) {
+        if (field.name().equalsIgnoreCase(fieldNameUppercase)) {
           return field;
         }
       }
@@ -69,7 +72,7 @@ public class SchemaUtil {
     return null;
   }
 
-  public static int getFieldIndexByName(Schema schema, String fieldName) {
+  public static int getFieldIndexByName(final Schema schema, final String fieldName) {
 
     if (schema.fields() != null) {
       for (int i = 0; i < schema.fields().size(); i++) {
@@ -95,7 +98,7 @@ public class SchemaUtil {
     return -1;
   }
 
-  public static Schema buildSchemaWithAlias(Schema schema, String alias) {
+  public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
     SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
     for (Field field : schema.fields()) {
       newSchema.field((alias + "." + field.name()).toUpperCase(), field.schema());

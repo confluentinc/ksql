@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.serde.csv;
 
 import org.apache.commons.csv.CSVFormat;
@@ -21,7 +25,7 @@ public class KQLCsvDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(String topic, byte[] bytes) {
+  public GenericRow deserialize(final String topic, final byte[] bytes) {
     String recordCsvString = new String(bytes);
     try {
       CSVRecord csvRecord = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT).getRecords().get(0);

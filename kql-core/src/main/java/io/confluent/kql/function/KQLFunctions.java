@@ -1,5 +1,9 @@
-package io.confluent.kql.function;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.function;
 
 import io.confluent.kql.function.udaf.Count_KUDAF;
 import io.confluent.kql.function.udaf.sum.Sum_KUDAF;
@@ -68,8 +72,7 @@ public class KQLFunctions {
                                          "CEIL", Ceil_KUDF.class);
     KQLFunction floor = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
                                           "FLOOR", Floor_KUDF.class);
-    KQLFunction round = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64)
-                                      , "ROUND", Round_KUDF.class);
+    KQLFunction round = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64), "ROUND", Round_KUDF.class);
     KQLFunction random = new KQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",
                                            Random_KUDF.class);
 

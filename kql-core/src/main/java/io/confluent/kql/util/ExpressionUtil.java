@@ -1,5 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
-
 
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
@@ -16,14 +19,14 @@ import java.util.Map;
 
 public class ExpressionUtil {
 
-  public Map<String, Class> getParameterInfo(Expression expression, Schema schema) {
+  public Map<String, Class> getParameterInfo(final Expression expression, final Schema schema) {
     Visitor visitor = new Visitor(schema);
     visitor.process(expression, null);
     return visitor.parameterMap;
   }
 
-  public Triplet<IExpressionEvaluator, int[], KUDF[]> getExpressionEvaluator(Expression expression,
-                                                                  Schema schema) throws Exception {
+  public Triplet<IExpressionEvaluator, int[], KUDF[]> getExpressionEvaluator(final Expression expression,
+                                                                             final Schema schema) throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     Map<String, Class> parameterMap = expressionUtil.getParameterInfo(expression, schema);
 

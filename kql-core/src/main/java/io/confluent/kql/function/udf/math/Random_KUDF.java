@@ -1,3 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
+
 package io.confluent.kql.function.udf.math;
 
 import io.confluent.kql.function.KQLFunctionException;

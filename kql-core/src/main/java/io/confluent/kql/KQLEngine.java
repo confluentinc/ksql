@@ -1,16 +1,40 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql;
 
-
 import io.confluent.kql.ddl.DDLEngine;
-import io.confluent.kql.metastore.*;
-import io.confluent.kql.parser.KQLParser;
+import io.confluent.kql.metastore.KQLStream;
+import io.confluent.kql.metastore.KQLTopic;
+import io.confluent.kql.metastore.MetaStore;
+import io.confluent.kql.metastore.MetaStoreImpl;
+import io.confluent.kql.metastore.KQLTable;
+import io.confluent.kql.metastore.MetastoreUtil;
+import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.SqlBaseParser;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Statement;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.CreateStream;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
-import io.confluent.kql.util.*;
-
+import io.confluent.kql.util.DataSourceExtractor;
+import io.confluent.kql.util.KQLConfig;
+import io.confluent.kql.util.Pair;
+import io.confluent.kql.util.Triplet;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -19,17 +43,21 @@ import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Properties;
+import java.util.Map;
+import java.util.Arrays;
 
 public class KQLEngine {
-
   KQLConfig kqlConfig;
   QueryEngine queryEngine;
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
 
   public List<Triplet<String, KafkaStreams, OutputNode>> runMultipleQueries(
-      String queriesString) throws Exception {
+      final String queriesString) throws Exception {
 
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
@@ -109,7 +137,7 @@ public class KQLEngine {
 
   }
 
-  public StructuredDataSource getResultDatasource(Select select, Table into) {
+  public StructuredDataSource getResultDatasource(final Select select, final Table into) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
 
@@ -134,7 +162,7 @@ public class KQLEngine {
     return resultStream;
   }
 
-  public void runCLIQuery(String queriyString, long terminateIn) throws Exception {
+  public void runCLIQuery(final String queriyString, final long terminateIn) throws Exception {
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
     List<SqlBaseParser.SingleStatementContext>
@@ -166,7 +194,7 @@ public class KQLEngine {
   }
 
   public Triplet<String, KafkaStreams, OutputNode> runSingleQuery(
-      Pair<String, Query> queryInfo) throws Exception {
+          final Pair<String, Query> queryInfo) throws Exception {
 
     List<Pair<String, PlanNode>>
         logicalPlans =
@@ -180,7 +208,7 @@ public class KQLEngine {
 
   }
 
-  public List<Statement> getStatements(String sqlString) {
+  public List<Statement> getStatements(final String sqlString) {
     // First parse the query and build the AST
     KQLParser kqlParser = new KQLParser();
     List<Statement> builtASTStatements = kqlParser.buildAST(sqlString, metaStore);
@@ -188,12 +216,13 @@ public class KQLEngine {
   }
 
 
-  public void processStatements(String queryId, String statementsString) throws Exception {
+  public void processStatements(final String queryId, final String statementsString) throws Exception {
+    String statementWithSemicolon = statementsString;
     if (!statementsString.endsWith(";")) {
-      statementsString = statementsString + ";";
+      statementWithSemicolon = statementsString + ";";
     }
     // Parse the query and build the AST
-    List<Statement> statements = getStatements(statementsString);
+    List<Statement> statements = getStatements(statementWithSemicolon);
     int internalIndex = 0;
     for (Statement statement : statements) {
       if (statement instanceof Query) {
@@ -209,8 +238,8 @@ public class KQLEngine {
     }
   }
 
-  public Query addInto(Query query, QuerySpecification querySpecification, String intoName,
-                        Map<String,
+  public Query addInto(final Query query, final QuerySpecification querySpecification, final String intoName,
+                       final Map<String,
                             Expression> intoProperties) {
     Table intoTable = new Table(QualifiedName.of(intoName));
     intoTable.setProperties(intoProperties);
@@ -249,11 +278,11 @@ public class KQLEngine {
     return kqlConfig;
   }
 
-  public KQLEngine(String schemaFilePath) throws IOException {
+  public KQLEngine(final String schemaFilePath) throws IOException {
     this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaFilePath);
   }
 
-  public KQLEngine(Map<String, String> kqlConfProperties) throws IOException {
+  public KQLEngine(final Map<String, String> kqlConfProperties) throws IOException {
     String schemaPath = kqlConfProperties.get(KQLConfig.CATALOG_FILE_PATH_CONFIG);
     Properties kqlProperties = new Properties();
     kqlProperties

@@ -1,5 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.ddl;
-
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +12,11 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.zookeeper.ZooDefs;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Collections;
 
 public class DDLUtil {
 
@@ -87,5 +94,4 @@ public class DDLUtil {
   public static void main(String args[]) {
     new DDLUtil().deleteTopic("TestTopic");
   }
-
 }

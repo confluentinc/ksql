@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,7 +17,7 @@ public abstract class PlanNode {
 
   private final PlanNodeId id;
 
-  protected PlanNode(PlanNodeId id) {
+  protected PlanNode(final PlanNodeId id) {
     requireNonNull(id, "id is null");
     this.id = id;
   }

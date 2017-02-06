@@ -1,5 +1,9 @@
-package io.confluent.kql.metastore;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.metastore;
 
 import io.confluent.kql.util.KQLException;
 
@@ -16,8 +20,8 @@ public abstract class StructuredDataSource implements DataSource {
   final KQLTopic KQLTopic;
 
 
-  public StructuredDataSource(String datasourceName, Schema schema, Field keyField,
-                              DataSourceType dataSourceType, KQLTopic KQLTopic) {
+  public StructuredDataSource(final String datasourceName, final Schema schema, final Field keyField,
+                              final DataSourceType dataSourceType, final KQLTopic KQLTopic) {
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;

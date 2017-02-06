@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.util;
 
 import com.google.common.collect.ImmutableMap;
@@ -21,12 +25,12 @@ public class ExpressionTypeManager
     this.schema = schema;
   }
 
-  public ExpressionTypeManager(Schema schema, ImmutableMap<String, Schema> schemaImmutableMap) {
+  public ExpressionTypeManager(final Schema schema, final ImmutableMap<String, Schema> schemaImmutableMap) {
     this.schema = schema;
     this.schemaImmutableMap = schemaImmutableMap;
   }
 
-  public Schema.Type getExpressionType(Expression expression) {
+  public Schema.Type getExpressionType(final Expression expression) {
     ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
     return expressionTypeContext.getType();
@@ -46,8 +50,8 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitArithmeticBinary(ArithmeticBinaryExpression node,
-                                             ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
+                                             final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
     Schema.Type leftType = expressionTypeContext.getType();
     process(node.getRight(), expressionTypeContext);
@@ -56,7 +60,7 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitCast(Cast node, ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitCast(final Cast node, final ExpressionTypeContext expressionTypeContext) {
 
     Schema.Type castType = SchemaUtil.getTypeSchema(node.getType());
     expressionTypeContext.setType(castType);
@@ -65,61 +69,61 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitComparisonExpression(ComparisonExpression node,
-                                                 ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitComparisonExpression(final ComparisonExpression node,
+                                                 final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setType(Schema.Type.BOOLEAN);
     return null;
   }
 
   @Override
-  protected Expression visitQualifiedNameReference(QualifiedNameReference node,
-                                                   ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitQualifiedNameReference(final QualifiedNameReference node,
+                                                   final ExpressionTypeContext expressionTypeContext) {
     Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
     expressionTypeContext.setType(schemaField.schema().type());
     return null;
   }
 
   @Override
-  protected Expression visitDereferenceExpression(DereferenceExpression node,
-                                                  ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitDereferenceExpression(final DereferenceExpression node,
+                                                  final ExpressionTypeContext expressionTypeContext) {
 //        Field schemaField = SchemaUtil.getFieldByName(schema, node.getFieldName());
     Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
     expressionTypeContext.setType(schemaField.schema().type());
     return null;
   }
 
-  protected Expression visitStringLiteral(StringLiteral node,
-                                          ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitStringLiteral(final StringLiteral node,
+                                          final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setType(Schema.Type.STRING);
     return null;
   }
 
-  protected Expression visitBooleanLiteral(BooleanLiteral node,
-                                           ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitBooleanLiteral(final BooleanLiteral node,
+                                           final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setType(Schema.Type.BOOLEAN);
     return null;
   }
 
-  protected Expression visitLongLiteral(LongLiteral node,
-                                        ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitLongLiteral(final LongLiteral node,
+                                        final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setType(Schema.Type.INT64);
     return null;
   }
 
-  protected Expression visitDoubleLiteral(DoubleLiteral node,
-                                          ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitDoubleLiteral(final DoubleLiteral node,
+                                          final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setType(Schema.Type.FLOAT64);
     return null;
   }
 
-  protected Expression visitFunctionCall(FunctionCall node, ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitFunctionCall(final FunctionCall node, final ExpressionTypeContext expressionTypeContext) {
 //    return visitExpression(node, expressionTypeContext);
     KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
     expressionTypeContext.setType(kqlFunction.getReturnType());
     return null;
   }
 
-  private Schema.Type resolveArithmaticType(Schema.Type leftType, Schema.Type rightType) {
+  private Schema.Type resolveArithmaticType(final Schema.Type leftType, final Schema.Type rightType) {
     if (leftType == rightType) {
       return leftType;
     } else if ((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING)) {

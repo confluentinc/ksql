@@ -1,5 +1,9 @@
-package io.confluent.kql.ddl;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.ddl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +39,7 @@ public class DDLEngine {
     this.kqlEngine = kqlEngine;
   }
 
-  public KQLTopic createTopic(CreateTopic createTopic) {
+  public KQLTopic createTopic(final CreateTopic createTopic) {
 
     String topicName = createTopic.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getTopic(topicName) != null) {
@@ -64,7 +68,7 @@ public class DDLEngine {
       throw new KQLException("Corresponding kafka topic should be set in WITH clause.");
     }
     String kafkaTopicName = createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
-    kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY,kafkaTopicName);
+    kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
     if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
 
@@ -94,22 +98,22 @@ public class DDLEngine {
     return kQLTopic;
   }
 
-  private String enforceString(String propertyName, String propertyValue) {
+  private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
       throw new KQLException(propertyName + " value is string and should be enclosed between "
                              + "\"'\".");
     }
-    return propertyValue.substring(1,propertyValue.length()-1);
+    return propertyValue.substring(1, propertyValue.length() - 1);
   }
 
-  public void dropTopic(DropTable dropTable) {
+  public void dropTopic(final DropTable dropTable) {
 
     String topicName = dropTable.getTableName().getSuffix().toUpperCase();
     new DDLUtil().deleteTopic(topicName);
     kqlEngine.getMetaStore().deleteSource(topicName);
   }
 
-  public KQLStream createStream(CreateStream createStream) {
+  public KQLStream createStream(final CreateStream createStream) {
 
     String streamName = createStream.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getSource(streamName) != null) {
@@ -160,7 +164,7 @@ public class DDLEngine {
     return  kqlStream;
   }
 
-  public KQLTable createTable(CreateTable createTable) {
+  public KQLTable createTable(final CreateTable createTable) {
 
     String tableName = createTable.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getSource(tableName) != null) {
@@ -222,7 +226,7 @@ public class DDLEngine {
   }
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
-  private Schema getKQLType(String sqlType) {
+  private Schema getKQLType(final String sqlType) {
     if (sqlType.equalsIgnoreCase("BIGINT") || sqlType.equalsIgnoreCase("LONG")) {
       return Schema.INT64_SCHEMA;
     } else if (sqlType.equalsIgnoreCase("VARCHAR") || sqlType.equalsIgnoreCase("STRING")) {
@@ -236,7 +240,7 @@ public class DDLEngine {
     }
     throw new KQLException("Unsupported type: " + sqlType);
   }
-  private String getAvroSchema(String schemaFilePath) throws IOException {
+  private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode root = objectMapper.readTree(jsonData);

@@ -1,5 +1,9 @@
-package io.confluent.kql.function.udf.util;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.function.udf.util;
 
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.udf.KUDF;

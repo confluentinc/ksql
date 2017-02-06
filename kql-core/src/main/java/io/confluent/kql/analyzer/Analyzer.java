@@ -26,13 +26,10 @@ import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.GroupBy;
 import io.confluent.kql.parser.tree.Cast;
-//import io.confluent.kql.parser.tree.AllColumns;
-//import io.confluent.kql.parser.tree.;
-//import io.confluent.kql.parser.tree.;
-//import io.confluent.kql.parser.tree.;
-//import io.confluent.kql.parser.tree.;
-//import io.confluent.kql.parser.tree.;
-
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.GroupingElement;
+import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.DefaultTraversalVisitor;
 import io.confluent.kql.planner.plan.JoinNode;
 import io.confluent.kql.planner.plan.PlanNodeId;
@@ -60,7 +57,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitQuerySpecification(QuerySpecification node, AnalysisContext context) {
+  protected Node visitQuerySpecification(final QuerySpecification node, final AnalysisContext context) {
 
     process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
 
@@ -102,13 +99,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       analyzeWhere(node.getWhere().get(), context);
     }
     if (node.getGroupBy().isPresent()) {
-        analyzeGroupBy(node.getGroupBy().get(), context);
+      analyzeGroupBy(node.getGroupBy().get(), context);
     }
     return null;
   }
 
   @Override
-  protected Node visitJoin(Join node, AnalysisContext context) {
+  protected Node visitJoin(final Join node, final AnalysisContext context) {
     AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
     AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
@@ -222,46 +219,40 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitTable(Table node, AnalysisContext context) {
+  protected Node visitTable(final Table node, final AnalysisContext context) {
 
     StructuredDataSource into;
     if (node.isSTDOut) {
-      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, StructuredDataSource.DataSourceType
-          .KSTREAM);
-    }
-    else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
+      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, StructuredDataSource.DataSourceType.KSTREAM);
+    } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = new KQLStream(node.getName().getSuffix(), null, null, null);
 
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
         if (!serde.startsWith("'") && !serde.endsWith("'")) {
-          throw new KQLException(serde + " value is string and should be enclosed between "
-                                 + "\"'\".");
+          throw new KQLException(serde + " value is string and should be enclosed between " + "\"'\".");
         }
-        serde = serde.substring(1,serde.length()-1);
+        serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
         if (serde.equalsIgnoreCase("avro")) {
-          String avroSchemaFilePath = "/tmp/"+into.getName()+".avro";
+          String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
             avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
             if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
-              throw new KQLException(avroSchemaFilePath + " value is string and should be enclosed between "
-                                     + "\"'\".");
+              throw new KQLException(avroSchemaFilePath + " value is string and should be enclosed between " + "\"'\".");
             }
-            avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length()-1);
+            avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
           }
           analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
         }
       }
 
       if (node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
-        String intoKafkaTopicName = node.getProperties().get(DDLConfig
-                                                                    .KAFKA_TOPIC_NAME_PROPERTY).toString();
+        String intoKafkaTopicName = node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
         if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
-          throw new KQLException(intoKafkaTopicName + " value is string and should be enclosed between "
-                                 + "\"'\".");
+          throw new KQLException(intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
         }
-        intoKafkaTopicName = intoKafkaTopicName.substring(1,intoKafkaTopicName.length()-1);
+        intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
       }
     } else {
@@ -272,12 +263,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitCast(Cast node, AnalysisContext context) {
+  protected Node visitCast(final Cast node, final AnalysisContext context) {
     return process(node.getExpression(), context);
   }
 
   @Override
-  protected Node visitSelect(Select node, AnalysisContext context) {
+  protected Node visitSelect(final Select node, final AnalysisContext context) {
     for (SelectItem selectItem : node.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
         // expand * and T.*
@@ -289,20 +280,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         if (analysis.getJoin() != null) {
           JoinNode joinNode = analysis.getJoin();
           for (Field field : joinNode.getLeft().getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+            QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getLeftAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getLeftAlias() + "_" + field.name());
+            analysis.addSelectItem(qualifiedNameReference, joinNode.getLeftAlias() + "_" + field.name());
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
+            QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getRightAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getRightAlias() + "_" + field.name());
+            analysis.addSelectItem(qualifiedNameReference, joinNode.getRightAlias() + "_" + field.name());
           }
         } else {
           for (Field field : this.analysis.getFromDataSources().get(0).getLeft().getSchema()
@@ -326,37 +312,31 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitQualifiedNameReference(QualifiedNameReference node, AnalysisContext context) {
+  protected Node visitQualifiedNameReference(final QualifiedNameReference node, final AnalysisContext context) {
     return visitExpression(node, context);
   }
 
-
-    @Override
-    protected Node visitGroupBy(GroupBy node, AnalysisContext context) {
-
-        for (GroupingElement groupingElement : node.getGroupingElements()) {
-//            process(groupingElement, context);
-//            analysis.getGroupByExpressions().add(groupingElement.)
-        }
-
-        return null;
+  @Override
+  protected Node visitGroupBy(final GroupBy node, final AnalysisContext context) {
+    for (GroupingElement groupingElement : node.getGroupingElements()) {
+//          process(groupingElement, context);
+//          analysis.getGroupByExpressions().add(groupingElement.)
     }
-
-  private StructuredDataSource analyzeFrom(QuerySpecification node, AnalysisContext context) {
     return null;
   }
 
-  private void analyzeWhere(Node node, AnalysisContext context) {
+  private StructuredDataSource analyzeFrom(final QuerySpecification node, final AnalysisContext context) {
+    return null;
+  }
+
+  private void analyzeWhere(final Node node, final AnalysisContext context) {
     analysis.setWhereExpression((Expression) node);
   }
 
-  private void analyzeGroupBy(GroupBy groupBy, AnalysisContext context) {
-
-      for (GroupingElement groupingElement : groupBy.getGroupingElements()) {
-          Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
-          analysis.getGroupByExpressions().addAll(groupingSet);
-      }
+  private void analyzeGroupBy(final GroupBy groupBy, final AnalysisContext context) {
+    for (GroupingElement groupingElement : groupBy.getGroupingElements()) {
+      Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
+      analysis.getGroupByExpressions().addAll(groupingSet);
+    }
   }
-
-
 }

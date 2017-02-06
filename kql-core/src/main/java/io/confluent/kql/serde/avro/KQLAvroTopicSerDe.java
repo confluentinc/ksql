@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.serde.avro;
 
 import io.confluent.kql.metastore.StructuredDataSource;
@@ -8,7 +12,7 @@ public class KQLAvroTopicSerDe extends KQLTopicSerDe {
   private final String schemaString;
   private final String schemaFilePath;
 
-  public KQLAvroTopicSerDe(String schemaFilePath, String schemaString) {
+  public KQLAvroTopicSerDe(final String schemaFilePath, final String schemaString) {
     super(StructuredDataSource.DataSourceSerDe.AVRO);
     this.schemaString = schemaString;
     this.schemaFilePath = schemaFilePath;

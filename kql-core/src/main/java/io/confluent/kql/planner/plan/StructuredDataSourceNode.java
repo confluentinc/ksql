@@ -1,16 +1,7 @@
-/*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/**
+ * Copyright 2017 Confluent Inc.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+ **/
 package io.confluent.kql.planner.plan;
 
 
@@ -40,14 +31,14 @@ public class StructuredDataSourceNode
 
   // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
-  public StructuredDataSourceNode(@JsonProperty("id") PlanNodeId id,
-                              @JsonProperty("schema") Schema schema,
-                              @JsonProperty("keyField") Field keyField,
-                              @JsonProperty("topicName") String topicName,
-                              @JsonProperty("alias") String alias,
-                              @JsonProperty("dataSourceType") StructuredDataSource.DataSourceType
+  public StructuredDataSourceNode(@JsonProperty("id") final PlanNodeId id,
+                              @JsonProperty("schema") final Schema schema,
+                              @JsonProperty("keyField") final Field keyField,
+                              @JsonProperty("topicName") final String topicName,
+                              @JsonProperty("alias") final String alias,
+                              @JsonProperty("dataSourceType") final StructuredDataSource.DataSourceType
                                     dataSourceType,
-                              @JsonProperty("structuredDataSource") StructuredDataSource structuredDataSource) {
+                              @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource) {
     super(id, dataSourceType);
 
     this.schema = schema;

@@ -1,5 +1,9 @@
-package io.confluent.kql.metastore;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.metastore;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +29,7 @@ import java.util.Map;
 
 public class MetastoreUtil {
 
-  public StructuredDataSource createStructuredDataSource(MetaStore metaStore, JsonNode node)
+  public StructuredDataSource createStructuredDataSource(final MetaStore metaStore, final JsonNode node)
       throws
                                                                                   IOException {
 
@@ -72,7 +76,7 @@ public class MetastoreUtil {
     throw new KQLException("Type not supported.");
   }
 
-  public KQLTopic createKafkaTopicDataSource(JsonNode node) throws IOException {
+  public KQLTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {
 
     KQLTopicSerDe topicSerDe;
     String topicname = node.get("topicname").asText();
@@ -97,7 +101,7 @@ public class MetastoreUtil {
     return new KQLTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
-  private Schema getKQLType(String sqlType) {
+  private Schema getKQLType(final String sqlType) {
     if (sqlType.equalsIgnoreCase("long")) {
       return Schema.INT64_SCHEMA;
     } else if (sqlType.equalsIgnoreCase("string")) {
@@ -112,7 +116,7 @@ public class MetastoreUtil {
     throw new KQLException("Unsupported type: " + sqlType);
   }
 
-  private String getKQLTypeInJson(Schema schemaType) {
+  private String getKQLTypeInJson(final Schema schemaType) {
     if (schemaType == Schema.INT64_SCHEMA) {
       return "long";
     } else if (schemaType == Schema.STRING_SCHEMA) {
@@ -127,7 +131,7 @@ public class MetastoreUtil {
     throw new KQLException("Unsupported type: " + schemaType);
   }
 
-  public MetaStore loadMetastoreFromJSONFile(String metastoreJsonFilePath) throws KQLException {
+  public MetaStore loadMetastoreFromJSONFile(final String metastoreJsonFilePath) throws KQLException {
 
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
@@ -160,7 +164,7 @@ public class MetastoreUtil {
     }
   }
 
-  private void addTopics(StringBuilder stringBuilder, Map<String, KQLTopic> topicMap) {
+  private void addTopics(final StringBuilder stringBuilder, final Map<String, KQLTopic> topicMap) {
     stringBuilder.append("\"topics\" :[ \n");
     boolean isFist = true;
     for (KQLTopic kqlTopic: topicMap.values()) {
@@ -171,13 +175,13 @@ public class MetastoreUtil {
       }
       stringBuilder.append("\t\t{\n");
       stringBuilder.append("\t\t\t \"namespace\": \"kql-topics\", \n");
-      stringBuilder.append("\t\t\t \"topicname\": \""+kqlTopic.getTopicName()+"\", \n");
-      stringBuilder.append("\t\t\t \"kafkatopicname\": \""+kqlTopic.getKafkaTopicName()+"\", \n");
+      stringBuilder.append("\t\t\t \"topicname\": \"" + kqlTopic.getTopicName()+"\", \n");
+      stringBuilder.append("\t\t\t \"kafkatopicname\": \"" + kqlTopic.getKafkaTopicName()+"\", \n");
       stringBuilder.append("\t\t\t \"serde\": \""+kqlTopic.getKqlTopicSerDe().getSerDe()+"\"");
       if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
         KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
-        stringBuilder.append(",\n\t\t\t \"avroschemafile\": \""+kqlAvroTopicSerDe.getSchemaFilePath
-            ()+"\"");
+        stringBuilder.append(",\n\t\t\t \"avroschemafile\": \"" + kqlAvroTopicSerDe.getSchemaFilePath
+            () + "\"");
       }
       stringBuilder.append("\n\t\t}\n");
 
@@ -185,7 +189,7 @@ public class MetastoreUtil {
     stringBuilder.append("\t\t]\n");
   }
 
-  private void addSchemas(StringBuilder stringBuilder, Map<String, StructuredDataSource>
+  private void addSchemas(final StringBuilder stringBuilder, final Map<String, StructuredDataSource>
       dataSourceMap) {
     stringBuilder.append("\t\"schemas\" :[ \n");
     boolean isFirst = true;
@@ -205,9 +209,9 @@ public class MetastoreUtil {
         throw new KQLException("Incorrect data source type:" + structuredDataSource.dataSourceType);
       }
 
-      stringBuilder.append("\t\t\t \"name\": \""+structuredDataSource.getName()+"\", \n");
-      stringBuilder.append("\t\t\t \"key\": \""+structuredDataSource.getKeyField().name()+"\", \n");
-      stringBuilder.append("\t\t\t \"topic\": \""+structuredDataSource.getKQLTopic().getName()+"\", \n");
+      stringBuilder.append("\t\t\t \"name\": \"" + structuredDataSource.getName() + "\", \n");
+      stringBuilder.append("\t\t\t \"key\": \"" + structuredDataSource.getKeyField().name() + "\", \n");
+      stringBuilder.append("\t\t\t \"topic\": \"" + structuredDataSource.getKQLTopic().getName() + "\", \n");
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"users_statestore\", \n");
@@ -220,8 +224,8 @@ public class MetastoreUtil {
         } else {
           stringBuilder.append(", \n");
         }
-        stringBuilder.append("\t\t\t     {\"name\": \""+field.name()+"\", \"type\": "
-                             + "\""+ getKQLTypeInJson(field.schema())+"\"} ");
+        stringBuilder.append("\t\t\t     {\"name\": \"" + field.name() + "\", \"type\": "
+                             + "\""+ getKQLTypeInJson(field.schema()) + "\"} ");
       }
       stringBuilder.append("\t\t\t ]\n");
       stringBuilder.append("\t\t}\n");
@@ -267,14 +271,14 @@ public class MetastoreUtil {
 //        ("ORDERS")));
   }
 
-  private String getAvroSchema(String schemaFilePath) throws IOException {
+  private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode root = objectMapper.readTree(jsonData);
     return root.toString();
   }
 
-  public void writeAvroSchemaFile(String avroSchema, String filePath) {
+  public void writeAvroSchemaFile(final String avroSchema, final String filePath) {
 
     try {
       RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw");
@@ -285,9 +289,9 @@ public class MetastoreUtil {
     }
   }
 
-  public String buildAvroSchema(Schema schema, String name) {
+  public String buildAvroSchema(final Schema schema, String name) {
     StringBuilder stringBuilder = new StringBuilder("{\n\t\"namespace\": \"kql\",\n");
-    stringBuilder.append("\t\"name\": \""+name+"\",\n");
+    stringBuilder.append("\t\"name\": \"" + name + "\",\n");
     stringBuilder.append("\t\"type\": \"record\",\n");
     stringBuilder.append("\t\"fields\": [\n");
     boolean addCamma = false;
@@ -297,16 +301,16 @@ public class MetastoreUtil {
       } else {
         addCamma = true;
       }
-      stringBuilder.append("\t\t{\"name\": \""+field.name()+"\", \"type\": \""+getAvroTypeName(field
+      stringBuilder.append("\t\t{\"name\": \""+field.name() + "\", \"type\": \"" + getAvroTypeName(field
                                                                                                .schema().type())
-                           +"\"}");
+                            + "\"}");
     }
     stringBuilder.append("\n\t]\n");
     stringBuilder.append("}");
     return stringBuilder.toString();
   }
 
-  private String getAvroTypeName(Schema.Type type) {
+  private String getAvroTypeName(final Schema.Type type) {
     if (type == Schema.Type.STRING) {
       return "string";
     } else if (type == Schema.Type.BOOLEAN) {

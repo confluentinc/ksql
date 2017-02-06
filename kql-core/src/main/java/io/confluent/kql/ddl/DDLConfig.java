@@ -1,5 +1,9 @@
-package io.confluent.kql.ddl;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.ddl;
 
 public class DDLConfig {
 

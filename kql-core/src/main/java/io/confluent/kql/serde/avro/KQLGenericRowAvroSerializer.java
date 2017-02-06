@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.serde.avro;
 
 import org.apache.avro.Schema;
@@ -28,7 +32,7 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   List<Schema.Field> fields;
 
   @Override
-  public void configure(Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
     rowSchema = (String) map.get(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG);
     if (rowSchema == null) {
       throw new SerializationException("Avro schema is not set for the serializer.");
@@ -40,7 +44,7 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   }
 
   @Override
-  public byte[] serialize(String topic, GenericRow genericRow) {
+  public byte[] serialize(final String topic, final GenericRow genericRow) {
     GenericRecord avroRecord = new GenericData.Record(schema);
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       avroRecord.put(fields.get(i).name(), genericRow.columns.get(i));
@@ -63,7 +67,7 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   }
 
-  private GenericRecord getGenericRecord(Schema schema, GenericRow genericRow) {
+  private GenericRecord getGenericRecord(final Schema schema, final GenericRow genericRow) {
     GenericRecord avroRecord = new GenericData.Record(schema);
     avroRecord.put("ordertime", genericRow.columns.get(0));
     avroRecord.put("orderid", genericRow.columns.get(1));

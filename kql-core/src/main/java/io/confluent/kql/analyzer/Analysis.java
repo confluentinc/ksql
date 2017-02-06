@@ -29,7 +29,7 @@ public class Analysis {
   List<Expression> groupByExpressions = new ArrayList<>();
 
 
-  public void addSelectItem(Expression expression, String alias) {
+  public void addSelectItem(final Expression expression, final String alias) {
     selectExpressions.add(expression);
     selectExpressionAlias.add(alias);
   }

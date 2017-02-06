@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -7,7 +11,6 @@ import io.confluent.kql.parser.tree.Expression;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -19,11 +22,11 @@ public class AggregateNode extends PlanNode {
     private final List<Expression> groupByExpressions;
 
     @JsonCreator
-    public AggregateNode(@JsonProperty("id") PlanNodeId id,
-                      @JsonProperty("source") PlanNode source,
-                      @JsonProperty("schema") Schema schema,
-                      @JsonProperty("projectExpressions") List<Expression> projectExpressions,
-                      @JsonProperty("groupby") List<Expression> groupByExpressions) {
+    public AggregateNode(@JsonProperty("id") final PlanNodeId id,
+                      @JsonProperty("source") final PlanNode source,
+                      @JsonProperty("schema") final Schema schema,
+                      @JsonProperty("projectExpressions") final List<Expression> projectExpressions,
+                      @JsonProperty("groupby") final List<Expression> groupByExpressions) {
         super(id);
 
         this.source = source;

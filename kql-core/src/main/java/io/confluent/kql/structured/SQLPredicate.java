@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.structured;
 
 import io.confluent.kql.parser.tree.Expression;
@@ -23,7 +27,7 @@ public class SQLPredicate {
 
   GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
-  public SQLPredicate(Expression filterExpression, Schema schema) throws Exception {
+  public SQLPredicate(final Expression filterExpression, final Schema schema) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);

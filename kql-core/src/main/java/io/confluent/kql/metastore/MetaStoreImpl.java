@@ -1,3 +1,8 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
+
 package io.confluent.kql.metastore;
 
 import io.confluent.kql.util.KQLException;

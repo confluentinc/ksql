@@ -30,7 +30,7 @@ public class AnalysisContext {
   final Node parentNode;
   final ParentType parentType;
 
-  public AnalysisContext(Node parentNode, ParentType parentType) {
+  public AnalysisContext(final Node parentNode, final ParentType parentType) {
     this.parentNode = parentNode;
     this.parentType = parentType;
   }

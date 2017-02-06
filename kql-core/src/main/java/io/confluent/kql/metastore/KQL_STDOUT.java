@@ -1,5 +1,9 @@
-package io.confluent.kql.metastore;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.metastore;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -12,7 +16,6 @@ public class KQL_STDOUT extends StructuredDataSource {
                     DataSourceType dataSourceType) {
     super(datasourceName,schema, keyField, dataSourceType, null);
   }
-
 
   @Override
   public String getName() {

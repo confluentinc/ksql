@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql.structured;
 
 import io.confluent.kql.function.udf.KUDF;
@@ -32,7 +36,7 @@ public class SchemaKStream {
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   final List<SchemaKStream> sourceSchemaKStreams;
 
-  public SchemaKStream(Schema schema, KStream kStream, Field keyField, List<SchemaKStream> sourceSchemaKStreams) {
+  public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField, final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
     this.keyField = keyField;
@@ -40,7 +44,7 @@ public class SchemaKStream {
     this.sourceSchemaKStreams = sourceSchemaKStreams;
   }
 
-  public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe) {
+  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
 
     kStream.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
@@ -60,13 +64,13 @@ public class SchemaKStream {
     return this;
   }
 
-  public SchemaKStream filter(Expression filterExpression) throws Exception {
+  public SchemaKStream filter(final Expression filterExpression) throws Exception {
     SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
     KStream filteredKStream = kStream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream select(Schema selectSchema) {
+  public SchemaKStream select(final Schema selectSchema) {
 
     KStream
         projectedKStream =
@@ -86,7 +90,7 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream select(List<Expression> expressions, Schema selectSchema) throws Exception {
+  public SchemaKStream select(final List<Expression> expressions, final Schema selectSchema) throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -133,8 +137,8 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey,
-                                Serde<GenericRow> resultValueSerDe) {
+  public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema, final Field joinKey,
+                                final Serde<GenericRow> resultValueSerDe) {
 
     KStream
         joinedKStream =
@@ -162,7 +166,7 @@ public class SchemaKStream {
     return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));
   }
 
-  public SchemaKStream selectKey(Field newKeyField) {
+  public SchemaKStream selectKey(final Field newKeyField) {
     if (keyField.name().equalsIgnoreCase(newKeyField.name())) {
       return this;
     }

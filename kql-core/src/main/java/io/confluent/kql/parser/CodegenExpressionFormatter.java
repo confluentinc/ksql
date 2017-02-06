@@ -1,16 +1,43 @@
 package io.confluent.kql.parser;
 
-
 import com.google.common.base.Joiner;
 
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.KQLFunctions;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.BooleanLiteral;
+import io.confluent.kql.parser.tree.StringLiteral;
+import io.confluent.kql.parser.tree.BinaryLiteral;
+import io.confluent.kql.parser.tree.DoubleLiteral;
+import io.confluent.kql.parser.tree.DecimalLiteral;
+import io.confluent.kql.parser.tree.GenericLiteral;
+import io.confluent.kql.parser.tree.NullLiteral;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SymbolReference;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.Cast;
+import io.confluent.kql.parser.tree.FieldReference;
+import io.confluent.kql.parser.tree.LongLiteral;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.IsNullPredicate;
+import io.confluent.kql.parser.tree.IsNotNullPredicate;
+import io.confluent.kql.parser.tree.BetweenPredicate;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.NotExpression;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+
+
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.SchemaUtil;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -27,12 +54,12 @@ public class CodegenExpressionFormatter {
   static Schema schema;
 
 
-  public static String formatExpression(Expression expression, Schema schema) {
+  public static String formatExpression(final Expression expression, final Schema schema) {
     CodegenExpressionFormatter.schema = schema;
     return formatExpression(expression, true);
   }
 
-  public static String formatExpression(Expression expression, boolean unmangleNames) {
+  public static String formatExpression(final Expression expression, final boolean unmangleNames) {
     Pair<String, Schema.Type>
         expressionFormatterResult =
         new CodegenExpressionFormatter.Formatter().process(expression, unmangleNames);
@@ -44,26 +71,26 @@ public class CodegenExpressionFormatter {
       extends AstVisitor<Pair<String, Schema.Type>, Boolean> {
 
     @Override
-    protected Pair<String, Schema.Type> visitNode(Node node, Boolean unmangleNames) {
+    protected Pair<String, Schema.Type> visitNode(final Node node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    protected Pair<String, Schema.Type> visitExpression(Expression node, Boolean unmangleNames) {
+    protected Pair<String, Schema.Type> visitExpression(final Expression node, final Boolean unmangleNames) {
       throw new UnsupportedOperationException(
           format("not yet implemented: %s.visit%s", getClass().getName(),
                  node.getClass().getSimpleName()));
     }
 
     @Override
-    protected Pair<String, Schema.Type> visitBooleanLiteral(BooleanLiteral node,
-                                                            Boolean unmangleNames) {
+    protected Pair<String, Schema.Type> visitBooleanLiteral(final BooleanLiteral node,
+                                                            final Boolean unmangleNames) {
       return new Pair<>(String.valueOf(node.getValue()), Schema.Type.BOOLEAN);
     }
 
     @Override
-    protected Pair<String, Schema.Type> visitStringLiteral(StringLiteral node,
-                                                           Boolean unmangleNames) {
+    protected Pair<String, Schema.Type> visitStringLiteral(final StringLiteral node,
+                                                           final Boolean unmangleNames) {
       return new Pair<>("\"" + node.getValue() + "\"", Schema.Type.STRING);
     }
 

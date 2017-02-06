@@ -1,5 +1,9 @@
-package io.confluent.kql.metastore;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.metastore;
 
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.util.KQLException;

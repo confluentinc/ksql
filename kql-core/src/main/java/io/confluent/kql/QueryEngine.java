@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 package io.confluent.kql;
 
 import io.confluent.kql.analyzer.Analysis;
@@ -10,7 +14,6 @@ import io.confluent.kql.metastore.KQL_STDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.StructuredDataSource;
-import io.confluent.kql.parser.tree.*;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
 import io.confluent.kql.planner.LogicalPlanner;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
@@ -23,7 +26,10 @@ import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.Triplet;
-
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.Select;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -35,17 +41,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-
 public class QueryEngine {
 
   KQLConfig kqlConfig;
 
-  public QueryEngine(KQLConfig kqlConfig) {
+  public QueryEngine(final KQLConfig kqlConfig) {
     this.kqlConfig = kqlConfig;
   }
 
-  public Pair<KafkaStreams, OutputNode> processQuery(String queryId, Query queryNode,
-                                                               MetaStore metaStore)
+  public Pair<KafkaStreams, OutputNode> processQuery(final String queryId, final Query queryNode,
+                                                     final MetaStore metaStore)
       throws Exception {
 
     // Analyze the query to resolve the references and extract oeprations
@@ -75,8 +80,8 @@ public class QueryEngine {
 
   }
 
-  public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore,
-                                                        List<Pair<String, Query>> queryList) {
+  public List<Pair<String, PlanNode>> buildLogicalPlans(final MetaStore metaStore,
+                                                        final List<Pair<String, Query>> queryList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
@@ -126,7 +131,7 @@ public class QueryEngine {
   }
 
   public List<Triplet<String, KafkaStreams, OutputNode>> buildRunPhysicalPlans(
-      boolean isCli, MetaStore metaStore, List<Pair<String, PlanNode>> queryLogicalPlans)
+          final boolean isCli, final MetaStore metaStore, final List<Pair<String, PlanNode>> queryLogicalPlans)
       throws Exception {
 
     List<Triplet<String, KafkaStreams, OutputNode>> physicalPlans = new ArrayList<>();
@@ -190,8 +195,8 @@ public class QueryEngine {
     return physicalPlans;
   }
 
-  public void buildRunSingleConsoleQuery(MetaStore metaStore,
-                                                 List<Pair<String, Query>> queryList, long terminateIn)
+  public void buildRunSingleConsoleQuery(final MetaStore metaStore,
+                                         final List<Pair<String, Query>> queryList, final long terminateIn)
       throws Exception {
 
     // Logical plan creation from the ASTs
@@ -234,7 +239,7 @@ public class QueryEngine {
 
   }
 
-  private Properties initProps(Properties props) {
+  private Properties initProps(final Properties props) {
 
     if ((kqlConfig.getList(KQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) && (!kqlConfig
         .getList(KQLConfig.BOOTSTRAP_SERVERS_CONFIG).isEmpty())) {
@@ -256,7 +261,7 @@ public class QueryEngine {
     return props;
   }
 
-  public StructuredDataSource getResultDatasource(Select select, String name) {
+  public StructuredDataSource getResultDatasource(final Select select, final String name) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
 

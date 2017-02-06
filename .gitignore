@@ -8,3 +8,17 @@ dist/
 *.iws
 *.ipr
 .idea/
+
+# Other
+.DS_Store
+.dumbjump
+*classes
+*~
+*#
+.#*
+.svn
+.classpath
+/.metadata
+.project
+.settings
+.tern-port

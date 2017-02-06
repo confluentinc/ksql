@@ -1,7 +1,10 @@
 # Build products
 target/
+docs/_build/
+dist/
 
 # IntelliJ data
 *.iml
+*.iws
+*.ipr
 .idea/
-.ipr

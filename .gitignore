@@ -1,2 +1,7 @@
+# Build products
+target/
+
+# IntelliJ data
 *.iml
 .idea/
+.ipr

@@ -1,6 +1,8 @@
 package io.confluent.kql.function;
 
 
+import io.confluent.kql.function.udaf.Count_KUDAF;
+import io.confluent.kql.function.udaf.sum.Sum_KUDAF;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
@@ -73,6 +75,16 @@ public class KQLFunctions {
 
 
 
+    /***************************************
+     * UDAFs                               *
+     ***************************************/
+
+    KQLFunction count = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+            "COUNT", Count_KUDAF.class);
+    KQLFunction sum = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+            "SUM", Sum_KUDAF.class);
+
+
     addFunction(lcase);
     addFunction(ucase);
     addFunction(substring);
@@ -87,6 +99,9 @@ public class KQLFunctions {
     addFunction(floor);
     addFunction(round);
     addFunction(random);
+
+    addFunction(count);
+    addFunction(sum);
 
   }
 

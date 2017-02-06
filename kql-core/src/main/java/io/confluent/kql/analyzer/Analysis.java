@@ -1,5 +1,9 @@
-package io.confluent.kql.analyzer;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
+package io.confluent.kql.analyzer;
 
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
@@ -21,6 +25,8 @@ public class Analysis {
   Expression whereExpression = null;
   List<Expression> selectExpressions = new ArrayList<>();
   List<String> selectExpressionAlias = new ArrayList<>();
+
+  List<Expression> groupByExpressions = new ArrayList<>();
 
 
   public void addSelectItem(Expression expression, String alias) {
@@ -99,6 +105,14 @@ public class Analysis {
 
   public void setIntoAvroSchemaFilePath(String intoAvroSchemaFilePath) {
     this.intoAvroSchemaFilePath = intoAvroSchemaFilePath;
+  }
+
+  public List<Expression> getGroupByExpressions() {
+    return groupByExpressions;
+  }
+
+  public void setGroupByExpressions(List<Expression> groupByExpressions) {
+    this.groupByExpressions = groupByExpressions;
   }
 }
 

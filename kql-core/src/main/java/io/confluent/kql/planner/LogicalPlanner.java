@@ -37,8 +37,15 @@ public class LogicalPlanner {
       FilterNode filterNode = buildFilterNode(currentNode.getSchema(), currentNode);
       currentNode = filterNode;
     }
-    ProjectNode projectNode = buildProjectNode(currentNode.getSchema(), currentNode);
-    OutputNode outputNode = buildOutputNode(projectNode.getSchema(), projectNode);
+    if ((analysis.getGroupByExpressions() != null) && (!analysis.getGroupByExpressions().isEmpty())) {
+      AggregateNode aggregateNode = buildAggregateNode(currentNode.getSchema(), currentNode);
+      currentNode = aggregateNode;
+    } else  {
+      ProjectNode projectNode = buildProjectNode(currentNode.getSchema(), currentNode);
+      currentNode = projectNode;
+    }
+
+    OutputNode outputNode = buildOutputNode(currentNode.getSchema(), currentNode);
     return outputNode;
   }
 
@@ -58,6 +65,25 @@ public class LogicalPlanner {
 
     }
     throw new RuntimeException("INTO caluse is not supported in SELECT.");
+  }
+
+  private AggregateNode buildAggregateNode(Schema inputSchema, PlanNode sourcePlanNode) {
+
+    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
+    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
+      Expression expression = analysis.getSelectExpressions().get(i);
+      String alias = analysis.getSelectExpressionAlias().get(i);
+
+      Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
+
+      aggregateSchema = aggregateSchema.field(alias, SchemaUtil.getTypeSchema(expressionType));
+
+    }
+
+    return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema, analysis.getSelectExpressions(), analysis.getGroupByExpressions());
+//    Expression filterExpression = analysis.getWhereExpression();
+//    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
   private ProjectNode buildProjectNode(Schema inputSchema, PlanNode sourcePlanNode) {

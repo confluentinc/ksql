@@ -99,6 +99,10 @@ public class SchemaKTable extends SchemaKStream {
     return new SchemaKTable(selectSchema, projectedKTable, keyField, Arrays.asList(this));
   }
 
+  public SchemaKStream toStream() {
+    return new SchemaKStream(schema, kTable.toStream(), keyField, sourceSchemaKStreams);
+  }
+
   public KTable getkTable() {
     return kTable;
   }

@@ -13,6 +13,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueJoiner;
@@ -50,9 +51,9 @@ public class SchemaKStream {
         printKStream =
         kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
           @Override
-          public KeyValue<String, GenericRow> apply(String s, GenericRow genericRow) {
-            System.out.println(genericRow.toString());
-            return new KeyValue<String, GenericRow>(s, genericRow);
+          public KeyValue<String, GenericRow> apply(String key, GenericRow genericRow) {
+            System.out.println(key+" ==> "+genericRow.toString());
+            return new KeyValue<String, GenericRow>(key, genericRow);
           }
 
         });
@@ -180,6 +181,17 @@ public class SchemaKStream {
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this));
   }
+
+  public SchemaKGroupedStream groupByKey() {
+      KGroupedStream kGroupedStream = kStream.groupByKey();
+      return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+  }
+
+    public SchemaKGroupedStream groupByKey(final Serde keySerde,
+                                           final Serde valSerde) {
+        KGroupedStream kGroupedStream = kStream.groupByKey(keySerde, valSerde);
+        return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+    }
 
   public Field getKeyField() {
     return keyField;

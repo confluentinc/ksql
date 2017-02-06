@@ -1,6 +1,9 @@
-package io.confluent.kql.analyzer;
+/**
+ * Copyright 2017 Confluent Inc.
+ *
+ **/
 
-import com.google.common.collect.ImmutableList;
+package io.confluent.kql.analyzer;
 
 import io.confluent.kql.ddl.DDLConfig;
 import io.confluent.kql.metastore.DataSource;
@@ -9,7 +12,27 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.KQL_STDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.StructuredDataSource;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.Join;
+import io.confluent.kql.parser.tree.JoinOn;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.GroupBy;
+import io.confluent.kql.parser.tree.Cast;
+//import io.confluent.kql.parser.tree.AllColumns;
+//import io.confluent.kql.parser.tree.;
+//import io.confluent.kql.parser.tree.;
+//import io.confluent.kql.parser.tree.;
+//import io.confluent.kql.parser.tree.;
+//import io.confluent.kql.parser.tree.;
+
 import io.confluent.kql.planner.DefaultTraversalVisitor;
 import io.confluent.kql.planner.plan.JoinNode;
 import io.confluent.kql.planner.plan.PlanNodeId;
@@ -24,6 +47,7 @@ import io.confluent.kql.util.Pair;
 import org.apache.kafka.connect.data.Field;
 
 import java.util.List;
+import java.util.Set;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
@@ -76,6 +100,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
     if (node.getWhere().isPresent()) {
       analyzeWhere(node.getWhere().get(), context);
+    }
+    if (node.getGroupBy().isPresent()) {
+        analyzeGroupBy(node.getGroupBy().get(), context);
     }
     return null;
   }
@@ -251,7 +278,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   @Override
   protected Node visitSelect(Select node, AnalysisContext context) {
-    ImmutableList.Builder<Expression> outputExpressionBuilder = ImmutableList.builder();
     for (SelectItem selectItem : node.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
         // expand * and T.*
@@ -304,6 +330,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return visitExpression(node, context);
   }
 
+
+    @Override
+    protected Node visitGroupBy(GroupBy node, AnalysisContext context) {
+
+        for (GroupingElement groupingElement : node.getGroupingElements()) {
+//            process(groupingElement, context);
+//            analysis.getGroupByExpressions().add(groupingElement.)
+        }
+
+        return null;
+    }
+
   private StructuredDataSource analyzeFrom(QuerySpecification node, AnalysisContext context) {
     return null;
   }
@@ -312,8 +350,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     analysis.setWhereExpression((Expression) node);
   }
 
-  private void analyzeSelect(Select select, AnalysisContext context) {
+  private void analyzeGroupBy(GroupBy groupBy, AnalysisContext context) {
 
+      for (GroupingElement groupingElement : groupBy.getGroupingElements()) {
+          Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
+          analysis.getGroupByExpressions().addAll(groupingSet);
+      }
   }
 
 

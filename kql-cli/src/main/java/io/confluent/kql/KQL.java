@@ -53,7 +53,7 @@ public class KQL {
       console.addCompleter(
           new AnsiStringsCompleter("select", "show queries",
                                    "terminate", "exit", "describe", "print", "list topics",
-                                   "list streams", "create topic"));
+                                   "list streams", "create topic", "create stream", "create table"));
       String line = null;
       while ((line = console.readLine()) != null) {
         if (line.length() == 0) {

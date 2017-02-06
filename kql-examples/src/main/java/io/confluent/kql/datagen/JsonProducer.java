@@ -139,12 +139,13 @@ public class JsonProducer {
 
     public static void main(String[] args) {
 
-        new JsonProducer().genericRowUsersStream("streams-userprofile-input");
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        new JsonProducer().genericRowPageViewStream("streams-pageview-input");
+        new JsonProducer().genericRowOrdersStream("orders_kafka_topic");
+//        new JsonProducer().genericRowUsersStream("streams-userprofile-input");
+//        try {
+//            Thread.sleep(3000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        new JsonProducer().genericRowPageViewStream("streams-pageview-input");
     }
 }

@@ -1,28 +1,36 @@
 package io.confluent.kql.physical;
 
 
+import io.confluent.kql.function.udaf.sum.Sum_KUDAF;
+import io.confluent.kql.function.udf.KUDF;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.planner.plan.*;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.kql.structured.SchemaKGroupedStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.structured.SchemaKStream;
-import io.confluent.kql.util.KQLConfig;
-import io.confluent.kql.util.KQLException;
-import io.confluent.kql.util.SchemaUtil;
-import io.confluent.kql.util.SerDeUtil;
+import io.confluent.kql.util.*;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-import java.util.ArrayList;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 public class PhysicalPlanBuilder {
 
@@ -43,6 +51,10 @@ public class PhysicalPlanBuilder {
       return buildSource((SourceNode) planNode);
     } else if (planNode instanceof JoinNode) {
       return buildJoin((JoinNode) planNode);
+    } else if (planNode instanceof AggregateNode) {
+        AggregateNode aggregateNode = (AggregateNode) planNode;
+        SchemaKStream aggregateSchemaStream = buildAggregate(aggregateNode);
+        return aggregateSchemaStream;
     } else if (planNode instanceof ProjectNode) {
       ProjectNode projectNode = (ProjectNode) planNode;
       SchemaKStream projectedSchemaStream = buildProject(projectNode);
@@ -81,11 +93,53 @@ public class PhysicalPlanBuilder {
       return resultSchemaStream;
     } else if (outputNode instanceof KQLConsoleOutputNode) {
       SchemaKStream resultSchemaStream = schemaKStream.print();
-      KQLConsoleOutputNode KQLConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
-      this.planSink = KQLConsoleOutputNode;
+      KQLConsoleOutputNode kqlConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
+      this.planSink = kqlConsoleOutputNode;
       return resultSchemaStream;
     }
     throw new KQLException("Unsupported output logical node: " + outputNode.getClass().getName());
+  }
+
+  private SchemaKStream buildAggregate(AggregateNode aggregateNode) throws Exception {
+
+      StructuredDataSourceNode sourceNode = (StructuredDataSourceNode) aggregateNode.getSource();
+      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+              .getKQLTopic().getKqlTopicSerDe());
+      SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
+
+      SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
+      return rekeyedSchemaKStream;
+//      SchemaKGroupedStream schemaKGroupedStream = sourceSchemaKStream.groupByKey(Serdes.String(), genericRowSerde);
+//
+//
+//      int aggColumnIndexInResult = -1;
+//      Object aggColumnInitialValueInResult = 0.0;
+//      Map<Integer, Integer> resultToSourceColumnMap_agg = new HashMap<>();
+//      Map<Integer, Integer> resultToSourceColumnMap_nonAgg = new HashMap<>();
+//
+//      List resultColumns = new ArrayList();
+//      for (int i = 0; i < aggregateNode.getProjectExpressions().size(); i++) {
+//          Expression expression = aggregateNode.getProjectExpressions().get(i);
+//          if (expression instanceof FunctionCall) {
+//              FunctionCall functionCall = (FunctionCall)expression;
+//              String argStr = functionCall.getArguments().get(0).toString();
+//              int index = getIndexInSchema(argStr, aggregateNode.getSource().getSchema());
+//              aggColumnIndexInResult = i;
+//              resultToSourceColumnMap_agg.put(i, index);
+//          } else {
+//              String exprStr = expression.toString();
+//              int index = getIndexInSchema(exprStr, aggregateNode.getSource().getSchema());
+//              resultToSourceColumnMap_nonAgg.put(i, index);
+//          }
+//          resultColumns.add("");
+//      }
+//      GenericRow resultGenericRow = new GenericRow(resultColumns);
+//      System.out.print("");
+//      Sum_KUDAF sum_kudaf = new Sum_KUDAF(resultGenericRow, aggColumnIndexInResult, aggColumnInitialValueInResult, resultToSourceColumnMap_agg, resultToSourceColumnMap_nonAgg);
+//
+//
+//      SchemaKStream schemaKStream = schemaKGroupedStream.aggregate(sum_kudaf.getInitializer(), sum_kudaf.getAggregator(), genericRowSerde, "Testsing"+System.currentTimeMillis());
+//      return schemaKStream;
   }
 
   private SchemaKStream buildProject(ProjectNode projectNode) throws Exception {
@@ -207,4 +261,52 @@ public class PhysicalPlanBuilder {
          kqlStructuredDataOutputNode.getSchema(), newKQLTopic, kqlStructuredDataOutputNode.getKafkaTopicName());
     return newKQLStructuredDataOutputNode;
   }
+
+  private SchemaKStream aggregateReKey(AggregateNode aggregateNode, SchemaKStream sourceSchemaKStream) {
+      String aggregateKeyName = "";
+      List<Integer> newKeyIndexes = new ArrayList<>();
+      boolean addSeparator = false;
+      for (Expression groupByExpr: aggregateNode.getGroupByExpressions()) {
+          if (addSeparator) {
+              aggregateKeyName += "|+|";
+          } else {
+              addSeparator = true;
+          }
+          aggregateKeyName += groupByExpr.toString();
+          newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
+      }
+
+      KStream rekeyedKStream = sourceSchemaKStream.getkStream().selectKey(new KeyValueMapper<String, GenericRow, String>() {
+
+          @Override
+          public String apply(String key, GenericRow value) {
+              String newKey = "";
+              boolean addSeparator = false;
+              for (int index : newKeyIndexes) {
+                  if (addSeparator) {
+                      newKey += "|+|";
+                  } else {
+                      addSeparator = true;
+                  }
+                  newKey += String.valueOf(value.getColumns().get(index));
+              }
+              return newKey;
+          }
+      });
+
+      Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+
+      return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField, Arrays.asList(sourceSchemaKStream));
+  }
+
+    private int getIndexInSchema(String fieldName, Schema schema) {
+        List<Field> fields = schema.fields();
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            if (field.name().equalsIgnoreCase(fieldName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

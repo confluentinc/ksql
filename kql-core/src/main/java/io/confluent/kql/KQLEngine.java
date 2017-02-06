@@ -275,9 +275,11 @@ public class KQLEngine {
   public static void main(String[] args) throws Exception {
     Map<String, String> kqlConfProperties = new HashMap<>();
 //    kqlConfProperties.put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
-    kqlConfProperties.put(KQLConfig.CATALOG_FILE_PATH_CONFIG, "/tmp/kql/schema.json");
-    kqlConfProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/kql_config.conf");
+    kqlConfProperties.put(KQLConfig.CATALOG_FILE_PATH_CONFIG, "/tmp/order_catalog.json");
+//    kqlConfProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/kql_config.conf");
     KQLEngine kqlEngine = new KQLEngine(kqlConfProperties);
+
+    kqlEngine.processStatements("KQL_1","SELECT *  FROM orders ;");
 
 //    kqlEngine.runCLIQuery("SELECT ordertime AS timeValue, orderid , orderunits%10, lower(itemid)"
 //                           + "  "
@@ -303,8 +305,8 @@ public class KQLEngine {
 //    kqlEngine.processStatements("KQL_1","SELECT USERID, PAGEID "
 //                                          + "  FROM pageview where userid = 'User_65';");
 
-    kqlEngine.processStatements("KQL_1","SELECT * "
-                                          + "  FROM users ;");
+//    kqlEngine.processStatements("KQL_1","SELECT * "
+//                                          + "  FROM users ;");
 //    kqlEngine.processStatements("KQL_1","SELECT * "
 //                                          + "  FROM orders ;");
 

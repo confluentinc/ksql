@@ -16,7 +16,6 @@ dist/
 *~
 *#
 .#*
-.svn
 .classpath
 /.metadata
 .project

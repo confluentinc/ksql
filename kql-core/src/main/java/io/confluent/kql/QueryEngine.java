@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql;
 
@@ -10,7 +9,7 @@ import io.confluent.kql.analyzer.Analyzer;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
-import io.confluent.kql.metastore.KQL_STDOUT;
+import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.StructuredDataSource;
@@ -30,6 +29,7 @@ import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -85,7 +85,7 @@ public class QueryEngine {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName: metaStore.getAllKafkaTopics().keySet()) {
+    for (String topicName : metaStore.getAllKafkaTopics().keySet()) {
       tempMetaStore.putTopic(metaStore.getTopic(topicName));
     }
     for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
@@ -105,7 +105,8 @@ public class QueryEngine {
             logicalPlan;
         StructuredDataSource
             structuredDataSource =
-            new KQLStream(kqlStructuredDataOutputNode.getId().toString(), kqlStructuredDataOutputNode.getSchema(),
+            new KQLStream(kqlStructuredDataOutputNode.getId().toString(),
+                          kqlStructuredDataOutputNode.getSchema(),
                           kqlStructuredDataOutputNode.getKeyField(),
                           kqlStructuredDataOutputNode.getKqlTopic());
 
@@ -121,17 +122,18 @@ public class QueryEngine {
   private StructuredDataSource getPlanDataSource(PlanNode outputNode) {
 
     KQLTopic
-        KQLTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
+        kqlTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
     StructuredDataSource
         structuredDataSource =
         new KQLStream(outputNode.getId().toString(), outputNode.getSchema(),
                       outputNode.getKeyField(),
-                      KQLTopic);
+                      kqlTopic);
     return structuredDataSource;
   }
 
   public List<Triplet<String, KafkaStreams, OutputNode>> buildRunPhysicalPlans(
-          final boolean isCli, final MetaStore metaStore, final List<Pair<String, PlanNode>> queryLogicalPlans)
+      final boolean isCli, final MetaStore metaStore,
+      final List<Pair<String, PlanNode>> queryLogicalPlans)
       throws Exception {
 
     List<Triplet<String, KafkaStreams, OutputNode>> physicalPlans = new ArrayList<>();
@@ -171,22 +173,24 @@ public class QueryEngine {
         }
         if (schemaKStream instanceof SchemaKTable) {
           sinkDataSource =
-              new KQLTable(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+              new KQLTable(outputKafkaTopicNode.getId().toString(),
+                           outputKafkaTopicNode.getSchema(),
                            outputKafkaTopicNode.getKeyField(),
                            outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
-                                                                   .toString()+"_statestore");
+                                                                   .toString() + "_statestore");
         } else {
           sinkDataSource =
-              new KQLStream(outputKafkaTopicNode.getId().toString(), outputKafkaTopicNode.getSchema(),
+              new KQLStream(outputKafkaTopicNode.getId().toString(),
+                            outputKafkaTopicNode.getSchema(),
                             outputKafkaTopicNode.getKeyField(),
                             outputKafkaTopicNode.getKqlTopic());
         }
 
         metaStore.putSource(sinkDataSource);
       } else if (outputNode instanceof KQLConsoleOutputNode) {
-        KQLConsoleOutputNode KQLConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
-        sinkDataSource = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, null);
-        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, KQLConsoleOutputNode));
+        KQLConsoleOutputNode kqlConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
+        sinkDataSource = new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null, null);
+        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, kqlConsoleOutputNode));
       } else {
         throw new KQLException("Sink data source is not correct.");
       }
@@ -196,7 +200,8 @@ public class QueryEngine {
   }
 
   public void buildRunSingleConsoleQuery(final MetaStore metaStore,
-                                         final List<Pair<String, Query>> queryList, final long terminateIn)
+                                         final List<Pair<String, Query>> queryList,
+                                         final long terminateIn)
       throws Exception {
 
     // Logical plan creation from the ASTs
@@ -276,12 +281,12 @@ public class QueryEngine {
 
     }
 
-    KQLTopic KQLTopic = new KQLTopic(name, name,
+    KQLTopic kqlTopic = new KQLTopic(name, name,
                                      null);
     StructuredDataSource
         resultStream =
         new KQLStream(name, dataSource.schema(), dataSource.fields().get(0),
-                      KQLTopic
+                      kqlTopic
         );
     return resultStream;
   }

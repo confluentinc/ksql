@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.metastore;
@@ -13,8 +12,8 @@ public class KQLTable extends StructuredDataSource {
   final String stateStoreName;
 
   public KQLTable(String datasourceName, Schema schema, Field keyField,
-                  KQLTopic KQLTopic, String stateStoreName) {
-    super(datasourceName, schema, keyField, DataSourceType.KTABLE, KQLTopic);
+                  KQLTopic kqlTopic, String stateStoreName) {
+    super(datasourceName, schema, keyField, DataSourceType.KTABLE, kqlTopic);
     this.stateStoreName = stateStoreName;
   }
 

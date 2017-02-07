@@ -1,8 +1,12 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.datagen;
 
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.csv.KQLCsvDeserializer;
 import io.confluent.kql.serde.csv.KQLCsvSerializer;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -25,7 +29,7 @@ public class CsvConsumer {
   static Serde<GenericRow> genericRowSerde = null;
 
   private static Serde<GenericRow> getGenericRowSerde() {
-    if(genericRowSerde == null) {
+    if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
       final Serializer<GenericRow> genericRowSerializer = new KQLCsvSerializer();
@@ -42,7 +46,8 @@ public class CsvConsumer {
   public void printGenericRowTopic(String topicName) {
 
     Properties props = new Properties();
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamExampleGenericRowProcessor-" + System.currentTimeMillis());
+    props.put(StreamsConfig.APPLICATION_ID_CONFIG,
+              "StreamExampleGenericRowProcessor-" + System.currentTimeMillis());
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 
     // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data

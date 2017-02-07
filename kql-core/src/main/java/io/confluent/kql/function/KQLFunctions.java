@@ -1,31 +1,28 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.function;
 
-import io.confluent.kql.function.udaf.Count_KUDAF;
-import io.confluent.kql.function.udaf.sum.Sum_KUDAF;
+import io.confluent.kql.function.udaf.CountKUDAF;
+import io.confluent.kql.function.udaf.sum.SumKUDAF;
 import org.apache.kafka.connect.data.Schema;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.confluent.kql.function.udf.math.Abs_KUDF;
-import io.confluent.kql.function.udf.math.Ceil_KUDF;
-import io.confluent.kql.function.udf.math.Random_KUDF;
-import io.confluent.kql.function.udf.string.Concat_KUDF;
-import io.confluent.kql.function.udf.math.Floor_KUDF;
-import io.confluent.kql.function.udf.string.IfNull_KUDF;
-import io.confluent.kql.function.udf.string.LCase_KUDF;
-import io.confluent.kql.function.udf.string.Len_KUDF;
-import io.confluent.kql.function.udf.math.Round_KUDF;
-import io.confluent.kql.function.udf.string.Substring_KUDF;
-import io.confluent.kql.function.udf.string.Trim_KUDF;
-import io.confluent.kql.function.udf.string.UCase_KUDF;
+import io.confluent.kql.function.udf.math.AbsKUDF;
+import io.confluent.kql.function.udf.math.CeilKUDF;
+import io.confluent.kql.function.udf.math.RandomKUDF;
+import io.confluent.kql.function.udf.string.ConcatKUDF;
+import io.confluent.kql.function.udf.math.FloorKUDF;
+import io.confluent.kql.function.udf.string.IfNullKUDF;
+import io.confluent.kql.function.udf.string.LCaseKUDF;
+import io.confluent.kql.function.udf.string.LenKUDF;
+import io.confluent.kql.function.udf.math.RoundKUDF;
+import io.confluent.kql.function.udf.string.SubstringKUDF;
+import io.confluent.kql.function.udf.string.TrimKUDF;
+import io.confluent.kql.function.udf.string.UCaseKUDF;
 
 public class KQLFunctions {
 
@@ -34,59 +31,59 @@ public class KQLFunctions {
   static {
 
     /***************************************
-    * String functions                     *
-    ****************************************/
+     * String functions                     *
+     ****************************************/
 
     KQLFunction lcase = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
-                                          "LCASE", LCase_KUDF.class);
+                                        "LCASE", LCaseKUDF.class);
     KQLFunction ucase = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
-                                          "UCASE", UCase_KUDF.class);
+                                        "UCASE", UCaseKUDF.class);
     KQLFunction substring = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type
-                                                                                    .STRING,
-                                                                                Schema.Type
-                                                                                    .INT32,
-                                                                                Schema.Type
-                                                                                    .INT32),
-                                              "SUBSTRING", Substring_KUDF
-                                                  .class);
+                                                                                  .STRING,
+                                                                              Schema.Type
+                                                                                  .INT32,
+                                                                              Schema.Type
+                                                                                  .INT32),
+                                            "SUBSTRING", SubstringKUDF
+                                                .class);
     KQLFunction concat = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING,
-                                                                             Schema.Type.STRING),
-                                           "CONCAT", Concat_KUDF.class);
+                                                                           Schema.Type.STRING),
+                                         "CONCAT", ConcatKUDF.class);
 
     KQLFunction trim = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
-                                         "TRIM", Trim_KUDF.class);
+                                       "TRIM", TrimKUDF.class);
 
     KQLFunction ifNull = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING,
-                                                                             Schema.Type.STRING),
-                                           "IFNULL", IfNull_KUDF.class);
+                                                                           Schema.Type.STRING),
+                                         "IFNULL", IfNullKUDF.class);
     KQLFunction len = new KQLFunction(Schema.Type.INT32, Arrays.asList(Schema.Type.STRING),
-                                        "LEN", Len_KUDF.class);
+                                      "LEN", LenKUDF.class);
 
     /***************************************
      * Math functions                      *
      ***************************************/
 
     KQLFunction abs = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-                                        "ABS", Abs_KUDF.class);
+                                      "ABS", AbsKUDF.class);
     KQLFunction ceil = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-                                         "CEIL", Ceil_KUDF.class);
+                                       "CEIL", CeilKUDF.class);
     KQLFunction floor = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-                                          "FLOOR", Floor_KUDF.class);
-    KQLFunction round = new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64), "ROUND", Round_KUDF.class);
+                                        "FLOOR", FloorKUDF.class);
+    KQLFunction
+        round =
+        new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64), "ROUND",
+                        RoundKUDF.class);
     KQLFunction random = new KQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",
-                                           Random_KUDF.class);
-
-
+                                         RandomKUDF.class);
 
     /***************************************
      * UDAFs                               *
      ***************************************/
 
     KQLFunction count = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-            "COUNT", Count_KUDAF.class);
+                                        "COUNT", CountKUDAF.class);
     KQLFunction sum = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-            "SUM", Sum_KUDAF.class);
-
+                                      "SUM", SumKUDAF.class);
 
     addFunction(lcase);
     addFunction(ucase);
@@ -95,7 +92,6 @@ public class KQLFunctions {
     addFunction(len);
     addFunction(trim);
     addFunction(ifNull);
-
 
     addFunction(abs);
     addFunction(ceil);

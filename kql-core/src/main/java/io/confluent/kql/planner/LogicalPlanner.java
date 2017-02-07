@@ -1,16 +1,24 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.planner;
 
 import io.confluent.kql.analyzer.Analysis;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
-import io.confluent.kql.metastore.KQL_STDOUT;
+import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.planner.plan.*;
+import io.confluent.kql.planner.plan.AggregateNode;
+import io.confluent.kql.planner.plan.FilterNode;
+import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.kql.planner.plan.OutputNode;
+import io.confluent.kql.planner.plan.PlanNode;
+import io.confluent.kql.planner.plan.PlanNodeId;
+import io.confluent.kql.planner.plan.ProjectNode;
+import io.confluent.kql.planner.plan.SourceNode;
+import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.util.ExpressionTypeManager;
 import io.confluent.kql.util.SchemaUtil;
 
@@ -41,10 +49,11 @@ public class LogicalPlanner {
       FilterNode filterNode = buildFilterNode(currentNode.getSchema(), currentNode);
       currentNode = filterNode;
     }
-    if ((analysis.getGroupByExpressions() != null) && (!analysis.getGroupByExpressions().isEmpty())) {
+    if ((analysis.getGroupByExpressions() != null) && (!analysis.getGroupByExpressions()
+        .isEmpty())) {
       AggregateNode aggregateNode = buildAggregateNode(currentNode.getSchema(), currentNode);
       currentNode = aggregateNode;
-    } else  {
+    } else {
       ProjectNode projectNode = buildProjectNode(currentNode.getSchema(), currentNode);
       currentNode = projectNode;
     }
@@ -56,22 +65,24 @@ public class LogicalPlanner {
   private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
-    if (intoDataSource instanceof KQL_STDOUT) {
-      return new KQLConsoleOutputNode(new PlanNodeId(KQL_STDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+    if (intoDataSource instanceof KQLSTDOUT) {
+      return new KQLConsoleOutputNode(new PlanNodeId(KQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema);
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
 
-      return new KQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()), sourcePlanNode,
-                                             inputSchema, intoStructuredDataSource.getKQLTopic(),
-                                             intoStructuredDataSource.getKQLTopic()
+      return new KQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
+                                             sourcePlanNode,
+                                             inputSchema, intoStructuredDataSource.getKqlTopic(),
+                                             intoStructuredDataSource.getKqlTopic()
                                                  .getTopicName());
 
     }
     throw new RuntimeException("INTO caluse is not supported in SELECT.");
   }
 
-  private AggregateNode buildAggregateNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
+  private AggregateNode buildAggregateNode(final Schema inputSchema,
+                                           final PlanNode sourcePlanNode) {
 
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
@@ -85,7 +96,8 @@ public class LogicalPlanner {
 
     }
 
-    return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema, analysis.getSelectExpressions(), analysis.getGroupByExpressions());
+    return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema,
+                             analysis.getSelectExpressions(), analysis.getGroupByExpressions());
 //    Expression filterExpression = analysis.getWhereExpression();
 //    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
@@ -125,15 +137,17 @@ public class LogicalPlanner {
     if (fromDataSource instanceof KQLStream) {
       KQLStream fromStream = (KQLStream) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
-                                      fromDataSource.getKeyField(), fromStream.getKQLTopic().getTopicName(),
-                                      alias, fromStream.getDataSourceType(),
-                                      fromStream);
+                                          fromDataSource.getKeyField(),
+                                          fromStream.getKqlTopic().getTopicName(),
+                                          alias, fromStream.getDataSourceType(),
+                                          fromStream);
     } else if (fromDataSource instanceof KQLTable) {
       KQLTable fromTable = (KQLTable) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
-                                      fromDataSource.getKeyField(), fromTable.getKQLTopic().getTopicName(),
-                                      alias, fromTable.getDataSourceType(),
-                                      fromTable);
+                                          fromDataSource.getKeyField(),
+                                          fromTable.getKqlTopic().getTopicName(),
+                                          alias, fromTable.getDataSourceType(),
+                                          fromTable);
     }
 
     throw new RuntimeException("Data source is not suppoted yet.");

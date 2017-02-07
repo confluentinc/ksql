@@ -1,13 +1,15 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.parser.rewrite;
 
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
-import io.confluent.kql.parser.*;
+import io.confluent.kql.parser.AstBuilder;
+import io.confluent.kql.parser.CaseInsensitiveStream;
+import io.confluent.kql.parser.SqlBaseLexer;
+import io.confluent.kql.parser.SqlBaseParser;
 import io.confluent.kql.parser.tree.Node;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.util.DataSourceExtractor;

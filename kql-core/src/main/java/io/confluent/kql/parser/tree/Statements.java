@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser.tree;
 
 import java.util.List;

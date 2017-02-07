@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.util;
 
@@ -8,7 +7,18 @@ import com.google.common.collect.ImmutableMap;
 
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.kql.parser.tree.BooleanLiteral;
+import io.confluent.kql.parser.tree.Cast;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.DefaultASTVisitor;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.DoubleLiteral;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.LongLiteral;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.StringLiteral;
 import io.confluent.kql.planner.PlanException;
 
 import org.apache.kafka.connect.data.Field;
@@ -25,7 +35,8 @@ public class ExpressionTypeManager
     this.schema = schema;
   }
 
-  public ExpressionTypeManager(final Schema schema, final ImmutableMap<String, Schema> schemaImmutableMap) {
+  public ExpressionTypeManager(final Schema schema,
+                               final ImmutableMap<String, Schema> schemaImmutableMap) {
     this.schema = schema;
     this.schemaImmutableMap = schemaImmutableMap;
   }
@@ -60,7 +71,8 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitCast(final Cast node, final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitCast(final Cast node,
+                                 final ExpressionTypeContext expressionTypeContext) {
 
     Schema.Type castType = SchemaUtil.getTypeSchema(node.getType());
     expressionTypeContext.setType(castType);
@@ -116,14 +128,16 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitFunctionCall(final FunctionCall node, final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitFunctionCall(final FunctionCall node,
+                                         final ExpressionTypeContext expressionTypeContext) {
 //    return visitExpression(node, expressionTypeContext);
     KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
     expressionTypeContext.setType(kqlFunction.getReturnType());
     return null;
   }
 
-  private Schema.Type resolveArithmaticType(final Schema.Type leftType, final Schema.Type rightType) {
+  private Schema.Type resolveArithmaticType(final Schema.Type leftType,
+                                            final Schema.Type rightType) {
     if (leftType == rightType) {
       return leftType;
     } else if ((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING)) {

@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.ddl;
@@ -51,11 +50,9 @@ public class DDLEngine {
       return null;
     }
 
-
     if (createTopic.getProperties().size() == 0) {
       throw new KQLException("Create topic statement needs WITH clause.");
     }
-
 
     if (createTopic.getProperties().get(DDLConfig.FORMAT_PROPERTY) == null) {
       throw new KQLException("Topic format(format) should be set in WITH clause.");
@@ -63,11 +60,12 @@ public class DDLEngine {
     String serde = createTopic.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
     serde = enforceString(DDLConfig.FORMAT_PROPERTY, serde);
 
-
     if (createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {
       throw new KQLException("Corresponding kafka topic should be set in WITH clause.");
     }
-    String kafkaTopicName = createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
+    String
+        kafkaTopicName =
+        createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
     if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
@@ -130,7 +128,7 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
-    for (TableElement tableElement: createStream.getElements()) {
+    for (TableElement tableElement : createStream.getElements()) {
       streamSchema = streamSchema.field(tableElement.getName(), getKQLType(tableElement.getType()));
     }
 
@@ -156,12 +154,15 @@ public class DDLEngine {
       throw new KQLException("THe corresponding topic is does not exist.");
     }
 
-    KQLStream kqlStream = new KQLStream(streamName, streamSchema, streamSchema.field(keyName), kqlEngine.getMetaStore().getTopic(topicName));
+    KQLStream
+        kqlStream =
+        new KQLStream(streamName, streamSchema, streamSchema.field(keyName),
+                      kqlEngine.getMetaStore().getTopic(topicName));
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     kqlEngine.getMetaStore().putSource(kqlStream);
-    return  kqlStream;
+    return kqlStream;
   }
 
   public KQLTable createTable(final CreateTable createTable) {
@@ -181,7 +182,7 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    for (TableElement tableElement: createTable.getElements()) {
+    for (TableElement tableElement : createTable.getElements()) {
       tableSchema = tableSchema.field(tableElement.getName(), getKQLType(tableElement.getType()));
     }
 
@@ -197,7 +198,8 @@ public class DDLEngine {
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY) == null) {
-      throw new KQLException("State store (statestore) name for the table should be set in WITH clause.");
+      throw new KQLException(
+          "State store (statestore) name for the table should be set in WITH clause.");
     }
 
     String stateStoreName = createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY)
@@ -217,7 +219,6 @@ public class DDLEngine {
 
     KQLTable kqlTable = new KQLTable(tableName, tableSchema, tableSchema.field(keyName),
                                      kqlEngine.getMetaStore().getTopic(topicName), stateStoreName);
-
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
@@ -240,6 +241,7 @@ public class DDLEngine {
     }
     throw new KQLException("Unsupported type: " + sqlType);
   }
+
   private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
     ObjectMapper objectMapper = new ObjectMapper();

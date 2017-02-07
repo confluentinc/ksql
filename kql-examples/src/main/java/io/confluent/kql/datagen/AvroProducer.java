@@ -1,13 +1,22 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.datagen;
 
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.avro.KQLGenericRowAvroSerializer;
 import io.confluent.kql.util.KQLConfig;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 
 public class AvroProducer {
 
@@ -16,16 +25,16 @@ public class AvroProducer {
     int messageCount = 1000;
     List<String> orderList = new ArrayList<>();
     String schemaStr = "{"
-                              + "\"namespace\": \"kql\","
-                              + " \"name\": \"orders\","
-                              + " \"type\": \"record\","
-                              + " \"fields\": ["
-                              + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
-                              + "     {\"name\": \"orderid\",  \"type\": \"string\"},"
-                              + "     {\"name\": \"itemid\", \"type\": \"string\"},"
-                              + "     {\"name\": \"orderunits\", \"type\": \"double\"}"
-                              + " ]"
-                              + "}";
+                       + "\"namespace\": \"kql\","
+                       + " \"name\": \"orders\","
+                       + " \"type\": \"record\","
+                       + " \"fields\": ["
+                       + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
+                       + "     {\"name\": \"orderid\",  \"type\": \"string\"},"
+                       + "     {\"name\": \"itemid\", \"type\": \"string\"},"
+                       + "     {\"name\": \"orderunits\", \"type\": \"double\"}"
+                       + " ]"
+                       + "}";
     Properties props = new Properties();
     props.put("bootstrap.servers", "localhost:9092");
     props.put("client.id", "ProductStreamProducers");
@@ -36,34 +45,37 @@ public class AvroProducer {
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(props, new StringSerializer(), kqlGenericRowAvroSerializer);
+        producer =
+        new KafkaProducer<String, GenericRow>(props, new StringSerializer(),
+                                              kqlGenericRowAvroSerializer);
 
-    for(int i = 0; i < messageCount; i++) {
+    for (int i = 0; i < messageCount; i++) {
       long currentTime = System.currentTimeMillis();
       List<Object> columns = new ArrayList();
-      currentTime = (long)(1000*Math.random()) + currentTime;
+      currentTime = (long) (1000 * Math.random()) + currentTime;
       // ordertime
       columns.add(Long.valueOf(currentTime));
 
       //orderid
-      columns.add(String.valueOf(i+1));
-      orderList.add(String.valueOf(i+1));
+      columns.add(String.valueOf(i + 1));
+      orderList.add(String.valueOf(i + 1));
       //itemid
-      int productId = (int)(100*Math.random());
-      columns.add("Item_"+productId);
+      int productId = (int) (100 * Math.random());
+      columns.add("Item_" + productId);
 
       //units
-      columns.add((double)((int)(10*Math.random())));
+      columns.add((double) ((int) (10 * Math.random())));
       GenericRow genericRow = new GenericRow(columns);
 
       ProducerRecord
-          producerRecord = new ProducerRecord(orderKafkaTopicName, String.valueOf(currentTime), genericRow);
+          producerRecord =
+          new ProducerRecord(orderKafkaTopicName, String.valueOf(currentTime), genericRow);
 
       producer.send(producerRecord);
-      System.out.println(currentTime+" --> ("+genericRow+")");
+      System.out.println(currentTime + " --> (" + genericRow + ")");
 
       try {
-        Thread.sleep((long)(maxInterval*Math.random()));
+        Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -96,31 +108,34 @@ public class AvroProducer {
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(props, new StringSerializer(), kqlGenericRowAvroSerializer);
+        producer =
+        new KafkaProducer<String, GenericRow>(props, new StringSerializer(),
+                                              kqlGenericRowAvroSerializer);
 
-    for(int i = 0; i < messageCount; i++) {
+    for (int i = 0; i < messageCount; i++) {
       long currentTime = System.currentTimeMillis();
       List<Object> columns = new ArrayList();
-      currentTime = (long)(1000*Math.random()) + currentTime;
+      currentTime = (long) (1000 * Math.random()) + currentTime;
       // shipment
       columns.add(Long.valueOf(currentTime));
 
       //shipmentid
-      columns.add(String.valueOf(i+1));
+      columns.add(String.valueOf(i + 1));
       //orderid
-      String orderId = orderList.remove((int)(orderList.size()*Math.random()));
+      String orderId = orderList.remove((int) (orderList.size() * Math.random()));
       columns.add(orderId);
 
       GenericRow genericRow = new GenericRow(columns);
 
       ProducerRecord
-          producerRecord = new ProducerRecord(shipmentKafkaTopicName, String.valueOf(currentTime), genericRow);
+          producerRecord =
+          new ProducerRecord(shipmentKafkaTopicName, String.valueOf(currentTime), genericRow);
 
       producer.send(producerRecord);
-      System.out.println(currentTime+" --> ("+genericRow+")");
+      System.out.println(currentTime + " --> (" + genericRow + ")");
 
       try {
-        Thread.sleep((long)(maxInterval*Math.random()));
+        Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -153,22 +168,24 @@ public class AvroProducer {
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(props, new StringSerializer(), kqlGenericRowAvroSerializer);
+        producer =
+        new KafkaProducer<String, GenericRow>(props, new StringSerializer(),
+                                              kqlGenericRowAvroSerializer);
 
-    for(int i = 0; i < messageCount; i++) {
+    for (int i = 0; i < messageCount; i++) {
       List<Object> columns = new ArrayList();
       // ItenmId
-      String itemId = "Item_"+i;
+      String itemId = "Item_" + i;
       columns.add(itemId);
 
       //Name
-      columns.add("ITEM_"+i);
+      columns.add("ITEM_" + i);
 
-      double itemPrice = (double)(100*Math.random());
+      double itemPrice = (double) (100 * Math.random());
       columns.add(itemPrice);
 
-      int categoryId = (int)(10*Math.random());
-      columns.add("Category_"+categoryId);
+      int categoryId = (int) (10 * Math.random());
+      columns.add("Category_" + categoryId);
 
       GenericRow genericRow = new GenericRow(columns);
 
@@ -176,10 +193,10 @@ public class AvroProducer {
           producerRecord = new ProducerRecord(itemKafkaTopicName, itemId, genericRow);
 
       producer.send(producerRecord);
-      System.out.println(itemId+" --> ("+genericRow+")");
+      System.out.println(itemId + " --> (" + genericRow + ")");
 
       try {
-        Thread.sleep((long)(maxInterval*Math.random()));
+        Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -214,23 +231,25 @@ public class AvroProducer {
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(props, new StringSerializer(), kqlGenericRowAvroSerializer);
+        producer =
+        new KafkaProducer<String, GenericRow>(props, new StringSerializer(),
+                                              kqlGenericRowAvroSerializer);
 
-    for(int i = 0; i < messageCount; i++) {
+    for (int i = 0; i < messageCount; i++) {
       long timestamp = System.currentTimeMillis();
       List<Object> columns = new ArrayList();
 
       columns.add(timestamp);
       //userId
       int userId = i;
-      String userIDStr = "User_"+userId;
+      String userIDStr = "User_" + userId;
       columns.add(userIDStr);
 
       //region
-      int regionId = (int)(10*Math.random());
-      columns.add("Region_"+regionId);
+      int regionId = (int) (10 * Math.random());
+      columns.add("Region_" + regionId);
 
-      if(Math.random() > 0.5) {
+      if (Math.random() > 0.5) {
         columns.add("MALE");
       } else {
         columns.add("FEMALE");
@@ -239,13 +258,14 @@ public class AvroProducer {
       GenericRow genericRow = new GenericRow(columns);
 
       ProducerRecord
-          producerRecord = new ProducerRecord(userProfileTopic, String.valueOf(timestamp), genericRow);
+          producerRecord =
+          new ProducerRecord(userProfileTopic, String.valueOf(timestamp), genericRow);
 
       producer.send(producerRecord);
-      System.out.println(timestamp+" --> ("+genericRow+")");
+      System.out.println(timestamp + " --> (" + genericRow + ")");
 
       try {
-        Thread.sleep((long)(maxInterval*Math.random()));
+        Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -279,34 +299,37 @@ public class AvroProducer {
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(props, new StringSerializer(), kqlGenericRowAvroSerializer);
+        producer =
+        new KafkaProducer<String, GenericRow>(props, new StringSerializer(),
+                                              kqlGenericRowAvroSerializer);
 
-    for(int i = 0; i < messageCount; i++) {
+    for (int i = 0; i < messageCount; i++) {
       long currentTime = System.currentTimeMillis();
       List<Object> columns = new ArrayList();
-      currentTime = (long)(1000*Math.random()) + currentTime;
+      currentTime = (long) (1000 * Math.random()) + currentTime;
       // time (not being used!!!)
       columns.add(currentTime);
 
       //userId
-      int userId = (int)(100*Math.random());
-      columns.add("User_"+userId);
+      int userId = (int) (100 * Math.random());
+      columns.add("User_" + userId);
 
       //pageid
-      int pageId = (int)(1000*Math.random());
-      String pageIdStr = "Page_"+pageId;
+      int pageId = (int) (1000 * Math.random());
+      String pageIdStr = "Page_" + pageId;
       columns.add(pageIdStr);
 
       GenericRow genericRow = new GenericRow(columns);
 
       ProducerRecord
-          producerRecord = new ProducerRecord(pageViewTopic, String.valueOf(currentTime), genericRow);
+          producerRecord =
+          new ProducerRecord(pageViewTopic, String.valueOf(currentTime), genericRow);
 
       producer.send(producerRecord);
-      System.out.println(currentTime+" --> ("+genericRow+")");
+      System.out.println(currentTime + " --> (" + genericRow + ")");
 
       try {
-        Thread.sleep((long)(maxInterval*Math.random()));
+        Thread.sleep((long) (maxInterval * Math.random()));
       } catch (InterruptedException e) {
         e.printStackTrace();
       }

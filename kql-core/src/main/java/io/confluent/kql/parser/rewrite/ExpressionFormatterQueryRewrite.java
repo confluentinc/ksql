@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.parser.rewrite;
@@ -10,14 +9,73 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import io.confluent.kql.parser.SqlFormatter;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.kql.parser.tree.ArrayConstructor;
+import io.confluent.kql.parser.tree.AtTimeZone;
+import io.confluent.kql.parser.tree.BetweenPredicate;
+import io.confluent.kql.parser.tree.BinaryLiteral;
+import io.confluent.kql.parser.tree.BooleanLiteral;
+import io.confluent.kql.parser.tree.Cast;
+import io.confluent.kql.parser.tree.CoalesceExpression;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.Cube;
+import io.confluent.kql.parser.tree.CurrentTime;
+import io.confluent.kql.parser.tree.DecimalLiteral;
+import io.confluent.kql.parser.tree.DoubleLiteral;
+import io.confluent.kql.parser.tree.Extract;
+import io.confluent.kql.parser.tree.FrameBound;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.GenericLiteral;
+import io.confluent.kql.parser.tree.GroupingElement;
+import io.confluent.kql.parser.tree.GroupingSets;
+import io.confluent.kql.parser.tree.IfExpression;
+import io.confluent.kql.parser.tree.InListExpression;
+import io.confluent.kql.parser.tree.InPredicate;
+import io.confluent.kql.parser.tree.IntervalLiteral;
+import io.confluent.kql.parser.tree.IsNotNullPredicate;
+import io.confluent.kql.parser.tree.IsNullPredicate;
+import io.confluent.kql.parser.tree.LambdaExpression;
+import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.LongLiteral;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.NotExpression;
+import io.confluent.kql.parser.tree.NullIfExpression;
+import io.confluent.kql.parser.tree.NullLiteral;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.Rollup;
+import io.confluent.kql.parser.tree.Row;
+import io.confluent.kql.parser.tree.SearchedCaseExpression;
+import io.confluent.kql.parser.tree.SimpleCaseExpression;
+import io.confluent.kql.parser.tree.SimpleGroupBy;
+import io.confluent.kql.parser.tree.SortItem;
+import io.confluent.kql.parser.tree.StringLiteral;
+
+import static com.google.common.collect.Iterables.getOnlyElement;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.ExistsPredicate;
+import io.confluent.kql.parser.tree.FieldReference;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SubqueryExpression;
+import io.confluent.kql.parser.tree.SubscriptExpression;
+import io.confluent.kql.parser.tree.SymbolReference;
+import io.confluent.kql.parser.tree.TimeLiteral;
+import io.confluent.kql.parser.tree.TimestampLiteral;
+import io.confluent.kql.parser.tree.TryExpression;
+import io.confluent.kql.parser.tree.WhenClause;
+import io.confluent.kql.parser.tree.Window;
+import io.confluent.kql.parser.tree.WindowFrame;
+
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 

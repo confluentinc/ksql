@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.util;
 
@@ -65,12 +64,12 @@ public class SerDeUtil {
     final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer();
     genericRowDeserializer.configure(serdeProps, false);
 
-    return Serdes.serdeFrom(genericRowSerializer,  genericRowDeserializer);
+    return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
   public static Serde<GenericRow> getRowSerDe(final KQLTopicSerDe topicSerDe) {
     if (topicSerDe instanceof KQLAvroTopicSerDe) {
-      KQLAvroTopicSerDe avroTopicSerDe = (KQLAvroTopicSerDe)topicSerDe;
+      KQLAvroTopicSerDe avroTopicSerDe = (KQLAvroTopicSerDe) topicSerDe;
       return SerDeUtil.getGenericRowAvroSerde(avroTopicSerDe.getSchemaString());
     } else if (topicSerDe instanceof KQLJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJSONSerde();

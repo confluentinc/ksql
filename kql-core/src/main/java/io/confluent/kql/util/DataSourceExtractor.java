@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.util;
 
@@ -8,7 +7,12 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.SqlBaseBaseVisitor;
 import io.confluent.kql.parser.SqlBaseParser;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.NodeLocation;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.Table;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -74,7 +78,9 @@ public class DataSourceExtractor
 
     if (!isJoin) {
       this.fromAlias = alias.toUpperCase();
-      StructuredDataSource fromDataSource = metaStore.getSource(table.getName().getSuffix().toUpperCase());
+      StructuredDataSource
+          fromDataSource =
+          metaStore.getSource(table.getName().getSuffix().toUpperCase());
       if (fromDataSource == null) {
         throw new KQLException(table.getName().getSuffix().toUpperCase() + " does not exist.");
       }

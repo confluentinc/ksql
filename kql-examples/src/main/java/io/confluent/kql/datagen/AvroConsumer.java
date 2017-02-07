@@ -1,10 +1,13 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.datagen;
-
 
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.avro.KQLGenericRowAvroDeserializer;
 import io.confluent.kql.serde.avro.KQLGenericRowAvroSerializer;
 import io.confluent.kql.util.KQLConfig;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -38,7 +41,7 @@ public class AvroConsumer {
   static Serde<GenericRow> genericRowSerde = null;
 
   private static Serde<GenericRow> getGenericRowSerde() {
-    if(genericRowSerde == null) {
+    if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
       serdeProps.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
@@ -48,7 +51,7 @@ public class AvroConsumer {
       final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer();
       genericRowDeserializer.configure(serdeProps, false);
 
-      genericRowSerde = Serdes.serdeFrom(genericRowSerializer,  genericRowDeserializer);
+      genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
     }
     return genericRowSerde;
   }
@@ -56,7 +59,8 @@ public class AvroConsumer {
   public void printGenericRowTopic(String topicName) {
 
     Properties props = new Properties();
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamExampleGenericRowProcessor-" + System.currentTimeMillis());
+    props.put(StreamsConfig.APPLICATION_ID_CONFIG,
+              "StreamExampleGenericRowProcessor-" + System.currentTimeMillis());
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
     props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
@@ -98,7 +102,9 @@ public class AvroConsumer {
 
     KStreamBuilder builder = new KStreamBuilder();
 
-    KStream<String, GenericRow> source = builder.stream(Serdes.String(), genericRowSerde, "StreamExample1-GenericRow-order");
+    KStream<String, GenericRow>
+        source =
+        builder.stream(Serdes.String(), genericRowSerde, "StreamExample1-GenericRow-order");
 
     source.map(new KQLPrintKeyValueMapper());
 

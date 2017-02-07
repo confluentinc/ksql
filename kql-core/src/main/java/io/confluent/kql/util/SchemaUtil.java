@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.util;
 
@@ -62,7 +61,7 @@ public class SchemaUtil {
     String fieldNameUppercase = fieldName.toUpperCase();
 
     if (schema.fields() != null) {
-      
+
       for (Field field : schema.fields()) {
         if (field.name().equalsIgnoreCase(fieldNameUppercase)) {
           return field;
@@ -106,8 +105,7 @@ public class SchemaUtil {
     return newSchema;
   }
 
-  public static final ImmutableMap<String, String>
-      typeMap =
+  public static final ImmutableMap<String, String> TYPE_MAP =
       new ImmutableMap.Builder<String, String>()
           .put("STRING", "VARCHAR")
           .put("INT64", "BIGINT")

@@ -1,5 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.util;
-
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

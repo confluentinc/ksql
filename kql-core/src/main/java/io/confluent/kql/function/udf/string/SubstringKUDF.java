@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.function.udf.string;
@@ -8,7 +7,7 @@ package io.confluent.kql.function.udf.string;
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.udf.KUDF;
 
-public class Substring_KUDF implements KUDF {
+public class SubstringKUDF implements KUDF {
 
   @Override
   public void init() {
@@ -23,10 +22,10 @@ public class Substring_KUDF implements KUDF {
     String string = args[0].toString();
     long start = (Long) args[1];
     if (args.length == 2) {
-      return string.substring((int)start);
+      return string.substring((int) start);
     } else {
       long end = (Long) args[2];
-      return string.substring((int)start, (int)end);
+      return string.substring((int) start, (int) end);
     }
   }
 }

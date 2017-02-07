@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.metastore;
@@ -17,16 +16,17 @@ public abstract class StructuredDataSource implements DataSource {
   final Schema schema;
   final Field keyField;
 
-  final KQLTopic KQLTopic;
+  final KQLTopic kqlTopic;
 
 
-  public StructuredDataSource(final String datasourceName, final Schema schema, final Field keyField,
-                              final DataSourceType dataSourceType, final KQLTopic KQLTopic) {
+  public StructuredDataSource(final String datasourceName, final Schema schema,
+                              final Field keyField,
+                              final DataSourceType dataSourceType, final KQLTopic kqlTopic) {
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;
     this.dataSourceType = dataSourceType;
-    this.KQLTopic = KQLTopic;
+    this.kqlTopic = kqlTopic;
   }
 
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
@@ -56,7 +56,7 @@ public abstract class StructuredDataSource implements DataSource {
     return this.dataSourceType;
   }
 
-  public KQLTopic getKQLTopic() {
-    return KQLTopic;
+  public KQLTopic getKqlTopic() {
+    return kqlTopic;
   }
 }

@@ -1,8 +1,6 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
-
 package io.confluent.kql.metastore;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,17 +27,18 @@ import java.util.Map;
 
 public class MetastoreUtil {
 
-  public StructuredDataSource createStructuredDataSource(final MetaStore metaStore, final JsonNode node)
+  public StructuredDataSource createStructuredDataSource(final MetaStore metaStore,
+                                                         final JsonNode node)
       throws
-                                                                                  IOException {
+      IOException {
 
     KQLTopicSerDe topicSerDe;
 
     String name = node.get("name").asText().toUpperCase();
     String topicname = node.get("topic").asText();
 
-    KQLTopic KQLTopic = (KQLTopic) metaStore.getTopic(topicname);
-    if (KQLTopic == null) {
+    KQLTopic kqlTopic = (KQLTopic) metaStore.getTopic(topicname);
+    if (kqlTopic == null) {
       throw new KQLException("Unable to add the structured data source. The corresponding topic "
                              + "does not exist: " + topicname);
     }
@@ -62,16 +61,16 @@ public class MetastoreUtil {
 
     if (type.equalsIgnoreCase("stream")) {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
-                           KQLTopic);
+                           kqlTopic);
     } else if (type.equalsIgnoreCase("table")) {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                            KQLTopic, KQLTopic.getName());
+                            kqlTopic, kqlTopic.getName());
       }
       String stateStore = node.get("statestore").asText();
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                          KQLTopic, stateStore);
+                          kqlTopic, stateStore);
     }
     throw new KQLException("Type not supported.");
   }
@@ -131,7 +130,8 @@ public class MetastoreUtil {
     throw new KQLException("Unsupported type: " + schemaType);
   }
 
-  public MetaStore loadMetastoreFromJSONFile(final String metastoreJsonFilePath) throws KQLException {
+  public MetaStore loadMetastoreFromJSONFile(final String metastoreJsonFilePath)
+      throws KQLException {
 
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
@@ -147,8 +147,8 @@ public class MetastoreUtil {
 
       ArrayNode topicNodes = (ArrayNode) root.get("topics");
       for (JsonNode schemaNode : topicNodes) {
-        KQLTopic KQLTopic = createKafkaTopicDataSource(schemaNode);
-        metaStore.putTopic(KQLTopic);
+        KQLTopic kqlTopic = createKafkaTopicDataSource(schemaNode);
+        metaStore.putTopic(kqlTopic);
       }
 
       ArrayNode schemaNodes = (ArrayNode) root.get("schemas");
@@ -167,7 +167,7 @@ public class MetastoreUtil {
   private void addTopics(final StringBuilder stringBuilder, final Map<String, KQLTopic> topicMap) {
     stringBuilder.append("\"topics\" :[ \n");
     boolean isFist = true;
-    for (KQLTopic kqlTopic: topicMap.values()) {
+    for (KQLTopic kqlTopic : topicMap.values()) {
       if (!isFist) {
         stringBuilder.append("\t\t, \n");
       } else {
@@ -175,13 +175,14 @@ public class MetastoreUtil {
       }
       stringBuilder.append("\t\t{\n");
       stringBuilder.append("\t\t\t \"namespace\": \"kql-topics\", \n");
-      stringBuilder.append("\t\t\t \"topicname\": \"" + kqlTopic.getTopicName()+"\", \n");
-      stringBuilder.append("\t\t\t \"kafkatopicname\": \"" + kqlTopic.getKafkaTopicName()+"\", \n");
-      stringBuilder.append("\t\t\t \"serde\": \""+kqlTopic.getKqlTopicSerDe().getSerDe()+"\"");
+      stringBuilder.append("\t\t\t \"topicname\": \"" + kqlTopic.getTopicName() + "\", \n");
+      stringBuilder
+          .append("\t\t\t \"kafkatopicname\": \"" + kqlTopic.getKafkaTopicName() + "\", \n");
+      stringBuilder.append("\t\t\t \"serde\": \"" + kqlTopic.getKqlTopicSerDe().getSerDe() + "\"");
       if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
         KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
-        stringBuilder.append(",\n\t\t\t \"avroschemafile\": \"" + kqlAvroTopicSerDe.getSchemaFilePath
-            () + "\"");
+        stringBuilder
+            .append(",\n\t\t\t \"avroschemafile\": \"" + kqlAvroTopicSerDe.getSchemaFilePath() + "\"");
       }
       stringBuilder.append("\n\t\t}\n");
 
@@ -193,7 +194,7 @@ public class MetastoreUtil {
       dataSourceMap) {
     stringBuilder.append("\t\"schemas\" :[ \n");
     boolean isFirst = true;
-    for (StructuredDataSource structuredDataSource:dataSourceMap.values()) {
+    for (StructuredDataSource structuredDataSource : dataSourceMap.values()) {
       if (isFirst) {
         isFirst = false;
       } else {
@@ -210,22 +211,24 @@ public class MetastoreUtil {
       }
 
       stringBuilder.append("\t\t\t \"name\": \"" + structuredDataSource.getName() + "\", \n");
-      stringBuilder.append("\t\t\t \"key\": \"" + structuredDataSource.getKeyField().name() + "\", \n");
-      stringBuilder.append("\t\t\t \"topic\": \"" + structuredDataSource.getKQLTopic().getName() + "\", \n");
+      stringBuilder
+          .append("\t\t\t \"key\": \"" + structuredDataSource.getKeyField().name() + "\", \n");
+      stringBuilder
+          .append("\t\t\t \"topic\": \"" + structuredDataSource.getKqlTopic().getName() + "\", \n");
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"users_statestore\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;
-      for (Field field:structuredDataSource.getSchema().fields()) {
+      for (Field field : structuredDataSource.getSchema().fields()) {
         if (isFirstField) {
           isFirstField = false;
         } else {
           stringBuilder.append(", \n");
         }
         stringBuilder.append("\t\t\t     {\"name\": \"" + field.name() + "\", \"type\": "
-                             + "\""+ getKQLTypeInJson(field.schema()) + "\"} ");
+                             + "\"" + getKQLTypeInJson(field.schema()) + "\"} ");
       }
       stringBuilder.append("\t\t\t ]\n");
       stringBuilder.append("\t\t}\n");
@@ -258,14 +261,13 @@ public class MetastoreUtil {
                                                         + "}";
 
 
-  public static void main(String args[]) throws IOException {
+  public static void main(String[] args) throws IOException {
 
 //    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
     MetastoreUtil metastoreUtil = new MetastoreUtil();
 //    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile
 //        ("/Users/hojjat/kql_catalog.json");
-    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile
-        ("/Users/hojjat/test_kql_catalog1.json");
+    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile("/Users/hojjat/test_kql_catalog1.json");
     System.out.println("");
 //    System.out.println(metastoreUtil.buildAvroSchema(metaStore.getAllStructuredDataSource().get
 //        ("ORDERS")));
@@ -295,15 +297,17 @@ public class MetastoreUtil {
     stringBuilder.append("\t\"type\": \"record\",\n");
     stringBuilder.append("\t\"fields\": [\n");
     boolean addCamma = false;
-    for (Field field:schema.fields()) {
+    for (Field field : schema.fields()) {
       if (addCamma) {
         stringBuilder.append(",\n");
       } else {
         addCamma = true;
       }
-      stringBuilder.append("\t\t{\"name\": \""+field.name() + "\", \"type\": \"" + getAvroTypeName(field
-                                                                                               .schema().type())
-                            + "\"}");
+      stringBuilder
+          .append("\t\t{\"name\": \"" + field.name() + "\", \"type\": \"" + getAvroTypeName(field
+                                                                                                .schema()
+                                                                                                .type())
+                  + "\"}");
     }
     stringBuilder.append("\n\t]\n");
     stringBuilder.append("}");

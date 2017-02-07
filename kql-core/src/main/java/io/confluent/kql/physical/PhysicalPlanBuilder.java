@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.physical;
 
@@ -10,8 +9,16 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.parser.tree.FunctionCall;
-import io.confluent.kql.planner.plan.*;
+import io.confluent.kql.planner.plan.AggregateNode;
+import io.confluent.kql.planner.plan.FilterNode;
+import io.confluent.kql.planner.plan.JoinNode;
+import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.kql.planner.plan.OutputNode;
+import io.confluent.kql.planner.plan.PlanNode;
+import io.confluent.kql.planner.plan.ProjectNode;
+import io.confluent.kql.planner.plan.SourceNode;
+import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.structured.SchemaKTable;
@@ -21,6 +28,7 @@ import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.SerDeUtil;
 import io.confluent.kql.util.KQLConfig;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -54,9 +62,9 @@ public class PhysicalPlanBuilder {
     } else if (planNode instanceof JoinNode) {
       return buildJoin((JoinNode) planNode);
     } else if (planNode instanceof AggregateNode) {
-        AggregateNode aggregateNode = (AggregateNode) planNode;
-        SchemaKStream aggregateSchemaStream = buildAggregate(aggregateNode);
-        return aggregateSchemaStream;
+      AggregateNode aggregateNode = (AggregateNode) planNode;
+      SchemaKStream aggregateSchemaStream = buildAggregate(aggregateNode);
+      return aggregateSchemaStream;
     } else if (planNode instanceof ProjectNode) {
       ProjectNode projectNode = (ProjectNode) planNode;
       SchemaKStream projectedSchemaStream = buildProject(projectNode);
@@ -80,17 +88,16 @@ public class PhysicalPlanBuilder {
     if (outputNode instanceof KQLStructuredDataOutputNode) {
       KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
           outputNode;
-      if (kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
+      if (kqlStructuredDataOutputNode.getKqlTopic()
+          .getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
         KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlStructuredDataOutputNode
             .getKqlTopic().getKqlTopicSerDe();
         kqlStructuredDataOutputNode = addAvroSchemaToResultTopic(kqlStructuredDataOutputNode,
-                                                                 kqlAvroTopicSerDe.getSchemaFilePath());
+                                                                 kqlAvroTopicSerDe
+                                                                     .getSchemaFilePath());
       }
-      SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
-                                                                .getKafkaTopicName(),
-                                                            SerDeUtil.getRowSerDe
-                                                                (kqlStructuredDataOutputNode
-                                                                     .getKqlTopic().getKqlTopicSerDe()));
+      SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode.getKafkaTopicName(), SerDeUtil.getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe()));
+
       this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;
     } else if (outputNode instanceof KQLConsoleOutputNode) {
@@ -104,13 +111,14 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
 
-      StructuredDataSourceNode sourceNode = (StructuredDataSourceNode) aggregateNode.getSource();
-      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
-              .getKQLTopic().getKqlTopicSerDe());
-      SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
+    StructuredDataSourceNode sourceNode = (StructuredDataSourceNode) aggregateNode.getSource();
+    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+                                                                  .getKqlTopic()
+                                                                  .getKqlTopicSerDe());
+    SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
 
-      SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
-      return rekeyedSchemaKStream;
+    SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
+    return rekeyedSchemaKStream;
 //      SchemaKGroupedStream schemaKGroupedStream = sourceSchemaKStream.groupByKey(Serdes.String(), genericRowSerde);
 //
 //
@@ -145,10 +153,7 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {
-    SchemaKStream
-        projectedSchemaStream =
-        kafkaStreamsDSL(projectNode.getSource())
-            .select(projectNode.getProjectExpressions(), projectNode.getSchema());
+    SchemaKStream projectedSchemaStream = kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions(), projectNode.getSchema());
     return projectedSchemaStream;
   }
 
@@ -164,16 +169,19 @@ public class PhysicalPlanBuilder {
     if (sourceNode instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
 
-      Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                                                    .getKQLTopic().getKqlTopicSerDe());
+      Serde<GenericRow>
+          genericRowSerde =
+          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
+                                    .getKqlTopic().getKqlTopicSerDe());
 
-      if (structuredDataSourceNode.getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
+      if (structuredDataSourceNode.getDataSourceType()
+          == StructuredDataSource.DataSourceType.KTABLE) {
 
         KQLTable kqlTable = (KQLTable) structuredDataSourceNode.getStructuredDataSource();
         KTable
             kTable =
             builder
-                .table(Serdes.String(), genericRowSerde, kqlTable.getKQLTopic().getKafkaTopicName(),
+                .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
                        kqlTable.getStateStoreName());
         return new SchemaKTable(sourceNode.getSchema(), kTable,
                                 sourceNode.getKeyField(), new ArrayList<>());
@@ -182,7 +190,8 @@ public class PhysicalPlanBuilder {
       KStream
           kStream =
           builder
-              .stream(Serdes.String(), genericRowSerde, kqlStream.getKQLTopic().getKafkaTopicName());
+              .stream(Serdes.String(), genericRowSerde,
+                      kqlStream.getKqlTopic().getKafkaTopicName());
       return new SchemaKStream(sourceNode.getSchema(), kStream,
                                sourceNode.getKeyField(), new ArrayList<>());
     }
@@ -194,10 +203,11 @@ public class PhysicalPlanBuilder {
     SchemaKStream rightSchemaKStream = kafkaStreamsDSL(joinNode.getRight());
     if (rightSchemaKStream instanceof SchemaKTable) {
       SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
-      if (!leftSchemaKStream.getKeyField().name().equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
+      if (!leftSchemaKStream.getKeyField().name()
+          .equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
         leftSchemaKStream =
             leftSchemaKStream.selectKey(SchemaUtil.getFieldByName(leftSchemaKStream.getSchema(),
-                                                                 joinNode.getLeftKeyFieldName()));
+                                                                  joinNode.getLeftKeyFieldName()));
       }
       SchemaKStream joinSchemaKStream;
       switch (joinNode.getType()) {
@@ -207,9 +217,7 @@ public class PhysicalPlanBuilder {
               .getKeyField().name()).toUpperCase();
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
-                                        joinNode.getSchema().field(
-                                            joinKeyFieldName), SerDeUtil.getRowSerDe
-                      (joinSerDe));
+                                         joinNode.getSchema().field(joinKeyFieldName), SerDeUtil.getRowSerDe(joinSerDe));
           break;
         default:
           throw new KQLException("Join type is not supportd yet: " + joinNode.getType());
@@ -217,22 +225,21 @@ public class PhysicalPlanBuilder {
       return joinSchemaKStream;
     }
 
-    throw new KQLException(
-        "Unsupported join logical node: Left: " + joinNode.getLeft() + " , Right: " + joinNode
-            .getRight());
+    throw new KQLException("Unsupported join logical node: Left: " + joinNode.getLeft() + " , Right: " + joinNode.getRight());
   }
 
   private KQLTopicSerDe getResultTopicSerde(final PlanNode node) {
     if (node instanceof StructuredDataSourceNode) {
-      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode)node;
-      return structuredDataSourceNode.getStructuredDataSource().getKQLTopic().getKqlTopicSerDe();
+      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) node;
+      return structuredDataSourceNode.getStructuredDataSource().getKqlTopic().getKqlTopicSerDe();
     } else if (node instanceof JoinNode) {
       JoinNode joinNode = (JoinNode) node;
       KQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());
       return leftTopicSerDe;
-    } else return getResultTopicSerde(node.getSources().get(0));
+    } else {
+      return getResultTopicSerde(node.getSources().get(0));
+    }
   }
-
 
 
   public KStreamBuilder getBuilder() {
@@ -248,67 +255,75 @@ public class PhysicalPlanBuilder {
                                                                  final String avroSchemaFilePath) {
     String avroSchemaFilePathVal = avroSchemaFilePath;
     if (avroSchemaFilePath == null) {
-        avroSchemaFilePathVal = KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG +kqlStructuredDataOutputNode.getKqlTopic().getName()+".avro";
+      avroSchemaFilePathVal =
+          KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG + kqlStructuredDataOutputNode
+              .getKqlTopic().getName() + ".avro";
     }
     MetastoreUtil metastoreUtil = new MetastoreUtil();
-    String avroSchema = metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(), kqlStructuredDataOutputNode.getKqlTopic().getName());
-    metastoreUtil.writeAvroSchemaFile(avroSchema,avroSchemaFilePathVal);
+    String
+        avroSchema =
+        metastoreUtil.buildAvroSchema(kqlStructuredDataOutputNode.getSchema(),
+                                      kqlStructuredDataOutputNode.getKqlTopic().getName());
+    metastoreUtil.writeAvroSchemaFile(avroSchema, avroSchemaFilePathVal);
     KQLAvroTopicSerDe kqlAvroTopicSerDe = new KQLAvroTopicSerDe(avroSchemaFilePathVal, avroSchema);
     KQLTopic newKQLTopic = new KQLTopic(kqlStructuredDataOutputNode.getKqlTopic()
                                             .getName(), kqlStructuredDataOutputNode
                                             .getKqlTopic().getKafkaTopicName(), kqlAvroTopicSerDe);
 
-    KQLStructuredDataOutputNode newKQLStructuredDataOutputNode = new KQLStructuredDataOutputNode
-        (kqlStructuredDataOutputNode.getId(), kqlStructuredDataOutputNode.getSource(),
-         kqlStructuredDataOutputNode.getSchema(), newKQLTopic, kqlStructuredDataOutputNode.getKafkaTopicName());
+    KQLStructuredDataOutputNode newKQLStructuredDataOutputNode = new KQLStructuredDataOutputNode(
+        kqlStructuredDataOutputNode.getId(), kqlStructuredDataOutputNode.getSource(),
+        kqlStructuredDataOutputNode.getSchema(), newKQLTopic,
+        kqlStructuredDataOutputNode.getKafkaTopicName());
     return newKQLStructuredDataOutputNode;
   }
 
-  private SchemaKStream aggregateReKey(final AggregateNode aggregateNode, final SchemaKStream sourceSchemaKStream) {
-      String aggregateKeyName = "";
-      List<Integer> newKeyIndexes = new ArrayList<>();
-      boolean addSeparator = false;
-      for (Expression groupByExpr: aggregateNode.getGroupByExpressions()) {
-          if (addSeparator) {
-              aggregateKeyName += "|+|";
-          } else {
-              addSeparator = true;
-          }
-          aggregateKeyName += groupByExpr.toString();
-          newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
+  private SchemaKStream aggregateReKey(final AggregateNode aggregateNode,
+                                       final SchemaKStream sourceSchemaKStream) {
+    String aggregateKeyName = "";
+    List<Integer> newKeyIndexes = new ArrayList<>();
+    boolean addSeparator = false;
+    for (Expression groupByExpr : aggregateNode.getGroupByExpressions()) {
+      if (addSeparator) {
+        aggregateKeyName += "|+|";
+      } else {
+        addSeparator = true;
       }
+      aggregateKeyName += groupByExpr.toString();
+      newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
+    }
 
-      KStream rekeyedKStream = sourceSchemaKStream.getkStream().selectKey(new KeyValueMapper<String, GenericRow, String>() {
+    KStream rekeyedKStream = sourceSchemaKStream.getkStream().selectKey(new KeyValueMapper<String, GenericRow, String>() {
 
-          @Override
-          public String apply(String key, GenericRow value) {
-              String newKey = "";
-              boolean addSeparator = false;
-              for (int index : newKeyIndexes) {
-                  if (addSeparator) {
-                      newKey += "|+|";
-                  } else {
-                      addSeparator = true;
-                  }
-                  newKey += String.valueOf(value.getColumns().get(index));
-              }
-              return newKey;
+      @Override
+      public String apply(String key, GenericRow value) {
+        String newKey = "";
+        boolean addSeparator = false;
+        for (int index : newKeyIndexes) {
+          if (addSeparator) {
+            newKey += "|+|";
+          } else {
+            addSeparator = true;
           }
-      });
+          newKey += String.valueOf(value.getColumns().get(index));
+        }
+        return newKey;
+      }
+    });
 
-      Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
 
-      return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField, Arrays.asList(sourceSchemaKStream));
+    return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
+                             Arrays.asList(sourceSchemaKStream));
   }
 
-    private int getIndexInSchema(final String fieldName, final Schema schema) {
-        List<Field> fields = schema.fields();
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (field.name().equalsIgnoreCase(fieldName)) {
-                return i;
-            }
-        }
-        return -1;
+  private int getIndexInSchema(final String fieldName, final Schema schema) {
+    List<Field> fields = schema.fields();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (field.name().equalsIgnoreCase(fieldName)) {
+        return i;
+      }
     }
+    return -1;
+  }
 }

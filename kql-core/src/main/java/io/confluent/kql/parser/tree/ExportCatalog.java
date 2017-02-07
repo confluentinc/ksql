@@ -1,7 +1,10 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser.tree;
 
-
 import com.google.common.base.MoreObjects;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -12,7 +15,7 @@ public class ExportCatalog extends Statement {
   public ExportCatalog(Optional<NodeLocation> location, String catalogFilePath) {
     super(location);
     if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
-      this.catalogFilePath = catalogFilePath.substring(1,catalogFilePath.length()-1);
+      this.catalogFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);
     } else {
       this.catalogFilePath = catalogFilePath;
     }

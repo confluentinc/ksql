@@ -1,13 +1,24 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.util;
 
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
 import io.confluent.kql.function.udf.KUDF;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.Cast;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.IsNotNullPredicate;
+import io.confluent.kql.parser.tree.IsNullPredicate;
+import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.NotExpression;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -25,8 +36,9 @@ public class ExpressionUtil {
     return visitor.parameterMap;
   }
 
-  public Triplet<IExpressionEvaluator, int[], KUDF[]> getExpressionEvaluator(final Expression expression,
-                                                                             final Schema schema) throws Exception {
+  public Triplet<IExpressionEvaluator, int[], KUDF[]> getExpressionEvaluator(
+      final Expression expression,
+      final Schema schema) throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     Map<String, Class> parameterMap = expressionUtil.getParameterInfo(expression, schema);
 
@@ -90,8 +102,8 @@ public class ExpressionUtil {
       parameterMap.put(node.getName().getSuffix().toUpperCase(),
 //                       SchemaUtil.getJavaType(kqlFunction.getReturnType()));
                        kqlFunction.getKudfClass());
-      for (Expression argExpr: node.getArguments()) {
-        process(argExpr , null);
+      for (Expression argExpr : node.getArguments()) {
+        process(argExpr, null);
       }
       return null;
     }

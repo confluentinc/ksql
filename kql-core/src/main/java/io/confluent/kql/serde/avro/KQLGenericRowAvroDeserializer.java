@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.serde.avro;
 
@@ -49,7 +48,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
       genericRecord = reader.read(genericRecord, decoder);
       List<Schema.Field> fields = genericRecord.getSchema().getFields();
       List columns = new ArrayList();
-      for (Schema.Field field: fields) {
+      for (Schema.Field field : fields) {
         columns.add(genericRecord.get(field.name()));
       }
       genericRow = new GenericRow(columns);

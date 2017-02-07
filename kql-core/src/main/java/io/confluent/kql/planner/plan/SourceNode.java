@@ -1,16 +1,13 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.confluent.kql.metastore.StructuredDataSource;
-
 import javax.annotation.concurrent.Immutable;
 
-import static java.util.Objects.requireNonNull;
 
 @Immutable
 public abstract class SourceNode extends PlanNode {

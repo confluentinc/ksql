@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.structured;
 
@@ -27,7 +26,8 @@ public class SchemaKTable extends SchemaKStream {
 
   final KTable kTable;
 
-  public SchemaKTable(final Schema schema, final KTable kTable, final Field keyField, final List<SchemaKStream> sourceSchemaKStreams) {
+  public SchemaKTable(final Schema schema, final KTable kTable, final Field keyField,
+                      final List<SchemaKStream> sourceSchemaKStreams) {
     super(schema, null, keyField, sourceSchemaKStreams);
     this.kTable = kTable;
   }
@@ -58,7 +58,8 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable select(final List<Expression> expressions, final Schema selectSchema) throws Exception {
+  public SchemaKTable select(final List<Expression> expressions, final Schema selectSchema)
+      throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -83,8 +84,7 @@ public class SchemaKTable extends SchemaKStream {
             if (parameterIndexes[j] < 0) {
               parameterObjects[j] = kudfs[j];
             } else {
-              parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType
-                      (parameterIndexes[j],row.getColumns().get(parameterIndexes[j]));
+              parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j], row.getColumns().get(parameterIndexes[j]));
             }
           }
           Object columnValue = null;

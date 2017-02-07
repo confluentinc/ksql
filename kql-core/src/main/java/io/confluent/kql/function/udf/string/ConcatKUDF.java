@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.function.udf.string;
@@ -8,7 +7,7 @@ package io.confluent.kql.function.udf.string;
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.udf.KUDF;
 
-public class Len_KUDF implements KUDF {
+public class ConcatKUDF implements KUDF {
 
   @Override
   public void init() {
@@ -17,9 +16,10 @@ public class Len_KUDF implements KUDF {
 
   @Override
   public Object evaluate(Object... args) {
-    if (args.length != 1) {
-      throw new KQLFunctionException("Length udf should have one input argument.");
+    if (args.length != 2) {
+      throw new KQLFunctionException("Concat udf should have two input argument.");
     }
-    return args[0].toString().length();
+    String string = args[0].toString();
+    return args[0].toString() + args[1].toString();
   }
 }

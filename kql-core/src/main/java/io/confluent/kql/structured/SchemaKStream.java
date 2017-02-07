@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.structured;
 
@@ -36,7 +35,8 @@ public class SchemaKStream {
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   final List<SchemaKStream> sourceSchemaKStreams;
 
-  public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField, final List<SchemaKStream> sourceSchemaKStreams) {
+  public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField,
+                       final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
     this.keyField = keyField;
@@ -56,7 +56,7 @@ public class SchemaKStream {
         kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
           @Override
           public KeyValue<String, GenericRow> apply(String key, GenericRow genericRow) {
-            System.out.println(key+" ==> "+genericRow.toString());
+            System.out.println(key + " ==> " + genericRow.toString());
             return new KeyValue<String, GenericRow>(key, genericRow);
           }
 
@@ -90,7 +90,8 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream select(final List<Expression> expressions, final Schema selectSchema) throws Exception {
+  public SchemaKStream select(final List<Expression> expressions, final Schema selectSchema)
+      throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -116,8 +117,7 @@ public class SchemaKStream {
                 if (parameterIndexes[j] < 0) {
                   parameterObjects[j] = kudfs[j];
                 } else {
-                  parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType
-                      (parameterIndexes[j],row.getColumns().get(parameterIndexes[j]));
+                  parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j], row.getColumns().get(parameterIndexes[j]));
                 }
               }
               Object columnValue = null;
@@ -137,31 +137,28 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema, final Field joinKey,
+  public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
+                                final Field joinKey,
                                 final Serde<GenericRow> resultValueSerDe) {
 
-    KStream
-        joinedKStream =
-        kStream.leftJoin(schemaKTable.getkTable(),
-                         new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
-                           @Override
-                           public GenericRow apply(GenericRow leftGenericRow,
-                                                   GenericRow rightGenericRow) {
-                             List<Object> columns = new ArrayList<>();
-                             columns.addAll(leftGenericRow.getColumns());
-                             if (rightGenericRow == null) {
-                               for (int i = leftGenericRow.getColumns().size();
-                                    i < joinSchema.fields().size(); i++) {
-                                 columns.add(null);
-                               }
-                             } else {
-                               columns.addAll(rightGenericRow.getColumns());
-                             }
+    KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
+      @Override
+      public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
+        List<Object> columns = new ArrayList<>();
+        columns.addAll(leftGenericRow.getColumns());
+        if (rightGenericRow == null) {
+          for (int i = leftGenericRow.getColumns().size();
+               i < joinSchema.fields().size(); i++) {
+            columns.add(null);
+          }
+        } else {
+          columns.addAll(rightGenericRow.getColumns());
+        }
 
-                             GenericRow joinGenericRow = new GenericRow(columns);
-                             return joinGenericRow;
-                           }
-                         }, Serdes.String(), resultValueSerDe);
+        GenericRow joinGenericRow = new GenericRow(columns);
+        return joinGenericRow;
+      }
+    }, Serdes.String(), resultValueSerDe);
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));
   }
@@ -187,15 +184,15 @@ public class SchemaKStream {
   }
 
   public SchemaKGroupedStream groupByKey() {
-      KGroupedStream kGroupedStream = kStream.groupByKey();
-      return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+    KGroupedStream kGroupedStream = kStream.groupByKey();
+    return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
   }
 
-    public SchemaKGroupedStream groupByKey(final Serde keySerde,
-                                           final Serde valSerde) {
-        KGroupedStream kGroupedStream = kStream.groupByKey(keySerde, valSerde);
-        return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
-    }
+  public SchemaKGroupedStream groupByKey(final Serde keySerde,
+                                         final Serde valSerde) {
+    KGroupedStream kGroupedStream = kStream.groupByKey(keySerde, valSerde);
+    return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+  }
 
   public Field getKeyField() {
     return keyField;

@@ -1,24 +1,23 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
-package io.confluent.kql.function.udf.string;
+package io.confluent.kql.function.udf.math;
 
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.udf.KUDF;
 
-public class Trim_KUDF implements KUDF {
+public class AbsKUDF implements KUDF {
+
   @Override
   public void init() {
-
   }
 
   @Override
   public Object evaluate(Object... args) {
     if (args.length != 1) {
-      throw new KQLFunctionException("Trim udf should have one input argument.");
+      throw new KQLFunctionException("Abs udf should have one input argument.");
     }
-    return args[0].toString().trim();
+    return Math.abs((Double) args[0]);
   }
 }

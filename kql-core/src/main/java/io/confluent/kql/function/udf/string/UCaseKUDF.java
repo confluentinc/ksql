@@ -1,14 +1,14 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
-package io.confluent.kql.function.udf.math;
+package io.confluent.kql.function.udf.string;
 
 import io.confluent.kql.function.KQLFunctionException;
 import io.confluent.kql.function.udf.KUDF;
 
-public class Random_KUDF implements KUDF {
+public class UCaseKUDF implements KUDF {
+
   @Override
   public void init() {
 
@@ -16,9 +16,9 @@ public class Random_KUDF implements KUDF {
 
   @Override
   public Object evaluate(Object... args) {
-    if (args.length != 0) {
-      throw new KQLFunctionException("Random udf should have no input argument.");
+    if (args.length != 1) {
+      throw new KQLFunctionException("UCase udf should have one input argument.");
     }
-    return Math.random();
+    return args[0].toString().toUpperCase();
   }
 }

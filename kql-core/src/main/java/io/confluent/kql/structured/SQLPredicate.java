@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.structured;
 
@@ -67,7 +66,7 @@ public class SQLPredicate {
         try {
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i],row
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
                 .getColumns().get(columnIndexes[i]));
           }
           boolean result = (Boolean) ee.evaluate(values);

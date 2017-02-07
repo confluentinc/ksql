@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql;
 
@@ -35,6 +34,7 @@ import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.Triplet;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Arrays;
 
 public class KQLEngine {
+
   KQLConfig kqlConfig;
   QueryEngine queryEngine;
   DDLEngine ddlEngine = new DDLEngine(this);
@@ -77,33 +78,37 @@ public class KQLEngine {
       Statement statement = statementInfo.getLeft();
       if (statement instanceof Query) {
         Query query = (Query) statement;
-        QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-        Table intoTable = (Table)querySpecification.getInto().get();
+        QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+        Table intoTable = (Table) querySpecification.getInto().get();
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 intoTable.getName().getSuffix()
-                                                                    ));
+        ));
         queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
         queryIndex++;
       } else if (statement instanceof CreateStreamAsSelect) {
-        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
-        QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
+        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+        QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery()
             .getQueryBody();
         Query query = addInto(createStreamAsSelect.getQuery(), querySpecification,
-                                         createStreamAsSelect.getName().getSuffix(),createStreamAsSelect
-                                             .getProperties());
-        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(), createStreamAsSelect.getName().getSuffix()));
+                              createStreamAsSelect.getName().getSuffix(), createStreamAsSelect
+                                  .getProperties());
+        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
+                                                                createStreamAsSelect.getName()
+                                                                    .getSuffix()));
         queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
         queryIndex++;
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification)createTableAsSelect.getQuery()
+        QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery()
             .getQueryBody();
 
         Query query = addInto(createTableAsSelect.getQuery(), querySpecification,
-                                         createTableAsSelect.getName().getSuffix(),createTableAsSelect
-                                             .getProperties());
+                              createTableAsSelect.getName().getSuffix(), createTableAsSelect
+                                  .getProperties());
 
-        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(), createTableAsSelect.getName().getSuffix()));
+        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
+                                                                createTableAsSelect.getName()
+                                                                    .getSuffix()));
         queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
         queryIndex++;
       } else if (statement instanceof CreateTopic) {
@@ -152,12 +157,12 @@ public class KQLEngine {
 
     }
 
-    KQLTopic KQLTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
+    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
                                      null);
     StructuredDataSource
         resultStream =
         new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                      KQLTopic
+                      kqlTopic
         );
     return resultStream;
   }
@@ -194,7 +199,7 @@ public class KQLEngine {
   }
 
   public Triplet<String, KafkaStreams, OutputNode> runSingleQuery(
-          final Pair<String, Query> queryInfo) throws Exception {
+      final Pair<String, Query> queryInfo) throws Exception {
 
     List<Pair<String, PlanNode>>
         logicalPlans =
@@ -216,7 +221,8 @@ public class KQLEngine {
   }
 
 
-  public void processStatements(final String queryId, final String statementsString) throws Exception {
+  public void processStatements(final String queryId, final String statementsString)
+      throws Exception {
     String statementWithSemicolon = statementsString;
     if (!statementsString.endsWith(";")) {
       statementWithSemicolon = statementsString + ";";
@@ -238,17 +244,17 @@ public class KQLEngine {
     }
   }
 
-  public Query addInto(final Query query, final QuerySpecification querySpecification, final String intoName,
+  public Query addInto(final Query query, final QuerySpecification querySpecification,
+                       final String intoName,
                        final Map<String,
-                            Expression> intoProperties) {
+                           Expression> intoProperties) {
     Table intoTable = new Table(QualifiedName.of(intoName));
     intoTable.setProperties(intoProperties);
     QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
                                                                           .getSelect(),
                                                                       java.util.Optional
                                                                           .ofNullable(intoTable),
-                                                                      querySpecification.getFrom
-                                                                          (), querySpecification
+                                                                      querySpecification.getFrom(), querySpecification
                                                                           .getWhere(),
                                                                       querySpecification
                                                                           .getGroupBy(),
@@ -256,10 +262,8 @@ public class KQLEngine {
                                                                           .getHaving(),
                                                                       querySpecification
                                                                           .getOrderBy(),
-                                                                      querySpecification.getLimit
-                                                                          ());
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit()
-        , query.getApproximate());
+                                                                      querySpecification.getLimit());
+    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit(), query.getApproximate());
   }
 
   public MetaStore getMetaStore() {
@@ -308,7 +312,7 @@ public class KQLEngine {
 //    kqlConfProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/kql_config.conf");
     KQLEngine kqlEngine = new KQLEngine(kqlConfProperties);
 
-    kqlEngine.processStatements("KQL_1","SELECT *  FROM orders ;");
+    kqlEngine.processStatements("KQL_1", "SELECT *  FROM orders ;");
 
 //    kqlEngine.runCLIQuery("SELECT ordertime AS timeValue, orderid , orderunits%10, lower(itemid)"
 //                           + "  "

@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.analyzer;
@@ -9,7 +8,7 @@ import io.confluent.kql.ddl.DDLConfig;
 import io.confluent.kql.metastore.DataSource;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTopic;
-import io.confluent.kql.metastore.KQL_STDOUT;
+import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Node;
@@ -57,12 +56,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitQuerySpecification(final QuerySpecification node, final AnalysisContext context) {
+  protected Node visitQuerySpecification(final QuerySpecification node,
+                                         final AnalysisContext context) {
 
     process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
 
     process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
-    if (!(analysis.getInto() instanceof KQL_STDOUT)) {
+    if (!(analysis.getInto() instanceof KQLSTDOUT)) {
       List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
@@ -71,7 +71,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         intoKafkaTopicName = intoStructuredDataSource.getName();
       }
 
-      KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKQLTopic()
+      KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
         if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
@@ -90,7 +90,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KQLTopic newIntoKQLTopic = new KQLTopic(intoKafkaTopicName,
                                               intoKafkaTopicName, intoTopicSerde);
       KQLStream intoKQLStream = new KQLStream(intoStructuredDataSource.getName(),
-                                                null, null, newIntoKQLTopic);
+                                              null, null, newIntoKQLTopic);
       analysis.setInto(intoKQLStream);
     }
 
@@ -163,15 +163,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                 leftDataSource.getKeyField(), leftDataSource.getKQLTopic().getTopicName(),
-                                 leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
-                                 leftDataSource);
+                                     leftDataSource.getKeyField(),
+                                     leftDataSource.getKqlTopic().getTopicName(),
+                                     leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
+                                     leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"), rightDataSource.getSchema(),
-                                 rightDataSource.getKeyField(), rightDataSource.getKQLTopic().getTopicName(),
-                                 rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
-                                 rightDataSource);
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
+                                     rightDataSource.getSchema(),
+                                     rightDataSource.getKeyField(),
+                                     rightDataSource.getKqlTopic().getTopicName(),
+                                     rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
+                                     rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -223,14 +226,17 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource into;
     if (node.isSTDOut) {
-      into = new KQL_STDOUT(KQL_STDOUT.KQL_STDOUT_NAME, null, null, StructuredDataSource.DataSourceType.KSTREAM);
+      into =
+          new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null,
+                        StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = new KQLStream(node.getName().getSuffix(), null, null, null);
 
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
         if (!serde.startsWith("'") && !serde.endsWith("'")) {
-          throw new KQLException(serde + " value is string and should be enclosed between " + "\"'\".");
+          throw new KQLException(
+              serde + " value is string and should be enclosed between " + "\"'\".");
         }
         serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
@@ -239,7 +245,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
             avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
             if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
-              throw new KQLException(avroSchemaFilePath + " value is string and should be enclosed between " + "\"'\".");
+              throw new KQLException(
+                  avroSchemaFilePath + " value is string and should be enclosed between "
+                  + "\"'\".");
             }
             avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
           }
@@ -248,9 +256,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
 
       if (node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
-        String intoKafkaTopicName = node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
+        String
+            intoKafkaTopicName =
+            node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
         if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
-          throw new KQLException(intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
+          throw new KQLException(
+              intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
         }
         intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
@@ -280,15 +291,19 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         if (analysis.getJoin() != null) {
           JoinNode joinNode = analysis.getJoin();
           for (Field field : joinNode.getLeft().getSchema().fields()) {
-            QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+            QualifiedNameReference
+                qualifiedNameReference =
+                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getLeftAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference, joinNode.getLeftAlias() + "_" + field.name());
+            analysis.addSelectItem(qualifiedNameReference,
+                                   joinNode.getLeftAlias() + "_" + field.name());
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
             QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getRightAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference, joinNode.getRightAlias() + "_" + field.name());
+            analysis.addSelectItem(qualifiedNameReference,
+                                   joinNode.getRightAlias() + "_" + field.name());
           }
         } else {
           for (Field field : this.analysis.getFromDataSources().get(0).getLeft().getSchema()
@@ -312,7 +327,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitQualifiedNameReference(final QualifiedNameReference node, final AnalysisContext context) {
+  protected Node visitQualifiedNameReference(final QualifiedNameReference node,
+                                             final AnalysisContext context) {
     return visitExpression(node, context);
   }
 
@@ -325,7 +341,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private StructuredDataSource analyzeFrom(final QuerySpecification node, final AnalysisContext context) {
+  private StructuredDataSource analyzeFrom(final QuerySpecification node,
+                                           final AnalysisContext context) {
     return null;
   }
 

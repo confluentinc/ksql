@@ -173,6 +173,7 @@
                     <stringType>String</stringType>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 

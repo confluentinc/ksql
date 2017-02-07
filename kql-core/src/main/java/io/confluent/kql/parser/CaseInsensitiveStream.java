@@ -1,4 +1,6 @@
-
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser;
 
 import org.antlr.v4.runtime.CharStream;

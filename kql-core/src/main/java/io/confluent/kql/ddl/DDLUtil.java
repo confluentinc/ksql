@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.ddl;
 
@@ -91,7 +90,7 @@ public class DDLUtil {
 
   }
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     new DDLUtil().deleteTopic("TestTopic");
   }
 }

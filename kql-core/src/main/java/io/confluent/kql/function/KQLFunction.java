@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.function;
@@ -16,8 +15,8 @@ public class KQLFunction {
   final String functionName;
   final Class kudfClass;
 
-  public  KQLFunction(Schema.Type returnType, List<Schema.Type> arguments, String functionName,
-                       Class kudfClass) {
+  public KQLFunction(Schema.Type returnType, List<Schema.Type> arguments, String functionName,
+                     Class kudfClass) {
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;

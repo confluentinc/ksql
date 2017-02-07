@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql;
 
 import io.confluent.kql.metastore.KQLStream;
@@ -7,13 +10,35 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.Statement;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.CreateStream;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.ExportCatalog;
+import io.confluent.kql.parser.tree.ShowQueries;
+import io.confluent.kql.parser.tree.ListTopics;
+import io.confluent.kql.parser.tree.ListStreams;
+import io.confluent.kql.parser.tree.ShowColumns;
+import io.confluent.kql.parser.tree.TerminateQuery;
+import io.confluent.kql.parser.tree.PrintTopic;
+import io.confluent.kql.parser.tree.SetProperty;
+import io.confluent.kql.parser.tree.LoadProperties;
+import io.confluent.kql.parser.tree.Table;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
-import io.confluent.kql.util.*;
-
+import io.confluent.kql.util.KQLConfig;
+import io.confluent.kql.util.Pair;
+import io.confluent.kql.util.TopicPrinter;
+import io.confluent.kql.util.Triplet;
+import io.confluent.kql.util.SchemaUtil;
+import io.confluent.kql.util.KQLUtil;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
@@ -34,7 +59,7 @@ public class KQL {
   LiveQueryMap liveQueries = new LiveQueryMap();
   Triplet<String, KafkaStreams, KQLConsoleOutputNode> cliCurrentQuery = null;
 
-  static final String queryIdPrefix = "kql_";
+  static final String QUERY_ID_PREFIX = "kql_";
   int queryIdCounter = 0;
 
   boolean isCLI = true;
@@ -127,21 +152,21 @@ public class KQL {
         kqlEngine.getDdlEngine().createTable((CreateTable) statement);
         return;
       } else if (statement instanceof CreateStreamAsSelect) {
-        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
-        QuerySpecification querySpecification = (QuerySpecification)createStreamAsSelect.getQuery()
+        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+        QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery()
             .getQueryBody();
         Query query = kqlEngine.addInto(createStreamAsSelect.getQuery(), querySpecification,
-                              createStreamAsSelect.getName().getSuffix(),createStreamAsSelect
+                              createStreamAsSelect.getName().getSuffix(), createStreamAsSelect
                                   .getProperties());
         startQuery(statementStr, query);
         return;
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification)createTableAsSelect.getQuery()
+        QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery()
             .getQueryBody();
 
         Query query = kqlEngine.addInto(createTableAsSelect.getQuery(), querySpecification,
-                              createTableAsSelect.getName().getSuffix(),createTableAsSelect
+                              createTableAsSelect.getName().getSuffix(), createTableAsSelect
                                   .getProperties());
         startQuery(statementStr, query);
         return;
@@ -149,7 +174,7 @@ public class KQL {
         kqlEngine.getDdlEngine().dropTopic((DropTable) statement);
         return;
       } else if (statement instanceof ExportCatalog) {
-        ExportCatalog exportCatalog = (ExportCatalog)statement;
+        ExportCatalog exportCatalog = (ExportCatalog) statement;
         exportCatalog(exportCatalog.getCatalogFilePath());
         return;
       } else if (statement instanceof ShowQueries) {
@@ -171,20 +196,20 @@ public class KQL {
       } else if (statement instanceof PrintTopic) {
         PrintTopic printTopic = (PrintTopic) statement;
         KQLTopic
-            KQLTopic =
+            kqlTopic =
             kqlEngine.getMetaStore().getTopic(printTopic.getTopic().getSuffix().toUpperCase());
-        if (KQLTopic == null) {
+        if (kqlTopic == null) {
           console.println("Topic does not exist: " + printTopic.getTopic().getSuffix());
           return;
         }
-        String topicsName = KQLTopic.getTopicName();
+        String topicsName = kqlTopic.getTopicName();
         long interval;
         if (printTopic.getIntervalValue() == null) {
           interval = -1;
         } else {
           interval = printTopic.getIntervalValue().getValue();
         }
-        printTopic(KQLTopic, interval);
+        printTopic(kqlTopic, interval);
         return;
       } else if (statement instanceof SetProperty) {
 
@@ -286,10 +311,10 @@ public class KQL {
               queryPairInfo.getThird());
       liveQueries.put(queryId.toUpperCase(), queryInfo);
     } else if (queryPairInfo.getThird() instanceof KQLConsoleOutputNode) {
-        if (cliCurrentQuery != null) {
-            console.println("Terminating the currently running console query first. ");
-            cliCurrentQuery.getSecond().close();
-        }
+      if (cliCurrentQuery != null) {
+        console.println("Terminating the currently running console query first. ");
+        cliCurrentQuery.getSecond().close();
+      }
       cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLConsoleOutputNode) queryPairInfo.getThird());
     }
     if (isCLI) {
@@ -339,11 +364,11 @@ public class KQL {
       String notes = "";
       if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
         KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
-        notes = "Avro schema path: "+kqlAvroTopicSerDe.getSchemaFilePath();
+        notes = "Avro schema path: " + kqlAvroTopicSerDe.getSchemaFilePath();
       }
       console.println(
           " " + padRight(topicName, 42) + "|  " + padRight(kqlTopic.getKafkaTopicName(), 42) + "| "
-          + padRight(kqlTopic.getKqlTopicSerDe().getSerDe().toString(), 35)+"| "+notes);
+          + padRight(kqlTopic.getKqlTopicSerDe().getSerDe().toString(), 35) + "| " + notes);
     }
     console.println(
         "-------------------------------------------+--------------------------------------------+------------------------------------+--------------------");
@@ -369,18 +394,18 @@ public class KQL {
       if (dataSource instanceof KQLStream) {
         KQLStream kqlStream = (KQLStream) dataSource;
         console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKQLTopic()
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKqlTopic()
                                                                       .getName().toUpperCase(), 38)
             + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
-            + padRight(kqlStream.getDataSourceType().toString(), 16)+ "|          "
-            + padRight(kqlStream.getKQLTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+            + padRight(kqlStream.getDataSourceType().toString(), 16) + "|          "
+            + padRight(kqlStream.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
       } else if (dataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) dataSource;
         console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKQLTopic().getName(), 38)
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKqlTopic().getName(), 38)
             + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
-            + padRight(kqlTable.getDataSourceType().toString(), 16)+ "|          "
-            + padRight(kqlTable.getKQLTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+            + padRight(kqlTable.getDataSourceType().toString(), 16) + "|          "
+            + padRight(kqlTable.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
       }
 
     }
@@ -406,7 +431,7 @@ public class KQL {
         "-------------------+----------------------+---------------------------------------------");
     for (Field schemaField : dataSource.getSchema().fields()) {
       console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
-          SchemaUtil.typeMap.get(schemaField.schema().type().getName().toUpperCase()).toUpperCase()
+          SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase()).toUpperCase()
           + " (" + schemaField.schema().type().getName() + ")", 18) + "  |");
     }
     console.println(
@@ -433,24 +458,24 @@ public class KQL {
     console.flush();
   }
 
-  private void printTopic(KQLTopic KQLTopic, long interval) throws IOException {
-    new TopicPrinter().printGenericRowTopic(KQLTopic, console, interval, this.cliProperties);
+  private void printTopic(KQLTopic kqlTopic, long interval) throws IOException {
+    new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, this.cliProperties);
   }
 
   private void exportCatalog(String filePath) {
 
-    MetaStoreImpl metaStore = (MetaStoreImpl)kqlEngine.getMetaStore();
+    MetaStoreImpl metaStore = (MetaStoreImpl) kqlEngine.getMetaStore();
     MetastoreUtil metastoreUtil = new MetastoreUtil();
 
     metastoreUtil.writeMetastoreToFile(filePath, metaStore);
     try {
-      console.println("Wrote the catalog into "+filePath);
+      console.println("Wrote the catalog into " + filePath);
     } catch (IOException e) {
     }
   }
 
   private String getNextQueryId() {
-    String queryId = queryIdPrefix + queryIdCounter;
+    String queryId = QUERY_ID_PREFIX + queryIdCounter;
     queryIdCounter++;
     return queryId.toUpperCase();
   }
@@ -503,7 +528,7 @@ public class KQL {
       if (property[0].equalsIgnoreCase(KQLConfig.QUERY_FILE_PATH_CONFIG) || property[0]
           .equalsIgnoreCase(KQLConfig.PROP_FILE_PATH_CONFIG)
           || property[0].equalsIgnoreCase(KQLConfig.CATALOG_FILE_PATH_CONFIG) || property[0]
-              .equalsIgnoreCase(KQLConfig.QUERY_CONTENT_CONFIG)|| property[0]
+              .equalsIgnoreCase(KQLConfig.QUERY_CONTENT_CONFIG) || property[0]
               .equalsIgnoreCase(KQLConfig.QUERY_EXECUTION_TIME_CONFIG)) {
         cliProperties.put(property[0], property[1]);
       } else {

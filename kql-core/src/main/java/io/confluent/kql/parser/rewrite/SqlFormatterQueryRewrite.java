@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 
 package io.confluent.kql.parser.rewrite;
@@ -9,13 +8,76 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedMap;
 
-import io.confluent.kql.parser.tree.*;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.Unnest;
+import io.confluent.kql.parser.tree.Prepare;
+import io.confluent.kql.parser.tree.Deallocate;
+import io.confluent.kql.parser.tree.WithQuery;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.Execute;
+import io.confluent.kql.parser.tree.TableSubquery;
+import io.confluent.kql.parser.tree.With;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.Join;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.JoinCriteria;
+import io.confluent.kql.parser.tree.ShowCatalogs;
+import io.confluent.kql.parser.tree.NaturalJoin;
+import io.confluent.kql.parser.tree.JoinOn;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.SampledRelation;
+import io.confluent.kql.parser.tree.Values;
+import io.confluent.kql.parser.tree.Union;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.Except;
+import io.confluent.kql.parser.tree.Intersect;
+import io.confluent.kql.parser.tree.CreateView;
+import io.confluent.kql.parser.tree.DropView;
+import io.confluent.kql.parser.tree.Explain;
+import io.confluent.kql.parser.tree.ShowSchemas;
+import io.confluent.kql.parser.tree.ShowTables;
+import io.confluent.kql.parser.tree.ShowCreate;
+import io.confluent.kql.parser.tree.ShowColumns;
+import io.confluent.kql.parser.tree.ShowPartitions;
+import io.confluent.kql.parser.tree.ShowFunctions;
+import io.confluent.kql.parser.tree.ShowSession;
+import io.confluent.kql.parser.tree.Delete;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.RenameTable;
+import io.confluent.kql.parser.tree.AddColumn;
+import io.confluent.kql.parser.tree.Insert;
+import io.confluent.kql.parser.tree.SetSession;
+import io.confluent.kql.parser.tree.ResetSession;
+import io.confluent.kql.parser.tree.CallArgument;
+import io.confluent.kql.parser.tree.Call;
+import io.confluent.kql.parser.tree.Row;
+import io.confluent.kql.parser.tree.StartTransaction;
+import io.confluent.kql.parser.tree.TransactionMode;
+import io.confluent.kql.parser.tree.Isolation;
+import io.confluent.kql.parser.tree.TransactionAccessMode;
+import io.confluent.kql.parser.tree.Commit;
+import io.confluent.kql.parser.tree.Rollback;
+import io.confluent.kql.parser.tree.Grant;
+import io.confluent.kql.parser.tree.Revoke;
+import io.confluent.kql.parser.tree.RenameColumn;
+import io.confluent.kql.parser.tree.ExplainOption;
+import io.confluent.kql.parser.tree.JoinUsing;
+import io.confluent.kql.parser.tree.ExplainType;
+import io.confluent.kql.parser.tree.ExplainFormat;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
@@ -227,8 +289,8 @@ public final class SqlFormatterQueryRewrite {
       if (node.getAlias().isPresent()) {
         builder.append(' ')
             .append(" AS ")
-            .append(node.getAlias().get())
-        ; // TODO: handle quoting properly
+            .append(node.getAlias().get());
+        // TODO: handle quoting properly
       }
 
       return null;
@@ -588,11 +650,7 @@ public final class SqlFormatterQueryRewrite {
 
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
-        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(),
-                                                    entry -> entry.getKey() + " = "
-                                                             + ExpressionFormatterQueryRewrite
-                                                                 .formatExpression(
-                                                                     entry.getValue())));
+        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(), entry -> entry.getKey() + " = " + ExpressionFormatterQueryRewrite.formatExpression(entry.getValue())));
         builder.append(")");
       }
 

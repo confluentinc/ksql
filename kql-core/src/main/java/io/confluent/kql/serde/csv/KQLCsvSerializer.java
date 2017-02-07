@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.serde.csv;
 
@@ -23,7 +22,7 @@ public class KQLCsvSerializer implements Serializer<GenericRow> {
   public byte[] serialize(final String topic, final GenericRow genericRow) {
     StringBuilder recordString = new StringBuilder();
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      if ( i != 0) {
+      if (i != 0) {
         recordString.append(",");
       }
       recordString.append(genericRow.columns.get(i).toString());

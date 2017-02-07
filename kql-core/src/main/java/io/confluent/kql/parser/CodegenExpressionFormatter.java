@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser;
 
 import com.google.common.base.Joiner;
@@ -189,11 +192,11 @@ public class CodegenExpressionFormatter {
       String name = node.getName().getSuffix().toUpperCase();
       KQLFunction kqlFunction = KQLFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(kqlFunction.getReturnType()).getSimpleName();
-      builder.append("("+javaReturnType+") "+name+".evaluate(");
+      builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
       boolean addComma = false;
       for (Expression argExpr:node.getArguments()) {
         Pair<String, Schema.Type> processedArg = process(argExpr, unmangleNames);
-        if(addComma) {
+        if (addComma) {
           builder.append(" , ");
         } else {
           addComma = true;
@@ -278,17 +281,17 @@ public class CodegenExpressionFormatter {
       String returnTypeStr = node.getType().toUpperCase();
       Schema.Type returnType = SchemaUtil.getTypeSchema(returnTypeStr);
       if (returnTypeStr.equalsIgnoreCase("STRING")) {
-        return new Pair<>("String.valueOf("+expr.getLeft()+")", returnType);
+        return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
       } else if (returnTypeStr.equalsIgnoreCase("DOUBLE")) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Double.parseDouble("+expr.getLeft()+")";
+          exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
         } else if (expr.getRight() == Schema.Type.INT32) {
-          exprStr = "((Double)("+expr.getLeft()+"))";
+          exprStr = "((Double)(" + expr.getLeft() + "))";
         } else if (expr.getRight() == Schema.Type.FLOAT64) {
           exprStr = expr.getLeft();
         } else if (expr.getRight() == Schema.Type.INT64) {
-          exprStr = "((Long)("+expr.getLeft()+"))";
+          exprStr = "((Long)(" + expr.getLeft() + "))";
         } else {
           throw new KQLFunctionException("Invalid cast operation: Cannot cast "
                                          + expr.getLeft() + " to " + returnTypeStr);
@@ -297,37 +300,37 @@ public class CodegenExpressionFormatter {
       } else if (returnTypeStr.equalsIgnoreCase("INTEGER")) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Integer.parseInt("+expr.getLeft()+")";
+          exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
         } else if (expr.getRight() == Schema.Type.INT32) {
           exprStr = expr.getLeft();
         } else if (expr.getRight() == Schema.Type.FLOAT64) {
-          exprStr = "("+expr.getLeft()+").intValue()";
+          exprStr = "(" + expr.getLeft() + ").intValue()";
         } else if (expr.getRight() == Schema.Type.INT64) {
-          exprStr = "((Long)("+expr.getLeft()+"))";
+          exprStr = "((Long)(" + expr.getLeft() + "))";
         } else {
           throw new KQLFunctionException("Invalid cast operation: Cannot cast "
-                                          +expr.getLeft()+" to "+returnTypeStr);
+                                           + expr.getLeft() + " to " + returnTypeStr);
         }
         return new Pair<>(exprStr, returnType);
       } else if (returnTypeStr.equalsIgnoreCase("BIGINT")) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Long.parseLong("+expr.getLeft()+")";
+          exprStr = "Long.parseLong(" + expr.getLeft() + ")";
         } else if (expr.getRight() == Schema.Type.INT32) {
-          exprStr = "((Long)("+expr.getLeft()+"))";
+          exprStr = "((Long)(" + expr.getLeft() + "))";
         } else if (expr.getRight() == Schema.Type.FLOAT64) {
-          exprStr = "("+expr.getLeft()+").longValue()";
+          exprStr = "(" + expr.getLeft() + ").longValue()";
         } else if (expr.getRight() == Schema.Type.INT64) {
           exprStr = expr.getLeft();
         } else {
           throw new KQLFunctionException("Invalid cast operation: Cannot cast "
-                                          +expr.getLeft()+" to "+returnTypeStr);
+                                           + expr.getLeft() + " to " + returnTypeStr);
         }
         return new Pair<>(exprStr, returnType);
       } else if (returnTypeStr.equalsIgnoreCase("BOOLEAN")) {
-        return new Pair<>(" ((Boolean)"+expr.getLeft()+")", returnType);
+        return new Pair<>(" ((Boolean)" + expr.getLeft() + ")", returnType);
       }
-      throw new KQLFunctionException("Invalid cast operation: "+returnTypeStr);
+      throw new KQLFunctionException("Invalid cast operation: " + returnTypeStr);
     }
 
     @Override
@@ -378,21 +381,21 @@ public class CodegenExpressionFormatter {
 
       // For now we just support simple prefix/suffix cases only.
       String paternString = process(node.getPattern(), true).getLeft().substring(1);
-      paternString = paternString.substring(0, paternString.length()-1);
+      paternString = paternString.substring(0, paternString.length() - 1);
       String valueString = process(node.getValue(), true).getLeft();
 
       if (paternString.startsWith("%")) {
         if (paternString.endsWith("%")) {
-          return new Pair<>(valueString+".contains(\""+paternString.substring(1)+"\")", Schema
+          return new Pair<>(valueString + ".contains(\"" + paternString.substring(1) + "\")", Schema
               .Type.STRING);
         } else {
-          return new Pair<>(valueString+".endsWith(\""+paternString.substring(1)+"\")", Schema
+          return new Pair<>(valueString + ".endsWith(\"" + paternString.substring(1) + "\")", Schema
               .Type.STRING);
         }
       }
 
       if (paternString.endsWith("%")) {
-        return new Pair<>(valueString+".startsWith(\""+paternString.substring(1)+"\")", Schema
+        return new Pair<>(valueString + ".startsWith(\"" + paternString.substring(1) + "\")", Schema
             .Type.STRING);
       }
 

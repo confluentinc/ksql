@@ -1,5 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.util;
-
 
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.physical.GenericRow;
@@ -11,15 +13,19 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
+import java.util.Properties;
+
 
 public class TopicPrinter {
 
-  public void printGenericRowTopic(KQLTopic KQLTopic, ConsoleReader console, long interval,
+  public void printGenericRowTopic(KQLTopic kqlTopic, ConsoleReader console, long interval,
                                    Map<String, String> cliProperties) throws IOException {
 
     Properties kqlProperties = new Properties();
@@ -36,7 +42,7 @@ public class TopicPrinter {
       kqlProperties.load(new FileReader(cliProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)));
     }
     kqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, KQLTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
     kqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
                        kqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
 
@@ -49,8 +55,8 @@ public class TopicPrinter {
 
     KStream<String, GenericRow>
         source =
-        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(KQLTopic.getKqlTopicSerDe()),
-                       KQLTopic.getKafkaTopicName());
+        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe()),
+                       kqlTopic.getKafkaTopicName());
 
     source.map(new KQLPrintKeyValueMapper(console, interval));
 
@@ -88,12 +94,11 @@ public class TopicPrinter {
             console.println(row.toString());
           }
         } else {
-          if (row != null){
+          if (row != null) {
             console.println(row.toString());
           } else {
             console.println("null");
           }
-
         }
 
         recordIndex++;

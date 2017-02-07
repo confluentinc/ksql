@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser;
 
 import com.google.common.collect.ImmutableList;
@@ -21,9 +24,11 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -133,17 +138,17 @@ public class AstBuilder
   @Override
   public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
     return new CreateStream(getLocation(context), getQualifiedName(context.qualifiedName()),
-                           visit(context.tableElement(), TableElement.class),
-                           context.EXISTS() != null,
-                           processTableProperties(context.tableProperties()));
+                            visit(context.tableElement(), TableElement.class),
+                            context.EXISTS() != null,
+                            processTableProperties(context.tableProperties()));
   }
 
   @Override
   public Node visitCreateStreamAs(SqlBaseParser.CreateStreamAsContext context) {
     return new CreateStreamAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
                                     (Query) visitQuery(context.query()),
-                            context.EXISTS() != null,
-                            processTableProperties(context.tableProperties()));
+                                    context.EXISTS() != null,
+                                    processTableProperties(context.tableProperties()));
   }
 
   @Override
@@ -460,7 +465,7 @@ public class AstBuilder
 
   @Override
   public Node visitExportCatalog(SqlBaseParser.ExportCatalogContext context) {
-    return  new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+    return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
   @Override
@@ -1504,7 +1509,7 @@ public class AstBuilder
         resultStream =
         new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
                       KQLTopic
-                      );
+        );
     return resultStream;
   }
 }

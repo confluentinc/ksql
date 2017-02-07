@@ -1,6 +1,5 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
 package io.confluent.kql.planner.plan;
 
@@ -9,10 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.kql.metastore.KQLTopic;
-
-import static java.util.Objects.requireNonNull;
 
 public class KQLStructuredDataOutputNode extends OutputNode {
 

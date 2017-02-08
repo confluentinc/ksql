@@ -55,7 +55,6 @@ public class KQL {
 
   KQLEngine kqlEngine;
   LiveQueryMap liveQueries = new LiveQueryMap();
-//  Triplet<String, KafkaStreams, KQLConsoleOutputNode> cliCurrentQuery = null;
   QueryMetadata cliCurrentQuery = null;
 
   static final String QUERY_ID_PREFIX = "kql_";
@@ -136,7 +135,8 @@ public class KQL {
   }
 
 
-  private void processStatement(Statement statement, String statementStr) throws IOException {
+  private void processStatement(final Statement statement, final String statementStr) throws
+                                                                                 IOException {
     try {
       if (statement instanceof Query) {
         startQuery(statementStr, (Query) statement);
@@ -226,13 +226,14 @@ public class KQL {
   /**
    * Given a kql command string, parse the command and return the parse tree.
    */
-  public Statement getSingleStatement(String statementString) throws IOException {
-    if (!statementString.endsWith(";")) {
-      statementString = statementString + ";";
+  public Statement getSingleStatement(final String statementString) throws IOException {
+    String statementStr = statementString;
+    if (!statementStr.endsWith(";")) {
+      statementStr = statementStr + ";";
     }
     List<Statement> statements = null;
     try {
-      statements = kqlEngine.getStatements(statementString);
+      statements = kqlEngine.getStatements(statementStr);
     } catch (Exception ex) {
       // Do nothing
       ex.printStackTrace();
@@ -283,7 +284,7 @@ public class KQL {
      * @param query
      * @throws Exception
      */
-  private void startQuery(String queryString, Query query) throws Exception {
+  private void startQuery(final String queryString, final Query query) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
       if (querySpecification.getInto().get() instanceof Table) {
@@ -322,12 +323,12 @@ public class KQL {
     }
   }
 
-  private void terminateQuery(TerminateQuery terminateQuery) throws IOException {
+  private void terminateQuery(final TerminateQuery terminateQuery) throws IOException {
     String queryId = terminateQuery.getQueryId().toString();
     terminateQuery(queryId);
   }
 
-  private void terminateQuery(String queryId) throws IOException {
+  private void terminateQuery(final String queryId) throws IOException {
     if (!liveQueries.containsKey(queryId.toUpperCase())) {
       console.println("No running query with id = " + queryId + " was found!");
       console.flush();
@@ -415,7 +416,7 @@ public class KQL {
     console.flush();
   }
 
-  private void showColumns(String name) throws IOException {
+  private void showColumns(final String name) throws IOException {
     StructuredDataSource dataSource = kqlEngine.getMetaStore().getSource(name.toUpperCase());
     if (dataSource == null) {
       console.println("Could not find topic " + name + " in the metastore!");
@@ -459,11 +460,11 @@ public class KQL {
     console.flush();
   }
 
-  private void printTopic(KQLTopic kqlTopic, long interval) throws IOException {
+  private void printTopic(final KQLTopic kqlTopic, final long interval) throws IOException {
     new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, this.cliProperties);
   }
 
-  private void exportCatalog(String filePath) {
+  private void exportCatalog(final String filePath) {
 
     MetaStoreImpl metaStore = (MetaStoreImpl) kqlEngine.getMetaStore();
     MetastoreUtil metastoreUtil = new MetastoreUtil();
@@ -481,7 +482,7 @@ public class KQL {
     return queryId.toUpperCase();
   }
 
-  public static String padRight(String s, int n) {
+  private static String padRight(String s, int n) {
     return String.format("%1$-" + n + "s", s);
   }
 
@@ -491,7 +492,7 @@ public class KQL {
     kqlEngine = new KQLEngine(cliProperties);
   }
 
-  public static void printUsageFromatMessage() {
+  private static void printUsageFromatMessage() {
 
     System.err.println("Incorrect format: ");
     System.err.println("Usage: ");
@@ -549,7 +550,7 @@ public class KQL {
       } else {
         terminateIn = Long.parseLong(terminateInStr);
       }
-      kql.kqlEngine.runCLIQuery(queryString, terminateIn);
+      kql.kqlEngine.runCommandLineQuery(queryString, terminateIn);
     } else {
       // Start the kql cli?
       if (cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase(KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG)) {

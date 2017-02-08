@@ -414,10 +414,6 @@ public abstract class DefaultASTVisitor<R, C>
     return visitStatement(node, context);
   }
 
-  protected R visitAddColumn(AddColumn node, C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitCreateView(CreateView node, C context) {
     return visitStatement(node, context);
   }

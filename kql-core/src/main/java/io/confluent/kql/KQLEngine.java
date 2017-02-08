@@ -56,6 +56,14 @@ public class KQLEngine {
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
 
+  /**
+   * Runs the set of queries in the given query string. This method is used when the queries are
+   * passed through a file.
+   *
+   * @param queriesString
+   * @return
+   * @throws Exception
+   */
   public List<QueryMetadata> runMultipleQueries(
       final String queriesString) throws Exception {
 
@@ -166,7 +174,15 @@ public class KQLEngine {
     return resultStream;
   }
 
-  public void runCLIQuery(final String queriyString, final long terminateIn) throws Exception {
+  /**
+   * Runs a single query that was passed as command line parameter
+   *
+   * @param queriyString
+   * @param terminateIn
+   * @throws Exception
+   */
+  public void runCommandLineQuery(final String queriyString, final long terminateIn) throws
+                                                                                   Exception {
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
     List<SqlBaseParser.SingleStatementContext>
@@ -197,6 +213,13 @@ public class KQLEngine {
     queryEngine.buildRunSingleConsoleQuery(metaStore, queryList, terminateIn);
   }
 
+  /**
+   * Runs a single query from the interactive CLI.
+   *
+   * @param queryInfo
+   * @return
+   * @throws Exception
+   */
   public QueryMetadata runSingleQuery(
       final Pair<String, Query> queryInfo) throws Exception {
 

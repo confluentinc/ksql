@@ -16,7 +16,39 @@ package io.confluent.kql.parser;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.BinaryLiteral;
+import io.confluent.kql.parser.tree.BooleanLiteral;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.DefaultTraversalVisitor;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.GroupingElement;
+import io.confluent.kql.parser.tree.GroupingSets;
+import io.confluent.kql.parser.tree.InPredicate;
+import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.LongLiteral;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Row;
+import io.confluent.kql.parser.tree.SampledRelation;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SimpleGroupBy;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.SortItem;
+import io.confluent.kql.parser.tree.StringLiteral;
+import io.confluent.kql.parser.tree.SubqueryExpression;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.TableSubquery;
+import io.confluent.kql.parser.tree.Values;
 
 import java.io.PrintStream;
 import java.util.IdentityHashMap;
@@ -103,16 +135,6 @@ public class TreePrinter {
                   process(expression, indentLevel + 3);
                 }
                 print(indentLevel + 2, "]");
-              }
-            } else if (groupingElement instanceof Cube) {
-              print(indentLevel + 1, "Cube");
-              for (QualifiedName column : ((Cube) groupingElement).getColumns()) {
-                print(indentLevel + 1, column.toString());
-              }
-            } else if (groupingElement instanceof Rollup) {
-              print(indentLevel + 1, "Rollup");
-              for (QualifiedName column : ((Rollup) groupingElement).getColumns()) {
-                print(indentLevel + 1, column.toString());
               }
             }
           }

@@ -11,16 +11,11 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.kql.parser.SqlFormatter;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.kql.parser.tree.ArrayConstructor;
-import io.confluent.kql.parser.tree.AtTimeZone;
 import io.confluent.kql.parser.tree.BetweenPredicate;
 import io.confluent.kql.parser.tree.BinaryLiteral;
 import io.confluent.kql.parser.tree.BooleanLiteral;
 import io.confluent.kql.parser.tree.Cast;
-import io.confluent.kql.parser.tree.CoalesceExpression;
 import io.confluent.kql.parser.tree.ComparisonExpression;
-import io.confluent.kql.parser.tree.Cube;
-import io.confluent.kql.parser.tree.CurrentTime;
 import io.confluent.kql.parser.tree.DecimalLiteral;
 import io.confluent.kql.parser.tree.DoubleLiteral;
 import io.confluent.kql.parser.tree.Extract;
@@ -29,7 +24,6 @@ import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.parser.tree.GenericLiteral;
 import io.confluent.kql.parser.tree.GroupingElement;
 import io.confluent.kql.parser.tree.GroupingSets;
-import io.confluent.kql.parser.tree.IfExpression;
 import io.confluent.kql.parser.tree.InListExpression;
 import io.confluent.kql.parser.tree.InPredicate;
 import io.confluent.kql.parser.tree.IntervalLiteral;
@@ -47,7 +41,6 @@ import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.NullIfExpression;
 import io.confluent.kql.parser.tree.NullLiteral;
 import io.confluent.kql.parser.tree.QualifiedName;
-import io.confluent.kql.parser.tree.Rollup;
 import io.confluent.kql.parser.tree.Row;
 import io.confluent.kql.parser.tree.SearchedCaseExpression;
 import io.confluent.kql.parser.tree.SimpleCaseExpression;
@@ -71,7 +64,6 @@ import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.parser.tree.SymbolReference;
 import io.confluent.kql.parser.tree.TimeLiteral;
 import io.confluent.kql.parser.tree.TimestampLiteral;
-import io.confluent.kql.parser.tree.TryExpression;
 import io.confluent.kql.parser.tree.WhenClause;
 import io.confluent.kql.parser.tree.Window;
 import io.confluent.kql.parser.tree.WindowFrame;
@@ -115,29 +107,6 @@ public final class ExpressionFormatterQueryRewrite {
     }
 
     @Override
-    protected String visitAtTimeZone(AtTimeZone node, Boolean context) {
-      return new StringBuilder()
-          .append(process(node.getValue(), context))
-          .append(" AT TIME ZONE ")
-          .append(process(node.getTimeZone(), context)).toString();
-    }
-
-    @Override
-    protected String visitCurrentTime(CurrentTime node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
-
-      builder.append(node.getType().getName());
-
-      if (node.getPrecision() != null) {
-        builder.append('(')
-            .append(node.getPrecision())
-            .append(')');
-      }
-
-      return builder.toString();
-    }
-
-    @Override
     protected String visitExtract(Extract node, Boolean unmangleNames) {
       return "EXTRACT(" + node.getField() + " FROM " + process(node.getExpression(), unmangleNames)
              + ")";
@@ -156,15 +125,6 @@ public final class ExpressionFormatterQueryRewrite {
     @Override
     protected String visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames) {
       return "X'" + node.toHexString() + "'";
-    }
-
-    @Override
-    protected String visitArrayConstructor(ArrayConstructor node, Boolean unmangleNames) {
-      ImmutableList.Builder<String> valueStrings = ImmutableList.builder();
-      for (Expression value : node.getValues()) {
-        valueStrings.add(SqlFormatter.formatSql(value, unmangleNames));
-      }
-      return "ARRAY[" + Joiner.on(",").join(valueStrings.build()) + "]";
     }
 
     @Override
@@ -330,31 +290,6 @@ public final class ExpressionFormatterQueryRewrite {
       return "NULLIF(" + process(node.getFirst(), unmangleNames) + ", " + process(node.getSecond(),
                                                                                   unmangleNames)
              + ')';
-    }
-
-    @Override
-    protected String visitIfExpression(IfExpression node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
-      builder.append("IF(")
-          .append(process(node.getCondition(), unmangleNames))
-          .append(", ")
-          .append(process(node.getTrueValue(), unmangleNames));
-      if (node.getFalseValue().isPresent()) {
-        builder.append(", ")
-            .append(process(node.getFalseValue().get(), unmangleNames));
-      }
-      builder.append(")");
-      return builder.toString();
-    }
-
-    @Override
-    protected String visitTryExpression(TryExpression node, Boolean unmangleNames) {
-      return "TRY(" + process(node.getInnerExpression(), unmangleNames) + ")";
-    }
-
-    @Override
-    protected String visitCoalesceExpression(CoalesceExpression node, Boolean unmangleNames) {
-      return "COALESCE(" + joinExpressions(node.getOperands(), unmangleNames) + ")";
     }
 
     @Override
@@ -578,10 +513,6 @@ public final class ExpressionFormatterQueryRewrite {
             groupingElement.enumerateGroupingSets().stream()
                 .map(ExpressionFormatterQueryRewrite::formatGroupingSet)
                 .iterator()));
-      } else if (groupingElement instanceof Cube) {
-        result = format("CUBE %s", formatGroupingSet(((Cube) groupingElement).getColumns()));
-      } else if (groupingElement instanceof Rollup) {
-        result = format("ROLLUP %s", formatGroupingSet(((Rollup) groupingElement).getColumns()));
       }
       resultStrings.add(result);
     }

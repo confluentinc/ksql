@@ -9,12 +9,9 @@ import java.util.Set;
 import io.confluent.kql.parser.tree.AliasedRelation;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.kql.parser.tree.ArrayConstructor;
 import io.confluent.kql.parser.tree.AstVisitor;
-import io.confluent.kql.parser.tree.AtTimeZone;
 import io.confluent.kql.parser.tree.BetweenPredicate;
 import io.confluent.kql.parser.tree.Cast;
-import io.confluent.kql.parser.tree.CoalesceExpression;
 import io.confluent.kql.parser.tree.ComparisonExpression;
 import io.confluent.kql.parser.tree.CreateTableAsSelect;
 import io.confluent.kql.parser.tree.Delete;
@@ -25,10 +22,8 @@ import io.confluent.kql.parser.tree.FrameBound;
 import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.parser.tree.GroupBy;
 import io.confluent.kql.parser.tree.GroupingElement;
-import io.confluent.kql.parser.tree.IfExpression;
 import io.confluent.kql.parser.tree.InListExpression;
 import io.confluent.kql.parser.tree.InPredicate;
-import io.confluent.kql.parser.tree.Insert;
 import io.confluent.kql.parser.tree.IsNotNullPredicate;
 import io.confluent.kql.parser.tree.IsNullPredicate;
 import io.confluent.kql.parser.tree.Join;
@@ -55,8 +50,6 @@ import io.confluent.kql.parser.tree.Statements;
 import io.confluent.kql.parser.tree.SubqueryExpression;
 import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.parser.tree.TableSubquery;
-import io.confluent.kql.parser.tree.TryExpression;
-import io.confluent.kql.parser.tree.Unnest;
 import io.confluent.kql.parser.tree.Values;
 import io.confluent.kql.parser.tree.WhenClause;
 import io.confluent.kql.parser.tree.Window;
@@ -98,32 +91,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     process(node.getValue(), context);
     process(node.getMin(), context);
     process(node.getMax(), context);
-
-    return null;
-  }
-
-  @Override
-  protected R visitCoalesceExpression(CoalesceExpression node, C context) {
-    for (Expression operand : node.getOperands()) {
-      process(operand, context);
-    }
-
-    return null;
-  }
-
-  @Override
-  protected R visitAtTimeZone(AtTimeZone node, C context) {
-    process(node.getValue(), context);
-    process(node.getTimeZone(), context);
-
-    return null;
-  }
-
-  @Override
-  protected R visitArrayConstructor(ArrayConstructor node, C context) {
-    for (Expression expression : node.getValues()) {
-      process(expression, context);
-    }
 
     return null;
   }
@@ -289,23 +256,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitIfExpression(IfExpression node, C context) {
-    process(node.getCondition(), context);
-    process(node.getTrueValue(), context);
-    if (node.getFalseValue().isPresent()) {
-      process(node.getFalseValue().get(), context);
-    }
-
-    return null;
-  }
-
-  @Override
-  protected R visitTryExpression(TryExpression node, C context) {
-    process(node.getInnerExpression(), context);
-    return null;
-  }
-
-  @Override
   protected R visitArithmeticUnary(ArithmeticUnaryExpression node, C context) {
     return process(node.getValue(), context);
   }
@@ -445,15 +395,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitUnnest(Unnest node, C context) {
-    for (Expression expression : node.getExpressions()) {
-      process(expression, context);
-    }
-
-    return null;
-  }
-
-  @Override
   protected R visitGroupBy(GroupBy node, C context) {
     for (GroupingElement groupingElement : node.getGroupingElements()) {
       process(groupingElement, context);
@@ -479,13 +420,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (Expression expression : node.getColumnExpressions()) {
       process(expression, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitInsert(Insert node, C context) {
-    process(node.getQuery(), context);
 
     return null;
   }

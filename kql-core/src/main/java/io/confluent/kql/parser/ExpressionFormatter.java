@@ -54,29 +54,6 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitAtTimeZone(AtTimeZone node, Boolean context) {
-      return new StringBuilder()
-          .append(process(node.getValue(), context))
-          .append(" AT TIME ZONE ")
-          .append(process(node.getTimeZone(), context)).toString();
-    }
-
-    @Override
-    protected String visitCurrentTime(CurrentTime node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
-
-      builder.append(node.getType().getName());
-
-      if (node.getPrecision() != null) {
-        builder.append('(')
-            .append(node.getPrecision())
-            .append(')');
-      }
-
-      return builder.toString();
-    }
-
-    @Override
     protected String visitExtract(Extract node, Boolean unmangleNames) {
       return "EXTRACT(" + node.getField() + " FROM " + process(node.getExpression(), unmangleNames)
              + ")";
@@ -95,15 +72,6 @@ public final class ExpressionFormatter {
     @Override
     protected String visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames) {
       return "X'" + node.toHexString() + "'";
-    }
-
-    @Override
-    protected String visitArrayConstructor(ArrayConstructor node, Boolean unmangleNames) {
-      ImmutableList.Builder<String> valueStrings = ImmutableList.builder();
-      for (Expression value : node.getValues()) {
-        valueStrings.add(SqlFormatter.formatSql(value, unmangleNames));
-      }
-      return "ARRAY[" + Joiner.on(",").join(valueStrings.build()) + "]";
     }
 
     @Override
@@ -269,31 +237,6 @@ public final class ExpressionFormatter {
       return "NULLIF(" + process(node.getFirst(), unmangleNames) + ", " + process(node.getSecond(),
                                                                                   unmangleNames)
              + ')';
-    }
-
-    @Override
-    protected String visitIfExpression(IfExpression node, Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
-      builder.append("IF(")
-          .append(process(node.getCondition(), unmangleNames))
-          .append(", ")
-          .append(process(node.getTrueValue(), unmangleNames));
-      if (node.getFalseValue().isPresent()) {
-        builder.append(", ")
-            .append(process(node.getFalseValue().get(), unmangleNames));
-      }
-      builder.append(")");
-      return builder.toString();
-    }
-
-    @Override
-    protected String visitTryExpression(TryExpression node, Boolean unmangleNames) {
-      return "TRY(" + process(node.getInnerExpression(), unmangleNames) + ")";
-    }
-
-    @Override
-    protected String visitCoalesceExpression(CoalesceExpression node, Boolean unmangleNames) {
-      return "COALESCE(" + joinExpressions(node.getOperands(), unmangleNames) + ")";
     }
 
     @Override
@@ -517,11 +460,7 @@ public final class ExpressionFormatter {
             groupingElement.enumerateGroupingSets().stream()
                 .map(ExpressionFormatter::formatGroupingSet)
                 .iterator()));
-      } else if (groupingElement instanceof Cube) {
-        result = format("CUBE %s", formatGroupingSet(((Cube) groupingElement).getColumns()));
-      } else if (groupingElement instanceof Rollup) {
-        result = format("ROLLUP %s", formatGroupingSet(((Rollup) groupingElement).getColumns()));
-      }
+      } 
       resultStrings.add(result);
     }
     return Joiner.on(", ").join(resultStrings.build());

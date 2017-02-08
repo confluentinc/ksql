@@ -28,7 +28,6 @@ import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
@@ -285,7 +284,7 @@ public class KQLEngine {
                                                                       querySpecification
                                                                           .getOrderBy(),
                                                                       querySpecification.getLimit());
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit(), query.getApproximate());
+    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
   public MetaStore getMetaStore() {

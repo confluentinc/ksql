@@ -128,7 +128,7 @@
                             <failOnViolation>false</failOnViolation>
                             <includeResources>false</includeResources>
                             <includeTestResources>false</includeTestResources>
-                            <excludes>io/confluent/kql/parser/*</excludes>
+                            <!--<excludes>io/confluent/kql/parser/*</excludes>-->
                         </configuration>
                         <goals>
                             <goal>check</goal>

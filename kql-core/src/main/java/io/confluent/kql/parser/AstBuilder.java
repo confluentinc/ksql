@@ -12,7 +12,97 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.kql.parser.SqlBaseParser.TablePropertyContext;
-import io.confluent.kql.parser.tree.*;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.kql.parser.tree.BetweenPredicate;
+import io.confluent.kql.parser.tree.BinaryLiteral;
+import io.confluent.kql.parser.tree.BooleanLiteral;
+import io.confluent.kql.parser.tree.Cast;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.CreateStream;
+import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.DecimalLiteral;
+import io.confluent.kql.parser.tree.DereferenceExpression;
+import io.confluent.kql.parser.tree.DoubleLiteral;
+import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.Except;
+import io.confluent.kql.parser.tree.ExistsPredicate;
+import io.confluent.kql.parser.tree.ExplainFormat;
+import io.confluent.kql.parser.tree.ExplainType;
+import io.confluent.kql.parser.tree.ExportCatalog;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.Extract;
+import io.confluent.kql.parser.tree.FrameBound;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.GenericLiteral;
+import io.confluent.kql.parser.tree.GroupBy;
+import io.confluent.kql.parser.tree.GroupingElement;
+import io.confluent.kql.parser.tree.GroupingSets;
+import io.confluent.kql.parser.tree.InListExpression;
+import io.confluent.kql.parser.tree.InPredicate;
+import io.confluent.kql.parser.tree.Intersect;
+import io.confluent.kql.parser.tree.IntervalLiteral;
+import io.confluent.kql.parser.tree.IsNotNullPredicate;
+import io.confluent.kql.parser.tree.IsNullPredicate;
+import io.confluent.kql.parser.tree.Join;
+import io.confluent.kql.parser.tree.JoinCriteria;
+import io.confluent.kql.parser.tree.JoinOn;
+import io.confluent.kql.parser.tree.JoinUsing;
+import io.confluent.kql.parser.tree.LambdaExpression;
+import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.ListStreams;
+import io.confluent.kql.parser.tree.ListTopics;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.LongLiteral;
+import io.confluent.kql.parser.tree.NaturalJoin;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.NodeLocation;
+import io.confluent.kql.parser.tree.NotExpression;
+import io.confluent.kql.parser.tree.NullIfExpression;
+import io.confluent.kql.parser.tree.NullLiteral;
+import io.confluent.kql.parser.tree.PrintTopic;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QueryBody;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.Row;
+import io.confluent.kql.parser.tree.SampledRelation;
+import io.confluent.kql.parser.tree.SearchedCaseExpression;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.ShowColumns;
+import io.confluent.kql.parser.tree.ShowQueries;
+import io.confluent.kql.parser.tree.ShowTables;
+import io.confluent.kql.parser.tree.ShowTopics;
+import io.confluent.kql.parser.tree.SimpleCaseExpression;
+import io.confluent.kql.parser.tree.SimpleGroupBy;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.SortItem;
+import io.confluent.kql.parser.tree.Statement;
+import io.confluent.kql.parser.tree.Statements;
+import io.confluent.kql.parser.tree.StringLiteral;
+import io.confluent.kql.parser.tree.SubqueryExpression;
+import io.confluent.kql.parser.tree.SubscriptExpression;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.TableElement;
+import io.confluent.kql.parser.tree.TableSubquery;
+import io.confluent.kql.parser.tree.TerminateQuery;
+import io.confluent.kql.parser.tree.TimeLiteral;
+import io.confluent.kql.parser.tree.TimestampLiteral;
+import io.confluent.kql.parser.tree.Union;
+import io.confluent.kql.parser.tree.Values;
+import io.confluent.kql.parser.tree.WhenClause;
+import io.confluent.kql.parser.tree.Window;
+import io.confluent.kql.parser.tree.WindowFrame;
+import io.confluent.kql.parser.tree.With;
+import io.confluent.kql.parser.tree.WithQuery;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLException;
 
@@ -29,7 +119,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -53,20 +142,17 @@ public class AstBuilder
       Statement statement = (Statement) visitSingleStatement(singleStatementContext);
       statementList.add(statement);
     }
-    Statements statements = new Statements(statementList);
-    return statements;
+    return new Statements(statementList);
   }
 
   @Override
   public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
-    Statement statement = (Statement) visit(context.statement());
-    return statement;
+    return (Statement) visit(context.statement());
   }
 
   @Override
   public Node visitQuerystatement(SqlBaseParser.QuerystatementContext ctx) {
-    Statement statement = (Statement) visitChildren(ctx);
-    return statement;
+    return (Statement) visitChildren(ctx);
   }
 
   @Override
@@ -90,34 +176,8 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitTransactionAccessMode(SqlBaseParser.TransactionAccessModeContext context) {
-    return new TransactionAccessMode(getLocation(context),
-                                     context.accessMode.getType() == SqlBaseLexer.ONLY);
-  }
-
-  @Override
   public Node visitIsolationLevel(SqlBaseParser.IsolationLevelContext context) {
     return visit(context.levelOfIsolation());
-  }
-
-  @Override
-  public Node visitReadUncommitted(SqlBaseParser.ReadUncommittedContext context) {
-    return new Isolation(getLocation(context), Isolation.Level.READ_UNCOMMITTED);
-  }
-
-  @Override
-  public Node visitReadCommitted(SqlBaseParser.ReadCommittedContext context) {
-    return new Isolation(getLocation(context), Isolation.Level.READ_COMMITTED);
-  }
-
-  @Override
-  public Node visitRepeatableRead(SqlBaseParser.RepeatableReadContext context) {
-    return new Isolation(getLocation(context), Isolation.Level.REPEATABLE_READ);
-  }
-
-  @Override
-  public Node visitSerializable(SqlBaseParser.SerializableContext context) {
-    return new Isolation(getLocation(context), Isolation.Level.SERIALIZABLE);
   }
 
   @Override
@@ -176,8 +236,7 @@ public class AstBuilder
         visitIfPresent(context.with(), With.class),
         body.getQueryBody(),
         body.getOrderBy(),
-        body.getLimit(),
-        body.getApproximate());
+        body.getLimit());
   }
 
   @Override
@@ -219,9 +278,7 @@ public class AstBuilder
               visit(context.sortItem(), SortItem.class),
               getTextIfPresent(context.limit)),
           ImmutableList.of(),
-          Optional.<String>empty(),
-          getTextIfPresent(context.confidence)
-              .map(confidence -> new Approximate(getLocation(context), confidence)));
+          Optional.<String>empty());
     }
 
     return new Query(
@@ -229,9 +286,7 @@ public class AstBuilder
         Optional.<With>empty(),
         term,
         visit(context.sortItem(), SortItem.class),
-        getTextIfPresent(context.limit),
-        getTextIfPresent(context.confidence)
-            .map(confidence -> new Approximate(getLocation(context), confidence)));
+        getTextIfPresent(context.limit));
   }
 
   @Override
@@ -251,7 +306,22 @@ public class AstBuilder
         select =
         new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()),
                    visit(context.selectItem(), SelectItem.class));
+    select = new Select(getLocation(context.SELECT()), select.isDistinct(), extractSelectItems(select, from));
+    this.resultDataSource = getResultDatasource(select, into);
 
+    return new QuerySpecification(
+        getLocation(context),
+        select,
+        Optional.of(into),
+        Optional.of(from),
+        visitIfPresent(context.where, Expression.class),
+        visitIfPresent(context.groupBy(), GroupBy.class),
+        visitIfPresent(context.having, Expression.class),
+        ImmutableList.of(),
+        Optional.<String>empty());
+  }
+
+  private List<SelectItem> extractSelectItems(Select select, Relation from) {
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
@@ -324,23 +394,10 @@ public class AstBuilder
         throw new IllegalArgumentException(
             "Unsupported SelectItem type: " + selectItem.getClass().getName());
       }
-      select = new Select(getLocation(context.SELECT()), select.isDistinct(), selectItems);
     }
-
-    this.resultDataSource = getResultDatasource(select, into);
-
-    return new QuerySpecification(
-        getLocation(context),
-//                new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()), visit(context.selectItem(), SelectItem.class)),
-        select,
-        Optional.of(into),
-        Optional.of(from),
-        visitIfPresent(context.where, Expression.class),
-        visitIfPresent(context.groupBy(), GroupBy.class),
-        visitIfPresent(context.having, Expression.class),
-        ImmutableList.of(),
-        Optional.<String>empty());
+    return selectItems;
   }
+
 
   @Override
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
@@ -352,20 +409,6 @@ public class AstBuilder
   public Node visitSingleGroupingSet(SqlBaseParser.SingleGroupingSetContext context) {
     return new SimpleGroupBy(getLocation(context),
                              visit(context.groupingExpressions().expression(), Expression.class));
-  }
-
-  @Override
-  public Node visitRollup(SqlBaseParser.RollupContext context) {
-    return new Rollup(getLocation(context), context.qualifiedName().stream()
-        .map(AstBuilder::getQualifiedName)
-        .collect(toList()));
-  }
-
-  @Override
-  public Node visitCube(SqlBaseParser.CubeContext context) {
-    return new Cube(getLocation(context), context.qualifiedName().stream()
-        .map(AstBuilder::getQualifiedName)
-        .collect(toList()));
   }
 
   @Override
@@ -651,12 +694,6 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitUnnest(SqlBaseParser.UnnestContext context) {
-    return new Unnest(getLocation(context), visit(context.expression(), Expression.class),
-                      context.ORDINALITY() != null);
-  }
-
-  @Override
   public Node visitParenthesizedRelation(SqlBaseParser.ParenthesizedRelationContext context) {
     return visit(context.relation());
   }
@@ -810,14 +847,6 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitAtTimeZone(SqlBaseParser.AtTimeZoneContext context) {
-    return new AtTimeZone(
-        getLocation(context.AT()),
-        (Expression) visit(context.valueExpression()),
-        (Expression) visit(context.timeZoneSpecifier()));
-  }
-
-  @Override
   public Node visitTimeZoneInterval(SqlBaseParser.TimeZoneIntervalContext context) {
     return visit(context.interval());
   }
@@ -839,29 +868,12 @@ public class AstBuilder
     return new Row(getLocation(context), visit(context.expression(), Expression.class));
   }
 
-  @Override
-  public Node visitArrayConstructor(SqlBaseParser.ArrayConstructorContext context) {
-    return new ArrayConstructor(getLocation(context),
-                                visit(context.expression(), Expression.class));
-  }
 
   @Override
   public Node visitCast(SqlBaseParser.CastContext context) {
     boolean isTryCast = context.TRY_CAST() != null;
     return new Cast(getLocation(context), (Expression) visit(context.expression()),
                     getType(context.type()), isTryCast);
-  }
-
-  @Override
-  public Node visitSpecialDateTimeFunction(SqlBaseParser.SpecialDateTimeFunctionContext context) {
-    CurrentTime.Type type = getDateTimeFunctionType(context.name);
-
-    if (context.precision != null) {
-      return new CurrentTime(getLocation(context), type,
-                             Integer.parseInt(context.precision.getText()));
-    }
-
-    return new CurrentTime(getLocation(context), type);
   }
 
   @Override
@@ -988,23 +1000,6 @@ public class AstBuilder
 
     boolean distinct = isDistinct(context.setQuantifier());
 
-    if (name.toString().equalsIgnoreCase("if")) {
-      check(context.expression().size() == 2 || context.expression().size() == 3,
-            "Invalid number of arguments for 'if' function", context);
-      check(!window.isPresent(), "OVER clause not valid for 'if' function", context);
-      check(!distinct, "DISTINCT not valid for 'if' function", context);
-
-      Expression elseExpression = null;
-      if (context.expression().size() == 3) {
-        elseExpression = (Expression) visit(context.expression(2));
-      }
-
-      return new IfExpression(
-          getLocation(context),
-          (Expression) visit(context.expression(0)),
-          (Expression) visit(context.expression(1)),
-          elseExpression);
-    }
     if (name.toString().equalsIgnoreCase("nullif")) {
       check(context.expression().size() == 2, "Invalid number of arguments for 'nullif' function",
             context);
@@ -1015,20 +1010,6 @@ public class AstBuilder
           getLocation(context),
           (Expression) visit(context.expression(0)),
           (Expression) visit(context.expression(1)));
-    }
-    if (name.toString().equalsIgnoreCase("coalesce")) {
-      check(!window.isPresent(), "OVER clause not valid for 'coalesce' function", context);
-      check(!distinct, "DISTINCT not valid for 'coalesce' function", context);
-
-      return new CoalesceExpression(getLocation(context),
-                                    visit(context.expression(), Expression.class));
-    }
-    if (name.toString().equalsIgnoreCase("try")) {
-      check(!window.isPresent(), "OVER clause not valid for 'try' function", context);
-      check(!distinct, "DISTINCT not valid for 'try' function", context);
-
-      return new TryExpression(getLocation(context),
-                               (Expression) visit(getOnlyElement(context.expression())));
     }
 
     return new FunctionCall(
@@ -1169,19 +1150,6 @@ public class AstBuilder
             .map(AstBuilder::getIntervalFieldType));
   }
 
-  // ***************** arguments *****************
-
-  @Override
-  public Node visitPositionalArgument(SqlBaseParser.PositionalArgumentContext context) {
-    return new CallArgument(getLocation(context), (Expression) visit(context.expression()));
-  }
-
-  @Override
-  public Node visitNamedArgument(SqlBaseParser.NamedArgumentContext context) {
-    return new CallArgument(getLocation(context), context.identifier().getText(),
-                            (Expression) visit(context.expression()));
-  }
-
   // ***************** helpers *****************
 
   @Override
@@ -1289,23 +1257,6 @@ public class AstBuilder
     }
 
     throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
-  }
-
-  private static CurrentTime.Type getDateTimeFunctionType(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.CURRENT_DATE:
-        return CurrentTime.Type.DATE;
-      case SqlBaseLexer.CURRENT_TIME:
-        return CurrentTime.Type.TIME;
-      case SqlBaseLexer.CURRENT_TIMESTAMP:
-        return CurrentTime.Type.TIMESTAMP;
-      case SqlBaseLexer.LOCALTIME:
-        return CurrentTime.Type.LOCALTIME;
-      case SqlBaseLexer.LOCALTIMESTAMP:
-        return CurrentTime.Type.LOCALTIMESTAMP;
-    }
-
-    throw new IllegalArgumentException("Unsupported special function: " + token.getText());
   }
 
   private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
@@ -1473,22 +1424,22 @@ public class AstBuilder
     }
   }
 
-  public static NodeLocation getLocation(TerminalNode terminalNode) {
+  private static NodeLocation getLocation(TerminalNode terminalNode) {
     requireNonNull(terminalNode, "terminalNode is null");
     return getLocation(terminalNode.getSymbol());
   }
 
-  public static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
+  private static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  public static NodeLocation getLocation(Token token) {
+  private static NodeLocation getLocation(Token token) {
     requireNonNull(token, "token is null");
     return new NodeLocation(token.getLine(), token.getCharPositionInLine());
   }
 
-  public StructuredDataSource getResultDatasource(Select select, Table into) {
+  private StructuredDataSource getResultDatasource(Select select, Table into) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
 
@@ -1503,12 +1454,12 @@ public class AstBuilder
 
     }
 
-    KQLTopic KQLTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
+    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
                                      null);
     StructuredDataSource
         resultStream =
         new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                      KQLTopic
+                      kqlTopic
         );
     return resultStream;
   }

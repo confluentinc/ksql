@@ -12,7 +12,7 @@ public class QueryMetadata {
   final KafkaStreams queryKafkaStreams;
   final OutputNode queryOutputNode;
 
-  public QueryMetadata (final String queryId, final KafkaStreams queryKafkaStreams, final OutputNode queryOutputNode) {
+  public QueryMetadata(final String queryId, final KafkaStreams queryKafkaStreams, final OutputNode queryOutputNode) {
     this.queryId = queryId;
     this.queryKafkaStreams = queryKafkaStreams;
     this.queryOutputNode = queryOutputNode;

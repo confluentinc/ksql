@@ -5,7 +5,31 @@ package io.confluent.kql.parser;
 
 import com.google.common.collect.ImmutableList;
 
-import io.confluent.kql.parser.tree.*;
+
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.GroupBy;
+import io.confluent.kql.parser.tree.LogicalBinaryExpression;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QueryBody;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.Row;
+import io.confluent.kql.parser.tree.SearchedCaseExpression;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.SortItem;
+import io.confluent.kql.parser.tree.StringLiteral;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.TableSubquery;
+import io.confluent.kql.parser.tree.Values;
+import io.confluent.kql.parser.tree.WhenClause;
 
 import java.util.List;
 import java.util.Optional;
@@ -149,7 +173,6 @@ public final class QueryUtil {
         Optional.empty(),
         body,
         ImmutableList.of(),
-        Optional.empty(),
         Optional.empty());
   }
 }

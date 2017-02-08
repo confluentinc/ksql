@@ -123,50 +123,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitArrayConstructor(ArrayConstructor node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteArrayConstructor(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      for (Expression expression : node.getValues()) {
-        builder.add(rewrite(expression, context.get()));
-      }
-
-      if (!sameElements(node.getValues(), builder.build())) {
-        return new ArrayConstructor(builder.build());
-      }
-
-      return node;
-    }
-
-    @Override
-    protected Expression visitAtTimeZone(AtTimeZone node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteAtTimeZone(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      Expression value = rewrite(node.getValue(), context.get());
-      Expression timeZone = rewrite(node.getTimeZone(), context.get());
-
-      if (value != node.getValue() || timeZone != node.getTimeZone()) {
-        return new AtTimeZone(value, timeZone);
-      }
-
-      return node;
-    }
-
-    @Override
     protected Expression visitSubscriptExpression(SubscriptExpression node, Context<C> context) {
       if (!context.isDefaultRewrite()) {
         Expression
@@ -335,35 +291,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitIfExpression(IfExpression node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteIfExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      Expression condition = rewrite(node.getCondition(), context.get());
-      Expression trueValue = rewrite(node.getTrueValue(), context.get());
-      Expression falseValue = null;
-      if (node.getFalseValue().isPresent()) {
-        falseValue = rewrite(node.getFalseValue().get(), context.get());
-      }
-
-      if ((condition != node.getCondition()) || (trueValue != node.getTrueValue()) || (falseValue
-                                                                                       != node
-                                                                                           .getFalseValue()
-                                                                                           .orElse(
-                                                                                               null))) {
-        return new IfExpression(condition, trueValue, falseValue);
-      }
-
-      return node;
-    }
-
-    @Override
     protected Expression visitSearchedCaseExpression(SearchedCaseExpression node,
                                                      Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -439,49 +366,6 @@ public final class ExpressionTreeRewriter<C> {
       if (operand != node.getOperand() || result != node.getResult()) {
         return new WhenClause(operand, result);
       }
-      return node;
-    }
-
-    @Override
-    protected Expression visitCoalesceExpression(CoalesceExpression node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteCoalesceExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      for (Expression expression : node.getOperands()) {
-        builder.add(rewrite(expression, context.get()));
-      }
-
-      if (!sameElements(node.getOperands(), builder.build())) {
-        return new CoalesceExpression(builder.build());
-      }
-
-      return node;
-    }
-
-    @Override
-    public Expression visitTryExpression(TryExpression node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteTryExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      Expression expression = rewrite(node.getInnerExpression(), context.get());
-
-      if (node.getInnerExpression() != expression) {
-        return new TryExpression(expression);
-      }
-
       return node;
     }
 
@@ -748,20 +632,6 @@ public final class ExpressionTreeRewriter<C> {
 
       if (node.getExpression() != expression) {
         return new Extract(expression, node.getField());
-      }
-
-      return node;
-    }
-
-    @Override
-    protected Expression visitCurrentTime(CurrentTime node, Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        Expression
-            result =
-            rewriter.rewriteCurrentTime(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
       }
 
       return node;

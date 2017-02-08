@@ -1,10 +1,60 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedMap;
 
-import io.confluent.kql.parser.tree.*;
+
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.AllColumns;
+import io.confluent.kql.parser.tree.AstVisitor;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.CreateView;
+import io.confluent.kql.parser.tree.Delete;
+import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.DropView;
+import io.confluent.kql.parser.tree.Except;
+import io.confluent.kql.parser.tree.Explain;
+import io.confluent.kql.parser.tree.ExplainFormat;
+import io.confluent.kql.parser.tree.ExplainOption;
+import io.confluent.kql.parser.tree.ExplainType;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.Intersect;
+import io.confluent.kql.parser.tree.Join;
+import io.confluent.kql.parser.tree.JoinCriteria;
+import io.confluent.kql.parser.tree.JoinOn;
+import io.confluent.kql.parser.tree.JoinUsing;
+import io.confluent.kql.parser.tree.NaturalJoin;
+import io.confluent.kql.parser.tree.Node;
+import io.confluent.kql.parser.tree.QualifiedName;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.RenameColumn;
+import io.confluent.kql.parser.tree.RenameTable;
+import io.confluent.kql.parser.tree.SampledRelation;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SetSession;
+import io.confluent.kql.parser.tree.ShowCatalogs;
+import io.confluent.kql.parser.tree.ShowColumns;
+import io.confluent.kql.parser.tree.ShowCreate;
+import io.confluent.kql.parser.tree.ShowFunctions;
+import io.confluent.kql.parser.tree.ShowPartitions;
+import io.confluent.kql.parser.tree.ShowSchemas;
+import io.confluent.kql.parser.tree.ShowSession;
+import io.confluent.kql.parser.tree.ShowTables;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.Table;
+import io.confluent.kql.parser.tree.TableSubquery;
+import io.confluent.kql.parser.tree.Union;
+import io.confluent.kql.parser.tree.Values;
+import io.confluent.kql.parser.tree.With;
+import io.confluent.kql.parser.tree.WithQuery;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -60,36 +110,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitUnnest(Unnest node, Integer indent) {
-      builder.append(node.toString());
-      return null;
-    }
-
-    @Override
-    protected Void visitPrepare(Prepare node, Integer indent) {
-      append(indent, "PREPARE ");
-      builder.append(node.getName());
-      builder.append(" FROM");
-      builder.append("\n");
-      process(node.getStatement(), indent + 1);
-      return null;
-    }
-
-    @Override
-    protected Void visitDeallocate(Deallocate node, Integer indent) {
-      append(indent, "DEALLOCATE PREPARE ");
-      builder.append(node.getName());
-      return null;
-    }
-
-    @Override
-    protected Void visitExecute(Execute node, Integer indent) {
-      append(indent, "EXECUTE ");
-      builder.append(node.getName());
-      return null;
-    }
-
-    @Override
     protected Void visitQuery(Query node, Integer indent) {
       if (node.getWith().isPresent()) {
         With with = node.getWith().get();
@@ -121,12 +141,6 @@ public final class SqlFormatter {
 
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().get())
-            .append('\n');
-      }
-
-      if (node.getApproximate().isPresent()) {
-        String confidence = node.getApproximate().get().getConfidence();
-        append(indent, "APPROXIMATE AT " + confidence + " CONFIDENCE")
             .append('\n');
       }
 
@@ -656,23 +670,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitInsert(Insert node, Integer indent) {
-      builder.append("INSERT INTO ")
-          .append(node.getTarget())
-          .append(" ");
-
-      if (node.getColumns().isPresent()) {
-        builder.append("(")
-            .append(Joiner.on(", ").join(node.getColumns().get()))
-            .append(") ");
-      }
-
-      process(node.getQuery(), indent);
-
-      return null;
-    }
-
-    @Override
     public Void visitSetSession(SetSession node, Integer context) {
       builder.append("SET SESSION ")
           .append(node.getName())
@@ -682,148 +679,6 @@ public final class SqlFormatter {
       return null;
     }
 
-    @Override
-    public Void visitResetSession(ResetSession node, Integer context) {
-      builder.append("RESET SESSION ")
-          .append(node.getName());
-
-      return null;
-    }
-
-    @Override
-    protected Void visitCallArgument(CallArgument node, Integer indent) {
-      if (node.getName().isPresent()) {
-        builder.append(node.getName().get())
-            .append(" => ");
-      }
-      builder.append(ExpressionFormatter.formatExpression(node.getValue()));
-
-      return null;
-    }
-
-    @Override
-    protected Void visitCall(Call node, Integer indent) {
-      builder.append("CALL ")
-          .append(node.getName())
-          .append("(");
-
-      Iterator<CallArgument> arguments = node.getArguments().iterator();
-      while (arguments.hasNext()) {
-        process(arguments.next(), indent);
-        if (arguments.hasNext()) {
-          builder.append(", ");
-        }
-      }
-
-      builder.append(")");
-
-      return null;
-    }
-
-    @Override
-    protected Void visitRow(Row node, Integer indent) {
-      builder.append("ROW(");
-      boolean firstItem = true;
-      for (Expression item : node.getItems()) {
-        if (!firstItem) {
-          builder.append(", ");
-        }
-        process(item, indent);
-        firstItem = false;
-      }
-      builder.append(")");
-      return null;
-    }
-
-    @Override
-    protected Void visitStartTransaction(StartTransaction node, Integer indent) {
-      builder.append("START TRANSACTION");
-
-      Iterator<TransactionMode> iterator = node.getTransactionModes().iterator();
-      while (iterator.hasNext()) {
-        builder.append(" ");
-        process(iterator.next(), indent);
-        if (iterator.hasNext()) {
-          builder.append(",");
-        }
-      }
-      return null;
-    }
-
-    @Override
-    protected Void visitIsolationLevel(Isolation node, Integer indent) {
-      builder.append("ISOLATION LEVEL ").append(node.getLevel().getText());
-      return null;
-    }
-
-    @Override
-    protected Void visitTransactionAccessMode(TransactionAccessMode node, Integer context) {
-      builder.append(node.isReadOnly() ? "READ ONLY" : "READ WRITE");
-      return null;
-    }
-
-    @Override
-    protected Void visitCommit(Commit node, Integer context) {
-      builder.append("COMMIT");
-      return null;
-    }
-
-    @Override
-    protected Void visitRollback(Rollback node, Integer context) {
-      builder.append("ROLLBACK");
-      return null;
-    }
-
-    @Override
-    public Void visitGrant(Grant node, Integer indent) {
-      builder.append("GRANT ");
-
-      if (node.getPrivileges().isPresent()) {
-        builder.append(node.getPrivileges().get().stream()
-                           .collect(joining(", ")));
-      } else {
-        builder.append("ALL PRIVILEGES");
-      }
-
-      builder.append(" ON ");
-      if (node.isTable()) {
-        builder.append("TABLE ");
-      }
-      builder.append(node.getTableName())
-          .append(" TO ")
-          .append(node.getGrantee());
-      if (node.isWithGrantOption()) {
-        builder.append(" WITH GRANT OPTION");
-      }
-
-      return null;
-    }
-
-    @Override
-    public Void visitRevoke(Revoke node, Integer indent) {
-      builder.append("REVOKE ");
-
-      if (node.isGrantOptionFor()) {
-        builder.append("GRANT OPTION FOR ");
-      }
-
-      if (node.getPrivileges().isPresent()) {
-        builder.append(node.getPrivileges().get().stream()
-                           .collect(joining(", ")));
-      } else {
-        builder.append("ALL PRIVILEGES");
-      }
-
-      builder.append(" ON ");
-      if (node.isTable()) {
-        builder.append("TABLE ");
-      }
-      builder.append(node.getTableName())
-          .append(" FROM ")
-          .append(node.getGrantee());
-
-      return null;
-    }
 
     private void processRelation(Relation relation, Integer indent) {
       // TODO: handle this properly

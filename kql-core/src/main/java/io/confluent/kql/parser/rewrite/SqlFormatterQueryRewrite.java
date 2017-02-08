@@ -16,12 +16,8 @@ import java.util.regex.Pattern;
 import io.confluent.kql.parser.tree.Node;
 import io.confluent.kql.parser.tree.AstVisitor;
 import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.parser.tree.Unnest;
-import io.confluent.kql.parser.tree.Prepare;
-import io.confluent.kql.parser.tree.Deallocate;
 import io.confluent.kql.parser.tree.WithQuery;
 import io.confluent.kql.parser.tree.Query;
-import io.confluent.kql.parser.tree.Execute;
 import io.confluent.kql.parser.tree.TableSubquery;
 import io.confluent.kql.parser.tree.With;
 import io.confluent.kql.parser.tree.QuerySpecification;
@@ -58,20 +54,8 @@ import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.RenameTable;
-import io.confluent.kql.parser.tree.Insert;
 import io.confluent.kql.parser.tree.SetSession;
-import io.confluent.kql.parser.tree.ResetSession;
-import io.confluent.kql.parser.tree.CallArgument;
-import io.confluent.kql.parser.tree.Call;
 import io.confluent.kql.parser.tree.Row;
-import io.confluent.kql.parser.tree.StartTransaction;
-import io.confluent.kql.parser.tree.TransactionMode;
-import io.confluent.kql.parser.tree.Isolation;
-import io.confluent.kql.parser.tree.TransactionAccessMode;
-import io.confluent.kql.parser.tree.Commit;
-import io.confluent.kql.parser.tree.Rollback;
-import io.confluent.kql.parser.tree.Grant;
-import io.confluent.kql.parser.tree.Revoke;
 import io.confluent.kql.parser.tree.RenameColumn;
 import io.confluent.kql.parser.tree.ExplainOption;
 import io.confluent.kql.parser.tree.JoinUsing;
@@ -128,36 +112,6 @@ public final class SqlFormatterQueryRewrite {
     }
 
     @Override
-    protected Void visitUnnest(Unnest node, Integer indent) {
-      builder.append(node.toString());
-      return null;
-    }
-
-    @Override
-    protected Void visitPrepare(Prepare node, Integer indent) {
-      append(indent, "PREPARE ");
-      builder.append(node.getName());
-      builder.append(" FROM");
-      builder.append("\n");
-      process(node.getStatement(), indent + 1);
-      return null;
-    }
-
-    @Override
-    protected Void visitDeallocate(Deallocate node, Integer indent) {
-      append(indent, "DEALLOCATE PREPARE ");
-      builder.append(node.getName());
-      return null;
-    }
-
-    @Override
-    protected Void visitExecute(Execute node, Integer indent) {
-      append(indent, "EXECUTE ");
-      builder.append(node.getName());
-      return null;
-    }
-
-    @Override
     protected Void visitQuery(Query node, Integer indent) {
       if (node.getWith().isPresent()) {
         With with = node.getWith().get();
@@ -192,13 +146,6 @@ public final class SqlFormatterQueryRewrite {
         append(indent, "LIMIT " + node.getLimit().get())
             .append('\n');
       }
-
-      if (node.getApproximate().isPresent()) {
-        String confidence = node.getApproximate().get().getConfidence();
-        append(indent, "APPROXIMATE AT " + confidence + " CONFIDENCE")
-            .append('\n');
-      }
-
       return null;
     }
 
@@ -733,23 +680,7 @@ public final class SqlFormatterQueryRewrite {
       return null;
     }
 
-    
-    @Override
-    protected Void visitInsert(Insert node, Integer indent) {
-      builder.append("INSERT INTO ")
-          .append(node.getTarget())
-          .append(" ");
 
-      if (node.getColumns().isPresent()) {
-        builder.append("(")
-            .append(Joiner.on(", ").join(node.getColumns().get()))
-            .append(") ");
-      }
-
-      process(node.getQuery(), indent);
-
-      return null;
-    }
 
     @Override
     public Void visitSetSession(SetSession node, Integer context) {
@@ -757,44 +688,6 @@ public final class SqlFormatterQueryRewrite {
           .append(node.getName())
           .append(" = ")
           .append(ExpressionFormatterQueryRewrite.formatExpression(node.getValue()));
-
-      return null;
-    }
-
-    @Override
-    public Void visitResetSession(ResetSession node, Integer context) {
-      builder.append("RESET SESSION ")
-          .append(node.getName());
-
-      return null;
-    }
-
-    @Override
-    protected Void visitCallArgument(CallArgument node, Integer indent) {
-      if (node.getName().isPresent()) {
-        builder.append(node.getName().get())
-            .append(" => ");
-      }
-      builder.append(ExpressionFormatterQueryRewrite.formatExpression(node.getValue()));
-
-      return null;
-    }
-
-    @Override
-    protected Void visitCall(Call node, Integer indent) {
-      builder.append("CALL ")
-          .append(node.getName())
-          .append("(");
-
-      Iterator<CallArgument> arguments = node.getArguments().iterator();
-      while (arguments.hasNext()) {
-        process(arguments.next(), indent);
-        if (arguments.hasNext()) {
-          builder.append(", ");
-        }
-      }
-
-      builder.append(")");
 
       return null;
     }
@@ -811,96 +704,6 @@ public final class SqlFormatterQueryRewrite {
         firstItem = false;
       }
       builder.append(")");
-      return null;
-    }
-
-    @Override
-    protected Void visitStartTransaction(StartTransaction node, Integer indent) {
-      builder.append("START TRANSACTION");
-
-      Iterator<TransactionMode> iterator = node.getTransactionModes().iterator();
-      while (iterator.hasNext()) {
-        builder.append(" ");
-        process(iterator.next(), indent);
-        if (iterator.hasNext()) {
-          builder.append(",");
-        }
-      }
-      return null;
-    }
-
-    @Override
-    protected Void visitIsolationLevel(Isolation node, Integer indent) {
-      builder.append("ISOLATION LEVEL ").append(node.getLevel().getText());
-      return null;
-    }
-
-    @Override
-    protected Void visitTransactionAccessMode(TransactionAccessMode node, Integer context) {
-      builder.append(node.isReadOnly() ? "READ ONLY" : "READ WRITE");
-      return null;
-    }
-
-    @Override
-    protected Void visitCommit(Commit node, Integer context) {
-      builder.append("COMMIT");
-      return null;
-    }
-
-    @Override
-    protected Void visitRollback(Rollback node, Integer context) {
-      builder.append("ROLLBACK");
-      return null;
-    }
-
-    @Override
-    public Void visitGrant(Grant node, Integer indent) {
-      builder.append("GRANT ");
-
-      if (node.getPrivileges().isPresent()) {
-        builder.append(node.getPrivileges().get().stream()
-                           .collect(joining(", ")));
-      } else {
-        builder.append("ALL PRIVILEGES");
-      }
-
-      builder.append(" ON ");
-      if (node.isTable()) {
-        builder.append("TABLE ");
-      }
-      builder.append(node.getTableName())
-          .append(" TO ")
-          .append(node.getGrantee());
-      if (node.isWithGrantOption()) {
-        builder.append(" WITH GRANT OPTION");
-      }
-
-      return null;
-    }
-
-    @Override
-    public Void visitRevoke(Revoke node, Integer indent) {
-      builder.append("REVOKE ");
-
-      if (node.isGrantOptionFor()) {
-        builder.append("GRANT OPTION FOR ");
-      }
-
-      if (node.getPrivileges().isPresent()) {
-        builder.append(node.getPrivileges().get().stream()
-                           .collect(joining(", ")));
-      } else {
-        builder.append("ALL PRIVILEGES");
-      }
-
-      builder.append(" ON ");
-      if (node.isTable()) {
-        builder.append("TABLE ");
-      }
-      builder.append(node.getTableName())
-          .append(" FROM ")
-          .append(node.getGrantee());
-
       return null;
     }
 

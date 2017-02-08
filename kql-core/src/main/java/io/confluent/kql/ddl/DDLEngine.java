@@ -236,7 +236,7 @@ public class DDLEngine {
       return Schema.FLOAT64_SCHEMA;
     } else if (sqlType.equalsIgnoreCase("INTEGER") || sqlType.equalsIgnoreCase("INT")) {
       return Schema.INT32_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("BOOELAN") || sqlType.equalsIgnoreCase("BOOL")) {
+    } else if (sqlType.equalsIgnoreCase("BOOLEAN") || sqlType.equalsIgnoreCase("BOOL")) {
       return Schema.BOOLEAN_SCHEMA;
     }
     throw new KQLException("Unsupported type: " + sqlType);

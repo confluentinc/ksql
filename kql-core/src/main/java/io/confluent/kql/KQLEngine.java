@@ -33,12 +33,11 @@ import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
-import io.confluent.kql.util.Triplet;
+import io.confluent.kql.util.QueryMetadata;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileReader;
@@ -57,7 +56,7 @@ public class KQLEngine {
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
 
-  public List<Triplet<String, KafkaStreams, OutputNode>> runMultipleQueries(
+  public List<QueryMetadata> runMultipleQueries(
       final String queriesString) throws Exception {
 
     // Parse and AST creation
@@ -134,7 +133,7 @@ public class KQLEngine {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<Triplet<String, KafkaStreams, OutputNode>>
+    List<QueryMetadata>
         runningQueries =
         queryEngine.buildRunPhysicalPlans(false, metaStore, logicalPlans);
 
@@ -198,7 +197,7 @@ public class KQLEngine {
     queryEngine.buildRunSingleConsoleQuery(metaStore, queryList, terminateIn);
   }
 
-  public Triplet<String, KafkaStreams, OutputNode> runSingleQuery(
+  public QueryMetadata runSingleQuery(
       final Pair<String, Query> queryInfo) throws Exception {
 
     List<Pair<String, PlanNode>>
@@ -206,7 +205,7 @@ public class KQLEngine {
         queryEngine.buildLogicalPlans(metaStore, Arrays.asList(queryInfo));
 
     // Physical plan creation from logical plans.
-    List<Triplet<String, KafkaStreams, OutputNode>>
+    List<QueryMetadata>
         runningQueries =
         queryEngine.buildRunPhysicalPlans(true, metaStore, logicalPlans);
     return runningQueries.get(0);
@@ -297,7 +296,10 @@ public class KQLEngine {
         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
     if (!kqlConfProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)
         .equalsIgnoreCase(KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
-      kqlProperties.load(new FileReader(kqlConfProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)));
+      FileReader fileReader = new FileReader(kqlConfProperties.get(KQLConfig
+                                                                       .PROP_FILE_PATH_CONFIG));
+      kqlProperties.load(fileReader);
+      fileReader.close();
     }
 
     this.kqlConfig = new KQLConfig(kqlProperties);

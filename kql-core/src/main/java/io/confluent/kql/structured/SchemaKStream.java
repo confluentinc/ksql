@@ -6,10 +6,10 @@ package io.confluent.kql.structured;
 import io.confluent.kql.function.udf.KUDF;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 import io.confluent.kql.util.SchemaUtil;
-import io.confluent.kql.util.Triplet;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -20,7 +20,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueJoiner;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -95,9 +94,9 @@ public class SchemaKStream {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
-    List<Triplet<IExpressionEvaluator, int[], KUDF[]>> expressionEvaluators = new ArrayList<>();
+    List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     for (Expression expression : expressions) {
-      Triplet<IExpressionEvaluator, int[], KUDF[]>
+      ExpressionMetadata
           expressionEvaluatorPair =
           expressionUtil.getExpressionEvaluator(expression, schema);
       expressionEvaluators.add(expressionEvaluatorPair);
@@ -110,8 +109,8 @@ public class SchemaKStream {
             List<Object> newColumns = new ArrayList();
             for (int i = 0; i < expressions.size(); i++) {
               Expression expression = expressions.get(i);
-              int[] parameterIndexes = expressionEvaluators.get(i).getSecond();
-              KUDF[] kudfs = expressionEvaluators.get(i).getThird();
+              int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+              KUDF[] kudfs = expressionEvaluators.get(i).getUdfs();
               Object[] parameterObjects = new Object[parameterIndexes.length];
               for (int j = 0; j < parameterIndexes.length; j++) {
                 if (parameterIndexes[j] < 0) {
@@ -122,7 +121,7 @@ public class SchemaKStream {
               }
               Object columnValue = null;
               try {
-                columnValue = expressionEvaluators.get(i).getFirst().evaluate(parameterObjects);
+                columnValue = expressionEvaluators.get(i).getExpressionEvaluator().evaluate(parameterObjects);
               } catch (InvocationTargetException e) {
                 e.printStackTrace();
               }

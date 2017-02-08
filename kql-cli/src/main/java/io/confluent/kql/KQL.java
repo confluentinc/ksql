@@ -31,12 +31,11 @@ import io.confluent.kql.parser.tree.LoadProperties;
 import io.confluent.kql.parser.tree.Table;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
-import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
+import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.TopicPrinter;
-import io.confluent.kql.util.Triplet;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.KQLUtil;
 import jline.TerminalFactory;
@@ -44,7 +43,6 @@ import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
 
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.streams.KafkaStreams;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -57,7 +55,8 @@ public class KQL {
 
   KQLEngine kqlEngine;
   LiveQueryMap liveQueries = new LiveQueryMap();
-  Triplet<String, KafkaStreams, KQLConsoleOutputNode> cliCurrentQuery = null;
+//  Triplet<String, KafkaStreams, KQLConsoleOutputNode> cliCurrentQuery = null;
+  QueryMetadata cliCurrentQuery = null;
 
   static final String QUERY_ID_PREFIX = "kql_";
   int queryIdCounter = 0;
@@ -87,7 +86,7 @@ public class KQL {
         if (line.trim().toLowerCase().startsWith("exit")) {
           // Close all running queries first!
           for (String runningQueryId : liveQueries.keySet()) {
-            liveQueries.get(runningQueryId).getSecond().close();
+            liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
           }
           console.println("");
           console.println("Goodbye!");
@@ -100,7 +99,7 @@ public class KQL {
           continue;
         } else if (line.trim().equalsIgnoreCase("close")) {
           if (cliCurrentQuery != null) {
-            cliCurrentQuery.getSecond().close();
+            cliCurrentQuery.getQueryKafkaStreams().close();
           }
           continue;
         }
@@ -121,7 +120,7 @@ public class KQL {
     }
   }
 
-  public void runQueries(String queryFilePath) throws Exception {
+  public void runQueriesFromFile(String queryFilePath) throws Exception {
 
     System.out.println(
         "********************************************************************************************************");
@@ -130,7 +129,7 @@ public class KQL {
     System.out.println(
         "********************************************************************************************************");
     String queryString = KQLUtil.readQueryFile(queryFilePath);
-    List<Triplet<String, KafkaStreams, OutputNode>>
+    List<QueryMetadata>
         runningQueries =
         kqlEngine.runMultipleQueries(queryString);
 
@@ -300,22 +299,23 @@ public class KQL {
 
     String queryId = getNextQueryId();
 
-    Triplet<String, KafkaStreams, OutputNode>
+    QueryMetadata
         queryPairInfo =
         kqlEngine.runSingleQuery(new Pair<>(queryId, query));
 
-    if (queryPairInfo.getThird() instanceof KQLStructuredDataOutputNode) {
-      Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>
+    if (queryPairInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
+      QueryMetadata
           queryInfo =
-          new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLStructuredDataOutputNode)
-              queryPairInfo.getThird());
+          new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLStructuredDataOutputNode)
+              queryPairInfo.getQueryOutputNode());
       liveQueries.put(queryId.toUpperCase(), queryInfo);
-    } else if (queryPairInfo.getThird() instanceof KQLConsoleOutputNode) {
+    } else if (queryPairInfo.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
       if (cliCurrentQuery != null) {
         console.println("Terminating the currently running console query first. ");
-        cliCurrentQuery.getSecond().close();
+        cliCurrentQuery.getQueryKafkaStreams().close();
       }
-      cliCurrentQuery = new Triplet<>(queryString, queryPairInfo.getSecond(), (KQLConsoleOutputNode) queryPairInfo.getThird());
+      cliCurrentQuery = new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLConsoleOutputNode)
+          queryPairInfo.getQueryOutputNode());
     }
     if (isCLI) {
       console.println("");
@@ -333,11 +333,11 @@ public class KQL {
       console.flush();
       return;
     }
-    Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>
+    QueryMetadata
         kafkaStreamsQuery =
         liveQueries.get(queryId);
-    console.println("Query: " + kafkaStreamsQuery.getFirst());
-    kafkaStreamsQuery.getSecond().close();
+    console.println("Query: " + kafkaStreamsQuery.getQueryId());
+    kafkaStreamsQuery.getQueryKafkaStreams().close();
     liveQueries.remove(queryId);
     console.println("Terminated query with id = " + queryId);
   }
@@ -447,10 +447,11 @@ public class KQL {
     for (String queryId : liveQueries.keySet()) {
       console.println(
           "------------+----------------------------------------------------------------------------------+-----------------------------------");
-      Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> queryInfo = liveQueries.get(queryId);
+      QueryMetadata queryInfo = liveQueries.get(queryId);
+      KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
+                                                                    queryInfo.getQueryOutputNode();
       console.println(
-          padRight(queryId, 12) + "|   " + padRight(queryInfo.getFirst(), 80) + "|   " + queryInfo
-              .getThird().getKafkaTopicName().toUpperCase());
+          padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName().toUpperCase());
     }
     console.println(
         "------------+----------------------------------------------------------------------------------+-----------------------------------");
@@ -555,20 +556,21 @@ public class KQL {
         kql.startConsole();
       } else { // Use the query file to run the queries.
         kql.isCLI = false;
-        kql.runQueries(cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG));
+        kql.runQueriesFromFile(cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG));
       }
     }
   }
 
   class LiveQueryMap {
 
-    Map<String, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>> liveQueries = new HashMap<>();
+//    Map<String, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>> liveQueries = new HashMap<>();
+    Map<String, QueryMetadata> liveQueries = new HashMap<>();
 
-    public Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> get(String key) {
+    public QueryMetadata get(String key) {
       return liveQueries.get(key.toUpperCase());
     }
 
-    public void put(String key, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode> value) {
+    public void put(String key, QueryMetadata value) {
       liveQueries.put(key.toUpperCase(), value);
     }
 

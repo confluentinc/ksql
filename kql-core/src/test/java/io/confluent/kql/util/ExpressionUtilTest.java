@@ -49,27 +49,31 @@ public class ExpressionUtilTest {
         String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
         Analysis analysis = analyzeQuery(simpleQuery);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet0 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(0),schema);
-        Assert.assertTrue(expressionEvaluatorTriplet0.second.length == 2);
-        Assert.assertTrue(expressionEvaluatorTriplet0.second[0] == 3);
-        Assert.assertTrue(expressionEvaluatorTriplet0.second[1] == 0);
-        Assert.assertTrue(expressionEvaluatorTriplet0.getThird().length == 2);
-        Object result0 = expressionEvaluatorTriplet0.first.evaluate(new Object[]{10.0,5l});
+        ExpressionMetadata expressionEvaluatorMetadata0 = expressionUtil.getExpressionEvaluator
+            (analysis
+                                                                                  .getSelectExpressions().get(0),schema);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 3);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 0);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getUdfs().length == 2);
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{10.0, 5l});
         Assert.assertTrue(result0 instanceof Double);
         Assert.assertTrue(((Double)result0) == 15.0);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet1 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(3),schema);
-        Assert.assertTrue(expressionEvaluatorTriplet1.second.length == 1);
-        Assert.assertTrue(expressionEvaluatorTriplet1.second[0] == 0);
-        Assert.assertTrue(expressionEvaluatorTriplet1.getThird().length == 1);
-        Object result1 = expressionEvaluatorTriplet1.first.evaluate(new Object[]{5l});
+        ExpressionMetadata expressionEvaluatorMetadata1 = expressionUtil.getExpressionEvaluator
+            (analysis.getSelectExpressions().get(3),schema);
+        Assert.assertTrue(expressionEvaluatorMetadata1.getIndexes().length == 1);
+        Assert.assertTrue(expressionEvaluatorMetadata1.getIndexes()[0] == 0);
+        Assert.assertTrue(expressionEvaluatorMetadata1.getUdfs().length == 1);
+        Object result1 = expressionEvaluatorMetadata1.getExpressionEvaluator().evaluate(new Object[]{5l});
         Assert.assertTrue(result1 instanceof Long);
         Assert.assertTrue(((Long)result1) == 125l);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet2 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(4),schema);
-        Assert.assertTrue(expressionEvaluatorTriplet2.second.length == 0);
-        Assert.assertTrue(expressionEvaluatorTriplet2.getThird().length == 0);
-        Object result2 = expressionEvaluatorTriplet2.first.evaluate(new Object[]{});
+        ExpressionMetadata expressionEvaluatorMetadata2 = expressionUtil.getExpressionEvaluator
+            (analysis.getSelectExpressions().get(4),schema);
+        Assert.assertTrue(expressionEvaluatorMetadata2.getIndexes().length == 0);
+        Assert.assertTrue(expressionEvaluatorMetadata2.getUdfs().length == 0);
+        Object result2 = expressionEvaluatorMetadata2.getExpressionEvaluator().evaluate(new Object[]{});
         Assert.assertTrue(result2 instanceof Long);
         Assert.assertTrue(((Long)result2) == 50);
     }
@@ -80,36 +84,50 @@ public class ExpressionUtilTest {
         Analysis analysis = analyzeQuery(simpleQuery);
         GenericRowValueTypeEnforcer genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet0 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(0),schema);
+        ExpressionMetadata expressionEvaluator0 = expressionUtil.getExpressionEvaluator(analysis
+                                                                         .getSelectExpressions().get(0),schema);
         Object argObj0 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
-        Object result0 = expressionEvaluatorTriplet0.first.evaluate(new Object[]{expressionEvaluatorTriplet0.getThird()[0], argObj0});
+        Object result0 = expressionEvaluator0.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator0.getUdfs()
+                                                                          [0], argObj0});
         Assert.assertTrue(argObj0 instanceof Double);
         Assert.assertTrue(result0 instanceof Double);
         Assert.assertTrue(((Double)result0) == 1.0);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet1 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(1),schema);
+        ExpressionMetadata expressionEvaluator1 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(1),schema);
         Object argObj1 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
-        Object result1 = expressionEvaluatorTriplet1.first.evaluate(new Object[]{expressionEvaluatorTriplet1.getThird()[0], argObj1});
+        Object result1 = expressionEvaluator1.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator1.getUdfs()
+                                                                          [0], argObj1});
         Assert.assertTrue(argObj1 instanceof Double);
         Assert.assertTrue(result1 instanceof Double);
         Assert.assertTrue(((Double)result1) == 5.0);
 
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet2 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(2),schema);
+        ExpressionMetadata expressionEvaluator2 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(2),schema);
         Object argObj2 = genericRowValueTypeEnforcer.enforceFieldType(0, 15);
-        Object result2 = expressionEvaluatorTriplet2.first.evaluate(new Object[]{expressionEvaluatorTriplet2.getThird()[0], argObj2});
+        Object result2 = expressionEvaluator2.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator2.getUdfs()
+                                                                          [0], argObj2});
         Assert.assertTrue(argObj2 instanceof Long);
         Assert.assertTrue(result2 instanceof Double);
         Assert.assertTrue(((Double)result2) == 16.34);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet3 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(3),schema);
-        Object result3 = expressionEvaluatorTriplet3.first.evaluate(new Object[]{expressionEvaluatorTriplet3.getThird()[0]});
+        ExpressionMetadata expressionEvaluator3 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(3),schema);
+        Object result3 = expressionEvaluator3.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator3.getUdfs()[0]});
         Assert.assertTrue(result3 instanceof Double);
         Assert.assertTrue(((Double)result3).intValue() == 10);
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet4 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(4),schema);
+        ExpressionMetadata expressionEvaluator4 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(4),schema);
         Object argObj4 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
-        Object result4 = expressionEvaluatorTriplet4.first.evaluate(new Object[]{expressionEvaluatorTriplet4.getThird()[0], argObj4});
+        Object result4 = expressionEvaluator4.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator4.getUdfs()
+                                                                          [0], argObj4});
         Assert.assertTrue(argObj4 instanceof Double);
         Assert.assertTrue(result4 instanceof Long);
         Assert.assertTrue(((Long)result4) == 15);
@@ -123,27 +141,39 @@ public class ExpressionUtilTest {
         Analysis analysis = analyzeQuery(simpleQuery);
 
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet0 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(0),schema);
+        ExpressionMetadata expressionEvaluator0 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(0),schema);
         Object argObj0 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
-        Object result0 = expressionEvaluatorTriplet0.first.evaluate(new Object[]{expressionEvaluatorTriplet0.getThird()[0], argObj0});
+        Object result0 = expressionEvaluator0.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator0.getUdfs()
+                                                                          [0], argObj0});
         Assert.assertTrue(result0 instanceof String);
         Assert.assertTrue(result0.equals("hello"));
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet1 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(1),schema);
+        ExpressionMetadata expressionEvaluator1 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(1),schema);
         Object argObj1 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
-        Object result1 = expressionEvaluatorTriplet1.first.evaluate(new Object[]{expressionEvaluatorTriplet1.getThird()[0], argObj1});
+        Object result1 = expressionEvaluator1.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator1.getUdfs()
+                                                                          [0], argObj1});
         Assert.assertTrue(result1 instanceof String);
         Assert.assertTrue(result1.equals("HELLO"));
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet2 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(2),schema);
+        ExpressionMetadata expressionEvaluator2 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(2),schema);
         Object argObj2 = genericRowValueTypeEnforcer.enforceFieldType(2, " Hello ");
-        Object result2 = expressionEvaluatorTriplet2.first.evaluate(new Object[]{expressionEvaluatorTriplet2.getThird()[0], argObj2});
+        Object result2 = expressionEvaluator2.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator2.getUdfs()
+                                                                          [0], argObj2});
         Assert.assertTrue(result2 instanceof String);
         Assert.assertTrue(result2.equals("Hello"));
 
-        Triplet<IExpressionEvaluator, int[], KUDF[]> expressionEvaluatorTriplet3 = expressionUtil.getExpressionEvaluator(analysis.getSelectExpressions().get(3),schema);
+        ExpressionMetadata expressionEvaluator3 = expressionUtil.getExpressionEvaluator(analysis
+                                                                                            .getSelectExpressions().get(3),schema);
         Object argObj3 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
-        Object result3 = expressionEvaluatorTriplet3.first.evaluate(new Object[]{expressionEvaluatorTriplet3.getThird()[0], argObj3});
+        Object result3 = expressionEvaluator3.getExpressionEvaluator().evaluate(new
+                                                             Object[]{expressionEvaluator3.getUdfs()
+                                                                          [0], argObj3});
         Assert.assertTrue(result3 instanceof String);
         Assert.assertTrue(result3.equals("Hello_test"));
 

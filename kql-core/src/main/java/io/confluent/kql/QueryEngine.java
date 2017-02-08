@@ -24,7 +24,7 @@ import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
-import io.confluent.kql.util.Triplet;
+import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.SingleColumn;
@@ -131,12 +131,12 @@ public class QueryEngine {
     return structuredDataSource;
   }
 
-  public List<Triplet<String, KafkaStreams, OutputNode>> buildRunPhysicalPlans(
+  public List<QueryMetadata> buildRunPhysicalPlans(
       final boolean isCli, final MetaStore metaStore,
       final List<Pair<String, PlanNode>> queryLogicalPlans)
       throws Exception {
 
-    List<Triplet<String, KafkaStreams, OutputNode>> physicalPlans = new ArrayList<>();
+    List<QueryMetadata> physicalPlans = new ArrayList<>();
 
     for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
       Properties props = new Properties();
@@ -167,7 +167,7 @@ public class QueryEngine {
       StructuredDataSource sinkDataSource;
       if (outputNode instanceof KQLStructuredDataOutputNode) {
         KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
-        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
+        physicalPlans.add(new QueryMetadata(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
         if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
         }
@@ -190,7 +190,7 @@ public class QueryEngine {
       } else if (outputNode instanceof KQLConsoleOutputNode) {
         KQLConsoleOutputNode kqlConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
         sinkDataSource = new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null, null);
-        physicalPlans.add(new Triplet<>(queryLogicalPlan.getLeft(), streams, kqlConsoleOutputNode));
+        physicalPlans.add(new QueryMetadata(queryLogicalPlan.getLeft(), streams, kqlConsoleOutputNode));
       } else {
         throw new KQLException("Sink data source is not correct.");
       }

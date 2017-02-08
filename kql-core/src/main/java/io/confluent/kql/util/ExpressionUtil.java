@@ -36,7 +36,7 @@ public class ExpressionUtil {
     return visitor.parameterMap;
   }
 
-  public Triplet<IExpressionEvaluator, int[], KUDF[]> getExpressionEvaluator(
+  public ExpressionMetadata getExpressionEvaluator(
       final Expression expression,
       final Schema schema) throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
@@ -77,7 +77,7 @@ public class ExpressionUtil {
     // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(expressionStr);
 
-    return new Triplet<>(ee, columnIndexes, kudfObjects);
+    return new ExpressionMetadata(ee, columnIndexes, kudfObjects);
   }
 
   private class Visitor

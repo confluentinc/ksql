@@ -79,23 +79,23 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.5.3</version>
-                <configuration>
-                    <sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>
-                    <outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>
-                    <visitor>true</visitor>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.antlr</groupId>-->
+                <!--<artifactId>antlr4-maven-plugin</artifactId>-->
+                <!--<version>4.5.3</version>-->
+                <!--<configuration>-->
+                    <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
+                    <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
+                    <!--<visitor>true</visitor>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<goals>-->
+                            <!--<goal>antlr4</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

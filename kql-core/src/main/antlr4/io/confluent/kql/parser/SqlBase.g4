@@ -16,9 +16,9 @@
 
 grammar SqlBase;
 
-@header {
-package io.confluent.kql.parser;
- }
+//@header {
+//package io.confluent.kql.parser;
+// }
 
 tokens {
     DELIMITER

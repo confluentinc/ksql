@@ -58,7 +58,6 @@ import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.RenameTable;
-import io.confluent.kql.parser.tree.AddColumn;
 import io.confluent.kql.parser.tree.Insert;
 import io.confluent.kql.parser.tree.SetSession;
 import io.confluent.kql.parser.tree.ResetSession;
@@ -734,18 +733,7 @@ public final class SqlFormatterQueryRewrite {
       return null;
     }
 
-    @Override
-    protected Void visitAddColumn(AddColumn node, Integer indent) {
-      builder.append("ALTER TABLE ")
-          .append(node.getName())
-          .append(" ADD COLUMN ")
-          .append(node.getColumn().getName())
-          .append(" ")
-          .append(node.getColumn().getType());
-
-      return null;
-    }
-
+    
     @Override
     protected Void visitInsert(Insert node, Integer indent) {
       builder.append("INSERT INTO ")

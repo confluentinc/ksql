@@ -1,6 +1,5 @@
 package io.confluent.kql.analyzer;
 
-
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.rewrite.SqlFormatterQueryRewrite;

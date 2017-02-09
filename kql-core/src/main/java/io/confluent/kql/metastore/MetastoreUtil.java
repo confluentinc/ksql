@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class MetastoreUtil {
 
-  public StructuredDataSource createStructuredDataSource(final MetaStore metaStore,
+  private StructuredDataSource createStructuredDataSource(final MetaStore metaStore,
                                                          final JsonNode node)
       throws
       IOException {
@@ -75,7 +75,7 @@ public class MetastoreUtil {
     throw new KQLException("Type not supported.");
   }
 
-  public KQLTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {
+  private KQLTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {
 
     KQLTopicSerDe topicSerDe;
     String topicname = node.get("topicname").asText();

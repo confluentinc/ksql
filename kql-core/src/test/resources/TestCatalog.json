@@ -1,0 +1,88 @@
+{
+  "name": "kql_catalog",
+  "topics" :[
+    {
+      "namespace": "kql-topics",
+      "topicname": "ORDERS_TOPIC_AVRO",
+      "kafkatopicname": "orders_kafka_topic_avro",
+      "serde": "AVRO",
+      "avroschemafile": "src/test/resources/avro_order_schema.avro"
+    }
+  ,
+    {
+      "namespace": "kql-topics",
+      "topicname": "PAGEVIEW_TOPIC",
+      "kafkatopicname": "pageview_kafka_topic_json",
+      "serde": "JSON"
+    }
+  ,
+    {
+      "namespace": "kql-topics",
+      "topicname": "ORDERS_TOPIC",
+      "kafkatopicname": "orders_kafka_topic",
+      "serde": "JSON"
+    }
+  ,
+    {
+      "namespace": "kql-topics",
+      "topicname": "USERS_TOPIC",
+      "kafkatopicname": "users_kafka_topic_json",
+      "serde": "JSON"
+    }
+  ]
+
+,
+  "schemas" :[
+    {
+      "namespace": "kql",
+      "type": "stream",
+      "name": "ORDERS",
+      "key": "ordertime",
+      "topic": "ORDERS_TOPIC",
+      "fields": [
+        {"name": "ordertime", "type": "long"} ,
+        {"name": "orderid", "type": "string"} ,
+        {"name": "itemid", "type": "string"} ,
+        {"name": "orderunits", "type": "double"} 			 ]
+    }
+  ,
+    {
+      "namespace": "kql",
+      "type": "stream",
+      "name": "PAGEVIEW",
+      "key": "viewtime",
+      "topic": "PAGEVIEW_TOPIC",
+      "fields": [
+        {"name": "viewtime", "type": "long"} ,
+        {"name": "userid", "type": "string"} ,
+        {"name": "pageid", "type": "string"} 			 ]
+    }
+  ,
+    {
+      "namespace": "kql",
+      "type": "table",
+      "name": "USERS",
+      "key": "userid",
+      "topic": "USERS_TOPIC",
+      "statestore": "users_statestore",
+      "fields": [
+        {"name": "usertime", "type": "long"} ,
+        {"name": "userid", "type": "string"} ,
+        {"name": "regionid", "type": "string"} ,
+        {"name": "gender", "type": "string"} 			 ]
+    }
+  ,
+    {
+      "namespace": "kql",
+      "type": "stream",
+      "name": "ORDERS_AVRO",
+      "key": "ordertime",
+      "topic": "ORDERS_TOPIC_AVRO",
+      "fields": [
+        {"name": "ordertime", "type": "long"} ,
+        {"name": "orderid", "type": "string"} ,
+        {"name": "itemid", "type": "string"} ,
+        {"name": "orderunits", "type": "double"} 			 ]
+    }
+  ]
+}

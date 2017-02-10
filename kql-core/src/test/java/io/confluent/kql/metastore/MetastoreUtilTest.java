@@ -55,4 +55,12 @@ public class MetastoreUtilTest {
     Assert.assertTrue(users.getKeyField().name().equalsIgnoreCase("USERID"));
 
   }
+
+  @Test
+  public void testReadWriteAvroSchema() {
+    MetastoreUtil metastoreUtil = new MetastoreUtil();
+
+
+  }
+
 }

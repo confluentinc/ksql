@@ -43,7 +43,9 @@ public class JsonProducer {
       //orderid
       columns.add(String.valueOf(i + 1));
       //itemid
-      int productId = (int) (100 * Math.random());
+//      int productId = (int) (10 * Math.random());
+      double d = Math.random();
+      int productId = (int) (10 * d);
       columns.add("Item_" + productId);
 
       //units

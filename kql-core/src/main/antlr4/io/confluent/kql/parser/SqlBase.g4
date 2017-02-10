@@ -113,9 +113,31 @@ querySpecification
     : SELECT setQuantifier? selectItem (',' selectItem)*
       (INTO into=relationPrimary)?
       (FROM from=relation (',' relation)*)?
+      (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
+    ;
+
+windowExpression
+    : (IDENTIFIER)?
+     ( tumblingWindowExpression | hoppingWindowExpression)
+    ;
+
+tumblingWindowExpression
+    : TUMBLING '(' SIZE number windowUnit')'
+    ;
+
+hoppingWindowExpression
+    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit ')'
+    ;
+
+windowUnit
+    : DAY
+    | HOUR
+    | MINUTE
+    | SECOND
+    | MILLISECOND
     ;
 
 groupBy
@@ -424,6 +446,7 @@ SOME: 'SOME';
 ANY: 'ANY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
+WINDOW: 'WINDOW';
 GROUP: 'GROUP';
 BY: 'BY';
 GROUPING: 'GROUPING';
@@ -470,6 +493,7 @@ DAY: 'DAY';
 HOUR: 'HOUR';
 MINUTE: 'MINUTE';
 SECOND: 'SECOND';
+MILLISECOND: 'MILLISECOND';
 ZONE: 'ZONE';
 CURRENT_DATE: 'CURRENT_DATE';
 CURRENT_TIME: 'CURRENT_TIME';
@@ -477,6 +501,10 @@ CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
 LOCALTIME: 'LOCALTIME';
 LOCALTIMESTAMP: 'LOCALTIMESTAMP';
 EXTRACT: 'EXTRACT';
+TUMBLING: 'TUMBLING';
+HOPPING: 'HOPPING';
+SIZE: 'SIZE';
+ADVANCE: 'ADVANCE';
 CASE: 'CASE';
 WHEN: 'WHEN';
 THEN: 'THEN';

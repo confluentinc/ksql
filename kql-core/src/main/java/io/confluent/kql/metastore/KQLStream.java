@@ -9,8 +9,8 @@ import org.apache.kafka.connect.data.Schema;
 
 public class KQLStream extends StructuredDataSource {
 
-  public KQLStream(String datasourceName, Schema schema, Field keyField,
-                   KQLTopic kqlTopic) {
+  public KQLStream(final String datasourceName, final Schema schema, final Field keyField,
+                   final KQLTopic kqlTopic) {
     super(datasourceName, schema, keyField, DataSourceType.KSTREAM, kqlTopic);
   }
 }

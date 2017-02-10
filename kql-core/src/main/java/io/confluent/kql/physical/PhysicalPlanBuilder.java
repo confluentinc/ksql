@@ -3,12 +3,14 @@
  **/
 package io.confluent.kql.physical;
 
+import io.confluent.kql.function.udaf.sum.SumKUDAF;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.FilterNode;
 import io.confluent.kql.planner.plan.JoinNode;
@@ -21,6 +23,7 @@ import io.confluent.kql.planner.plan.SourceNode;
 import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.kql.structured.SchemaKGroupedStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.structured.SchemaKStream;
 
@@ -40,7 +43,9 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PhysicalPlanBuilder {
 
@@ -118,38 +123,41 @@ public class PhysicalPlanBuilder {
     SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
 
     SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
-    return rekeyedSchemaKStream;
-//      SchemaKGroupedStream schemaKGroupedStream = sourceSchemaKStream.groupByKey(Serdes.String(), genericRowSerde);
-//
-//
-//      int aggColumnIndexInResult = -1;
-//      Object aggColumnInitialValueInResult = 0.0;
-//      Map<Integer, Integer> resultToSourceColumnMap_agg = new HashMap<>();
-//      Map<Integer, Integer> resultToSourceColumnMap_nonAgg = new HashMap<>();
-//
-//      List resultColumns = new ArrayList();
-//      for (int i = 0; i < aggregateNode.getProjectExpressions().size(); i++) {
-//          Expression expression = aggregateNode.getProjectExpressions().get(i);
-//          if (expression instanceof FunctionCall) {
-//              FunctionCall functionCall = (FunctionCall)expression;
-//              String argStr = functionCall.getArguments().get(0).toString();
-//              int index = getIndexInSchema(argStr, aggregateNode.getSource().getSchema());
-//              aggColumnIndexInResult = i;
-//              resultToSourceColumnMap_agg.put(i, index);
-//          } else {
-//              String exprStr = expression.toString();
-//              int index = getIndexInSchema(exprStr, aggregateNode.getSource().getSchema());
-//              resultToSourceColumnMap_nonAgg.put(i, index);
-//          }
-//          resultColumns.add("");
-//      }
-//      GenericRow resultGenericRow = new GenericRow(resultColumns);
-//      System.out.print("");
-//      Sum_KUDAF sum_kudaf = new Sum_KUDAF(resultGenericRow, aggColumnIndexInResult, aggColumnInitialValueInResult, resultToSourceColumnMap_agg, resultToSourceColumnMap_nonAgg);
-//
-//
-//      SchemaKStream schemaKStream = schemaKGroupedStream.aggregate(sum_kudaf.getInitializer(), sum_kudaf.getAggregator(), genericRowSerde, "Testsing"+System.currentTimeMillis());
-//      return schemaKStream;
+    SchemaKGroupedStream schemaKGroupedStream = rekeyedSchemaKStream.groupByKey(Serdes.String(), genericRowSerde);
+
+    int aggColumnIndexInResult = -1;
+    Object aggColumnInitialValueInResult = 0.0;
+    Map<Integer, Integer> resultToSourceColumnMapAgg = new HashMap<>();
+    Map<Integer, Integer> resultToSourceColumnMapNonAgg = new HashMap<>();
+
+    List resultColumns = new ArrayList();
+    for (int i = 0; i < aggregateNode.getProjectExpressions().size(); i++) {
+      Expression expression = aggregateNode.getProjectExpressions().get(i);
+      if (expression instanceof FunctionCall) {
+        FunctionCall functionCall = (FunctionCall) expression;
+        String argStr = functionCall.getArguments().get(0).toString();
+        int index = getIndexInSchema(argStr, aggregateNode.getSource().getSchema());
+        aggColumnIndexInResult = i;
+        resultToSourceColumnMapAgg.put(i, index);
+      } else {
+        String exprStr = expression.toString();
+        int index = getIndexInSchema(exprStr, aggregateNode.getSource().getSchema());
+        resultToSourceColumnMapNonAgg.put(i, index);
+      }
+      resultColumns.add("");
+    }
+    GenericRow resultGenericRow = new GenericRow(resultColumns);
+    System.out.print("");
+    SumKUDAF sumKUDAF = new SumKUDAF(resultGenericRow, aggColumnIndexInResult, aggColumnInitialValueInResult, resultToSourceColumnMapAgg, resultToSourceColumnMapNonAgg);
+
+
+    SchemaKStream schemaKStream = schemaKGroupedStream.aggregate(sumKUDAF.getInitializer(),
+                                                                 sumKUDAF.getAggregator(),
+                                                                 aggregateNode.getWindowExpression(),
+                                                                 genericRowSerde, "KQL_Agg_Query_"
+                                                                                  + System
+                                                                                      .currentTimeMillis());
+    return schemaKStream;
   }
 
   private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {

@@ -6,6 +6,7 @@ package io.confluent.kql.analyzer;
 
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.planner.plan.JoinNode;
 import io.confluent.kql.util.Pair;
 
@@ -26,6 +27,7 @@ public class Analysis {
   List<String> selectExpressionAlias = new ArrayList<>();
 
   List<Expression> groupByExpressions = new ArrayList<>();
+  WindowExpression windowExpression = null;
 
 
   public void addSelectItem(final Expression expression, final String alias) {
@@ -112,6 +114,14 @@ public class Analysis {
 
   public void setGroupByExpressions(List<Expression> groupByExpressions) {
     this.groupByExpressions = groupByExpressions;
+  }
+
+  public WindowExpression getWindowExpression() {
+    return windowExpression;
+  }
+
+  public void setWindowExpression(WindowExpression windowExpression) {
+    this.windowExpression = windowExpression;
   }
 }
 

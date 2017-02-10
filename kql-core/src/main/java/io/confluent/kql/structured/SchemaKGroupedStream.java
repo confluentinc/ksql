@@ -3,6 +3,8 @@
  **/
 package io.confluent.kql.structured;
 
+import io.confluent.kql.parser.tree.HoppingWindowExpression;
+import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 
@@ -13,6 +15,7 @@ import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.TimeWindows;
 
 import java.util.List;
 
@@ -36,11 +39,43 @@ public class SchemaKGroupedStream {
 
   public SchemaKTable aggregate(final Initializer initializer,
                                 final Aggregator aggregator,
+                                final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
     KTable
-        aggKtable =
-        kGroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
+        aggKtable;
+    if (windowExpression != null) {
+      HoppingWindowExpression hoppingWindowExpression = windowExpression
+          .getHoppingWindowExpression();
+      aggKtable =
+          kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
+                                          hoppingWindowExpression.getSizeUnit()))
+              .advanceBy(getWindowUnitInMillisecond(hoppingWindowExpression.getAdvanceBy(),
+                                          hoppingWindowExpression.getAdvanceByUnit())),
+               topicValueSerDe, storeName);
+    } else {
+      aggKtable =
+          kGroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
+    }
+
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams);
   }
+
+  private long getWindowUnitInMillisecond(long value, WindowExpression.WindowUnit windowUnit) {
+
+    switch (windowUnit) {
+      case DAY:
+        return value * 24 * 60 * 60 * 1000;
+      case HOUR:
+        return value * 60 * 60 * 1000;
+      case MINUTE:
+        return value * 60 * 1000;
+      case SECOND:
+        return value * 1000;
+      case MILLISECOND:
+        return value;
+    }
+    return -1;
+  }
+
 }

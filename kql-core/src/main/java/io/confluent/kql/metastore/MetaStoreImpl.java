@@ -21,7 +21,7 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public void putTopic(KQLTopic topic) {
+  public void putTopic(final KQLTopic topic) {
     if (topicMap.get(topic.getName().toUpperCase()) == null) {
       topicMap.put(topic.getName().toUpperCase(), topic);
     } else {
@@ -32,12 +32,12 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public StructuredDataSource getSource(String sourceName) {
+  public StructuredDataSource getSource(final String sourceName) {
     return dataSourceMap.get(sourceName.toUpperCase());
   }
 
   @Override
-  public void putSource(StructuredDataSource dataSource) {
+  public void putSource(final StructuredDataSource dataSource) {
     if (getSource(dataSource.getName()) == null) {
       dataSourceMap.put(dataSource.getName().toUpperCase(), dataSource);
     } else {
@@ -49,7 +49,7 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public void deleteSource(String sourceName) {
+  public void deleteSource(final String sourceName) {
     dataSourceMap.remove(sourceName);
   }
 

@@ -16,6 +16,7 @@ public class QuerySpecification
   private final Select select;
   private final Optional<Relation> into;
   private final Optional<Relation> from;
+  private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
@@ -26,12 +27,13 @@ public class QuerySpecification
       Select select,
       Optional<Relation> into,
       Optional<Relation> from,
+      Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.empty(), select, into, from, where, groupBy, having, orderBy, limit);
+    this(Optional.empty(), select, into, from, windowExpression, where, groupBy, having, orderBy, limit);
   }
 
   public QuerySpecification(
@@ -39,12 +41,13 @@ public class QuerySpecification
       Select select,
       Optional<Relation> into,
       Optional<Relation> from,
+      Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.of(location), select, into, from, where, groupBy, having, orderBy, limit);
+    this(Optional.of(location), select, into, from, windowExpression, where, groupBy, having, orderBy, limit);
   }
 
   private QuerySpecification(
@@ -52,6 +55,7 @@ public class QuerySpecification
       Select select,
       Optional<Relation> into,
       Optional<Relation> from,
+      Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
@@ -61,6 +65,7 @@ public class QuerySpecification
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
     requireNonNull(from, "from is null");
+    requireNonNull(windowExpression, "window is null");
     requireNonNull(where, "where is null");
     requireNonNull(groupBy, "groupBy is null");
     requireNonNull(having, "having is null");
@@ -70,6 +75,7 @@ public class QuerySpecification
     this.select = select;
     this.into = into;
     this.from = from;
+    this.windowExpression = windowExpression;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
@@ -87,6 +93,10 @@ public class QuerySpecification
 
   public Optional<Relation> getFrom() {
     return from;
+  }
+
+  public Optional<WindowExpression> getWindowExpression() {
+    return windowExpression;
   }
 
   public Optional<Expression> getWhere() {
@@ -119,6 +129,7 @@ public class QuerySpecification
     return toStringHelper(this)
         .add("select", select)
         .add("from", from)
+        .add("", windowExpression.orElse(null))
         .add("where", where.orElse(null))
         .add("groupBy", groupBy)
         .add("having", having.orElse(null))

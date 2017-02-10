@@ -410,19 +410,7 @@ public final class ExpressionFormatterQueryRewrite {
 
     @Override
     public String visitWindow(Window node, Boolean unmangleNames) {
-      List<String> parts = new ArrayList<>();
-
-      if (!node.getPartitionBy().isEmpty()) {
-        parts.add("PARTITION BY " + joinExpressions(node.getPartitionBy(), unmangleNames));
-      }
-      if (!node.getOrderBy().isEmpty()) {
-        parts.add("ORDER BY " + formatSortItems(node.getOrderBy(), unmangleNames));
-      }
-      if (node.getFrame().isPresent()) {
-        parts.add(process(node.getFrame().get(), unmangleNames));
-      }
-
-      return '(' + Joiner.on(' ').join(parts) + ')';
+      return node.toString();
     }
 
     @Override

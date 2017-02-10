@@ -11,8 +11,8 @@ public class KQLSTDOUT extends StructuredDataSource {
 
   public static final String KQL_STDOUT_NAME = "KQL_STDOUT_NAME";
 
-  public KQLSTDOUT(String datasourceName, Schema schema, Field keyField,
-                   DataSourceType dataSourceType) {
+  public KQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
+                   final DataSourceType dataSourceType) {
     super(datasourceName, schema, keyField, dataSourceType, null);
   }
 

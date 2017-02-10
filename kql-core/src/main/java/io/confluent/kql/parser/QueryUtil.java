@@ -120,6 +120,7 @@ public final class QueryUtil {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         ImmutableList.of(),
         Optional.empty()));
   }
@@ -152,6 +153,7 @@ public final class QueryUtil {
                                   List<SortItem> ordering, Optional<String> limit) {
     return query(new QuerySpecification(
         select,
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         where,

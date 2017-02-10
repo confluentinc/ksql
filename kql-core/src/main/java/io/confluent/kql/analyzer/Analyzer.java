@@ -1,7 +1,6 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-
 package io.confluent.kql.analyzer;
 
 import io.confluent.kql.ddl.DDLConfig;
@@ -29,6 +28,7 @@ import io.confluent.kql.parser.tree.AllColumns;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.GroupingElement;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.planner.DefaultTraversalVisitor;
 import io.confluent.kql.planner.plan.JoinNode;
 import io.confluent.kql.planner.plan.PlanNodeId;
@@ -100,6 +100,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
     if (node.getGroupBy().isPresent()) {
       analyzeGroupBy(node.getGroupBy().get(), context);
+    }
+
+    if (node.getWindowExpression().isPresent()) {
+      analyzeWindowExpression(node.getWindowExpression().get(), context);
     }
     return null;
   }
@@ -355,5 +359,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
       analysis.getGroupByExpressions().addAll(groupingSet);
     }
+  }
+
+  private void analyzeWindowExpression(final WindowExpression windowExpression, final AnalysisContext context) {
+    analysis.setWindowExpression(windowExpression);
   }
 }

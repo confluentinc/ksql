@@ -3,47 +3,32 @@
  **/
 package io.confluent.kql.parser.tree;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class Window
     extends Node {
 
-  private final List<Expression> partitionBy;
-  private final List<SortItem> orderBy;
-  private final Optional<WindowFrame> frame;
 
-  public Window(List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame) {
-    this(Optional.empty(), partitionBy, orderBy, frame);
+  private final WindowExpression windowExpression;
+
+  public Window(String windowName, WindowExpression windowExpression) {
+    this(Optional.empty(), windowName, windowExpression);
   }
 
-  public Window(NodeLocation location, List<Expression> partitionBy, List<SortItem> orderBy,
-                Optional<WindowFrame> frame) {
-    this(Optional.of(location), partitionBy, orderBy, frame);
+  public Window(NodeLocation location, String windowName, WindowExpression windowExpression) {
+    this(Optional.of(location), windowName, windowExpression);
   }
 
-  private Window(Optional<NodeLocation> location, List<Expression> partitionBy,
-                 List<SortItem> orderBy, Optional<WindowFrame> frame) {
+  private Window(Optional<NodeLocation> location, String windowName, WindowExpression windowExpression) {
     super(location);
-    this.partitionBy = requireNonNull(partitionBy, "partitionBy is null");
-    this.orderBy = requireNonNull(orderBy, "orderBy is null");
-    this.frame = requireNonNull(frame, "frame is null");
+    this.windowExpression = requireNonNull(windowExpression, "windowExpression is null");
   }
 
-  public List<Expression> getPartitionBy() {
-    return partitionBy;
-  }
-
-  public List<SortItem> getOrderBy() {
-    return orderBy;
-  }
-
-  public Optional<WindowFrame> getFrame() {
-    return frame;
+  public WindowExpression getWindowExpression() {
+    return windowExpression;
   }
 
   @Override
@@ -60,22 +45,16 @@ public class Window
       return false;
     }
     Window o = (Window) obj;
-    return Objects.equals(partitionBy, o.partitionBy) &&
-           Objects.equals(orderBy, o.orderBy) &&
-           Objects.equals(frame, o.frame);
+    return Objects.equals(windowExpression, o.windowExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(partitionBy, orderBy, frame);
+    return Objects.hash(windowExpression);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("partitionBy", partitionBy)
-        .add("orderBy", orderBy)
-        .add("frame", frame)
-        .toString();
+    return " WINDOW " + windowExpression.toString();
   }
 }

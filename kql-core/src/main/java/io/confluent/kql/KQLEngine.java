@@ -275,7 +275,10 @@ public class KQLEngine {
                                                                           .getSelect(),
                                                                       java.util.Optional
                                                                           .ofNullable(intoTable),
-                                                                      querySpecification.getFrom(), querySpecification
+                                                                      querySpecification.getFrom(),
+                                                                      querySpecification
+                                                                          .getWindowExpression(),
+                                                                      querySpecification
                                                                           .getWhere(),
                                                                       querySpecification
                                                                           .getGroupBy(),

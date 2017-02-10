@@ -13,7 +13,8 @@ public class KQLTopic implements DataSource {
   final String kafkaTopicName;
   final KQLTopicSerDe kqlTopicSerDe;
 
-  public KQLTopic(String topicName, String kafkaTopicName, KQLTopicSerDe kqlTopicSerDe) {
+  public KQLTopic(final String topicName, final String kafkaTopicName, final KQLTopicSerDe
+      kqlTopicSerDe) {
     this.topicName = topicName;
     this.kafkaTopicName = kafkaTopicName;
     this.kqlTopicSerDe = kqlTopicSerDe;

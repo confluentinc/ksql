@@ -11,8 +11,8 @@ public class KQLTable extends StructuredDataSource {
 
   final String stateStoreName;
 
-  public KQLTable(String datasourceName, Schema schema, Field keyField,
-                  KQLTopic kqlTopic, String stateStoreName) {
+  public KQLTable(final String datasourceName, final Schema schema, final Field keyField,
+                  final KQLTopic kqlTopic, final String stateStoreName) {
     super(datasourceName, schema, keyField, DataSourceType.KTABLE, kqlTopic);
     this.stateStoreName = stateStoreName;
   }

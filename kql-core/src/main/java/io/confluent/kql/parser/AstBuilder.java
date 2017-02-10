@@ -43,6 +43,7 @@ import io.confluent.kql.parser.tree.GenericLiteral;
 import io.confluent.kql.parser.tree.GroupBy;
 import io.confluent.kql.parser.tree.GroupingElement;
 import io.confluent.kql.parser.tree.GroupingSets;
+import io.confluent.kql.parser.tree.HoppingWindowExpression;
 import io.confluent.kql.parser.tree.InListExpression;
 import io.confluent.kql.parser.tree.InPredicate;
 import io.confluent.kql.parser.tree.Intersect;
@@ -100,6 +101,7 @@ import io.confluent.kql.parser.tree.Union;
 import io.confluent.kql.parser.tree.Values;
 import io.confluent.kql.parser.tree.WhenClause;
 import io.confluent.kql.parser.tree.Window;
+import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.parser.tree.WindowFrame;
 import io.confluent.kql.parser.tree.With;
 import io.confluent.kql.parser.tree.WithQuery;
@@ -272,6 +274,7 @@ public class AstBuilder
               query.getSelect(),
               query.getInto(),
               query.getFrom(),
+              query.getWindowExpression(),
               query.getWhere(),
               query.getGroupBy(),
               query.getHaving(),
@@ -302,6 +305,8 @@ public class AstBuilder
 
     Relation from = (Relation) visit(context.from);
 
+
+
     Select
         select =
         new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()),
@@ -314,6 +319,7 @@ public class AstBuilder
         select,
         Optional.of(into),
         Optional.of(from),
+        visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),
         visitIfPresent(context.having, Expression.class),
@@ -398,6 +404,49 @@ public class AstBuilder
     return selectItems;
   }
 
+//  @Override
+//  public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext ctx) {
+//
+//    return new WindowName(ctx.getText());
+//  }
+
+  @Override
+  public Node visitWindowExpression(SqlBaseParser.WindowExpressionContext ctx) {
+    String windowName = ctx.IDENTIFIER().getText();
+    HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression)
+        visitHoppingWindowExpression(ctx.hoppingWindowExpression());
+
+    return new WindowExpression(windowName, hoppingWindowExpression);
+  }
+
+//  @Override
+//  public Node visitHoppingExpression(SqlBaseParser.HoppingExpressionContext ctx) {
+//    List<SqlBaseParser.NumberContext> numberList = ctx.number();
+//    List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();
+//    String sizeStr = numberList.get(0).getText();
+//    String advanceByStr = numberList.get(1).getText();
+//
+//    String sizeUnit = windowUnits.get(0).getText();
+//    String advanceByUnit = windowUnits.get(1).getText();
+//    HoppingWindowExpression hoppingWindowExpression = new HoppingWindowExpression(Long.parseLong
+//        (sizeStr), WindowExpression.getWindowUnit(sizeUnit), Long.parseLong(advanceByStr),
+//                                                                                  WindowExpression.getWindowUnit(advanceByUnit));
+//    return hoppingWindowExpression;
+//  }
+
+  @Override
+  public Node visitHoppingWindowExpression(SqlBaseParser.HoppingWindowExpressionContext ctx) {
+
+    List<SqlBaseParser.NumberContext> numberList = ctx.number();
+    List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();
+    String sizeStr = numberList.get(0).getText();
+    String advanceByStr = numberList.get(1).getText();
+
+    String sizeUnit = windowUnits.get(0).getText();
+    String advanceByUnit = windowUnits.get(1).getText();
+    HoppingWindowExpression hoppingWindowExpression = new HoppingWindowExpression(Long.parseLong(sizeStr), WindowExpression.getWindowUnit(sizeUnit), Long.parseLong(advanceByStr), WindowExpression.getWindowUnit(advanceByUnit));
+    return hoppingWindowExpression;
+  }
 
   @Override
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
@@ -1031,14 +1080,6 @@ public class AstBuilder
     return new LambdaExpression(arguments, body);
   }
 
-  @Override
-  public Node visitOver(SqlBaseParser.OverContext context) {
-    return new Window(
-        getLocation(context),
-        visit(context.partition, Expression.class),
-        visit(context.sortItem(), SortItem.class),
-        visitIfPresent(context.windowFrame(), WindowFrame.class));
-  }
 
   @Override
   public Node visitTableElement(SqlBaseParser.TableElementContext context) {

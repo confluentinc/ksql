@@ -97,7 +97,8 @@ public class LogicalPlanner {
     }
 
     return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema,
-                             analysis.getSelectExpressions(), analysis.getGroupByExpressions());
+                             analysis.getSelectExpressions(), analysis.getGroupByExpressions(),
+                             analysis.getWindowExpression());
 //    Expression filterExpression = analysis.getWhereExpression();
 //    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }

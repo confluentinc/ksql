@@ -583,10 +583,7 @@ public final class SqlFormatter {
 
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
-        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(),
-                                                    entry -> entry.getKey() + " = "
-                                                             + ExpressionFormatter.formatExpression(
-                                                        entry.getValue())));
+        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(), entry -> entry.getKey() + " = " + ExpressionFormatter.formatExpression(entry.getValue())));
         builder.append(")");
       }
 

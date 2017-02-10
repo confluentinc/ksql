@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.WindowExpression;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -22,19 +23,22 @@ public class AggregateNode extends PlanNode {
   private final Schema schema;
   private final List<Expression> projectExpressions;
   private final List<Expression> groupByExpressions;
+  private final WindowExpression windowExpression;
 
   @JsonCreator
   public AggregateNode(@JsonProperty("id") final PlanNodeId id,
                        @JsonProperty("source") final PlanNode source,
                        @JsonProperty("schema") final Schema schema,
                        @JsonProperty("projectExpressions") final List<Expression> projectExpressions,
-                       @JsonProperty("groupby") final List<Expression> groupByExpressions) {
+                       @JsonProperty("groupby") final List<Expression> groupByExpressions,
+                       @JsonProperty("window") final WindowExpression windowExpression) {
     super(id);
 
     this.source = source;
     this.schema = schema;
     this.projectExpressions = projectExpressions;
     this.groupByExpressions = groupByExpressions;
+    this.windowExpression = windowExpression;
   }
 
   @Override
@@ -62,5 +66,9 @@ public class AggregateNode extends PlanNode {
 
   public List<Expression> getProjectExpressions() {
     return projectExpressions;
+  }
+
+  public WindowExpression getWindowExpression() {
+    return windowExpression;
   }
 }

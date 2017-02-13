@@ -55,6 +55,9 @@ public class KQLEngine {
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
 
+  static final String QUERY_ID_PREFIX = "kql_";
+  int queryIdCounter = 0;
+
   /**
    * Runs the set of queries in the given query string. This method is used when the queries are
    * passed through a file.
@@ -63,7 +66,7 @@ public class KQLEngine {
    * @return
    * @throws Exception
    */
-  public List<QueryMetadata> runMultipleQueries(
+  public List<QueryMetadata> runMultipleQueries( final boolean createNewAppId,
       final String queriesString) throws Exception {
 
     // Parse and AST creation
@@ -71,7 +74,6 @@ public class KQLEngine {
     List<SqlBaseParser.SingleStatementContext>
         parsedStatements =
         kqlParser.getStatements(queriesString);
-    int queryIndex = 0;
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
     for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
@@ -89,8 +91,7 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 intoTable.getName().getSuffix()
         ));
-        queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
-        queryIndex++;
+        queryList.add(new Pair(getNextQueryId(), query));
       } else if (statement instanceof CreateStreamAsSelect) {
         CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
         QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery()
@@ -101,8 +102,7 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 createStreamAsSelect.getName()
                                                                     .getSuffix()));
-        queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
-        queryIndex++;
+        queryList.add(new Pair(getNextQueryId(), query));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
         QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery()
@@ -115,8 +115,7 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 createTableAsSelect.getName()
                                                                     .getSuffix()));
-        queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
-        queryIndex++;
+        queryList.add(new Pair(getNextQueryId(), query));
       } else if (statement instanceof CreateTopic) {
         KQLTopic kqlTopic = ddlEngine.createTopic((CreateTopic) statement);
         if (kqlTopic != null) {
@@ -142,7 +141,7 @@ public class KQLEngine {
     // Physical plan creation from logical plans.
     List<QueryMetadata>
         runningQueries =
-        queryEngine.buildRunPhysicalPlans(false, metaStore, logicalPlans);
+        queryEngine.buildRunPhysicalPlans(createNewAppId, metaStore, logicalPlans);
 
     return runningQueries;
 
@@ -173,67 +172,6 @@ public class KQLEngine {
     return resultStream;
   }
 
-  /**
-   * Runs a single query that was passed as command line parameter
-   *
-   * @param queriyString
-   * @param terminateIn
-   * @throws Exception
-   */
-  public void runCommandLineQuery(final String queriyString, final long terminateIn) throws
-                                                                                   Exception {
-    // Parse and AST creation
-    KQLParser kqlParser = new KQLParser();
-    List<SqlBaseParser.SingleStatementContext>
-        parsedStatements =
-        kqlParser.getStatements(queriyString);
-    int queryIndex = 0;
-    List<Pair<String, Query>> queryList = new ArrayList<>();
-    MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
-      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
-    }
-    for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-      Pair<Statement, DataSourceExtractor>
-          statementInfo =
-          kqlParser.prepareStatement(singleStatementContext, tempMetaStore);
-      Statement statement = statementInfo.getLeft();
-      if (statement instanceof Query) {
-        Query query = (Query) statement;
-        queryList.add(new Pair("KQL_QUERY_" + queryIndex, query));
-        queryIndex++;
-      } else if (statement instanceof CreateTopic) {
-        ddlEngine.createTopic((CreateTopic) statement);
-      } else if (statement instanceof DropTable) {
-        ddlEngine.dropTopic((DropTable) statement);
-      }
-    }
-
-    queryEngine.buildRunSingleConsoleQuery(metaStore, queryList, terminateIn);
-  }
-
-  /**
-   * Runs a single query from the interactive CLI.
-   *
-   * @param queryInfo
-   * @return
-   * @throws Exception
-   */
-  public QueryMetadata runSingleQuery(
-      final Pair<String, Query> queryInfo) throws Exception {
-
-    List<Pair<String, PlanNode>>
-        logicalPlans =
-        queryEngine.buildLogicalPlans(metaStore, Arrays.asList(queryInfo));
-
-    // Physical plan creation from logical plans.
-    List<QueryMetadata>
-        runningQueries =
-        queryEngine.buildRunPhysicalPlans(true, metaStore, logicalPlans);
-    return runningQueries.get(0);
-
-  }
-
   public List<Statement> getStatements(final String sqlString) {
     // First parse the query and build the AST
     KQLParser kqlParser = new KQLParser();
@@ -241,29 +179,6 @@ public class KQLEngine {
     return builtASTStatements;
   }
 
-
-  public void processStatements(final String queryId, final String statementsString)
-      throws Exception {
-    String statementWithSemicolon = statementsString;
-    if (!statementsString.endsWith(";")) {
-      statementWithSemicolon = statementsString + ";";
-    }
-    // Parse the query and build the AST
-    List<Statement> statements = getStatements(statementWithSemicolon);
-    int internalIndex = 0;
-    for (Statement statement : statements) {
-      if (statement instanceof Query) {
-        queryEngine.processQuery(queryId + "_" + internalIndex, (Query) statement, metaStore);
-        internalIndex++;
-      } else if (statement instanceof CreateTable) {
-        ddlEngine.createTopic((CreateTopic) statement);
-        return;
-      } else if (statement instanceof DropTable) {
-        ddlEngine.dropTopic((DropTable) statement);
-        return;
-      }
-    }
-  }
 
   public Query addInto(final Query query, final QuerySpecification querySpecification,
                        final String intoName,
@@ -310,6 +225,13 @@ public class KQLEngine {
     this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaFilePath);
   }
 
+
+  private String getNextQueryId() {
+    String queryId = QUERY_ID_PREFIX + queryIdCounter;
+    queryIdCounter++;
+    return queryId.toUpperCase();
+  }
+
   public KQLEngine(final Map<String, String> kqlConfProperties) throws IOException {
     String schemaPath = kqlConfProperties.get(KQLConfig.CATALOG_FILE_PATH_CONFIG);
     Properties kqlProperties = new Properties();
@@ -330,68 +252,5 @@ public class KQLEngine {
     this.kqlConfig = new KQLConfig(kqlProperties);
     this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaPath);
     this.queryEngine = new QueryEngine(this.kqlConfig);
-  }
-
-  public static void main(String[] args) throws Exception {
-    Map<String, String> kqlConfProperties = new HashMap<>();
-//    kqlConfProperties.put(KQLConfig.SCHEMA_FILE_PATH_CONFIG, "/Users/hojjat/userschema.json");
-    kqlConfProperties.put(KQLConfig.CATALOG_FILE_PATH_CONFIG, "/tmp/order_catalog.json");
-//    kqlConfProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, "/Users/hojjat/kql_config.conf");
-    KQLEngine kqlEngine = new KQLEngine(kqlConfProperties);
-
-    kqlEngine.processStatements("KQL_1", "SELECT *  FROM orders ;");
-
-//    kqlEngine.runCLIQuery("SELECT ordertime AS timeValue, orderid , orderunits%10, lower(itemid)"
-//                           + "  "
-//                           + "FROM orders;"
-//                           + "", -1);
-
-//    kqlEngine.processStatements("KQL_1","SELECT ordertime AS timeValue, orderid , "
-//                                          + "orderunits%10, lcase(itemid) FROM orders");
-
-//    kqlEngine.processStatements("KQL_1","SELECT lcase(itemid) FROM orders");
-
-//    kqlEngine.processStatements("KQL_1","SELECT len(orderid), CAST(substring(itemid,5)  AS "
-//                                          + "INTEGER) FROM orders "
-//                                          + "WHERE "
-//                                          + "itemid "
-//                                          + "LIKE "
-//                                          + "'%5'");
-//    kqlEngine.processStatements("KQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");
-//    kqlEngine.processStatements("KQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10"
-//                                          + " into stream1 FROM orders ;");
-//    kqlEngine.processStatements("KQL_1","SELECT USERID, REGIONID "
-//                                          + "  FROM users where userid = 'User_65';");
-//    kqlEngine.processStatements("KQL_1","SELECT USERID, PAGEID "
-//                                          + "  FROM pageview where userid = 'User_65';");
-
-//    kqlEngine.processStatements("KQL_1","SELECT * "
-//                                          + "  FROM users ;");
-//    kqlEngine.processStatements("KQL_1","SELECT * "
-//                                          + "  FROM orders ;");
-
-//    kqlEngine.processStatements("KQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;");
-
-//        kqlEngine.processStatements("CREATE TOPIC orders ( orderkey bigint, orderstatus varchar, totalprice double, orderdate date)".toUpperCase());
-//        kqlEngine.processStatements("KQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE NOT (orderunits > 5) ;");
-//        kqlEngine.processStatements("KQL_1","SELECT ordertime AS timeValue, orderid , orderunits%10 into stream5 FROM orders WHERE orderid IS NOT NULL ;");
-//        kqlEngine.processStatements("KQL_1", "select o.ordertime+1, o.itemId, orderunits into stream1 from orders o where o.orderunits > 5;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select * into stream1 from orders JOIN shipment ON orderid = shipmentorderid where orderunits > 5;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select u.userid, p.pageid , p.viewtime, regionid into stream3 from  pageview p LEFT JOIN users u ON u.userid = p.userid;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select u.userid, p.userid, p.pageid , p.viewtime, regionid into stream1 from  pageview p JOIN users u ON u.userid = p.userid;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME into stream2 FROM pageview JOIN users ON pageview.USERID = users.USERID;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select USERID, REGIONID into stream8 from users where REGIONID = 'Region_5';".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select USERID, REGIONID, userid = '*****', 12 into stream11 from users;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select * into ktable1 from users;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select * from orders;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select pageview.USERID, users.USERID, PAGEID, REGIONID, VIEWTIME into stream6 FROM pageview LEFT JOIN users ON pageview.USERID = users.USERID;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select ORDERTIME, ITEMID, ORDERUNITS into stream6 from orders where ORDERUNITS > 8 AND ITEMID = 'Item_3';".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select users.userid, pageid, regionid, gender into stream3 from pageview left join users on pageview.userid = users.userid;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "SELECT PAGEVIEW.USERID, PAGEID, REGIONID, GENDER INTO PAGEVIEWJOIN1 FROM PAGEVIEW LEFT JOIN USERS ON PAGEVIEW.USERID = USERS.USERID;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select USERTIME, USERID, REGIONID into stream5 from users;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "select ordertime, itemId, orderunits, '**===*' AS t into stream3 from orders;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "SELECT users.userid AS userid, pageid, regionid, gender INTO enrichedpageview FROM pageview LEFT JOIN users ON pageview.userid = users.userid;".toUpperCase());
-//        kqlEngine.processStatements("KQL_1", "SELECT userid, pageid, regionid, gender INTO region_pageview FROM enrichedpageview WHERE regionid IS NOT NULL AND regionid = 'Region_5';".toUpperCase());
-
   }
 }

@@ -57,8 +57,8 @@ public class KQL {
   LiveQueryMap liveQueries = new LiveQueryMap();
   QueryMetadata cliCurrentQuery = null;
 
-  static final String QUERY_ID_PREFIX = "kql_";
-  int queryIdCounter = 0;
+//  static final String QUERY_ID_PREFIX = "kql_cli_";
+//  int queryIdCounter = 0;
 
   boolean isCLI = true;
 
@@ -130,7 +130,7 @@ public class KQL {
     String queryString = KQLUtil.readQueryFile(queryFilePath);
     List<QueryMetadata>
         runningQueries =
-        kqlEngine.runMultipleQueries(queryString);
+        kqlEngine.runMultipleQueries(false, queryString);
 
   }
 
@@ -298,18 +298,16 @@ public class KQL {
       }
     }
 
-    String queryId = getNextQueryId();
-
     QueryMetadata
         queryPairInfo =
-        kqlEngine.runSingleQuery(new Pair<>(queryId, query));
+        kqlEngine.runMultipleQueries(true, queryString).get(0);
 
     if (queryPairInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
       QueryMetadata
           queryInfo =
           new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLStructuredDataOutputNode)
               queryPairInfo.getQueryOutputNode());
-      liveQueries.put(queryId.toUpperCase(), queryInfo);
+      liveQueries.put(queryPairInfo.getQueryId().toUpperCase(), queryInfo);
     } else if (queryPairInfo.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
       if (cliCurrentQuery != null) {
         console.println("Terminating the currently running console query first. ");
@@ -476,11 +474,6 @@ public class KQL {
     }
   }
 
-  private String getNextQueryId() {
-    String queryId = QUERY_ID_PREFIX + queryIdCounter;
-    queryIdCounter++;
-    return queryId.toUpperCase();
-  }
 
   private static String padRight(String s, int n) {
     return String.format("%1$-" + n + "s", s);
@@ -545,12 +538,15 @@ public class KQL {
       String queryString = cliProperties.get(KQLConfig.QUERY_CONTENT_CONFIG);
       String terminateInStr = cliProperties.get(KQLConfig.QUERY_EXECUTION_TIME_CONFIG);
       long terminateIn;
+      kql.kqlEngine.runMultipleQueries(true, queryString);
       if (terminateInStr == null) {
         terminateIn = -1;
       } else {
         terminateIn = Long.parseLong(terminateInStr);
+        Thread.sleep(terminateIn);
+        System.exit(0);
       }
-      kql.kqlEngine.runCommandLineQuery(queryString, terminateIn);
+
     } else {
       // Start the kql cli?
       if (cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase(KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG)) {
@@ -564,7 +560,6 @@ public class KQL {
 
   class LiveQueryMap {
 
-//    Map<String, Triplet<String, KafkaStreams, KQLStructuredDataOutputNode>> liveQueries = new HashMap<>();
     Map<String, QueryMetadata> liveQueries = new HashMap<>();
 
     public QueryMetadata get(String key) {

@@ -132,7 +132,7 @@ public class QueryEngine {
   }
 
   public List<QueryMetadata> buildRunPhysicalPlans(
-      final boolean isCli, final MetaStore metaStore,
+      final boolean addUniqueTimeSuffix, final MetaStore metaStore,
       final List<Pair<String, PlanNode>> queryLogicalPlans)
       throws Exception {
 
@@ -140,7 +140,7 @@ public class QueryEngine {
 
     for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
       Properties props = new Properties();
-      if (isCli) {
+      if (addUniqueTimeSuffix) {
         props.put(StreamsConfig.APPLICATION_ID_CONFIG,
                   queryLogicalPlan.getLeft() + "_" + System.currentTimeMillis());
       } else {
@@ -197,51 +197,6 @@ public class QueryEngine {
 
     }
     return physicalPlans;
-  }
-
-  public void buildRunSingleConsoleQuery(final MetaStore metaStore,
-                                         final List<Pair<String, Query>> queryList,
-                                         final long terminateIn)
-      throws Exception {
-
-    // Logical plan creation from the ASTs
-    Pair<String, PlanNode> queryLogicalPlan = buildLogicalPlans(metaStore, queryList).get(0);
-
-    Properties props = new Properties();
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG,
-              "KQL_CONSOLE_QUERY_" + queryLogicalPlan.getLeft() + "_" + System
-                  .currentTimeMillis());
-
-    props = initProps(props);
-    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
-    props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
-
-    PlanNode logicalPlan = queryLogicalPlan.getRight();
-    KQLConsoleOutputNode kqlConsoleOutputNode = null;
-    if (logicalPlan instanceof KQLStructuredDataOutputNode) {
-      kqlConsoleOutputNode =
-          new KQLConsoleOutputNode(logicalPlan.getId(),
-                                   ((KQLStructuredDataOutputNode) logicalPlan).getSource(),
-                                   logicalPlan.getSchema());
-    } else {
-      kqlConsoleOutputNode =
-          new KQLConsoleOutputNode(logicalPlan.getId(), logicalPlan, logicalPlan.getSchema());
-    }
-
-    KStreamBuilder builder = new KStreamBuilder();
-
-    //Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-    SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(kqlConsoleOutputNode);
-
-    KafkaStreams streams = new KafkaStreams(builder, props);
-    streams.start();
-
-    if (terminateIn >= 0) {
-      Thread.sleep(terminateIn);
-      streams.close();
-    }
-
   }
 
   private Properties initProps(final Properties props) {

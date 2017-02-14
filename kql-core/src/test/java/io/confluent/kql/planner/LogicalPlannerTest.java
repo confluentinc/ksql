@@ -1,6 +1,5 @@
 package io.confluent.kql.planner;
 
-
 import io.confluent.kql.analyzer.Analysis;
 import io.confluent.kql.analyzer.AnalysisContext;
 import io.confluent.kql.analyzer.Analyzer;

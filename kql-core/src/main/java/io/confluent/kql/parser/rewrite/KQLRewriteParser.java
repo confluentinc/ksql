@@ -45,7 +45,7 @@ public class KQLRewriteParser {
     ParserRuleContext tree;
 
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
 

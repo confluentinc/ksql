@@ -4,9 +4,11 @@
 package io.confluent.kql.structured;
 
 import io.confluent.kql.parser.tree.HoppingWindowExpression;
+import io.confluent.kql.parser.tree.TumblingWindowExpression;
 import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
+import io.confluent.kql.util.KQLException;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
@@ -42,22 +44,32 @@ public class SchemaKGroupedStream {
                                 final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
-    KTable
-        aggKtable;
+    KTable aggKtable;
     if (windowExpression != null) {
-      HoppingWindowExpression hoppingWindowExpression = windowExpression
-          .getHoppingWindowExpression();
-      aggKtable =
-          kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
-                                          hoppingWindowExpression.getSizeUnit()))
-              .advanceBy(getWindowUnitInMillisecond(hoppingWindowExpression.getAdvanceBy(),
-                                          hoppingWindowExpression.getAdvanceByUnit())),
-               topicValueSerDe, storeName);
+      if (windowExpression.getKqlWindowExpression() instanceof TumblingWindowExpression) {
+        TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)windowExpression
+            .getKqlWindowExpression();
+        aggKtable =
+            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of
+                                         (getWindowUnitInMillisecond(tumblingWindowExpression.getSize(),
+                                                                                                        tumblingWindowExpression.getSizeUnit())),
+                                     topicValueSerDe, storeName);
+      } else if (windowExpression.getKqlWindowExpression() instanceof HoppingWindowExpression) {
+        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression)windowExpression
+            .getKqlWindowExpression();
+        aggKtable =
+            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
+                                                                                                        hoppingWindowExpression.getSizeUnit()))
+                                         .advanceBy(getWindowUnitInMillisecond(hoppingWindowExpression.getAdvanceBy(),
+                                                                               hoppingWindowExpression.getAdvanceByUnit())),
+                                     topicValueSerDe, storeName);
+      } else {
+        throw new KQLException("Could not set the window expression for aggregate.");
+      }
     } else {
       aggKtable =
           kGroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
     }
-
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams);
   }
 

@@ -33,7 +33,6 @@ import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.KQLConfig;
-import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.TopicPrinter;
 import io.confluent.kql.util.SchemaUtil;
@@ -344,7 +343,7 @@ public class KQL {
 
   private void listTopics() throws IOException {
     MetaStore metaStore = kqlEngine.getMetaStore();
-    Map<String, KQLTopic> topicMap = metaStore.getAllKafkaTopics();
+    Map<String, KQLTopic> topicMap = metaStore.getAllKQLTopics();
     if (topicMap.isEmpty()) {
       console.println("No topic has been defined yet.");
       return;
@@ -377,7 +376,7 @@ public class KQL {
 
   private void listStreams() throws IOException {
     MetaStore metaStore = kqlEngine.getMetaStore();
-    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSource();
+    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSources();
     if (allDataSources.isEmpty()) {
       console.println("No streams/tables has been defined yet.");
       return;

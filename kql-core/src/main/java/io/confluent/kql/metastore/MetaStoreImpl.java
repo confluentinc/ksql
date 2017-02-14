@@ -8,6 +8,7 @@ import io.confluent.kql.util.KQLException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class MetaStoreImpl implements MetaStore {
 
@@ -45,7 +46,6 @@ public class MetaStoreImpl implements MetaStore {
           "Cannot add the new data source. Another data source with the same name already exists: "
           + dataSource.getName());
     }
-
   }
 
   @Override
@@ -54,12 +54,22 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public Map<String, StructuredDataSource> getAllStructuredDataSource() {
+  public Map<String, StructuredDataSource> getAllStructuredDataSources() {
     return dataSourceMap;
   }
 
   @Override
-  public Map<String, KQLTopic> getAllKafkaTopics() {
+  public Set<String> getAllStructuredDataSourceNames() {
+    return getAllStructuredDataSources().keySet();
+  }
+
+  @Override
+  public Map<String, KQLTopic> getAllKQLTopics() {
     return topicMap;
+  }
+
+  @Override
+  public Set<String> getAllTopicNames() {
+    return getAllKQLTopics().keySet();
   }
 }

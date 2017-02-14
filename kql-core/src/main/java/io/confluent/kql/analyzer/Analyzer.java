@@ -115,37 +115,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
     ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
-    String leftKeyFieldName;
-    String rightKeyFieldName;
-
-    if (comparisonExpression.getLeft() instanceof DereferenceExpression) {
-      DereferenceExpression
-          leftDereferenceExpression =
-          (DereferenceExpression) comparisonExpression.getLeft();
-      leftKeyFieldName = leftDereferenceExpression.getFieldName();
-    } else if (comparisonExpression.getLeft() instanceof QualifiedNameReference) {
-      QualifiedNameReference
-          leftQualifiedNameReference =
-          (QualifiedNameReference) comparisonExpression.getLeft();
-      leftKeyFieldName = leftQualifiedNameReference.getName().getSuffix();
-    } else {
-      throw new KQLException("Join criteria is not supported.");
-    }
-
-    if (comparisonExpression.getRight() instanceof DereferenceExpression) {
-      DereferenceExpression
-          rightDereferenceExpression =
-          (DereferenceExpression) comparisonExpression.getRight();
-      rightKeyFieldName = rightDereferenceExpression.getFieldName();
-    } else if (comparisonExpression.getRight() instanceof QualifiedNameReference) {
-      QualifiedNameReference
-          rightQualifiedNameReference =
-          (QualifiedNameReference) comparisonExpression.getRight();
-      rightKeyFieldName = rightQualifiedNameReference.getName().getSuffix();
-    } else {
-      throw new KQLException("Join criteria is not supported.");
-    }
-
+    String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
+    String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
+    
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
       throw new KQLException("Join criteria is not supported.");
     }
@@ -206,6 +178,22 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                      rightAlias);
     analysis.setJoin(joinNode);
     return null;
+  }
+
+  private String fetchKeyFieldName(Expression expression) {
+    if (expression instanceof DereferenceExpression) {
+      DereferenceExpression
+          leftDereferenceExpression =
+          (DereferenceExpression) expression;
+      return leftDereferenceExpression.getFieldName();
+    } else if (expression instanceof QualifiedNameReference) {
+      QualifiedNameReference
+          leftQualifiedNameReference =
+          (QualifiedNameReference) expression;
+      return leftQualifiedNameReference.getName().getSuffix();
+    } else {
+      throw new KQLException("Join criteria is not supported.");
+    }
   }
 
   @Override

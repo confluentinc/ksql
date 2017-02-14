@@ -85,10 +85,10 @@ public class QueryEngine {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName : metaStore.getAllKafkaTopics().keySet()) {
+    for (String topicName : metaStore.getAllKQLTopics().keySet()) {
       tempMetaStore.putTopic(metaStore.getTopic(topicName));
     }
-    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
 

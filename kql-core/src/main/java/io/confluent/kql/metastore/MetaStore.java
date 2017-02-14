@@ -5,6 +5,7 @@
 package io.confluent.kql.metastore;
 
 import java.util.Map;
+import java.util.Set;
 
 public interface MetaStore {
 
@@ -18,7 +19,11 @@ public interface MetaStore {
 
   public void deleteSource(String sourceName);
 
-  public Map<String, StructuredDataSource> getAllStructuredDataSource();
+  public Map<String, StructuredDataSource> getAllStructuredDataSources();
 
-  public Map<String, KQLTopic> getAllKafkaTopics();
+  public Set<String> getAllStructuredDataSourceNames();
+
+  public Map<String, KQLTopic> getAllKQLTopics();
+
+  public Set<String> getAllTopicNames();
 }

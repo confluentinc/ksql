@@ -97,6 +97,7 @@ import io.confluent.kql.parser.tree.TableSubquery;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.parser.tree.TimeLiteral;
 import io.confluent.kql.parser.tree.TimestampLiteral;
+import io.confluent.kql.parser.tree.TumblingWindowExpression;
 import io.confluent.kql.parser.tree.Union;
 import io.confluent.kql.parser.tree.Values;
 import io.confluent.kql.parser.tree.WhenClause;
@@ -404,35 +405,21 @@ public class AstBuilder
     return selectItems;
   }
 
-//  @Override
-//  public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext ctx) {
-//
-//    return new WindowName(ctx.getText());
-//  }
-
   @Override
   public Node visitWindowExpression(SqlBaseParser.WindowExpressionContext ctx) {
     String windowName = ctx.IDENTIFIER().getText();
-    HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression)
-        visitHoppingWindowExpression(ctx.hoppingWindowExpression());
+    if (ctx.tumblingWindowExpression() != null) {
+      TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
+          visitTumblingWindowExpression(ctx.tumblingWindowExpression());
+      return new WindowExpression(windowName, tumblingWindowExpression);
+    } else if (ctx.hoppingWindowExpression() != null) {
+      HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression)
+          visitHoppingWindowExpression(ctx.hoppingWindowExpression());
 
-    return new WindowExpression(windowName, hoppingWindowExpression);
+      return new WindowExpression(windowName, hoppingWindowExpression);
+    }
+    throw new KQLException("Window description is not correct.");
   }
-
-//  @Override
-//  public Node visitHoppingExpression(SqlBaseParser.HoppingExpressionContext ctx) {
-//    List<SqlBaseParser.NumberContext> numberList = ctx.number();
-//    List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();
-//    String sizeStr = numberList.get(0).getText();
-//    String advanceByStr = numberList.get(1).getText();
-//
-//    String sizeUnit = windowUnits.get(0).getText();
-//    String advanceByUnit = windowUnits.get(1).getText();
-//    HoppingWindowExpression hoppingWindowExpression = new HoppingWindowExpression(Long.parseLong
-//        (sizeStr), WindowExpression.getWindowUnit(sizeUnit), Long.parseLong(advanceByStr),
-//                                                                                  WindowExpression.getWindowUnit(advanceByUnit));
-//    return hoppingWindowExpression;
-//  }
 
   @Override
   public Node visitHoppingWindowExpression(SqlBaseParser.HoppingWindowExpressionContext ctx) {
@@ -446,6 +433,15 @@ public class AstBuilder
     String advanceByUnit = windowUnits.get(1).getText();
     HoppingWindowExpression hoppingWindowExpression = new HoppingWindowExpression(Long.parseLong(sizeStr), WindowExpression.getWindowUnit(sizeUnit), Long.parseLong(advanceByStr), WindowExpression.getWindowUnit(advanceByUnit));
     return hoppingWindowExpression;
+  }
+
+  @Override
+  public Node visitTumblingWindowExpression(SqlBaseParser.TumblingWindowExpressionContext ctx) {
+    String sizeStr = ctx.number().getText();
+    String sizeUnit = ctx.windowUnit().getText();
+    TumblingWindowExpression tumblingWindowExpression = new TumblingWindowExpression(Long
+                                                                                         .parseLong(sizeStr), WindowExpression.getWindowUnit(sizeUnit));
+    return tumblingWindowExpression;
   }
 
   @Override

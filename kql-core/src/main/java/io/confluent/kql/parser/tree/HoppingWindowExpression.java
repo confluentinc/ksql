@@ -6,7 +6,7 @@ package io.confluent.kql.parser.tree;
 import java.util.Objects;
 import java.util.Optional;
 
-public class HoppingWindowExpression extends Node {
+public class HoppingWindowExpression extends KQLWindowExpression {
 
   private final long size;
   private final WindowExpression.WindowUnit sizeUnit;

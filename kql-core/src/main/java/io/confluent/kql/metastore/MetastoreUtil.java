@@ -239,9 +239,9 @@ public class MetastoreUtil {
   public void writeMetastoreToFile(String filePath, MetaStoreImpl metaStore) {
     StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"kql_catalog\",\n ");
 
-    addTopics(stringBuilder, metaStore.getAllKafkaTopics());
+    addTopics(stringBuilder, metaStore.getAllKQLTopics());
     stringBuilder.append("\n\t, \n");
-    addSchemas(stringBuilder, metaStore.getAllStructuredDataSource());
+    addSchemas(stringBuilder, metaStore.getAllStructuredDataSources());
     stringBuilder.append("}");
 
     try {

@@ -26,7 +26,6 @@ import io.confluent.kql.parser.tree.CreateStream;
 import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
-import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
@@ -42,11 +41,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.Map;
-import java.util.Arrays;
 
 public class KQLEngine {
 
@@ -66,7 +63,7 @@ public class KQLEngine {
    * @return
    * @throws Exception
    */
-  public List<QueryMetadata> runMultipleQueries( final boolean createNewAppId,
+  public List<QueryMetadata> runMultipleQueries(final boolean createNewAppId,
       final String queriesString) throws Exception {
 
     // Parse and AST creation
@@ -76,7 +73,7 @@ public class KQLEngine {
         kqlParser.getStatements(queriesString);
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllStructuredDataSource().keySet()) {
+    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
@@ -207,10 +204,6 @@ public class KQLEngine {
 
   public MetaStore getMetaStore() {
     return metaStore;
-  }
-
-  public QueryEngine getQueryEngine() {
-    return queryEngine;
   }
 
   public DDLEngine getDdlEngine() {

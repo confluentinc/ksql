@@ -217,7 +217,7 @@ public class MetastoreUtil {
           .append("\t\t\t \"topic\": \"" + structuredDataSource.getKqlTopic().getName() + "\", \n");
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
-        stringBuilder.append("\t\t\t \"statestore\": \"users_statestore\", \n");
+        stringBuilder.append("\t\t\t \"statestore\": \"" + kqlTable.getStateStoreName() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;

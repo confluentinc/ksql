@@ -395,7 +395,7 @@ public class KQL {
       }
     }
     if (streamsInfo.isEmpty()) {
-      console.println("No tables have been defined yet.");
+      console.println("No streams have been defined yet.");
       return;
     }
     console.println(

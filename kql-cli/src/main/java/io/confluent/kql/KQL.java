@@ -267,7 +267,9 @@ public class KQL {
     console.println(
         "list topics           .................... Show the list of available topics.");
     console.println(
-            "list streams           .................... Show the list of available streams/tables.");
+        "list streams           .................... Show the list of available streams.");
+    console.println(
+        "list tables           .................... Show the list of available tables.");
     console.println(
         "describe <stream/table name> .................... Show the schema of the given stream/table.");
     console.println("show queries          .................... Show the list of running queries.");

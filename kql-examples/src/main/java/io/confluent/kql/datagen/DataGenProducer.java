@@ -4,7 +4,7 @@
 
 package io.confluent.kql.datagen;
 
-import com.wepay.avro.random.generator.Generator;
+import io.confluent.avro.random.generator.Generator;
 
 import io.confluent.kql.physical.GenericRow;
 

@@ -18,6 +18,13 @@
         <cli.main-class>${main-class}</cli.main-class>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>nexus-snapshot</id>
+            <url>https://nexus.confluent.io/repository/maven-snapshots</url>
+        </repository>
+    </repositories>
+
     <dependencies>
 
         <dependency>
@@ -27,9 +34,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.wepay.avro</groupId>
+            <groupId>io.confluent.avro</groupId>
             <artifactId>random-generator</artifactId>
-            <version>0.1</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

@@ -3,7 +3,7 @@
  **/
 package io.confluent.kql.datagen;
 
-import com.wepay.avro.random.generator.Generator;
+import io.confluent.avro.random.generator.Generator;
 
 import java.io.File;
 import java.io.IOException;

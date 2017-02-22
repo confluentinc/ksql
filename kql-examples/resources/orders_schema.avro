@@ -1,9 +1,9 @@
 {
         "namespace": "kql",
-        "name": "users",
+        "name": "orders",
         "type": "record",
         "fields": [
-                {"name": "registertime", "type": {
+                {"name": "ORDERTIME", "type": {
                     "type": "long",
                     "arg.properties": {
                         "range": {
@@ -12,7 +12,7 @@
                         }
                     }
                 }},
-                {"name": "userid", "type": {
+                {"name": "ORDERID", "type": {
                     "type": "int",
                     "arg.properties": {
                         "iteration": {
@@ -20,20 +20,19 @@
                         }
                     }
                 }},
-                {"name": "regionid", "type": {
+                {"name": "ITEMID", "type": {
                     "type": "string",
                     "arg.properties": {
-                        "regex": "Region_[1-9][0-9]?"
+                        "regex": "Item_[1-9][0-9]{0,2}"
                     }
                 }},
-                {"name": "gender", "type": {
-                    "type": "string",
+                {"name": "ORDERUNITS", "type": {
+                    "type": "double",
                     "arg.properties": {
-                        "options": [
-                            "MALE",
-                            "FEMALE",
-                            "OTHER"
-                        ]
+                        "range": {
+                            "min": 0.1,
+                            "max": 10.0
+                        }
                     }
                 }}
         ]

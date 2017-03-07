@@ -43,7 +43,7 @@ public class AvroConsumer {
   private static Serde<GenericRow> getGenericRowSerde() {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
-      serdeProps.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+      serdeProps.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
       final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer();
       genericRowSerializer.configure(serdeProps, false);

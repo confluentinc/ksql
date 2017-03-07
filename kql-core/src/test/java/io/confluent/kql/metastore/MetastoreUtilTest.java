@@ -14,7 +14,7 @@ public class MetastoreUtilTest {
   @Test
   public void testMetastoreLoadingFromFile() throws Exception {
 
-    MetaStore metaStore = new MetastoreUtil().loadMetastoreFromJSONFile
+    MetaStore metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile
         ("src/test/resources/TestCatalog.json");
     Assert.assertNotNull(metaStore.getTopic("ORDERS_TOPIC"));
     Assert.assertNotNull(metaStore.getTopic("USERS_TOPIC"));

@@ -43,7 +43,10 @@ import jline.console.completer.AnsiStringsCompleter;
 
 import org.apache.kafka.connect.data.Field;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,20 +57,17 @@ public class KQL {
 
   KQLEngine kqlEngine;
   LiveQueryMap liveQueries = new LiveQueryMap();
+  KQLConfig config;
   QueryMetadata cliCurrentQuery = null;
 
-//  static final String QUERY_ID_PREFIX = "kql_cli_";
-//  int queryIdCounter = 0;
-
   boolean isCLI = true;
-
-  Map<String, String> cliProperties = null;
 
   ConsoleReader console = null;
 
   public void startConsole() throws Exception {
     try {
       console = new ConsoleReader();
+      console.setExpandEvents(false); // Otherwise, the '!=' operator is handled incorrectly
       console.setPrompt("kql> ");
       console.println("=========================================================================");
       console.println("KQL (Kafka Query Language) 0.0.1");
@@ -86,9 +86,9 @@ public class KQL {
           for (String runningQueryId : liveQueries.keySet()) {
             liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
           }
-          console.println("");
+          console.println();
           console.println("Goodbye!");
-          console.println("");
+          console.println();
           console.flush();
           console.close();
           System.exit(0);
@@ -97,7 +97,11 @@ public class KQL {
           continue;
         } else if (line.trim().equalsIgnoreCase("close")) {
           if (cliCurrentQuery != null) {
+            console.println("Terminating the currently-running console query");
             cliCurrentQuery.getQueryKafkaStreams().close();
+            cliCurrentQuery = null;
+          } else {
+            console.println("There is no currently-running console query to terminate");
           }
           continue;
         }
@@ -309,14 +313,14 @@ public class KQL {
       liveQueries.put(queryPairInfo.getQueryId().toUpperCase(), queryInfo);
     } else if (queryPairInfo.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
       if (cliCurrentQuery != null) {
-        console.println("Terminating the currently running console query first. ");
+        console.println("Terminating the currently-running console query first");
         cliCurrentQuery.getQueryKafkaStreams().close();
       }
       cliCurrentQuery = new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLConsoleOutputNode)
           queryPairInfo.getQueryOutputNode());
     }
     if (isCLI) {
-      console.println("");
+      console.println();
     }
   }
 
@@ -422,7 +426,7 @@ public class KQL {
     }
     console.println("TOPIC: " + name.toUpperCase() + "    Key: " + dataSource.getKeyField().name()
                     + "    Type: " + dataSource.getDataSourceType());
-    console.println("");
+    console.println();
     console.println(
         "      Column       |         Type         |                   Comment                   ");
     console.println(
@@ -458,7 +462,7 @@ public class KQL {
   }
 
   private void printTopic(final KQLTopic kqlTopic, final long interval) throws IOException {
-    new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, this.cliProperties);
+    new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, this.config);
   }
 
   private void exportCatalog(final String filePath) {
@@ -478,83 +482,54 @@ public class KQL {
     return String.format("%1$-" + n + "s", s);
   }
 
-  private KQL(Map<String, String> cliProperties) throws IOException {
-    this.cliProperties = cliProperties;
-
-    kqlEngine = new KQLEngine(cliProperties);
+  private KQL(MetaStore metaStore, KQLConfig config) throws IOException {
+    this.config = config;
+    kqlEngine = new KQLEngine(metaStore, config);
   }
 
-  private static void printUsageFromatMessage() {
-
-    System.err.println("Incorrect format: ");
-    System.err.println("Usage: ");
-    System.err.println(
-        " kql [" + KQLConfig.QUERY_FILE_PATH_CONFIG + "=<cli|path to query file> ] ["
-        + KQLConfig.CATALOG_FILE_PATH_CONFIG + "=<path to catalog json file>] ["
-        + KQLConfig.PROP_FILE_PATH_CONFIG + "=<path to the properties file>]");
-  }
-
-  private static void loadDefaultSettings(Map<String, String> cliProperties) {
-    cliProperties.put(KQLConfig.QUERY_FILE_PATH_CONFIG, KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG);
-    cliProperties
-        .put(KQLConfig.CATALOG_FILE_PATH_CONFIG, KQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG);
-    cliProperties.put(KQLConfig.PROP_FILE_PATH_CONFIG, KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG);
-    cliProperties.put(KQLConfig.AVRO_SCHEMA_FOLDER_PATH_CONFIG, KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG);
-
-  }
 
   public static void main(String[] args)
       throws Exception {
-    Map<String, String> cliProperties = new HashMap<>();
-    loadDefaultSettings(cliProperties);
-    // For now only pne parameter for CLI
-    if (args.length > 3) {
-      printUsageFromatMessage();
-      System.exit(0);
+    CLIOptions cliOptions = CLIOptions.parse(args);
+
+    if (cliOptions == null) {
+      return;
     }
 
-    for (String propertyStr : args) {
-      if (!propertyStr.contains("=")) {
-        printUsageFromatMessage();
-        System.exit(0);
-      }
-      String[] property = propertyStr.split("=");
-      if (property[0].equalsIgnoreCase(KQLConfig.QUERY_FILE_PATH_CONFIG) || property[0]
-          .equalsIgnoreCase(KQLConfig.PROP_FILE_PATH_CONFIG)
-          || property[0].equalsIgnoreCase(KQLConfig.CATALOG_FILE_PATH_CONFIG) || property[0]
-              .equalsIgnoreCase(KQLConfig.QUERY_CONTENT_CONFIG) || property[0]
-              .equalsIgnoreCase(KQLConfig.QUERY_EXECUTION_TIME_CONFIG)) {
-        cliProperties.put(property[0], property[1]);
-      } else {
-        printUsageFromatMessage();
-      }
-    }
+    Map<String, Object> kqlProperties = CLIOptions.getPropertiesMap(cliOptions.getStreamsPropertiesFile());
 
-    KQL kql = new KQL(cliProperties);
-
-    // Run one query received as commandline parameter.
-    if (cliProperties.get(KQLConfig.QUERY_CONTENT_CONFIG) != null) {
-      String queryString = cliProperties.get(KQLConfig.QUERY_CONTENT_CONFIG);
-      String terminateInStr = cliProperties.get(KQLConfig.QUERY_EXECUTION_TIME_CONFIG);
-      long terminateIn;
-      kql.kqlEngine.runMultipleQueries(true, queryString);
-      if (terminateInStr == null) {
-        terminateIn = -1;
-      } else {
-        terminateIn = Long.parseLong(terminateInStr);
-        Thread.sleep(terminateIn);
-        System.exit(0);
-      }
-
+    MetaStore metaStore;
+    File catalogFile = cliOptions.getCatalogFile();
+    if (catalogFile != null) {
+      metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile(catalogFile.getAbsolutePath());
     } else {
-      // Start the kql cli?
-      if (cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG).equalsIgnoreCase(KQLConfig.DEFAULT_QUERY_FILE_PATH_CONFIG)) {
-        kql.startConsole();
-      } else { // Use the query file to run the queries.
-        kql.isCLI = false;
-        kql.runQueriesFromFile(cliProperties.get(KQLConfig.QUERY_FILE_PATH_CONFIG));
-      }
+      metaStore = new MetaStoreImpl();
     }
+
+    KQL kql = new KQL(metaStore, new KQLConfig(kqlProperties));
+
+    String queries = cliOptions.getQueries();
+    if (queries != null) {
+      kql.kqlEngine.runMultipleQueries(true, queries);
+      Long queryTime = cliOptions.getQueryTime();
+      if (queryTime != null) {
+        Thread.sleep(queryTime);
+      }
+      return;
+    }
+
+    File queryFile = cliOptions.getQueryFile();
+    if (queryFile != null) {
+      kql.isCLI = false;
+      kql.runQueriesFromFile(queryFile.getAbsolutePath());
+      Long queryTime = cliOptions.getQueryTime();
+      if (queryTime != null) {
+        Thread.sleep(queryTime);
+      }
+      return;
+    }
+
+    kql.startConsole();
   }
 
   class LiveQueryMap {

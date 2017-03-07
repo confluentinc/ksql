@@ -9,7 +9,6 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.KQLTable;
-import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.SqlBaseParser;
@@ -33,16 +32,12 @@ import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.QueryMetadata;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.Map;
 
 public class KQLEngine {
@@ -210,40 +205,16 @@ public class KQLEngine {
     return ddlEngine;
   }
 
-  public KQLConfig getKqlConfig() {
-    return kqlConfig;
-  }
-
-  public KQLEngine(final String schemaFilePath) throws IOException {
-    this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaFilePath);
-  }
-
-
   private String getNextQueryId() {
     String queryId = QUERY_ID_PREFIX + queryIdCounter;
     queryIdCounter++;
     return queryId.toUpperCase();
   }
 
-  public KQLEngine(final Map<String, String> kqlConfProperties) throws IOException {
-    String schemaPath = kqlConfProperties.get(KQLConfig.CATALOG_FILE_PATH_CONFIG);
-    Properties kqlProperties = new Properties();
-    kqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, "KQL-Default-" + System.currentTimeMillis());
-    kqlProperties
-        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
-    kqlProperties
-        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
-    if (!kqlConfProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)
-        .equalsIgnoreCase(KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
-      FileReader fileReader = new FileReader(kqlConfProperties.get(KQLConfig
-                                                                       .PROP_FILE_PATH_CONFIG));
-      kqlProperties.load(fileReader);
-      fileReader.close();
-    }
+  public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {
 
-    this.kqlConfig = new KQLConfig(kqlProperties);
-    this.metaStore = new MetastoreUtil().loadMetastoreFromJSONFile(schemaPath);
-    this.queryEngine = new QueryEngine(this.kqlConfig);
+    this.kqlConfig = kqlConfig;
+    this.metaStore = metaStore;
+    this.queryEngine = new QueryEngine(kqlConfig);
   }
 }

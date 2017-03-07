@@ -30,7 +30,6 @@ import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -39,11 +38,11 @@ import org.apache.kafka.streams.kstream.KStreamBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 public class QueryEngine {
 
-  KQLConfig kqlConfig;
+  private KQLConfig kqlConfig;
 
   public QueryEngine(final KQLConfig kqlConfig) {
     this.kqlConfig = kqlConfig;
@@ -61,11 +60,22 @@ public class QueryEngine {
     // Build a logical plan
     PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
 
-    Properties props = new Properties();
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId + "-" + System.currentTimeMillis());
-    props = initProps(props);
-    props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
-    props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+    Map<String, Object> streamsProperties = kqlConfig.originals();
+
+    streamsProperties.put(
+        StreamsConfig.APPLICATION_ID_CONFIG,
+        queryId + "-" + System.currentTimeMillis()
+    );
+
+    streamsProperties.put(
+        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        0
+    );
+
+    streamsProperties.put(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+        0
+    );
 
     KStreamBuilder builder = new KStreamBuilder();
 
@@ -73,7 +83,7 @@ public class QueryEngine {
     PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
-    KafkaStreams streams = new KafkaStreams(builder, props);
+    KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
     streams.start();
 
     return new Pair<>(streams, physicalPlanBuilder.getPlanSink());
@@ -139,17 +149,29 @@ public class QueryEngine {
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
     for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
-      Properties props = new Properties();
+      Map<String, Object> streamsProperties = kqlConfig.originals();
+
       if (addUniqueTimeSuffix) {
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG,
-                  queryLogicalPlan.getLeft() + "_" + System.currentTimeMillis());
+        streamsProperties.put(
+            StreamsConfig.APPLICATION_ID_CONFIG,
+            queryLogicalPlan.getLeft() + "_" + System.currentTimeMillis()
+        );
       } else {
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryLogicalPlan.getLeft());
+        streamsProperties.put(
+            StreamsConfig.APPLICATION_ID_CONFIG,
+            queryLogicalPlan.getLeft()
+        );
       }
 
-      props = initProps(props);
-      props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
-      props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
+      streamsProperties.put(
+          StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+          0
+      );
+
+      streamsProperties.put(
+          StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+          0
+      );
 
       KStreamBuilder builder = new KStreamBuilder();
 
@@ -159,7 +181,7 @@ public class QueryEngine {
           schemaKStream =
           physicalPlanBuilder.buildPhysicalPlan(queryLogicalPlan.getRight());
 
-      KafkaStreams streams = new KafkaStreams(builder, props);
+      KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
       streams.start();
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -197,28 +219,6 @@ public class QueryEngine {
 
     }
     return physicalPlans;
-  }
-
-  private Properties initProps(final Properties props) {
-
-    if ((kqlConfig.getList(KQLConfig.BOOTSTRAP_SERVERS_CONFIG) != null) && (!kqlConfig
-        .getList(KQLConfig.BOOTSTRAP_SERVERS_CONFIG).isEmpty())) {
-      props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-                kqlConfig.getList(KQLConfig.BOOTSTRAP_SERVERS_CONFIG));
-    } else {
-      props
-          .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
-    }
-
-    if (kqlConfig.values().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) != null) {
-      props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                kqlConfig.getString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
-    } else {
-      // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-      props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                KQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
-    }
-    return props;
   }
 
   public StructuredDataSource getResultDatasource(final Select select, final String name) {

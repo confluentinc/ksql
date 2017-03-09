@@ -89,7 +89,7 @@ public class QueryEngine {
     }
 
     for (Pair<String, Query> query : queryList) {
-      // Analyze the query to resolve the references and extract oeprations
+      // Analyze the query to resolve the references and extract operations
       Analysis analysis = new Analysis();
       Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
       analyzer.process(query.getRight(), new AnalysisContext(null, null));

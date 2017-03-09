@@ -52,7 +52,7 @@ public class QueryEngine {
                                                      final MetaStore metaStore)
       throws Exception {
 
-    // Analyze the query to resolve the references and extract oeprations
+    // Analyze the query to resolve the references and extract operations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(queryNode, new AnalysisContext(null, null));
@@ -60,22 +60,8 @@ public class QueryEngine {
     // Build a logical plan
     PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
 
-    Map<String, Object> streamsProperties = kqlConfig.originals();
-
-    streamsProperties.put(
-        StreamsConfig.APPLICATION_ID_CONFIG,
-        queryId + "-" + System.currentTimeMillis()
-    );
-
-    streamsProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        0
-    );
-
-    streamsProperties.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        0
-    );
+    String applicationId = queryId + "_" + System.currentTimeMillis();
+    Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
 
     KStreamBuilder builder = new KStreamBuilder();
 
@@ -149,29 +135,11 @@ public class QueryEngine {
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
     for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
-      Map<String, Object> streamsProperties = kqlConfig.originals();
-
+      String applicationId = queryLogicalPlan.getLeft();
       if (addUniqueTimeSuffix) {
-        streamsProperties.put(
-            StreamsConfig.APPLICATION_ID_CONFIG,
-            queryLogicalPlan.getLeft() + "_" + System.currentTimeMillis()
-        );
-      } else {
-        streamsProperties.put(
-            StreamsConfig.APPLICATION_ID_CONFIG,
-            queryLogicalPlan.getLeft()
-        );
+        applicationId += "_" + System.currentTimeMillis();
       }
-
-      streamsProperties.put(
-          StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-          0
-      );
-
-      streamsProperties.put(
-          StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-          0
-      );
+      Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
 
       KStreamBuilder builder = new KStreamBuilder();
 

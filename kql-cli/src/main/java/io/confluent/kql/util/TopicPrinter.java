@@ -26,22 +26,8 @@ public class TopicPrinter {
 
     KStreamBuilder builder = new KStreamBuilder();
 
-    Map<String, Object> streamsProperties = config.originals();
-
-    streamsProperties.put(
-        StreamsConfig.APPLICATION_ID_CONFIG,
-        kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis()
-    );
-
-    streamsProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        0
-    );
-
-    streamsProperties.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        0
-    );
+    String applicationId = kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis();
+    Map<String, Object> streamsProperties = config.getResetStreamsProperties(applicationId);
 
     KStream<String, GenericRow>
         source =

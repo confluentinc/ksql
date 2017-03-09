@@ -20,4 +20,21 @@ public class KQLConfig extends AbstractConfig {
   protected KQLConfig(ConfigDef config, Map<?, ?> props) {
     super(config, props);
   }
+
+  public Map<String, Object> getResetStreamsProperties(String applicationId) {
+    Map<String, Object> result = originals();
+    result.put(
+        StreamsConfig.APPLICATION_ID_CONFIG,
+        applicationId
+    );
+    result.put(
+        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        0
+    );
+    result.put(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+        0
+    );
+    return result;
+  }
 }

@@ -7,9 +7,21 @@
         <groupId>KQL</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>kql-build-tools</artifactId>
+    <version>1.0-SNAPSHOT</version>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>confluent-nexus-snapshot</id>
+            <url>https://nexus.confluent.io/repository/maven-snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>confluent-nexus-central</id>
+            <url>https://nexus.confluent.io/repository/maven-public</url>
+        </repository>
+    </distributionManagement>
 
 </project>

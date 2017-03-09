@@ -20,6 +20,10 @@
             <id>confluent</id>
             <url>http://packages.confluent.io/maven/</url>
         </repository>
+        <repository>
+            <id>nexus-snapshot</id>
+            <url>https://nexus.confluent.io/repository/maven-snapshots</url>
+        </repository>
     </repositories>
 
     <dependencies>

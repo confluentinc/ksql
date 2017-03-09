@@ -10,43 +10,39 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
-import io.confluent.kql.parser.tree.Statement;
-import io.confluent.kql.parser.tree.Query;
-import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.CreateStream;
-import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.CreateTableAsSelect;
-import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.ExportCatalog;
-import io.confluent.kql.parser.tree.ShowQueries;
-import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.ListStreams;
-import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.TerminateQuery;
-import io.confluent.kql.parser.tree.PrintTopic;
-import io.confluent.kql.parser.tree.SetProperty;
+import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.LoadProperties;
+import io.confluent.kql.parser.tree.PrintTopic;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.SetProperty;
+import io.confluent.kql.parser.tree.ShowColumns;
+import io.confluent.kql.parser.tree.ShowQueries;
+import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.Table;
-import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.KQLConfig;
-import io.confluent.kql.util.QueryMetadata;
-import io.confluent.kql.util.TopicPrinter;
-import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.KQLUtil;
+import io.confluent.kql.util.QueryMetadata;
+import io.confluent.kql.util.SchemaUtil;
+import io.confluent.kql.util.TopicPrinter;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
-
 import org.apache.kafka.connect.data.Field;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -490,18 +486,18 @@ public class KQL {
 
   public static void main(String[] args)
       throws Exception {
-    CLIOptions cliOptions = CLIOptions.parse(args);
 
+    CLIOptions cliOptions = CLIOptions.parse(args);
     if (cliOptions == null) {
       return;
     }
 
-    Map<String, Object> kqlProperties = CLIOptions.getPropertiesMap(cliOptions.getStreamsPropertiesFile());
+    Map<String, Object> kqlProperties = CLIOptions.getPropertiesMap(cliOptions.getPropertiesFile());
 
     MetaStore metaStore;
-    File catalogFile = cliOptions.getCatalogFile();
+    String catalogFile = cliOptions.getCatalogFile();
     if (catalogFile != null) {
-      metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile(catalogFile.getAbsolutePath());
+      metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile(catalogFile);
     } else {
       metaStore = new MetaStoreImpl();
     }
@@ -518,10 +514,10 @@ public class KQL {
       return;
     }
 
-    File queryFile = cliOptions.getQueryFile();
+    String queryFile = cliOptions.getQueryFile();
     if (queryFile != null) {
       kql.isCLI = false;
-      kql.runQueriesFromFile(queryFile.getAbsolutePath());
+      kql.runQueriesFromFile(queryFile);
       Long queryTime = cliOptions.getQueryTime();
       if (queryTime != null) {
         Thread.sleep(queryTime);

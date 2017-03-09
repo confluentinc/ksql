@@ -101,7 +101,7 @@ public class CLIOptions {
       return optionsParser.parse(ass);
     } catch (ParseException exception) {
       if (exception.getMessage() != null) {
-        System.err.print(exception.getMessage());
+        System.err.println(exception.getMessage());
       } else {
         System.err.println("Options parsing failed for an unknown reason");
       }

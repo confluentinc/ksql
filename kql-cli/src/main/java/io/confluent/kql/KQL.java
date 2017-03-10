@@ -21,6 +21,7 @@ import io.confluent.kql.parser.tree.QuerySpecification;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.ExportCatalog;
 import io.confluent.kql.parser.tree.ShowQueries;
+import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ShowColumns;
@@ -45,6 +46,7 @@ import org.apache.kafka.connect.data.Field;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -184,6 +186,9 @@ public class KQL {
       } else if (statement instanceof ListStreams) {
         listStreams();
         return;
+      } else if (statement instanceof ListTables) {
+        listTables();
+        return;
       } else if (statement instanceof ShowColumns) {
         ShowColumns showColumns = (ShowColumns) statement;
         showColumns(showColumns.getTable().getSuffix().toUpperCase());
@@ -262,7 +267,9 @@ public class KQL {
     console.println(
         "list topics           .................... Show the list of available topics.");
     console.println(
-            "list streams           .................... Show the list of available streams/tables.");
+        "list streams           .................... Show the list of available streams.");
+    console.println(
+        "list tables           .................... Show the list of available tables.");
     console.println(
         "describe <stream/table name> .................... Show the schema of the given stream/table.");
     console.println("show queries          .................... Show the list of running queries.");
@@ -377,39 +384,62 @@ public class KQL {
   private void listStreams() throws IOException {
     MetaStore metaStore = kqlEngine.getMetaStore();
     Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSources();
-    if (allDataSources.isEmpty()) {
-      console.println("No streams/tables has been defined yet.");
-      return;
-    }
-    console.println(
-        "         Name               |               KQL Topic                |             Topic"
-        + " Key          |     Topic Type     |          Topic Format           "
-        + "      ");
-    console.println(
-        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
+    List<String> streamsInfo = new LinkedList<>();
     for (String datasourceName : allDataSources.keySet()) {
       StructuredDataSource dataSource = allDataSources.get(datasourceName);
       if (dataSource instanceof KQLStream) {
         KQLStream kqlStream = (KQLStream) dataSource;
-        console.println(
+        streamsInfo.add(
             " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKqlTopic()
-                                                                      .getName().toUpperCase(), 38)
+                                                                         .getName().toUpperCase(), 38)
             + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
-            + padRight(kqlStream.getDataSourceType().toString(), 16) + "|          "
-            + padRight(kqlStream.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
-      } else if (dataSource instanceof KQLTable) {
-        KQLTable kqlTable = (KQLTable) dataSource;
-        console.println(
-            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKqlTopic().getName(), 38)
-            + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
-            + padRight(kqlTable.getDataSourceType().toString(), 16) + "|          "
-            + padRight(kqlTable.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 30));
+            + padRight(kqlStream.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 28));
       }
-
+    }
+    if (streamsInfo.isEmpty()) {
+      console.println("No streams have been defined yet.");
+      return;
     }
     console.println(
-        "----------------------------+----------------------------------------+--------------------------------+--------------------+-------------------------------------");
-    console.println("( " + allDataSources.size() + " rows)");
+            "         Name               |               KQL Topic                |             Topic"
+                    + " Key          |          Topic Format           ");
+    for (String tableInfo : streamsInfo) {
+      console.println(tableInfo);
+    }
+    console.println(
+            "----------------------------+----------------------------------------+--------------------------------+--------------------------------");
+    console.println("(" + streamsInfo.size() + " streams)");
+    console.flush();
+  }
+
+  private void listTables() throws IOException {
+    MetaStore metaStore = kqlEngine.getMetaStore();
+    Map<String, StructuredDataSource> allDataSources = metaStore.getAllStructuredDataSources();
+    List<String> tablesInfo = new LinkedList<>();
+    for (String datasourceName : allDataSources.keySet()) {
+      StructuredDataSource dataSource = allDataSources.get(datasourceName);
+      if (dataSource instanceof KQLTable) {
+        KQLTable kqlTable = (KQLTable) dataSource;
+        tablesInfo.add(
+            " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKqlTopic().getName(), 38)
+            + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
+            + padRight(kqlTable.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 28) + "|    "
+            + padRight(kqlTable.getStateStoreName(), 30));
+      }
+    }
+    if (tablesInfo.isEmpty()) {
+      console.println("No tables have been defined yet.");
+      return;
+    }
+    console.println(
+            "         Name               |               KQL Topic                |             Topic"
+                    + " Key          |          Topic Format          |            Statestore            ");
+    for (String tableInfo : tablesInfo) {
+      console.println(tableInfo);
+    }
+    console.println(
+            "----------------------------+----------------------------------------+--------------------------------+--------------------------------+----------------------------------");
+    console.println("(" + tablesInfo.size() + " tables)");
     console.flush();
   }
 

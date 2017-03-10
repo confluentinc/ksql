@@ -3,7 +3,6 @@
  **/
 package io.confluent.kql.metastore;
 
-import io.confluent.kql.serde.csv.KQLCsvTopicSerDe;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -22,7 +21,7 @@ public class MetastoreUtilTest {
   @Test
   public void testMetastoreLoadingFromFile() throws Exception {
 
-    MetaStore metaStore = new MetastoreUtil().loadMetastoreFromJSONFile
+    MetaStore metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile
         (TEST_RESOURCES_DIRECTORY + "TestCatalog.json");
     Assert.assertNotNull(metaStore.getTopic("ORDERS_TOPIC"));
     Assert.assertNotNull(metaStore.getTopic("USERS_TOPIC"));
@@ -101,7 +100,7 @@ public class MetastoreUtilTest {
     expectedMetaStore.putSource(new KQLStream(streamSourceName, streamSchema, streamKey, topic));
 
     metastoreUtil.writeMetastoreToFile(testCatalogFile.getAbsolutePath(), expectedMetaStore);
-    MetaStore testMetaStore = metastoreUtil.loadMetastoreFromJSONFile(testCatalogFile.getAbsolutePath());
+    MetaStore testMetaStore = metastoreUtil.loadMetaStoreFromJSONFile(testCatalogFile.getAbsolutePath());
 
     Assert.assertNotNull(testMetaStore.getTopic(topicName));
     Assert.assertNotNull(testMetaStore.getSource(tableSourceName));

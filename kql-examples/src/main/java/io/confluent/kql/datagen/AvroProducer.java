@@ -41,7 +41,7 @@ public class AvroProducer {
 
     KQLGenericRowAvroSerializer kqlGenericRowAvroSerializer = new KQLGenericRowAvroSerializer();
     Map map = new HashMap();
-    map.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    map.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
@@ -104,7 +104,7 @@ public class AvroProducer {
 
     KQLGenericRowAvroSerializer kqlGenericRowAvroSerializer = new KQLGenericRowAvroSerializer();
     Map map = new HashMap();
-    map.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    map.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
@@ -164,7 +164,7 @@ public class AvroProducer {
 
     KQLGenericRowAvroSerializer kqlGenericRowAvroSerializer = new KQLGenericRowAvroSerializer();
     Map map = new HashMap();
-    map.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    map.put(kqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
@@ -227,7 +227,7 @@ public class AvroProducer {
 
     KQLGenericRowAvroSerializer kqlGenericRowAvroSerializer = new KQLGenericRowAvroSerializer();
     Map map = new HashMap();
-    map.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    map.put(kqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>
@@ -295,7 +295,7 @@ public class AvroProducer {
 
     KQLGenericRowAvroSerializer kqlGenericRowAvroSerializer = new KQLGenericRowAvroSerializer();
     Map map = new HashMap();
-    map.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    map.put(kqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
     kqlGenericRowAvroSerializer.configure(map, false);
 
     final KafkaProducer<String, GenericRow>

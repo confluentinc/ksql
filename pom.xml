@@ -12,7 +12,6 @@
         <module>kql-core</module>
         <module>kql-cli</module>
         <module>kql-examples</module>
-        <module>kql-build-tools</module>
     </modules>
     
     <repositories>
@@ -38,12 +37,6 @@
             <!--<version>0.10.1.0</version>-->
             <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>javax.inject</groupId>-->
-            <!--<artifactId>javax.inject</artifactId>-->
-            <!--<version>1</version>-->
-        <!--</dependency>-->
 
         <!-- https://mvnrepository.com/artifact/io.airlift/slice -->
         <dependency>
@@ -80,23 +73,6 @@
 
     <build>
         <plugins>
-            <!--<plugin>-->
-                <!--<groupId>org.antlr</groupId>-->
-                <!--<artifactId>antlr4-maven-plugin</artifactId>-->
-                <!--<version>4.5.3</version>-->
-                <!--<configuration>-->
-                    <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
-                    <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
-                    <!--<visitor>true</visitor>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<goals>-->
-                            <!--<goal>antlr4</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -122,14 +98,13 @@
                         <id>validate</id>
                         <phase>validate</phase>
                         <configuration>
-                            <configLocation>checkstyle.xml</configLocation>
+                            <configLocation>checkstyle/checkstyle.xml</configLocation>
                             <encoding>UTF-8</encoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>false</failsOnError>
                             <failOnViolation>false</failOnViolation>
                             <includeResources>false</includeResources>
                             <includeTestResources>false</includeTestResources>
-                            <!--<excludes>io/confluent/kql/parser/*</excludes>-->
                         </configuration>
                         <goals>
                             <goal>check</goal>
@@ -137,54 +112,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!--<plugin>-->
-                <!--<groupId>net.revelc.code.formatter</groupId>-->
-                <!--<artifactId>formatter-maven-plugin</artifactId>-->
-                <!--<version>2.0.0</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<goals>-->
-                            <!--<goal>format</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-                <!--<configuration>-->
-                    <!--<configFile>checkstyle/checkstyle.xml</configFile>-->
-                    <!--<overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>-->
-                    <!--<compilerSource>1.8</compilerSource>-->
-                    <!--<compilerCompliance>1.8</compilerCompliance>-->
-                    <!--<compilerTargetPlatform>1.8</compilerTargetPlatform>-->
-                    <!--<encoding>UTF-8</encoding>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-checkstyle-plugin</artifactId>-->
-                <!--<version>2.17</version>-->
-                <!--<configuration>-->
-                    <!--<excludes>src/main/java/io/confluent/kql/parser/SqlBaseParser.java</excludes>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>validate</id>-->
-                        <!--<phase>validate</phase>-->
-                        <!--<configuration>-->
-                            <!--<configLocation>checkstyle/checkstyle.xml</configLocation>-->
-                            <!--<encoding>UTF-8</encoding>-->
-                            <!--<consoleOutput>true</consoleOutput>-->
-                            <!--<failsOnError>false</failsOnError>-->
-                            <!--<failOnViolation>false</failOnViolation>-->
-                            <!--<includeResources>false</includeResources>-->
-                            <!--<includeTestResources>false</includeTestResources>-->
-                        <!--</configuration>-->
-                        <!--<goals>-->
-                            <!--<goal>check</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
-
         </plugins>
     </build>
 
@@ -195,7 +122,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>2.17</version>
                 <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
+                    <configLocation>checkstyle/checkstyle.xml</configLocation>
                 </configuration>
             </plugin>
         </plugins>

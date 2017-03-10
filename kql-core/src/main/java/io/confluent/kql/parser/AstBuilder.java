@@ -57,6 +57,7 @@ import io.confluent.kql.parser.tree.JoinUsing;
 import io.confluent.kql.parser.tree.LambdaExpression;
 import io.confluent.kql.parser.tree.LikePredicate;
 import io.confluent.kql.parser.tree.ListStreams;
+import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.LongLiteral;
@@ -573,6 +574,12 @@ public class AstBuilder
   public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
 
     return new ListStreams(Optional.ofNullable(getLocation(context)));
+  }
+
+  @Override
+  public Node visitListTables(SqlBaseParser.ListTablesContext context) {
+
+    return new ListTables(Optional.ofNullable(getLocation(context)));
   }
 
 

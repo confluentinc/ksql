@@ -40,9 +40,10 @@ singleExpression
 statement
     : query                                                            #querystatement
     | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
-    | SHOW STREAMS                                                      #showTopics
+    | SHOW STREAMS                                                     #showTopics
     | LIST TOPICS                                                      #listTopics
     | LIST STREAMS                                                     #listStreams
+    | LIST TABLES                                                      #listTables
     | DESCRIBE qualifiedName                                           #showColumns
     | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
     | SHOW QUERIES                                                     #showQueries

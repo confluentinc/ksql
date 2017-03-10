@@ -45,7 +45,7 @@ public class MetastoreUtil {
 
     String type = node.get("type").asText();
     String keyFieldName = node.get("key").asText().toUpperCase();
-    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
+    SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
     for (int i = 0; i < fields.size(); i++) {
       String fieldName = fields.get(i).get("name").textValue().toUpperCase();
@@ -56,8 +56,10 @@ public class MetastoreUtil {
         fieldType = fields.get(i).get("type").textValue();
       }
 
-      dataSource.field(fieldName, getKQLType(fieldType));
+      dataSourceBuilder.field(fieldName, getKQLType(fieldType));
     }
+
+    Schema dataSource = dataSourceBuilder.build();
 
     if (type.equalsIgnoreCase("stream")) {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
@@ -130,17 +132,12 @@ public class MetastoreUtil {
     throw new KQLException("Unsupported type: " + schemaType);
   }
 
-  public MetaStore loadMetastoreFromJSONFile(final String metastoreJsonFilePath)
+  public MetaStore loadMetaStoreFromJSONFile(final String metaStoreJsonFilePath)
       throws KQLException {
 
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
-      byte[] jsonData;
-      if (metastoreJsonFilePath.equalsIgnoreCase(KQLConfig.DEFAULT_SCHEMA_FILE_PATH_CONFIG)) {
-        jsonData = DEFAULT_METASTORE_SCHEMA.getBytes();
-      } else {
-        jsonData = Files.readAllBytes(Paths.get(metastoreJsonFilePath));
-      }
+      byte[] jsonData = Files.readAllBytes(Paths.get(metaStoreJsonFilePath));
 
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode root = objectMapper.readTree(jsonData);
@@ -158,9 +155,9 @@ public class MetastoreUtil {
       }
       return metaStore;
     } catch (FileNotFoundException fnf) {
-      throw new KQLException("Could not load the schema file from " + metastoreJsonFilePath, fnf);
+      throw new KQLException("Could not load the schema file from " + metaStoreJsonFilePath, fnf);
     } catch (IOException ioex) {
-      throw new KQLException("Could not read schema from " + metastoreJsonFilePath, ioex);
+      throw new KQLException("Could not read schema from " + metaStoreJsonFilePath, ioex);
     }
   }
 
@@ -217,7 +214,7 @@ public class MetastoreUtil {
           .append("\t\t\t \"topic\": \"" + structuredDataSource.getKqlTopic().getName() + "\", \n");
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
-        stringBuilder.append("\t\t\t \"statestore\": \"users_statestore\", \n");
+        stringBuilder.append("\t\t\t \"statestore\": \"" + kqlTable.getStateStoreName() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;
@@ -236,7 +233,7 @@ public class MetastoreUtil {
     stringBuilder.append("\t ]\n");
   }
 
-  public void writeMetastoreToFile(String filePath, MetaStoreImpl metaStore) {
+  public void writeMetastoreToFile(String filePath, MetaStore metaStore) {
     StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"kql_catalog\",\n ");
 
     addTopics(stringBuilder, metaStore.getAllKQLTopics());
@@ -263,11 +260,11 @@ public class MetastoreUtil {
 
   public static void main(String[] args) throws IOException {
 
-//    new MetastoreUtil().loadMetastoreFromJSONFile("/Users/hojjat/userschema.json");
+//    new MetastoreUtil().loadMetaStoreFromJSONFile("/Users/hojjat/userschema.json");
     MetastoreUtil metastoreUtil = new MetastoreUtil();
-//    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile
+//    MetaStore metaStore = metastoreUtil.loadMetaStoreFromJSONFile
 //        ("/Users/hojjat/kql_catalog.json");
-    MetaStore metaStore = metastoreUtil.loadMetastoreFromJSONFile("/Users/hojjat/test_kql_catalog1.json");
+    MetaStore metaStore = metastoreUtil.loadMetaStoreFromJSONFile("/Users/hojjat/test_kql_catalog1.json");
     System.out.println("");
 //    System.out.println(metastoreUtil.buildAvroSchema(metaStore.getAllStructuredDataSource().get
 //        ("ORDERS")));

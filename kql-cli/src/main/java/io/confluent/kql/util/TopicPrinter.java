@@ -8,7 +8,6 @@ import io.confluent.kql.physical.GenericRow;
 
 import jline.console.ConsoleReader;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -17,41 +16,18 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Properties;
 
 
 public class TopicPrinter {
 
-  public void printGenericRowTopic(KQLTopic kqlTopic, ConsoleReader console, long interval,
-                                   Map<String, String> cliProperties) throws IOException {
-
-    Properties kqlProperties = new Properties();
-    kqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, "KQL-Default-" + System.currentTimeMillis());
-    kqlProperties
-        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KQLConfig.DEFAULT_BOOTSTRAP_SERVERS_CONFIG);
-    kqlProperties
-        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KQLConfig.DEFAULT_AUTO_OFFSET_RESET_CONFIG);
-    kqlProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
-    kqlProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
-    if (!cliProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)
-        .equalsIgnoreCase(KQLConfig.DEFAULT_PROP_FILE_PATH_CONFIG)) {
-      kqlProperties.load(new FileReader(cliProperties.get(KQLConfig.PROP_FILE_PATH_CONFIG)));
-    }
-    kqlProperties
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis());
-    kqlProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-                       kqlProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG));
-
-    // setting offset reset to earliest so that we can re-run the demo code with the same pre-loaded data
-    kqlProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                       kqlProperties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
-
+  public void printGenericRowTopic(KQLTopic kqlTopic, ConsoleReader console, long interval, KQLConfig config) {
 
     KStreamBuilder builder = new KStreamBuilder();
+
+    String applicationId = kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis();
+    Map<String, Object> streamsProperties = config.getResetStreamsProperties(applicationId);
 
     KStream<String, GenericRow>
         source =
@@ -60,7 +36,7 @@ public class TopicPrinter {
 
     source.map(new KQLPrintKeyValueMapper(console, interval));
 
-    KafkaStreams streams = new KafkaStreams(builder, kqlProperties);
+    KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
     streams.start();
 
     // usually the stream application would be running forever,

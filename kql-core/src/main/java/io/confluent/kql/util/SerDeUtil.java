@@ -56,7 +56,7 @@ public class SerDeUtil {
 
   public static Serde<GenericRow> getGenericRowAvroSerde(final String schemaStr) {
     Map<String, Object> serdeProps = new HashMap<>();
-    serdeProps.put(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    serdeProps.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
     final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer();
     genericRowSerializer.configure(serdeProps, false);

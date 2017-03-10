@@ -18,9 +18,11 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.kql.physical.GenericRow;
-import io.confluent.kql.util.KQLConfig;
 
 public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
+
+  public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
+  public static final String AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT = "/tmp/";
 
   String rowSchema;
   Schema.Parser parser;
@@ -32,7 +34,7 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowSchema = (String) map.get(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG);
+    rowSchema = (String) map.get(AVRO_SERDE_SCHEMA_CONFIG);
     if (rowSchema == null) {
       throw new SerializationException("Avro schema is not set for the serializer.");
     }

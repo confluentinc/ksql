@@ -74,6 +74,7 @@ public class KQL {
           new AnsiStringsCompleter("select", "show queries",
                                    "terminate", "exit", "describe", "print", "list topics",
                                    "list streams", "create topic", "create stream", "create table"));
+      console.setExpandEvents(false); // Disable event expansion so things like '!=' are left alone by the console reader
       String line = null;
       while ((line = console.readLine()) != null) {
         if (line.length() == 0) {

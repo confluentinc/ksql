@@ -86,9 +86,9 @@ public class KQL {
           for (String runningQueryId : liveQueries.keySet()) {
             liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
           }
-          console.println("");
+          console.println();
           console.println("Goodbye!");
-          console.println("");
+          console.println();
           console.flush();
           console.close();
           System.exit(0);
@@ -316,7 +316,7 @@ public class KQL {
           queryPairInfo.getQueryOutputNode());
     }
     if (isCLI) {
-      console.println("");
+      console.println();
     }
   }
 
@@ -422,7 +422,7 @@ public class KQL {
     }
     console.println("TOPIC: " + name.toUpperCase() + "    Key: " + dataSource.getKeyField().name()
                     + "    Type: " + dataSource.getDataSourceType());
-    console.println("");
+    console.println();
     console.println(
         "      Column       |         Type         |                   Comment                   ");
     console.println(

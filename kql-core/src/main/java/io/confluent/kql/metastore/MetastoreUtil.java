@@ -45,7 +45,7 @@ public class MetastoreUtil {
 
     String type = node.get("type").asText();
     String keyFieldName = node.get("key").asText().toUpperCase();
-    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
+    SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
     for (int i = 0; i < fields.size(); i++) {
       String fieldName = fields.get(i).get("name").textValue().toUpperCase();
@@ -56,8 +56,10 @@ public class MetastoreUtil {
         fieldType = fields.get(i).get("type").textValue();
       }
 
-      dataSource.field(fieldName, getKQLType(fieldType));
+      dataSourceBuilder.field(fieldName, getKQLType(fieldType));
     }
+
+    Schema dataSource = dataSourceBuilder.build();
 
     if (type.equalsIgnoreCase("stream")) {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
@@ -236,7 +238,7 @@ public class MetastoreUtil {
     stringBuilder.append("\t ]\n");
   }
 
-  public void writeMetastoreToFile(String filePath, MetaStoreImpl metaStore) {
+  public void writeMetastoreToFile(String filePath, MetaStore metaStore) {
     StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"kql_catalog\",\n ");
 
     addTopics(stringBuilder, metaStore.getAllKQLTopics());

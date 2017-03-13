@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.kql.physical.GenericRow;
-import io.confluent.kql.util.KQLConfig;
 
 public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
@@ -27,7 +26,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowSchema = (String) map.get(KQLConfig.AVRO_SERDE_SCHEMA_CONFIG);
+    rowSchema = (String) map.get(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
     if (rowSchema == null) {
       throw new SerializationException("Avro schema is not set for the deserializer.");
     }

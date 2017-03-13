@@ -53,19 +53,12 @@
             <version>0.10.2.0-SNAPSHOT</version>
         </dependency>
 
+        <!--<dependency>-->
+            <!--<groupId>javax.inject</groupId>-->
+            <!--<artifactId>javax.inject</artifactId>-->
+            <!--<version>1</version>-->
+        <!--</dependency>-->
 
-        <!-- https://mvnrepository.com/artifact/io.airlift/airline -->
-        <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>airline</artifactId>
-            <version>0.7</version>
-        </dependency>
-
-        <dependency>
-            <groupId>javax.inject</groupId>
-            <artifactId>javax.inject</artifactId>
-            <version>1</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/io.airlift/slice -->
         <dependency>
             <groupId>io.airlift</groupId>

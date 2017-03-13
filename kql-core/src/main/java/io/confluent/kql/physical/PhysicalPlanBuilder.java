@@ -28,6 +28,7 @@ import io.confluent.kql.planner.plan.SourceNode;
 import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.kql.serde.avro.KQLGenericRowAvroSerializer;
 import io.confluent.kql.structured.SchemaKGroupedStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.structured.SchemaKStream;
@@ -305,7 +306,7 @@ public class PhysicalPlanBuilder {
     String avroSchemaFilePathVal = avroSchemaFilePath;
     if (avroSchemaFilePath == null) {
       avroSchemaFilePathVal =
-          KQLConfig.DEFAULT_AVRO_SCHEMA_FOLDER_PATH_CONFIG + kqlStructuredDataOutputNode
+          KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT + kqlStructuredDataOutputNode
               .getKqlTopic().getName() + ".avro";
     }
     MetastoreUtil metastoreUtil = new MetastoreUtil();

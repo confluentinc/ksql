@@ -1,10 +1,13 @@
 package io.confluent.kql.planner;
 
+import io.confluent.kql.analyzer.AggregateAnalysis;
+import io.confluent.kql.analyzer.AggregateAnalyzer;
 import io.confluent.kql.analyzer.Analysis;
 import io.confluent.kql.analyzer.AnalysisContext;
 import io.confluent.kql.analyzer.Analyzer;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.KQLParser;
+import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.planner.plan.*;
 import io.confluent.kql.util.KQLTestUtil;
@@ -32,8 +35,13 @@ public class LogicalPlannerTest {
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null, null));
+    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+    for (Expression expression: analysis.getSelectExpressions()) {
+      aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+    }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
     return logicalPlan;
   }
 

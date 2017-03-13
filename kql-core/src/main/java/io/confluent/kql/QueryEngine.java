@@ -3,6 +3,8 @@
  **/
 package io.confluent.kql;
 
+import io.confluent.kql.analyzer.AggregateAnalysis;
+import io.confluent.kql.analyzer.AggregateAnalyzer;
 import io.confluent.kql.analyzer.Analysis;
 import io.confluent.kql.analyzer.AnalysisContext;
 import io.confluent.kql.analyzer.Analyzer;
@@ -13,6 +15,9 @@ import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.StructuredDataSource;
+import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
 import io.confluent.kql.planner.LogicalPlanner;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
@@ -58,8 +63,19 @@ public class QueryEngine {
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(queryNode, new AnalysisContext(null, null));
 
+    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+    for (Expression expression: analysis.getSelectExpressions()) {
+      aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+      aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith
+          (aggregateExpressionRewriter, expression));
+
+    }
+
+
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
 
     Properties props = new Properties();
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, queryId + "-" + System.currentTimeMillis());
@@ -98,8 +114,21 @@ public class QueryEngine {
       Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
       analyzer.process(query.getRight(), new AnalysisContext(null, null));
 
+      AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+      AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+      AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+      for (Expression expression: analysis.getSelectExpressions()) {
+        aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+        if (!aggregateAnalyzer.isHasAggregateFunction()) {
+          aggregateAnalysis.getNonAggResultColumns().add(expression);
+        }
+        aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith
+            (aggregateExpressionRewriter, expression));
+        aggregateAnalyzer.setHasAggregateFunction(false);
+      }
+
       // Build a logical plan
-      PlanNode logicalPlan = new LogicalPlanner(analysis).buildPlan();
+      PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KQLStructuredDataOutputNode) {
         KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
             logicalPlan;

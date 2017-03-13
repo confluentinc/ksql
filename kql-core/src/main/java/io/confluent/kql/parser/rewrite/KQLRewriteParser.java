@@ -67,7 +67,7 @@ public class KQLRewriteParser {
         tempMetaStore.putSource(astBuilder.resultDataSource);
 
         String sqlStr = SqlFormatterQueryRewrite.formatSql(root);
-        System.out.println(sqlStr);
+//        System.out.println(sqlStr);
 
         rewrittenQuery.append(sqlStr).append(";\n");
 

@@ -4,8 +4,8 @@
 
 package io.confluent.kql.function;
 
-import io.confluent.kql.function.udaf.CountKUDAF;
-import io.confluent.kql.function.udaf.sum.SumKUDAF;
+import io.confluent.kql.function.udaf.count.CountKUDAF;
+import io.confluent.kql.function.udaf.sum.DoubleSumKUDAF;
 import org.apache.kafka.connect.data.Schema;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +27,7 @@ import io.confluent.kql.function.udf.string.UCaseKUDF;
 public class KQLFunctions {
 
   public static Map<String, KQLFunction> kqlFunctionMap = new HashMap<>();
+  public static Map<String, KQLFunction> kqlAggregateFunctionMap = new HashMap<>();
 
   static {
 
@@ -76,14 +77,7 @@ public class KQLFunctions {
     KQLFunction random = new KQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",
                                          RandomKUDF.class);
 
-    /***************************************
-     * UDAFs                               *
-     ***************************************/
 
-    KQLFunction count = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-                                        "COUNT", CountKUDAF.class);
-    KQLFunction sum = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
-                                      "SUM", SumKUDAF.class);
 
     addFunction(lcase);
     addFunction(ucase);
@@ -99,8 +93,17 @@ public class KQLFunctions {
     addFunction(round);
     addFunction(random);
 
-    addFunction(count);
-    addFunction(sum);
+    /***************************************
+     * UDAFs                               *
+     ***************************************/
+
+    KQLFunction count = new KQLFunction(Schema.Type.INT32, Arrays.asList(Schema.Type.STRUCT),
+                                        "COUNT", CountKUDAF.class);
+    KQLFunction sum = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+                                      "SUM", DoubleSumKUDAF.class);
+
+    addAggregateFunction(count);
+    addAggregateFunction(sum);
 
   }
 
@@ -110,6 +113,13 @@ public class KQLFunctions {
 
   public static void addFunction(KQLFunction kqlFunction) {
     kqlFunctionMap.put(kqlFunction.getFunctionName().toUpperCase(), kqlFunction);
+  }
+  public static KQLFunction getAggregateFunction(String functionName) {
+    return kqlAggregateFunctionMap.get(functionName.toUpperCase());
+  }
+
+  public static void addAggregateFunction(KQLFunction kqlFunction) {
+    kqlAggregateFunctionMap.put(kqlFunction.getFunctionName().toUpperCase(), kqlFunction);
   }
 
 }

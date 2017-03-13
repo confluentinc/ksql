@@ -8,11 +8,13 @@ import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
+import io.confluent.kql.util.SchemaUtil;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.ValueMapper;
 
@@ -57,17 +59,20 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable select(final List<Expression> expressions, final Schema selectSchema)
+  public SchemaKTable select(final List<Expression> expressions)
       throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
     List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Expression expression : expressions) {
       ExpressionMetadata
-          expressionEvaluatorPair =
+          expressionEvaluator =
           expressionUtil.getExpressionEvaluator(expression, schema);
-      expressionEvaluators.add(expressionEvaluatorPair);
+      schemaBuilder.field(expression.toString()
+          , SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
+      expressionEvaluators.add(expressionEvaluator);
     }
 
     KTable projectedKTable = kTable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
@@ -99,7 +104,7 @@ public class SchemaKTable extends SchemaKStream {
       }
     });
 
-    return new SchemaKTable(selectSchema, projectedKTable, keyField, Arrays.asList(this));
+    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream toStream() {

@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -89,17 +90,20 @@ public class SchemaKStream {
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
   }
 
-  public SchemaKStream select(final List<Expression> expressions, final Schema selectSchema)
+  public SchemaKStream select(final List<Expression> expressions)
       throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
     // TODO: Only use code get when we have real expression.
     List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Expression expression : expressions) {
       ExpressionMetadata
-          expressionEvaluatorPair =
+          expressionEvaluator =
           expressionUtil.getExpressionEvaluator(expression, schema);
-      expressionEvaluators.add(expressionEvaluatorPair);
+      schemaBuilder.field(expression.toString()
+          , SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
+      expressionEvaluators.add(expressionEvaluator);
     }
     KStream
         projectedKStream =
@@ -133,7 +137,8 @@ public class SchemaKStream {
           }
         });
 
-    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
+//    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
+    return new SchemaKStream(schemaBuilder.build(), projectedKStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,

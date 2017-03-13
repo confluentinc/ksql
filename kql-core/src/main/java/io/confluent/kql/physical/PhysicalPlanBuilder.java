@@ -3,12 +3,17 @@
  **/
 package io.confluent.kql.physical;
 
-import io.confluent.kql.function.udaf.sum.SumKUDAF;
+import io.confluent.kql.function.KQLAggregateFunction;
+import io.confluent.kql.function.KQLFunction;
+import io.confluent.kql.function.KQLFunctions;
+import io.confluent.kql.function.udaf.KUDAFAggregator;
+import io.confluent.kql.function.udaf.KUDAFInitializer;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.metastore.StructuredDataSource;
+import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.planner.plan.AggregateNode;
@@ -36,6 +41,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
@@ -123,45 +129,83 @@ public class PhysicalPlanBuilder {
     SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
 
     SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
-    SchemaKGroupedStream schemaKGroupedStream = rekeyedSchemaKStream.groupByKey(Serdes.String(), genericRowSerde);
 
-    int aggColumnIndexInResult = -1;
-    Object aggColumnInitialValueInResult = 0.0;
-    Map<Integer, Integer> resultToSourceColumnMapAgg = new HashMap<>();
-    Map<Integer, Integer> resultToSourceColumnMapNonAgg = new HashMap<>();
+    // Pre aggregate computations
+    List<Expression> aggArgExpansionList = new ArrayList<>();
+    for (Expression expression: aggregateNode.getRequiredColumnList()) {
+      aggArgExpansionList.add(expression);
+    }
+    for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
+      aggArgExpansionList.add(expression);
+    }
+    SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
+
+
+    SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
+
+    // Aggregate computations
+    Map<Integer, KQLAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
+    Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
 
     List resultColumns = new ArrayList();
-    for (int i = 0; i < aggregateNode.getProjectExpressions().size(); i++) {
-      Expression expression = aggregateNode.getProjectExpressions().get(i);
-      if (expression instanceof FunctionCall) {
-        FunctionCall functionCall = (FunctionCall) expression;
-        String argStr = functionCall.getArguments().get(0).toString();
-        int index = getIndexInSchema(argStr, aggregateNode.getSource().getSchema());
-        aggColumnIndexInResult = i;
-        resultToSourceColumnMapAgg.put(i, index);
-      } else {
-        String exprStr = expression.toString();
-        int index = getIndexInSchema(exprStr, aggregateNode.getSource().getSchema());
-        resultToSourceColumnMapNonAgg.put(i, index);
-      }
+    int nonAggColumnIndex = 0;
+    for (Expression expression: aggregateNode.getRequiredColumnList()) {
+      String exprStr = expression.toString();
+      int index = getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+      aggValToValColumnMap.put(nonAggColumnIndex, index);
+      nonAggColumnIndex++;
       resultColumns.add("");
     }
-    GenericRow resultGenericRow = new GenericRow(resultColumns);
-    System.out.print("");
-    SumKUDAF sumKUDAF = new SumKUDAF(resultGenericRow, aggColumnIndexInResult, aggColumnInitialValueInResult, resultToSourceColumnMapAgg, resultToSourceColumnMapNonAgg);
+    int udafIndex = resultColumns.size();
+    for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
+      KQLFunction aggregateFunctionInfo = KQLFunctions.getAggregateFunction(functionCall.getName()
+                                                                            .toString());
+      KQLAggregateFunction aggregateFunction = (KQLAggregateFunction)aggregateFunctionInfo
+          .getKudfClass().getDeclaredConstructor(Integer.class).newInstance(udafIndex);
+      aggValToAggFunctionMap.put(udafIndex, aggregateFunction);
+      resultColumns.add(aggregateFunction.getIntialValue());
+
+      udafIndex++;
+    }
+
+    SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
+        new KUDAFInitializer(resultColumns),
+        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap)
+        , aggregateNode.getWindowExpression()
+        , genericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
 
 
-    SchemaKStream schemaKStream = schemaKGroupedStream.aggregate(sumKUDAF.getInitializer(),
-                                                                 sumKUDAF.getAggregator(),
-                                                                 aggregateNode.getWindowExpression(),
-                                                                 genericRowSerde, "KQL_Agg_Query_"
-                                                                                  + System
-                                                                                      .currentTimeMillis());
-    return schemaKStream;
+    // Post aggregate computations
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    List<Field> fields = schemaKTable.getSchema().fields();
+    for (int i = 0; i < aggregateNode.getRequiredColumnList().size(); i++) {
+      schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
+    }
+    int aggFunctionVarSuffix = 0;
+    for (int i = aggregateNode.getRequiredColumnList().size(); i < fields.size(); i++) {
+      Schema fieldSchema;
+      String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
+          .getSuffix();
+      KQLFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName);
+      fieldSchema = SchemaUtil.getTypeSchema(aggregateFunction.getReturnType());
+      schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
+                          + aggFunctionVarSuffix, fieldSchema);
+      aggFunctionVarSuffix++;
+    }
+
+    Schema aggStageSchema = schemaBuilder.build();
+
+    SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getkTable(),
+                                                      schemaKTable.getKeyField(),
+                                                      schemaKTable.getSourceSchemaKStreams());
+
+    SchemaKTable finalResult = finalSchemaKTable.select(aggregateNode.getFinalSelectExpressions());
+
+    return finalResult;
   }
 
   private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {
-    SchemaKStream projectedSchemaStream = kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions(), projectNode.getSchema());
+    SchemaKStream projectedSchemaStream = kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions());
     return projectedSchemaStream;
   }
 

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.parser.tree.WindowExpression;
 
 import org.apache.kafka.connect.data.Field;
@@ -24,6 +25,14 @@ public class AggregateNode extends PlanNode {
   private final List<Expression> projectExpressions;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
+  private final List<Expression> aggregateFunctionArguments;
+
+  private final List<FunctionCall> functionList;
+  private final List<Expression> requiredColumnList;
+
+  private final List<Expression> nonAggResultColumns;
+
+  private final List<Expression> finalSelectExpressions;
 
   @JsonCreator
   public AggregateNode(@JsonProperty("id") final PlanNodeId id,
@@ -31,7 +40,14 @@ public class AggregateNode extends PlanNode {
                        @JsonProperty("schema") final Schema schema,
                        @JsonProperty("projectExpressions") final List<Expression> projectExpressions,
                        @JsonProperty("groupby") final List<Expression> groupByExpressions,
-                       @JsonProperty("window") final WindowExpression windowExpression) {
+                       @JsonProperty("window") final WindowExpression windowExpression,
+                       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
+                       @JsonProperty("functionList") final List<FunctionCall> functionList,
+                       @JsonProperty("requiredColumnList") final List<Expression>
+                             requiredColumnList,
+                       @JsonProperty("nonAggResultColumns") final List<Expression>
+                             nonAggResultColumns,
+                       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions) {
     super(id);
 
     this.source = source;
@@ -39,6 +55,11 @@ public class AggregateNode extends PlanNode {
     this.projectExpressions = projectExpressions;
     this.groupByExpressions = groupByExpressions;
     this.windowExpression = windowExpression;
+    this.aggregateFunctionArguments = aggregateFunctionArguments;
+    this.functionList = functionList;
+    this.requiredColumnList = requiredColumnList;
+    this.nonAggResultColumns = nonAggResultColumns;
+    this.finalSelectExpressions = finalSelectExpressions;
   }
 
   @Override
@@ -70,5 +91,25 @@ public class AggregateNode extends PlanNode {
 
   public WindowExpression getWindowExpression() {
     return windowExpression;
+  }
+
+  public List<Expression> getAggregateFunctionArguments() {
+    return aggregateFunctionArguments;
+  }
+
+  public List<FunctionCall> getFunctionList() {
+    return functionList;
+  }
+
+  public List<Expression> getRequiredColumnList() {
+    return requiredColumnList;
+  }
+
+  public List<Expression> getNonAggResultColumns() {
+    return nonAggResultColumns;
+  }
+
+  public List<Expression> getFinalSelectExpressions() {
+    return finalSelectExpressions;
   }
 }

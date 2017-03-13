@@ -3,6 +3,7 @@
  **/
 package io.confluent.kql.planner;
 
+import io.confluent.kql.analyzer.AggregateAnalysis;
 import io.confluent.kql.analyzer.Analysis;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
@@ -32,9 +33,11 @@ import java.util.List;
 public class LogicalPlanner {
 
   Analysis analysis;
+  AggregateAnalysis aggregateAnalysis;
 
-  public LogicalPlanner(Analysis analysis) {
+  public LogicalPlanner(Analysis analysis, AggregateAnalysis aggregateAnalysis) {
     this.analysis = analysis;
+    this.aggregateAnalysis = aggregateAnalysis;
   }
 
   public PlanNode buildPlan() {
@@ -98,9 +101,12 @@ public class LogicalPlanner {
 
     return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema,
                              analysis.getSelectExpressions(), analysis.getGroupByExpressions(),
-                             analysis.getWindowExpression());
-//    Expression filterExpression = analysis.getWhereExpression();
-//    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+                             analysis.getWindowExpression(),
+                             aggregateAnalysis.getAggregateFunctionArguments(),
+                             aggregateAnalysis.getFunctionList(),
+                             aggregateAnalysis.getRequiredColumnsList(),
+                             aggregateAnalysis.getNonAggResultColumns(),
+                             aggregateAnalysis.getFinalSelectExpressions());
   }
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {

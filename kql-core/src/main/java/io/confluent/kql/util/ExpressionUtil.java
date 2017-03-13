@@ -77,7 +77,7 @@ public class ExpressionUtil {
     // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(expressionStr);
 
-    return new ExpressionMetadata(ee, columnIndexes, kudfObjects);
+    return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
   private class Visitor

@@ -73,7 +73,7 @@ import static java.util.stream.Collectors.toList;
 
 public final class ExpressionFormatterQueryRewrite {
 
-  private ExpressionFormatterQueryRewrite() {
+  public ExpressionFormatterQueryRewrite() {
   }
 
   public static String formatExpression(Expression expression) {

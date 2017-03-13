@@ -11,10 +11,10 @@ import java.util.Map;
 
 public class KQLConfig extends AbstractConfig {
 
-  private static final ConfigDef config = new ConfigDef(StreamsConfig.configDef());
+  private static final ConfigDef CONFIG = new ConfigDef(StreamsConfig.configDef());
 
   public KQLConfig(Map<?, ?> props) {
-    super(config, props);
+    super(CONFIG, props);
   }
 
   protected KQLConfig(ConfigDef config, Map<?, ?> props) {

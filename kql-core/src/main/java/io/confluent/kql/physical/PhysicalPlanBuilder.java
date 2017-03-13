@@ -32,12 +32,9 @@ import io.confluent.kql.serde.avro.KQLGenericRowAvroSerializer;
 import io.confluent.kql.structured.SchemaKGroupedStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.structured.SchemaKStream;
-
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.SerDeUtil;
-import io.confluent.kql.util.KQLConfig;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;

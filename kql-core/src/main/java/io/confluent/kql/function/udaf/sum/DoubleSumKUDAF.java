@@ -1,10 +1,10 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.function.udaf.sum;
 
 import org.apache.kafka.connect.data.Schema;
-
 import java.util.Arrays;
-import java.util.List;
-
 import io.confluent.kql.function.KQLAggregateFunction;
 
 public class DoubleSumKUDAF extends KQLAggregateFunction<Double, Double> {

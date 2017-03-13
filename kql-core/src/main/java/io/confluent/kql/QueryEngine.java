@@ -68,8 +68,7 @@ public class QueryEngine {
     AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
-      aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith
-          (aggregateExpressionRewriter, expression));
+      aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
 
     }
 
@@ -122,8 +121,7 @@ public class QueryEngine {
         if (!aggregateAnalyzer.isHasAggregateFunction()) {
           aggregateAnalysis.getNonAggResultColumns().add(expression);
         }
-        aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith
-            (aggregateExpressionRewriter, expression));
+        aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
 

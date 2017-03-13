@@ -139,7 +139,7 @@ public class ExpressionTypeManager
     } else if (kqlAggFunction != null) {
       expressionTypeContext.setType(kqlAggFunction.getReturnType());
     } else {
-      throw new KQLException("Unknown function: "+node.getName().toString());
+      throw new KQLException("Unknown function: " + node.getName().toString());
     }
 
     return null;

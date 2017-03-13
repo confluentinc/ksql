@@ -6,7 +6,6 @@ package io.confluent.kql.function.udaf.count;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
-import java.util.List;
 
 import io.confluent.kql.function.KQLAggregateFunction;
 
@@ -19,6 +18,6 @@ public class CountKUDAF extends KQLAggregateFunction<Object, Integer> {
 
   @Override
   public Integer aggregate(Object currentVal, Integer currentAggVal) {
-    return currentAggVal+1;
+    return currentAggVal + 1;
   }
 }

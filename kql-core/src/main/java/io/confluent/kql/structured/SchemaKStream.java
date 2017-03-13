@@ -101,8 +101,7 @@ public class SchemaKStream {
       ExpressionMetadata
           expressionEvaluator =
           expressionUtil.getExpressionEvaluator(expression, schema);
-      schemaBuilder.field(expression.toString()
-          , SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
+      schemaBuilder.field(expression.toString(), SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
       expressionEvaluators.add(expressionEvaluator);
     }
     KStream
@@ -137,7 +136,6 @@ public class SchemaKStream {
           }
         });
 
-//    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this));
     return new SchemaKStream(schemaBuilder.build(), projectedKStream, keyField, Arrays.asList(this));
   }
 

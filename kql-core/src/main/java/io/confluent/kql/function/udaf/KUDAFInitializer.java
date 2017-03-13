@@ -1,5 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.function.udaf;
-
 
 import org.apache.kafka.streams.kstream.Initializer;
 
@@ -8,7 +10,7 @@ import java.util.List;
 
 import io.confluent.kql.physical.GenericRow;
 
-public class KUDAFInitializer implements Initializer<GenericRow>{
+public class KUDAFInitializer implements Initializer<GenericRow> {
 
   final List initialGenericRowColumns;
 

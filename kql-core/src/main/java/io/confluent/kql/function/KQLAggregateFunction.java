@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.function;
 
 import org.apache.kafka.connect.data.Schema;
@@ -13,7 +16,7 @@ public abstract class KQLAggregateFunction<V, A> {
   final String functionName;
   final Class kudafClass;
 
-  public KQLAggregateFunction(Integer argIndexInValue){
+  public KQLAggregateFunction(Integer argIndexInValue) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = null;
     this.returnType = null;

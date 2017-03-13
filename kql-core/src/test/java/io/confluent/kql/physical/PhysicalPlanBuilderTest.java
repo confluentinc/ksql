@@ -60,7 +60,7 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("col0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
@@ -74,9 +74,11 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 4);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("T1_COL1"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase
+            ("T1.COL1"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(3).name().equalsIgnoreCase("T2_COL2"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(3).name().equalsIgnoreCase
+            ("T2.COL2"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 9);
     }
@@ -89,7 +91,8 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 4);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(1).name().equalsIgnoreCase("T2_COL1"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(1).name().equalsIgnoreCase
+            ("T2.COL1"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 9);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
     }

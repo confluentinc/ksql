@@ -47,16 +47,14 @@ public class SchemaKGroupedStream {
     KTable aggKtable;
     if (windowExpression != null) {
       if (windowExpression.getKqlWindowExpression() instanceof TumblingWindowExpression) {
-        TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)windowExpression
-            .getKqlWindowExpression();
+        TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
+            windowExpression.getKqlWindowExpression();
         aggKtable =
-            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of
-                                         (getWindowUnitInMillisecond(tumblingWindowExpression.getSize(),
-                                                                                                        tumblingWindowExpression.getSizeUnit())),
-                                     topicValueSerDe, storeName);
+            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(tumblingWindowExpression
+                                                                         .getSize(),
+                                                                     tumblingWindowExpression.getSizeUnit())), topicValueSerDe, storeName);
       } else if (windowExpression.getKqlWindowExpression() instanceof HoppingWindowExpression) {
-        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression)windowExpression
-            .getKqlWindowExpression();
+        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) windowExpression.getKqlWindowExpression();
         aggKtable =
             kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
                                                                                                         hoppingWindowExpression.getSizeUnit()))

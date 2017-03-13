@@ -160,7 +160,7 @@ public class PhysicalPlanBuilder {
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
       KQLFunction aggregateFunctionInfo = KQLFunctions.getAggregateFunction(functionCall.getName()
                                                                             .toString());
-      KQLAggregateFunction aggregateFunction = (KQLAggregateFunction)aggregateFunctionInfo
+      KQLAggregateFunction aggregateFunction = (KQLAggregateFunction) aggregateFunctionInfo
           .getKudfClass().getDeclaredConstructor(Integer.class).newInstance(udafIndex);
       aggValToAggFunctionMap.put(udafIndex, aggregateFunction);
       resultColumns.add(aggregateFunction.getIntialValue());
@@ -170,10 +170,7 @@ public class PhysicalPlanBuilder {
 
     SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KUDAFInitializer(resultColumns),
-        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap)
-        , aggregateNode.getWindowExpression()
-        , genericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
-
+        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), genericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
 
     // Post aggregate computations
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();

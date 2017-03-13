@@ -17,14 +17,7 @@
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>nexus-snapshot</id>
-            <url>https://nexus.confluent.io/repository/maven-snapshots</url>
-        </repository>
-    </repositories>
-
+    
     <dependencies>
 
         <dependency>

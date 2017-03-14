@@ -130,13 +130,13 @@ public class ExpressionTypeManager
 
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
-//    return visitExpression(node, expressionTypeContext);
 
     KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
-    KQLFunction kqlAggFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix());
+
     if (kqlFunction != null) {
       expressionTypeContext.setType(kqlFunction.getReturnType());
-    } else if (kqlAggFunction != null) {
+    } else if (KQLFunctions.getAggregateFunction(node.getName().getSuffix()) != null) {
+      KQLFunction kqlAggFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix()).get(0);
       expressionTypeContext.setType(kqlAggFunction.getReturnType());
     } else {
       throw new KQLException("Unknown function: " + node.getName().toString());

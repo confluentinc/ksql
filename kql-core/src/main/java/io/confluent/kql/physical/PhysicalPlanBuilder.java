@@ -157,7 +157,7 @@ public class PhysicalPlanBuilder {
     int udafIndex = resultColumns.size();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
       KQLFunction aggregateFunctionInfo = KQLFunctions.getAggregateFunction(functionCall.getName()
-                                                                            .toString());
+                                                                            .toString()).get(0);
       KQLAggregateFunction aggregateFunction = (KQLAggregateFunction) aggregateFunctionInfo
           .getKudfClass().getDeclaredConstructor(Integer.class).newInstance(udafIndex);
       aggValToAggFunctionMap.put(udafIndex, aggregateFunction);
@@ -181,7 +181,7 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KQLFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName);
+      KQLFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName).get(0);
       fieldSchema = SchemaUtil.getTypeSchema(aggregateFunction.getReturnType());
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
                           + aggFunctionVarSuffix, fieldSchema);

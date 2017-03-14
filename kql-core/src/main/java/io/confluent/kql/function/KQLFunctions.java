@@ -10,6 +10,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import io.confluent.kql.function.udf.math.AbsKUDF;
 import io.confluent.kql.function.udf.math.CeilKUDF;
@@ -27,7 +28,7 @@ import io.confluent.kql.function.udf.string.UCaseKUDF;
 public class KQLFunctions {
 
   public static Map<String, KQLFunction> kqlFunctionMap = new HashMap<>();
-  public static Map<String, KQLFunction> kqlAggregateFunctionMap = new HashMap<>();
+  public static Map<String, List<KQLFunction>> kqlAggregateFunctionMap = new HashMap<>();
 
   static {
 
@@ -114,12 +115,17 @@ public class KQLFunctions {
   public static void addFunction(KQLFunction kqlFunction) {
     kqlFunctionMap.put(kqlFunction.getFunctionName().toUpperCase(), kqlFunction);
   }
-  public static KQLFunction getAggregateFunction(String functionName) {
+  public static List<KQLFunction> getAggregateFunction(String functionName) {
     return kqlAggregateFunctionMap.get(functionName.toUpperCase());
   }
 
   public static void addAggregateFunction(KQLFunction kqlFunction) {
-    kqlAggregateFunctionMap.put(kqlFunction.getFunctionName().toUpperCase(), kqlFunction);
+    if (kqlAggregateFunctionMap.containsKey(kqlFunction.getFunctionName().toUpperCase())) {
+      kqlAggregateFunctionMap.get(kqlFunction.getFunctionName().toUpperCase()).add(kqlFunction);
+    } else {
+      kqlAggregateFunctionMap.put(kqlFunction.getFunctionName().toUpperCase(), Arrays.asList(kqlFunction));
+    }
   }
+
 
 }

@@ -108,7 +108,7 @@ public class DataGen {
                 .orElse(String.format("orders_kafka_topic_%s", format.name().toLowerCase()));
             keyName = Optional
                 .ofNullable(keyName)
-                .orElse("ORDERUNITS");
+                .orElse("ORDERID");
             break;
 
           case "users":

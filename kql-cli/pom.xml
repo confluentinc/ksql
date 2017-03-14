@@ -90,18 +90,9 @@
             <plugin>
                 <groupId>org.skife.maven</groupId>
                 <artifactId>really-executable-jar-maven-plugin</artifactId>
-                <configuration>
-                    <flags>-Xmx1G</flags>
-                    <classifier>executable</classifier>
+                <configuration combine.self="override">
+                    <programFile>kql</programFile>
                 </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>really-executable-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

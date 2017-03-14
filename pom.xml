@@ -21,6 +21,10 @@
         </repository>
     </repositories>
 
+    <properties>
+        <really.executable.jar.version>1.5.0</really.executable.jar.version>
+    </properties>
+
     <dependencies>
 
         <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka_2.11 -->

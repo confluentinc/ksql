@@ -72,7 +72,9 @@
             <plugin>
                 <groupId>org.skife.maven</groupId>
                 <artifactId>really-executable-jar-maven-plugin</artifactId>
+                <version>${really.executable.jar.version}</version>
                 <configuration>
+                    <programFile>kql-examples</programFile>
                     <flags>-Xmx1G</flags>
                     <classifier>executable</classifier>
                 </configuration>

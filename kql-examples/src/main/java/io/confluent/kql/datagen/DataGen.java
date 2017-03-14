@@ -1,14 +1,15 @@
 /**
  * Copyright 2017 Confluent Inc.
- **/
+ */
 package io.confluent.kql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 
 public class DataGen {
@@ -19,12 +20,12 @@ public class DataGen {
     try {
       arguments = new Arguments.Builder().parseArgs(args).build();
     } catch (Exception exception) {
-      System.err.println(exception.getMessage());
+      exception.printStackTrace();
       usage();
       return;
     }
 
-    Generator generator = new Generator(new File(arguments.schemaFile), new Random());
+    Generator generator = new Generator(arguments.schemaFile, new Random());
     DataGenProducer dataProducer;
 
     switch (arguments.format) {
@@ -49,24 +50,25 @@ public class DataGen {
   private static void usage() {
     System.err.println(
         "usage: DataGen "
+            + "[quickstart=<quickstart preset> (one of 'orders', 'users', or 'pageview')] "
             + "schema=<avro schema file> "
             + "topic=<kafka topic name> "
             + "key=<name of key column> "
             + "format=<message format> "
-            + "[iterations=<number of rows to generate, default 1000>]"
+            + "[iterations=<number of rows> (defaults to 1000)]"
     );
   }
 
   private static class Arguments {
     public enum Format { AVRO, JSON, CSV }
 
-    public final String schemaFile;
+    public final InputStream schemaFile;
     public final String topicName;
     public final String keyName;
     public final Format format;
     public final int iterations;
 
-    public Arguments(String schemaFile, String topicName, String keyName, Format format, int iterations) {
+    public Arguments(InputStream schemaFile, String topicName, String keyName, Format format, int iterations) {
       this.schemaFile = schemaFile;
       this.topicName = topicName;
       this.keyName = keyName;
@@ -75,13 +77,16 @@ public class DataGen {
     }
 
     public static class Builder {
-      private String schemaFile;
+      private String quickstart;
+      private InputStream schemaFile;
       private String topicName;
       private String keyName;
       private Format format;
       private int iterations;
 
+
       public Builder() {
+        quickstart = null;
         schemaFile = null;
         topicName = null;
         keyName = null;
@@ -90,6 +95,53 @@ public class DataGen {
       }
 
       public Arguments build() {
+        switch (quickstart) {
+          case "orders":
+            schemaFile = Optional
+                .ofNullable(schemaFile)
+                .orElse(getClass().getClassLoader().getResourceAsStream("orders_schema.avro"));
+            format = Optional
+                .ofNullable(format)
+                .orElse(Format.JSON);
+            topicName = Optional
+                .ofNullable(topicName)
+                .orElse(String.format("orders_kafka_topic_%s", format.name().toLowerCase()));
+            keyName = Optional
+                .ofNullable(keyName)
+                .orElse("ORDERUNITS");
+            break;
+
+          case "users":
+            schemaFile = Optional
+                .ofNullable(schemaFile)
+                .orElse(getClass().getClassLoader().getResourceAsStream("users_schema.avro"));
+            format = Optional
+                .ofNullable(format)
+                .orElse(Format.JSON);
+            topicName = Optional
+                .ofNullable(topicName)
+                .orElse(String.format("users_kafka_topic_%s", format.name().toLowerCase()));
+            keyName = Optional
+                .ofNullable(keyName)
+                .orElse("userid");
+            break;
+
+          case "pageview":
+            schemaFile = Optional
+                .ofNullable(schemaFile)
+                .orElse(getClass().getClassLoader().getResourceAsStream("pageview_schema.avro"));
+            format = Optional
+                .ofNullable(format)
+                .orElse(Format.JSON);
+            topicName = Optional
+                .ofNullable(topicName)
+                .orElse(String.format("pageview_kafka_topic_%s", format.name().toLowerCase()));
+            keyName = Optional
+                .ofNullable(keyName)
+                .orElse("viewtime");
+            break;
+        }
+
         Objects.requireNonNull(schemaFile, "Schema file not provided");
         Objects.requireNonNull(topicName, "Kafka topic name not provided");
         Objects.requireNonNull(keyName, "Name of key column not provided");
@@ -97,14 +149,15 @@ public class DataGen {
         return new Arguments(schemaFile, topicName, keyName, format, iterations);
       }
 
-      public Builder parseArgs(String[] args) {
+      public Builder parseArgs(String[] args) throws IOException {
         for (String arg : args) {
           parseArg(arg);
         }
         return this;
       }
 
-      public Builder parseArg(String arg) {
+      public Builder parseArg(String arg) throws IOException {
+
         String[] splitOnEquals = arg.split("=");
         if (splitOnEquals.length != 2) {
           throw new RuntimeException(String.format(
@@ -131,8 +184,11 @@ public class DataGen {
         }
 
         switch (argName) {
+          case "quickstart":
+            quickstart = argValue;
+            break;
           case "schema":
-            schemaFile = argValue;
+            schemaFile = new FileInputStream(argValue);
             break;
           case "topic":
             topicName = argValue;

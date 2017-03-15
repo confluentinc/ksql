@@ -28,6 +28,11 @@ public class DataGen {
       return;
     }
 
+    if (arguments.help) {
+      usage(0);
+    }
+
+
     Generator generator;
     try {
       generator = new Generator(arguments.schemaFile, new Random());
@@ -59,6 +64,7 @@ public class DataGen {
   private static void usage() {
     System.err.println(
         "usage: DataGen "
+            + "[help] "
             + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or 'pageview')] "
             + "schema=<avro schema file> "
             + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'csv')"
@@ -76,6 +82,7 @@ public class DataGen {
   private static class Arguments {
     public enum Format { AVRO, JSON, CSV }
 
+    public final boolean help;
     public final InputStream schemaFile;
     public final Format format;
     public final String topicName;
@@ -83,12 +90,14 @@ public class DataGen {
     public final int iterations;
 
     public Arguments(
+        boolean help,
         InputStream schemaFile,
         Format format,
         String topicName,
         String keyName,
         int iterations
     ) {
+      this.help = help;
       this.schemaFile = schemaFile;
       this.format = format;
       this.topicName = topicName;
@@ -105,6 +114,7 @@ public class DataGen {
     public static class Builder {
       private Quickstart quickstart;
 
+      private boolean help;
       private InputStream schemaFile;
       private Format format;
       private String topicName;
@@ -114,6 +124,7 @@ public class DataGen {
 
       public Builder() {
         quickstart = null;
+        help = false;
         schemaFile = null;
         format = null;
         topicName = null;
@@ -155,6 +166,10 @@ public class DataGen {
       }
 
       public Arguments build() {
+        if (help) {
+          return new Arguments(true, null, null, null, null, 0);
+        }
+
         if (quickstart != null) {
           schemaFile = Optional.ofNullable(schemaFile).orElse(quickstart.getSchemaFile());
           format = Optional.ofNullable(format).orElse(quickstart.getFormat());
@@ -170,7 +185,7 @@ public class DataGen {
         } catch (NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
-        return new Arguments(schemaFile, format, topicName, keyName, iterations);
+        return new Arguments(help, schemaFile, format, topicName, keyName, iterations);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -181,6 +196,11 @@ public class DataGen {
       }
 
       public Builder parseArg(String arg) throws IOException {
+
+        if ("help".equals(arg)) {
+          help = true;
+          return this;
+        }
 
         String[] splitOnEquals = arg.split("=");
         if (splitOnEquals.length != 2) {

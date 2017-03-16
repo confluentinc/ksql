@@ -7,7 +7,6 @@ package io.confluent.kql.parser.rewrite;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.parser.AstBuilder;
-import io.confluent.kql.parser.CaseInsensitiveStream;
 import io.confluent.kql.parser.SqlBaseLexer;
 import io.confluent.kql.parser.SqlBaseParser;
 import io.confluent.kql.parser.tree.Node;
@@ -34,7 +33,7 @@ public class KQLRewriteParser {
 
     SqlBaseLexer
         sqlBaseLexer =
-        new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
+        new SqlBaseLexer(new ANTLRInputStream(sql));
 
     CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
 

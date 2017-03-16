@@ -73,7 +73,7 @@ public class KQLParser {
 
     SqlBaseLexer
         sqlBaseLexer =
-        new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
+        new SqlBaseLexer(new ANTLRInputStream(sql));
     CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
     SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
     sqlBaseParser.setErrorHandler(new KQLParserErrorStrategy());

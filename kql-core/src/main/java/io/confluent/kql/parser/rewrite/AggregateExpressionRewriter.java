@@ -22,7 +22,7 @@ public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
   public Expression rewriteFunctionCall(FunctionCall node, Void context,
                                         ExpressionTreeRewriter<Void> treeRewriter) {
     String functionName = node.getName().getSuffix();
-    if (KQLFunctions.getAggregateFunction(functionName) != null) {
+    if (KQLFunctions.isAnAggregateFunction(functionName)) {
       String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;
       return new QualifiedNameReference(QualifiedName.of(aggVarName));

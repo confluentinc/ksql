@@ -5,6 +5,7 @@ package io.confluent.kql.util;
 
 import com.google.common.collect.ImmutableMap;
 
+import io.confluent.kql.function.KQLAggregateFunction;
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
@@ -98,7 +99,6 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitDereferenceExpression(final DereferenceExpression node,
                                                   final ExpressionTypeContext expressionTypeContext) {
-//        Field schemaField = SchemaUtil.getFieldByName(schema, node.getFieldName());
     Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
     expressionTypeContext.setType(schemaField.schema().type());
     return null;
@@ -132,16 +132,14 @@ public class ExpressionTypeManager
                                          final ExpressionTypeContext expressionTypeContext) {
 
     KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
-
     if (kqlFunction != null) {
       expressionTypeContext.setType(kqlFunction.getReturnType());
-    } else if (KQLFunctions.getAggregateFunction(node.getName().getSuffix()) != null) {
-      KQLFunction kqlAggFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix()).get(0);
-      expressionTypeContext.setType(kqlAggFunction.getReturnType());
+    } else if (KQLFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
+      KQLAggregateFunction kqlAggregateFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix(), node.getArguments(), schema);
+      expressionTypeContext.setType(kqlAggregateFunction.getReturnType());
     } else {
       throw new KQLException("Unknown function: " + node.getName().toString());
     }
-
     return null;
   }
 

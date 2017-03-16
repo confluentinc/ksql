@@ -34,7 +34,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   @Override
   protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
     String functionName = node.getName().getSuffix();
-    if (KQLFunctions.getAggregateFunction(functionName) != null) {
+    if (KQLFunctions.isAnAggregateFunction(functionName)) {
       aggregateAnalysis.aggregateFunctionArguments.add(node.getArguments().get(0));
       aggregateAnalysis.functionList.add(node);
       hasAggregateFunction = true;

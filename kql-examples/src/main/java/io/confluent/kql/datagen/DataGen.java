@@ -1,30 +1,45 @@
 /**
  * Copyright 2017 Confluent Inc.
- **/
+ */
 package io.confluent.kql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 
 public class DataGen {
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     Arguments arguments;
 
     try {
       arguments = new Arguments.Builder().parseArgs(args).build();
-    } catch (Exception exception) {
+    } catch (Arguments.ArgumentParseException exception) {
       System.err.println(exception.getMessage());
-      usage();
+      usage(1);
+      return;
+    } catch (IOException exception) {
+      System.err.printf("IOException encountered: %s%n", exception.getMessage());
       return;
     }
 
-    Generator generator = new Generator(new File(arguments.schemaFile), new Random());
+    if (arguments.help) {
+      usage(0);
+    }
+
+
+    Generator generator;
+    try {
+      generator = new Generator(arguments.schemaFile, new Random());
+    } catch (IOException exception) {
+      System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      return;
+    }
     DataGenProducer dataProducer;
 
     switch (arguments.format) {
@@ -39,7 +54,7 @@ public class DataGen {
         break;
       default:
         System.err.printf("Invalid format in '%s'; was expecting one of AVRO, JSON, or CSV%n", arguments.format);
-        usage();
+        usage(1);
         return;
     }
 
@@ -49,65 +64,147 @@ public class DataGen {
   private static void usage() {
     System.err.println(
         "usage: DataGen "
+            + "[help] "
+            + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or 'pageview')] "
             + "schema=<avro schema file> "
+            + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'csv')"
             + "topic=<kafka topic name> "
             + "key=<name of key column> "
-            + "format=<message format> "
-            + "[iterations=<number of rows to generate, default 1000>]"
+            + "[iterations=<number of rows> (defaults to 1000)]"
     );
+  }
+
+  private static void usage(int exitValue) {
+    usage();
+    System.exit(exitValue);
   }
 
   private static class Arguments {
     public enum Format { AVRO, JSON, CSV }
 
-    public final String schemaFile;
+    public final boolean help;
+    public final InputStream schemaFile;
+    public final Format format;
     public final String topicName;
     public final String keyName;
-    public final Format format;
     public final int iterations;
 
-    public Arguments(String schemaFile, String topicName, String keyName, Format format, int iterations) {
+    public Arguments(
+        boolean help,
+        InputStream schemaFile,
+        Format format,
+        String topicName,
+        String keyName,
+        int iterations
+    ) {
+      this.help = help;
       this.schemaFile = schemaFile;
+      this.format = format;
       this.topicName = topicName;
       this.keyName = keyName;
-      this.format = format;
       this.iterations = iterations;
     }
 
+    public static class ArgumentParseException extends RuntimeException {
+      public ArgumentParseException(String message) {
+        super(message);
+      }
+    }
+
     public static class Builder {
-      private String schemaFile;
+      private Quickstart quickstart;
+
+      private boolean help;
+      private InputStream schemaFile;
+      private Format format;
       private String topicName;
       private String keyName;
-      private Format format;
       private int iterations;
 
+
       public Builder() {
+        quickstart = null;
+        help = false;
         schemaFile = null;
+        format = null;
         topicName = null;
         keyName = null;
-        format = null;
         iterations = 1000;
       }
 
-      public Arguments build() {
-        Objects.requireNonNull(schemaFile, "Schema file not provided");
-        Objects.requireNonNull(topicName, "Kafka topic name not provided");
-        Objects.requireNonNull(keyName, "Name of key column not provided");
-        Objects.requireNonNull(format, "Message format not provided");
-        return new Arguments(schemaFile, topicName, keyName, format, iterations);
+      private enum Quickstart {
+        ORDERS("orders_schema.avro", "orders", "ORDERID"),
+        USERS("users_schema.avro", "users", "userid"),
+        PAGEVIEW("pageview_schema.avro", "pageview", "viewtime");
+
+        private final String schemaFileName;
+        private final String rootTopicName;
+        private final String keyName;
+
+        Quickstart(String schemaFileName, String rootTopicName, String keyName) {
+          this.schemaFileName = schemaFileName;
+          this.rootTopicName = rootTopicName;
+          this.keyName = keyName;
+        }
+
+        public InputStream getSchemaFile() {
+          return getClass().getClassLoader().getResourceAsStream(schemaFileName);
+        }
+
+        public String getTopicName(Format format) {
+          return String.format("%s_kafka_topic_%s", rootTopicName, format.name().toLowerCase());
+        }
+
+        public String getKeyName() {
+          return keyName;
+        }
+
+        public Format getFormat() {
+          return Format.JSON;
+        }
+
       }
 
-      public Builder parseArgs(String[] args) {
+      public Arguments build() {
+        if (help) {
+          return new Arguments(true, null, null, null, null, 0);
+        }
+
+        if (quickstart != null) {
+          schemaFile = Optional.ofNullable(schemaFile).orElse(quickstart.getSchemaFile());
+          format = Optional.ofNullable(format).orElse(quickstart.getFormat());
+          topicName = Optional.ofNullable(topicName).orElse(quickstart.getTopicName(format));
+          keyName = Optional.ofNullable(keyName).orElse(quickstart.getKeyName());
+        }
+
+        try {
+          Objects.requireNonNull(schemaFile, "Schema file not provided");
+          Objects.requireNonNull(format, "Message format not provided");
+          Objects.requireNonNull(topicName, "Kafka topic name not provided");
+          Objects.requireNonNull(keyName, "Name of key column not provided");
+        } catch (NullPointerException exception) {
+          throw new ArgumentParseException(exception.getMessage());
+        }
+        return new Arguments(help, schemaFile, format, topicName, keyName, iterations);
+      }
+
+      public Builder parseArgs(String[] args) throws IOException {
         for (String arg : args) {
           parseArg(arg);
         }
         return this;
       }
 
-      public Builder parseArg(String arg) {
+      public Builder parseArg(String arg) throws IOException {
+
+        if ("help".equals(arg)) {
+          help = true;
+          return this;
+        }
+
         String[] splitOnEquals = arg.split("=");
         if (splitOnEquals.length != 2) {
-          throw new RuntimeException(String.format(
+          throw new ArgumentParseException(String.format(
               "Invalid argument format in '%s'; expected <name>=<value>",
               arg
           ));
@@ -117,22 +214,35 @@ public class DataGen {
         String argValue = splitOnEquals[1].trim();
 
         if (argName.isEmpty()) {
-          throw new RuntimeException(String.format(
+          throw new ArgumentParseException(String.format(
               "Empty argument name in %s",
               arg
           ));
         }
 
         if (argValue.isEmpty()) {
-          throw new RuntimeException(String.format(
+          throw new ArgumentParseException(String.format(
               "Empty argument value in '%s'",
               arg
           ));
         }
 
         switch (argName) {
+          case "quickstart":
+            try {
+              quickstart = Quickstart.valueOf(argValue.toUpperCase());
+            } catch (IllegalArgumentException iae) {
+              throw new ArgumentParseException(String.format(
+                  "Invalid quickstart in '%s'; was expecting one of ORDERS, USERS, or PAGEVIEW (case-insensitive)",
+                  argValue
+              ));
+            }
+            break;
           case "schema":
-            schemaFile = argValue;
+            schemaFile = new FileInputStream(argValue);
+            break;
+          case "format":
+            format = parseFormat(argValue);
             break;
           case "topic":
             topicName = argValue;
@@ -140,14 +250,11 @@ public class DataGen {
           case "key":
             keyName = argValue;
             break;
-          case "format":
-            format = parseFormat(argValue);
-            break;
           case "iterations":
             iterations = parseIterations(argValue);
             break;
           default:
-            throw new RuntimeException(String.format(
+            throw new ArgumentParseException(String.format(
                 "Unknown argument name in '%s'",
                 argName
             ));
@@ -159,8 +266,8 @@ public class DataGen {
         try {
           return Format.valueOf(formatString.toUpperCase());
         } catch (IllegalArgumentException exception) {
-          throw new RuntimeException(String.format(
-              "Invalid format in '%s'; was expecting one of AVRO, JSON, or CSV",
+          throw new ArgumentParseException(String.format(
+              "Invalid format in '%s'; was expecting one of AVRO, JSON, or CSV (case-insensitive)",
               formatString
           ));
         }
@@ -170,14 +277,14 @@ public class DataGen {
         try {
           int result = Integer.valueOf(iterationsString, 10);
           if (result <= 0) {
-            throw new RuntimeException(String.format(
+            throw new ArgumentParseException(String.format(
                 "Invalid number of iterations in '%d'; must be a positive number",
                 result
             ));
           }
           return Integer.valueOf(iterationsString, 10);
         } catch (NumberFormatException exception) {
-          throw new RuntimeException(String.format(
+          throw new ArgumentParseException(String.format(
               "Invalid number of iterations in '%s'; must be a valid base 10 integer",
               iterationsString
           ));

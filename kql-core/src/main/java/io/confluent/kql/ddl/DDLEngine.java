@@ -6,7 +6,6 @@ package io.confluent.kql.ddl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.DataSource;
 import io.confluent.kql.metastore.KQLStream;
@@ -22,7 +21,6 @@ import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.kql.util.KQLException;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -40,7 +38,7 @@ public class DDLEngine {
 
   public KQLTopic createTopic(final CreateTopic createTopic) {
 
-    String topicName = createTopic.getName().getSuffix();
+    String topicName = createTopic.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getTopic(topicName) != null) {
       if (createTopic.isNotExists()) {
         System.out.println("Topic already exists.");
@@ -73,13 +71,13 @@ public class DDLEngine {
       if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
         throw new KQLException("Avro schema file path should be set for avro topics.");
       }
-      String avroSchemFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
-      avroSchemFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemFile);
+      String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
+      avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
       try {
-        String avroSchema = getAvroSchema(avroSchemFile);
-        topicSerDe = new KQLAvroTopicSerDe(avroSchemFile, avroSchema);
+        String avroSchema = getAvroSchema(avroSchemaFile);
+        topicSerDe = new KQLAvroTopicSerDe(avroSchemaFile, avroSchema);
       } catch (IOException e) {
-        throw new KQLException("Could not read avro schema from file: " + avroSchemFile);
+        throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
       }
     } else if (serde.equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
       topicSerDe = new KQLJsonTopicSerDe();
@@ -113,7 +111,7 @@ public class DDLEngine {
 
   public KQLStream createStream(final CreateStream createStream) {
 
-    String streamName = createStream.getName().getSuffix();
+    String streamName = createStream.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getSource(streamName) != null) {
       if (createStream.isNotExists()) {
         System.out.println("Stream already exists.");
@@ -140,14 +138,14 @@ public class DDLEngine {
       throw new KQLException("Topic for the stream should be set in WITH clause.");
     }
 
-    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
       throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -167,7 +165,7 @@ public class DDLEngine {
 
   public KQLTable createTable(final CreateTable createTable) {
 
-    String tableName = createTable.getName().getSuffix();
+    String tableName = createTable.getName().getSuffix().toUpperCase();
     if (kqlEngine.getMetaStore().getSource(tableName) != null) {
       if (createTable.isNotExists()) {
         System.out.println("Topic already exists.");
@@ -191,15 +189,15 @@ public class DDLEngine {
     }
 
     if (createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY) == null) {
-      throw new KQLException("Topic (topic) for the table should be set in WITH clause.");
+      throw new KQLException("Topic for the table should be set in WITH clause.");
     }
 
-    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY) == null) {
       throw new KQLException(
-          "State store (statestore) name for the table should be set in WITH clause.");
+          "State store name for the table should be set in WITH clause.");
     }
 
     String stateStoreName = createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY)
@@ -207,10 +205,10 @@ public class DDLEngine {
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
     if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
-      throw new KQLException("Key(key) field name for the stream should be set in WITH clause.");
+      throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {

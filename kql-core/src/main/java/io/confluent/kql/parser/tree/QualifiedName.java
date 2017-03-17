@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 public class QualifiedName {
 
   private final List<String> parts;
-  private final List<String> originalParts;
 
   public static QualifiedName of(String first, String... rest) {
     requireNonNull(first, "first is null");
@@ -35,12 +34,14 @@ public class QualifiedName {
   public static QualifiedName of(Iterable<String> originalParts) {
     requireNonNull(originalParts, "originalParts is null");
     checkArgument(!isEmpty(originalParts), "originalParts is empty");
-    List<String> partsList = ImmutableList.copyOf(originalParts);
-    return new QualifiedName(partsList, partsList);
+    List<String>
+        parts =
+        ImmutableList.copyOf(transform(originalParts, part -> part.toUpperCase(ENGLISH)));
+
+    return new QualifiedName(parts);
   }
 
-  private QualifiedName(List<String> originalParts, List<String> parts) {
-    this.originalParts = originalParts;
+  private QualifiedName(List<String> parts) {
     this.parts = parts;
   }
 
@@ -48,13 +49,9 @@ public class QualifiedName {
     return parts;
   }
 
-  public List<String> getOriginalParts() {
-    return originalParts;
-  }
-
   @Override
   public String toString() {
-    return Joiner.on('.').join(parts);
+    return Joiner.on('.').join(parts).toUpperCase();
   }
 
   /**
@@ -67,7 +64,7 @@ public class QualifiedName {
     }
 
     List<String> subList = parts.subList(0, parts.size() - 1);
-    return Optional.of(new QualifiedName(subList, subList));
+    return Optional.of(new QualifiedName(subList));
   }
 
   public boolean hasSuffix(QualifiedName suffix) {

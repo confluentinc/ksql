@@ -31,35 +31,35 @@ public class MetastoreUtilTest {
     KQLTopic ordersTopic = metaStore.getTopic("ORDERS_TOPIC");
     Assert.assertTrue(ordersTopic.getKqlTopicSerDe() instanceof KQLJsonTopicSerDe);
     Assert.assertTrue(ordersTopic.getTopicName().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue(ordersTopic.getKafkaTopicName().equalsIgnoreCase("orders_kafka_topic"));
+    Assert.assertTrue(ordersTopic.getKafkaTopicName().equals("orders_kafka_topic"));
 
     KQLTopic ordersAvroTopic = metaStore.getTopic("ORDERS_TOPIC_AVRO");
     Assert.assertTrue(ordersAvroTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe);
     Assert.assertTrue(ordersAvroTopic.getTopicName().equalsIgnoreCase("ORDERS_TOPIC_AVRO"));
-    Assert.assertTrue(ordersAvroTopic.getKafkaTopicName().equalsIgnoreCase("orders_kafka_topic_avro"));
+    Assert.assertTrue(ordersAvroTopic.getKafkaTopicName().equals("orders_kafka_topic_avro"));
 
     KQLTopic usersTopic = metaStore.getTopic("USERS_TOPIC");
     Assert.assertTrue(usersTopic.getKqlTopicSerDe() instanceof KQLJsonTopicSerDe);
     Assert.assertTrue(usersTopic.getTopicName().equalsIgnoreCase("USERS_TOPIC"));
-    Assert.assertTrue(usersTopic.getKafkaTopicName().equalsIgnoreCase("users_kafka_topic_json"));
+    Assert.assertTrue(usersTopic.getKafkaTopicName().equals("users_kafka_topic_json"));
 
-    StructuredDataSource orders = metaStore.getSource("orders");
+    StructuredDataSource orders = metaStore.getSource("ORDERS");
     Assert.assertTrue(orders instanceof KQLStream);
     Assert.assertTrue(orders.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders.getSchema().fields().size() == 4);
-    Assert.assertTrue(orders.getKeyField().name().equalsIgnoreCase("ORDERTIME"));
+    Assert.assertTrue(orders.getKeyField().name().equals("ordertime"));
 
-    StructuredDataSource orders_avro = metaStore.getSource("orders_avro");
+    StructuredDataSource orders_avro = metaStore.getSource("ORDERS_AVRO");
     Assert.assertTrue(orders_avro instanceof KQLStream);
     Assert.assertTrue(orders_avro.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders_avro.getSchema().fields().size() == 4);
-    Assert.assertTrue(orders_avro.getKeyField().name().equalsIgnoreCase("ORDERTIME"));
+    Assert.assertTrue(orders_avro.getKeyField().name().equals("ordertime"));
 
-    StructuredDataSource users = metaStore.getSource("users");
+    StructuredDataSource users = metaStore.getSource("USERS");
     Assert.assertTrue(users instanceof KQLTable);
     Assert.assertTrue(users.dataSourceType == DataSource.DataSourceType.KTABLE);
     Assert.assertTrue(users.getSchema().fields().size() == 4);
-    Assert.assertTrue(users.getKeyField().name().equalsIgnoreCase("USERID"));
+    Assert.assertTrue(users.getKeyField().name().equals("userid"));
 
   }
 

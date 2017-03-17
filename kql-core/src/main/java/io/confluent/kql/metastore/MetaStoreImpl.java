@@ -18,39 +18,39 @@ public class MetaStoreImpl implements MetaStore {
 
   @Override
   public KQLTopic getTopic(String topicName) {
-    return topicMap.get(topicName.toUpperCase());
+    return topicMap.get(topicName);
   }
 
   @Override
   public void putTopic(final KQLTopic topic) {
-    if (topicMap.get(topic.getName().toUpperCase()) == null) {
-      topicMap.put(topic.getName().toUpperCase(), topic);
+    if (topicMap.get(topic.getName()) == null) {
+      topicMap.put(topic.getName(), topic);
     } else {
       throw new KQLException(
           "Cannot add the new topic. Another topic with the same name already exists: "
-          + topic.getName().toUpperCase());
+          + topic.getName());
     }
   }
 
   @Override
   public StructuredDataSource getSource(final String sourceName) {
-    return dataSourceMap.get(sourceName.toUpperCase());
+    return dataSourceMap.get(sourceName);
   }
 
   @Override
   public void putSource(final StructuredDataSource dataSource) {
-    if (getSource(dataSource.getName().toUpperCase()) == null) {
-      dataSourceMap.put(dataSource.getName().toUpperCase(), dataSource);
+    if (getSource(dataSource.getName()) == null) {
+      dataSourceMap.put(dataSource.getName(), dataSource);
     } else {
       throw new KQLException(
           "Cannot add the new data source. Another data source with the same name already exists: "
-          + dataSource.getName().toUpperCase());
+          + dataSource.getName());
     }
   }
 
   @Override
   public void deleteSource(final String sourceName) {
-    dataSourceMap.remove(sourceName.toUpperCase());
+    dataSourceMap.remove(sourceName);
   }
 
   @Override

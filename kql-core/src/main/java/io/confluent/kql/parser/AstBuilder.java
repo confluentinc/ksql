@@ -172,7 +172,7 @@ public class AstBuilder
     ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
     if (tablePropertiesContext != null) {
       for (TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
-        properties.put(tablePropertyContext.identifier().getText(),
+        properties.put(tablePropertyContext.identifier().getText().toUpperCase(),
                        (Expression) visit(tablePropertyContext.expression()));
       }
     }

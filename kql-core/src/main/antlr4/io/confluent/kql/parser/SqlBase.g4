@@ -460,33 +460,6 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 
-STRING
-    : '\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-
-// Note: we allow any character inside the binary literal and validate
-// its a correct literal when the AST is being constructed. This
-// allows us to provide more meaningful error messages to the user
-BINARY_LITERAL
-    :  'X\'' (~'\'')* '\''
-    ;
-
-QUOTED_IDENTIFIER
-    : '"' ( ~'"' | '""' )* '"'
-    ;
-
-BACKQUOTED_IDENTIFIER
-    : '`' ( ~'`' | '``' )* '`'
-    ;
-
-SIMPLE_COMMENT
-    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
-    ;
-
-BRACKETED_COMMENT
-    : '/*' .*? '*/' -> channel(HIDDEN)
-    ;
-
 SELECT: S E L E C T;
 FROM: F R O M;
 ADD: A D D;
@@ -679,6 +652,13 @@ IF: I F;
 NULLIF: N U L L I F;
 COALESCE: C O A L E S C E;
 
+// Note: we allow any character inside the binary literal and validate
+// its a correct literal when the AST is being constructed. This
+// allows us to provide more meaningful error messages to the user
+BINARY_LITERAL
+    :  'X\'' (~'\'')* '\''
+    ;
+
 INTEGER_VALUE
     : DIGIT+
     ;
@@ -690,12 +670,36 @@ DECIMAL_VALUE
     | '.' DIGIT+ EXPONENT
     ;
 
+STRING
+    : '\'' ( ~'\'' | '\'\'' )* '\''
+    ;
+
+QUOTED_IDENTIFIER
+    : '"' ( ~'"' | '""' )* '"'
+    { setText(getText().toUpperCase()); }
+    ;
+
+BACKQUOTED_IDENTIFIER
+    : '`' ( ~'`' | '``' )* '`'
+    { setText(getText().toUpperCase()); }
+    ;
+
 IDENTIFIER
     : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    { setText(getText().toUpperCase()); }
     ;
 
 DIGIT_IDENTIFIER
     : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    { setText(getText().toUpperCase()); }
+    ;
+
+SIMPLE_COMMENT
+    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
+    ;
+
+BRACKETED_COMMENT
+    : '/*' .*? '*/' -> channel(HIDDEN)
     ;
 
 WS

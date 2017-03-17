@@ -404,11 +404,13 @@ public class KQL {
     console.println(
             "         Name               |               KQL Topic                |             Topic"
                     + " Key          |          Topic Format           ");
+    console.println(
+            "----------------------------+----------------------------------------+--------------------------------+--------------------------------");
     for (String tableInfo : streamsInfo) {
       console.println(tableInfo);
     }
     console.println(
-            "----------------------------+----------------------------------------+--------------------------------+--------------------------------");
+        "----------------------------+----------------------------------------+--------------------------------+--------------------------------");
     console.println("(" + streamsInfo.size() + " streams)");
     console.flush();
   }
@@ -435,6 +437,9 @@ public class KQL {
     console.println(
             "         Name               |               KQL Topic                |             Topic"
                     + " Key          |          Topic Format          |            Statestore            ");
+    console.println(
+        "----------------------------+----------------------------------------+--------------------------------+--------------------------------+----------------------------------");
+
     for (String tableInfo : tablesInfo) {
       console.println(tableInfo);
     }

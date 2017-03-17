@@ -4,7 +4,6 @@
 package io.confluent.kql.physical;
 
 import io.confluent.kql.function.KQLAggregateFunction;
-import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
 import io.confluent.kql.function.udaf.KUDAFAggregator;
 import io.confluent.kql.function.udaf.KUDAFInitializer;
@@ -120,8 +119,8 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
 
-    StructuredDataSourceNode sourceNode = (StructuredDataSourceNode) aggregateNode.getSource();
-    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+    StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
+    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
                                                                   .getKqlTopic()
                                                                   .getKqlTopicSerDe());
     SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
@@ -156,10 +155,13 @@ public class PhysicalPlanBuilder {
     }
     int udafIndex = resultColumns.size();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
-      KQLFunction aggregateFunctionInfo = KQLFunctions.getAggregateFunction(functionCall.getName()
-                                                                            .toString()).get(0);
-      KQLAggregateFunction aggregateFunction = (KQLAggregateFunction) aggregateFunctionInfo
-          .getKudfClass().getDeclaredConstructor(Integer.class).newInstance(udafIndex);
+      KQLAggregateFunction aggregateFunctionInfo = KQLFunctions.getAggregateFunction(functionCall
+                                                                                      .getName()
+                                                                                     .toString(),
+                                                                                 functionCall
+                                                                                     .getArguments(), aggregateArgExpanded.getSchema());
+      KQLAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
+          .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
       aggValToAggFunctionMap.put(udafIndex, aggregateFunction);
       resultColumns.add(aggregateFunction.getIntialValue());
 
@@ -181,7 +183,9 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KQLFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName).get(0);
+      KQLAggregateFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName,
+                                                                                 aggregateNode
+                                                                                     .getFunctionList().get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
       fieldSchema = SchemaUtil.getTypeSchema(aggregateFunction.getReturnType());
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
                           + aggFunctionVarSuffix, fieldSchema);

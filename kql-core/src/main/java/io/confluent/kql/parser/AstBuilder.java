@@ -360,7 +360,7 @@ public class AstBuilder
             SingleColumn
                 newSelectItem =
                 new SingleColumn(qualifiedNameReference,
-                                 left.getAlias() + "_" + field.name().toUpperCase());
+                                 left.getAlias() + "_" + field.name());
             selectItems.add(newSelectItem);
           }
           for (Field field : rightDataSource.getSchema().fields()) {
@@ -371,7 +371,7 @@ public class AstBuilder
             SingleColumn
                 newSelectItem =
                 new SingleColumn(qualifiedNameReference,
-                                 right.getAlias() + "_" + field.name().toUpperCase());
+                                 right.getAlias() + "_" + field.name());
             selectItems.add(newSelectItem);
           }
         } else {
@@ -388,10 +388,10 @@ public class AstBuilder
             QualifiedNameReference
                 qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
-                    .of(fromDataSource.getName() + "." + field.name().toUpperCase()));
+                    .of(fromDataSource.getName() + "." + field.name()));
             SingleColumn
                 newSelectItem =
-                new SingleColumn(qualifiedNameReference, field.name().toUpperCase());
+                new SingleColumn(qualifiedNameReference, field.name());
             selectItems.add(newSelectItem);
           }
         }
@@ -506,7 +506,7 @@ public class AstBuilder
         QualifiedNameReference
             qualifiedNameReference =
             (QualifiedNameReference) selectItemExpression;
-        alias = Optional.of(qualifiedNameReference.getName().getSuffix().toUpperCase());
+        alias = Optional.of(qualifiedNameReference.getName().getSuffix());
       } else if (selectItemExpression instanceof DereferenceExpression) {
         DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
         if ((dataSourceExtractor.getJoinLeftSchema() != null) && (dataSourceExtractor
@@ -515,7 +515,7 @@ public class AstBuilder
                                                                           dereferenceExpression
                                                                               .getFieldName()))) {
           alias =
-              Optional.of(dereferenceExpression.getBase().toString().toUpperCase() + "_"
+              Optional.of(dereferenceExpression.getBase().toString() + "_"
                           + dereferenceExpression.getFieldName());
         } else {
           alias = Optional.of(dereferenceExpression.getFieldName());
@@ -524,7 +524,7 @@ public class AstBuilder
         alias = Optional.of("KQL_COL_" + selectItemIndex);
       }
     } else {
-      alias = Optional.of(alias.get().toUpperCase());
+      alias = Optional.of(alias.get());
     }
     selectItemIndex++;
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
@@ -730,7 +730,7 @@ public class AstBuilder
       alias = context.children.get(1).getText();
     }
 
-    return new AliasedRelation(getLocation(context), child, alias.toUpperCase(),
+    return new AliasedRelation(getLocation(context), child, alias,
                                getColumnAliases(context.columnAliases()));
 
   }
@@ -933,7 +933,7 @@ public class AstBuilder
     String fieldString = context.identifier().getText();
     Extract.Field field;
     try {
-      field = Extract.Field.valueOf(fieldString.toUpperCase());
+      field = Extract.Field.valueOf(fieldString);
     } catch (IllegalArgumentException e) {
       throw new ParsingException(format("Invalid EXTRACT field: %s", fieldString), null,
                                  context.getStart().getLine(),
@@ -991,7 +991,7 @@ public class AstBuilder
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-    String columnName = context.getText().toUpperCase();
+    String columnName = context.getText();
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {

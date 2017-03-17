@@ -250,8 +250,7 @@ public class PhysicalPlanBuilder {
     SchemaKStream rightSchemaKStream = kafkaStreamsDSL(joinNode.getRight());
     if (rightSchemaKStream instanceof SchemaKTable) {
       SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
-      if (!leftSchemaKStream.getKeyField().name()
-          .equalsIgnoreCase(joinNode.getLeftKeyFieldName())) {
+      if (!leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {
         leftSchemaKStream =
             leftSchemaKStream.selectKey(SchemaUtil.getFieldByName(leftSchemaKStream.getSchema(),
                                                                   joinNode.getLeftKeyFieldName()));
@@ -261,7 +260,7 @@ public class PhysicalPlanBuilder {
         case LEFT:
           KQLTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
           String joinKeyFieldName = (joinNode.getLeftAlias() + "." + leftSchemaKStream
-              .getKeyField().name()).toUpperCase();
+              .getKeyField().name());
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
                                          joinNode.getSchema().field(joinKeyFieldName), SerDeUtil.getRowSerDe(joinSerDe));
@@ -367,7 +366,7 @@ public class PhysicalPlanBuilder {
     List<Field> fields = schema.fields();
     for (int i = 0; i < fields.size(); i++) {
       Field field = fields.get(i);
-      if (field.name().equalsIgnoreCase(fieldName)) {
+      if (field.name().equals(fieldName)) {
         return i;
       }
     }

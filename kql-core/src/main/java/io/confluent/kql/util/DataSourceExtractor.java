@@ -77,12 +77,12 @@ public class DataSourceExtractor
     }
 
     if (!isJoin) {
-      this.fromAlias = alias.toUpperCase();
+      this.fromAlias = alias;
       StructuredDataSource
           fromDataSource =
-          metaStore.getSource(table.getName().getSuffix().toUpperCase());
+          metaStore.getSource(table.getName().getSuffix());
       if (fromDataSource == null) {
-        throw new KQLException(table.getName().getSuffix().toUpperCase() + " does not exist.");
+        throw new KQLException(table.getName().getSuffix() + " does not exist.");
       }
       this.fromSchema = fromDataSource.getSchema();
       return null;
@@ -108,20 +108,20 @@ public class DataSourceExtractor
       }
     }
 
-    this.leftAlias = left.getAlias().toUpperCase();
+    this.leftAlias = left.getAlias();
     StructuredDataSource
         leftDataSource =
-        metaStore.getSource(((Table) left.getRelation()).getName().getSuffix().toUpperCase());
+        metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
     if (leftDataSource == null) {
       throw new KQLException(((Table) left.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
     }
     this.joinLeftSchema = leftDataSource.getSchema();
 
-    this.rightAlias = right.getAlias().toUpperCase();
+    this.rightAlias = right.getAlias();
     StructuredDataSource
         rightDataSource =
-        metaStore.getSource(((Table) right.getRelation()).getName().getSuffix().toUpperCase());
+        metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
     if (rightDataSource == null) {
       throw new KQLException(((Table) right.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
@@ -136,12 +136,12 @@ public class DataSourceExtractor
     visit(node);
     if (joinLeftSchema != null) {
       for (Field field : joinLeftSchema.fields()) {
-        leftFieldNames.add(field.name().toUpperCase());
+        leftFieldNames.add(field.name());
       }
       for (Field field : joinRightSchema.fields()) {
-        rightFieldNames.add(field.name().toUpperCase());
-        if (leftFieldNames.contains(field.name().toUpperCase())) {
-          commonFieldNames.add(field.name().toUpperCase());
+        rightFieldNames.add(field.name());
+        if (leftFieldNames.contains(field.name())) {
+          commonFieldNames.add(field.name());
         }
       }
     }

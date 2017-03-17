@@ -50,9 +50,9 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   protected Node visitDereferenceExpression(final DereferenceExpression node,
                                              final AnalysisContext context) {
     String name = node.toString();
-    if (aggregateAnalysis.getRequiredColumnsMap().get(name.toUpperCase()) == null) {
+    if (aggregateAnalysis.getRequiredColumnsMap().get(name) == null) {
       aggregateAnalysis.getRequiredColumnsList().add(node);
-      aggregateAnalysis.getRequiredColumnsMap().put(name.toUpperCase(), node);
+      aggregateAnalysis.getRequiredColumnsMap().put(name, node);
     }
     return null;
   }

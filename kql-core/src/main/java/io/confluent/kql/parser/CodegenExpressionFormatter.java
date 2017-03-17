@@ -140,7 +140,7 @@ public class CodegenExpressionFormatter {
       if (schemaField == null) {
         throw new KQLException("Field not found: " + schemaField.name());
       }
-      return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
     }
 
     @Override
@@ -159,7 +159,7 @@ public class CodegenExpressionFormatter {
                                                                    Boolean unmangleNames) {
       String fieldName = node.toString();
       Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
 //            String baseString = process(node.getBase(), unmangleNames);
 //            return baseString + "." + formatIdentifier(node.getFieldName());
     }
@@ -189,7 +189,7 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema.Type> visitFunctionCall(FunctionCall node,
                                                           Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder();
-      String name = node.getName().getSuffix().toUpperCase();
+      String name = node.getName().getSuffix();
       KQLFunction kqlFunction = KQLFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(kqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
@@ -259,10 +259,10 @@ public class CodegenExpressionFormatter {
       Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
       if ((left.getRight() == Schema.Type.STRING) || (right.getRight() == Schema.Type.STRING)) {
         if (node.getType().getValue().equals("=")) {
-          return new Pair<>("(" + left.getLeft() + ".equalsIgnoreCase(" + right.getLeft() + "))",
+          return new Pair<>("(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
         } else if (node.getType().getValue().equals("<>")) {
-          return new Pair<>(" (!" + left.getLeft() + ".equalsIgnoreCase(" + right.getLeft() + "))",
+          return new Pair<>(" (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
         }
       }
@@ -278,7 +278,7 @@ public class CodegenExpressionFormatter {
 
     protected Pair<String, Schema.Type> visitCast(Cast node, Boolean context) {
       Pair<String, Schema.Type> expr = process(node.getExpression(), context);
-      String returnTypeStr = node.getType().toUpperCase();
+      String returnTypeStr = node.getType();
       Schema.Type returnType = SchemaUtil.getTypeSchema(returnTypeStr);
       if (returnTypeStr.equalsIgnoreCase("STRING")) {
         return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);

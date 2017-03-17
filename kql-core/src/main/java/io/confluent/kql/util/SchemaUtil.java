@@ -58,12 +58,9 @@ public class SchemaUtil {
   }
 
   public static Field getFieldByName(final Schema schema, final String fieldName) {
-    String fieldNameUppercase = fieldName.toUpperCase();
-
     if (schema.fields() != null) {
-
       for (Field field : schema.fields()) {
-        if (field.name().equalsIgnoreCase(fieldNameUppercase)) {
+        if (field.name().equals(fieldName)) {
           return field;
         }
       }
@@ -78,7 +75,7 @@ public class SchemaUtil {
         Field field = schema.fields().get(i);
         int dotIndex = field.name().indexOf(".");
         if (dotIndex == -1) {
-          if (field.name().equalsIgnoreCase(fieldName)) {
+          if (field.name().equals(fieldName)) {
             return i;
           }
         } else {
@@ -100,7 +97,7 @@ public class SchemaUtil {
   public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
     SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
     for (Field field : schema.fields()) {
-      newSchema.field((alias + "." + field.name()).toUpperCase(), field.schema());
+      newSchema.field((alias + "." + field.name()), field.schema());
     }
     return newSchema;
   }

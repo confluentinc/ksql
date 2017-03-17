@@ -215,7 +215,7 @@ public final class ExpressionFormatterQueryRewrite {
       for (String part : name.getParts()) {
         parts.add(formatIdentifier(part));
       }
-      return Joiner.on('.').join(parts).toUpperCase();
+      return Joiner.on('.').join(parts);
     }
 
     @Override
@@ -464,7 +464,7 @@ public final class ExpressionFormatterQueryRewrite {
     private static String formatIdentifier(String s) {
       // TODO: handle escaping properly
 //            return '"' + s + '"';
-      return s.toUpperCase();
+      return s;
     }
   }
 

@@ -33,7 +33,7 @@ public class MetastoreUtil {
 
     KQLTopicSerDe topicSerDe;
 
-    String name = node.get("name").asText().toUpperCase();
+    String name = node.get("name").asText();
     String topicname = node.get("topic").asText();
 
     KQLTopic kqlTopic = (KQLTopic) metaStore.getTopic(topicname);
@@ -43,11 +43,11 @@ public class MetastoreUtil {
     }
 
     String type = node.get("type").asText();
-    String keyFieldName = node.get("key").asText().toUpperCase();
+    String keyFieldName = node.get("key").asText();
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
     for (int i = 0; i < fields.size(); i++) {
-      String fieldName = fields.get(i).get("name").textValue().toUpperCase();
+      String fieldName = fields.get(i).get("name").textValue();
       String fieldType;
       if (fields.get(i).get("type").isArray()) {
         fieldType = fields.get(i).get("type").get(0).textValue();

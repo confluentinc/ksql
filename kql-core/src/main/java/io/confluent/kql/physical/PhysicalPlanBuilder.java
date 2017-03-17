@@ -119,8 +119,8 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
 
-    StructuredDataSourceNode sourceNode = (StructuredDataSourceNode) aggregateNode.getSource();
-    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+    StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
+    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
                                                                   .getKqlTopic()
                                                                   .getKqlTopicSerDe());
     SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());

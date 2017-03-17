@@ -35,4 +35,13 @@ public abstract class PlanNode {
   public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
     return visitor.visitPlan(this, context);
   }
+
+  public StructuredDataSourceNode getTheSourceNode() {
+    if (this instanceof StructuredDataSourceNode) {
+      return (StructuredDataSourceNode)this;
+    } else if (this.getSources() != null && !this.getSources().isEmpty()) {
+      return this.getSources().get(0).getTheSourceNode();
+    }
+    return null;
+  }
 }

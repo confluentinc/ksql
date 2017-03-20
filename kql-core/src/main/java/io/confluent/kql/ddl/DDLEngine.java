@@ -38,7 +38,7 @@ public class DDLEngine {
 
   public KQLTopic createTopic(final CreateTopic createTopic) {
 
-    String topicName = createTopic.getName().getSuffix().toUpperCase();
+    String topicName = createTopic.getName().getSuffix();
     if (kqlEngine.getMetaStore().getTopic(topicName) != null) {
       if (createTopic.isNotExists()) {
         System.out.println("Topic already exists.");
@@ -111,7 +111,7 @@ public class DDLEngine {
 
   public KQLStream createStream(final CreateStream createStream) {
 
-    String streamName = createStream.getName().getSuffix().toUpperCase();
+    String streamName = createStream.getName().getSuffix();
     if (kqlEngine.getMetaStore().getSource(streamName) != null) {
       if (createStream.isNotExists()) {
         System.out.println("Stream already exists.");
@@ -165,7 +165,7 @@ public class DDLEngine {
 
   public KQLTable createTable(final CreateTable createTable) {
 
-    String tableName = createTable.getName().getSuffix().toUpperCase();
+    String tableName = createTable.getName().getSuffix();
     if (kqlEngine.getMetaStore().getSource(tableName) != null) {
       if (createTable.isNotExists()) {
         System.out.println("Topic already exists.");

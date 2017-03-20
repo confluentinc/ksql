@@ -1151,17 +1151,16 @@ public class AstBuilder
     String type = context.identifier().getText();
     String value = unquote(context.STRING().getText());
 
-    if ("TIME".equals(type)) {
-      return new TimeLiteral(getLocation(context), value);
+    switch (type) {
+      case "TIME":
+        return new TimeLiteral(getLocation(context), value);
+      case "TIMESTAMP":
+        return new TimestampLiteral(getLocation(context), value);
+      case "DECIMAL":
+        return new DecimalLiteral(getLocation(context), value);
+      default:
+        return new GenericLiteral(getLocation(context), type, value);
     }
-    if ("TIMESTAMP".equals(type)) {
-      return new TimestampLiteral(getLocation(context), value);
-    }
-    if ("DECIMAL".equals(type)) {
-      return new DecimalLiteral(getLocation(context), value);
-    }
-
-    return new GenericLiteral(getLocation(context), type, value);
   }
 
   @Override

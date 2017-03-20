@@ -74,12 +74,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
-        if (DataSource.AVRO_SERDE_NAME.equals(analysis.getIntoFormat())) {
-          intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
-        } else if (DataSource.JSON_SERDE_NAME.equals(analysis.getIntoFormat())) {
-          intoTopicSerde = new KQLJsonTopicSerDe();
-        } else if (DataSource.CSV_SERDE_NAME.equals(analysis.getIntoFormat())) {
-          intoTopicSerde = new KQLCsvTopicSerDe();
+        switch (analysis.getIntoFormat()) {
+          case DataSource.AVRO_SERDE_NAME:
+            intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
+            break;
+          case DataSource.JSON_SERDE_NAME:
+            intoTopicSerde = new KQLJsonTopicSerDe();
+            break;
+          case DataSource.CSV_SERDE_NAME:
+            intoTopicSerde = new KQLCsvTopicSerDe();
+            break;
         }
       } else {
         if (intoTopicSerde instanceof KQLAvroTopicSerDe) {

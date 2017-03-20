@@ -66,25 +66,28 @@ public class DDLEngine {
         createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
-    if (DataSource.AVRO_SERDE_NAME.equals(serde)) {
-
-      if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
-        throw new KQLException("Avro schema file path should be set for avro topics.");
-      }
-      String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
-      avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
-      try {
-        String avroSchema = getAvroSchema(avroSchemaFile);
-        topicSerDe = new KQLAvroTopicSerDe(avroSchemaFile, avroSchema);
-      } catch (IOException e) {
-        throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
-      }
-    } else if (DataSource.JSON_SERDE_NAME.equals(serde)) {
-      topicSerDe = new KQLJsonTopicSerDe();
-    } else if (DataSource.CSV_SERDE_NAME.equals(serde)) {
-      topicSerDe = new KQLCsvTopicSerDe();
-    } else {
-      throw new KQLException("The specified topic serde is not supported.");
+    switch (serde) {
+      case DataSource.AVRO_SERDE_NAME:
+        if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
+          throw new KQLException("Avro schema file path should be set for avro topics.");
+        }
+        String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
+        avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
+        try {
+          String avroSchema = getAvroSchema(avroSchemaFile);
+          topicSerDe = new KQLAvroTopicSerDe(avroSchemaFile, avroSchema);
+        } catch (IOException e) {
+          throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
+        }
+        break;
+      case DataSource.JSON_SERDE_NAME:
+        topicSerDe = new KQLJsonTopicSerDe();
+        break;
+      case DataSource.CSV_SERDE_NAME:
+        topicSerDe = new KQLCsvTopicSerDe();
+        break;
+      default:
+        throw new KQLException("The specified topic serde is not supported.");
     }
     KQLTopic kQLTopic = new KQLTopic(topicName, kafkaTopicName, topicSerDe);
 
@@ -226,18 +229,24 @@ public class DDLEngine {
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
   private Schema getKQLType(final String sqlType) {
-    if ("BIGINT".equals(sqlType) || "LONG".equals(sqlType)) {
-      return Schema.INT64_SCHEMA;
-    } else if ("VARCHAR".equals(sqlType) || "STRING".equals(sqlType)) {
-      return Schema.STRING_SCHEMA;
-    } else if ("DOUBLE".equals(sqlType)) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if ("INTEGER".equals(sqlType) || "INT".equals(sqlType)) {
-      return Schema.INT32_SCHEMA;
-    } else if ("BOOLEAN".equals(sqlType) || "BOOL".equals(sqlType)) {
-      return Schema.BOOLEAN_SCHEMA;
+    switch (sqlType) {
+      case "VARCHAR":
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOLEAN":
+      case "BOOL":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INTEGER":
+      case "INT":
+        return Schema.INT32_SCHEMA;
+      case "BIGINT":
+      case "LONG":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        throw new KQLException("Unsupported type: " + sqlType);
     }
-    throw new KQLException("Unsupported type: " + sqlType);
   }
 
   private String getAvroSchema(final String schemaFilePath) throws IOException {

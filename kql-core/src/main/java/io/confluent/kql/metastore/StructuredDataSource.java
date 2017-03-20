@@ -30,12 +30,14 @@ public abstract class StructuredDataSource implements DataSource {
   }
 
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
-    if ("STREAM".equals(dataSourceTypeName)) {
-      return DataSourceType.KSTREAM;
-    } else if ("TABLE".equals(dataSourceTypeName)) {
-      return DataSourceType.KTABLE;
+    switch (dataSourceTypeName) {
+      case "STREAM":
+        return DataSourceType.KSTREAM;
+      case "TABLE":
+        return DataSourceType.KTABLE;
+      default:
+        throw new KQLException("DataSource Type is not supported: " + dataSourceTypeName);
     }
-    throw new KQLException("DataSource Type is not supported: " + dataSourceTypeName);
   }
 
   @Override

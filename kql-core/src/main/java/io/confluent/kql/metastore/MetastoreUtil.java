@@ -102,18 +102,20 @@ public class MetastoreUtil {
   }
 
   private Schema getKQLType(final String sqlType) {
-    if ("LONG".equals(sqlType)) {
-      return Schema.INT64_SCHEMA;
-    } else if ("STRING".equals(sqlType)) {
-      return Schema.STRING_SCHEMA;
-    } else if ("DOUBLE".equals(sqlType)) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if ("INT".equals(sqlType) || "INTEGER".equals(sqlType)) {
-      return Schema.INT32_SCHEMA;
-    } else if ("BOOL".equals(sqlType) || "BOOLEAN".equals(sqlType)) {
-      return Schema.BOOLEAN_SCHEMA;
+    switch (sqlType) {
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOL":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INT":
+        return Schema.INT32_SCHEMA;
+      case "LONG":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        throw new KQLException("Unsupported type: " + sqlType);
     }
-    throw new KQLException("Unsupported type: " + sqlType);
   }
 
   private String getKQLTypeInJson(final Schema schemaType) {
@@ -298,18 +300,19 @@ public class MetastoreUtil {
   }
 
   private String getAvroTypeName(final Schema.Type type) {
-    if (type == Schema.Type.STRING) {
-      return "STRING";
-    } else if (type == Schema.Type.BOOLEAN) {
-      return "BOOLEAN";
-    } else if (type == Schema.Type.INT64) {
-      return "LONG";
-    } else if (type == Schema.Type.FLOAT64) {
-      return "DOUBLE";
-    } else if (type == Schema.Type.INT32) {
-      return "INT";
-    } else {
-      throw new KQLException("Unsupported AVRO type: " + type.name());
+    switch (type) {
+      case STRING:
+        return "STRING";
+      case BOOLEAN:
+        return "BOOLEAN";
+      case INT32:
+        return "INT";
+      case INT64:
+        return "LONG";
+      case FLOAT64:
+        return "DOUBLE";
+      default:
+        throw new KQLException("Unsupported AVRO type: " + type.name());
     }
   }
 }

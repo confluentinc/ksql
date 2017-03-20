@@ -50,7 +50,7 @@ public class QualifiedName {
 
   @Override
   public String toString() {
-    return Joiner.on('.').join(parts).toUpperCase();
+    return Joiner.on('.').join(parts);
   }
 
   /**

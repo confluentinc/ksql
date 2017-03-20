@@ -54,18 +54,19 @@ public class WindowExpression extends Node {
   public static enum WindowUnit { DAY, HOUR, MINUTE, SECOND, MILLISECOND }
 
   public static WindowUnit getWindowUnit(String windowUnitString) {
-    if (windowUnitString.equals("day")) {
-      return WindowUnit.DAY;
-    } else if (windowUnitString.equals("hour")) {
-      return WindowUnit.HOUR;
-    } else if (windowUnitString.equals("minute")) {
-      return WindowUnit.MINUTE;
-    } else if (windowUnitString.equals("second")) {
-      return WindowUnit.SECOND;
-    } else if (windowUnitString.equals("millisecond")) {
-      return WindowUnit.MILLISECOND;
-    } else {
-      return null;
+    switch (windowUnitString) {
+      case "DAY":
+        return WindowUnit.DAY;
+      case "HOUR":
+        return WindowUnit.HOUR;
+      case "MINUTE":
+        return WindowUnit.MINUTE;
+      case "SECOND":
+        return WindowUnit.SECOND;
+      case "MILLISECOND":
+        return WindowUnit.MILLISECOND;
+      default:
+        return null;
     }
   }
 

@@ -3,9 +3,9 @@
 	"name": "orders",
 	"type": "record",
 	"fields": [
-		{"name": "ORDERTIME", "type": "LONG"},
-		{"name": "ORDERID", "type": "STRING"},
-		{"name": "ITEMID", "type": "STRING"},
-		{"name": "ORDERUNITS", "type": "DOUBLE"}
+		{"name": "ORDERTIME", "type": "long"},
+		{"name": "ORDERID", "type": "string"},
+		{"name": "ITEMID", "type": "string"},
+		{"name": "ORDERUNITS", "type": "double"}
 	]
 }

@@ -43,15 +43,15 @@ public class SchemaUtil {
 
   public static Schema.Type getTypeSchema(final String kqlType) {
 
-    if (kqlType.equalsIgnoreCase("STRING")) {
+    if ("STRING".equals(kqlType)) {
       return Schema.Type.STRING;
-    } else if (kqlType.equalsIgnoreCase("INTEGER")) {
+    } else if ("INTEGER".equals(kqlType)) {
       return Schema.Type.INT32;
-    } else if (kqlType.equalsIgnoreCase("DOUBLE")) {
+    } else if ("DOUBLE".equals(kqlType)) {
       return Schema.Type.FLOAT64;
-    } else if (kqlType.equalsIgnoreCase("BIGINT")) {
+    } else if ("BIGINT".equals(kqlType)) {
       return Schema.Type.INT64;
-    } else if (kqlType.equalsIgnoreCase("BOOLEAN")) {
+    } else if ("BOOLEAN".equals(kqlType)) {
       return Schema.Type.BOOLEAN;
     }
     throw new KQLException("Type is not supported: " + kqlType);
@@ -83,7 +83,7 @@ public class SchemaUtil {
             String
                 fieldNameWithDot =
                 fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
-            if (field.name().equalsIgnoreCase(fieldNameWithDot)) {
+            if (field.name().equals(fieldNameWithDot)) {
               return i;
             }
           }

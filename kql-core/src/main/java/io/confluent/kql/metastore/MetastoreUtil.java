@@ -60,10 +60,10 @@ public class MetastoreUtil {
 
     Schema dataSource = dataSourceBuilder.build();
 
-    if (type.equalsIgnoreCase("stream")) {
+    if ("STREAM".equals(type)) {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
                            kqlTopic);
-    } else if (type.equalsIgnoreCase("table")) {
+    } else if ("TABLE".equals(type)) {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
@@ -82,7 +82,7 @@ public class MetastoreUtil {
     String topicname = node.get("topicname").asText();
     String kafkaTopicName = node.get("kafkatopicname").asText();
     String serde = node.get("serde").asText();
-    if (serde.equalsIgnoreCase("avro")) {
+    if ("AVRO".equals(serde)) {
       if (node.get("avroschemafile") == null) {
         throw new KQLException("For avro SerDe avro schema file path (avroschemafile) should be "
                                + "set in the schema.");
@@ -90,9 +90,9 @@ public class MetastoreUtil {
       String schemaPath = node.get("avroschemafile").asText();
       String avroSchema = getAvroSchema(schemaPath);
       topicSerDe = new KQLAvroTopicSerDe(schemaPath, avroSchema);
-    } else if (serde.equalsIgnoreCase("json")) {
+    } else if ("JSON".equals(serde)) {
       topicSerDe = new KQLJsonTopicSerDe();
-    } else if (serde.equalsIgnoreCase("csv")) {
+    } else if ("CSV".equals(serde)) {
       topicSerDe = new KQLCsvTopicSerDe();
     } else {
       throw new KQLException("Topic serde is not supported.");
@@ -102,15 +102,15 @@ public class MetastoreUtil {
   }
 
   private Schema getKQLType(final String sqlType) {
-    if (sqlType.equalsIgnoreCase("long")) {
+    if ("LONG".equals(sqlType)) {
       return Schema.INT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("string")) {
+    } else if ("STRING".equals(sqlType)) {
       return Schema.STRING_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("double")) {
+    } else if ("DOUBLE".equals(sqlType)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("int") || sqlType.equalsIgnoreCase("integer")) {
+    } else if ("INT".equals(sqlType) || "INTEGER".equals(sqlType)) {
       return Schema.INT32_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("bool") || sqlType.equalsIgnoreCase("boolean")) {
+    } else if ("BOOL".equals(sqlType) || "BOOLEAN".equals(sqlType)) {
       return Schema.BOOLEAN_SCHEMA;
     }
     throw new KQLException("Unsupported type: " + sqlType);
@@ -118,15 +118,15 @@ public class MetastoreUtil {
 
   private String getKQLTypeInJson(final Schema schemaType) {
     if (schemaType == Schema.INT64_SCHEMA) {
-      return "long";
+      return "LONG";
     } else if (schemaType == Schema.STRING_SCHEMA) {
-      return "string";
+      return "STRING";
     } else if (schemaType == Schema.FLOAT64_SCHEMA) {
-      return "double";
+      return "DOUBLE";
     } else if (schemaType == Schema.INT64_SCHEMA) {
-      return "integer";
+      return "INTEGER";
     } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
-      return "boolean";
+      return "BOOLEAN";
     }
     throw new KQLException("Unsupported type: " + schemaType);
   }
@@ -199,9 +199,9 @@ public class MetastoreUtil {
       stringBuilder.append("\t\t{ \n");
       stringBuilder.append("\t\t\t \"namespace\": \"kql\", \n");
       if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KSTREAM) {
-        stringBuilder.append("\t\t\t \"type\": \"stream\", \n");
+        stringBuilder.append("\t\t\t \"type\": \"STREAM\", \n");
       } else if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KTABLE) {
-        stringBuilder.append("\t\t\t \"type\": \"table\", \n");
+        stringBuilder.append("\t\t\t \"type\": \"TABLE\", \n");
       } else {
         throw new KQLException("Incorrect data source type:" + structuredDataSource.dataSourceType);
       }
@@ -256,19 +256,6 @@ public class MetastoreUtil {
                                                         + "\t\"schemas\" :[]\n"
                                                         + "}";
 
-
-  public static void main(String[] args) throws IOException {
-
-//    new MetastoreUtil().loadMetaStoreFromJSONFile("/Users/hojjat/userschema.json");
-    MetastoreUtil metastoreUtil = new MetastoreUtil();
-//    MetaStore metaStore = metastoreUtil.loadMetaStoreFromJSONFile
-//        ("/Users/hojjat/kql_catalog.json");
-    MetaStore metaStore = metastoreUtil.loadMetaStoreFromJSONFile("/Users/hojjat/test_kql_catalog1.json");
-    System.out.println("");
-//    System.out.println(metastoreUtil.buildAvroSchema(metaStore.getAllStructuredDataSource().get
-//        ("ORDERS")));
-  }
-
   private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
     ObjectMapper objectMapper = new ObjectMapper();
@@ -312,15 +299,15 @@ public class MetastoreUtil {
 
   private String getAvroTypeName(final Schema.Type type) {
     if (type == Schema.Type.STRING) {
-      return "string";
+      return "STRING";
     } else if (type == Schema.Type.BOOLEAN) {
-      return "boolean";
+      return "BOOLEAN";
     } else if (type == Schema.Type.INT64) {
-      return "long";
+      return "LONG";
     } else if (type == Schema.Type.FLOAT64) {
-      return "double";
+      return "DOUBLE";
     } else if (type == Schema.Type.INT32) {
-      return "int";
+      return "INT";
     } else {
       throw new KQLException("Unsupported AVRO type: " + type.name());
     }

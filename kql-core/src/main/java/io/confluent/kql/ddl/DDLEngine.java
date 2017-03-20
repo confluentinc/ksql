@@ -6,7 +6,6 @@ package io.confluent.kql.ddl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.DataSource;
 import io.confluent.kql.metastore.KQLStream;
@@ -22,7 +21,6 @@ import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.kql.util.KQLException;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -68,22 +66,22 @@ public class DDLEngine {
         createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
-    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+    if (DataSource.AVRO_SERDE_NAME.equals(serde)) {
 
       if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
         throw new KQLException("Avro schema file path should be set for avro topics.");
       }
-      String avroSchemFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
-      avroSchemFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemFile);
+      String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
+      avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
       try {
-        String avroSchema = getAvroSchema(avroSchemFile);
-        topicSerDe = new KQLAvroTopicSerDe(avroSchemFile, avroSchema);
+        String avroSchema = getAvroSchema(avroSchemaFile);
+        topicSerDe = new KQLAvroTopicSerDe(avroSchemaFile, avroSchema);
       } catch (IOException e) {
-        throw new KQLException("Could not read avro schema from file: " + avroSchemFile);
+        throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
       }
-    } else if (serde.equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
+    } else if (DataSource.JSON_SERDE_NAME.equals(serde)) {
       topicSerDe = new KQLJsonTopicSerDe();
-    } else if (serde.equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
+    } else if (DataSource.CSV_SERDE_NAME.equals(serde)) {
       topicSerDe = new KQLCsvTopicSerDe();
     } else {
       throw new KQLException("The specified topic serde is not supported.");
@@ -140,14 +138,14 @@ public class DDLEngine {
       throw new KQLException("Topic for the stream should be set in WITH clause.");
     }
 
-    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
       throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -191,15 +189,15 @@ public class DDLEngine {
     }
 
     if (createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY) == null) {
-      throw new KQLException("Topic (topic) for the table should be set in WITH clause.");
+      throw new KQLException("Topic for the table should be set in WITH clause.");
     }
 
-    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY) == null) {
       throw new KQLException(
-          "State store (statestore) name for the table should be set in WITH clause.");
+          "State store name for the table should be set in WITH clause.");
     }
 
     String stateStoreName = createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY)
@@ -207,10 +205,10 @@ public class DDLEngine {
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
     if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
-      throw new KQLException("Key(key) field name for the stream should be set in WITH clause.");
+      throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -228,15 +226,15 @@ public class DDLEngine {
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
   private Schema getKQLType(final String sqlType) {
-    if (sqlType.equalsIgnoreCase("BIGINT") || sqlType.equalsIgnoreCase("LONG")) {
+    if ("BIGINT".equals(sqlType) || "LONG".equals(sqlType)) {
       return Schema.INT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("VARCHAR") || sqlType.equalsIgnoreCase("STRING")) {
+    } else if ("VARCHAR".equals(sqlType) || "STRING".equals(sqlType)) {
       return Schema.STRING_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("DOUBLE")) {
+    } else if ("DOUBLE".equals(sqlType)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("INTEGER") || sqlType.equalsIgnoreCase("INT")) {
+    } else if ("INTEGER".equals(sqlType) || "INT".equals(sqlType)) {
       return Schema.INT32_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("BOOLEAN") || sqlType.equalsIgnoreCase("BOOL")) {
+    } else if ("BOOLEAN".equals(sqlType) || "BOOL".equals(sqlType)) {
       return Schema.BOOLEAN_SCHEMA;
     }
     throw new KQLException("Unsupported type: " + sqlType);

@@ -24,9 +24,9 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic1 =
-        new KQLTopic("test1", "test1", new KQLJsonTopicSerDe());
+        new KQLTopic("TEST1", "test1", new KQLJsonTopicSerDe());
 
-    KQLStream kqlStream = new KQLStream("test1", schemaBuilder1, schemaBuilder1.field("COL0"),
+    KQLStream kqlStream = new KQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
                                         KQLTopic1);
 
     metaStore.putTopic(KQLTopic1);
@@ -41,24 +41,24 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic2 =
-        new KQLTopic("test2", "test2", new KQLJsonTopicSerDe());
-    KQLTable kqlTable = new KQLTable("test2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     KQLTopic2, "test2");
+        new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe());
+    KQLTable kqlTable = new KQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
+                                     KQLTopic2, "TEST2");
 
     metaStore.putTopic(KQLTopic2);
     metaStore.putSource(kqlTable);
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
-            .field("ordertime", SchemaBuilder.INT64_SCHEMA)
-            .field("orderid", SchemaBuilder.STRING_SCHEMA)
-            .field("itemid", SchemaBuilder.STRING_SCHEMA)
-            .field("orderunits", SchemaBuilder.FLOAT64_SCHEMA);
+            .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
+            .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
+            .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
+            .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
 
     KQLTopic
             KQLTopicOrders =
-            new KQLTopic("orders_topic", "orders_topic", new KQLJsonTopicSerDe());
+            new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe());
 
-    KQLStream kqlStreamOrders = new KQLStream("orders", schemaBuilderOrders, schemaBuilderOrders.field("ordertime"),
+    KQLStream kqlStreamOrders = new KQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
             KQLTopic1);
 
     metaStore.putTopic(KQLTopicOrders);

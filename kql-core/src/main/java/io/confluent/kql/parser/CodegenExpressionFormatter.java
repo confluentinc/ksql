@@ -206,24 +206,6 @@ public class CodegenExpressionFormatter {
       builder.append(")");
 
       return new Pair<>(builder.toString(), kqlFunction.getReturnType());
-
-//            String arguments = joinExpressions(node.getArguments(), unmangleNames);
-//            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
-//                arguments = "*";
-//            }
-//            if (node.isDistinct()) {
-//                arguments = "DISTINCT " + arguments;
-//            }
-//
-//            builder.append(formatQualifiedName(node.getName()))
-//                    .append('(').append(arguments).append(')');
-//
-//            if (node.getWindow().isPresent()) {
-//                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
-//            }
-//
-//            return builder.toString();
-//      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -258,18 +240,18 @@ public class CodegenExpressionFormatter {
       Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
       if ((left.getRight() == Schema.Type.STRING) || (right.getRight() == Schema.Type.STRING)) {
-        if (node.getType().getValue().equals("=")) {
+        if ("=".equals(node.getType().getValue())) {
           return new Pair<>("(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
-        } else if (node.getType().getValue().equals("<>")) {
+        } else if ("<>".equals(node.getType().getValue())) {
           return new Pair<>(" (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
         }
       }
       String typeStr = node.getType().getValue();
-      if (typeStr.equalsIgnoreCase("=")) {
+      if ("=".equals(typeStr)) {
         typeStr = "==";
-      } else if (typeStr.equalsIgnoreCase("<>")) {
+      } else if ("<>".equals(typeStr)) {
         typeStr = "!=";
       }
       return new Pair<>("(" + left.getLeft() + " " + typeStr + " " + right.getLeft() + ")",
@@ -280,9 +262,9 @@ public class CodegenExpressionFormatter {
       Pair<String, Schema.Type> expr = process(node.getExpression(), context);
       String returnTypeStr = node.getType();
       Schema.Type returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-      if (returnTypeStr.equalsIgnoreCase("STRING")) {
+      if ("STRING".equals(returnTypeStr)) {
         return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("DOUBLE")) {
+      } else if ("DOUBLE".equals(returnTypeStr)) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
           exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
@@ -297,7 +279,7 @@ public class CodegenExpressionFormatter {
                                          + expr.getLeft() + " to " + returnTypeStr);
         }
         return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("INTEGER")) {
+      } else if ("INTEGER".equals(returnTypeStr)) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
           exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
@@ -312,7 +294,7 @@ public class CodegenExpressionFormatter {
                                            + expr.getLeft() + " to " + returnTypeStr);
         }
         return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("BIGINT")) {
+      } else if ("BIGINT".equals(returnTypeStr)) {
         String exprStr;
         if (expr.getRight() == Schema.Type.STRING) {
           exprStr = "Long.parseLong(" + expr.getLeft() + ")";
@@ -327,7 +309,7 @@ public class CodegenExpressionFormatter {
                                            + expr.getLeft() + " to " + returnTypeStr);
         }
         return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("BOOLEAN")) {
+      } else if ("BOOLEAN".equals(returnTypeStr)) {
         return new Pair<>(" ((Boolean)" + expr.getLeft() + ")", returnType);
       }
       throw new KQLFunctionException("Invalid cast operation: " + returnTypeStr);

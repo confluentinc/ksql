@@ -108,7 +108,7 @@ public class KQLFunctions {
   }
 
   public static KQLFunction getFunction(String functionName) {
-    return kqlFunctionMap.get(functionName.toUpperCase());
+    return kqlFunctionMap.get(functionName);
   }
 
   public static void addFunction(KQLFunction kqlFunction) {
@@ -116,7 +116,7 @@ public class KQLFunctions {
   }
 
   public static boolean isAnAggregateFunction(String functionName) {
-    if (kqlAggregateFunctionMap.get(functionName.toUpperCase()) != null) {
+    if (kqlAggregateFunctionMap.get(functionName) != null) {
       return true;
     }
     return false;
@@ -124,7 +124,7 @@ public class KQLFunctions {
 
   public static KQLAggregateFunction getAggregateFunction(String functionName, List<Expression>
       functionArgs, Schema schema) {
-    KQLAggFunctionDeterminer kqlAggFunctionDeterminer = kqlAggregateFunctionMap.get(functionName.toUpperCase());
+    KQLAggFunctionDeterminer kqlAggFunctionDeterminer = kqlAggregateFunctionMap.get(functionName);
     if (kqlAggFunctionDeterminer == null) {
       throw new KQLException("No aggregate function with name " + functionName + " exists!");
     }

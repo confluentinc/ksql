@@ -66,7 +66,7 @@ public class DDLEngine {
         createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
-    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+    if (DataSource.AVRO_SERDE_NAME.equals(serde)) {
 
       if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
         throw new KQLException("Avro schema file path should be set for avro topics.");
@@ -79,9 +79,9 @@ public class DDLEngine {
       } catch (IOException e) {
         throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
       }
-    } else if (serde.equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
+    } else if (DataSource.JSON_SERDE_NAME.equals(serde)) {
       topicSerDe = new KQLJsonTopicSerDe();
-    } else if (serde.equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
+    } else if (DataSource.CSV_SERDE_NAME.equals(serde)) {
       topicSerDe = new KQLCsvTopicSerDe();
     } else {
       throw new KQLException("The specified topic serde is not supported.");
@@ -226,15 +226,15 @@ public class DDLEngine {
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
   private Schema getKQLType(final String sqlType) {
-    if (sqlType.equalsIgnoreCase("BIGINT") || sqlType.equalsIgnoreCase("LONG")) {
+    if ("BIGINT".equals(sqlType) || "LONG".equals(sqlType)) {
       return Schema.INT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("VARCHAR") || sqlType.equalsIgnoreCase("STRING")) {
+    } else if ("VARCHAR".equals(sqlType) || "STRING".equals(sqlType)) {
       return Schema.STRING_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("DOUBLE")) {
+    } else if ("DOUBLE".equals(sqlType)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("INTEGER") || sqlType.equalsIgnoreCase("INT")) {
+    } else if ("INTEGER".equals(sqlType) || "INT".equals(sqlType)) {
       return Schema.INT32_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("BOOLEAN") || sqlType.equalsIgnoreCase("BOOL")) {
+    } else if ("BOOLEAN".equals(sqlType) || "BOOL".equals(sqlType)) {
       return Schema.BOOLEAN_SCHEMA;
     }
     throw new KQLException("Unsupported type: " + sqlType);

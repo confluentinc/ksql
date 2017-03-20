@@ -33,9 +33,9 @@ public class KQLTopic implements DataSource {
   }
 
   public static DataSourceSerDe getDataSpDataSourceSerDe(String dataSourceSerdeName) {
-    if (dataSourceSerdeName.equalsIgnoreCase("json")) {
+    if ("JSON".equals(dataSourceSerdeName)) {
       return DataSourceSerDe.JSON;
-    } else if (dataSourceSerdeName.equalsIgnoreCase("avro")) {
+    } else if ("AVRO".equals(dataSourceSerdeName)) {
       return DataSourceSerDe.AVRO;
     }
     throw new KQLException("DataSource Type is not supported: " + dataSourceSerdeName);

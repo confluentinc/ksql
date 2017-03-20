@@ -74,11 +74,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
-        if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+        if (DataSource.AVRO_SERDE_NAME.equals(analysis.getIntoFormat())) {
           intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
-        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
+        } else if (DataSource.JSON_SERDE_NAME.equals(analysis.getIntoFormat())) {
           intoTopicSerde = new KQLJsonTopicSerDe();
-        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
+        } else if (DataSource.CSV_SERDE_NAME.equals(analysis.getIntoFormat())) {
           intoTopicSerde = new KQLCsvTopicSerDe();
         }
       } else {
@@ -232,7 +232,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
-        if (serde.equalsIgnoreCase("avro")) {
+        if ("AVRO".equals(serde)) {
           String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
             avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();

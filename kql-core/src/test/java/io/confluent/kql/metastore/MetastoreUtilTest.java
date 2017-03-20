@@ -47,19 +47,19 @@ public class MetastoreUtilTest {
     Assert.assertTrue(orders instanceof KQLStream);
     Assert.assertTrue(orders.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders.getSchema().fields().size() == 4);
-    Assert.assertTrue(orders.getKeyField().name().equals("ordertime"));
+    Assert.assertTrue(orders.getKeyField().name().equalsIgnoreCase("ordertime"));
 
     StructuredDataSource orders_avro = metaStore.getSource("ORDERS_AVRO");
     Assert.assertTrue(orders_avro instanceof KQLStream);
     Assert.assertTrue(orders_avro.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders_avro.getSchema().fields().size() == 4);
-    Assert.assertTrue(orders_avro.getKeyField().name().equals("ordertime"));
+    Assert.assertTrue(orders_avro.getKeyField().name().equalsIgnoreCase("ordertime"));
 
     StructuredDataSource users = metaStore.getSource("USERS");
     Assert.assertTrue(users instanceof KQLTable);
     Assert.assertTrue(users.dataSourceType == DataSource.DataSourceType.KTABLE);
     Assert.assertTrue(users.getSchema().fields().size() == 4);
-    Assert.assertTrue(users.getKeyField().name().equals("userid"));
+    Assert.assertTrue(users.getKeyField().name().equalsIgnoreCase("userid"));
 
   }
 

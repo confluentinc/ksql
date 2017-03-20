@@ -13,7 +13,6 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.isEmpty;
-import static com.google.common.collect.Iterables.transform;
 import static java.util.Objects.requireNonNull;
 
 public class QualifiedName {
@@ -30,14 +29,10 @@ public class QualifiedName {
     return of(ImmutableList.of(name));
   }
 
-  public static QualifiedName of(Iterable<String> originalParts) {
-    requireNonNull(originalParts, "originalParts is null");
-    checkArgument(!isEmpty(originalParts), "originalParts is empty");
-    List<String>
-        parts =
-        ImmutableList.copyOf(transform(originalParts, String::toUpperCase));
-
-    return new QualifiedName(parts);
+  public static QualifiedName of(Iterable<String> parts) {
+    requireNonNull(parts, "parts is null");
+    checkArgument(!isEmpty(parts), "parts is empty");
+    return new QualifiedName(ImmutableList.copyOf(parts));
   }
 
   private QualifiedName(List<String> parts) {

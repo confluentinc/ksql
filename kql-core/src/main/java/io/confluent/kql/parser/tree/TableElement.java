@@ -25,8 +25,8 @@ public final class TableElement
 
   private TableElement(Optional<NodeLocation> location, String name, String type) {
     super(location);
-    this.name = requireNonNull(name, "name is null").toUpperCase();
-    this.type = requireNonNull(type, "type is null").toUpperCase();
+    this.name = requireNonNull(name, "name is null");
+    this.type = requireNonNull(type, "type is null");
   }
 
   public String getName() {

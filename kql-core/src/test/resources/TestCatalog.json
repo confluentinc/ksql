@@ -35,54 +35,54 @@
   "schemas" :[
     {
       "namespace": "kql",
-      "type": "stream",
+      "type": "STREAM",
       "name": "ORDERS",
-      "key": "ordertime",
+      "key": "ORDERTIME",
       "topic": "ORDERS_TOPIC",
       "fields": [
-        {"name": "ordertime", "type": "long"} ,
-        {"name": "orderid", "type": "string"} ,
-        {"name": "itemid", "type": "string"} ,
-        {"name": "orderunits", "type": "double"} 			 ]
+        {"name": "ORDERTIME", "type": "LONG"} ,
+        {"name": "ORDERID", "type": "STRING"} ,
+        {"name": "ITEMID", "type": "STRING"} ,
+        {"name": "ORDERUNITS", "type": "DOUBLE"} 			 ]
     }
   ,
     {
       "namespace": "kql",
-      "type": "stream",
+      "type": "STREAM",
       "name": "PAGEVIEW",
-      "key": "viewtime",
+      "key": "VIEWTIME",
       "topic": "PAGEVIEW_TOPIC",
       "fields": [
-        {"name": "viewtime", "type": "long"} ,
-        {"name": "userid", "type": "string"} ,
-        {"name": "pageid", "type": "string"} 			 ]
+        {"name": "VIEWTIME", "type": "LONG"} ,
+        {"name": "USERID", "type": "STRING"} ,
+        {"name": "PAGEID", "type": "STRING"} 			 ]
     }
   ,
     {
       "namespace": "kql",
-      "type": "table",
+      "type": "TABLE",
       "name": "USERS",
-      "key": "userid",
+      "key": "USERID",
       "topic": "USERS_TOPIC",
       "statestore": "users_statestore",
       "fields": [
-        {"name": "usertime", "type": "long"} ,
-        {"name": "userid", "type": "string"} ,
-        {"name": "regionid", "type": "string"} ,
-        {"name": "gender", "type": "string"} 			 ]
+        {"name": "USERTIME", "type": "LONG"} ,
+        {"name": "USERID", "type": "STRING"} ,
+        {"name": "REGIONID", "type": "STRING"} ,
+        {"name": "GENDER", "type": "STRING"} 			 ]
     }
   ,
     {
       "namespace": "kql",
-      "type": "stream",
+      "type": "STREAM",
       "name": "ORDERS_AVRO",
-      "key": "ordertime",
+      "key": "ORDERTIME",
       "topic": "ORDERS_TOPIC_AVRO",
       "fields": [
-        {"name": "ordertime", "type": "long"} ,
-        {"name": "orderid", "type": "string"} ,
-        {"name": "itemid", "type": "string"} ,
-        {"name": "orderunits", "type": "double"} 			 ]
+        {"name": "ORDERTIME", "type": "LONG"} ,
+        {"name": "ORDERID", "type": "STRING"} ,
+        {"name": "ITEMID", "type": "STRING"} ,
+        {"name": "ORDERUNITS", "type": "DOUBLE"} 			 ]
     }
   ]
 }

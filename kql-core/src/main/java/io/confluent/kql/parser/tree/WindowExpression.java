@@ -54,15 +54,15 @@ public class WindowExpression extends Node {
   public static enum WindowUnit { DAY, HOUR, MINUTE, SECOND, MILLISECOND }
 
   public static WindowUnit getWindowUnit(String windowUnitString) {
-    if (windowUnitString.equalsIgnoreCase("day")) {
+    if (windowUnitString.equals("day")) {
       return WindowUnit.DAY;
-    } else if (windowUnitString.equalsIgnoreCase("hour")) {
+    } else if (windowUnitString.equals("hour")) {
       return WindowUnit.HOUR;
-    } else if (windowUnitString.equalsIgnoreCase("minute")) {
+    } else if (windowUnitString.equals("minute")) {
       return WindowUnit.MINUTE;
-    } else if (windowUnitString.equalsIgnoreCase("second")) {
+    } else if (windowUnitString.equals("second")) {
       return WindowUnit.SECOND;
-    } else if (windowUnitString.equalsIgnoreCase("millisecond")) {
+    } else if (windowUnitString.equals("millisecond")) {
       return WindowUnit.MILLISECOND;
     } else {
       return null;

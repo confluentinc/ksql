@@ -172,7 +172,7 @@ public class AstBuilder
     ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
     if (tablePropertiesContext != null) {
       for (TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
-        properties.put(tablePropertyContext.identifier().getText().toUpperCase(),
+        properties.put(tablePropertyContext.identifier().getText(),
                        (Expression) visit(tablePropertyContext.expression()));
       }
     }
@@ -1052,7 +1052,7 @@ public class AstBuilder
 
     boolean distinct = isDistinct(context.setQuantifier());
 
-    if (name.toString().equalsIgnoreCase("nullif")) {
+    if ("NULLIF".equals(name.toString())) {
       check(context.expression().size() == 2, "Invalid number of arguments for 'nullif' function",
             context);
       check(!window.isPresent(), "OVER clause not valid for 'nullif' function", context);
@@ -1151,13 +1151,13 @@ public class AstBuilder
     String type = context.identifier().getText();
     String value = unquote(context.STRING().getText());
 
-    if (type.equalsIgnoreCase("time")) {
+    if ("TIME".equals(type)) {
       return new TimeLiteral(getLocation(context), value);
     }
-    if (type.equalsIgnoreCase("timestamp")) {
+    if ("TIMESTAMP".equals(type)) {
       return new TimestampLiteral(getLocation(context), value);
     }
-    if (type.equalsIgnoreCase("decimal")) {
+    if ("DECIMAL".equals(type)) {
       return new DecimalLiteral(getLocation(context), value);
     }
 

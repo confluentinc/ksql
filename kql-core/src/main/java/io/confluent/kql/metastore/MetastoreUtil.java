@@ -128,7 +128,7 @@ public class MetastoreUtil {
     } else if (schemaType == Schema.INT64_SCHEMA) {
       return "INTEGER";
     } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
-      return "BOOLEAN";
+      return "BOOL";
     }
     throw new KQLException("Unsupported type: " + schemaType);
   }

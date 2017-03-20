@@ -38,7 +38,7 @@ public abstract class PlanNode {
 
   public StructuredDataSourceNode getTheSourceNode() {
     if (this instanceof StructuredDataSourceNode) {
-      return (StructuredDataSourceNode)this;
+      return (StructuredDataSourceNode) this;
     } else if (this.getSources() != null && !this.getSources().isEmpty()) {
       return this.getSources().get(0).getTheSourceNode();
     }

@@ -3,8 +3,10 @@
  **/
 package io.confluent.kql.structured;
 
+import io.confluent.kql.function.udf.KUDF;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 import io.confluent.kql.util.SchemaUtil;
@@ -60,18 +62,29 @@ public class SQLPredicate {
   }
 
   public Predicate getPredicate() {
+    ExpressionUtil expressionUtil = new ExpressionUtil();
     return new Predicate<String, GenericRow>() {
       @Override
       public boolean test(String key, GenericRow row) {
         try {
+          ExpressionMetadata
+              expressionEvaluator =
+              expressionUtil.getExpressionEvaluator(filterExpression, schema);
+          KUDF[] kudfs = expressionEvaluator.getUdfs();
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                .getColumns().get(columnIndexes[i]));
+            if (columnIndexes[i] < 0) {
+              values[i] = kudfs[i];
+            } else {
+              values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
+                  .getColumns().get(columnIndexes[i]));
+            }
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;
         } catch (InvocationTargetException e) {
+          e.printStackTrace();
+        } catch (Exception e) {
           e.printStackTrace();
         }
         throw new RuntimeException("Invalid format.");

@@ -14,7 +14,6 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.isEmpty;
 import static com.google.common.collect.Iterables.transform;
-import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 public class QualifiedName {
@@ -36,7 +35,7 @@ public class QualifiedName {
     checkArgument(!isEmpty(originalParts), "originalParts is empty");
     List<String>
         parts =
-        ImmutableList.copyOf(transform(originalParts, part -> part.toUpperCase(ENGLISH)));
+        ImmutableList.copyOf(transform(originalParts, String::toUpperCase));
 
     return new QualifiedName(parts);
   }

@@ -50,7 +50,7 @@ public class MetaStoreImpl implements MetaStore {
 
   @Override
   public void deleteSource(final String sourceName) {
-    dataSourceMap.remove(sourceName);
+    dataSourceMap.remove(sourceName.toUpperCase());
   }
 
   @Override

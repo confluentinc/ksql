@@ -125,4 +125,39 @@ public class AggregateAnalyzerTest {
     Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
                           .equalsIgnoreCase("test1.col3"));
   }
+
+  @Test
+  public void testAggregateWithExpressionQueryAnalysis() {
+    String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0 FROM test1 "
+                      + "window w "
+                      + "TUMBLING ( size 2 second) WHERE col0 > "
+                      + "100 "
+                      + "group "
+                      + "by "
+                      + "col1;";
+    AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
+    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 3);
+    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
+                          .equalsIgnoreCase("sum"));
+    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(1).getName().getSuffix()
+                          .equalsIgnoreCase("count"));
+    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(2).getName().getSuffix()
+                          .equalsIgnoreCase("sum"));
+
+    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().size() == 3);
+    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
+                          .equalsIgnoreCase("(TEST1.COL3 * TEST1.COL0)"));
+    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(1).toString()
+                          .equalsIgnoreCase("TEST1.COL1"));
+    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(2).toString()
+                          .equalsIgnoreCase("(FLOOR(TEST1.COL3) * 3.0)"));
+    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().get(0).toString()
+                          .equalsIgnoreCase("test1.col1"));
+
+    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 3);
+
+    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 3);
+    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
+                          .equalsIgnoreCase("test1.col3"));
+  }
 }

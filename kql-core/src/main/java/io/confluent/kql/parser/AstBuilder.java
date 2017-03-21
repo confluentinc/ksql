@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.StructuredDataSource;
@@ -174,7 +175,7 @@ public class AstBuilder
     ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
     if (tablePropertiesContext != null) {
       for (TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
-        properties.put(tablePropertyContext.identifier().getText(),
+        properties.put(getIdentifierText(tablePropertyContext.identifier()),
                        (Expression) visit(tablePropertyContext.expression()));
       }
     }
@@ -345,14 +346,14 @@ public class AstBuilder
               leftDataSource =
               dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
           if (leftDataSource == null) {
-            throw new KQLException(left.getRelation().toString() + " does not exist.");
+            throw new InvalidColumnReferenceException(left.getRelation().toString() + " does not exist.");
           }
           AliasedRelation right = (AliasedRelation) join.getRight();
           StructuredDataSource
               rightDataSource =
               dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
           if (rightDataSource == null) {
-            throw new KQLException(right.getRelation().toString() + " does not exist.");
+            throw new InvalidColumnReferenceException(right.getRelation().toString() + " does not exist.");
           }
           for (Field field : leftDataSource.getSchema().fields()) {
             QualifiedNameReference
@@ -362,7 +363,7 @@ public class AstBuilder
             SingleColumn
                 newSelectItem =
                 new SingleColumn(qualifiedNameReference,
-                                 left.getAlias() + "_" + field.name().toUpperCase());
+                                 left.getAlias() + "_" + field.name());
             selectItems.add(newSelectItem);
           }
           for (Field field : rightDataSource.getSchema().fields()) {
@@ -373,7 +374,7 @@ public class AstBuilder
             SingleColumn
                 newSelectItem =
                 new SingleColumn(qualifiedNameReference,
-                                 right.getAlias() + "_" + field.name().toUpperCase());
+                                 right.getAlias() + "_" + field.name());
             selectItems.add(newSelectItem);
           }
         } else {
@@ -383,17 +384,18 @@ public class AstBuilder
               dataSourceExtractor.getMetaStore()
                   .getSource(((Table) fromRel.getRelation()).getName().getSuffix());
           if (fromDataSource == null) {
-            throw new KQLException(((Table) fromRel.getRelation()).getName().getSuffix() + " does "
-                                   + "not exist.");
+            throw new InvalidColumnReferenceException(
+                ((Table) fromRel.getRelation()).getName().getSuffix() + " does not exist."
+            );
           }
           for (Field field : fromDataSource.getSchema().fields()) {
             QualifiedNameReference
                 qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
-                    .of(fromDataSource.getName() + "." + field.name().toUpperCase()));
+                    .of(fromDataSource.getName() + "." + field.name()));
             SingleColumn
                 newSelectItem =
-                new SingleColumn(qualifiedNameReference, field.name().toUpperCase());
+                new SingleColumn(qualifiedNameReference, field.name());
             selectItems.add(newSelectItem);
           }
         }
@@ -414,6 +416,7 @@ public class AstBuilder
     if (ctx.IDENTIFIER() != null) {
       windowName = ctx.IDENTIFIER().getText();
     }
+    windowName = windowName.toUpperCase();
     if (ctx.tumblingWindowExpression() != null) {
       TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
           visitTumblingWindowExpression(ctx.tumblingWindowExpression());
@@ -505,13 +508,13 @@ public class AstBuilder
   @Override
   public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
     Expression selectItemExpression = (Expression) visit(context.expression());
-    Optional<String> alias = getTextIfPresent(context.identifier());
+    Optional<String> alias = Optional.ofNullable(context.identifier()).map(AstBuilder::getIdentifierText);
     if (!alias.isPresent()) {
       if (selectItemExpression instanceof QualifiedNameReference) {
         QualifiedNameReference
             qualifiedNameReference =
             (QualifiedNameReference) selectItemExpression;
-        alias = Optional.of(qualifiedNameReference.getName().getSuffix().toUpperCase());
+        alias = Optional.of(qualifiedNameReference.getName().getSuffix());
       } else if (selectItemExpression instanceof DereferenceExpression) {
         DereferenceExpression dereferenceExpression = (DereferenceExpression) selectItemExpression;
         if ((dataSourceExtractor.getJoinLeftSchema() != null) && (dataSourceExtractor
@@ -520,7 +523,7 @@ public class AstBuilder
                                                                           dereferenceExpression
                                                                               .getFieldName()))) {
           alias =
-              Optional.of(dereferenceExpression.getBase().toString().toUpperCase() + "_"
+              Optional.of(dereferenceExpression.getBase().toString() + "_"
                           + dereferenceExpression.getFieldName());
         } else {
           alias = Optional.of(dereferenceExpression.getFieldName());
@@ -529,7 +532,7 @@ public class AstBuilder
         alias = Optional.of("KQL_COL_" + selectItemIndex);
       }
     } else {
-      alias = Optional.of(alias.get().toUpperCase());
+      alias = Optional.of(alias.get());
     }
     selectItemIndex++;
     return new SingleColumn(getLocation(context), selectItemExpression, alias);
@@ -699,7 +702,7 @@ public class AstBuilder
       } else if (context.joinCriteria().USING() != null) {
         List<String> columns = context.joinCriteria()
             .identifier().stream()
-            .map(ParseTree::getText)
+            .map(AstBuilder::getIdentifierText)
             .collect(toList());
 
         criteria = new JoinUsing(columns);
@@ -735,6 +738,7 @@ public class AstBuilder
       alias = context.children.get(1).getText();
     }
 
+    // TODO: Figure out if the call to toUpperCase() here is really necessary
     return new AliasedRelation(getLocation(context), child, alias.toUpperCase(),
                                getColumnAliases(context.columnAliases()));
 
@@ -935,10 +939,10 @@ public class AstBuilder
 
   @Override
   public Node visitExtract(SqlBaseParser.ExtractContext context) {
-    String fieldString = context.identifier().getText();
+    String fieldString = getIdentifierText(context.identifier());
     Extract.Field field;
     try {
-      field = Extract.Field.valueOf(fieldString.toUpperCase());
+      field = Extract.Field.valueOf(fieldString);
     } catch (IllegalArgumentException e) {
       throw new ParsingException(format("Invalid EXTRACT field: %s", fieldString), null,
                                  context.getStart().getLine(),
@@ -949,14 +953,14 @@ public class AstBuilder
 
   @Override
   public Node visitSubstring(SqlBaseParser.SubstringContext context) {
-    return new FunctionCall(getLocation(context), QualifiedName.of("substr"),
+    return new FunctionCall(getLocation(context), QualifiedName.of("SUBSTR"),
                             visit(context.valueExpression(), Expression.class));
   }
 
   @Override
   public Node visitPosition(SqlBaseParser.PositionContext context) {
     List<Expression> arguments = Lists.reverse(visit(context.valueExpression(), Expression.class));
-    return new FunctionCall(getLocation(context), QualifiedName.of("strpos"), arguments);
+    return new FunctionCall(getLocation(context), QualifiedName.of("STRPOS"), arguments);
   }
 
   @Override
@@ -965,7 +969,7 @@ public class AstBuilder
     String
         normalForm =
         Optional.ofNullable(context.normalForm()).map(ParserRuleContext::getText).orElse("NFC");
-    return new FunctionCall(getLocation(context), QualifiedName.of("normalize"), ImmutableList
+    return new FunctionCall(getLocation(context), QualifiedName.of("NORMALIZE"), ImmutableList
         .of(str, new StringLiteral(getLocation(context), normalForm)));
   }
 
@@ -982,12 +986,16 @@ public class AstBuilder
 
   @Override
   public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-    String fieldName = context.getText();
-    String baseSting = context.base.getText();
-    fieldName = fieldName.substring(fieldName.indexOf(baseSting) + baseSting.length() + 1);
-    Expression
-        baseExpression =
-        new QualifiedNameReference(getLocation(context), QualifiedName.of(baseSting));
+    String fieldName = getIdentifierText(context.identifier());
+    Expression baseExpression;
+    // TODO: Base names for dereference expressions shouldn't be validated/resolved as columns;
+    // this try/catch is just a temporary workaround
+    try {
+      baseExpression = (Expression) visit(context.primaryExpression());
+    } catch (InvalidColumnReferenceException exception) {
+        QualifiedName tableName = QualifiedName.of(context.primaryExpression().getText().toUpperCase());
+        baseExpression = new QualifiedNameReference(getLocation(context.primaryExpression()), tableName);
+    }
     DereferenceExpression
         dereferenceExpression =
         new DereferenceExpression(getLocation(context), baseExpression, fieldName);
@@ -996,11 +1004,11 @@ public class AstBuilder
 
   @Override
   public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-    String columnName = context.getText().toUpperCase();
+    String columnName = getIdentifierText(context.identifier());
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-        throw new KQLException("Field " + columnName + " is ambiguis. ");
+        throw new KQLException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
         Expression
             baseExpression =
@@ -1014,7 +1022,7 @@ public class AstBuilder
                                        QualifiedName.of(dataSourceExtractor.getRightAlias()));
         return new DereferenceExpression(getLocation(context), baseExpression, columnName);
       } else {
-        throw new KQLException("Field " + columnName + " is ambiguis. ");
+        throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
       Expression
@@ -1023,7 +1031,6 @@ public class AstBuilder
                                      QualifiedName.of(dataSourceExtractor.getFromAlias()));
       return new DereferenceExpression(getLocation(context), baseExpression, columnName);
     }
-
   }
 
   @Override
@@ -1057,7 +1064,7 @@ public class AstBuilder
 
     boolean distinct = isDistinct(context.setQuantifier());
 
-    if (name.toString().equalsIgnoreCase("nullif")) {
+    if (name.toString().equals("NULLIF")) {
       check(context.expression().size() == 2, "Invalid number of arguments for 'nullif' function",
             context);
       check(!window.isPresent(), "OVER clause not valid for 'nullif' function", context);
@@ -1080,7 +1087,7 @@ public class AstBuilder
   @Override
   public Node visitLambda(SqlBaseParser.LambdaContext context) {
     List<String> arguments = context.identifier().stream()
-        .map(SqlBaseParser.IdentifierContext::getText)
+        .map(AstBuilder::getIdentifierText)
         .collect(toList());
 
     Expression body = (Expression) visit(context.expression());
@@ -1091,7 +1098,7 @@ public class AstBuilder
 
   @Override
   public Node visitTableElement(SqlBaseParser.TableElementContext context) {
-    return new TableElement(getLocation(context), context.identifier().getText(),
+    return new TableElement(getLocation(context), getIdentifierText(context.identifier()),
                             getType(context.type()));
   }
 
@@ -1153,16 +1160,16 @@ public class AstBuilder
 
   @Override
   public Node visitTypeConstructor(SqlBaseParser.TypeConstructorContext context) {
-    String type = context.identifier().getText();
+    String type = getIdentifierText(context.identifier());
     String value = unquote(context.STRING().getText());
 
-    if (type.equalsIgnoreCase("time")) {
+    if (type.equals("TIME")) {
       return new TimeLiteral(getLocation(context), value);
     }
-    if (type.equalsIgnoreCase("timestamp")) {
+    if (type.equals("TIMESTAMP")) {
       return new TimestampLiteral(getLocation(context), value);
     }
-    if (type.equalsIgnoreCase("decimal")) {
+    if (type.equals("DECIMAL")) {
       return new DecimalLiteral(getLocation(context), value);
     }
 
@@ -1232,6 +1239,14 @@ public class AstBuilder
         .collect(toList());
   }
 
+  private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.UnquotedIdentifierContext) {
+      return context.getText().toUpperCase();
+    } else {
+      return context.getText();
+    }
+  }
+
   private static String unquote(String value) {
     return value.substring(1, value.length() - 1)
         .replace("''", "'");
@@ -1240,7 +1255,7 @@ public class AstBuilder
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {
     List<String> parts = context
         .identifier().stream()
-        .map(ParseTree::getText)
+        .map(AstBuilder::getIdentifierText)
         .collect(toList());
 
     return QualifiedName.of(parts);
@@ -1248,11 +1263,6 @@ public class AstBuilder
 
   private static boolean isDistinct(SqlBaseParser.SetQuantifierContext setQuantifier) {
     return setQuantifier != null && setQuantifier.DISTINCT() != null;
-  }
-
-  private static Optional<String> getTextIfPresent(ParserRuleContext context) {
-    return Optional.ofNullable(context)
-        .map(ParseTree::getText);
   }
 
   private static Optional<String> getTextIfPresent(Token token) {
@@ -1268,7 +1278,7 @@ public class AstBuilder
 
     return columnAliasesContext
         .identifier().stream()
-        .map(ParseTree::getText)
+        .map(AstBuilder::getIdentifierText)
         .collect(toList());
   }
 
@@ -1419,7 +1429,7 @@ public class AstBuilder
 
   private static String getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      String signature = type.baseType().getText();
+      String signature = baseTypeToString(type.baseType());
       if (!type.typeParameter().isEmpty()) {
         String typeParameterSignature = type
             .typeParameter()
@@ -1445,7 +1455,7 @@ public class AstBuilder
         if (i != 0) {
           builder.append(",");
         }
-        builder.append(type.identifier(i).getText())
+        builder.append(getIdentifierText(type.identifier(i)))
             .append(" ")
             .append(getType(type.type(i)));
       }
@@ -1464,6 +1474,20 @@ public class AstBuilder
       return getType(typeParameter.type());
     }
     throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
+  }
+
+  private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
+    if (baseType.identifier() != null) {
+      return getIdentifierText(baseType.identifier());
+    } else if (baseType.TIME_WITH_TIME_ZONE() != null) {
+      return baseType.TIME_WITH_TIME_ZONE().getText().toUpperCase();
+    } else if (baseType.TIMESTAMP_WITH_TIME_ZONE() != null) {
+      return baseType.TIMESTAMP_WITH_TIME_ZONE().getText().toUpperCase();
+    } else {
+      throw new KQLException(
+          "Base type must contain either identifier, time with time zone, or timestamp with time zone"
+      );
+    }
   }
 
   private static void check(boolean condition, String message, ParserRuleContext context) {
@@ -1511,5 +1535,15 @@ public class AstBuilder
                       kqlTopic
         );
     return resultStream;
+  }
+
+  private static class InvalidColumnReferenceException extends KQLException {
+    public InvalidColumnReferenceException(String message) {
+      super(message);
+    }
+
+    public InvalidColumnReferenceException(String message, Throwable cause) {
+      super(message, cause);
+    }
   }
 }

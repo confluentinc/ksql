@@ -1,6 +1,7 @@
 package io.confluent.kql.parser;
 
 
+import io.confluent.kql.ddl.DDLConfig;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
@@ -263,8 +264,7 @@ public class KQLParserTest {
         CreateTopic createTopic = (CreateTopic)statement;
         Assert.assertTrue("testCreateTopic failed.", createTopic.getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
         Assert.assertTrue("testCreateTopic failed.", createTopic.getProperties().size() == 3);
-        Assert.assertTrue("testCreateTopic failed.", createTopic.getProperties().get("format").toString().equalsIgnoreCase("'avro'"));
-
+        Assert.assertTrue("testCreateTopic failed.", createTopic.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
     }
 
     @Test
@@ -278,8 +278,7 @@ public class KQLParserTest {
         Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
         Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 4);
         Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-        Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get("topicname").toString().equalsIgnoreCase("'orders_topic'"));
-
+        Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
     }
 
     @Test
@@ -293,7 +292,7 @@ public class KQLParserTest {
         Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
         Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
         Assert.assertTrue("testCreateTable failed.", createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
-        Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get("topicname").toString().equalsIgnoreCase("'users_topic'"));
+        Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'users_topic'"));
     }
 
     @Test

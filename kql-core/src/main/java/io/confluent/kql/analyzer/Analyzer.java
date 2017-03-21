@@ -74,12 +74,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
-        if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-          intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
-        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
-          intoTopicSerde = new KQLJsonTopicSerDe();
-        } else if (analysis.getIntoFormat().equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
-          intoTopicSerde = new KQLCsvTopicSerDe();
+        switch (analysis.getIntoFormat()) {
+          case DataSource.AVRO_SERDE_NAME:
+            intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
+            break;
+          case DataSource.JSON_SERDE_NAME:
+            intoTopicSerde = new KQLJsonTopicSerDe();
+            break;
+          case DataSource.CSV_SERDE_NAME:
+            intoTopicSerde = new KQLCsvTopicSerDe();
+            break;
         }
       } else {
         if (intoTopicSerde instanceof KQLAvroTopicSerDe) {
@@ -127,11 +131,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     String rightAlias = right.getAlias();
 
-    StructuredDataSource leftDataSource = metaStore.getSource(leftSideName.toUpperCase());
+    StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
     if (leftDataSource == null) {
       throw new KQLException(leftSideName + " does not exist.");
     }
-    StructuredDataSource rightDataSource = metaStore.getSource(rightSideName.toUpperCase());
+    StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KQLException(rightSideName + " does not exist.");
     }
@@ -141,7 +145,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
                                      leftDataSource.getKeyField(),
                                      leftDataSource.getKqlTopic().getTopicName(),
-                                     leftAlias.toUpperCase(), leftDataSource.getDataSourceType(),
+                                     leftAlias, leftDataSource.getDataSourceType(),
                                      leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
@@ -149,7 +153,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                                      rightDataSource.getSchema(),
                                      rightDataSource.getKeyField(),
                                      rightDataSource.getKqlTopic().getTopicName(),
-                                     rightAlias.toUpperCase(), rightDataSource.getDataSourceType(),
+                                     rightAlias, rightDataSource.getDataSourceType(),
                                      rightDataSource);
 
     JoinNode.Type joinType;
@@ -198,8 +202,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
-    String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix()
-        .toUpperCase();
+    String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
     if (metaStore.getSource(structuredDataSourceName) ==
         null) {
       throw new KQLException(structuredDataSourceName + " does not exist.");
@@ -208,7 +211,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         fromDataSource =
         new Pair<>(
             metaStore.getSource(structuredDataSourceName),
-            node.getAlias().toUpperCase());
+            node.getAlias());
     analysis.getFromDataSources().add(fromDataSource);
     return node;
   }
@@ -232,7 +235,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
-        if (serde.equalsIgnoreCase("avro")) {
+        if ("AVRO".equals(serde)) {
           String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
             avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();

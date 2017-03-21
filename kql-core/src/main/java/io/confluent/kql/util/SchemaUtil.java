@@ -12,58 +12,61 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public class SchemaUtil {
 
   public static Schema getTypeSchema(final Schema.Type type) {
-    if (type == Schema.Type.BOOLEAN) {
-      return Schema.BOOLEAN_SCHEMA;
-    } else if (type == Schema.Type.INT32) {
-      return Schema.INT32_SCHEMA;
-    } else if (type == Schema.Type.INT64) {
-      return Schema.INT64_SCHEMA;
-    } else if (type == Schema.Type.FLOAT64) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if (type == Schema.Type.STRING) {
-      return Schema.STRING_SCHEMA;
+    switch (type) {
+      case STRING:
+        return Schema.STRING_SCHEMA;
+      case BOOLEAN:
+        return Schema.BOOLEAN_SCHEMA;
+      case INT32:
+        return Schema.INT32_SCHEMA;
+      case INT64:
+        return Schema.INT64_SCHEMA;
+      case FLOAT64:
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        throw new KQLException("Type is not supported: " + type);
     }
-    throw new KQLException("Type is not supported: " + type);
   }
 
   public static Class getJavaType(final Schema.Type type) {
-    if (type == Schema.Type.BOOLEAN) {
-      return Boolean.class;
-    } else if (type == Schema.Type.INT32) {
-      return Integer.class;
-    } else if (type == Schema.Type.INT64) {
-      return Long.class;
-    } else if (type == Schema.Type.FLOAT64) {
-      return Double.class;
-    } else if (type == Schema.Type.STRING) {
-      return String.class;
+    switch (type) {
+      case STRING:
+        return String.class;
+      case BOOLEAN:
+        return Boolean.class;
+      case INT32:
+        return Integer.class;
+      case INT64:
+        return Long.class;
+      case FLOAT64:
+        return Double.class;
+      default:
+        throw new KQLException("Type is not supported: " + type);
     }
-    throw new KQLException("Type is not supported: " + type);
   }
 
   public static Schema.Type getTypeSchema(final String kqlType) {
 
-    if (kqlType.equalsIgnoreCase("STRING")) {
-      return Schema.Type.STRING;
-    } else if (kqlType.equalsIgnoreCase("INTEGER")) {
-      return Schema.Type.INT32;
-    } else if (kqlType.equalsIgnoreCase("DOUBLE")) {
-      return Schema.Type.FLOAT64;
-    } else if (kqlType.equalsIgnoreCase("BIGINT")) {
-      return Schema.Type.INT64;
-    } else if (kqlType.equalsIgnoreCase("BOOLEAN")) {
-      return Schema.Type.BOOLEAN;
+    switch (kqlType) {
+      case "STRING":
+        return Schema.Type.STRING;
+      case "BOOLEAN":
+        return Schema.Type.BOOLEAN;
+      case "INTEGER":
+        return Schema.Type.INT32;
+      case "BIGINT":
+        return Schema.Type.INT64;
+      case "DOUBLE":
+        return Schema.Type.FLOAT64;
+      default:
+        throw new KQLException("Type is not supported: " + kqlType);
     }
-    throw new KQLException("Type is not supported: " + kqlType);
   }
 
   public static Field getFieldByName(final Schema schema, final String fieldName) {
-    String fieldNameUppercase = fieldName.toUpperCase();
-
     if (schema.fields() != null) {
-
       for (Field field : schema.fields()) {
-        if (field.name().equalsIgnoreCase(fieldNameUppercase)) {
+        if (field.name().equals(fieldName)) {
           return field;
         }
       }
@@ -78,7 +81,7 @@ public class SchemaUtil {
         Field field = schema.fields().get(i);
         int dotIndex = field.name().indexOf(".");
         if (dotIndex == -1) {
-          if (field.name().equalsIgnoreCase(fieldName)) {
+          if (field.name().equals(fieldName)) {
             return i;
           }
         } else {
@@ -86,7 +89,7 @@ public class SchemaUtil {
             String
                 fieldNameWithDot =
                 fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
-            if (field.name().equalsIgnoreCase(fieldNameWithDot)) {
+            if (field.name().equals(fieldNameWithDot)) {
               return i;
             }
           }
@@ -100,7 +103,7 @@ public class SchemaUtil {
   public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
     SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
     for (Field field : schema.fields()) {
-      newSchema.field((alias + "." + field.name()).toUpperCase(), field.schema());
+      newSchema.field((alias + "." + field.name()), field.schema());
     }
     return newSchema;
   }

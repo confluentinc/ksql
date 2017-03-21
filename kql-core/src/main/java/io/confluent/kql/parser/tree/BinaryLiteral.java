@@ -33,7 +33,7 @@ public class BinaryLiteral
   public BinaryLiteral(Optional<NodeLocation> location, String value) {
     super(location);
     requireNonNull(value, "value is null");
-    String hexString = WHITESPACE_PATTERN.matcher(value).replaceAll("").toUpperCase();
+    String hexString = WHITESPACE_PATTERN.matcher(value).replaceAll("");
     if (NOT_HEX_DIGIT_PATTERN.matcher(hexString).matches()) {
       throw new ParsingException("Binary literal can only contain hexadecimal digits",
                                  location.get());

@@ -208,7 +208,7 @@ public class KQLEngine {
   private String getNextQueryId() {
     String queryId = QUERY_ID_PREFIX + queryIdCounter;
     queryIdCounter++;
-    return queryId.toUpperCase();
+    return queryId;
   }
 
   public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {

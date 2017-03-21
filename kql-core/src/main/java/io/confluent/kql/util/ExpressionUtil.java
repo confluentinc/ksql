@@ -97,9 +97,9 @@ public class ExpressionUtil {
     }
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
-      String functionName = node.getName().getSuffix().toUpperCase();
+      String functionName = node.getName().getSuffix();
       KQLFunction kqlFunction = KQLFunctions.getFunction(functionName);
-      parameterMap.put(node.getName().getSuffix().toUpperCase(),
+      parameterMap.put(node.getName().getSuffix(),
 //                       SchemaUtil.getJavaType(kqlFunction.getReturnType()));
                        kqlFunction.getKudfClass());
       for (Expression argExpr : node.getArguments()) {
@@ -147,7 +147,7 @@ public class ExpressionUtil {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameterMap.put(schemaField.name().toUpperCase().replace(".", "_"),
+      parameterMap.put(schemaField.name().replace(".", "_"),
                        SchemaUtil.getJavaType(schemaField.schema().type()));
       return null;
     }
@@ -165,7 +165,7 @@ public class ExpressionUtil {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(schemaField.name().toUpperCase().replace(".", "_"),
+      parameterMap.put(schemaField.name().replace(".", "_"),
                        SchemaUtil.getJavaType(schemaField.schema().type()));
       return null;
     }

@@ -10,9 +10,9 @@ public interface DataSource {
 
   public static enum DataSourceSerDe { JSON, AVRO, CSV }
 
-  public static final String AVRO_SERDE_NAME = "avro";
-  public static final String JSON_SERDE_NAME = "json";
-  public static final String CSV_SERDE_NAME = "csv";
+  public static final String AVRO_SERDE_NAME = "AVRO";
+  public static final String JSON_SERDE_NAME = "JSON";
+  public static final String CSV_SERDE_NAME = "CSV";
 
   public String getName();
 

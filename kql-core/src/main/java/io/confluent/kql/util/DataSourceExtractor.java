@@ -77,18 +77,19 @@ public class DataSourceExtractor
     }
 
     if (!isJoin) {
-      this.fromAlias = alias.toUpperCase();
+      this.fromAlias = alias;
       StructuredDataSource
           fromDataSource =
-          metaStore.getSource(table.getName().getSuffix().toUpperCase());
+          metaStore.getSource(table.getName().getSuffix());
       if (fromDataSource == null) {
-        throw new KQLException(table.getName().getSuffix().toUpperCase() + " does not exist.");
+        throw new KQLException(table.getName().getSuffix() + " does not exist.");
       }
       this.fromSchema = fromDataSource.getSchema();
       return null;
     }
 
-    return new AliasedRelation(getLocation(context), table, alias,
+    // TODO: Figure out if the call to toUpperCase() here is really necessary
+    return new AliasedRelation(getLocation(context), table, alias.toUpperCase(),
                                getColumnAliases(context.columnAliases()));
 
   }
@@ -108,20 +109,20 @@ public class DataSourceExtractor
       }
     }
 
-    this.leftAlias = left.getAlias().toUpperCase();
+    this.leftAlias = left.getAlias();
     StructuredDataSource
         leftDataSource =
-        metaStore.getSource(((Table) left.getRelation()).getName().getSuffix().toUpperCase());
+        metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
     if (leftDataSource == null) {
       throw new KQLException(((Table) left.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
     }
     this.joinLeftSchema = leftDataSource.getSchema();
 
-    this.rightAlias = right.getAlias().toUpperCase();
+    this.rightAlias = right.getAlias();
     StructuredDataSource
         rightDataSource =
-        metaStore.getSource(((Table) right.getRelation()).getName().getSuffix().toUpperCase());
+        metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
     if (rightDataSource == null) {
       throw new KQLException(((Table) right.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
@@ -136,12 +137,12 @@ public class DataSourceExtractor
     visit(node);
     if (joinLeftSchema != null) {
       for (Field field : joinLeftSchema.fields()) {
-        leftFieldNames.add(field.name().toUpperCase());
+        leftFieldNames.add(field.name());
       }
       for (Field field : joinRightSchema.fields()) {
-        rightFieldNames.add(field.name().toUpperCase());
-        if (leftFieldNames.contains(field.name().toUpperCase())) {
-          commonFieldNames.add(field.name().toUpperCase());
+        rightFieldNames.add(field.name());
+        if (leftFieldNames.contains(field.name())) {
+          commonFieldNames.add(field.name());
         }
       }
     }
@@ -151,16 +152,8 @@ public class DataSourceExtractor
     return metaStore;
   }
 
-  public Schema getFromSchema() {
-    return fromSchema;
-  }
-
   public Schema getJoinLeftSchema() {
     return joinLeftSchema;
-  }
-
-  public Schema getJoinRightSchema() {
-    return joinRightSchema;
   }
 
   public String getFromAlias() {
@@ -187,28 +180,21 @@ public class DataSourceExtractor
     return rightFieldNames;
   }
 
+  private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.UnquotedIdentifierContext) {
+      return context.getText().toUpperCase();
+    } else {
+      return context.getText();
+    }
+  }
 
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {
     List<String> parts = context
         .identifier().stream()
-        .map(ParseTree::getText)
+        .map(DataSourceExtractor::getIdentifierText)
         .collect(toList());
 
     return QualifiedName.of(parts);
-  }
-
-  private static boolean isDistinct(SqlBaseParser.SetQuantifierContext setQuantifier) {
-    return setQuantifier != null && setQuantifier.DISTINCT() != null;
-  }
-
-  private static Optional<String> getTextIfPresent(ParserRuleContext context) {
-    return Optional.ofNullable(context)
-        .map(ParseTree::getText);
-  }
-
-  private static Optional<String> getTextIfPresent(Token token) {
-    return Optional.ofNullable(token)
-        .map(Token::getText);
   }
 
   private static List<String> getColumnAliases(
@@ -219,13 +205,8 @@ public class DataSourceExtractor
 
     return columnAliasesContext
         .identifier().stream()
-        .map(ParseTree::getText)
+        .map(DataSourceExtractor::getIdentifierText)
         .collect(toList());
-  }
-
-  public static NodeLocation getLocation(TerminalNode terminalNode) {
-    requireNonNull(terminalNode, "terminalNode is null");
-    return getLocation(terminalNode.getSymbol());
   }
 
   public static NodeLocation getLocation(ParserRuleContext parserRuleContext) {

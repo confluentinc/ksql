@@ -19,7 +19,7 @@ public class CastKUDF implements KUDF {
     if (args.length != 2) {
       throw new KQLFunctionException("Concat udf should have two input argument.");
     }
-    String string = args[1].toString().toUpperCase();
+    String string = args[1].toString();
 
     return args[0].toString() + args[1].toString();
   }

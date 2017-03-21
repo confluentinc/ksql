@@ -74,12 +74,12 @@ public class CLIOptions {
     return queryTime;
   }
 
-  public static CLIOptions parse(String[] ass) throws IOException {
+  public static CLIOptions parse(String[] args) throws IOException {
 
     SingleCommand<CLIOptions> optionsParser = SingleCommand.singleCommand(CLIOptions.class);
 
     // If just a help flag is given, an exception will be thrown due to missing required options; hence, this workaround
-    for (String arg : ass) {
+    for (String arg : args) {
       if ("--help".equals(arg) || "-h".equals(arg)) {
         Help.help(optionsParser.getCommandMetadata());
         return null;
@@ -87,7 +87,7 @@ public class CLIOptions {
     }
 
     try {
-      return optionsParser.parse(ass);
+      return optionsParser.parse(args);
     } catch (ParseException exception) {
       if (exception.getMessage() != null) {
         System.err.println(exception.getMessage());

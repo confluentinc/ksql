@@ -132,6 +132,8 @@ public class AstBuilder
 
   int selectItemIndex = 0;
 
+  public static final String DEFAULT_WINDOW_NAME = "StreamWindow";
+
   DataSourceExtractor dataSourceExtractor;
   public StructuredDataSource resultDataSource = null;
 
@@ -408,7 +410,10 @@ public class AstBuilder
 
   @Override
   public Node visitWindowExpression(SqlBaseParser.WindowExpressionContext ctx) {
-    String windowName = ctx.IDENTIFIER().getText();
+    String windowName = DEFAULT_WINDOW_NAME;
+    if (ctx.IDENTIFIER() != null) {
+      windowName = ctx.IDENTIFIER().getText();
+    }
     if (ctx.tumblingWindowExpression() != null) {
       TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
           visitTumblingWindowExpression(ctx.tumblingWindowExpression());

@@ -60,7 +60,7 @@ public class DataGen {
     }
 
     Properties props = new Properties();
-    props.put("bootstrap.servers", arguments.kafkaServer);
+    props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KQLDataGenProducer");
 
     dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName, arguments.iterations);
@@ -70,7 +70,7 @@ public class DataGen {
     System.err.println(
         "usage: DataGen "
             + "[help] "
-            + "[kafka-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
+            + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
             + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or 'pageview')] "
             + "schema=<avro schema file> "
             + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'csv') "
@@ -89,7 +89,7 @@ public class DataGen {
     public enum Format { AVRO, JSON, CSV }
 
     public final boolean help;
-    public final String kafkaServer;
+    public final String bootstrapServer;
     public final InputStream schemaFile;
     public final Format format;
     public final String topicName;
@@ -98,7 +98,7 @@ public class DataGen {
 
     public Arguments(
         boolean help,
-        String kafkaServer,
+        String bootstrapServer,
         InputStream schemaFile,
         Format format,
         String topicName,
@@ -106,7 +106,7 @@ public class DataGen {
         int iterations
     ) {
       this.help = help;
-      this.kafkaServer = kafkaServer;
+      this.bootstrapServer = bootstrapServer;
       this.schemaFile = schemaFile;
       this.format = format;
       this.topicName = topicName;
@@ -124,7 +124,7 @@ public class DataGen {
       private Quickstart quickstart;
 
       private boolean help;
-      private String kafkaServer;
+      private String bootstrapServer;
       private InputStream schemaFile;
       private Format format;
       private String topicName;
@@ -135,7 +135,7 @@ public class DataGen {
       public Builder() {
         quickstart = null;
         help = false;
-        kafkaServer = "localhost:9092";
+        bootstrapServer = "localhost:9092";
         schemaFile = null;
         format = null;
         topicName = null;
@@ -196,7 +196,7 @@ public class DataGen {
         } catch (NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
-        return new Arguments(help, kafkaServer, schemaFile, format, topicName, keyName, iterations);
+        return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName, iterations);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -249,8 +249,8 @@ public class DataGen {
               ));
             }
             break;
-          case "kafka-server":
-            kafkaServer = argValue;
+          case "bootstrap-server":
+            bootstrapServer = argValue;
             break;
           case "schema":
             schemaFile = new FileInputStream(argValue);

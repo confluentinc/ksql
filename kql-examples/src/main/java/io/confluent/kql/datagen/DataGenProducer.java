@@ -23,12 +23,14 @@ import java.util.Properties;
 
 public abstract class DataGenProducer {
 
-  public void populateAvroTopic(Generator generator, String kafkaTopicName, String key, int messageCount) {
+  public void populateTopic(
+      Properties props,
+      Generator generator,
+      String kafkaTopicName,
+      String key,
+      int messageCount
+  ) {
     Schema schema = generator.schema();
-
-    Properties props = new Properties();
-    props.put("bootstrap.servers", "localhost:9092");
-    props.put("client.id", "AvroDataGenProducers");
 
     Serializer<GenericRow> serializer = getSerializer(schema);
 
@@ -60,6 +62,8 @@ public abstract class DataGenProducer {
       producer.send(producerRecord);
       System.err.println(keyString + " --> (" + genericRow + ")");
     }
+    producer.flush();
+    producer.close();
 
     System.err.println("Done!");
   }

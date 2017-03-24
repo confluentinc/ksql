@@ -181,11 +181,21 @@ public class DataSourceExtractor
   }
 
   private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
-    if (context instanceof SqlBaseParser.UnquotedIdentifierContext) {
+    if (context instanceof SqlBaseParser.UnquotedIdentifierContext ||
+        context instanceof SqlBaseParser.DigitIdentifierContext) {
       return context.getText().toUpperCase();
+    } else if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+      return unquote(context.getText(), "\"");
+    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
+      return unquote(context.getText(), "`");
     } else {
-      return context.getText();
+      throw new KQLException(String.format("Unexpected identifier context: %s", context.getClass().getCanonicalName()));
     }
+  }
+
+  private static String unquote(String value, String quote) {
+    return value.substring(1, value.length() - 1)
+        .replace(quote + quote, quote);
   }
 
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {

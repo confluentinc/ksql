@@ -557,7 +557,7 @@ public class AstBuilder
         Optional.ofNullable(context.qualifiedName())
             .map(AstBuilder::getQualifiedName),
         getTextIfPresent(context.pattern)
-            .map(AstBuilder::unquote));
+            .map(text -> unquote(text, "'")));
   }
 
   @Override
@@ -914,7 +914,7 @@ public class AstBuilder
 
   @Override
   public Node visitTimeZoneString(SqlBaseParser.TimeZoneStringContext context) {
-    return new StringLiteral(getLocation(context), unquote(context.STRING().getText()));
+    return new StringLiteral(getLocation(context), unquote(context.STRING().getText(), "'"));
   }
 
   // ********************* primary expressions **********************
@@ -1149,19 +1149,19 @@ public class AstBuilder
 
   @Override
   public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
-    return new StringLiteral(getLocation(context), unquote(context.STRING().getText()));
+    return new StringLiteral(getLocation(context), unquote(context.STRING().getText(), "'"));
   }
 
   @Override
   public Node visitBinaryLiteral(SqlBaseParser.BinaryLiteralContext context) {
     String raw = context.BINARY_LITERAL().getText();
-    return new BinaryLiteral(getLocation(context), unquote(raw.substring(1)));
+    return new BinaryLiteral(getLocation(context), unquote(raw.substring(1), "'"));
   }
 
   @Override
   public Node visitTypeConstructor(SqlBaseParser.TypeConstructorContext context) {
     String type = getIdentifierText(context.identifier());
-    String value = unquote(context.STRING().getText());
+    String value = unquote(context.STRING().getText(), "'");
 
     if (type.equals("TIME")) {
       return new TimeLiteral(getLocation(context), value);
@@ -1195,7 +1195,7 @@ public class AstBuilder
   public Node visitInterval(SqlBaseParser.IntervalContext context) {
     return new IntervalLiteral(
         getLocation(context),
-        unquote(context.STRING().getText()),
+        unquote(context.STRING().getText(), "'"),
         Optional.ofNullable(context.sign)
             .map(AstBuilder::getIntervalSign)
             .orElse(IntervalLiteral.Sign.POSITIVE),
@@ -1240,16 +1240,21 @@ public class AstBuilder
   }
 
   private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
-    if (context instanceof SqlBaseParser.UnquotedIdentifierContext) {
+    if (context instanceof SqlBaseParser.UnquotedIdentifierContext ||
+        context instanceof SqlBaseParser.DigitIdentifierContext) {
       return context.getText().toUpperCase();
+    } else if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+      return unquote(context.getText(), "\"");
+    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
+      return unquote(context.getText(), "`");
     } else {
-      return context.getText();
+      throw new KQLException(String.format("Unexpected identifier context: %s", context.getClass().getCanonicalName()));
     }
   }
 
-  private static String unquote(String value) {
+  private static String unquote(String value, String quote) {
     return value.substring(1, value.length() - 1)
-        .replace("''", "'");
+        .replace(quote + quote, quote);
   }
 
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {

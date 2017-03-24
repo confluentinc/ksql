@@ -67,7 +67,8 @@ public class DDLEngine {
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
 
-    // TODO: Find a way to avoid calling toUpperCase() here, since
+    // TODO: Find a way to avoid calling toUpperCase() here; if the property can be an unquoted identifier, then
+    // capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
         if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {

@@ -37,17 +37,17 @@ public class KQLParserTest {
     Statement statement = kqlParser.buildAST(simpleQuery, metaStore).get(0);
 
 
-    Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+    Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     Query query = (Query) statement;
-    Assert.assertTrue("testSimpleQuery failes", query.getQueryBody() instanceof QuerySpecification);
+    Assert.assertTrue("testSimpleQuery fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    Assert.assertTrue("testSimpleQuery failes", querySpecification.getSelect().getSelectItems().size() == 3);
-    Assert.assertTrue("testSimpleQuery failes", querySpecification.getFrom().isPresent());
-    Assert.assertTrue("testSimpleQuery failes", querySpecification.getWhere().isPresent());
-    Assert.assertTrue("testSimpleQuery failes", querySpecification.getFrom().get() instanceof Relation);
-    Assert.assertTrue("testSimpleQuery failes", querySpecification.getWhere().get() instanceof ComparisonExpression);
+    Assert.assertTrue("testSimpleQuery fails", querySpecification.getSelect().getSelectItems().size() == 3);
+    Assert.assertTrue("testSimpleQuery fails", querySpecification.getFrom().isPresent());
+    Assert.assertTrue("testSimpleQuery fails", querySpecification.getWhere().isPresent());
+    Assert.assertTrue("testSimpleQuery fails", querySpecification.getFrom().get() instanceof Relation);
+    Assert.assertTrue("testSimpleQuery fails", querySpecification.getWhere().get() instanceof ComparisonExpression);
     ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
-    Assert.assertTrue("testSimpleQuery failes", comparisonExpression.getType().getValue().equalsIgnoreCase(">"));
+    Assert.assertTrue("testSimpleQuery fails", comparisonExpression.getType().getValue().equalsIgnoreCase(">"));
 
   }
 
@@ -55,11 +55,11 @@ public class KQLParserTest {
   public void testProjection() throws Exception {
     String queryStr = "SELECT col0, col2, col3 FROM test1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-    Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+    Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     Query query = (Query) statement;
-    Assert.assertTrue("testProjection failes", query.getQueryBody() instanceof QuerySpecification);
+    Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    Assert.assertTrue("testProjection failes", querySpecification.getSelect().getSelectItems().size() == 3);
+    Assert.assertTrue("testProjection fails", querySpecification.getSelect().getSelectItems().size() == 3);
     Assert.assertTrue("testProjection fails", querySpecification.getSelect().getSelectItems().get(0) instanceof SingleColumn);
     SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
     Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("COL0"));
@@ -70,15 +70,15 @@ public class KQLParserTest {
   public void testProjectFilter() throws Exception {
     String queryStr = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+      Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testProjectFilter failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testProjectFilter fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
-      Assert.assertTrue("testProjectFilter failes", querySpecification.getWhere().get() instanceof ComparisonExpression);
+      Assert.assertTrue("testProjectFilter fails", querySpecification.getWhere().get() instanceof ComparisonExpression);
       ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
-      Assert.assertTrue("testProjectFilter failes", comparisonExpression.toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
-      Assert.assertTrue("testProjectFilter failes", querySpecification.getSelect().getSelectItems().size() == 3);
+      Assert.assertTrue("testProjectFilter fails", comparisonExpression.toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
+      Assert.assertTrue("testProjectFilter fails", querySpecification.getSelect().getSelectItems().size() == 3);
 
   }
 
@@ -86,9 +86,9 @@ public class KQLParserTest {
   public void testBinaryExpression() throws Exception {
     String queryStr = "SELECT col0+10, col2, col3-col1 FROM test1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-    Assert.assertTrue("testBinaryExpression failes", statement instanceof Query);
+    Assert.assertTrue("testBinaryExpression fails", statement instanceof Query);
     Query query = (Query) statement;
-    Assert.assertTrue("testBinaryExpression failes", query.getQueryBody() instanceof QuerySpecification);
+    Assert.assertTrue("testBinaryExpression fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
     Assert.assertTrue("testBinaryExpression fails", column0.getAlias().get().equalsIgnoreCase("KQL_COL_0"));
@@ -99,9 +99,9 @@ public class KQLParserTest {
   public void testBooleanExpression() throws Exception {
     String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-    Assert.assertTrue("testBooleanExpression failes", statement instanceof Query);
+    Assert.assertTrue("testBooleanExpression fails", statement instanceof Query);
     Query query = (Query) statement;
-    Assert.assertTrue("testProjection failes", query.getQueryBody() instanceof QuerySpecification);
+    Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
     Assert.assertTrue("testBooleanExpression fails", column0.getAlias().get().equalsIgnoreCase("KQL_COL_0"));
@@ -112,9 +112,9 @@ public class KQLParserTest {
   public void testLiterals() throws Exception {
     String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-    Assert.assertTrue("testLiterals failes", statement instanceof Query);
+    Assert.assertTrue("testLiterals fails", statement instanceof Query);
     Query query = (Query) statement;
-    Assert.assertTrue("testLiterals failes", query.getQueryBody() instanceof QuerySpecification);
+    Assert.assertTrue("testLiterals fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
     Assert.assertTrue("testLiterals fails", column0.getAlias().get().equalsIgnoreCase("KQL_COL_0"));
@@ -147,9 +147,9 @@ public class KQLParserTest {
         queryStr =
         "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1 WHERE col1 = 10 AND col2 LIKE 'val' OR col4 > 2.6 ;";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+      Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testProjection failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
       SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
       Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("KQL_COL_0"));
@@ -171,16 +171,16 @@ public class KQLParserTest {
         queryStr =
         "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+      Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testSimpleLeftJoin failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testSimpleLeftJoin fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-      Assert.assertTrue("testSimpleLeftJoin failes", querySpecification.getFrom().get() instanceof Join);
+      Assert.assertTrue("testSimpleLeftJoin fails", querySpecification.getFrom().get() instanceof Join);
       Join join = (Join) querySpecification.getFrom().get();
-      Assert.assertTrue("testSimpleLeftJoin failes", join.getType().toString().equalsIgnoreCase("LEFT"));
+      Assert.assertTrue("testSimpleLeftJoin fails", join.getType().toString().equalsIgnoreCase("LEFT"));
 
-      Assert.assertTrue("testSimpleLeftJoin failes", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
-      Assert.assertTrue("testSimpleLeftJoin failes", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
+      Assert.assertTrue("testSimpleLeftJoin fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
+      Assert.assertTrue("testSimpleLeftJoin fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
 
   }
 
@@ -190,29 +190,29 @@ public class KQLParserTest {
         queryStr =
         "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+      Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testLeftJoinWithFilter failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testLeftJoinWithFilter fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-      Assert.assertTrue("testLeftJoinWithFilter failes", querySpecification.getFrom().get() instanceof Join);
+      Assert.assertTrue("testLeftJoinWithFilter fails", querySpecification.getFrom().get() instanceof Join);
       Join join = (Join) querySpecification.getFrom().get();
-      Assert.assertTrue("testLeftJoinWithFilter failes", join.getType().toString().equalsIgnoreCase("LEFT"));
+      Assert.assertTrue("testLeftJoinWithFilter fails", join.getType().toString().equalsIgnoreCase("LEFT"));
 
-      Assert.assertTrue("testLeftJoinWithFilter failes", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
-      Assert.assertTrue("testLeftJoinWithFilter failes", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
+      Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
+      Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
 
-      Assert.assertTrue("testLeftJoinWithFilter failes", querySpecification.getWhere().get().toString().equalsIgnoreCase("(T2.COL2 = 'test')"));
+      Assert.assertTrue("testLeftJoinWithFilter fails", querySpecification.getWhere().get().toString().equalsIgnoreCase("(T2.COL2 = 'test')"));
   }
 
   @Test
   public void testSelectAll() throws Exception {
       String queryStr = "SELECT * FROM test1 t1;";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSelectAll failes", statement instanceof Query);
+      Assert.assertTrue("testSelectAll fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testSelectAll failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-      Assert.assertTrue("testSelectAll failes", querySpecification.getSelect().getSelectItems().size() == 4);
+      Assert.assertTrue("testSelectAll fails", querySpecification.getSelect().getSelectItems().size() == 4);
   }
 
   @Test
@@ -221,24 +221,24 @@ public class KQLParserTest {
         queryStr =
         "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSimpleQuery failes", statement instanceof Query);
+      Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testLeftJoinWithFilter failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testLeftJoinWithFilter fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-      Assert.assertTrue("testSelectAllJoin failes", querySpecification.getFrom().get() instanceof Join);
+      Assert.assertTrue("testSelectAllJoin fails", querySpecification.getFrom().get() instanceof Join);
       Join join = (Join) querySpecification.getFrom().get();
-      Assert.assertTrue("testSelectAllJoin failes", querySpecification.getSelect().getSelectItems().size() == 9);
-      Assert.assertTrue("testLeftJoinWithFilter failes", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
-      Assert.assertTrue("testLeftJoinWithFilter failes", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
+      Assert.assertTrue("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems().size() == 9);
+      Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
+      Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
   }
 
   @Test
   public void testUDF() throws Exception {
     String queryStr = "SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;";
       Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-      Assert.assertTrue("testSelectAll failes", statement instanceof Query);
+      Assert.assertTrue("testSelectAll fails", statement instanceof Query);
       Query query = (Query) statement;
-      Assert.assertTrue("testSelectAll failes", query.getQueryBody() instanceof QuerySpecification);
+      Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
       QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
       SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);

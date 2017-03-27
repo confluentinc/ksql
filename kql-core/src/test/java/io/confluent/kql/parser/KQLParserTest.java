@@ -13,6 +13,7 @@ import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.kql.util.KQLTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -313,8 +314,29 @@ public class KQLParserTest {
   }
 
   @Test
-  public void testCreateTopicWithoutQuotes() throws Exception {
+  /*
+      TODO: Handle so-called identifier expressions as values in table properties (right now, the lack of single quotes
+      around in the variables <format> and <kafkaTopic> cause things to break).
+   */
+  @Ignore
+  public void testCreateTopicFormatWithoutQuotes() throws Exception {
+    String kqlTopic = "unquoted_topic";
+    String format = "json";
+    String kafkaTopic = "case_insensitive_kafka_topic";
 
+    String queryStr = String.format(
+        "CREATE TOPIC %s WITH (format = %s, kafka_topic = %s);",
+        kqlTopic,
+        format,
+        kafkaTopic
+    );
+    Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
+    Assert.assertTrue(statement instanceof CreateTopic);
+    CreateTopic createTopic = (CreateTopic) statement;
+    Assert.assertTrue(createTopic.getName().toString().equalsIgnoreCase(kqlTopic));
+    Assert.assertTrue(createTopic.getProperties().size() == 2);
+    Assert.assertTrue(createTopic.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
+    Assert.assertTrue(createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
-
+  
 }

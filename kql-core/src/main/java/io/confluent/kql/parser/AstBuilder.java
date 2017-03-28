@@ -440,17 +440,22 @@ public class AstBuilder
 
     String sizeUnit = windowUnits.get(0).getText();
     String advanceByUnit = windowUnits.get(1).getText();
-    HoppingWindowExpression hoppingWindowExpression = new HoppingWindowExpression(Long.parseLong(sizeStr), WindowExpression.getWindowUnit(sizeUnit), Long.parseLong(advanceByStr), WindowExpression.getWindowUnit(advanceByUnit));
-    return hoppingWindowExpression;
+    return new HoppingWindowExpression(
+        Long.parseLong(sizeStr),
+        WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
+        Long.parseLong(advanceByStr),
+        WindowExpression.getWindowUnit(advanceByUnit.toUpperCase())
+    );
   }
 
   @Override
   public Node visitTumblingWindowExpression(SqlBaseParser.TumblingWindowExpressionContext ctx) {
     String sizeStr = ctx.number().getText();
     String sizeUnit = ctx.windowUnit().getText();
-    TumblingWindowExpression tumblingWindowExpression = new TumblingWindowExpression(Long
-                                                                                         .parseLong(sizeStr), WindowExpression.getWindowUnit(sizeUnit));
-    return tumblingWindowExpression;
+    return new TumblingWindowExpression(
+        Long.parseLong(sizeStr),
+        WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+    );
   }
 
   @Override

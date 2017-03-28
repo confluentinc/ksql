@@ -42,33 +42,48 @@ public class CLIOptions {
 //  }
 
   @Required
-  @Option(name = PROPERTIES_FILE_OPTION_NAME, description = "A file specifying properties for KQL and its underlying Kafka Streams instance(s)")
+  @Option(
+    name = PROPERTIES_FILE_OPTION_NAME,
+    description = "A file specifying properties for KQL and its underlying Kafka Streams instance(s)"
+  )
   private String propertiesFile;
   public String getPropertiesFile() {
     return propertiesFile;
   }
 
-  @Option(name = CATALOG_FILE_OPTION_NAME, description = "A file to import metastore data from before execution")
+  @Option(
+    name = CATALOG_FILE_OPTION_NAME,
+    description = "A file to import metastore data from before execution"
+  )
   private String catalogFile;
   public String getCatalogFile() {
     return catalogFile;
   }
 
-  @Option(name = QUERY_FILE_OPTION_NAME, description = "A file to run non-interactive queries from")
+  @Option(
+    name = QUERY_FILE_OPTION_NAME,
+    description = "A file to run non-interactive queries from"
+  )
   @MutuallyExclusiveWith(tag = NON_INTERACTIVE_QUERIES_TAG)
   private String queryFile;
   public String getQueryFile() {
     return queryFile;
   }
 
-  @Option(name = QUERIES_OPTION_NAME, description = "One or more non-interactive queries to run")
+  @Option(
+    name = QUERIES_OPTION_NAME,
+    description = "One or more non-interactive queries to run"
+  )
   @MutuallyExclusiveWith(tag = NON_INTERACTIVE_QUERIES_TAG)
   private String queries;
   public String getQueries() {
     return queries;
   }
 
-  @Option(name = QUERY_TIME_OPTION_NAME, description = "How long to run non-interactive queries for (ms)")
+  @Option(
+    name = QUERY_TIME_OPTION_NAME,
+    description = "How long to run non-interactive queries for (ms)"
+  )
   private Long queryTime;
   public Long getQueryTime() {
     return queryTime;

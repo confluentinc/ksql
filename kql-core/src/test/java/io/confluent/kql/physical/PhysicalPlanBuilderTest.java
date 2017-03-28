@@ -8,7 +8,9 @@ import io.confluent.kql.analyzer.AnalysisContext;
 import io.confluent.kql.analyzer.Analyzer;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.KQLParser;
+import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.planner.LogicalPlanner;
 import io.confluent.kql.planner.plan.PlanNode;
@@ -40,13 +42,30 @@ public class PhysicalPlanBuilderTest {
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
         List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
         // Analyze the query to resolve the references and extract oeprations
+//        Analysis analysis = new Analysis();
+//        Analyzer analyzer = new Analyzer(analysis, metaStore);
+//        analyzer.process(statements.get(0), new AnalysisContext(null, null));
+//        AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+//        AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+//        for (Expression expression: analysis.getSelectExpressions()) {
+//            aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+//        }
+
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis, metaStore);
         analyzer.process(statements.get(0), new AnalysisContext(null, null));
+
         AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
         AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+        AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
         for (Expression expression: analysis.getSelectExpressions()) {
             aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+            if (!aggregateAnalyzer.isHasAggregateFunction()) {
+                aggregateAnalysis.getNonAggResultColumns().add(expression);
+            }
+            aggregateAnalysis.getFinalSelectExpressions().add(
+                ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+            aggregateAnalyzer.setHasAggregateFunction(false);
         }
         // Build a logical plan
         PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
@@ -95,5 +114,20 @@ public class PhysicalPlanBuilderTest {
             ("T2.COL1"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 9);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
+    }
+
+    @Test
+    public void testSimpleAggregate() throws Exception {
+        String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
+                             + "size 2 "
+                             + "second) "
+                             + "WHERE col0 > 100 GROUP BY col0;";
+        SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
+        Assert.assertNotNull(schemaKStream);
+        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
     }
 }

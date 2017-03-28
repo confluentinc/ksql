@@ -12,6 +12,7 @@ import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.planner.plan.*;
 import io.confluent.kql.util.KQLTestUtil;
 
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,9 +64,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinLogicalPlan() throws Exception {
-    String
-        simpleQuery =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+    String simpleQuery = "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
 //    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
@@ -106,4 +105,48 @@ public class LogicalPlannerTest {
 
   }
 
+  @Test
+  public void testSimpleAggregateLogicalPlan() throws Exception {
+    String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
+                         + "second) "
+                         + "WHERE col0 > 100 GROUP BY col0;";
+
+    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof AggregateNode);
+    AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
+    Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
+    Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
+                          .equalsIgnoreCase("sum"));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
+    Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
+    Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
+    Assert.assertTrue(aggregateNode.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
+    Assert.assertTrue(aggregateNode.getSchema().fields().get(2).schema() == Schema.INT32_SCHEMA);
+    Assert.assertTrue(logicalPlan.getSources().get(0).getSchema().fields().size() == 3);
+
+  }
+
+  @Test
+  public void testComplexAggregateLogicalPlan() throws Exception {
+    String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
+                         + "HOPPING ( size 2 second, advance by 1 second) "
+                         + "WHERE col0 > 100 GROUP BY col0;";
+
+    PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof AggregateNode);
+    AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
+    Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
+    Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
+                          .equalsIgnoreCase("sum"));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECOND , ADVANCE BY 1 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
+    Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
+    Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
+    Assert.assertTrue(aggregateNode.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
+    Assert.assertTrue(logicalPlan.getSources().get(0).getSchema().fields().size() == 2);
+
+  }
 }

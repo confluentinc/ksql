@@ -5,7 +5,7 @@
       "namespace": "kql-topics",
       "topicname": "ORDERS_TOPIC_AVRO",
       "kafkatopicname": "orders_kafka_topic_avro",
-      "serde": "AVRO",
+      "serde": "avro",
       "avroschemafile": "src/test/resources/avro_order_schema.avro"
     }
   ,
@@ -13,21 +13,21 @@
       "namespace": "kql-topics",
       "topicname": "PAGEVIEW_TOPIC",
       "kafkatopicname": "pageview_kafka_topic_json",
-      "serde": "JSON"
+      "serde": "json"
     }
   ,
     {
       "namespace": "kql-topics",
       "topicname": "ORDERS_TOPIC",
       "kafkatopicname": "orders_kafka_topic",
-      "serde": "JSON"
+      "serde": "json"
     }
   ,
     {
       "namespace": "kql-topics",
       "topicname": "USERS_TOPIC",
       "kafkatopicname": "users_kafka_topic_json",
-      "serde": "JSON"
+      "serde": "json"
     }
   ]
 
@@ -40,10 +40,10 @@
       "key": "ORDERTIME",
       "topic": "ORDERS_TOPIC",
       "fields": [
-        {"name": "ORDERTIME", "type": "LONG"} ,
-        {"name": "ORDERID", "type": "STRING"} ,
-        {"name": "ITEMID", "type": "STRING"} ,
-        {"name": "ORDERUNITS", "type": "DOUBLE"} 			 ]
+        {"name": "ORDERTIME", "type": "long"} ,
+        {"name": "ORDERID", "type": "string"} ,
+        {"name": "ITEMID", "type": "string"} ,
+        {"name": "ORDERUNITS", "type": "double"} 			 ]
     }
   ,
     {
@@ -53,9 +53,9 @@
       "key": "VIEWTIME",
       "topic": "PAGEVIEW_TOPIC",
       "fields": [
-        {"name": "VIEWTIME", "type": "LONG"} ,
-        {"name": "USERID", "type": "STRING"} ,
-        {"name": "PAGEID", "type": "STRING"} 			 ]
+        {"name": "VIEWTIME", "type": "long"} ,
+        {"name": "USERID", "type": "string"} ,
+        {"name": "PAGEID", "type": "string"} 			 ]
     }
   ,
     {
@@ -66,10 +66,10 @@
       "topic": "USERS_TOPIC",
       "statestore": "users_statestore",
       "fields": [
-        {"name": "USERTIME", "type": "LONG"} ,
-        {"name": "USERID", "type": "STRING"} ,
-        {"name": "REGIONID", "type": "STRING"} ,
-        {"name": "GENDER", "type": "STRING"} 			 ]
+        {"name": "USERTIME", "type": "long"} ,
+        {"name": "USERID", "type": "string"} ,
+        {"name": "REGIONID", "type": "string"} ,
+        {"name": "GENDER", "type": "string"} 			 ]
     }
   ,
     {
@@ -79,10 +79,10 @@
       "key": "ORDERTIME",
       "topic": "ORDERS_TOPIC_AVRO",
       "fields": [
-        {"name": "ORDERTIME", "type": "LONG"} ,
-        {"name": "ORDERID", "type": "STRING"} ,
-        {"name": "ITEMID", "type": "STRING"} ,
-        {"name": "ORDERUNITS", "type": "DOUBLE"} 			 ]
+        {"name": "ORDERTIME", "type": "long"} ,
+        {"name": "ORDERID", "type": "string"} ,
+        {"name": "ITEMID", "type": "string"} ,
+        {"name": "ORDERUNITS", "type": "double"} 			 ]
     }
   ]
 }

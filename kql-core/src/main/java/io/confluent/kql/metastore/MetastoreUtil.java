@@ -81,7 +81,7 @@ public class MetastoreUtil {
     KQLTopicSerDe topicSerDe;
     String topicname = node.get("topicname").asText();
     String kafkaTopicName = node.get("kafkatopicname").asText();
-    String serde = node.get("serde").asText();
+    String serde = node.get("serde").asText().toUpperCase();
     if ("AVRO".equals(serde)) {
       if (node.get("avroschemafile") == null) {
         throw new KQLException("For avro SerDe avro schema file path (avroschemafile) should be "
@@ -102,7 +102,7 @@ public class MetastoreUtil {
   }
 
   private Schema getKQLType(final String sqlType) {
-    switch (sqlType) {
+    switch (sqlType.toUpperCase()) {
       case "STRING":
         return Schema.STRING_SCHEMA;
       case "BOOL":

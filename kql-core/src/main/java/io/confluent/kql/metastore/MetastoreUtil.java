@@ -42,7 +42,7 @@ public class MetastoreUtil {
                              + "does not exist: " + topicname);
     }
 
-    String type = node.get("type").asText();
+    String type = node.get("type").asText().toUpperCase();
     String keyFieldName = node.get("key").asText();
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
@@ -73,7 +73,7 @@ public class MetastoreUtil {
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
                           kqlTopic, stateStore);
     }
-    throw new KQLException("Type not supported.");
+    throw new KQLException(String.format("Type not supported: '%s'", type));
   }
 
   private KQLTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {

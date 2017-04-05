@@ -48,8 +48,7 @@ public class JoinNode extends PlanNode {
     this.leftAlias = leftAlias;
     this.rightAlias = rightAlias;
     this.schema = buildSchema(left, right);
-    this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName).toUpperCase());
-//    this.keyField = this.schema.field((leftAlias + "_" + leftKeyFieldName).toUpperCase());
+    this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName));
   }
 
   private Schema buildSchema(final PlanNode left, final PlanNode right) {
@@ -61,12 +60,12 @@ public class JoinNode extends PlanNode {
 
     for (Field field : leftSchema.fields()) {
       String fieldName = leftAlias + "." + field.name();
-      schemaBuilder.field(fieldName.toUpperCase(), field.schema());
+      schemaBuilder.field(fieldName, field.schema());
     }
 
     for (Field field : rightSchema.fields()) {
       String fieldName = rightAlias + "." + field.name();
-      schemaBuilder.field(fieldName.toUpperCase(), field.schema());
+      schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
   }

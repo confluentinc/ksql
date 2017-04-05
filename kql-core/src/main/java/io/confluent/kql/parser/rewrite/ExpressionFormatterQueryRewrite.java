@@ -215,7 +215,7 @@ public final class ExpressionFormatterQueryRewrite {
       for (String part : name.getParts()) {
         parts.add(formatIdentifier(part));
       }
-      return Joiner.on('.').join(parts).toUpperCase();
+      return Joiner.on('.').join(parts);
     }
 
     @Override
@@ -229,7 +229,7 @@ public final class ExpressionFormatterQueryRewrite {
       StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), unmangleNames);
-      if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
+      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().getSuffix())) {
         arguments = "*";
       }
       if (node.isDistinct()) {
@@ -464,7 +464,7 @@ public final class ExpressionFormatterQueryRewrite {
     private static String formatIdentifier(String s) {
       // TODO: handle escaping properly
 //            return '"' + s + '"';
-      return s.toUpperCase();
+      return s;
     }
   }
 

@@ -144,7 +144,7 @@ public class DataGen {
       }
 
       private enum Quickstart {
-        ORDERS("orders_schema.avro", "orders", "ORDERID"),
+        ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
         PAGEVIEW("pageview_schema.avro", "pageview", "viewtime");
 

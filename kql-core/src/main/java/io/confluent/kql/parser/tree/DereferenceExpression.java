@@ -31,7 +31,7 @@ public class DereferenceExpression
     checkArgument(base != null, "base is null");
     checkArgument(fieldName != null, "fieldName is null");
     this.base = base;
-    this.fieldName = fieldName.toUpperCase();
+    this.fieldName = fieldName;
   }
 
   @Override

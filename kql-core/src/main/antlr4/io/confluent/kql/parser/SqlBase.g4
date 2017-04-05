@@ -18,7 +18,7 @@ grammar SqlBase;
 
 //@header {
 //package io.confluent.kql.parser;
-// }
+//}
 
 tokens {
     DELIMITER
@@ -411,223 +411,100 @@ number
     | INTEGER_VALUE  #integerLiteral
     ;
 
-nonReserved
-    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
-    | ADD
-    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP | ARRAY
-    | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
-    | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
-    | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
-    | TABLESAMPLE | SYSTEM | BERNOULLI | POISSONIZED | USE | TO
-    | RESCALED | APPROXIMATE | AT | CONFIDENCE
-    | SET | RESET
-    | VIEW | REPLACE
-    | IF | NULLIF | COALESCE
-    | TRY
-    | normalForm
-    | POSITION
-    | NO | DATA
-    | START | TRANSACTION | COMMIT | ROLLBACK | WORK | ISOLATION | LEVEL
-    | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | ONLY
-    | CALL
-    | GRANT | REVOKE | PRIVILEGES | PUBLIC | OPTION
-    | SUBSTRING
-    ;
-
 normalForm
     : NFD | NFC | NFKD | NFKC
     ;
 
-SELECT: 'SELECT';
-FROM: 'FROM';
-ADD: 'ADD';
-AS: 'AS';
-ALL: 'ALL';
-SOME: 'SOME';
-ANY: 'ANY';
-DISTINCT: 'DISTINCT';
-WHERE: 'WHERE';
-WINDOW: 'WINDOW';
-GROUP: 'GROUP';
-BY: 'BY';
-GROUPING: 'GROUPING';
-SETS: 'SETS';
-CUBE: 'CUBE';
-ROLLUP: 'ROLLUP';
-ORDER: 'ORDER';
-HAVING: 'HAVING';
-LIMIT: 'LIMIT';
-APPROXIMATE: 'APPROXIMATE';
-AT: 'AT';
-CONFIDENCE: 'CONFIDENCE';
-OR: 'OR';
-AND: 'AND';
-IN: 'IN';
-NOT: 'NOT';
-NO: 'NO';
-EXISTS: 'EXISTS';
-BETWEEN: 'BETWEEN';
-LIKE: 'LIKE';
-IS: 'IS';
-NULL: 'NULL';
-TRUE: 'TRUE';
-FALSE: 'FALSE';
-NULLS: 'NULLS';
-FIRST: 'FIRST';
-LAST: 'LAST';
-ESCAPE: 'ESCAPE';
-ASC: 'ASC';
-DESC: 'DESC';
-SUBSTRING: 'SUBSTRING';
-POSITION: 'POSITION';
-FOR: 'FOR';
-TINYINT: 'TINYINT';
-SMALLINT: 'SMALLINT';
-INTEGER: 'INTEGER';
-DATE: 'DATE';
-TIME: 'TIME';
-TIMESTAMP: 'TIMESTAMP';
-INTERVAL: 'INTERVAL';
-YEAR: 'YEAR';
-MONTH: 'MONTH';
-DAY: 'DAY';
-HOUR: 'HOUR';
-MINUTE: 'MINUTE';
-SECOND: 'SECOND';
-MILLISECOND: 'MILLISECOND';
-ZONE: 'ZONE';
-CURRENT_DATE: 'CURRENT_DATE';
-CURRENT_TIME: 'CURRENT_TIME';
-CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
-LOCALTIME: 'LOCALTIME';
-LOCALTIMESTAMP: 'LOCALTIMESTAMP';
-EXTRACT: 'EXTRACT';
-TUMBLING: 'TUMBLING';
-HOPPING: 'HOPPING';
-SIZE: 'SIZE';
-ADVANCE: 'ADVANCE';
-CASE: 'CASE';
-WHEN: 'WHEN';
-THEN: 'THEN';
-ELSE: 'ELSE';
-END: 'END';
-JOIN: 'JOIN';
-CROSS: 'CROSS';
-OUTER: 'OUTER';
-INNER: 'INNER';
-LEFT: 'LEFT';
-RIGHT: 'RIGHT';
-FULL: 'FULL';
-NATURAL: 'NATURAL';
-USING: 'USING';
-ON: 'ON';
-OVER: 'OVER';
-PARTITION: 'PARTITION';
-RANGE: 'RANGE';
-ROWS: 'ROWS';
-UNBOUNDED: 'UNBOUNDED';
-PRECEDING: 'PRECEDING';
-FOLLOWING: 'FOLLOWING';
-CURRENT: 'CURRENT';
-ROW: 'ROW';
-WITH: 'WITH';
-RECURSIVE: 'RECURSIVE';
-VALUES: 'VALUES';
-CREATE: 'CREATE';
-TABLE: 'TABLE';
-TOPIC: 'TOPIC';
-STREAM: 'STREAM';
-STREAMS: 'STREAMS';
-VIEW: 'VIEW';
-REPLACE: 'REPLACE';
-INSERT: 'INSERT';
-DELETE: 'DELETE';
-INTO: 'INTO';
-CONSTRAINT: 'CONSTRAINT';
-DESCRIBE: 'DESCRIBE';
-PRINT: 'PRINT';
-GRANT: 'GRANT';
-REVOKE: 'REVOKE';
-PRIVILEGES: 'PRIVILEGES';
-PUBLIC: 'PUBLIC';
-OPTION: 'OPTION';
-EXPLAIN: 'EXPLAIN';
-ANALYZE: 'ANALYZE';
-FORMAT: 'FORMAT';
-TYPE: 'TYPE';
-TEXT: 'TEXT';
-GRAPHVIZ: 'GRAPHVIZ';
-LOGICAL: 'LOGICAL';
-DISTRIBUTED: 'DISTRIBUTED';
-TRY: 'TRY';
-CAST: 'CAST';
-TRY_CAST: 'TRY_CAST';
-SHOW: 'SHOW';
-LIST: 'LIST';
-TABLES: 'TABLES';
-TOPICS: 'TOPICS';
-QUERIES: 'QUERIES';
-TERMINATE: 'TERMINATE';
-LOAD: 'LOAD';
-SCHEMAS: 'SCHEMAS';
-CATALOGS: 'CATALOGS';
-COLUMNS: 'COLUMNS';
-COLUMN: 'COLUMN';
-USE: 'USE';
-PARTITIONS: 'PARTITIONS';
-FUNCTIONS: 'FUNCTIONS';
-DROP: 'DROP';
-UNION: 'UNION';
-EXCEPT: 'EXCEPT';
-INTERSECT: 'INTERSECT';
-TO: 'TO';
-SYSTEM: 'SYSTEM';
-BERNOULLI: 'BERNOULLI';
-POISSONIZED: 'POISSONIZED';
-TABLESAMPLE: 'TABLESAMPLE';
-RESCALED: 'RESCALED';
-STRATIFY: 'STRATIFY';
-ALTER: 'ALTER';
-RENAME: 'RENAME';
-UNNEST: 'UNNEST';
-ORDINALITY: 'ORDINALITY';
-ARRAY: 'ARRAY';
-MAP: 'MAP';
-SET: 'SET';
-RESET: 'RESET';
-SESSION: 'SESSION';
-DATA: 'DATA';
-START: 'START';
-TRANSACTION: 'TRANSACTION';
-COMMIT: 'COMMIT';
-ROLLBACK: 'ROLLBACK';
-WORK: 'WORK';
-ISOLATION: 'ISOLATION';
-LEVEL: 'LEVEL';
-SERIALIZABLE: 'SERIALIZABLE';
-REPEATABLE: 'REPEATABLE';
-COMMITTED: 'COMMITTED';
-UNCOMMITTED: 'UNCOMMITTED';
-READ: 'READ';
-WRITE: 'WRITE';
-ONLY: 'ONLY';
-CALL: 'CALL';
-PREPARE: 'PREPARE';
-DEALLOCATE: 'DEALLOCATE';
-EXECUTE: 'EXECUTE';
-SAMPLE: 'SAMPLE';
-EXPORT: 'EXPORT';
-CATALOG: 'CATALOG';
-
-NORMALIZE: 'NORMALIZE';
-NFD : 'NFD';
-NFC : 'NFC';
-NFKD : 'NFKD';
-NFKC : 'NFKC';
-
-IF: 'IF';
-NULLIF: 'NULLIF';
-COALESCE: 'COALESCE';
+nonReserved
+    : ADD
+    | ANALYZE
+    | APPROXIMATE
+    | ARRAY
+    | AT
+    | BERNOULLI
+    | CALL
+    | CATALOGS
+    | COALESCE
+    | COLUMN
+    | COLUMNS
+    | COMMIT
+    | COMMITTED
+    | CONFIDENCE
+    | CURRENT
+    | DATA
+    | DATE
+    | DAY
+    | DISTRIBUTED
+    | EXPLAIN
+    | FOLLOWING
+    | FORMAT
+    | FUNCTIONS
+    | GRANT
+    | GRAPHVIZ
+    | HOUR
+    | IF
+    | INTEGER
+    | INTERVAL
+    | ISOLATION
+    | LEVEL
+    | LOGICAL
+    | MAP
+    | MINUTE
+    | MONTH
+    | NFC
+    | NFD
+    | NFKC
+    | NFKD
+    | NO
+    | NULLIF
+    | ONLY
+    | OPTION
+    | OVER
+    | PARTITION
+    | PARTITIONS
+    | POISSONIZED
+    | POSITION
+    | PRECEDING
+    | PRIVILEGES
+    | PUBLIC
+    | RANGE
+    | READ
+    | REPEATABLE
+    | REPLACE
+    | RESCALED
+    | RESET
+    | REVOKE
+    | ROLLBACK
+    | ROW
+    | ROWS
+    | SCHEMAS
+    | SECOND
+    | SERIALIZABLE
+    | SESSION
+    | SET
+    | SHOW
+    | SMALLINT
+    | START
+    | SUBSTRING
+    | SYSTEM
+    | TABLES
+    | TABLESAMPLE
+    | TEXT
+    | TIME
+    | TIMESTAMP
+    | TINYINT
+    | TO
+    | TRANSACTION
+    | TRY
+    | TYPE
+    | UNCOMMITTED
+    | USE
+    | VIEW
+    | WORK
+    | WRITE
+    | YEAR
+    | ZONE
+    ;
 
 EQ  : '=';
 NEQ : '<>' | '!=';
@@ -643,17 +520,6 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 
-STRING
-    : '\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-
-// Note: we allow any character inside the binary literal and validate
-// its a correct literal when the AST is being constructed. This
-// allows us to provide more meaningful error messages to the user
-BINARY_LITERAL
-    :  'X\'' (~'\'')* '\''
-    ;
-
 INTEGER_VALUE
     : DIGIT+
     ;
@@ -665,41 +531,237 @@ DECIMAL_VALUE
     | '.' DIGIT+ EXPONENT
     ;
 
-IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+STRING
+    : '\'' ( ~'\'' | '\'\'' )* '\''
     ;
 
-DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+// BEGIN CASE-INSENSITIVE TOKENS
+
+// Note: we allow any character inside the binary literal and validate
+// its a correct literal when the AST is being constructed. This
+// allows us to provide more meaningful error messages to the user
+BINARY_LITERAL
+    :  'X\'' (~'\'')* '\'' { setText(getText().toUpperCase()); }
     ;
+
+TIME_WITH_TIME_ZONE
+    : TIME WS WITH WS TIME WS ZONE { setText(getText().toUpperCase()); }
+    ;
+
+TIMESTAMP_WITH_TIME_ZONE
+    : TIMESTAMP WS WITH WS TIME WS ZONE { setText(getText().toUpperCase()); }
+    ;
+
+ADD: A D D { setText(getText().toUpperCase()); } ;
+ADVANCE: A D V A N C E { setText(getText().toUpperCase()); } ;
+ALL: A L L { setText(getText().toUpperCase()); } ;
+ALTER: A L T E R { setText(getText().toUpperCase()); } ;
+ANALYZE: A N A L Y Z E { setText(getText().toUpperCase()); } ;
+AND: A N D { setText(getText().toUpperCase()); } ;
+ANY: A N Y { setText(getText().toUpperCase()); } ;
+APPROXIMATE: A P P R O X I M A T E { setText(getText().toUpperCase()); } ;
+ARRAY: A R R A Y { setText(getText().toUpperCase()); } ;
+AS: A S { setText(getText().toUpperCase()); } ;
+ASC: A S C { setText(getText().toUpperCase()); } ;
+AT: A T { setText(getText().toUpperCase()); } ;
+BERNOULLI: B E R N O U L L I { setText(getText().toUpperCase()); } ;
+BETWEEN: B E T W E E N { setText(getText().toUpperCase()); } ;
+BY: B Y { setText(getText().toUpperCase()); } ;
+CALL: C A L L { setText(getText().toUpperCase()); } ;
+CASE: C A S E { setText(getText().toUpperCase()); } ;
+CAST: C A S T { setText(getText().toUpperCase()); } ;
+CATALOG: C A T A L O G { setText(getText().toUpperCase()); } ;
+CATALOGS: C A T A L O G S { setText(getText().toUpperCase()); } ;
+COALESCE: C O A L E S C E { setText(getText().toUpperCase()); } ;
+COLUMN: C O L U M N { setText(getText().toUpperCase()); } ;
+COLUMNS: C O L U M N S { setText(getText().toUpperCase()); } ;
+COMMIT: C O M M I T { setText(getText().toUpperCase()); } ;
+COMMITTED: C O M M I T T E D { setText(getText().toUpperCase()); } ;
+CONFIDENCE: C O N F I D E N C E { setText(getText().toUpperCase()); } ;
+CONSTRAINT: C O N S T R A I N T { setText(getText().toUpperCase()); } ;
+CREATE: C R E A T E { setText(getText().toUpperCase()); } ;
+CROSS: C R O S S { setText(getText().toUpperCase()); } ;
+CUBE: C U B E { setText(getText().toUpperCase()); } ;
+CURRENT: C U R R E N T { setText(getText().toUpperCase()); } ;
+CURRENT_DATE: C U R R E N T '_' D A T E { setText(getText().toUpperCase()); } ;
+CURRENT_TIME: C U R R E N T '_' T I M E { setText(getText().toUpperCase()); } ;
+CURRENT_TIMESTAMP: C U R R E N T '_' T I M E S T A M P { setText(getText().toUpperCase()); } ;
+DATA: D A T A { setText(getText().toUpperCase()); } ;
+DATE: D A T E { setText(getText().toUpperCase()); } ;
+DAY: D A Y { setText(getText().toUpperCase()); } ;
+DEALLOCATE: D E A L L O C A T E { setText(getText().toUpperCase()); } ;
+DELETE: D E L E T E { setText(getText().toUpperCase()); } ;
+DESC: D E S C { setText(getText().toUpperCase()); } ;
+DESCRIBE: D E S C R I B E { setText(getText().toUpperCase()); } ;
+DISTINCT: D I S T I N C T { setText(getText().toUpperCase()); } ;
+DISTRIBUTED: D I S T R I B U T E D { setText(getText().toUpperCase()); } ;
+DROP: D R O P { setText(getText().toUpperCase()); } ;
+ELSE: E L S E { setText(getText().toUpperCase()); } ;
+END: E N D { setText(getText().toUpperCase()); } ;
+ESCAPE: E S C A P E { setText(getText().toUpperCase()); } ;
+EXCEPT: E X C E P T { setText(getText().toUpperCase()); } ;
+EXECUTE: E X E C U T E { setText(getText().toUpperCase()); } ;
+EXISTS: E X I S T S { setText(getText().toUpperCase()); } ;
+EXPLAIN: E X P L A I N { setText(getText().toUpperCase()); } ;
+EXPORT: E X P O R T { setText(getText().toUpperCase()); } ;
+EXTRACT: E X T R A C T { setText(getText().toUpperCase()); } ;
+FALSE: F A L S E { setText(getText().toUpperCase()); } ;
+FIRST: F I R S T { setText(getText().toUpperCase()); } ;
+FOLLOWING: F O L L O W I N G { setText(getText().toUpperCase()); } ;
+FOR: F O R { setText(getText().toUpperCase()); } ;
+FORMAT: F O R M A T { setText(getText().toUpperCase()); } ;
+FROM: F R O M { setText(getText().toUpperCase()); } ;
+FULL: F U L L { setText(getText().toUpperCase()); } ;
+FUNCTIONS: F U N C T I O N S { setText(getText().toUpperCase()); } ;
+GRANT: G R A N T { setText(getText().toUpperCase()); } ;
+GRAPHVIZ: G R A P H V I Z { setText(getText().toUpperCase()); } ;
+GROUP: G R O U P { setText(getText().toUpperCase()); } ;
+GROUPING: G R O U P I N G { setText(getText().toUpperCase()); } ;
+HAVING: H A V I N G { setText(getText().toUpperCase()); } ;
+HOPPING: H O P P I N G { setText(getText().toUpperCase()); } ;
+HOUR: H O U R { setText(getText().toUpperCase()); } ;
+IF: I F { setText(getText().toUpperCase()); } ;
+IN: I N { setText(getText().toUpperCase()); } ;
+INNER: I N N E R { setText(getText().toUpperCase()); } ;
+INSERT: I N S E R T { setText(getText().toUpperCase()); } ;
+INTEGER: I N T E G E R { setText(getText().toUpperCase()); } ;
+INTERSECT: I N T E R S E C T { setText(getText().toUpperCase()); } ;
+INTERVAL: I N T E R V A L { setText(getText().toUpperCase()); } ;
+INTO: I N T O { setText(getText().toUpperCase()); } ;
+IS: I S { setText(getText().toUpperCase()); } ;
+ISOLATION: I S O L A T I O N { setText(getText().toUpperCase()); } ;
+JOIN: J O I N { setText(getText().toUpperCase()); } ;
+LAST: L A S T { setText(getText().toUpperCase()); } ;
+LEFT: L E F T { setText(getText().toUpperCase()); } ;
+LEVEL: L E V E L { setText(getText().toUpperCase()); } ;
+LIKE: L I K E { setText(getText().toUpperCase()); } ;
+LIMIT: L I M I T { setText(getText().toUpperCase()); } ;
+LIST: L I S T { setText(getText().toUpperCase()); } ;
+LOAD: L O A D { setText(getText().toUpperCase()); } ;
+LOCALTIME: L O C A L T I M E { setText(getText().toUpperCase()); } ;
+LOCALTIMESTAMP: L O C A L T I M E S T A M P { setText(getText().toUpperCase()); } ;
+LOGICAL: L O G I C A L { setText(getText().toUpperCase()); } ;
+MAP: M A P { setText(getText().toUpperCase()); } ;
+MILLISECOND: M I L L I S E C O N D { setText(getText().toUpperCase()); } ;
+MINUTE: M I N U T E { setText(getText().toUpperCase()); } ;
+MONTH: M O N T H { setText(getText().toUpperCase()); } ;
+NATURAL: N A T U R A L { setText(getText().toUpperCase()); } ;
+NFC : N F C { setText(getText().toUpperCase()); } ;
+NFD : N F D { setText(getText().toUpperCase()); } ;
+NFKC : N F K C { setText(getText().toUpperCase()); } ;
+NFKD : N F K D { setText(getText().toUpperCase()); } ;
+NO: N O { setText(getText().toUpperCase()); } ;
+NORMALIZE: N O R M A L I Z E { setText(getText().toUpperCase()); } ;
+NOT: N O T { setText(getText().toUpperCase()); } ;
+NULL: N U L L { setText(getText().toUpperCase()); } ;
+NULLIF: N U L L I F { setText(getText().toUpperCase()); } ;
+NULLS: N U L L S { setText(getText().toUpperCase()); } ;
+ON: O N { setText(getText().toUpperCase()); } ;
+ONLY: O N L Y { setText(getText().toUpperCase()); } ;
+OPTION: O P T I O N { setText(getText().toUpperCase()); } ;
+OR: O R { setText(getText().toUpperCase()); } ;
+ORDER: O R D E R { setText(getText().toUpperCase()); } ;
+ORDINALITY: O R D I N A L I T Y { setText(getText().toUpperCase()); } ;
+OUTER: O U T E R { setText(getText().toUpperCase()); } ;
+OVER: O V E R { setText(getText().toUpperCase()); } ;
+PARTITION: P A R T I T I O N { setText(getText().toUpperCase()); } ;
+PARTITIONS: P A R T I T I O N S { setText(getText().toUpperCase()); } ;
+POISSONIZED: P O I S S O N I Z E D { setText(getText().toUpperCase()); } ;
+POSITION: P O S I T I O N { setText(getText().toUpperCase()); } ;
+PRECEDING: P R E C E D I N G { setText(getText().toUpperCase()); } ;
+PREPARE: P R E P A R E { setText(getText().toUpperCase()); } ;
+PRINT: P R I N T { setText(getText().toUpperCase()); } ;
+PRIVILEGES: P R I V I L E G E S { setText(getText().toUpperCase()); } ;
+PUBLIC: P U B L I C { setText(getText().toUpperCase()); } ;
+QUERIES: Q U E R I E S { setText(getText().toUpperCase()); } ;
+RANGE: R A N G E { setText(getText().toUpperCase()); } ;
+READ: R E A D { setText(getText().toUpperCase()); } ;
+RECURSIVE: R E C U R S I V E { setText(getText().toUpperCase()); } ;
+RENAME: R E N A M E { setText(getText().toUpperCase()); } ;
+REPEATABLE: R E P E A T A B L E { setText(getText().toUpperCase()); } ;
+REPLACE: R E P L A C E { setText(getText().toUpperCase()); } ;
+RESCALED: R E S C A L E D { setText(getText().toUpperCase()); } ;
+RESET: R E S E T { setText(getText().toUpperCase()); } ;
+REVOKE: R E V O K E { setText(getText().toUpperCase()); } ;
+RIGHT: R I G H T { setText(getText().toUpperCase()); } ;
+ROLLBACK: R O L L B A C K { setText(getText().toUpperCase()); } ;
+ROLLUP: R O L L U P { setText(getText().toUpperCase()); } ;
+ROW: R O W { setText(getText().toUpperCase()); } ;
+ROWS: R O W S { setText(getText().toUpperCase()); } ;
+SAMPLE: S A M P L E { setText(getText().toUpperCase()); } ;
+SCHEMAS: S C H E M A S { setText(getText().toUpperCase()); } ;
+SECOND: S E C O N D { setText(getText().toUpperCase()); } ;
+SELECT: S E L E C T { setText(getText().toUpperCase()); } ;
+SERIALIZABLE: S E R I A L I Z A B L E { setText(getText().toUpperCase()); } ;
+SESSION: S E S S I O N { setText(getText().toUpperCase()); } ;
+SET: S E T { setText(getText().toUpperCase()); } ;
+SETS: S E T S { setText(getText().toUpperCase()); } ;
+SHOW: S H O W { setText(getText().toUpperCase()); } ;
+SIZE: S I Z E { setText(getText().toUpperCase()); } ;
+SMALLINT: S M A L L I N T { setText(getText().toUpperCase()); } ;
+SOME: S O M E { setText(getText().toUpperCase()); } ;
+START: S T A R T { setText(getText().toUpperCase()); } ;
+STRATIFY: S T R A T I F Y { setText(getText().toUpperCase()); } ;
+STREAM: S T R E A M { setText(getText().toUpperCase()); } ;
+STREAMS: S T R E A M S { setText(getText().toUpperCase()); } ;
+SUBSTRING: S U B S T R I N G { setText(getText().toUpperCase()); } ;
+SYSTEM: S Y S T E M { setText(getText().toUpperCase()); } ;
+TABLE: T A B L E { setText(getText().toUpperCase()); } ;
+TABLES: T A B L E S { setText(getText().toUpperCase()); } ;
+TABLESAMPLE: T A B L E S A M P L E { setText(getText().toUpperCase()); } ;
+TERMINATE: T E R M I N A T E { setText(getText().toUpperCase()); } ;
+TEXT: T E X T { setText(getText().toUpperCase()); } ;
+THEN: T H E N { setText(getText().toUpperCase()); } ;
+TIME: T I M E { setText(getText().toUpperCase()); } ;
+TIMESTAMP: T I M E S T A M P { setText(getText().toUpperCase()); } ;
+TINYINT: T I N Y I N T { setText(getText().toUpperCase()); } ;
+TO: T O { setText(getText().toUpperCase()); } ;
+TOPIC: T O P I C { setText(getText().toUpperCase()); } ;
+TOPICS: T O P I C S { setText(getText().toUpperCase()); } ;
+TRANSACTION: T R A N S A C T I O N { setText(getText().toUpperCase()); } ;
+TRUE: T R U E { setText(getText().toUpperCase()); } ;
+TRY: T R Y { setText(getText().toUpperCase()); } ;
+TRY_CAST: T R Y '_' C A S T { setText(getText().toUpperCase()); } ;
+TUMBLING: T U M B L I N G { setText(getText().toUpperCase()); } ;
+TYPE: T Y P E { setText(getText().toUpperCase()); } ;
+UNBOUNDED: U N B O U N D E D { setText(getText().toUpperCase()); } ;
+UNCOMMITTED: U N C O M M I T T E D { setText(getText().toUpperCase()); } ;
+UNION: U N I O N { setText(getText().toUpperCase()); } ;
+UNNEST: U N N E S T { setText(getText().toUpperCase()); } ;
+USE: U S E { setText(getText().toUpperCase()); } ;
+USING: U S I N G { setText(getText().toUpperCase()); } ;
+VALUES: V A L U E S { setText(getText().toUpperCase()); } ;
+VIEW: V I E W { setText(getText().toUpperCase()); } ;
+WHEN: W H E N { setText(getText().toUpperCase()); } ;
+WHERE: W H E R E { setText(getText().toUpperCase()); } ;
+WINDOW: W I N D O W { setText(getText().toUpperCase()); } ;
+WITH: W I T H { setText(getText().toUpperCase()); } ;
+WORK: W O R K { setText(getText().toUpperCase()); } ;
+WRITE: W R I T E { setText(getText().toUpperCase()); } ;
+YEAR: Y E A R { setText(getText().toUpperCase()); } ;
+ZONE: Z O N E { setText(getText().toUpperCase()); } ;
 
 QUOTED_IDENTIFIER
     : '"' ( ~'"' | '""' )* '"'
+    { setText(getText().toUpperCase()); }
     ;
 
 BACKQUOTED_IDENTIFIER
     : '`' ( ~'`' | '``' )* '`'
+    { setText(getText().toUpperCase()); }
     ;
 
-TIME_WITH_TIME_ZONE
-    : 'TIME' WS 'WITH' WS 'TIME' WS 'ZONE'
+IDENTIFIER
+    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    { setText(getText().toUpperCase()); }
     ;
 
-TIMESTAMP_WITH_TIME_ZONE
-    : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
+DIGIT_IDENTIFIER
+    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    { setText(getText().toUpperCase()); }
     ;
 
-fragment EXPONENT
-    : 'E' [+-]? DIGIT+
-    ;
-
-fragment DIGIT
-    : [0-9]
-    ;
-
-fragment LETTER
-    : [A-Z]
-    ;
+// END CASE-INSENSITIVE TOKENS
 
 SIMPLE_COMMENT
     : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
@@ -712,6 +774,45 @@ BRACKETED_COMMENT
 WS
     : [ \r\n\t]+ -> channel(HIDDEN)
     ;
+
+fragment EXPONENT
+    : 'E' [+-]? DIGIT+
+    ;
+
+fragment DIGIT
+    : [0-9]
+    ;
+
+fragment LETTER
+    : [A-Z]|[a-z]
+    ;
+
+fragment A: 'A'|'a';
+fragment B: 'B'|'b';
+fragment C: 'C'|'c';
+fragment D: 'D'|'d';
+fragment E: 'E'|'e';
+fragment F: 'F'|'f';
+fragment G: 'G'|'g';
+fragment H: 'H'|'h';
+fragment I: 'I'|'i';
+fragment J: 'J'|'j';
+fragment K: 'K'|'k';
+fragment L: 'L'|'l';
+fragment M: 'M'|'m';
+fragment N: 'N'|'n';
+fragment O: 'O'|'o';
+fragment P: 'P'|'p';
+fragment Q: 'Q'|'q';
+fragment R: 'R'|'r';
+fragment S: 'S'|'s';
+fragment T: 'T'|'t';
+fragment U: 'U'|'u';
+fragment V: 'V'|'v';
+fragment W: 'W'|'w';
+fragment X: 'X'|'x';
+fragment Y: 'Y'|'y';
+fragment Z: 'Z'|'z';
 
 // Catch-all for anything we can't recognize.
 // We use this to be able to ignore and recover all the text

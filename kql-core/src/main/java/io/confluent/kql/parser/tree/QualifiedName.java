@@ -13,14 +13,11 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.isEmpty;
-import static com.google.common.collect.Iterables.transform;
-import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 public class QualifiedName {
 
   private final List<String> parts;
-  private final List<String> originalParts;
 
   public static QualifiedName of(String first, String... rest) {
     requireNonNull(first, "first is null");
@@ -32,18 +29,13 @@ public class QualifiedName {
     return of(ImmutableList.of(name));
   }
 
-  public static QualifiedName of(Iterable<String> originalParts) {
-    requireNonNull(originalParts, "originalParts is null");
-    checkArgument(!isEmpty(originalParts), "originalParts is empty");
-    List<String>
-        parts =
-        ImmutableList.copyOf(transform(originalParts, part -> part.toUpperCase(ENGLISH)));
-
-    return new QualifiedName(ImmutableList.copyOf(originalParts), parts);
+  public static QualifiedName of(Iterable<String> parts) {
+    requireNonNull(parts, "parts is null");
+    checkArgument(!isEmpty(parts), "parts is empty");
+    return new QualifiedName(ImmutableList.copyOf(parts));
   }
 
-  private QualifiedName(List<String> originalParts, List<String> parts) {
-    this.originalParts = originalParts;
+  private QualifiedName(List<String> parts) {
     this.parts = parts;
   }
 
@@ -51,13 +43,9 @@ public class QualifiedName {
     return parts;
   }
 
-  public List<String> getOriginalParts() {
-    return originalParts;
-  }
-
   @Override
   public String toString() {
-    return Joiner.on('.').join(parts).toUpperCase();
+    return Joiner.on('.').join(parts);
   }
 
   /**
@@ -70,7 +58,7 @@ public class QualifiedName {
     }
 
     List<String> subList = parts.subList(0, parts.size() - 1);
-    return Optional.of(new QualifiedName(subList, subList));
+    return Optional.of(new QualifiedName(subList));
   }
 
   public boolean hasSuffix(QualifiedName suffix) {

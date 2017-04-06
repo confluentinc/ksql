@@ -140,7 +140,7 @@ public class CodegenExpressionFormatter {
       if (schemaField == null) {
         throw new KQLException("Field not found: " + schemaField.name());
       }
-      return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
     }
 
     @Override
@@ -159,7 +159,7 @@ public class CodegenExpressionFormatter {
                                                                    Boolean unmangleNames) {
       String fieldName = node.toString();
       Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      return new Pair<>(fieldName.replace(".", "_").toUpperCase(), schemaField.schema().type());
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema().type());
 //            String baseString = process(node.getBase(), unmangleNames);
 //            return baseString + "." + formatIdentifier(node.getFieldName());
     }
@@ -189,7 +189,7 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema.Type> visitFunctionCall(FunctionCall node,
                                                           Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder();
-      String name = node.getName().getSuffix().toUpperCase();
+      String name = node.getName().getSuffix();
       KQLFunction kqlFunction = KQLFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(kqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
@@ -206,24 +206,6 @@ public class CodegenExpressionFormatter {
       builder.append(")");
 
       return new Pair<>(builder.toString(), kqlFunction.getReturnType());
-
-//            String arguments = joinExpressions(node.getArguments(), unmangleNames);
-//            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
-//                arguments = "*";
-//            }
-//            if (node.isDistinct()) {
-//                arguments = "DISTINCT " + arguments;
-//            }
-//
-//            builder.append(formatQualifiedName(node.getName()))
-//                    .append('(').append(arguments).append(')');
-//
-//            if (node.getWindow().isPresent()) {
-//                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
-//            }
-//
-//            return builder.toString();
-//      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -258,18 +240,18 @@ public class CodegenExpressionFormatter {
       Pair<String, Schema.Type> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema.Type> right = process(node.getRight(), unmangleNames);
       if ((left.getRight() == Schema.Type.STRING) || (right.getRight() == Schema.Type.STRING)) {
-        if (node.getType().getValue().equals("=")) {
-          return new Pair<>("(" + left.getLeft() + ".equalsIgnoreCase(" + right.getLeft() + "))",
+        if ("=".equals(node.getType().getValue())) {
+          return new Pair<>("(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
-        } else if (node.getType().getValue().equals("<>")) {
-          return new Pair<>(" (!" + left.getLeft() + ".equalsIgnoreCase(" + right.getLeft() + "))",
+        } else if ("<>".equals(node.getType().getValue())) {
+          return new Pair<>(" (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
                             Schema.Type.BOOLEAN);
         }
       }
       String typeStr = node.getType().getValue();
-      if (typeStr.equalsIgnoreCase("=")) {
+      if ("=".equals(typeStr)) {
         typeStr = "==";
-      } else if (typeStr.equalsIgnoreCase("<>")) {
+      } else if ("<>".equals(typeStr)) {
         typeStr = "!=";
       }
       return new Pair<>("(" + left.getLeft() + " " + typeStr + " " + right.getLeft() + ")",
@@ -278,59 +260,85 @@ public class CodegenExpressionFormatter {
 
     protected Pair<String, Schema.Type> visitCast(Cast node, Boolean context) {
       Pair<String, Schema.Type> expr = process(node.getExpression(), context);
-      String returnTypeStr = node.getType().toUpperCase();
+      String returnTypeStr = node.getType();
       Schema.Type returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-      if (returnTypeStr.equalsIgnoreCase("STRING")) {
-        return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("DOUBLE")) {
-        String exprStr;
-        if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
-        } else if (expr.getRight() == Schema.Type.INT32) {
-          exprStr = "((Double)(" + expr.getLeft() + "))";
-        } else if (expr.getRight() == Schema.Type.FLOAT64) {
-          exprStr = expr.getLeft();
-        } else if (expr.getRight() == Schema.Type.INT64) {
-          exprStr = "((Long)(" + expr.getLeft() + "))";
-        } else {
-          throw new KQLFunctionException("Invalid cast operation: Cannot cast "
-                                         + expr.getLeft() + " to " + returnTypeStr);
+      switch (returnTypeStr) {
+
+        case "STRING":
+          return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
+
+        case "BOOLEAN":
+          return new Pair<>(" ((Boolean)" + expr.getLeft() + ")", returnType);
+
+        case "INTEGER": {
+          String exprStr;
+          switch (expr.getRight()) {
+            case STRING:
+              exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
+              break;
+            case INT32:
+              exprStr = expr.getLeft();
+              break;
+            case INT64:
+              exprStr = "((Long)(" + expr.getLeft() + "))";
+              break;
+            case FLOAT64:
+              exprStr = "(" + expr.getLeft() + ").intValue()";
+              break;
+            default:
+              throw new KQLFunctionException("Invalid cast operation: Cannot cast "
+                  + expr.getLeft() + " to " + returnTypeStr);
+          }
+          return new Pair<>(exprStr, returnType);
         }
-        return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("INTEGER")) {
-        String exprStr;
-        if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
-        } else if (expr.getRight() == Schema.Type.INT32) {
-          exprStr = expr.getLeft();
-        } else if (expr.getRight() == Schema.Type.FLOAT64) {
-          exprStr = "(" + expr.getLeft() + ").intValue()";
-        } else if (expr.getRight() == Schema.Type.INT64) {
-          exprStr = "((Long)(" + expr.getLeft() + "))";
-        } else {
-          throw new KQLFunctionException("Invalid cast operation: Cannot cast "
-                                           + expr.getLeft() + " to " + returnTypeStr);
+
+        case "BIGINT": {
+          String exprStr;
+          switch (expr.getRight()) {
+            case STRING:
+              exprStr = "Long.parseLong(" + expr.getLeft() + ")";
+              break;
+            case INT32:
+              exprStr = "((Long)(" + expr.getLeft() + "))";
+              break;
+            case INT64:
+              exprStr = expr.getLeft();
+              break;
+            case FLOAT64:
+              exprStr = "(" + expr.getLeft() + ").longValue()";
+              break;
+            default:
+              throw new KQLFunctionException("Invalid cast operation: Cannot cast "
+                  + expr.getLeft() + " to " + returnTypeStr);
+          }
+          return new Pair<>(exprStr, returnType);
         }
-        return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("BIGINT")) {
-        String exprStr;
-        if (expr.getRight() == Schema.Type.STRING) {
-          exprStr = "Long.parseLong(" + expr.getLeft() + ")";
-        } else if (expr.getRight() == Schema.Type.INT32) {
-          exprStr = "((Long)(" + expr.getLeft() + "))";
-        } else if (expr.getRight() == Schema.Type.FLOAT64) {
-          exprStr = "(" + expr.getLeft() + ").longValue()";
-        } else if (expr.getRight() == Schema.Type.INT64) {
-          exprStr = expr.getLeft();
-        } else {
-          throw new KQLFunctionException("Invalid cast operation: Cannot cast "
-                                           + expr.getLeft() + " to " + returnTypeStr);
+
+        case "DOUBLE": {
+          String exprStr;
+          switch (expr.getRight()) {
+            case STRING:
+              exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
+              break;
+            case INT32:
+              exprStr = "((Double)(" + expr.getLeft() + "))";
+              break;
+            case INT64:
+              exprStr = "((Long)(" + expr.getLeft() + "))";
+              break;
+            case FLOAT64:
+              exprStr = expr.getLeft();
+              break;
+            default:
+              throw new KQLFunctionException("Invalid cast operation: Cannot cast "
+                  + expr.getLeft() + " to " + returnTypeStr);
+          }
+          return new Pair<>(exprStr, returnType);
         }
-        return new Pair<>(exprStr, returnType);
-      } else if (returnTypeStr.equalsIgnoreCase("BOOLEAN")) {
-        return new Pair<>(" ((Boolean)" + expr.getLeft() + ")", returnType);
+
+        default:
+          throw new KQLFunctionException("Invalid cast operation: " + returnTypeStr);
       }
-      throw new KQLFunctionException("Invalid cast operation: " + returnTypeStr);
     }
 
     @Override

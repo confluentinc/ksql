@@ -225,7 +225,7 @@ public final class ExpressionFormatter {
       StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), unmangleNames);
-      if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
+      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().getSuffix())) {
         arguments = "*";
       }
       if (node.isDistinct()) {

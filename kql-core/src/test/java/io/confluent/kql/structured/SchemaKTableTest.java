@@ -43,7 +43,7 @@ public class SchemaKTableTest {
   @Before
   public void init() {
     metaStore = KQLTestUtil.getNewMetaStore();
-    kqlTable = (KQLTable) metaStore.getSource("test2");
+    kqlTable = (KQLTable) metaStore.getSource("TEST2");
     KStreamBuilder builder = new KStreamBuilder();
     kTable = builder
             .table(Serdes.String(), SerDeUtil.getRowSerDe(kqlTable.getKqlTopic().getKqlTopicSerDe()), kqlTable.getKqlTopic().getKafkaTopicName(),

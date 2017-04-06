@@ -6,7 +6,6 @@ package io.confluent.kql.ddl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.DataSource;
 import io.confluent.kql.metastore.KQLStream;
@@ -22,7 +21,6 @@ import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.kql.util.KQLException;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -40,7 +38,7 @@ public class DDLEngine {
 
   public KQLTopic createTopic(final CreateTopic createTopic) {
 
-    String topicName = createTopic.getName().getSuffix().toUpperCase();
+    String topicName = createTopic.getName().getSuffix();
     if (kqlEngine.getMetaStore().getTopic(topicName) != null) {
       if (createTopic.isNotExists()) {
         System.out.println("Topic already exists.");
@@ -68,25 +66,31 @@ public class DDLEngine {
         createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KQLTopicSerDe topicSerDe;
-    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
 
-      if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
-        throw new KQLException("Avro schema file path should be set for avro topics.");
-      }
-      String avroSchemFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
-      avroSchemFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemFile);
-      try {
-        String avroSchema = getAvroSchema(avroSchemFile);
-        topicSerDe = new KQLAvroTopicSerDe(avroSchemFile, avroSchema);
-      } catch (IOException e) {
-        throw new KQLException("Could not read avro schema from file: " + avroSchemFile);
-      }
-    } else if (serde.equalsIgnoreCase(DataSource.JSON_SERDE_NAME)) {
-      topicSerDe = new KQLJsonTopicSerDe();
-    } else if (serde.equalsIgnoreCase(DataSource.CSV_SERDE_NAME)) {
-      topicSerDe = new KQLCsvTopicSerDe();
-    } else {
-      throw new KQLException("The specified topic serde is not supported.");
+    // TODO: Find a way to avoid calling toUpperCase() here; if the property can be an unquoted identifier, then
+    // capitalization will have already happened
+    switch (serde.toUpperCase()) {
+      case DataSource.AVRO_SERDE_NAME:
+        if (createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) == null) {
+          throw new KQLException("Avro schema file path should be set for avro topics.");
+        }
+        String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
+        avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
+        try {
+          String avroSchema = getAvroSchema(avroSchemaFile);
+          topicSerDe = new KQLAvroTopicSerDe(avroSchemaFile, avroSchema);
+        } catch (IOException e) {
+          throw new KQLException("Could not read avro schema from file: " + avroSchemaFile);
+        }
+        break;
+      case DataSource.JSON_SERDE_NAME:
+        topicSerDe = new KQLJsonTopicSerDe();
+        break;
+      case DataSource.CSV_SERDE_NAME:
+        topicSerDe = new KQLCsvTopicSerDe();
+        break;
+      default:
+        throw new KQLException("The specified topic serde is not supported.");
     }
     KQLTopic kQLTopic = new KQLTopic(topicName, kafkaTopicName, topicSerDe);
 
@@ -106,14 +110,14 @@ public class DDLEngine {
 
   public void dropTopic(final DropTable dropTable) {
 
-    String topicName = dropTable.getTableName().getSuffix().toUpperCase();
+    String topicName = dropTable.getTableName().getSuffix();
     new DDLUtil().deleteTopic(topicName);
     kqlEngine.getMetaStore().deleteSource(topicName);
   }
 
   public KQLStream createStream(final CreateStream createStream) {
 
-    String streamName = createStream.getName().getSuffix().toUpperCase();
+    String streamName = createStream.getName().getSuffix();
     if (kqlEngine.getMetaStore().getSource(streamName) != null) {
       if (createStream.isNotExists()) {
         System.out.println("Stream already exists.");
@@ -140,14 +144,16 @@ public class DDLEngine {
       throw new KQLException("Topic for the stream should be set in WITH clause.");
     }
 
-    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes) can be case-sensitive
+    String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
       throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -167,7 +173,7 @@ public class DDLEngine {
 
   public KQLTable createTable(final CreateTable createTable) {
 
-    String tableName = createTable.getName().getSuffix().toUpperCase();
+    String tableName = createTable.getName().getSuffix();
     if (kqlEngine.getMetaStore().getSource(tableName) != null) {
       if (createTable.isNotExists()) {
         System.out.println("Topic already exists.");
@@ -191,15 +197,16 @@ public class DDLEngine {
     }
 
     if (createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY) == null) {
-      throw new KQLException("Topic (topic) for the table should be set in WITH clause.");
+      throw new KQLException("Topic for the table should be set in WITH clause.");
     }
 
-    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString();
+    // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes) can be case-sensitive
+    String topicName = createTable.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY) == null) {
       throw new KQLException(
-          "State store (statestore) name for the table should be set in WITH clause.");
+          "State store name for the table should be set in WITH clause.");
     }
 
     String stateStoreName = createTable.getProperties().get(DDLConfig.STATE_STORE_NAME_PROPERTY)
@@ -207,10 +214,11 @@ public class DDLEngine {
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
     if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
-      throw new KQLException("Key(key) field name for the stream should be set in WITH clause.");
+      throw new KQLException("Key field name for the stream should be set in WITH clause.");
     }
 
-    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString();
+    // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -228,18 +236,24 @@ public class DDLEngine {
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
   private Schema getKQLType(final String sqlType) {
-    if (sqlType.equalsIgnoreCase("BIGINT") || sqlType.equalsIgnoreCase("LONG")) {
-      return Schema.INT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("VARCHAR") || sqlType.equalsIgnoreCase("STRING")) {
-      return Schema.STRING_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("DOUBLE")) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("INTEGER") || sqlType.equalsIgnoreCase("INT")) {
-      return Schema.INT32_SCHEMA;
-    } else if (sqlType.equalsIgnoreCase("BOOLEAN") || sqlType.equalsIgnoreCase("BOOL")) {
-      return Schema.BOOLEAN_SCHEMA;
+    switch (sqlType) {
+      case "VARCHAR":
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOLEAN":
+      case "BOOL":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INTEGER":
+      case "INT":
+        return Schema.INT32_SCHEMA;
+      case "BIGINT":
+      case "LONG":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        throw new KQLException("Unsupported type: " + sqlType);
     }
-    throw new KQLException("Unsupported type: " + sqlType);
   }
 
   private String getAvroSchema(final String schemaFilePath) throws IOException {

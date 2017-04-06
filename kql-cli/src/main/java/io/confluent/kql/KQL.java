@@ -192,7 +192,7 @@ public class KQL {
         return;
       } else if (statement instanceof ShowColumns) {
         ShowColumns showColumns = (ShowColumns) statement;
-        showColumns(showColumns.getTable().getSuffix().toUpperCase());
+        showColumns(showColumns.getTable().getSuffix());
         return;
       } else if (statement instanceof TerminateQuery) {
         terminateQuery((TerminateQuery) statement);
@@ -201,7 +201,7 @@ public class KQL {
         PrintTopic printTopic = (PrintTopic) statement;
         KQLTopic
             kqlTopic =
-            kqlEngine.getMetaStore().getTopic(printTopic.getTopic().getSuffix().toUpperCase());
+            kqlEngine.getMetaStore().getTopic(printTopic.getTopic().getSuffix());
         if (kqlTopic == null) {
           console.println("Topic does not exist: " + printTopic.getTopic().getSuffix());
           return;
@@ -296,10 +296,10 @@ public class KQL {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
       if (querySpecification.getInto().get() instanceof Table) {
         Table table = (Table) querySpecification.getInto().get();
-        if (kqlEngine.metaStore.getSource(table.getName().getSuffix().toUpperCase()) != null) {
+        if (kqlEngine.metaStore.getSource(table.getName().getSuffix()) != null) {
           console.println(
               "Sink specified in INTO clause already exists: " + table.getName().getSuffix()
-                  .toUpperCase());
+                  );
           return;
         }
       }
@@ -314,7 +314,7 @@ public class KQL {
           queryInfo =
           new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLStructuredDataOutputNode)
               queryPairInfo.getQueryOutputNode());
-      liveQueries.put(queryPairInfo.getQueryId().toUpperCase(), queryInfo);
+      liveQueries.put(queryPairInfo.getQueryId(), queryInfo);
     } else if (queryPairInfo.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
       if (cliCurrentQuery != null) {
         console.println("Terminating the currently-running console query first");
@@ -334,7 +334,7 @@ public class KQL {
   }
 
   private void terminateQuery(final String queryId) throws IOException {
-    if (!liveQueries.containsKey(queryId.toUpperCase())) {
+    if (!liveQueries.containsKey(queryId)) {
       console.println("No running query with id = " + queryId + " was found!");
       console.flush();
       return;
@@ -392,7 +392,7 @@ public class KQL {
         KQLStream kqlStream = (KQLStream) dataSource;
         streamsInfo.add(
             " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKqlTopic()
-                                                                         .getName().toUpperCase(), 38)
+                                                                         .getName(), 38)
             + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
             + padRight(kqlStream.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 28));
       }
@@ -450,13 +450,13 @@ public class KQL {
   }
 
   private void showColumns(final String name) throws IOException {
-    StructuredDataSource dataSource = kqlEngine.getMetaStore().getSource(name.toUpperCase());
+    StructuredDataSource dataSource = kqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       console.println("Could not find topic " + name + " in the metastore!");
       console.flush();
       return;
     }
-    console.println("TOPIC: " + name.toUpperCase() + "    Key: " + dataSource.getKeyField().name()
+    console.println("TOPIC: " + name + "    Key: " + dataSource.getKeyField().name()
                     + "    Type: " + dataSource.getDataSourceType());
     console.println();
     console.println(
@@ -465,7 +465,7 @@ public class KQL {
         "-------------------+----------------------+---------------------------------------------");
     for (Field schemaField : dataSource.getSchema().fields()) {
       console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
-          SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase()).toUpperCase()
+          SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())
           + " (" + schemaField.schema().type().getName() + ")", 18) + "  |");
     }
     console.println(
@@ -485,7 +485,7 @@ public class KQL {
       KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
                                                                     queryInfo.getQueryOutputNode();
       console.println(
-          padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName().toUpperCase());
+          padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName());
     }
     console.println(
         "------------+----------------------------------------------------------------------------------+-----------------------------------");
@@ -569,11 +569,11 @@ public class KQL {
     Map<String, QueryMetadata> liveQueries = new HashMap<>();
 
     public QueryMetadata get(String key) {
-      return liveQueries.get(key.toUpperCase());
+      return liveQueries.get(key);
     }
 
     public void put(String key, QueryMetadata value) {
-      liveQueries.put(key.toUpperCase(), value);
+      liveQueries.put(key, value);
     }
 
     public Set<String> keySet() {
@@ -589,7 +589,7 @@ public class KQL {
     }
 
     public boolean containsKey(String key) {
-      return liveQueries.containsKey(key.toUpperCase());
+      return liveQueries.containsKey(key);
     }
   }
 }

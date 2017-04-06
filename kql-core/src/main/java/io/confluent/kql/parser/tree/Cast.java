@@ -51,7 +51,7 @@ public final class Cast
     requireNonNull(type, "type is null");
 
     this.expression = expression;
-    this.type = type.toUpperCase(ENGLISH);
+    this.type = type;
     this.safe = safe;
     this.typeOnly = typeOnly;
   }

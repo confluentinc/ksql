@@ -166,7 +166,7 @@ public class SchemaKStream {
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
-    if (keyField.name().equalsIgnoreCase(newKeyField.name())) {
+    if (keyField.name().equals(newKeyField.name())) {
       return this;
     }
 

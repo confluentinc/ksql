@@ -81,7 +81,7 @@ public class LogicalPlanner {
                                                  .getTopicName());
 
     }
-    throw new RuntimeException("INTO caluse is not supported in SELECT.");
+    throw new RuntimeException("INTO clause is not supported in SELECT.");
   }
 
   private AggregateNode buildAggregateNode(final Schema inputSchema,
@@ -157,7 +157,7 @@ public class LogicalPlanner {
                                           fromTable);
     }
 
-    throw new RuntimeException("Data source is not suppoted yet.");
+    throw new RuntimeException("Data source is not supported yet.");
   }
 
 }

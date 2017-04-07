@@ -124,8 +124,7 @@ public class QueryEngine {
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KQLStructuredDataOutputNode) {
-        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
-            logicalPlan;
+        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode) logicalPlan;
         StructuredDataSource
             structuredDataSource =
             new KQLStream(kqlStructuredDataOutputNode.getId().toString(),

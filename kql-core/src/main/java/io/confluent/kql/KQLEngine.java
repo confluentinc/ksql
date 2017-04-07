@@ -217,4 +217,8 @@ public class KQLEngine {
     this.metaStore = metaStore;
     this.queryEngine = new QueryEngine(kqlConfig);
   }
+
+  public QueryEngine getQueryEngine() {
+    return queryEngine;
+  }
 }

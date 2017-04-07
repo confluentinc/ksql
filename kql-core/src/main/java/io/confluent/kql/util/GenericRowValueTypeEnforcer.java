@@ -49,7 +49,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value instanceof Byte) {
       return ((Byte) value).doubleValue();
     } else if (value instanceof String || value instanceof CharSequence) {
-      return Double.parseDouble(value.toString());
+     return Double.parseDouble(value.toString());
     } else {
       throw new KQLException("Invalif field type. Value must be Double.");
     }

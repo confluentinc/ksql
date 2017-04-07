@@ -12,6 +12,7 @@
         <module>kql-core</module>
         <module>kql-cli</module>
         <module>kql-examples</module>
+        <module>kql-rest-app</module>
     </modules>
     
     <repositories>

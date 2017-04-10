@@ -17,7 +17,6 @@ public class KQLRestConfigTest {
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "kql_config_test");
     result.put(KQLRestConfig.NODE_ID_CONFIG, "node_1");
-    result.put(KQLRestConfig.ZOOKEEPER_CONNECT_CONFIG, "localhost:2181");
     return result;
   }
 
@@ -58,7 +57,6 @@ public class KQLRestConfigTest {
         OVERRIDE_BOOTSTRAP_SERVERS,
         testProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
     );
-    assertKeyEquals(StreamsConfig.ZOOKEEPER_CONNECT_CONFIG, inputProperties, testProperties);
     assertKeyEquals(KQLRestConfig.NODE_ID_CONFIG, inputProperties, testProperties);
   }
 

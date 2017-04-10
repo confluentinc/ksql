@@ -27,12 +27,6 @@ public class KQLRestConfig extends RestConfig {
   public static final String NODE_ID_DOC =
       "A (case-insensitive) unique identifier for the node to add to the cluster";
 
-  public static final String ZOOKEEPER_CONNECT_CONFIG = "zookeeper.connect";
-  public static final ConfigDef.Type ZOOKEEPER_CONNECT_TYPE = ConfigDef.Type.STRING;
-  public static final ConfigDef.Importance ZOOKEEPER_CONNECT_IMPORTANCE = ConfigDef.Importance.HIGH;
-  public static final String ZOOKEEPER_CONNECT_DOC =
-      "The Zookeeper connection to use when verifying topics exist";
-
   public static final String COMMAND_TOPIC_CONFIG = "command.topic";
   public static final ConfigDef.Type COMMAND_TOPIC_TYPE = ConfigDef.Type.STRING;
   public static final String COMMAND_TOPIC_DEFAULT = "kql_commands";
@@ -70,11 +64,6 @@ public class KQLRestConfig extends RestConfig {
         NODE_ID_TYPE,
         NODE_ID_IMPORTANCE,
         NODE_ID_DOC
-    ).define(
-        ZOOKEEPER_CONNECT_CONFIG,
-        ZOOKEEPER_CONNECT_TYPE,
-        ZOOKEEPER_CONNECT_IMPORTANCE,
-        ZOOKEEPER_CONNECT_DOC
     ).define(
         COMMAND_TOPIC_CONFIG,
         COMMAND_TOPIC_TYPE,

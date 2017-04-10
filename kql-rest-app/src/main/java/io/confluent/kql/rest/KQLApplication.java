@@ -3,6 +3,7 @@
  **/
 package io.confluent.kql.rest;
 
+import io.confluent.adminclient.KafkaAdminClient;
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
@@ -118,16 +119,22 @@ public class KQLApplication extends Application<KQLRestConfig> {
     }
 
     Properties props = getProps(cliOptions.getPropertiesFile());
-    KQLRestConfig config = new KQLRestConfig(props);
-    KQLApplication app = of(config, cliOptions.getQuickstart());
+//    KQLRestConfig config = new KQLRestConfig(props);
+//    KQLApplication app = of(config, cliOptions.getQuickstart());
+    KQLApplication app = of(props, cliOptions.getQuickstart());
     app.start();
     app.join();
     System.err.println("Server shutting down...");
   }
 
-  public static KQLApplication of(KQLRestConfig config, String quickstartFile) throws Exception {
+//  public static KQLApplication of(KQLRestConfig config, String quickstartFile) throws Exception {
+  public static KQLApplication of(Properties props, String quickstartFile) throws Exception {
+    KQLRestConfig config = new KQLRestConfig(props);
+
     Map<String, QueryMetadata> liveQueryMap = new HashMap<>();
-    TopicUtil topicUtil = new TopicUtil(config.getString(KQLRestConfig.ZOOKEEPER_CONNECT_CONFIG));
+
+    KafkaAdminClient client = new KafkaAdminClient((Map) props);
+    TopicUtil topicUtil = new TopicUtil(client);
 
     MetaStore metaStore = new MetaStoreImpl();
     Map<String, StatementStatus> statusStore = new HashMap<>();

@@ -93,9 +93,9 @@ public class LogicalPlanner {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
+      Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
-      aggregateSchema = aggregateSchema.field(alias, SchemaUtil.getTypeSchema(expressionType));
+      aggregateSchema = aggregateSchema.field(alias, expressionType);
 
     }
 
@@ -119,9 +119,9 @@ public class LogicalPlanner {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
 
-      Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
+      Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
-      projectionSchema = projectionSchema.field(alias, SchemaUtil.getTypeSchema(expressionType));
+      projectionSchema = projectionSchema.field(alias, expressionType);
 
     }
 

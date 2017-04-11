@@ -20,18 +20,18 @@ public class GenericRowValueTypeEnforcer {
 
   public Object enforceFieldType(final int index, final Object value) {
     Field field = fields.get(index);
-    if (field.schema().type() == Schema.Type.FLOAT64) {
+    if (field.schema() == Schema.FLOAT64_SCHEMA) {
       return enforceDouble(value);
-    } else if (field.schema().type() == Schema.Type.INT64) {
+    } else if (field.schema() == Schema.INT64_SCHEMA) {
       return enforceLong(value);
-    } else if (field.schema().type() == Schema.Type.INT32) {
+    } else if (field.schema() == Schema.INT32_SCHEMA) {
       return enforceInteger(value);
-    } else if (field.schema().type() == Schema.Type.STRING) {
+    } else if (field.schema() == Schema.STRING_SCHEMA) {
       return enforceString(value);
-    } else if (field.schema().type() == Schema.Type.BOOLEAN) {
+    } else if (field.schema() == Schema.BOOLEAN_SCHEMA) {
       return enforceBoolean(value);
     } else {
-      throw new KQLException("Type is not supported: " + field.schema().type());
+      throw new KQLException("Type is not supported: " + field.schema());
     }
   }
 

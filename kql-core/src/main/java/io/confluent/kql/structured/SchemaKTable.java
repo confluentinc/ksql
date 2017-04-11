@@ -70,7 +70,7 @@ public class SchemaKTable extends SchemaKStream {
       ExpressionMetadata
           expressionEvaluator =
           expressionUtil.getExpressionEvaluator(expression, schema);
-      schemaBuilder.field(expression.toString(), SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
+      schemaBuilder.field(expression.toString(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
 

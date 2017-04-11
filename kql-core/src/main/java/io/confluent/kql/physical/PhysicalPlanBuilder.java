@@ -186,7 +186,7 @@ public class PhysicalPlanBuilder {
       KQLAggregateFunction aggregateFunction = KQLFunctions.getAggregateFunction(udafName,
                                                                                  aggregateNode
                                                                                      .getFunctionList().get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
-      fieldSchema = SchemaUtil.getTypeSchema(aggregateFunction.getReturnType());
+      fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
                           + aggFunctionVarSuffix, fieldSchema);
       aggFunctionVarSuffix++;

@@ -10,7 +10,7 @@ import io.confluent.kql.function.KQLAggregateFunction;
 public class DoubleSumKUDAF extends KQLAggregateFunction<Double, Double> {
 
   public DoubleSumKUDAF(Integer argIndexInValue) {
-    super(argIndexInValue, 0.0, Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+    super(argIndexInValue, 0.0, Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
           "SUM", DoubleSumKUDAF.class);
   }
 

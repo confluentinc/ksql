@@ -9,27 +9,13 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.HashMap;
+
 public class SchemaUtil {
 
-  public static Schema getTypeSchema(final Schema.Type type) {
-    switch (type) {
-      case STRING:
-        return Schema.STRING_SCHEMA;
-      case BOOLEAN:
-        return Schema.BOOLEAN_SCHEMA;
-      case INT32:
-        return Schema.INT32_SCHEMA;
-      case INT64:
-        return Schema.INT64_SCHEMA;
-      case FLOAT64:
-        return Schema.FLOAT64_SCHEMA;
-      default:
-        throw new KQLException("Type is not supported: " + type);
-    }
-  }
 
-  public static Class getJavaType(final Schema.Type type) {
-    switch (type) {
+  public static Class getJavaType(final Schema schema) {
+    switch (schema.type()) {
       case STRING:
         return String.class;
       case BOOLEAN:
@@ -40,28 +26,35 @@ public class SchemaUtil {
         return Long.class;
       case FLOAT64:
         return Double.class;
+      case ARRAY:
+        Class elementClass = getJavaType(schema.valueSchema());
+        return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
+      case MAP:
+        return (new HashMap<>()).getClass();
       default:
-        throw new KQLException("Type is not supported: " + type);
+        throw new KQLException("Type is not supported: " + schema.type());
     }
   }
 
-  public static Schema.Type getTypeSchema(final String kqlType) {
 
-    switch (kqlType) {
-      case "STRING":
-        return Schema.Type.STRING;
-      case "BOOLEAN":
-        return Schema.Type.BOOLEAN;
-      case "INTEGER":
-        return Schema.Type.INT32;
-      case "BIGINT":
-        return Schema.Type.INT64;
-      case "DOUBLE":
-        return Schema.Type.FLOAT64;
-      default:
-        throw new KQLException("Type is not supported: " + kqlType);
+  public static Schema getTypeSchema(final String kqlType) {
+    if (kqlType.equals("STRING")) {
+      return Schema.STRING_SCHEMA;
+    } else if (kqlType.equals("BOOLEAN")) {
+      return Schema.BOOLEAN_SCHEMA;
+    } else if (kqlType.equals("INTEGER")) {
+      return Schema.INT32_SCHEMA;
+    } else if (kqlType.equals("BIGINT")) {
+      return Schema.INT64_SCHEMA;
+    } else if (kqlType.equals("DOUBLE")) {
+      return Schema.FLOAT64_SCHEMA;
+    } else if (kqlType.startsWith("ARRAY")) {
+      return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType.length() - 1)));
     }
+    throw new KQLException("Type is not supported: " + kqlType);
+
   }
+
 
   public static Field getFieldByName(final Schema schema, final String fieldName) {
     if (schema.fields() != null) {
@@ -115,6 +108,7 @@ public class SchemaUtil {
           .put("INT32", "INTEGER")
           .put("FLOAT64", "DOUBLE")
           .put("BOOLEAN", "BOOLEAN")
+          .put("ARRAY", "ARRAY")
           .build();
 
 }

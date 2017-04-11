@@ -17,7 +17,7 @@ public abstract class KQLAggFunctionDeterminer {
     this.aggregateFunctionList = aggregateFunctionList;
   }
 
-  public abstract KQLAggregateFunction getProperAggregateFunction(List<Schema.Type> argTypeList);
+  public abstract KQLAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
 
   public String getFunctionName() {
     return functionName;

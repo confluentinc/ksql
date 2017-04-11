@@ -70,7 +70,7 @@ public class ExpressionUtil {
 
     // And the expression (i.e. "result") type is also "int".
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
-    Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
+    Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
@@ -148,7 +148,7 @@ public class ExpressionUtil {
             "Cannot find the select field in the available fields: " + node.toString());
       }
       parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema().type()));
+                       SchemaUtil.getJavaType(schemaField.schema()));
       return null;
     }
 
@@ -166,7 +166,7 @@ public class ExpressionUtil {
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
       parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema().type()));
+                       SchemaUtil.getJavaType(schemaField.schema()));
       return null;
     }
   }

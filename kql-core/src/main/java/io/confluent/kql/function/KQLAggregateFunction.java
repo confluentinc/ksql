@@ -11,8 +11,8 @@ public abstract class KQLAggregateFunction<V, A> {
 
   final int argIndexInValue;
   public final A intialValue;
-  final Schema.Type returnType;
-  final List<Schema.Type> arguments;
+  final Schema returnType;
+  final List<Schema> arguments;
   final String functionName;
   final Class kudafClass;
 
@@ -25,7 +25,7 @@ public abstract class KQLAggregateFunction<V, A> {
     this.kudafClass = null;
   };
 
-  public KQLAggregateFunction(int argIndexInValue, A intialValue, Schema.Type returnType, List<Schema.Type> arguments, String functionName,
+  public KQLAggregateFunction(int argIndexInValue, A intialValue, Schema returnType, List<Schema> arguments, String functionName,
                               Class kudafClass) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = intialValue;
@@ -45,11 +45,11 @@ public abstract class KQLAggregateFunction<V, A> {
     return argIndexInValue;
   }
 
-  public Schema.Type getReturnType() {
+  public Schema getReturnType() {
     return returnType;
   }
 
-  public List<Schema.Type> getArguments() {
+  public List<Schema> getArguments() {
     return arguments;
   }
 

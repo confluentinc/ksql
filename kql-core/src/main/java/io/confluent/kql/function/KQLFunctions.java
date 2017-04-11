@@ -40,46 +40,46 @@ public class KQLFunctions {
      * String functions                     *
      ****************************************/
 
-    KQLFunction lcase = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
+    KQLFunction lcase = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                         "LCASE", LCaseKUDF.class);
-    KQLFunction ucase = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
+    KQLFunction ucase = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                         "UCASE", UCaseKUDF.class);
-    KQLFunction substring = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type
-                                                                                  .STRING,
-                                                                              Schema.Type
-                                                                                  .INT32,
-                                                                              Schema.Type
-                                                                                  .INT32),
+    KQLFunction substring = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
+                                                                                  .STRING_SCHEMA,
+                                                                              Schema
+                                                                                  .INT32_SCHEMA,
+                                                                              Schema
+                                                                                  .INT32_SCHEMA),
                                             "SUBSTRING", SubstringKUDF
                                                 .class);
-    KQLFunction concat = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING,
-                                                                           Schema.Type.STRING),
+    KQLFunction concat = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
+                                                                           Schema.STRING_SCHEMA),
                                          "CONCAT", ConcatKUDF.class);
 
-    KQLFunction trim = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING),
+    KQLFunction trim = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                        "TRIM", TrimKUDF.class);
 
-    KQLFunction ifNull = new KQLFunction(Schema.Type.STRING, Arrays.asList(Schema.Type.STRING,
-                                                                           Schema.Type.STRING),
+    KQLFunction ifNull = new KQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
+                                                                           Schema.STRING_SCHEMA),
                                          "IFNULL", IfNullKUDF.class);
-    KQLFunction len = new KQLFunction(Schema.Type.INT32, Arrays.asList(Schema.Type.STRING),
+    KQLFunction len = new KQLFunction(Schema.INT32_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                       "LEN", LenKUDF.class);
 
     /***************************************
      * Math functions                      *
      ***************************************/
 
-    KQLFunction abs = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction abs = new KQLFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                                       "ABS", AbsKUDF.class);
-    KQLFunction ceil = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction ceil = new KQLFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                                        "CEIL", CeilKUDF.class);
-    KQLFunction floor = new KQLFunction(Schema.Type.FLOAT64, Arrays.asList(Schema.Type.FLOAT64),
+    KQLFunction floor = new KQLFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                                         "FLOOR", FloorKUDF.class);
     KQLFunction
         round =
-        new KQLFunction(Schema.Type.INT64, Arrays.asList(Schema.Type.FLOAT64), "ROUND",
+        new KQLFunction(Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA), "ROUND",
                         RoundKUDF.class);
-    KQLFunction random = new KQLFunction(Schema.Type.FLOAT64, new ArrayList<>(), "RANDOM",
+    KQLFunction random = new KQLFunction(Schema.FLOAT64_SCHEMA, new ArrayList<>(), "RANDOM",
                                          RandomKUDF.class);
 
 
@@ -129,7 +129,7 @@ public class KQLFunctions {
       throw new KQLException("No aggregate function with name " + functionName + " exists!");
     }
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
-    Schema.Type expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
+    Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
     KQLAggregateFunction aggregateFunction = kqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
     return aggregateFunction;
   }

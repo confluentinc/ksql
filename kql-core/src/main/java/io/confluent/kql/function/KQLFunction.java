@@ -10,12 +10,12 @@ import java.util.List;
 
 public class KQLFunction {
 
-  final Schema.Type returnType;
-  final List<Schema.Type> arguments;
+  final Schema returnType;
+  final List<Schema> arguments;
   final String functionName;
   final Class kudfClass;
 
-  public KQLFunction(Schema.Type returnType, List<Schema.Type> arguments, String functionName,
+  public KQLFunction(Schema returnType, List<Schema> arguments, String functionName,
                      Class kudfClass) {
     this.returnType = returnType;
     this.arguments = arguments;
@@ -23,11 +23,11 @@ public class KQLFunction {
     this.kudfClass = kudfClass;
   }
 
-  public Schema.Type getReturnType() {
+  public Schema getReturnType() {
     return returnType;
   }
 
-  public List<Schema.Type> getArguments() {
+  public List<Schema> getArguments() {
     return arguments;
   }
 

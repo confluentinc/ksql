@@ -12,9 +12,6 @@ import io.confluent.kql.function.KQLAggFunctionDeterminer;
 import io.confluent.kql.function.KQLAggregateFunction;
 import io.confluent.kql.util.KQLException;
 
-/**
- * Created by hojjat on 3/16/17.
- */
 public class SumAggFunctionDeterminer extends KQLAggFunctionDeterminer {
 
   public SumAggFunctionDeterminer() {
@@ -22,7 +19,7 @@ public class SumAggFunctionDeterminer extends KQLAggFunctionDeterminer {
   }
 
   @Override
-  public KQLAggregateFunction getProperAggregateFunction(List<Schema.Type> argTypeList) {
+  public KQLAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
     // For now we only support aggregate functions with one arg.
     for (KQLAggregateFunction kqlAggregateFunction: getAggregateFunctionList()) {
       if (kqlAggregateFunction.getArguments().get(0) == argTypeList.get(0)) {

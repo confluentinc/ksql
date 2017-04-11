@@ -18,7 +18,7 @@ public class CountAggFunctionDeterminer extends KQLAggFunctionDeterminer {
   }
 
   @Override
-  public KQLAggregateFunction getProperAggregateFunction(List<Schema.Type> argTypeList) {
+  public KQLAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
     return getAggregateFunctionList().get(0);
   }
 }

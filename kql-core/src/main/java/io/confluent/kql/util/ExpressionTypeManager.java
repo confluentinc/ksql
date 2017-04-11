@@ -42,22 +42,22 @@ public class ExpressionTypeManager
     this.schemaImmutableMap = schemaImmutableMap;
   }
 
-  public Schema.Type getExpressionType(final Expression expression) {
+  public Schema getExpressionType(final Expression expression) {
     ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
-    return expressionTypeContext.getType();
+    return expressionTypeContext.getSchema();
   }
 
   class ExpressionTypeContext {
 
-    Schema.Type type;
+    Schema schema;
 
-    public Schema.Type getType() {
-      return type;
+    public Schema getSchema() {
+      return schema;
     }
 
-    public void setType(Schema.Type type) {
-      this.type = type;
+    public void setSchema(Schema schema) {
+      this.schema = schema;
     }
   }
 
@@ -65,18 +65,18 @@ public class ExpressionTypeManager
   protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
                                              final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
-    Schema.Type leftType = expressionTypeContext.getType();
+    Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
-    Schema.Type rightType = expressionTypeContext.getType();
-    expressionTypeContext.setType(resolveArithmaticType(leftType, rightType));
+    Schema rightType = expressionTypeContext.getSchema();
+    expressionTypeContext.setSchema(resolveArithmaticType(leftType, rightType));
     return null;
   }
 
   protected Expression visitCast(final Cast node,
                                  final ExpressionTypeContext expressionTypeContext) {
 
-    Schema.Type castType = SchemaUtil.getTypeSchema(node.getType());
-    expressionTypeContext.setType(castType);
+    Schema castType = SchemaUtil.getTypeSchema(node.getType());
+    expressionTypeContext.setSchema(castType);
 
     return null;
   }
@@ -84,7 +84,7 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitComparisonExpression(final ComparisonExpression node,
                                                  final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setType(Schema.Type.BOOLEAN);
+    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
@@ -92,7 +92,7 @@ public class ExpressionTypeManager
   protected Expression visitQualifiedNameReference(final QualifiedNameReference node,
                                                    final ExpressionTypeContext expressionTypeContext) {
     Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-    expressionTypeContext.setType(schemaField.schema().type());
+    expressionTypeContext.setSchema(schemaField.schema());
     return null;
   }
 
@@ -100,31 +100,31 @@ public class ExpressionTypeManager
   protected Expression visitDereferenceExpression(final DereferenceExpression node,
                                                   final ExpressionTypeContext expressionTypeContext) {
     Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-    expressionTypeContext.setType(schemaField.schema().type());
+    expressionTypeContext.setSchema(schemaField.schema());
     return null;
   }
 
   protected Expression visitStringLiteral(final StringLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setType(Schema.Type.STRING);
+    expressionTypeContext.setSchema(Schema.STRING_SCHEMA);
     return null;
   }
 
   protected Expression visitBooleanLiteral(final BooleanLiteral node,
                                            final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setType(Schema.Type.BOOLEAN);
+    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
   protected Expression visitLongLiteral(final LongLiteral node,
                                         final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setType(Schema.Type.INT64);
+    expressionTypeContext.setSchema(Schema.INT64_SCHEMA);
     return null;
   }
 
   protected Expression visitDoubleLiteral(final DoubleLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
-    expressionTypeContext.setType(Schema.Type.FLOAT64);
+    expressionTypeContext.setSchema(Schema.FLOAT64_SCHEMA);
     return null;
   }
 
@@ -133,32 +133,31 @@ public class ExpressionTypeManager
 
     KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
     if (kqlFunction != null) {
-      expressionTypeContext.setType(kqlFunction.getReturnType());
+      expressionTypeContext.setSchema(kqlFunction.getReturnType());
     } else if (KQLFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
       KQLAggregateFunction kqlAggregateFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix(), node.getArguments(), schema);
-      expressionTypeContext.setType(kqlAggregateFunction.getReturnType());
+      expressionTypeContext.setSchema(kqlAggregateFunction.getReturnType());
     } else {
       throw new KQLException("Unknown function: " + node.getName().toString());
     }
     return null;
   }
 
-  private Schema.Type resolveArithmaticType(final Schema.Type leftType,
-                                            final Schema.Type rightType) {
-    if (leftType == rightType) {
-      return leftType;
-    } else if ((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING)) {
+  private Schema resolveArithmaticType(final Schema leftSchema,
+                                            final Schema rightSchema) {
+    if (leftSchema == rightSchema) {
+      return leftSchema;
+    } else if ((leftSchema == Schema.STRING_SCHEMA) || (rightSchema == Schema.STRING_SCHEMA)) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftType == Schema.Type.BOOLEAN) || (rightType == Schema.Type.BOOLEAN)) {
+    } else if ((leftSchema == Schema.BOOLEAN_SCHEMA) || (rightSchema == Schema.BOOLEAN_SCHEMA)) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftType == Schema.Type.FLOAT64) || (rightType == Schema.Type.FLOAT64)) {
-      return Schema.Type.FLOAT64;
-    } else if ((leftType == Schema.Type.INT64) || (rightType == Schema.Type.INT64)) {
-      return Schema.Type.INT64;
-    } else if ((leftType == Schema.Type.INT32) || (rightType == Schema.Type.INT32)) {
-      return Schema.Type.INT32;
+    } else if ((leftSchema == Schema.FLOAT64_SCHEMA) || (rightSchema == Schema.FLOAT64_SCHEMA)) {
+      return Schema.FLOAT64_SCHEMA;
+    } else if ((leftSchema == Schema.INT64_SCHEMA) || (rightSchema == Schema.INT64_SCHEMA)) {
+      return Schema.INT64_SCHEMA;
+    } else if ((leftSchema == Schema.INT32_SCHEMA) || (rightSchema == Schema.INT32_SCHEMA)) {
+      return Schema.INT32_SCHEMA;
     }
-
     throw new PlanException("Unsupported types.");
   }
 }

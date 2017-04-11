@@ -20,18 +20,18 @@ public class GenericRowValueTypeEnforcer {
 
   public Object enforceFieldType(final int index, final Object value) {
     Field field = fields.get(index);
-    if (field.schema().type() == Schema.Type.FLOAT64) {
+    if (field.schema() == Schema.FLOAT64_SCHEMA) {
       return enforceDouble(value);
-    } else if (field.schema().type() == Schema.Type.INT64) {
+    } else if (field.schema() == Schema.INT64_SCHEMA) {
       return enforceLong(value);
-    } else if (field.schema().type() == Schema.Type.INT32) {
+    } else if (field.schema() == Schema.INT32_SCHEMA) {
       return enforceInteger(value);
-    } else if (field.schema().type() == Schema.Type.STRING) {
+    } else if (field.schema() == Schema.STRING_SCHEMA) {
       return enforceString(value);
-    } else if (field.schema().type() == Schema.Type.BOOLEAN) {
+    } else if (field.schema() == Schema.BOOLEAN_SCHEMA) {
       return enforceBoolean(value);
     } else {
-      throw new KQLException("Type is not supported: " + field.schema().type());
+      throw new KQLException("Type is not supported: " + field.schema());
     }
   }
 
@@ -49,7 +49,9 @@ public class GenericRowValueTypeEnforcer {
     } else if (value instanceof Byte) {
       return ((Byte) value).doubleValue();
     } else if (value instanceof String || value instanceof CharSequence) {
-     return Double.parseDouble(value.toString());
+      return Double.parseDouble(value.toString());
+    } else if (value == null) {
+      return null;
     } else {
       throw new KQLException("Invalif field type. Value must be Double.");
     }
@@ -70,6 +72,8 @@ public class GenericRowValueTypeEnforcer {
       return ((Byte) value).longValue();
     } else if (value instanceof String || value instanceof CharSequence) {
       return Long.parseLong(value.toString());
+    } else if (value == null) {
+      return null;
     } else {
       throw new KQLException("Invalif field type. Value must be Long.");
     }
@@ -89,6 +93,8 @@ public class GenericRowValueTypeEnforcer {
       return ((Byte) value).intValue();
     } else if (value instanceof String || value instanceof CharSequence) {
       return Integer.parseInt(value.toString());
+    } else if (value == null) {
+      return null;
     } else {
       throw new KQLException("Invalif field type. Value must be Integer.");
     }
@@ -97,6 +103,8 @@ public class GenericRowValueTypeEnforcer {
   String enforceString(final Object value) {
     if (value instanceof String || value instanceof CharSequence) {
       return value.toString();
+    } else if (value == null) {
+      return null;
     } else {
       throw new KQLException("Invalif field type. Value must be String.");
     }
@@ -107,6 +115,8 @@ public class GenericRowValueTypeEnforcer {
       return (Boolean) value;
     } else if (value instanceof String) {
       return Boolean.parseBoolean(value.toString());
+    } else if (value == null) {
+      return null;
     } else {
       throw new KQLException("Invalif field type. Value must be Boolean.");
     }

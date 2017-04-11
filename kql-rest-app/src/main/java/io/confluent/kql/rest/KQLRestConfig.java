@@ -46,8 +46,9 @@ public class KQLRestConfig extends RestConfig {
   public static final Long STREAMED_QUERY_DISCONNECT_CHECK_MS_DEFAULT = 1000L;
   public static final ConfigDef.Importance STREAMED_QUERY_DISCONNECT_CHECK_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC =
-      "How often to send an empty line as part of the response while streaming queries as JSON; this is necessary in"
-      + " order to check whether or not the user has terminated the connection";
+      "How often to send an empty line as part of the response while streaming queries as JSON; this helps proactively "
+      + "determine if the connection has been terminated in order to avoid keeping the created streams job alive "
+      + "longer than necessary";
 
   private static final String APPLICATION_ID_CONFIG = StreamsConfig.APPLICATION_ID_CONFIG;
   private static final ConfigDef.Type APPLICATION_ID_TYPE = ConfigDef.Type.STRING;

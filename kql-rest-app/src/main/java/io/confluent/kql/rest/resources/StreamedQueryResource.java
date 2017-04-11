@@ -36,8 +36,6 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -240,6 +238,10 @@ public class StreamedQueryResource {
 
       private void addRowValue(JsonObjectBuilder row, Field columnField, Object value) throws Exception {
         String fieldName = columnField.name();
+        if (value == null) {
+          row.addNull(fieldName);
+          return;
+        }
         switch (columnField.schema().type()) {
           case FLOAT64:
             row.add(fieldName, (double) value);

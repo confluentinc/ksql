@@ -85,11 +85,10 @@ public class PhysicalPlanBuilder {
       OutputNode outputNode = (OutputNode) planNode;
       SchemaKStream outputSchemaStream = buildOutput(outputNode);
       return outputSchemaStream;
-    } else {
-      throw new KQLException(
-          "Unsupported logical plan node: " + planNode.getId() + " , Type: " + planNode.getClass()
-              .getName());
     }
+    throw new KQLException(
+        "Unsupported logical plan node: " + planNode.getId() + " , Type: " + planNode.getClass()
+            .getName());
   }
 
   private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {

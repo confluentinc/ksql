@@ -7,8 +7,6 @@ package io.confluent.kql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 public final class Cast

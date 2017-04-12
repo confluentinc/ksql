@@ -129,8 +129,7 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitSubscriptExpression(final SubscriptExpression node, final
-  ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitSubscriptExpression(final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
     String arrayBaseName = node.getBase().toString();
     Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
     expressionTypeContext.setSchema(schemaField.schema().valueSchema());

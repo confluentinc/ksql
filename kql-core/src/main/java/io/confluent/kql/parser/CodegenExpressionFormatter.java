@@ -349,16 +349,16 @@ public class CodegenExpressionFormatter {
 //          }
 //          return new Pair<>(exprStr, returnType);
           Schema rightSchema = expr.getRight();
-                    if (rightSchema == Schema.STRING_SCHEMA) {
-                        exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
-                      } else if (rightSchema == Schema.INT32_SCHEMA) {
-                        exprStr = "((Double)(" + expr.getLeft() + "))";
-                      } else if (rightSchema == Schema.INT64_SCHEMA) {
-                        exprStr = "((Double)(" + expr.getLeft() + "))";
-                      } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
-                        exprStr = expr.getLeft();
-                      } else {
-                        throw new KQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+          if (rightSchema == Schema.STRING_SCHEMA) {
+            exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
+          } else if (rightSchema == Schema.INT32_SCHEMA) {
+            exprStr = "((Double)(" + expr.getLeft() + "))";
+          } else if (rightSchema == Schema.INT64_SCHEMA) {
+            exprStr = "((Double)(" + expr.getLeft() + "))";
+          } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
+            exprStr = expr.getLeft();
+          } else {
+            throw new KQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
 

@@ -52,9 +52,8 @@ public class GenericRowValueTypeEnforcer {
     } else if (schema.type() == Schema.Type.ARRAY) {
       List array = (List) value;
 //      Object[] arrayObjects = new Object[array.size()];
-      Object[] arrayObjects = (Object[]) java.lang.reflect.Array.newInstance(SchemaUtil.getJavaType
-                                                                         (schema.valueSchema()),
-                                                                array.size());
+      Object[] arrayObjects = (Object[]) java.lang.reflect.Array.newInstance(SchemaUtil
+                                                                                 .getJavaType(schema.valueSchema()), array.size());
       for (int i = 0; i < array.size(); i++) {
         arrayObjects[i] = enforceFieldType(schema.valueSchema(), array.get(i));
       }

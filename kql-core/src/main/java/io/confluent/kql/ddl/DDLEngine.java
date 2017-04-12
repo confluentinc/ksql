@@ -251,7 +251,12 @@ public class DDLEngine {
         return Schema.INT64_SCHEMA;
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
+
       default:
+        if (sqlType.startsWith("ARRAY")) {
+          return SchemaBuilder
+              .array(getKQLType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
+        }
         throw new KQLException("Unsupported type: " + sqlType);
     }
   }

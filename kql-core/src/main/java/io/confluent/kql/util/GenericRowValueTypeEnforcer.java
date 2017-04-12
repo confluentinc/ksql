@@ -20,18 +20,47 @@ public class GenericRowValueTypeEnforcer {
 
   public Object enforceFieldType(final int index, final Object value) {
     Field field = fields.get(index);
-    if (field.schema() == Schema.FLOAT64_SCHEMA) {
+    return enforceFieldType(field.schema(), value);
+//    if (field.schema() == Schema.FLOAT64_SCHEMA) {
+//      return enforceDouble(value);
+//    } else if (field.schema() == Schema.INT64_SCHEMA) {
+//      return enforceLong(value);
+//    } else if (field.schema() == Schema.INT32_SCHEMA) {
+//      return enforceInteger(value);
+//    } else if (field.schema() == Schema.STRING_SCHEMA) {
+//      return enforceString(value);
+//    } else if (field.schema() == Schema.BOOLEAN_SCHEMA) {
+//      return enforceBoolean(value);
+//    } else if (field.schema().type() == Schema.Type.ARRAY) {
+//      return enforceFieldType(field.schema(), value);
+//    } else {
+//      throw new KQLException("Type is not supported: " + field.schema());
+//    }
+  }
+
+  public Object enforceFieldType(Schema schema, final Object value) {
+    if (schema == Schema.FLOAT64_SCHEMA) {
       return enforceDouble(value);
-    } else if (field.schema() == Schema.INT64_SCHEMA) {
+    } else if (schema == Schema.INT64_SCHEMA) {
       return enforceLong(value);
-    } else if (field.schema() == Schema.INT32_SCHEMA) {
+    } else if (schema == Schema.INT32_SCHEMA) {
       return enforceInteger(value);
-    } else if (field.schema() == Schema.STRING_SCHEMA) {
+    } else if (schema == Schema.STRING_SCHEMA) {
       return enforceString(value);
-    } else if (field.schema() == Schema.BOOLEAN_SCHEMA) {
+    } else if (schema == Schema.BOOLEAN_SCHEMA) {
       return enforceBoolean(value);
+    } else if (schema.type() == Schema.Type.ARRAY) {
+      List array = (List) value;
+//      Object[] arrayObjects = new Object[array.size()];
+      Object[] arrayObjects = (Object[]) java.lang.reflect.Array.newInstance(SchemaUtil.getJavaType
+                                                                         (schema.valueSchema()),
+                                                                array.size());
+      for (int i = 0; i < array.size(); i++) {
+        arrayObjects[i] = enforceFieldType(schema.valueSchema(), array.get(i));
+      }
+      return arrayObjects;
     } else {
-      throw new KQLException("Type is not supported: " + field.schema());
+      throw new KQLException("Type is not supported: " + schema);
     }
   }
 

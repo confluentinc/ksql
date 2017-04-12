@@ -19,6 +19,7 @@ import io.confluent.kql.parser.tree.DecimalLiteral;
 import io.confluent.kql.parser.tree.GenericLiteral;
 import io.confluent.kql.parser.tree.NullLiteral;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.parser.tree.SymbolReference;
 import io.confluent.kql.parser.tree.DereferenceExpression;
 import io.confluent.kql.parser.tree.QualifiedName;
@@ -445,6 +446,14 @@ public class CodegenExpressionFormatter {
 //            }
 //
 //            return "*";
+    }
+
+    @Override
+    protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node, Boolean unmangleNames) {
+      return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)(" + process(node
+                                                                                              .getIndex(),
+                                                                    unmangleNames).getLeft() + ""
+                        + ")]", schema);
     }
 
     @Override

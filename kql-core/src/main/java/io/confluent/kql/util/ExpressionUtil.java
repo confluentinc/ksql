@@ -120,7 +120,7 @@ public class ExpressionUtil {
     }
 
     protected Object visitIsNullPredicate(IsNullPredicate node, Object context) {
-      return visitExpression(node, context);
+      return process(node.getValue(), context);
     }
 
     protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context) {

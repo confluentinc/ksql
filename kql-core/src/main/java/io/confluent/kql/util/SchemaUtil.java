@@ -111,4 +111,22 @@ public class SchemaUtil {
           .put("ARRAY", "ARRAY")
           .build();
 
+  public static String getJavaCastString(Schema schema) {
+    switch (schema.type()) {
+      case INT32:
+        return "(Integer)";
+      case INT64:
+        return "(Long)";
+      case FLOAT64:
+        return "(Double)";
+      case STRING:
+        return "(String)";
+      case BOOLEAN:
+        return "(Boolean)";
+      default:
+        //TODO: Add complex types later!
+        return "";
+    }
+  }
+
 }

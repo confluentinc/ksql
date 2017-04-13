@@ -450,10 +450,19 @@ public class CodegenExpressionFormatter {
 
     @Override
     protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node, Boolean unmangleNames) {
-      return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)(" + process(node
-                                                                                              .getIndex(),
-                                                                    unmangleNames).getLeft() + ""
-                        + ")]", schema);
+      String arrayBaseName = node.getBase().toString();
+      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (schemaField.schema().type() == Schema.Type.ARRAY) {
+        return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)(" + process(node
+                                                                                                     .getIndex(),
+                                                                                                 unmangleNames).getLeft() + ""
+                          + ")]", schema);
+      } else if (schemaField.schema().type() == Schema.Type.MAP) {
+        return new Pair<>("(" + SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
+                          + process(node.getBase(), unmangleNames).getLeft() + ".get"
+                          + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))", schema);
+      }
+      throw new UnsupportedOperationException();
     }
 
     @Override

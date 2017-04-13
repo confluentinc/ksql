@@ -6,7 +6,10 @@ package io.confluent.kql.util;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GenericRowValueTypeEnforcer {
 
@@ -58,6 +61,14 @@ public class GenericRowValueTypeEnforcer {
         arrayObjects[i] = enforceFieldType(schema.valueSchema(), array.get(i));
       }
       return arrayObjects;
+    } else if (schema.type() == Schema.Type.MAP) {
+      LinkedHashMap valueMap = (LinkedHashMap) value;
+      // No need to keep it as LinkedHashMap.
+      Map<String, Object> map = new HashMap<>();
+      for (Object key: valueMap.keySet()) {
+        map.put(String.valueOf(key), valueMap.get(key));
+      }
+      return map;
     } else {
       throw new KQLException("Type is not supported: " + schema);
     }

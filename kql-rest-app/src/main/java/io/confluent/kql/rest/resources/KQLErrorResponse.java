@@ -15,12 +15,12 @@ public class KQLErrorResponse {
       if exception.getCause() != null: "cause": exceptionToJson(exception.getCause())
     }
    */
-  public static Response stackTraceResponse(Exception exception) {
+  public static Response stackTraceResponse(Throwable exception) {
     JsonValue entity = stackTraceJson(exception);
     return Response.serverError().entity(entity.toString()).build();
   }
 
-  public static JsonValue stackTraceJson(Exception exception) {
+  public static JsonValue stackTraceJson(Throwable exception) {
     StringWriter stringWriter = new StringWriter();
     exception.printStackTrace(new PrintWriter(stringWriter));
     JsonValue stackTrace = Json.createObjectBuilder().add("stack_trace", stringWriter.toString()).build();
@@ -28,12 +28,12 @@ public class KQLErrorResponse {
   }
 
   // To be used at a later date when expected exceptions can be separated from unexpected ones
-  public static Response errorMessageResponse(Exception exception) {
+  public static Response errorMessageResponse(Throwable exception) {
     JsonValue entity = errorMessageJson(exception);
     return Response.status(Response.Status.BAD_REQUEST).entity(entity.toString()).build();
   }
 
-  public static JsonValue errorMessageJson(Exception exception) {
+  public static JsonValue errorMessageJson(Throwable exception) {
     JsonValue message = Json.createObjectBuilder().add("message", exception.getMessage()).build();
     return Json.createObjectBuilder().add("error", message).build();
   }

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)
@@ -106,7 +107,7 @@ public class StreamedQueryResource {
     private final KafkaStreams querySourceStreams;
     private final List<Field> columns;
     private final String intoTable;
-    private Exception writingException;
+    private AtomicReference<Throwable> streamsException;
 
     public QueryStream(String queryString) throws Exception {
 
@@ -143,7 +144,7 @@ public class StreamedQueryResource {
           kqlTopic.getKafkaTopicName()
       );
 
-      writingException = null;
+      streamsException = null;
 
       columns = outputNode.getSchema().fields();
     }
@@ -157,14 +158,21 @@ public class StreamedQueryResource {
       streamedQueryProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
       KafkaStreams queryStreams = new KafkaStreams(streamBuilder, new StreamsConfig(streamedQueryProperties));
+      queryStreams.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread thread, Throwable exception) {
+          streamsException.compareAndSet(null, exception);
+        }
+      });
       queryStreams.start();
 
       try {
         // TODO: Think about the control flow here--have to detect user-terminated connection somehow but also handle multi-threaded-ness of Kafka Streams
         while (true) {
           Thread.sleep(disconnectCheckInterval);
-          if (writingException != null) {
-            throw writingException;
+          Throwable exception = streamsException.get();
+          if (exception != null) {
+            throw exception;
           }
           // If no new rows have been written, the user may have terminated the connection without us knowing.
           // Check by trying to write a single newline.
@@ -176,7 +184,7 @@ public class StreamedQueryResource {
         }
       } catch (EOFException exception) {
         // The user has terminated the connection; we can stop writing
-      } catch (Exception exception) {
+      } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
         output.write(("\n" + KQLErrorResponse.stackTraceJson(exception).toString() + "\n").getBytes());
       }
@@ -204,7 +212,7 @@ public class StreamedQueryResource {
         try {
           write(key, row);
         } catch (Exception exception) {
-          writingException = exception;
+          streamsException.compareAndSet(null, exception);
         }
       }
 

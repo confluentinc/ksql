@@ -1244,16 +1244,13 @@ public class AstBuilder
         .collect(toList());
   }
 
-  private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
-    if (context instanceof SqlBaseParser.UnquotedIdentifierContext ||
-        context instanceof SqlBaseParser.DigitIdentifierContext) {
-      return context.getText().toUpperCase();
-    } else if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+  public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
       return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
       return unquote(context.getText(), "`");
     } else {
-      throw new KQLException(String.format("Unexpected identifier context: %s", context.getClass().getCanonicalName()));
+      return context.getText().toUpperCase();
     }
   }
 

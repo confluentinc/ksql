@@ -118,6 +118,7 @@ public class StreamedQueryResource {
 //                    throw new Exception("INTO clause currently not supported for REST app queries");
 //                }
 //            }
+      streamsException = new AtomicReference<>(null);
 
       String queryId = String.format("%s_streamed_query_%d", nodeId, queriesCreated.incrementAndGet()).toUpperCase();
       intoTable = queryId;
@@ -135,6 +136,7 @@ public class StreamedQueryResource {
       KQLTopic kqlTopic = outputNode.getKqlTopic();
 
       querySourceStreams = queryMetadata.getQueryKafkaStreams();
+      querySourceStreams.setUncaughtExceptionHandler(new StreamsExceptionHandler());
 
       streamBuilder = new KStreamBuilder();
 
@@ -143,8 +145,6 @@ public class StreamedQueryResource {
           SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe()),
           kqlTopic.getKafkaTopicName()
       );
-
-      streamsException = null;
 
       columns = outputNode.getSchema().fields();
     }
@@ -158,12 +158,7 @@ public class StreamedQueryResource {
       streamedQueryProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
       KafkaStreams queryStreams = new KafkaStreams(streamBuilder, new StreamsConfig(streamedQueryProperties));
-      queryStreams.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-        @Override
-        public void uncaughtException(Thread thread, Throwable exception) {
-          streamsException.compareAndSet(null, exception);
-        }
-      });
+      queryStreams.setUncaughtExceptionHandler(new StreamsExceptionHandler());
       queryStreams.start();
 
       try {
@@ -278,6 +273,13 @@ public class StreamedQueryResource {
                 columnField.schema().type()
             ));
         }
+      }
+    }
+
+    private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
+      @Override
+      public void uncaughtException(Thread thread, Throwable exception) {
+        streamsException.compareAndSet(null, exception);
       }
     }
   }

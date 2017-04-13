@@ -19,6 +19,7 @@ import io.confluent.kql.parser.tree.LikePredicate;
 import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SubscriptExpression;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -152,9 +153,24 @@ public class ExpressionUtil {
       return null;
     }
 
+    @Override
     protected Object visitCast(Cast node, Object context) {
 
       process(node.getExpression(), context);
+      return null;
+    }
+
+    @Override
+    protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
+      String arrayBaseName = node.getBase().toString();
+      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (schemaField == null) {
+        throw new RuntimeException(
+            "Cannot find the select field in the available fields: " + arrayBaseName);
+      }
+      parameterMap.put(schemaField.name().replace(".", "_"),
+                       SchemaUtil.getJavaType(schemaField.schema()));
+      process(node.getIndex(), context);
       return null;
     }
 

@@ -42,6 +42,7 @@ import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -299,7 +300,7 @@ public class KQL {
         if (kqlEngine.metaStore.getSource(table.getName().getSuffix()) != null) {
           console.println(
               "Sink specified in INTO clause already exists: " + table.getName().getSuffix()
-                  );
+          );
           return;
         }
       }
@@ -464,9 +465,18 @@ public class KQL {
     console.println(
         "-------------------+----------------------+---------------------------------------------");
     for (Field schemaField : dataSource.getSchema().fields()) {
-      console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
-          SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())
-          + " (" + schemaField.schema().type().getName() + ")", 18) + "  |");
+      if (schemaField.schema().type() == Schema.Type.ARRAY) {
+        console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
+            SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())
+            + "[" + schemaField.schema()
+                .valueSchema().schema().type() + "]", 18)
+                        + "  |");
+      } else {
+        console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
+            SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())
+            + " (" + schemaField.schema().type().getName() + ")", 18) + "  |");
+      }
+
     }
     console.println(
         "-------------------+----------------------+---------------------------------------------");

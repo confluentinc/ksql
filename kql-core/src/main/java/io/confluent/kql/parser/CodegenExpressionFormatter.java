@@ -19,6 +19,7 @@ import io.confluent.kql.parser.tree.DecimalLiteral;
 import io.confluent.kql.parser.tree.GenericLiteral;
 import io.confluent.kql.parser.tree.NullLiteral;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.parser.tree.SymbolReference;
 import io.confluent.kql.parser.tree.DereferenceExpression;
 import io.confluent.kql.parser.tree.QualifiedName;
@@ -348,16 +349,16 @@ public class CodegenExpressionFormatter {
 //          }
 //          return new Pair<>(exprStr, returnType);
           Schema rightSchema = expr.getRight();
-                    if (rightSchema == Schema.STRING_SCHEMA) {
-                        exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
-                      } else if (rightSchema == Schema.INT32_SCHEMA) {
-                        exprStr = "((Double)(" + expr.getLeft() + "))";
-                      } else if (rightSchema == Schema.INT64_SCHEMA) {
-                        exprStr = "((Double)(" + expr.getLeft() + "))";
-                      } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
-                        exprStr = expr.getLeft();
-                      } else {
-                        throw new KQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+          if (rightSchema == Schema.STRING_SCHEMA) {
+            exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
+          } else if (rightSchema == Schema.INT32_SCHEMA) {
+            exprStr = "((Double)(" + expr.getLeft() + "))";
+          } else if (rightSchema == Schema.INT64_SCHEMA) {
+            exprStr = "((Double)(" + expr.getLeft() + "))";
+          } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
+            exprStr = expr.getLeft();
+          } else {
+            throw new KQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
 
@@ -445,6 +446,23 @@ public class CodegenExpressionFormatter {
 //            }
 //
 //            return "*";
+    }
+
+    @Override
+    protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node, Boolean unmangleNames) {
+      String arrayBaseName = node.getBase().toString();
+      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (schemaField.schema().type() == Schema.Type.ARRAY) {
+        return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)(" + process(node
+                                                                                                     .getIndex(),
+                                                                                                 unmangleNames).getLeft() + ""
+                          + ")]", schema);
+      } else if (schemaField.schema().type() == Schema.Type.MAP) {
+        return new Pair<>("(" + SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
+                          + process(node.getBase(), unmangleNames).getLeft() + ".get"
+                          + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))", schema);
+      }
+      throw new UnsupportedOperationException();
     }
 
     @Override

@@ -17,9 +17,13 @@ import io.confluent.kql.parser.tree.DereferenceExpression;
 import io.confluent.kql.parser.tree.DoubleLiteral;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.FunctionCall;
+import io.confluent.kql.parser.tree.IsNotNullPredicate;
+import io.confluent.kql.parser.tree.IsNullPredicate;
+import io.confluent.kql.parser.tree.LikePredicate;
 import io.confluent.kql.parser.tree.LongLiteral;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
 import io.confluent.kql.parser.tree.StringLiteral;
+import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.planner.PlanException;
 
 import org.apache.kafka.connect.data.Field;
@@ -125,6 +129,28 @@ public class ExpressionTypeManager
   protected Expression visitDoubleLiteral(final DoubleLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.FLOAT64_SCHEMA);
+    return null;
+  }
+
+  protected Expression visitLikePredicate(LikePredicate node, ExpressionTypeContext expressionTypeContext) {
+    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    return null;
+  }
+
+  protected Expression visitIsNotNullPredicate(IsNotNullPredicate node, ExpressionTypeContext expressionTypeContext) {
+    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    return null;
+  }
+
+  protected Expression visitIsNullPredicate(IsNullPredicate node, ExpressionTypeContext expressionTypeContext) {
+    expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
+    return null;
+  }
+
+  protected Expression visitSubscriptExpression(final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
+    String arrayBaseName = node.getBase().toString();
+    Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+    expressionTypeContext.setSchema(schemaField.schema().valueSchema());
     return null;
   }
 

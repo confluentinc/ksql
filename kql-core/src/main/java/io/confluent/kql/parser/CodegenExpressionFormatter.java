@@ -431,7 +431,9 @@ public class CodegenExpressionFormatter {
       }
 
       if (paternString.endsWith("%")) {
-        return new Pair<>(valueString + ".startsWith(\"" + paternString.substring(1) + "\")", Schema
+        return new Pair<>(valueString + ".startsWith(\"" + paternString.substring(0, paternString
+            .length() - 1) + "\")",
+                          Schema
             .STRING_SCHEMA);
       }
 

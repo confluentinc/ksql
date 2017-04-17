@@ -46,6 +46,8 @@ public class KQLApplication extends Application<KQLRestConfig> {
   private final KQLResource kqlResource;
   private final QuickstartResource quickstartResource;
 
+  private final Thread queryComputerThread;
+
   public KQLApplication(
       KQLRestConfig config,
       QueryComputer queryComputer,
@@ -60,6 +62,8 @@ public class KQLApplication extends Application<KQLRestConfig> {
     this.streamedQueryResource = streamedQueryResource;
     this.kqlResource = kqlResource;
     this.quickstartResource = quickstartResource;
+
+    this.queryComputerThread = new Thread(queryComputer);
   }
 
   @Override
@@ -81,13 +85,18 @@ public class KQLApplication extends Application<KQLRestConfig> {
   @Override
   public void start() throws Exception {
     super.start();
-    new Thread(queryComputer).start();
+    queryComputerThread.start();
   }
 
   @Override
   public void onShutdown() {
     super.onShutdown();
     queryComputer.shutdown();
+    try {
+      queryComputerThread.join();
+    } catch (InterruptedException exception) {
+      log.error("Interrupted while waiting for QueryComputer thread to complete", exception);
+    }
   }
 
   @Override
@@ -119,8 +128,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
     }
 
     Properties props = getProps(cliOptions.getPropertiesFile());
-//    KQLRestConfig config = new KQLRestConfig(props);
-//    KQLApplication app = of(config, cliOptions.getQuickstart());
     KQLApplication app = of(props, cliOptions.getQuickstart());
     app.start();
     app.join();

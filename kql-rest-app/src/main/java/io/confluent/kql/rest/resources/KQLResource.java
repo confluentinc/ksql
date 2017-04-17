@@ -74,6 +74,7 @@ public class KQLResource {
     this.kqlEngine = kqlEngine;
     this.nodeId = nodeId;
     this.commandTopic = commandTopic;
+    // TODO: Remove commandProducer as parameter if not needed in testing
     this.commandProducer = commandProducer;
     this.statusStore = statusStore;
     this.commandsSent = new AtomicInteger(commandsSent);

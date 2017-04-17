@@ -7,6 +7,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,14 +29,14 @@ import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
  */
 public class SerDeUtil {
 
-  public static Serde<GenericRow> getGenericRowJSONSerde() {
+  public static Serde<GenericRow> getGenericRowJSONSerde(Schema schema) {
     Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
-    final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
+    final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
+    final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer(schema);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -67,12 +68,12 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getRowSerDe(final KQLTopicSerDe topicSerDe) {
+  public static Serde<GenericRow> getRowSerDe(final KQLTopicSerDe topicSerDe, Schema schema) {
     if (topicSerDe instanceof KQLAvroTopicSerDe) {
       KQLAvroTopicSerDe avroTopicSerDe = (KQLAvroTopicSerDe) topicSerDe;
       return SerDeUtil.getGenericRowAvroSerde(avroTopicSerDe.getSchemaString());
     } else if (topicSerDe instanceof KQLJsonTopicSerDe) {
-      return SerDeUtil.getGenericRowJSONSerde();
+      return SerDeUtil.getGenericRowJSONSerde(schema);
     } else if (topicSerDe instanceof KQLCsvTopicSerDe) {
       return SerDeUtil.getGenericRowCsvSerde();
     } else {

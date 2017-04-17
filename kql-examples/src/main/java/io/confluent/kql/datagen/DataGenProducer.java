@@ -10,10 +10,8 @@ import io.confluent.kql.physical.GenericRow;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
-
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -22,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 public abstract class DataGenProducer {
+
 
   public void populateTopic(
       Properties props,
@@ -32,7 +31,7 @@ public abstract class DataGenProducer {
   ) {
     Schema schema = generator.schema();
 
-    Serializer<GenericRow> serializer = getSerializer(schema);
+    Serializer<GenericRow> serializer = getSerializer(schema, kafkaTopicName);
 
     final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(props, new StringSerializer(), serializer);
 
@@ -69,5 +68,6 @@ public abstract class DataGenProducer {
     System.err.println("Kafka topic name: " + kafkaTopicName);
   }
 
-  protected abstract Serializer<GenericRow> getSerializer(Schema schema);
+  protected abstract Serializer<GenericRow> getSerializer(Schema schema, String topicName);
+
 }

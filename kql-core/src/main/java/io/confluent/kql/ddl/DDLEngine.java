@@ -84,7 +84,7 @@ public class DDLEngine {
         }
         break;
       case DataSource.JSON_SERDE_NAME:
-        topicSerDe = new KQLJsonTopicSerDe();
+        topicSerDe = new KQLJsonTopicSerDe(null);
         break;
       case DataSource.CSV_SERDE_NAME:
         topicSerDe = new KQLCsvTopicSerDe();

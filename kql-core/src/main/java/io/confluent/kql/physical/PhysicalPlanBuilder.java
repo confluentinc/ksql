@@ -104,7 +104,9 @@ public class PhysicalPlanBuilder {
                                                                  kqlAvroTopicSerDe
                                                                      .getSchemaFilePath());
       }
-      SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode.getKafkaTopicName(), SerDeUtil.getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe()));
+      SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
+                                                                .getKafkaTopicName(), SerDeUtil
+          .getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe(), kqlStructuredDataOutputNode.getSchema()));
 
       this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;
@@ -120,9 +122,7 @@ public class PhysicalPlanBuilder {
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
 
     StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
-    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
-                                                                  .getKqlTopic()
-                                                                  .getKqlTopicSerDe());
+
     SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
 
     SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
@@ -137,7 +137,10 @@ public class PhysicalPlanBuilder {
     }
     SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
-
+    Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
+                                                                  .getKqlTopic()
+                                                                  .getKqlTopicSerDe(),
+                                                              aggregateArgExpanded.getSchema());
     SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
 
     // Aggregate computations
@@ -223,7 +226,7 @@ public class PhysicalPlanBuilder {
       Serde<GenericRow>
           genericRowSerde =
           SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                    .getKqlTopic().getKqlTopicSerDe());
+                                    .getKqlTopic().getKqlTopicSerDe(), structuredDataSourceNode.getSchema());
 
       if (structuredDataSourceNode.getDataSourceType()
           == StructuredDataSource.DataSourceType.KTABLE) {
@@ -267,7 +270,8 @@ public class PhysicalPlanBuilder {
               .getKeyField().name());
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
-                                         joinNode.getSchema().field(joinKeyFieldName), SerDeUtil.getRowSerDe(joinSerDe));
+                                         joinNode.getSchema().field(joinKeyFieldName), SerDeUtil
+                                             .getRowSerDe(joinSerDe, joinNode.getSchema()));
           break;
         default:
           throw new KQLException("Join type is not supportd yet: " + joinNode.getType());

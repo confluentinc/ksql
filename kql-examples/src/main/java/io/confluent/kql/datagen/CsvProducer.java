@@ -12,7 +12,7 @@ import org.apache.kafka.common.serialization.Serializer;
 public class CsvProducer extends DataGenProducer {
 
   @Override
-  protected Serializer<GenericRow> getSerializer(Schema schema) {
+  protected Serializer<GenericRow> getSerializer(Schema schema, String topicName) {
     return new KQLCsvSerializer();
   }
 }

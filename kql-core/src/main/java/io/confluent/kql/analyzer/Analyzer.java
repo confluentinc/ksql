@@ -79,7 +79,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
             break;
           case DataSource.JSON_SERDE_NAME:
-            intoTopicSerde = new KQLJsonTopicSerDe();
+            intoTopicSerde = new KQLJsonTopicSerDe(null);
             break;
           case DataSource.CSV_SERDE_NAME:
             intoTopicSerde = new KQLCsvTopicSerDe();

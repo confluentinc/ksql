@@ -91,7 +91,7 @@ public class MetastoreUtil {
       String avroSchema = getAvroSchema(schemaPath);
       topicSerDe = new KQLAvroTopicSerDe(schemaPath, avroSchema);
     } else if ("JSON".equals(serde)) {
-      topicSerDe = new KQLJsonTopicSerDe();
+      topicSerDe = new KQLJsonTopicSerDe(null);
     } else if ("CSV".equals(serde)) {
       topicSerDe = new KQLCsvTopicSerDe();
     } else {

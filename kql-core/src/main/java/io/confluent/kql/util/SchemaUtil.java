@@ -38,20 +38,41 @@ public class SchemaUtil {
 
 
   public static Schema getTypeSchema(final String kqlType) {
-    if (kqlType.equals("STRING")) {
-      return Schema.STRING_SCHEMA;
-    } else if (kqlType.equals("BOOLEAN")) {
-      return Schema.BOOLEAN_SCHEMA;
-    } else if (kqlType.equals("INTEGER")) {
-      return Schema.INT32_SCHEMA;
-    } else if (kqlType.equals("BIGINT")) {
-      return Schema.INT64_SCHEMA;
-    } else if (kqlType.equals("DOUBLE")) {
-      return Schema.FLOAT64_SCHEMA;
-    } else if (kqlType.startsWith("ARRAY")) {
-      return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType.length() - 1)));
+    switch (kqlType) {
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOLEAN":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INTEGER":
+        return Schema.INT32_SCHEMA;
+      case "BIGINT":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      case "ARRAY":
+        return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType
+                                                                                             .length() - 1).trim()));
+      case "MAP":
+        return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(kqlType.substring(kqlType
+                                                                                           .indexOf(",")+1, kqlType.length()-1).trim()));
+      default:
+        throw new KQLException("Type is not supported: " + kqlType);
+
     }
-    throw new KQLException("Type is not supported: " + kqlType);
+//    if (kqlType.equals("STRING")) {
+//      return Schema.STRING_SCHEMA;
+//    } else if (kqlType.equals("BOOLEAN")) {
+//      return Schema.BOOLEAN_SCHEMA;
+//    } else if (kqlType.equals("INTEGER")) {
+//      return Schema.INT32_SCHEMA;
+//    } else if (kqlType.equals("BIGINT")) {
+//      return Schema.INT64_SCHEMA;
+//    } else if (kqlType.equals("DOUBLE")) {
+//      return Schema.FLOAT64_SCHEMA;
+//    } else if (kqlType.startsWith("ARRAY")) {
+//      return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType.length() - 1)));
+//    }
+//    throw new KQLException("Type is not supported: " + kqlType);
 
   }
 

@@ -134,7 +134,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
     System.err.println("Server shutting down...");
   }
 
-//  public static KQLApplication of(KQLRestConfig config, String quickstartFile) throws Exception {
   public static KQLApplication of(Properties props, String quickstartFile) throws Exception {
     KQLRestConfig config = new KQLRestConfig(props);
 

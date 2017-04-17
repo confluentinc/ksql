@@ -16,6 +16,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +36,6 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
    */
   public KQLJsonPOJODeserializer(Schema schema) {
     this.schema = schema;
-    this.objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-
   }
 
   @Override
@@ -100,8 +99,9 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
         return arrayField;
       case MAP:
         Map<String, Object> mapField = new HashMap<>();
-        while (fieldJsonNode.fields().hasNext()) {
-          Map.Entry<String, JsonNode> entry = fieldJsonNode.fields().next();
+        Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
+        while (iterator.hasNext()) {
+          Map.Entry<String, JsonNode> entry = iterator.next();
           mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(), entry.getValue()));
         }
         return mapField;

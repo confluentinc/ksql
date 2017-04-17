@@ -53,22 +53,24 @@ public class GenericRowValueTypeEnforcer {
     } else if (schema == Schema.BOOLEAN_SCHEMA) {
       return enforceBoolean(value);
     } else if (schema.type() == Schema.Type.ARRAY) {
-      List array = (List) value;
-//      Object[] arrayObjects = new Object[array.size()];
-      Object[] arrayObjects = (Object[]) java.lang.reflect.Array.newInstance(SchemaUtil
-                                                                                 .getJavaType(schema.valueSchema()), array.size());
-      for (int i = 0; i < array.size(); i++) {
-        arrayObjects[i] = enforceFieldType(schema.valueSchema(), array.get(i));
-      }
-      return arrayObjects;
+//      List array = (List) value;
+////      Object[] arrayObjects = new Object[array.size()];
+//      Object[] arrayObjects = (Object[]) java.lang.reflect.Array.newInstance(SchemaUtil
+//                                                                                 .getJavaType(schema.valueSchema()), array.size());
+//      for (int i = 0; i < array.size(); i++) {
+//        arrayObjects[i] = enforceFieldType(schema.valueSchema(), array.get(i));
+//      }
+//      return arrayObjects;
+      return value;
     } else if (schema.type() == Schema.Type.MAP) {
-      LinkedHashMap valueMap = (LinkedHashMap) value;
-      // No need to keep it as LinkedHashMap.
-      Map<String, Object> map = new HashMap<>();
-      for (Object key: valueMap.keySet()) {
-        map.put(String.valueOf(key), valueMap.get(key));
-      }
-      return map;
+//      LinkedHashMap valueMap = (LinkedHashMap) value;
+//      // No need to keep it as LinkedHashMap.
+//      Map<String, Object> map = new HashMap<>();
+//      for (Object key: valueMap.keySet()) {
+//        map.put(String.valueOf(key), valueMap.get(key));
+//      }
+//      return map;
+      return value;
     } else {
       throw new KQLException("Type is not supported: " + schema);
     }

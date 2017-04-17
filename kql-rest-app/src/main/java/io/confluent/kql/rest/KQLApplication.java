@@ -153,7 +153,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
     String commandTopic = config.getString(KQLRestConfig.COMMAND_TOPIC_CONFIG);
     topicUtil.ensureTopicExists(commandTopic);
 
-    Long commandPollTimeout = config.getLong(KQLRestConfig.COMMAND_POLL_TIMEOUT_CONFIG);
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
     KafkaConsumer<String, String> commandConsumer = new KafkaConsumer<>(
         commandConsumerProperties,
@@ -174,7 +173,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
     QueryComputer queryComputer = new QueryComputer(
         queryHandler,
         commandTopic,
-        commandPollTimeout,
         commandConsumer,
         statusStore,
         statementParser,

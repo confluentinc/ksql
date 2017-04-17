@@ -34,13 +34,6 @@ public class KQLRestConfig extends RestConfig {
   public static final String COMMAND_TOPIC_DOC =
       "The name of the Kafka topic to use for reading/writing commands for persistent queries";
 
-  public static final String COMMAND_POLL_TIMEOUT_CONFIG = "command.poll.ms";
-  public static final ConfigDef.Type COMMAND_POLL_TIMEOUT_TYPE = ConfigDef.Type.LONG;
-  public static final Long COMMAND_POLL_TIMEOUT_DEFAULT = 1000L;
-  public static final ConfigDef.Importance COMMAND_POLL_TIMEOUT_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String COMMAND_POLL_TIMEOUT_DOC =
-      "The timeout to use when polling for new writes to the command topic";
-
   public static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
   public static final ConfigDef.Type STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long STREAMED_QUERY_DISCONNECT_CHECK_MS_DEFAULT = 1000L;
@@ -71,12 +64,6 @@ public class KQLRestConfig extends RestConfig {
         COMMAND_TOPIC_DEFAULT,
         COMMAND_TOPIC_IMPORTANCE,
         COMMAND_TOPIC_DOC
-    ).define(
-        COMMAND_POLL_TIMEOUT_CONFIG,
-        COMMAND_POLL_TIMEOUT_TYPE,
-        COMMAND_POLL_TIMEOUT_DEFAULT,
-        COMMAND_POLL_TIMEOUT_IMPORTANCE,
-        COMMAND_POLL_TIMEOUT_DOC
     ).define(
         STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE,

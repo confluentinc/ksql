@@ -43,7 +43,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,7 +57,6 @@ public class QueryComputer implements Runnable {
 
   private final QueryHandler queryHandler;
   private final String commandTopic;
-  private final long pollTimeout;
   private final KafkaConsumer<String, String> commandConsumer;
   private final Map<String, StatementStatus> statusStore;
   private final StatementParser statementParser;
@@ -71,7 +69,6 @@ public class QueryComputer implements Runnable {
   public QueryComputer(
       QueryHandler queryHandler,
       String commandTopic,
-      long pollTimeout,
       KafkaConsumer<String, String> commandConsumer,
       Map<String, StatementStatus> statusStore,
       StatementParser statementParser,
@@ -80,7 +77,6 @@ public class QueryComputer implements Runnable {
   ) {
     this.queryHandler = queryHandler;
     this.commandTopic = commandTopic;
-    this.pollTimeout = pollTimeout;
     this.commandConsumer = commandConsumer;
     this.statusStore = statusStore;
     this.statementParser = statementParser;
@@ -147,14 +143,16 @@ public class QueryComputer implements Runnable {
                 new KQLTable(outputKafkaTopicNode.getId().toString(),
                     outputKafkaTopicNode.getSchema(),
                     outputKafkaTopicNode.getKeyField(),
-                    outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
-                    .toString() + "_statestore");
+                    outputKafkaTopicNode.getKqlTopic(),
+                    outputKafkaTopicNode.getId().toString() + "_statestore"
+                );
           } else {
             sinkDataSource =
                 new KQLStream(outputKafkaTopicNode.getId().toString(),
                     outputKafkaTopicNode.getSchema(),
                     outputKafkaTopicNode.getKeyField(),
-                    outputKafkaTopicNode.getKqlTopic());
+                    outputKafkaTopicNode.getKqlTopic()
+                );
           }
 
           metaStore.putSource(sinkDataSource);
@@ -224,18 +222,22 @@ public class QueryComputer implements Runnable {
     do {
       while (!offsetsCaughtUp(currentOffsets, endOffsets)) {
         log.info("Polling for prior command records");
-        ConsumerRecords<String, String> records = commandConsumer.poll(pollTimeout);
-        log.info(String.format("Received %d records from poll", records.count()));
-        for (ConsumerRecord<String, String> record : records) {
-          result.add(record);
-          TopicPartition recordTopicPartition = new TopicPartition(record.topic(), record.partition());
-          Long currentOffset = currentOffsets.get(recordTopicPartition);
-          if (currentOffset == null || currentOffset < record.offset()) {
-            currentOffsets.put(recordTopicPartition, record.offset());
+        ConsumerRecords<String, String> records = commandConsumer.poll(30000);
+        if (records.isEmpty()) {
+          log.warn("No records received after 30 seconds of polling; something may be wrong");
+        } else {
+          log.debug(String.format("Received %d records from poll", records.count()));
+          for (ConsumerRecord<String, String> record : records) {
+            result.add(record);
+            TopicPartition recordTopicPartition = new TopicPartition(record.topic(), record.partition());
+            Long currentOffset = currentOffsets.get(recordTopicPartition);
+            if (currentOffset == null || currentOffset < record.offset()) {
+              currentOffsets.put(recordTopicPartition, record.offset());
+            }
           }
         }
       }
-      log.info("Polling end offset(s) for command topic");
+      log.debug("Polling end offset(s) for command topic");
       endOffsets = commandConsumer.endOffsets(commandTopicPartitions);
     } while (!offsetsCaughtUp(currentOffsets, endOffsets));
 
@@ -317,7 +319,7 @@ public class QueryComputer implements Runnable {
     try {
       while (!closed.get()) {
         log.info("Polling for new writes to command topic");
-        ConsumerRecords<String, String> records = commandConsumer.poll(pollTimeout);
+        ConsumerRecords<String, String> records = commandConsumer.poll(Long.MAX_VALUE);
         log.info(String.format("Found %d new writes to command topic", records.count()));
         for (ConsumerRecord<String, String> record : records) {
           String statementId = record.key();

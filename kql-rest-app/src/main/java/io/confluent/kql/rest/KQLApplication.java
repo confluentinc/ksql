@@ -142,6 +142,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     KafkaAdminClient client = new KafkaAdminClient((Map) props);
     TopicUtil topicUtil = new TopicUtil(client);
 
+    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
     Map<String, StatementStatus> statusStore = new HashMap<>();
 

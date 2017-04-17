@@ -19,6 +19,7 @@ import io.confluent.kql.parser.tree.LikePredicate;
 import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
+import io.confluent.kql.parser.tree.SubscriptExpression;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -70,7 +71,7 @@ public class ExpressionUtil {
 
     // And the expression (i.e. "result") type is also "int".
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
-    Schema.Type expressionType = expressionTypeManager.getExpressionType(expression);
+    Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
 
@@ -119,7 +120,7 @@ public class ExpressionUtil {
     }
 
     protected Object visitIsNullPredicate(IsNullPredicate node, Object context) {
-      return visitExpression(node, context);
+      return process(node.getValue(), context);
     }
 
     protected Object visitLogicalBinaryExpression(LogicalBinaryExpression node, Object context) {
@@ -148,13 +149,28 @@ public class ExpressionUtil {
             "Cannot find the select field in the available fields: " + node.toString());
       }
       parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema().type()));
+                       SchemaUtil.getJavaType(schemaField.schema()));
       return null;
     }
 
+    @Override
     protected Object visitCast(Cast node, Object context) {
 
       process(node.getExpression(), context);
+      return null;
+    }
+
+    @Override
+    protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
+      String arrayBaseName = node.getBase().toString();
+      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (schemaField == null) {
+        throw new RuntimeException(
+            "Cannot find the select field in the available fields: " + arrayBaseName);
+      }
+      parameterMap.put(schemaField.name().replace(".", "_"),
+                       SchemaUtil.getJavaType(schemaField.schema()));
+      process(node.getIndex(), context);
       return null;
     }
 
@@ -166,7 +182,7 @@ public class ExpressionUtil {
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
       parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema().type()));
+                       SchemaUtil.getJavaType(schemaField.schema()));
       return null;
     }
   }

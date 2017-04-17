@@ -36,13 +36,12 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)
@@ -108,7 +107,7 @@ public class StreamedQueryResource {
     private final KafkaStreams querySourceStreams;
     private final List<Field> columns;
     private final String intoTable;
-    private Exception writingException;
+    private AtomicReference<Throwable> streamsException;
 
     public QueryStream(String queryString) throws Exception {
 
@@ -119,6 +118,7 @@ public class StreamedQueryResource {
 //                    throw new Exception("INTO clause currently not supported for REST app queries");
 //                }
 //            }
+      streamsException = new AtomicReference<>(null);
 
       String queryId = String.format("%s_streamed_query_%d", nodeId, queriesCreated.incrementAndGet()).toUpperCase();
       intoTable = queryId;
@@ -136,6 +136,7 @@ public class StreamedQueryResource {
       KQLTopic kqlTopic = outputNode.getKqlTopic();
 
       querySourceStreams = queryMetadata.getQueryKafkaStreams();
+      querySourceStreams.setUncaughtExceptionHandler(new StreamsExceptionHandler());
 
       streamBuilder = new KStreamBuilder();
 
@@ -144,8 +145,6 @@ public class StreamedQueryResource {
           SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe()),
           kqlTopic.getKafkaTopicName()
       );
-
-      writingException = null;
 
       columns = outputNode.getSchema().fields();
     }
@@ -159,14 +158,16 @@ public class StreamedQueryResource {
       streamedQueryProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
       KafkaStreams queryStreams = new KafkaStreams(streamBuilder, new StreamsConfig(streamedQueryProperties));
+      queryStreams.setUncaughtExceptionHandler(new StreamsExceptionHandler());
       queryStreams.start();
 
       try {
         // TODO: Think about the control flow here--have to detect user-terminated connection somehow but also handle multi-threaded-ness of Kafka Streams
         while (true) {
           Thread.sleep(disconnectCheckInterval);
-          if (writingException != null) {
-            throw writingException;
+          Throwable exception = streamsException.get();
+          if (exception != null) {
+            throw exception;
           }
           // If no new rows have been written, the user may have terminated the connection without us knowing.
           // Check by trying to write a single newline.
@@ -178,7 +179,7 @@ public class StreamedQueryResource {
         }
       } catch (EOFException exception) {
         // The user has terminated the connection; we can stop writing
-      } catch (Exception exception) {
+      } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
         output.write(("\n" + KQLErrorResponse.stackTraceJson(exception).toString() + "\n").getBytes());
       }
@@ -206,7 +207,7 @@ public class StreamedQueryResource {
         try {
           write(key, row);
         } catch (Exception exception) {
-          writingException = exception;
+          streamsException.compareAndSet(null, exception);
         }
       }
 
@@ -240,6 +241,10 @@ public class StreamedQueryResource {
 
       private void addRowValue(JsonObjectBuilder row, Field columnField, Object value) throws Exception {
         String fieldName = columnField.name();
+        if (value == null) {
+          row.addNull(fieldName);
+          return;
+        }
         switch (columnField.schema().type()) {
           case FLOAT64:
             row.add(fieldName, (double) value);
@@ -268,6 +273,13 @@ public class StreamedQueryResource {
                 columnField.schema().type()
             ));
         }
+      }
+    }
+
+    private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
+      @Override
+      public void uncaughtException(Thread thread, Throwable exception) {
+        streamsException.compareAndSet(null, exception);
       }
     }
   }

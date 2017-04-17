@@ -251,7 +251,23 @@ public class DDLEngine {
         return Schema.INT64_SCHEMA;
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
+
       default:
+        if (sqlType.startsWith("ARRAY")) {
+          return SchemaBuilder
+              .array(getKQLType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
+        } else if (sqlType.startsWith("MAP")) {
+          //TODO: For now only primitive data types for map are supported. Will have to add
+          // nested types.
+          String mapTypesStrs[] = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
+              .trim().split(",");
+          if (mapTypesStrs.length != 2) {
+            throw new KQLException("Map type is not defined correctly.: " + sqlType);
+          }
+          String keyType = mapTypesStrs[0].trim();
+          String valueType = mapTypesStrs[1].trim();
+          return SchemaBuilder.map(getKQLType(keyType), getKQLType(valueType));
+        }
         throw new KQLException("Unsupported type: " + sqlType);
     }
   }

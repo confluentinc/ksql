@@ -13,10 +13,10 @@ public class ExpressionMetadata {
   final IExpressionEvaluator expressionEvaluator;
   final int[] indexes;
   final KUDF[] udfs;
-  final Schema.Type expressionType;
+  final Schema expressionType;
 
   public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, KUDF[] udfs,
-                            Schema.Type expressionType) {
+                            Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
     this.indexes = indexes;
     this.udfs = udfs;
@@ -35,7 +35,7 @@ public class ExpressionMetadata {
     return udfs;
   }
 
-  public Schema.Type getExpressionType() {
+  public Schema getExpressionType() {
     return expressionType;
   }
 }

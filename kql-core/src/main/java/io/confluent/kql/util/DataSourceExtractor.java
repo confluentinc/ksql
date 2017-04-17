@@ -5,6 +5,7 @@ package io.confluent.kql.util;
 
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.StructuredDataSource;
+import io.confluent.kql.parser.AstBuilder;
 import io.confluent.kql.parser.SqlBaseBaseVisitor;
 import io.confluent.kql.parser.SqlBaseParser;
 import io.confluent.kql.parser.tree.AliasedRelation;
@@ -17,13 +18,11 @@ import io.confluent.kql.parser.tree.Table;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
@@ -179,19 +178,6 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     return rightFieldNames;
   }
 
-  private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
-    if (context instanceof SqlBaseParser.UnquotedIdentifierContext ||
-        context instanceof SqlBaseParser.DigitIdentifierContext) {
-      return context.getText().toUpperCase();
-    } else if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
-      return unquote(context.getText(), "\"");
-    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
-      return unquote(context.getText(), "`");
-    } else {
-      throw new KQLException(String.format("Unexpected identifier context: %s", context.getClass().getCanonicalName()));
-    }
-  }
-
   private static String unquote(String value, String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
@@ -200,7 +186,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {
     List<String> parts = context
         .identifier().stream()
-        .map(DataSourceExtractor::getIdentifierText)
+        .map(AstBuilder::getIdentifierText)
         .collect(toList());
 
     return QualifiedName.of(parts);
@@ -214,7 +200,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
     return columnAliasesContext
         .identifier().stream()
-        .map(DataSourceExtractor::getIdentifierText)
+        .map(AstBuilder::getIdentifierText)
         .collect(toList());
   }
 

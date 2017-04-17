@@ -7,7 +7,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.StructuredDataSource;
@@ -113,7 +112,6 @@ import io.confluent.kql.util.KQLException;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -998,8 +996,8 @@ public class AstBuilder
     try {
       baseExpression = (Expression) visit(context.primaryExpression());
     } catch (InvalidColumnReferenceException exception) {
-        QualifiedName tableName = QualifiedName.of(context.primaryExpression().getText().toUpperCase());
-        baseExpression = new QualifiedNameReference(getLocation(context.primaryExpression()), tableName);
+      QualifiedName tableName = QualifiedName.of(context.primaryExpression().getText().toUpperCase());
+      baseExpression = new QualifiedNameReference(getLocation(context.primaryExpression()), tableName);
     }
     DereferenceExpression
         dereferenceExpression =
@@ -1244,16 +1242,13 @@ public class AstBuilder
         .collect(toList());
   }
 
-  private static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
-    if (context instanceof SqlBaseParser.UnquotedIdentifierContext ||
-        context instanceof SqlBaseParser.DigitIdentifierContext) {
-      return context.getText().toUpperCase();
-    } else if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+  public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
       return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
       return unquote(context.getText(), "`");
     } else {
-      throw new KQLException(String.format("Unexpected identifier context: %s", context.getClass().getCanonicalName()));
+      return context.getText().toUpperCase();
     }
   }
 

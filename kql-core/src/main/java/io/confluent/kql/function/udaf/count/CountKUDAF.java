@@ -12,7 +12,7 @@ import io.confluent.kql.function.KQLAggregateFunction;
 public class CountKUDAF extends KQLAggregateFunction<Object, Integer> {
 
   public CountKUDAF(Integer argIndexInValue) {
-    super(argIndexInValue, 0, Schema.Type.INT32, Arrays.asList(Schema.Type.FLOAT64),
+    super(argIndexInValue, 0, Schema.INT32_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
           "COUNT", CountKUDAF.class);
   }
 

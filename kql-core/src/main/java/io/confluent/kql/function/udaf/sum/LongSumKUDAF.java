@@ -10,7 +10,7 @@ import io.confluent.kql.function.KQLAggregateFunction;
 public class LongSumKUDAF extends KQLAggregateFunction<Long, Long> {
 
   public LongSumKUDAF(Integer argIndexInValue) {
-    super(argIndexInValue, 0L, Schema.Type.INT64, Arrays.asList(Schema.Type.INT64), "SUM",
+    super(argIndexInValue, 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.INT64_SCHEMA), "SUM",
           LongSumKUDAF.class);
   }
   @Override

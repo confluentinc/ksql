@@ -8,7 +8,6 @@ import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
-import io.confluent.kql.util.SchemaUtil;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -70,7 +69,7 @@ public class SchemaKTable extends SchemaKStream {
       ExpressionMetadata
           expressionEvaluator =
           expressionUtil.getExpressionEvaluator(expression, schema);
-      schemaBuilder.field(expression.toString(), SchemaUtil.getTypeSchema(expressionEvaluator.getExpressionType()));
+      schemaBuilder.field(expression.toString(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
 

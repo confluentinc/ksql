@@ -43,8 +43,8 @@ public class CLIOptions {
 
   @Required
   @Option(
-    name = PROPERTIES_FILE_OPTION_NAME,
-    description = "A file specifying properties for KQL and its underlying Kafka Streams instance(s)"
+      name = PROPERTIES_FILE_OPTION_NAME,
+      description = "A file specifying properties for KQL and its underlying Kafka Streams instance(s)"
   )
   private String propertiesFile;
   public String getPropertiesFile() {

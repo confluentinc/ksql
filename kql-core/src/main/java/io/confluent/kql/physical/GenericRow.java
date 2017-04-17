@@ -3,6 +3,7 @@
  **/
 package io.confluent.kql.physical;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class GenericRow {
@@ -21,8 +22,16 @@ public class GenericRow {
   public String toString() {
     StringBuilder stringBuilder = new StringBuilder("[ ");
     int currentIndex = 0;
-    for (Object obj : columns) {
-      stringBuilder.append(obj);
+    for (int i = 0; i < columns.size(); i++) {
+      Object obj = columns.get(i);
+      if (obj == null) {
+        stringBuilder.append("null");
+      } else if (obj.getClass().isArray()) {
+        stringBuilder.append(Arrays.toString((Object[]) obj));
+      } else {
+        stringBuilder.append(obj);
+      }
+
       currentIndex++;
       if (currentIndex < columns.size()) {
         stringBuilder.append(" | ");

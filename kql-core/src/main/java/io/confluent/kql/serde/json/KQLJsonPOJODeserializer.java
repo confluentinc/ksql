@@ -61,10 +61,12 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
 
   private GenericRow getGenericRow(byte[] rowJSONBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJSONBytes);
+    CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
+    Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
     for (Field field: schema.fields()) {
-      String jsonFieldName = field.name().substring(field.name().indexOf(".")+1).toLowerCase();
-      JsonNode fieldJsonNode = jsonNode.get(jsonFieldName);
+      String jsonFieldName = field.name().substring(field.name().indexOf(".")+1);
+      JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
       if (fieldJsonNode == null) {
         columns.add(null);
       } else {
@@ -108,6 +110,21 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
       default:
         throw new KQLException("Type is not supported: " + fieldSchema.type());
 
+    }
+
+  }
+
+  class CaseInsensitiveJsonNode {
+    JsonNode jsonNode;
+    Map<String, String> keyMap = new HashMap<>();
+
+    CaseInsensitiveJsonNode(JsonNode jsonNode) {
+      this.jsonNode = jsonNode;
+      Iterator<String> fieldNames = jsonNode.fieldNames();
+      while (fieldNames.hasNext()) {
+        String fieldName = fieldNames.next();
+        keyMap.put(fieldName.toUpperCase(), fieldName);
+      }
     }
 
   }

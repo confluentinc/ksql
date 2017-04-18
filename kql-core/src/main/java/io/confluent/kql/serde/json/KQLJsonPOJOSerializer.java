@@ -45,9 +45,7 @@ public class KQLJsonPOJOSerializer implements Serializer<GenericRow> {
         String jsonFieldName = schema.fields().get(i).name().substring(schema.fields().get(i).name().indexOf(".")+1).toLowerCase();
         map.put(jsonFieldName, data.getColumns().get(i));
       }
-      byte[] b = objectMapper.writeValueAsBytes(map);
-      System.out.println(new String(b));
-      return b;
+      return objectMapper.writeValueAsBytes(map);
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }

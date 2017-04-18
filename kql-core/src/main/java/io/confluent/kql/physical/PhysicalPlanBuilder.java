@@ -104,9 +104,14 @@ public class PhysicalPlanBuilder {
                                                                  kqlAvroTopicSerDe
                                                                      .getSchemaFilePath());
       }
+      boolean isFromAggregate = false;
+      if (outputNode.getSources().get(0) instanceof AggregateNode) {
+        isFromAggregate = true;
+      }
       SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
                                                                 .getKafkaTopicName(), SerDeUtil
-          .getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe(), kqlStructuredDataOutputNode.getSchema()));
+          .getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe(),
+                       kqlStructuredDataOutputNode.getSchema()), isFromAggregate);
 
       this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;

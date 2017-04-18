@@ -44,7 +44,8 @@ public class SchemaKStream {
     this.sourceSchemaKStreams = sourceSchemaKStreams;
   }
 
-  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
+  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
+   final boolean fromAggregate) {
 
     kStream.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;

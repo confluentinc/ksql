@@ -18,6 +18,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.Windowed;
 
 import java.util.List;
 
@@ -44,7 +45,7 @@ public class SchemaKGroupedStream {
                                 final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
-    KTable aggKtable;
+    KTable<Windowed<String>, GenericRow> aggKtable;
     if (windowExpression != null) {
       if (windowExpression.getKqlWindowExpression() instanceof TumblingWindowExpression) {
         TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)

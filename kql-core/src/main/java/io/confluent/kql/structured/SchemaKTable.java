@@ -8,6 +8,7 @@ import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
+import io.confluent.kql.util.WindowedSerde;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -33,9 +34,14 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
+  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe, final boolean fromAggregate) {
 
-    kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+    if (fromAggregate) {
+      kTable.to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+    } else {
+      kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+    }
+
     return this;
   }
 

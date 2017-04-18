@@ -192,14 +192,14 @@ public class QueryEngine {
           sinkDataSource =
               new KQLTable(outputKafkaTopicNode.getId().toString(),
                            outputKafkaTopicNode.getSchema(),
-                           outputKafkaTopicNode.getKeyField(),
+                           schemaKStream.getKeyField(),
                            outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
                                                                    .toString() + "_statestore");
         } else {
           sinkDataSource =
               new KQLStream(outputKafkaTopicNode.getId().toString(),
                             outputKafkaTopicNode.getSchema(),
-                            outputKafkaTopicNode.getKeyField(),
+                            schemaKStream.getKeyField(),
                             outputKafkaTopicNode.getKqlTopic());
         }
 

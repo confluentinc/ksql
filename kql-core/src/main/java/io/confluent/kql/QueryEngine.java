@@ -189,12 +189,14 @@ public class QueryEngine {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
         }
         if (schemaKStream instanceof SchemaKTable) {
+          SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
           sinkDataSource =
               new KQLTable(outputKafkaTopicNode.getId().toString(),
                            outputKafkaTopicNode.getSchema(),
                            schemaKStream.getKeyField(),
                            outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
-                                                                   .toString() + "_statestore");
+                                                                   .toString() + "_statestore",
+                           schemaKTable.isWindowed());
         } else {
           sinkDataSource =
               new KQLStream(outputKafkaTopicNode.getId().toString(),

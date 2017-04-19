@@ -84,7 +84,7 @@ public class SchemaKTableTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                             kqlTable.getKeyField(), new ArrayList<>());
+                                             kqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions
         ());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -110,7 +110,7 @@ public class SchemaKTableTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           kqlTable.getKeyField(), new ArrayList<>());
+                                           kqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -137,7 +137,7 @@ public class SchemaKTableTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           kqlTable.getKeyField(), new ArrayList<>());
+                                           kqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 4);

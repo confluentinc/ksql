@@ -15,6 +15,7 @@ import io.confluent.kql.parser.tree.CreateStream;
 import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.DropTable;
+import io.confluent.kql.parser.tree.Except;
 import io.confluent.kql.parser.tree.TableElement;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
@@ -221,12 +222,25 @@ public class DDLEngine {
     String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
+    boolean isWindowed = false;
+    if (createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY) != null) {
+      String isWindowedProp = createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY).toString
+          ().toUpperCase();
+      try {
+        isWindowed = Boolean.parseBoolean(isWindowedProp);
+      } catch (Exception e) {
+        throw new KQLException("isWindowed property is not set correctly: "+isWindowedProp);
+      }
+    }
+
+
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new KQLException("The corresponding topic is does not exist.");
+      throw new KQLException("The corresponding topic does not exist.");
     }
 
     KQLTable kqlTable = new KQLTable(tableName, tableSchema, tableSchema.field(keyName),
-                                     kqlEngine.getMetaStore().getTopic(topicName), stateStoreName);
+                                     kqlEngine.getMetaStore().getTopic(topicName),
+                                     stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore

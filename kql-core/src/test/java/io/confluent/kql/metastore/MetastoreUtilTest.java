@@ -91,7 +91,8 @@ public class MetastoreUtilTest {
     Schema tableSchema = SchemaBuilder.struct().field(tableKeyName, Schema.BOOLEAN_SCHEMA).name(tableSourceName).build();
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
-    expectedMetaStore.putSource(new KQLTable(tableSourceName, tableSchema, tableKey, topic, tableStateStore));
+    expectedMetaStore.putSource(new KQLTable(tableSourceName, tableSchema, tableKey, topic,
+                                             tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";

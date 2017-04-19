@@ -69,7 +69,7 @@ public class SchemaKGroupedStream {
       aggKtable =
           kGroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
     }
-    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams);
+    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, true);
   }
 
   private long getWindowUnitInMillisecond(long value, WindowExpression.WindowUnit windowUnit) {

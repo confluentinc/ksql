@@ -67,11 +67,11 @@ public class MetastoreUtil {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                            kqlTopic, kqlTopic.getName());
+                            kqlTopic, kqlTopic.getName(), node.get("iswindowed").asBoolean());
       }
       String stateStore = node.get("statestore").asText();
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                          kqlTopic, stateStore);
+                          kqlTopic, stateStore, node.get("iswindowed").asBoolean());
     }
     throw new KQLException(String.format("Type not supported: '%s'", type));
   }
@@ -216,6 +216,7 @@ public class MetastoreUtil {
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"" + kqlTable.getStateStoreName() + "\", \n");
+        stringBuilder.append("\t\t\t \"iswindowed\": \"" + kqlTable.isWinidowed() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;

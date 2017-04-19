@@ -43,7 +43,7 @@ public class KQLTestUtil {
         KQLTopic2 =
         new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe(null));
     KQLTable kqlTable = new KQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     KQLTopic2, "TEST2");
+                                     KQLTopic2, "TEST2", false);
 
     metaStore.putTopic(KQLTopic2);
     metaStore.putSource(kqlTable);

@@ -104,14 +104,11 @@ public class PhysicalPlanBuilder {
                                                                  kqlAvroTopicSerDe
                                                                      .getSchemaFilePath());
       }
-      boolean isFromAggregate = false;
-      if (outputNode.getSources().get(0) instanceof AggregateNode) {
-        isFromAggregate = true;
-      }
+
       SchemaKStream resultSchemaStream = schemaKStream.into(kqlStructuredDataOutputNode
                                                                 .getKafkaTopicName(), SerDeUtil
           .getRowSerDe(kqlStructuredDataOutputNode.getKqlTopic().getKqlTopicSerDe(),
-                       kqlStructuredDataOutputNode.getSchema()), isFromAggregate);
+                       kqlStructuredDataOutputNode.getSchema()));
 
       this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;
@@ -204,7 +201,7 @@ public class PhysicalPlanBuilder {
 
     SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getkTable(),
                                                       schemaKTable.getKeyField(),
-                                                      schemaKTable.getSourceSchemaKStreams());
+                                                      schemaKTable.getSourceSchemaKStreams(), true);
 
     SchemaKTable finalResult = finalSchemaKTable.select(aggregateNode.getFinalSelectExpressions());
 
@@ -243,7 +240,7 @@ public class PhysicalPlanBuilder {
                 .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
                        kqlTable.getStateStoreName());
         return new SchemaKTable(sourceNode.getSchema(), kTable,
-                                sourceNode.getKeyField(), new ArrayList<>());
+                                sourceNode.getKeyField(), new ArrayList<>(), kqlTable.isWinidowed());
       }
       KQLStream kqlStream = (KQLStream) structuredDataSourceNode.getStructuredDataSource();
       KStream

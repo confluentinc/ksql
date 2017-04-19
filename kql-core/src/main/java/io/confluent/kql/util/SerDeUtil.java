@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
@@ -55,14 +56,15 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getGenericRowAvroSerde(final String schemaStr) {
+  public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema) {
     Map<String, Object> serdeProps = new HashMap<>();
-    serdeProps.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+    String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, "AvroSchema");
+    serdeProps.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
 
-    final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer();
+    final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer();
+    final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer(schema);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -71,7 +73,7 @@ public class SerDeUtil {
   public static Serde<GenericRow> getRowSerDe(final KQLTopicSerDe topicSerDe, Schema schema) {
     if (topicSerDe instanceof KQLAvroTopicSerDe) {
       KQLAvroTopicSerDe avroTopicSerDe = (KQLAvroTopicSerDe) topicSerDe;
-      return SerDeUtil.getGenericRowAvroSerde(avroTopicSerDe.getSchemaString());
+      return SerDeUtil.getGenericRowAvroSerde(schema);
     } else if (topicSerDe instanceof KQLJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJSONSerde(schema);
     } else if (topicSerDe instanceof KQLCsvTopicSerDe) {

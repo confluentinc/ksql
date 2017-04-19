@@ -24,13 +24,19 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
   public static final String AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT = "/tmp/";
 
+  private final org.apache.kafka.connect.data.Schema schema;
+
   String rowSchema;
   Schema.Parser parser;
-  Schema schema;
+  Schema avroSchema;
   GenericDatumWriter<GenericRecord> writer;
   ByteArrayOutputStream output;
   Encoder encoder;
   List<Schema.Field> fields;
+
+  public KQLGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema) {
+    this.schema = schema;
+  }
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
@@ -39,14 +45,14 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
       throw new SerializationException("Avro schema is not set for the serializer.");
     }
     parser = new Schema.Parser();
-    schema = parser.parse(rowSchema);
-    fields = schema.getFields();
-    writer = new GenericDatumWriter<>(schema);
+    avroSchema = parser.parse(rowSchema);
+    fields = avroSchema.getFields();
+    writer = new GenericDatumWriter<>(avroSchema);
   }
 
   @Override
   public byte[] serialize(final String topic, final GenericRow genericRow) {
-    GenericRecord avroRecord = new GenericData.Record(schema);
+    GenericRecord avroRecord = new GenericData.Record(avroSchema);
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       avroRecord.put(fields.get(i).name(), genericRow.columns.get(i));
     }
@@ -66,14 +72,5 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   @Override
   public void close() {
 
-  }
-
-  private GenericRecord getGenericRecord(final Schema schema, final GenericRow genericRow) {
-    GenericRecord avroRecord = new GenericData.Record(schema);
-    avroRecord.put("ordertime", genericRow.columns.get(0));
-    avroRecord.put("orderid", genericRow.columns.get(1));
-    avroRecord.put("itemid", genericRow.columns.get(2));
-    avroRecord.put("orderunits", genericRow.columns.get(3));
-    return avroRecord;
   }
 }

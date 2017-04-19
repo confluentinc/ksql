@@ -15,7 +15,7 @@ import java.util.Map;
 public class AvroProducer extends DataGenProducer {
   @Override
   protected Serializer<GenericRow> getSerializer(Schema schema, String topicName) {
-    Serializer<GenericRow> result = new KQLGenericRowAvroSerializer();
+    Serializer<GenericRow> result = new KQLGenericRowAvroSerializer(getKQLSchema(topicName));
     Map<String, String> serializerConfiguration = new HashMap<>();
     serializerConfiguration.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schema.toString());
     result.configure(serializerConfiguration, false);

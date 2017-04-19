@@ -22,10 +22,16 @@ import io.confluent.kql.util.KQLException;
 
 public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
+  private final org.apache.kafka.connect.data.Schema schema;
+
   String rowSchema;
   Schema.Parser parser;
-  Schema schema;
+  Schema avroSchema;
   GenericDatumReader<GenericRecord> reader;
+
+  public KQLGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema) {
+    this.schema = schema;
+  }
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
@@ -34,8 +40,8 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
       throw new SerializationException("Avro schema is not set for the deserializer.");
     }
     parser = new Schema.Parser();
-    schema = parser.parse(rowSchema);
-    reader = new GenericDatumReader<>(schema);
+    avroSchema = parser.parse(rowSchema);
+    reader = new GenericDatumReader<>(avroSchema);
   }
 
   @Override

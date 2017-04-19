@@ -130,6 +130,7 @@ public class SchemaUtil {
           .put("FLOAT64", "DOUBLE")
           .put("BOOLEAN", "BOOLEAN")
           .put("ARRAY", "ARRAY")
+          .put("MAP", "MAP")
           .build();
 
   public static String getJavaCastString(Schema schema) {

@@ -15,7 +15,6 @@ import io.confluent.kql.parser.tree.CreateStream;
 import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.DropTable;
-import io.confluent.kql.parser.tree.Except;
 import io.confluent.kql.parser.tree.TableElement;
 import io.confluent.kql.serde.KQLTopicSerDe;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
@@ -224,12 +223,11 @@ public class DDLEngine {
 
     boolean isWindowed = false;
     if (createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY) != null) {
-      String isWindowedProp = createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY).toString
-          ().toUpperCase();
+      String isWindowedProp = createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
       try {
         isWindowed = Boolean.parseBoolean(isWindowedProp);
       } catch (Exception e) {
-        throw new KQLException("isWindowed property is not set correctly: "+isWindowedProp);
+        throw new KQLException("isWindowed property is not set correctly: " + isWindowedProp);
       }
     }
 
@@ -273,7 +271,7 @@ public class DDLEngine {
         } else if (sqlType.startsWith("MAP")) {
           //TODO: For now only primitive data types for map are supported. Will have to add
           // nested types.
-          String mapTypesStrs[] = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
+          String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
               .trim().split(",");
           if (mapTypesStrs.length != 2) {
             throw new KQLException("Map type is not defined correctly.: " + sqlType);

@@ -54,7 +54,7 @@ public class SchemaUtil {
                                                                                              .length() - 1).trim()));
       case "MAP":
         return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(kqlType.substring(kqlType
-                                                                                           .indexOf(",")+1, kqlType.length()-1).trim()));
+                                                                                           .indexOf(",") + 1, kqlType.length() - 1).trim()));
       default:
         throw new KQLException("Type is not supported: " + kqlType);
 

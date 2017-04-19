@@ -110,8 +110,7 @@ public class SchemaKTable extends SchemaKStream {
       }
     });
 
-    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this)
-        , isWindowed);
+    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this), isWindowed);
   }
 
   public SchemaKStream toStream() {

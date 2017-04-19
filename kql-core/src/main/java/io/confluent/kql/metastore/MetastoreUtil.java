@@ -64,14 +64,18 @@ public class MetastoreUtil {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
                            kqlTopic);
     } else if ("TABLE".equals(type)) {
+      boolean isWindowed = false;
+      if (node.get("iswindowed") != null) {
+        isWindowed = node.get("iswindowed").asBoolean();
+      }
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                            kqlTopic, kqlTopic.getName(), node.get("iswindowed").asBoolean());
+                            kqlTopic, kqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                          kqlTopic, stateStore, node.get("iswindowed").asBoolean());
+                          kqlTopic, stateStore, isWindowed);
     }
     throw new KQLException(String.format("Type not supported: '%s'", type));
   }

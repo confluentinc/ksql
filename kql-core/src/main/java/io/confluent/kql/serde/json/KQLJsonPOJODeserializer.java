@@ -4,7 +4,6 @@
 package io.confluent.kql.serde.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -65,7 +64,7 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
     for (Field field: schema.fields()) {
-      String jsonFieldName = field.name().substring(field.name().indexOf(".")+1);
+      String jsonFieldName = field.name().substring(field.name().indexOf(".") + 1);
       JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
       if (fieldJsonNode == null) {
         columns.add(null);

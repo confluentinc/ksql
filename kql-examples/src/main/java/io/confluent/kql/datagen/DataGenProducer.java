@@ -62,9 +62,6 @@ public abstract class DataGenProducer {
     }
     producer.flush();
     producer.close();
-
-    System.err.println("Done!");
-    System.err.println("Kafka topic name: " + kafkaTopicName);
   }
 
   protected abstract Serializer<GenericRow> getSerializer(

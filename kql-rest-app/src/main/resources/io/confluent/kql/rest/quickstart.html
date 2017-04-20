@@ -11,13 +11,8 @@
             var kql = document.getElementById('kql').value.replace(/\n/g, ' ').replace(/\r/g, ' ');
 
             xhr.onreadystatechange = function() {
-                if ((xhr.readyState === 3 || xhr.readyState === 4) && xhr.response !== '') {
-                    document.getElementById('response').innerHTML =
-                        xhr.response
-                            .replace(/,"/g, ', "')
-                            .replace(/":/g, '": ')
-                            .replace(/,{/g, ', {')
-                            .replace(/\n/g, '<br />');
+                if ((xhr.readyState === 3 || xhr.readyState === 4) && xhr.response !== '' && xhr.response !== '\n') {
+                    document.getElementById('response').innerHTML = xhr.response;
                 }
                 if (xhr.readyState === 4 || xhr.readyState === 0) {
                     document.getElementById("request_loading").hidden = true;
@@ -25,7 +20,7 @@
                 }
             }
 
-            var data = '{"kql":"' + kql.replace('"', '\\"') + '"}';
+            var data = JSON.stringify({'kql': kql})
 
             document.getElementById("cancel_request").hidden = false;
             document.getElementById("request_loading").hidden = false;
@@ -75,7 +70,6 @@
             border:2px solid gray;
 
             font-size:20px;
-            font-family:monospace;
         }
     </style>
 </head>
@@ -101,6 +95,6 @@
     <br />
     Server response:
     <br />
-    <div id="response" class="response"></div>
+    <pre id="response" class="response"></pre>
 </body>
 </html>

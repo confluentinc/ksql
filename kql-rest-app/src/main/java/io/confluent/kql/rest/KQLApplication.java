@@ -20,7 +20,10 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.glassfish.jersey.server.ServerProperties;
+import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +47,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KQLResource kqlResource;
-  private final QuickstartResource quickstartResource;
+  private final boolean enableQuickstartPage;
 
   private final Thread queryComputerThread;
 
@@ -54,14 +57,14 @@ public class KQLApplication extends Application<KQLRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KQLResource kqlResource,
-      QuickstartResource quickstartResource
+      boolean enableQuickstartPage
   ) {
     super(config);
     this.queryComputer = queryComputer;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.kqlResource = kqlResource;
-    this.quickstartResource = quickstartResource;
+    this.enableQuickstartPage = enableQuickstartPage;
 
     this.queryComputerThread = new Thread(queryComputer);
   }
@@ -71,8 +74,15 @@ public class KQLApplication extends Application<KQLRestConfig> {
     config.register(statusResource);
     config.register(kqlResource);
     config.register(streamedQueryResource);
-    if (quickstartResource != null) {
-      config.register(quickstartResource);
+  }
+
+  @Override
+  public ResourceCollection getStaticResources() {
+    if (enableQuickstartPage) {
+      System.err.println("ENABLING QUICKSTART RESOURCE");
+      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/kql/rest/"));
+    } else {
+      return super.getStaticResources();
     }
   }
 
@@ -104,6 +114,9 @@ public class KQLApplication extends Application<KQLRestConfig> {
     super.configureBaseApplication(config, metricTags);
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
+    if (enableQuickstartPage) {
+      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "^/quickstart\\.html$");
+    }
   }
 
   @Path("/quickstart")
@@ -134,7 +147,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     System.err.println("Server shutting down...");
   }
 
-  public static KQLApplication of(Properties props, String quickstartFile) throws Exception {
+  public static KQLApplication of(Properties props, boolean quickstart) throws Exception {
     KQLRestConfig config = new KQLRestConfig(props);
 
     Map<String, QueryMetadata> liveQueryMap = new HashMap<>();
@@ -210,7 +223,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
         statusResource,
         streamedQueryResource,
         kqlResource,
-        quickstartFile == null ? null : new QuickstartResource(new File(quickstartFile))
+        quickstart
     );
   }
 }

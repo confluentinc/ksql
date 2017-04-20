@@ -43,7 +43,7 @@ public class CLIOptions {
 
   @Option(
       name = QUICKSTART_OPTION_NAME,
-      description = "An optional static HTML file to serve at the /quickstart resource"
+      description = "Whether to serve a quickstart file (located in the resources directory) at /quickstart.html"
   )
   private boolean quickstart;
   public boolean getQuickstart() {

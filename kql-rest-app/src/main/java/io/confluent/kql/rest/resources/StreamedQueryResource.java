@@ -103,7 +103,7 @@ public class StreamedQueryResource {
 
   private class QueryStream implements StreamingOutput {
     private final KStreamBuilder streamBuilder;
-    private final KStream<String, GenericRow> queryKStream;
+    private final KStream<?, GenericRow> queryKStream;
     private final KafkaStreams querySourceStreams;
     private final List<Field> columns;
     private final String intoTable;
@@ -151,7 +151,7 @@ public class StreamedQueryResource {
 
     @Override
     public void write(OutputStream output) throws IOException {
-      queryKStream.foreach(new QueryRowWriter(output));
+      queryKStream.foreach(new QueryRowWriter<>(output));
 
       Map<String, Object> streamedQueryProperties = new HashMap<>(streamsProperties);
       streamedQueryProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, intoTable);
@@ -195,7 +195,7 @@ public class StreamedQueryResource {
       log.info("Temporary stream has been removed from metastore");
     }
 
-    private class QueryRowWriter implements ForeachAction<String, GenericRow> {
+    private class QueryRowWriter<K> implements ForeachAction<K, GenericRow> {
       private final OutputStream output;
 
       public QueryRowWriter(OutputStream output) {
@@ -203,9 +203,9 @@ public class StreamedQueryResource {
       }
 
       @Override
-      public void apply(String key, GenericRow row) {
+      public void apply(K key, GenericRow row) {
         try {
-          write(key, row);
+          write(key.toString(), row);
         } catch (Exception exception) {
           streamsException.compareAndSet(null, exception);
         }

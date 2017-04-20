@@ -5,6 +5,7 @@ package io.confluent.kql.util;
 
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 
 import jline.console.ConsoleReader;
 
@@ -29,12 +30,31 @@ public class TopicPrinter {
     String applicationId = kqlTopic.getKafkaTopicName() + "_" + System.currentTimeMillis();
     Map<String, Object> streamsProperties = config.getResetStreamsProperties(applicationId);
 
-    KStream<String, GenericRow>
-        source =
-        builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe()),
-                       kqlTopic.getKafkaTopicName());
+    if (kqlTopic.getKqlTopicSerDe() instanceof KQLJsonTopicSerDe) {
+      KStream<String, String>
+          source =
+          builder.stream(Serdes.String(), Serdes.String(), kqlTopic.getKafkaTopicName());
+      source.map(new KeyValueMapper<String, String, KeyValue<?, ?>>() {
+        @Override
+        public KeyValue<String, String> apply(String key, String value) {
+          try {
+            console.println(key + " --> " + value);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+          return new KeyValue<String, String>(key, value);
+        }
+      });
+    } else {
+      KStream<String, GenericRow>
+          source =
+          builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe(), null),
+                         kqlTopic.getKafkaTopicName());
 
-    source.map(new KQLPrintKeyValueMapper(console, interval));
+      source.map(new KQLPrintKeyValueMapper(console, interval));
+
+
+    }
 
     KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
     streams.start();

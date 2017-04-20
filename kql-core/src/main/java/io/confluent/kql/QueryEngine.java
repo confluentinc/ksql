@@ -121,6 +121,17 @@ public class QueryEngine {
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
 
+      // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
+      if (analysis.getHavingExpression() != null) {
+        aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null, null));
+        if (!aggregateAnalyzer.isHasAggregateFunction()) {
+          aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+        }
+        aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
+                                                              analysis.getHavingExpression()));
+        aggregateAnalyzer.setHasAggregateFunction(false);
+      }
+
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KQLStructuredDataOutputNode) {
@@ -188,17 +199,19 @@ public class QueryEngine {
           metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
         }
         if (schemaKStream instanceof SchemaKTable) {
+          SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
           sinkDataSource =
               new KQLTable(outputKafkaTopicNode.getId().toString(),
                            outputKafkaTopicNode.getSchema(),
-                           outputKafkaTopicNode.getKeyField(),
+                           schemaKStream.getKeyField(),
                            outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
-                                                                   .toString() + "_statestore");
+                                                                   .toString() + "_statestore",
+                           schemaKTable.isWindowed());
         } else {
           sinkDataSource =
               new KQLStream(outputKafkaTopicNode.getId().toString(),
                             outputKafkaTopicNode.getSchema(),
-                            outputKafkaTopicNode.getKeyField(),
+                            schemaKStream.getKeyField(),
                             outputKafkaTopicNode.getKqlTopic());
         }
 

@@ -24,7 +24,7 @@ public class MetastoreTest {
 
   @Test
   public void testTopicMap() {
-    KQLTopic kqlTopic = new KQLTopic("testTopic", "testTopicKafka", new KQLJsonTopicSerDe());
+    KQLTopic kqlTopic = new KQLTopic("testTopic", "testTopicKafka", new KQLJsonTopicSerDe(null));
     metaStore.putTopic(kqlTopic);
     KQLTopic kqlTopic1 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(kqlTopic1);

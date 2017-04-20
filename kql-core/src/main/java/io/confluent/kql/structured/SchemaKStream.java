@@ -65,7 +65,7 @@ public class SchemaKStream {
   }
 
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
-    SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
+    SQLPredicate predicate = new SQLPredicate(filterExpression, schema, false);
     KStream filteredKStream = kStream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this));
   }

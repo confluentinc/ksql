@@ -106,7 +106,8 @@ public class LogicalPlanner {
                              aggregateAnalysis.getFunctionList(),
                              aggregateAnalysis.getRequiredColumnsList(),
                              aggregateAnalysis.getNonAggResultColumns(),
-                             aggregateAnalysis.getFinalSelectExpressions());
+                             aggregateAnalysis.getFinalSelectExpressions(),
+                             aggregateAnalysis.getHavingExpression());
   }
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {

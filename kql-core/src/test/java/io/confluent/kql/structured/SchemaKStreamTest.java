@@ -44,7 +44,8 @@ public class SchemaKStreamTest {
     metaStore = KQLTestUtil.getNewMetaStore();
     kqlStream = (KQLStream) metaStore.getSource("TEST1");
     KStreamBuilder builder = new KStreamBuilder();
-    kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlStream.getKqlTopic().getKqlTopicSerDe()),
+    kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlStream.getKqlTopic()
+                                                                        .getKqlTopicSerDe(), null),
                     kqlStream.getKqlTopic().getKafkaTopicName());
 //    initialSchemaKStream = new SchemaKStream(kqlStream.getSchema(), kStream,
 //                                             kqlStream.getKeyField(), new ArrayList<>());

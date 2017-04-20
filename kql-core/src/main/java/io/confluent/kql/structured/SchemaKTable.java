@@ -8,6 +8,7 @@ import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
+import io.confluent.kql.util.WindowedSerde;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -25,17 +26,24 @@ import java.util.List;
 public class SchemaKTable extends SchemaKStream {
 
   final KTable kTable;
+  final boolean isWindowed;
 
   public SchemaKTable(final Schema schema, final KTable kTable, final Field keyField,
-                      final List<SchemaKStream> sourceSchemaKStreams) {
+                      final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed) {
     super(schema, null, keyField, sourceSchemaKStreams);
     this.kTable = kTable;
+    this.isWindowed = isWindowed;
   }
 
   @Override
   public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
 
-    kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+    if (isWindowed) {
+      kTable.to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+    } else {
+      kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+    }
+
     return this;
   }
 
@@ -52,9 +60,9 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
+    SQLPredicate predicate = new SQLPredicate(filterExpression, schema, isWindowed);
     KTable filteredKTable = kTable.filter(predicate.getPredicate());
-    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this));
+    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed);
   }
 
   @Override
@@ -102,7 +110,7 @@ public class SchemaKTable extends SchemaKStream {
       }
     });
 
-    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this));
+    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this), isWindowed);
   }
 
   public SchemaKStream toStream() {
@@ -113,4 +121,7 @@ public class SchemaKTable extends SchemaKStream {
     return kTable;
   }
 
+  public boolean isWindowed() {
+    return isWindowed;
+  }
 }

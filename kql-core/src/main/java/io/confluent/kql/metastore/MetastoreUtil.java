@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class MetastoreUtil {
 
@@ -64,14 +66,18 @@ public class MetastoreUtil {
       return new KQLStream(name, dataSource, dataSource.field(keyFieldName),
                            kqlTopic);
     } else if ("TABLE".equals(type)) {
+      boolean isWindowed = false;
+      if (node.get("iswindowed") != null) {
+        isWindowed = node.get("iswindowed").asBoolean();
+      }
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                            kqlTopic, kqlTopic.getName());
+                            kqlTopic, kqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
       return new KQLTable(name, dataSource, dataSource.field(keyFieldName),
-                          kqlTopic, stateStore);
+                          kqlTopic, stateStore, isWindowed);
     }
     throw new KQLException(String.format("Type not supported: '%s'", type));
   }
@@ -91,7 +97,7 @@ public class MetastoreUtil {
       String avroSchema = getAvroSchema(schemaPath);
       topicSerDe = new KQLAvroTopicSerDe(schemaPath, avroSchema);
     } else if ("JSON".equals(serde)) {
-      topicSerDe = new KQLJsonTopicSerDe();
+      topicSerDe = new KQLJsonTopicSerDe(null);
     } else if ("CSV".equals(serde)) {
       topicSerDe = new KQLCsvTopicSerDe();
     } else {
@@ -216,6 +222,7 @@ public class MetastoreUtil {
       if (structuredDataSource instanceof KQLTable) {
         KQLTable kqlTable = (KQLTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"" + kqlTable.getStateStoreName() + "\", \n");
+        stringBuilder.append("\t\t\t \"iswindowed\": \"" + kqlTable.isWinidowed() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;
@@ -282,37 +289,50 @@ public class MetastoreUtil {
     stringBuilder.append("\t\"type\": \"record\",\n");
     stringBuilder.append("\t\"fields\": [\n");
     boolean addCamma = false;
+    Set<String> fieldNameSet = new HashSet<>();
     for (Field field : schema.fields()) {
       if (addCamma) {
         stringBuilder.append(",\n");
       } else {
         addCamma = true;
       }
+      String fieldName = field.name().replace(".", "_");
+      while (fieldNameSet.contains(fieldName)) {
+        fieldName = fieldName + "_";
+      }
+      fieldNameSet.add(fieldName);
       stringBuilder
-          .append("\t\t{\"name\": \"" + field.name() + "\", \"type\": \"" + getAvroTypeName(field
-                                                                                                .schema()
-                                                                                                .type())
-                  + "\"}");
+          .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": " +
+                  getAvroTypeName(field
+                                                                                               .schema())
+                  + "}");
     }
     stringBuilder.append("\n\t]\n");
     stringBuilder.append("}");
     return stringBuilder.toString();
   }
 
-  private String getAvroTypeName(final Schema.Type type) {
-    switch (type) {
+  private String getAvroTypeName(final Schema schema) {
+    switch (schema.type()) {
       case STRING:
-        return "STRING";
+        return "\"string\"";
       case BOOLEAN:
-        return "BOOLEAN";
+        return "\"boolean\"";
       case INT32:
-        return "INT";
+        return "\"int\"";
       case INT64:
-        return "LONG";
+        return "\"long\"";
       case FLOAT64:
-        return "DOUBLE";
+        return "\"double\"";
       default:
-        throw new KQLException("Unsupported AVRO type: " + type.name());
+        if (schema.type() == Schema.Type.ARRAY) {
+          return "{\"type\": \"array\", \"items\": "
+              + getAvroTypeName(schema.valueSchema()) + "}";
+        } else if (schema.type() == Schema.Type.MAP) {
+          return "{\"type\": \"map\", \"values\": "
+                 + getAvroTypeName(schema.valueSchema()) + "}";
+        }
+        throw new KQLException("Unsupported AVRO type: " + schema.type().name());
     }
   }
 }

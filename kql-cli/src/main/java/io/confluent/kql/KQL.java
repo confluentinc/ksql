@@ -471,6 +471,13 @@ public class KQL {
             + "[" + schemaField.schema()
                 .valueSchema().schema().type() + "]", 18)
                         + "  |");
+      } else if (schemaField.schema().type() == Schema.Type.MAP) {
+        console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
+            SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())
+            + "<" + schemaField.schema()
+                .keySchema().schema().type() + " , " + schemaField.schema()
+                .valueSchema().schema().type() + ">", 18)
+                        + "  |");
       } else {
         console.println(padRight(schemaField.name(), 19) + "|  " + padRight(
             SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase())

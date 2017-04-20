@@ -29,6 +29,8 @@ public class Analysis {
   List<Expression> groupByExpressions = new ArrayList<>();
   WindowExpression windowExpression = null;
 
+  Expression havingExpression = null;
+
 
   public void addSelectItem(final Expression expression, final String alias) {
     selectExpressions.add(expression);
@@ -122,6 +124,14 @@ public class Analysis {
 
   public void setWindowExpression(WindowExpression windowExpression) {
     this.windowExpression = windowExpression;
+  }
+
+  public Expression getHavingExpression() {
+    return havingExpression;
+  }
+
+  public void setHavingExpression(Expression havingExpression) {
+    this.havingExpression = havingExpression;
   }
 }
 

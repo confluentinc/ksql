@@ -21,6 +21,10 @@ public class PlanVisitor<C, R> {
     return visitPlan(node, context);
   }
 
+  public R visitAggregate(AggregateNode node, C context) {
+    return visitPlan(node, context);
+  }
+
   public R visitOutput(OutputNode node, C context) {
     return visitPlan(node, context);
   }

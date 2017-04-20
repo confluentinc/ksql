@@ -84,7 +84,7 @@ public class DDLEngine {
         }
         break;
       case DataSource.JSON_SERDE_NAME:
-        topicSerDe = new KQLJsonTopicSerDe();
+        topicSerDe = new KQLJsonTopicSerDe(null);
         break;
       case DataSource.CSV_SERDE_NAME:
         topicSerDe = new KQLCsvTopicSerDe();
@@ -221,12 +221,24 @@ public class DDLEngine {
     String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
+    boolean isWindowed = false;
+    if (createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY) != null) {
+      String isWindowedProp = createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
+      try {
+        isWindowed = Boolean.parseBoolean(isWindowedProp);
+      } catch (Exception e) {
+        throw new KQLException("isWindowed property is not set correctly: " + isWindowedProp);
+      }
+    }
+
+
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new KQLException("The corresponding topic is does not exist.");
+      throw new KQLException("The corresponding topic does not exist.");
     }
 
     KQLTable kqlTable = new KQLTable(tableName, tableSchema, tableSchema.field(keyName),
-                                     kqlEngine.getMetaStore().getTopic(topicName), stateStoreName);
+                                     kqlEngine.getMetaStore().getTopic(topicName),
+                                     stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
@@ -259,7 +271,7 @@ public class DDLEngine {
         } else if (sqlType.startsWith("MAP")) {
           //TODO: For now only primitive data types for map are supported. Will have to add
           // nested types.
-          String mapTypesStrs[] = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
+          String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
               .trim().split(",");
           if (mapTypesStrs.length != 2) {
             throw new KQLException("Map type is not defined correctly.: " + sqlType);

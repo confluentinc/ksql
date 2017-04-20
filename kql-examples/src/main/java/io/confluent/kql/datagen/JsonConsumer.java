@@ -50,18 +50,6 @@ public class JsonConsumer {
 
     KStreamBuilder builder = new KStreamBuilder();
 
-//        KStream<String, GenericRow> source = builder.stream(Serdes.String(), getGenericRowSerde(), topicName);
-//
-////        source.print();
-//        source.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-//            @Override
-//            public KeyValue<String, GenericRow> apply(String s, GenericRow genericRow) {
-//                System.out.println(genericRow.toString());
-//                return new KeyValue<String, GenericRow>(s, genericRow);
-//            }
-//
-//        });
-
     KTable<String, GenericRow>
         source =
         builder.table(Serdes.String(), getGenericRowSerde(), topicName, "users");
@@ -73,7 +61,6 @@ public class JsonConsumer {
         return genericRow;
       }
     });
-    //.to(Serdes.String(), getGenericRowSerde(), "result_topic");
 
     KafkaStreams streams = new KafkaStreams(builder, props);
     streams.start();
@@ -199,11 +186,11 @@ public class JsonConsumer {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer<>();
+      final Serializer<GenericRow> genericRowSerializer = new KQLJsonPOJOSerializer(null);
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer<>();
+      final Deserializer<GenericRow> genericRowDeserializer = new KQLJsonPOJODeserializer(null);
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowDeserializer.configure(serdeProps, false);
 
@@ -228,15 +215,6 @@ public class JsonConsumer {
         pageviewStream =
         builder.stream(Serdes.String(), getGenericRowSerde(), "streams-pageview-input");
 
-//        source.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-//            @Override
-//            public KeyValue<String, GenericRow> apply(String s, GenericRow genericRow) {
-//                System.out.println(genericRow.toString());
-//                return new KeyValue<String, GenericRow>(s, genericRow);
-//            }
-//
-//        });
-
     KTable<String, GenericRow>
         usersTable =
         builder.table(Serdes.String(), getGenericRowSerde(), "streams-userprofile-input", "users");
@@ -248,7 +226,6 @@ public class JsonConsumer {
         return genericRow;
       }
     });
-    //.to(Serdes.String(), getGenericRowSerde(), "result_topic");
 
     KafkaStreams streams = new KafkaStreams(builder, props);
     streams.start();

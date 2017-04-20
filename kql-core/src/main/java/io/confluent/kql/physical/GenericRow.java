@@ -9,7 +9,6 @@ import java.util.List;
 public class GenericRow {
 
   public List<Object> columns;
-//    public List<AbstractType> columnTypes;
 
   public GenericRow() {
   }

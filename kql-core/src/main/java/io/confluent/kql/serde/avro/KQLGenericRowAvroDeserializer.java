@@ -4,6 +4,7 @@
 package io.confluent.kql.serde.avro;
 
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Decoder;
@@ -12,17 +13,25 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.util.KQLException;
 
 public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
+  private final org.apache.kafka.connect.data.Schema schema;
+
   String rowSchema;
   Schema.Parser parser;
-  Schema schema;
+  Schema avroSchema;
   GenericDatumReader<GenericRecord> reader;
+
+  public KQLGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema) {
+    this.schema = schema;
+  }
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
@@ -31,8 +40,8 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
       throw new SerializationException("Avro schema is not set for the deserializer.");
     }
     parser = new Schema.Parser();
-    schema = parser.parse(rowSchema);
-    reader = new GenericDatumReader<>(schema);
+    avroSchema = parser.parse(rowSchema);
+    reader = new GenericDatumReader<>(avroSchema);
   }
 
   @Override
@@ -48,7 +57,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
       List<Schema.Field> fields = genericRecord.getSchema().getFields();
       List columns = new ArrayList();
       for (Schema.Field field : fields) {
-        columns.add(genericRecord.get(field.name()));
+        columns.add(enforceFieldType(field.schema(), genericRecord.get(field.name())));
       }
       genericRow = new GenericRow(columns);
     } catch (Exception e) {
@@ -56,6 +65,55 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
     }
     return genericRow;
   }
+
+  private Object enforceFieldType(Schema fieldSchema, Object value) {
+
+    switch (fieldSchema.getType()) {
+      case BOOLEAN:
+      case INT:
+      case LONG:
+      case DOUBLE:
+      case STRING:
+      case MAP:
+        return value;
+      case ARRAY:
+        GenericData.Array genericArray = (GenericData.Array) value;
+        Class elementClass = getJavaTypeForAvroType(fieldSchema.getElementType());
+        Object[] arrayField = (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray
+            .size());
+        for (int i = 0; i < genericArray.size(); i++) {
+          Object obj = enforceFieldType(fieldSchema.getElementType(), genericArray.get(i));
+          arrayField[i] = obj;
+        }
+        return arrayField;
+      default:
+        throw new KQLException("Type is not supported: " + fieldSchema.getType());
+
+    }
+  }
+
+  private static Class getJavaTypeForAvroType(final Schema schema) {
+    switch (schema.getType()) {
+      case STRING:
+        return String.class;
+      case BOOLEAN:
+        return Boolean.class;
+      case INT:
+        return Integer.class;
+      case LONG:
+        return Long.class;
+      case DOUBLE:
+        return Double.class;
+      case ARRAY:
+        Class elementClass = getJavaTypeForAvroType(schema.getElementType());
+        return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
+      case MAP:
+        return (new HashMap<>()).getClass();
+      default:
+        throw new KQLException("Type is not supported: " + schema.getType());
+    }
+  }
+
 
   @Override
   public void close() {

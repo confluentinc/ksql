@@ -47,7 +47,7 @@ public class KQLEngine {
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
 
-  static final String QUERY_ID_PREFIX = "kql_";
+  static final String QUERY_ID_PREFIX = "KQL_";
   int queryIdCounter = 0;
 
   /**

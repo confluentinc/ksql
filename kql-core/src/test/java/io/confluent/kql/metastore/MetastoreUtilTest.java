@@ -83,7 +83,7 @@ public class MetastoreUtilTest {
 
     String topicName = "TOPIC_NAME";
     String kafkaTopicName = "KAFKA_TOPIC_NAME";
-    KQLTopic topic = new KQLTopic(topicName, kafkaTopicName, new KQLJsonTopicSerDe());
+    KQLTopic topic = new KQLTopic(topicName, kafkaTopicName, new KQLJsonTopicSerDe(null));
     expectedMetaStore.putTopic(topic);
 
     String tableSourceName = "TABLE_SOURCE";
@@ -91,7 +91,8 @@ public class MetastoreUtilTest {
     Schema tableSchema = SchemaBuilder.struct().field(tableKeyName, Schema.BOOLEAN_SCHEMA).name(tableSourceName).build();
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
-    expectedMetaStore.putSource(new KQLTable(tableSourceName, tableSchema, tableKey, topic, tableStateStore));
+    expectedMetaStore.putSource(new KQLTable(tableSourceName, tableSchema, tableKey, topic,
+                                             tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";

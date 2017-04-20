@@ -24,7 +24,7 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic1 =
-        new KQLTopic("TEST1", "test1", new KQLJsonTopicSerDe());
+        new KQLTopic("TEST1", "test1", new KQLJsonTopicSerDe(null));
 
     KQLStream kqlStream = new KQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
                                         KQLTopic1);
@@ -41,9 +41,9 @@ public class KQLTestUtil {
 
     KQLTopic
         KQLTopic2 =
-        new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe());
+        new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe(null));
     KQLTable kqlTable = new KQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     KQLTopic2, "TEST2");
+                                     KQLTopic2, "TEST2", false);
 
     metaStore.putTopic(KQLTopic2);
     metaStore.putSource(kqlTable);
@@ -56,7 +56,7 @@ public class KQLTestUtil {
 
     KQLTopic
             KQLTopicOrders =
-            new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe());
+            new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe(null));
 
     KQLStream kqlStreamOrders = new KQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
             KQLTopic1);

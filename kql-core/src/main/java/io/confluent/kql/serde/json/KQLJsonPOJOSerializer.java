@@ -8,36 +8,45 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
+import java.util.HashMap;
 import java.util.Map;
 
-public class KQLJsonPOJOSerializer<T> implements Serializer<T> {
+import io.confluent.kql.physical.GenericRow;
+
+public class KQLJsonPOJOSerializer implements Serializer<GenericRow> {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-
-  private Class<T> tClass;
+  private final Schema schema;
 
   /**
    * Default constructor needed by Kafka
    */
-  public KQLJsonPOJOSerializer() {
-
+  public KQLJsonPOJOSerializer(Schema schema) {
+    this.schema = schema;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public void configure(final Map<String, ?> props, final boolean isKey) {
-    tClass = (Class<T>) props.get("JsonPOJOClass");
   }
 
   @Override
-  public byte[] serialize(final String topic, final T data) {
+  public byte[] serialize(final String topic, final GenericRow data) {
     if (data == null) {
       return null;
     }
 
     try {
-      return objectMapper.writeValueAsBytes(data);
+      Map map = new HashMap();
+      for (int i = 0; i < data.getColumns().size(); i++) {
+        String jsonFieldName = schema.fields().get(i).name().substring(schema.fields().get(i)
+                                                                           .name().indexOf(".") +
+                                                                       1).toLowerCase();
+        map.put(jsonFieldName, data.getColumns().get(i));
+      }
+      return objectMapper.writeValueAsBytes(map);
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }

@@ -8,12 +8,15 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.rest.StatementParser;
 import io.confluent.kql.rest.TopicUtil;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SerDeUtil;
+import io.confluent.kql.util.WindowedSerde;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.KafkaStreams;
@@ -21,6 +24,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,9 +144,11 @@ public class StreamedQueryResource {
 
       streamBuilder = new KStreamBuilder();
 
+      Serde keySerde = outputNode.getSource() instanceof AggregateNode ? new WindowedSerde() : Serdes.String();
+
       queryKStream = streamBuilder.stream(
-          Serdes.String(),
-          SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe()),
+          keySerde,
+          SerDeUtil.getRowSerDe(kqlTopic.getKqlTopicSerDe(), outputNode.getSchema()),
           kqlTopic.getKafkaTopicName()
       );
 
@@ -204,8 +210,15 @@ public class StreamedQueryResource {
 
       @Override
       public void apply(K key, GenericRow row) {
+        String keyString;
+        if (key instanceof Windowed) {
+          keyString = ((Windowed) key).key().toString();
+        } else {
+          keyString = key.toString();
+        }
+
         try {
-          write(key.toString(), row);
+          write(keyString, row);
         } catch (Exception exception) {
           streamsException.compareAndSet(null, exception);
         }

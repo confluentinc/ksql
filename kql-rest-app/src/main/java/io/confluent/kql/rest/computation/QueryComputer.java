@@ -16,6 +16,7 @@ import io.confluent.kql.parser.tree.QuerySpecification;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
+import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
@@ -144,7 +145,8 @@ public class QueryComputer implements Runnable {
                     outputKafkaTopicNode.getSchema(),
                     outputKafkaTopicNode.getKeyField(),
                     outputKafkaTopicNode.getKqlTopic(),
-                    outputKafkaTopicNode.getId().toString() + "_statestore"
+                    outputKafkaTopicNode.getId().toString() + "_statestore",
+                    outputNode.getSource() instanceof AggregateNode
                 );
           } else {
             sinkDataSource =

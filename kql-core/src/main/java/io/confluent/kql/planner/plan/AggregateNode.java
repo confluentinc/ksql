@@ -34,6 +34,8 @@ public class AggregateNode extends PlanNode {
 
   private final List<Expression> finalSelectExpressions;
 
+  private final Expression havingExpressions;
+
   @JsonCreator
   public AggregateNode(@JsonProperty("id") final PlanNodeId id,
                        @JsonProperty("source") final PlanNode source,
@@ -47,7 +49,10 @@ public class AggregateNode extends PlanNode {
                              requiredColumnList,
                        @JsonProperty("nonAggResultColumns") final List<Expression>
                              nonAggResultColumns,
-                       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions) {
+                       @JsonProperty("finalSelectExpressions") final List<Expression>
+                             finalSelectExpressions,
+                       @JsonProperty("havingExpressions") final Expression
+                             havingExpressions) {
     super(id);
 
     this.source = source;
@@ -60,6 +65,7 @@ public class AggregateNode extends PlanNode {
     this.requiredColumnList = requiredColumnList;
     this.nonAggResultColumns = nonAggResultColumns;
     this.finalSelectExpressions = finalSelectExpressions;
+    this.havingExpressions = havingExpressions;
   }
 
   @Override
@@ -111,5 +117,14 @@ public class AggregateNode extends PlanNode {
 
   public List<Expression> getFinalSelectExpressions() {
     return finalSelectExpressions;
+  }
+
+  public Expression getHavingExpressions() {
+    return havingExpressions;
+  }
+
+  @Override
+  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    return visitor.visitAggregate(this, context);
   }
 }

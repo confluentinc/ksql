@@ -60,7 +60,7 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SQLPredicate predicate = new SQLPredicate(filterExpression, schema);
+    SQLPredicate predicate = new SQLPredicate(filterExpression, schema, isWindowed);
     KTable filteredKTable = kTable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed);
   }

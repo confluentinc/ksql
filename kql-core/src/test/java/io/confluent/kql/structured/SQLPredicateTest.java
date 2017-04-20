@@ -84,7 +84,8 @@ public class SQLPredicateTest {
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              kqlStream.getKeyField(), new ArrayList<>());
-    SQLPredicate predicate = new SQLPredicate(filterNode.getPredicate(), initialSchemaKStream.getSchema());
+    SQLPredicate predicate = new SQLPredicate(filterNode.getPredicate(), initialSchemaKStream
+        .getSchema(), false);
 
     Assert.assertTrue(predicate.filterExpression.toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
     Assert.assertTrue(predicate.columnIndexes.length == 1);
@@ -99,7 +100,8 @@ public class SQLPredicateTest {
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              kqlStream.getKeyField(), new ArrayList<>());
-    SQLPredicate predicate = new SQLPredicate(filterNode.getPredicate(), initialSchemaKStream.getSchema());
+    SQLPredicate predicate = new SQLPredicate(filterNode.getPredicate(), initialSchemaKStream
+        .getSchema(), false);
 
     Assert.assertTrue(predicate.filterExpression.toString().equalsIgnoreCase("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))"));
     Assert.assertTrue(predicate.columnIndexes.length == 3);

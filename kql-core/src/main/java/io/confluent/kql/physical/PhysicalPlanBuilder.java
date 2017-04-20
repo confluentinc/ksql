@@ -137,6 +137,11 @@ public class PhysicalPlanBuilder {
     for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
       aggArgExpansionList.add(expression);
     }
+
+//    if (aggregateNode.getHavingExpressions() != null) {
+//      aggArgExpansionList.add(aggregateNode.getHavingExpressions());
+//    }
+
     SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
     Serde<GenericRow> genericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
@@ -202,6 +207,10 @@ public class PhysicalPlanBuilder {
     SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getkTable(),
                                                       schemaKTable.getKeyField(),
                                                       schemaKTable.getSourceSchemaKStreams(), true);
+
+    if (aggregateNode.getHavingExpressions() != null) {
+      finalSchemaKTable = finalSchemaKTable.filter(aggregateNode.getHavingExpressions());
+    }
 
     SchemaKTable finalResult = finalSchemaKTable.select(aggregateNode.getFinalSelectExpressions());
 

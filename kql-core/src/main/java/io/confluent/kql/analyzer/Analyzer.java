@@ -109,6 +109,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.getWindowExpression().isPresent()) {
       analyzeWindowExpression(node.getWindowExpression().get(), context);
     }
+
+    if (node.getHaving().isPresent()) {
+      analyzeHaving(node.getHaving().get(), context);
+    }
     return null;
   }
 
@@ -354,5 +358,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   private void analyzeWindowExpression(final WindowExpression windowExpression, final AnalysisContext context) {
     analysis.setWindowExpression(windowExpression);
+  }
+
+  private void analyzeHaving(final Node node, final AnalysisContext context) {
+    analysis.setHavingExpression((Expression) node);
   }
 }

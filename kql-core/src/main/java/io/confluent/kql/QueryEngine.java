@@ -121,6 +121,17 @@ public class QueryEngine {
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
 
+      // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
+      if (analysis.getHavingExpression() != null) {
+        aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null, null));
+        if (!aggregateAnalyzer.isHasAggregateFunction()) {
+          aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+        }
+        aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
+                                                              analysis.getHavingExpression()));
+        aggregateAnalyzer.setHasAggregateFunction(false);
+      }
+
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KQLStructuredDataOutputNode) {

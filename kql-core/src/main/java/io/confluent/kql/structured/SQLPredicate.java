@@ -13,6 +13,7 @@ import io.confluent.kql.util.SchemaUtil;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -25,13 +26,15 @@ public class SQLPredicate {
   final Schema schema;
   IExpressionEvaluator ee;
   int[] columnIndexes;
+  boolean isWindowedKey;
 
   GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
-  public SQLPredicate(final Expression filterExpression, final Schema schema) throws Exception {
+  public SQLPredicate(final Expression filterExpression, final Schema schema, boolean isWindowedKey) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
+    this.isWindowedKey = isWindowedKey;
 
     ExpressionUtil expressionUtil = new ExpressionUtil();
     Map<String, Class> parameterMap = expressionUtil.getParameterInfo(filterExpression, schema);
@@ -62,6 +65,14 @@ public class SQLPredicate {
   }
 
   public Predicate getPredicate() {
+    if (isWindowedKey) {
+      return getWindowedKeyPredicate();
+    } else {
+      return getStringKeyPredicate();
+    }
+  }
+
+  private Predicate getStringKeyPredicate() {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     return new Predicate<String, GenericRow>() {
       @Override
@@ -92,4 +103,34 @@ public class SQLPredicate {
     };
   }
 
+  private Predicate getWindowedKeyPredicate() {
+    ExpressionUtil expressionUtil = new ExpressionUtil();
+    return new Predicate<Windowed<String>, GenericRow>() {
+      @Override
+      public boolean test(Windowed<String> key, GenericRow row) {
+        try {
+          ExpressionMetadata
+              expressionEvaluator =
+              expressionUtil.getExpressionEvaluator(filterExpression, schema);
+          KUDF[] kudfs = expressionEvaluator.getUdfs();
+          Object[] values = new Object[columnIndexes.length];
+          for (int i = 0; i < values.length; i++) {
+            if (columnIndexes[i] < 0) {
+              values[i] = kudfs[i];
+            } else {
+              values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
+                  .getColumns().get(columnIndexes[i]));
+            }
+          }
+          boolean result = (Boolean) ee.evaluate(values);
+          return result;
+        } catch (InvocationTargetException e) {
+          e.printStackTrace();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        throw new RuntimeException("Invalid format.");
+      }
+    };
+  }
 }

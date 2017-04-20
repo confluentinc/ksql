@@ -15,6 +15,9 @@ public class AggregateAnalysis {
 
   List<Expression> aggregateFunctionArguments = new ArrayList<>();
   List<Expression> requiredColumnsList = new ArrayList<>();
+
+  Expression havingExpression = null;
+
   Map<String, Expression> requiredColumnsMap = new HashMap<>();
 
   List<FunctionCall> functionList = new ArrayList<>();
@@ -45,5 +48,13 @@ public class AggregateAnalysis {
 
   public List<Expression> getFinalSelectExpressions() {
     return finalSelectExpressions;
+  }
+
+  public Expression getHavingExpression() {
+    return havingExpression;
+  }
+
+  public void setHavingExpression(Expression havingExpression) {
+    this.havingExpression = havingExpression;
   }
 }

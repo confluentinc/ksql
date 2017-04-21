@@ -86,11 +86,11 @@ public class QueryHandler {
     Map<String, String> terminatedQueries = getTerminatedQueries(priorCommands);
     for (Map.Entry<String, String> commandEntry : priorCommands.entrySet()) {
       Statement statement = statementParser.parseSingleStatement(commandEntry.getValue());
-      if ((statement instanceof CreateStreamAsSelect || statement instanceof CreateTableAsSelect)
-          && terminatedQueries.containsKey(commandEntry.getKey() + "_QUERY")
-      ) {
+      boolean isCreateStream = statement instanceof CreateStreamAsSelect;
+      boolean isCreateTable = statement instanceof CreateTableAsSelect;
+      if ((isCreateStream || isCreateTable) && terminatedQueries.containsKey(commandEntry.getKey() + "_QUERY")) {
         Query query;
-        if (statement instanceof CreateStreamAsSelect) {
+        if (isCreateStream) {
           CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
           QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
           query = kqlEngine.addInto(

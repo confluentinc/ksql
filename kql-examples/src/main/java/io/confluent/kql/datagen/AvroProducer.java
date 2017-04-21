@@ -13,11 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AvroProducer extends DataGenProducer {
+
   @Override
-  protected Serializer<GenericRow> getSerializer(Schema schema, String topicName) {
-    Serializer<GenericRow> result = new KQLGenericRowAvroSerializer(getKQLSchema(topicName));
+  protected Serializer<GenericRow> getSerializer(
+      Schema avroSchema,
+      org.apache.kafka.connect.data.Schema kafkaSchema,
+      String topicName
+  ) {
+    Serializer<GenericRow> result = new KQLGenericRowAvroSerializer(kafkaSchema);
     Map<String, String> serializerConfiguration = new HashMap<>();
-    serializerConfiguration.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schema.toString());
+    serializerConfiguration.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchema.toString());
     result.configure(serializerConfiguration, false);
     return result;
   }

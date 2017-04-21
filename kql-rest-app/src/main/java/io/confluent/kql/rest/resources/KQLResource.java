@@ -130,6 +130,7 @@ public class KQLResource {
             || statement instanceof TerminateQuery
     ) {
       String commandId = commandRunner.distributeStatement(statementString);
+      queryHandler.registerQueuedStatement(commandId);
       result.add("statement_id", commandId);
     } else {
       if (statement != null) {

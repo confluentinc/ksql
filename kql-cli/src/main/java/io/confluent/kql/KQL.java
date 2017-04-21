@@ -466,18 +466,22 @@ public class KQL {
     console.println("Running queries: ");
     console.println(
         " Query ID   |         Query                                                                    |         Query Sink Topic");
+    int numQueries = 0;
     for (String queryId : liveQueries.keySet()) {
-      console.println(
-          "------------+----------------------------------------------------------------------------------+-----------------------------------");
       QueryMetadata queryInfo = liveQueries.get(queryId);
-      KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
-                                                                    queryInfo.getQueryOutputNode();
-      console.println(
-          padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName());
+      if (queryInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
+        numQueries++;
+        console.println(
+            "------------+----------------------------------------------------------------------------------+-----------------------------------");
+        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
+            queryInfo.getQueryOutputNode();
+        console.println(
+            padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName());
+      }
     }
     console.println(
         "------------+----------------------------------------------------------------------------------+-----------------------------------");
-    console.println("( " + liveQueries.size() + " rows)");
+    console.println("( " + numQueries + " rows)");
     console.flush();
   }
 

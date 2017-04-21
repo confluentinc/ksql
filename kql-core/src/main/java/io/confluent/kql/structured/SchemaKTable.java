@@ -15,8 +15,12 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Windowed;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -48,13 +52,28 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   public SchemaKStream print() {
-    KTable printKTable = kTable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
-      @Override
-      public GenericRow apply(GenericRow genericRow) {
-        System.out.println(genericRow.toString());
-        return genericRow;
-      }
-    });
+
+    if (isWindowed) {
+      KStream printKTable = kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow,
+          KeyValue<String, GenericRow>>() {
+        @Override
+        public KeyValue<String, GenericRow> apply(Windowed<String> key, GenericRow genericRow) {
+          System.out.println(key.key() + " : " + key.window() + " ==> " + genericRow.toString());
+          return new KeyValue<String, GenericRow>(key.key(), genericRow);
+        }
+
+      });
+    } else {
+      KStream printKTable = kTable.toStream().map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+        @Override
+        public KeyValue<String, GenericRow> apply(String key, GenericRow genericRow) {
+          System.out.println(key + " ==> " + genericRow.toString());
+          return new KeyValue<String, GenericRow>(key, genericRow);
+        }
+
+      });
+    }
+
     return this;
   }
 

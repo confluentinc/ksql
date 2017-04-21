@@ -140,13 +140,13 @@ public class KQLApplication extends Application<KQLRestConfig> {
     }
 
     Properties props = getProps(cliOptions.getPropertiesFile());
-    KQLApplication app = of(props, cliOptions.getQuickstart());
+    KQLApplication app = buildApplication(props, cliOptions.getQuickstart());
     app.start();
     app.join();
     System.err.println("Server shutting down...");
   }
 
-  public static KQLApplication of(Properties props, boolean quickstart) throws Exception {
+  public static KQLApplication buildApplication(Properties props, boolean quickstart) throws Exception {
     KQLRestConfig config = new KQLRestConfig(props);
 
     Map<String, QueryMetadata> liveQueryMap = new HashMap<>();

@@ -8,7 +8,6 @@ import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.rest.StatementParser;
 import io.confluent.kql.rest.TopicUtil;
-import io.confluent.kql.rest.resources.KQLErrorResponse;
 import io.confluent.kql.rest.resources.KQLJsonRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,25 +65,21 @@ public class StreamedQueryResource {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response performQuery(KQLJsonRequest request) {
-    try {
-      String kql = Objects.requireNonNull(request.getKql(), "\"kql\" field must be given");
-      Statement statement = statementParser.parseSingleStatement(kql);
-      if (statement instanceof Query) {
-        String streamName =
-            String.format("%s_streamed_query_%d", nodeId, queriesCreated.incrementAndGet()).toUpperCase();
-        topicUtil.ensureTopicExists(streamName);
-        log.info("Assigning name '{}' to streamed query \"{}\"", streamName, kql);
-        QueryStreamWriter queryStreamWriter =
-            new QueryStreamWriter(kqlEngine, kql, disconnectCheckInterval, streamsProperties, streamName);
-        return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
-      } else {
-        throw new Exception(
-            String.format("Statement type `%s' not supported for this resource", statement.getClass().getName())
-        );
-      }
-    } catch (Exception exception) {
-      return KQLErrorResponse.stackTraceResponse(exception);
+  public Response performQuery(KQLJsonRequest request) throws Exception {
+    String kql = Objects.requireNonNull(request.getKql(), "\"kql\" field must be given");
+    Statement statement = statementParser.parseSingleStatement(kql);
+    if (statement instanceof Query) {
+      String streamName =
+          String.format("%s_streamed_query_%d", nodeId, queriesCreated.incrementAndGet()).toUpperCase();
+      topicUtil.ensureTopicExists(streamName);
+      log.info("Assigning name '{}' to streamed query \"{}\"", streamName, kql);
+      QueryStreamWriter queryStreamWriter =
+          new QueryStreamWriter(kqlEngine, streamName, disconnectCheckInterval, streamsProperties, kql);
+      return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
+    } else {
+      throw new Exception(
+          String.format("Statement type `%s' not supported for this resource", statement.getClass().getName())
+      );
     }
   }
 }

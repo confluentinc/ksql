@@ -3,10 +3,22 @@ package io.confluent.kql.rest.resources;
 import javax.json.Json;
 import javax.json.JsonValue;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class KQLErrorResponse {
+public class KQLExceptionMapper implements ExceptionMapper<Throwable> {
+
+  @Override
+  public Response toResponse(Throwable exception) {
+    // TODO: Distinguish between exceptions that warrant a stack trace and ones that don't
+    return stackTraceResponse(exception);
+  }
+
+  public static Response stackTraceResponse(Throwable exception) {
+    JsonValue entity = stackTraceJson(exception);
+    return Response.serverError().entity(entity.toString()).build();
+  }
 
   /* TODO: Considering adding more programmatic structure to an exception when converting to JSON--maybe something like:
     {
@@ -15,11 +27,6 @@ public class KQLErrorResponse {
       if exception.getCause() != null: "cause": exceptionToJson(exception.getCause())
     }
    */
-  public static Response stackTraceResponse(Throwable exception) {
-    JsonValue entity = stackTraceJson(exception);
-    return Response.serverError().entity(entity.toString()).build();
-  }
-
   public static JsonValue stackTraceJson(Throwable exception) {
     StringWriter stringWriter = new StringWriter();
     exception.printStackTrace(new PrintWriter(stringWriter));

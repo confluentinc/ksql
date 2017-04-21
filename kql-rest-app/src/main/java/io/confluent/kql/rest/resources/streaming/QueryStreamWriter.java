@@ -5,7 +5,7 @@ import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.resources.KQLErrorResponse;
+import io.confluent.kql.rest.resources.KQLExceptionMapper;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SerDeUtil;
 import io.confluent.kql.util.WindowedSerde;
@@ -122,7 +122,7 @@ class QueryStreamWriter implements StreamingOutput {
       // The user has terminated the connection; we can stop writing
     } catch (Throwable exception) {
       log.error("Exception occurred while writing to connection stream: ", exception);
-      output.write(("\n" + KQLErrorResponse.stackTraceJson(exception).toString() + "\n").getBytes());
+      output.write(("\n" + KQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
     }
 
     log.info("Closing and cleaning up KafkaStreams instances for streamed query");

@@ -66,30 +66,26 @@ public class KQLResource {
   }
 
   @POST
-  public Response handleKQLStatements(KQLJsonRequest request) {
-    try {
-      List<Statement> parsedStatements = kqlEngine.getStatements(request.getKql());
-      List<String> statementStrings = getStatementStrings(request.getKql());
-      if (parsedStatements.size() != statementStrings.size()) {
-        throw new Exception(String.format(
-            "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
-            parsedStatements.size(),
-            statementStrings.size()
-        ));
-      }
-      JsonArrayBuilder result = Json.createArrayBuilder();
-      for (int i = 0; i < parsedStatements.size(); i++) {
-        String statementString = statementStrings.get(i);
-        try {
-          result.add(executeStatement(statementString, parsedStatements.get(i)));
-        } catch (Exception exception) {
-          result.add(KQLErrorResponse.stackTraceJson(exception));
-        }
-      }
-      return Response.ok(result.build().toString()).build();
-    } catch (Exception exception) {
-      return KQLErrorResponse.stackTraceResponse(exception);
+  public Response handleKQLStatements(KQLJsonRequest request) throws Exception {
+    List<Statement> parsedStatements = kqlEngine.getStatements(request.getKql());
+    List<String> statementStrings = getStatementStrings(request.getKql());
+    if (parsedStatements.size() != statementStrings.size()) {
+      throw new Exception(String.format(
+          "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
+          parsedStatements.size(),
+          statementStrings.size()
+      ));
     }
+    JsonArrayBuilder result = Json.createArrayBuilder();
+    for (int i = 0; i < parsedStatements.size(); i++) {
+      String statementString = statementStrings.get(i);
+      try {
+        result.add(executeStatement(statementString, parsedStatements.get(i)));
+      } catch (Exception exception) {
+        result.add(KQLExceptionMapper.stackTraceJson(exception));
+      }
+    }
+    return Response.ok(result.build().toString()).build();
   }
 
   private List<String> getStatementStrings(String kqlString) {

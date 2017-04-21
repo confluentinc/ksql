@@ -9,6 +9,7 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.rest.computation.CommandRunner;
 import io.confluent.kql.rest.computation.StatementExecutor;
+import io.confluent.kql.rest.resources.KQLExceptionMapper;
 import io.confluent.kql.rest.resources.KQLResource;
 import io.confluent.kql.rest.resources.StatusResource;
 import io.confluent.kql.rest.resources.streaming.StreamedQueryResource;
@@ -71,6 +72,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     config.register(statusResource);
     config.register(kqlResource);
     config.register(streamedQueryResource);
+    config.register(new KQLExceptionMapper());
   }
 
   @Override

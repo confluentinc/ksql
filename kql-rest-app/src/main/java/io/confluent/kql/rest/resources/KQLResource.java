@@ -20,14 +20,12 @@ import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.computation.StatementStatus;
+import io.confluent.kql.rest.computation.QueryComputer;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SchemaUtil;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.Field;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +42,6 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Path("/kql")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -55,29 +52,16 @@ public class KQLResource {
 
   private final Map<String, QueryMetadata> liveQueryMap;
   private final KQLEngine kqlEngine;
-  private final String nodeId;
-  private final String commandTopic;
-  private final KafkaProducer<String, String> commandProducer;
-  private final Map<String, StatementStatus> statusStore;
-  private final AtomicInteger commandsSent;
+  private final QueryComputer queryComputer;
 
   public KQLResource(
       Map<String, QueryMetadata> liveQueryMap,
       KQLEngine kqlEngine,
-      String nodeId,
-      String commandTopic,
-      KafkaProducer<String, String> commandProducer,
-      Map<String, StatementStatus> statusStore,
-      int commandsSent
+      QueryComputer queryComputer
   ) {
     this.liveQueryMap = liveQueryMap;
     this.kqlEngine = kqlEngine;
-    this.nodeId = nodeId;
-    this.commandTopic = commandTopic;
-    // TODO: Remove commandProducer as parameter if not needed in testing
-    this.commandProducer = commandProducer;
-    this.statusStore = statusStore;
-    this.commandsSent = new AtomicInteger(commandsSent);
+    this.queryComputer = queryComputer;
   }
 
   @POST
@@ -144,12 +128,7 @@ public class KQLResource {
             || statement instanceof CreateTableAsSelect
             || statement instanceof TerminateQuery
     ) {
-      String commandId = getNewCommandId();
-      commandProducer.send(new ProducerRecord<>(commandTopic, commandId, statementString)).get();
-      statusStore.put(
-          commandId,
-          new StatementStatus(StatementStatus.Status.QUEUED, "Statement written to command topic")
-      );
+      String commandId = queryComputer.distributeStatement(statementString);
       result.add("statement_id", commandId);
     } else {
       if (statement != null) {
@@ -253,9 +232,5 @@ public class KQLResource {
       }
     }
     return result.build();
-  }
-
-  private String getNewCommandId() {
-    return String.format("%s_%d", nodeId, commandsSent.incrementAndGet()).toUpperCase();
   }
 }

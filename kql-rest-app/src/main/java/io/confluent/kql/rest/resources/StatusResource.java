@@ -1,5 +1,6 @@
 package io.confluent.kql.rest.resources;
 
+import io.confluent.kql.rest.computation.QueryHandler;
 import io.confluent.kql.rest.computation.StatementStatus;
 
 import javax.json.Json;
@@ -11,15 +12,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Map;
+import java.util.Optional;
 
 @Path("/status")
 @Produces(MediaType.APPLICATION_JSON)
 public class StatusResource {
 
-  private final Map<String, StatementStatus> statusStore;
+  private final QueryHandler queryHandler;
 
-  public StatusResource(Map<String, StatementStatus> statusStore) {
-    this.statusStore = statusStore;
+  public StatusResource(QueryHandler queryHandler) {
+    this.queryHandler = queryHandler;
   }
 
   @GET
@@ -28,7 +30,7 @@ public class StatusResource {
       JsonObjectBuilder result = Json.createObjectBuilder();
       JsonObjectBuilder statuses = Json.createObjectBuilder();
 
-      for (Map.Entry<String, StatementStatus> queryStatus : statusStore.entrySet()) {
+      for (Map.Entry<String, StatementStatus> queryStatus : queryHandler.getStatuses().entrySet()) {
         statuses.add(queryStatus.getKey().toUpperCase(), queryStatus.getValue().getStatus().name());
       }
 
@@ -42,16 +44,16 @@ public class StatusResource {
   @Path("/{statementId}")
   public Response getQueryStatus(@PathParam("statementId") String statementId) {
     try {
-      StatementStatus statementStatus = statusStore.get(statementId.toUpperCase());
+      Optional<StatementStatus> statementStatus = queryHandler.getStatus(statementId.toUpperCase());
 
-      if (statementStatus == null) {
+      if (!statementStatus.isPresent()) {
         throw new Exception(String.format("Statement not found: '%s", statementId));
       }
 
       JsonObjectBuilder status = Json.createObjectBuilder();
       status.add("statement_id", statementId.toUpperCase());
-      status.add("status", statementStatus.getStatus().name());
-      status.add("message", statementStatus.getMessage());
+      status.add("status", statementStatus.get().getStatus().name());
+      status.add("message", statementStatus.get().getMessage());
 
       JsonObjectBuilder result = Json.createObjectBuilder();
       return Response.ok(result.add("status", status.build()).build().toString()).build();

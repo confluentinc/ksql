@@ -9,7 +9,6 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.rest.computation.QueryComputer;
 import io.confluent.kql.rest.computation.QueryHandler;
-import io.confluent.kql.rest.computation.StatementStatus;
 import io.confluent.kql.rest.resources.KQLResource;
 import io.confluent.kql.rest.resources.StatusResource;
 import io.confluent.kql.rest.resources.StreamedQueryResource;
@@ -101,7 +100,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
   @Override
   public void onShutdown() {
     super.onShutdown();
-    queryComputer.shutdown();
+    queryComputer.close();
     try {
       queryComputerThread.join();
     } catch (InterruptedException exception) {
@@ -152,12 +151,12 @@ public class KQLApplication extends Application<KQLRestConfig> {
 
     Map<String, QueryMetadata> liveQueryMap = new HashMap<>();
 
+    @SuppressWarnings("unchecked")
     KafkaAdminClient client = new KafkaAdminClient((Map) props);
     TopicUtil topicUtil = new TopicUtil(client);
 
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
-    Map<String, StatementStatus> statusStore = new HashMap<>();
 
     KQLConfig kqlConfig = new KQLConfig(config.getKqlStreamsProperties());
     KQLEngine kqlEngine = new KQLEngine(metaStore, kqlConfig);
@@ -177,8 +176,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
         topicUtil,
         kqlEngine,
         liveQueryMap,
-        statementParser,
-        statusStore
+        statementParser
     );
 
     String nodeId = config.getString(KQLRestConfig.NODE_ID_CONFIG);
@@ -186,15 +184,17 @@ public class KQLApplication extends Application<KQLRestConfig> {
     QueryComputer queryComputer = new QueryComputer(
         queryHandler,
         commandTopic,
+        nodeId,
         commandConsumer,
-        statusStore,
-        statementParser,
-        String.format("%s_", nodeId).toUpperCase(),
-        kqlEngine
+        new KafkaProducer<>(
+            config.getCommandProducerProperties(),
+            new StringSerializer(),
+            new StringSerializer()
+        )
     );
 
 
-    StatusResource statusResource = new StatusResource(statusStore);
+    StatusResource statusResource = new StatusResource(queryHandler);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         kqlEngine,
         topicUtil,
@@ -206,16 +206,10 @@ public class KQLApplication extends Application<KQLRestConfig> {
     KQLResource kqlResource = new KQLResource(
         liveQueryMap,
         kqlEngine,
-        nodeId,
-        commandTopic,
-        new KafkaProducer<>(
-            config.getCommandProducerProperties(),
-            new StringSerializer(),
-            new StringSerializer()
-        ),
-        statusStore,
-        queryComputer.processPriorCommands()
+        queryComputer
     );
+
+    queryComputer.processPriorCommands();
 
     return new KQLApplication(
         config,

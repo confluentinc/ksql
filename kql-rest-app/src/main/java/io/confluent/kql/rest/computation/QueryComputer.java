@@ -3,37 +3,20 @@
  **/
 package io.confluent.kql.rest.computation;
 
-import io.confluent.kql.KQLEngine;
-import io.confluent.kql.QueryEngine;
-import io.confluent.kql.metastore.KQLStream;
-import io.confluent.kql.metastore.KQLTable;
-import io.confluent.kql.metastore.MetaStore;
-import io.confluent.kql.metastore.StructuredDataSource;
-import io.confluent.kql.parser.tree.CreateStreamAsSelect;
-import io.confluent.kql.parser.tree.CreateTableAsSelect;
-import io.confluent.kql.parser.tree.Query;
-import io.confluent.kql.parser.tree.QuerySpecification;
-import io.confluent.kql.parser.tree.Statement;
-import io.confluent.kql.parser.tree.TerminateQuery;
-import io.confluent.kql.physical.PhysicalPlanBuilder;
-import io.confluent.kql.planner.plan.AggregateNode;
-import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.planner.plan.OutputNode;
-import io.confluent.kql.planner.plan.PlanNode;
-import io.confluent.kql.rest.StatementParser;
-import io.confluent.kql.structured.SchemaKStream;
-import io.confluent.kql.structured.SchemaKTable;
-import io.confluent.kql.util.Pair;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -44,149 +27,115 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Handles the logic of polling for new queries, assigning them an ID, and then delegating their execution to a
  * {@link QueryHandler}. Also responsible for taking care of any exceptions that occur in the process.
  */
-public class QueryComputer implements Runnable {
+public class QueryComputer implements Runnable, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(QueryComputer.class);
 
   private final QueryHandler queryHandler;
   private final String commandTopic;
-  private final KafkaConsumer<String, String> commandConsumer;
-  private final Map<String, StatementStatus> statusStore;
-  private final StatementParser statementParser;
-  private final String statementPrefix;
-  private final QueryEngine queryEngine;
-  private final MetaStore metaStore;
-  private final KQLEngine kqlEngine;
+  private final String nodeId;
+  private final Consumer<String, String> commandConsumer;
+  private final Producer<String, String> commandProducer;
   private final AtomicBoolean closed;
+  private final AtomicInteger statementSuffix;
 
   public QueryComputer(
       QueryHandler queryHandler,
       String commandTopic,
+      String nodeId,
       KafkaConsumer<String, String> commandConsumer,
-      Map<String, StatementStatus> statusStore,
-      StatementParser statementParser,
-      String statementPrefix,
-      KQLEngine kqlEngine
+      KafkaProducer<String, String> commandProducer
   ) {
     this.queryHandler = queryHandler;
     this.commandTopic = commandTopic;
+    this.nodeId = nodeId;
     this.commandConsumer = commandConsumer;
-    this.statusStore = statusStore;
-    this.statementParser = statementParser;
-    this.statementPrefix = statementPrefix;
-    this.kqlEngine = kqlEngine;
-
-    this.queryEngine = kqlEngine.getQueryEngine();
-    this.metaStore = kqlEngine.getMetaStore();
+    this.commandProducer = commandProducer;
 
     commandConsumer.subscribe(Collections.singleton(commandTopic));
 
     closed = new AtomicBoolean(false);
+    statementSuffix = new AtomicInteger();
   }
 
-  // Returns the number of statements that this specific node has processed
-  public int processPriorCommands() throws Exception {
-    int result = 0;
+  /**
+   * Read and execute all commands on the command topic, starting at the earliest offset.
+   * @throws Exception TODO: Refine this.
+   */
+  public void processPriorCommands() throws Exception {
+    String statementPrefix = String.format("%s_", nodeId).toUpperCase();
+    int newStatementSuffix = 0;
+
     LinkedHashMap<String, String> priorCommands = getPriorCommands();
-    Map<String, String> terminatedQueries = getTerminatedQueries(priorCommands);
-    for (Map.Entry<String, String> commandEntry : priorCommands.entrySet()) {
-      if (commandEntry.getKey().startsWith(statementPrefix)) {
-        int commandNumber = Integer.parseInt(commandEntry.getKey().substring(statementPrefix.length()));
-        result = Math.max(result, commandNumber);
+    queryHandler.handleStatements(priorCommands);
+
+    for (String statementId : priorCommands.keySet()) {
+      if (statementId.startsWith(statementPrefix)) {
+        int commandNumber = Integer.parseInt(statementId.substring(statementPrefix.length()));
+        newStatementSuffix = Math.max(newStatementSuffix, commandNumber);
       }
-      Statement statement = statementParser.parseSingleStatement(commandEntry.getValue());
-      if ((statement instanceof CreateStreamAsSelect || statement instanceof CreateTableAsSelect) &&
-          terminatedQueries.containsKey(commandEntry.getKey() + "_QUERY")
-      ) {
-        Query query;
-        if (statement instanceof CreateStreamAsSelect) {
-          CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-          QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-          query = kqlEngine.addInto(
-              createStreamAsSelect.getQuery(),
-              querySpecification,
-              createStreamAsSelect.getName().getSuffix(),
-              createStreamAsSelect.getProperties()
-          );
-        } else {
-          CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-          QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-          query = kqlEngine.addInto(
-              createTableAsSelect.getQuery(),
-              querySpecification,
-              createTableAsSelect.getName().getSuffix(),
-              createTableAsSelect.getProperties()
-          );
-        }
-        String queryId = (commandEntry.getKey() + "_query").toUpperCase();
-        List<Pair<String, Query>> queryList = Collections.singletonList(new Pair<>(queryId, query));
-        PlanNode logicalPlan = queryEngine.buildLogicalPlans(metaStore, queryList).get(0).getRight();
-        KStreamBuilder builder = new KStreamBuilder();
-        PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-        SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-        OutputNode outputNode = physicalPlanBuilder.getPlanSink();
-        if (outputNode instanceof KQLStructuredDataOutputNode) {
-          KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
-          if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
-            metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
-          }
-          StructuredDataSource sinkDataSource;
-          if (schemaKStream instanceof SchemaKTable) {
-            sinkDataSource =
-                new KQLTable(outputKafkaTopicNode.getId().toString(),
-                    outputKafkaTopicNode.getSchema(),
-                    outputKafkaTopicNode.getKeyField(),
-                    outputKafkaTopicNode.getKqlTopic(),
-                    outputKafkaTopicNode.getId().toString() + "_statestore",
-                    outputNode.getSource() instanceof AggregateNode
-                );
+    }
+
+    statementSuffix.set(newStatementSuffix);
+  }
+
+  /**
+   * Begin a continuous poll-execute loop for the command topic, stopping only if either a {@link WakeupException} is
+   * thrown or the {@link #close()} method is called.
+   */
+  @Override
+  public void run() {
+    try {
+      while (!closed.get()) {
+        log.info("Polling for new writes to command topic");
+        ConsumerRecords<String, String> records = commandConsumer.poll(Long.MAX_VALUE);
+        log.info(String.format("Found %d new writes to command topic", records.count()));
+        for (ConsumerRecord<String, String> record : records) {
+          String statementId = record.key();
+          String statementStr = record.value();
+          if (statementStr != null) {
+            executeStatement(statementStr, statementId);
           } else {
-            sinkDataSource =
-                new KQLStream(outputKafkaTopicNode.getId().toString(),
-                    outputKafkaTopicNode.getSchema(),
-                    outputKafkaTopicNode.getKeyField(),
-                    outputKafkaTopicNode.getKqlTopic()
-                );
+            log.info(String.format("Skipping null statement for ID %s", statementId));
           }
-
-          metaStore.putSource(sinkDataSource);
-        } else {
-          throw new Exception(String.format(
-              "Unexpected output node type: '%s'",
-              outputNode.getClass().getCanonicalName()
-          ));
         }
-        statusStore.put(
-            commandEntry.getKey(),
-            new StatementStatus(StatementStatus.Status.TERMINATED, "Query terminated")
-        );
-        statusStore.put(
-            terminatedQueries.get(commandEntry.getKey() + "_QUERY"),
-            new StatementStatus(StatementStatus.Status.SUCCESS, "Termination request granted")
-        );
-      } else if (!(statement instanceof TerminateQuery)) {
-        executeStatement(commandEntry.getValue(), commandEntry.getKey());
       }
-    }
-
-    for (String terminateCommand : terminatedQueries.values()) {
-      if (!statusStore.containsKey(terminateCommand)) {
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        new Exception("Query not found").printStackTrace(printWriter);
-        statusStore.put(terminateCommand, new StatementStatus(StatementStatus.Status.ERROR, stringWriter.toString()));
+    } catch (WakeupException wue) {
+      if (!closed.get()) {
+        throw wue;
       }
+    } finally {
+      commandConsumer.close();
     }
+  }
 
-    return result;
+  /**
+   * Halt the poll-execute loop.
+   */
+  @Override
+  public void close() {
+    closed.set(true);
+    commandConsumer.wakeup();
+  }
+
+  /**
+   * Write the given statement to the command topic, to be read by all nodes in the current cluster. Does not return
+   * until the statement has been successfully written, or an exception is thrown.
+   * @param statement The string of the statement to be distributed.
+   * @return The ID assigned to the statement.
+   */
+  public String distributeStatement(String statement) throws InterruptedException, ExecutionException {
+    String commandId = getNewCommandId();
+    commandProducer.send(new ProducerRecord<>(commandTopic, commandId, statement)).get();
+    return commandId;
   }
 
   private LinkedHashMap<String, String> getPriorCommands() {
@@ -282,69 +231,8 @@ public class QueryComputer implements Runnable {
     return true;
   }
 
-  private Map<String, String> getTerminatedQueries(Map<String, String> commands) throws Exception {
-    Map<String, String> result = new HashMap<>();
-
-    Pattern unquotedTerminatePattern =
-        Pattern.compile("\\s*TERMINATE\\s+([A-Z][A-Z0-9_@:]*)\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
-    Pattern doubleQuotedTerminatePattern =
-        Pattern.compile("\\s*TERMINATE\\s+\"((\"\"|[^\"])*)\"\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
-    Pattern backQuotedTerminatePattern =
-        Pattern.compile("\\s*TERMINATE\\s+`((``|[^`])*)`\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
-    for (Map.Entry<String, String> commandEntry : commands.entrySet()) {
-      String commandId = commandEntry.getKey();
-      String command = commandEntry.getValue();
-      Matcher unquotedMatcher = unquotedTerminatePattern.matcher(command);
-      if (unquotedMatcher.matches()) {
-        result.put(unquotedMatcher.group(1).toUpperCase(), commandId);
-        continue;
-      }
-
-      Matcher doubleQuotedMatcher = doubleQuotedTerminatePattern.matcher(command);
-      if (doubleQuotedMatcher.matches()) {
-        result.put(doubleQuotedMatcher.group(1).replace("\"\"", "\""), commandId);
-        continue;
-      }
-
-      Matcher backQuotedMatcher = backQuotedTerminatePattern.matcher(command);
-      if (backQuotedMatcher.matches()) {
-        result.put(backQuotedMatcher.group(1).replace("``", "`"), commandId);
-        continue;
-      }
-    }
-
-    return result;
-  }
-
-  @Override
-  public void run() {
-    try {
-      while (!closed.get()) {
-        log.info("Polling for new writes to command topic");
-        ConsumerRecords<String, String> records = commandConsumer.poll(Long.MAX_VALUE);
-        log.info(String.format("Found %d new writes to command topic", records.count()));
-        for (ConsumerRecord<String, String> record : records) {
-          String statementId = record.key();
-          String statementStr = record.value();
-          if (statementStr != null) {
-            executeStatement(statementStr, statementId);
-          } else {
-            log.info(String.format("Skipping null statement for ID %s", statementId));
-          }
-        }
-      }
-    } catch (WakeupException wue) {
-      if (!closed.get()) {
-        throw wue;
-      }
-    } finally {
-      commandConsumer.close();
-    }
-  }
-
   private void executeStatement(String statementStr, String statementId) {
     log.info("Executing statement: " + statementStr);
-    statusStore.put(statementId, new StatementStatus(StatementStatus.Status.PARSING, "Parsing statement"));
     try {
       queryHandler.handleStatement(statementStr, statementId);
     } catch (WakeupException wue) {
@@ -353,13 +241,11 @@ public class QueryComputer implements Runnable {
       StringWriter stringWriter = new StringWriter();
       PrintWriter printWriter = new PrintWriter(stringWriter);
       exception.printStackTrace(printWriter);
-      statusStore.put(statementId, new StatementStatus(StatementStatus.Status.ERROR, stringWriter.toString()));
       log.error("Exception encountered during poll-parse-execute loop: " + stringWriter.toString());
     }
   }
 
-  public void shutdown() {
-    closed.set(true);
-    commandConsumer.wakeup();
+  private String getNewCommandId() {
+    return String.format("%s_%d", nodeId, statementSuffix.incrementAndGet()).toUpperCase();
   }
 }

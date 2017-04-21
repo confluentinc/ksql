@@ -98,14 +98,14 @@ public class QueryComputer implements Runnable, Closeable {
       while (!closed.get()) {
         log.info("Polling for new writes to command topic");
         ConsumerRecords<String, String> records = commandConsumer.poll(Long.MAX_VALUE);
-        log.info(String.format("Found %d new writes to command topic", records.count()));
+        log.info("Found {} new writes to command topic", records.count());
         for (ConsumerRecord<String, String> record : records) {
           String statementId = record.key();
           String statementStr = record.value();
           if (statementStr != null) {
             executeStatement(statementStr, statementId);
           } else {
-            log.info(String.format("Skipping null statement for ID %s", statementId));
+            log.info("Skipping null statement for ID {}", statementId);
           }
         }
       }
@@ -178,7 +178,7 @@ public class QueryComputer implements Runnable, Closeable {
         if (records.isEmpty()) {
           log.warn("No records received after 30 seconds of polling; something may be wrong");
         } else {
-          log.debug(String.format("Received %d records from poll", records.count()));
+          log.debug("Received {} records from poll", records.count());
           for (ConsumerRecord<String, String> record : records) {
             result.add(record);
             TopicPartition recordTopicPartition = new TopicPartition(record.topic(), record.partition());
@@ -218,13 +218,13 @@ public class QueryComputer implements Runnable, Closeable {
           Hence, "offset + 1" instead of just "offset"
        */
       if (offset + 1 < endOffset.getValue()) {
-        log.debug(String.format(
-            "Consumed command records are not yet caught up with offset for partition %d; end offset is %d, but last "
-            + "consumed offset is %d",
+        log.debug(
+            "Consumed command records are not yet caught up with offset for partition {}; end offset is {}, but last "
+            + "consumed offset is {}",
             endOffset.getKey().partition(),
             endOffset.getValue(),
             offset
-        ));
+        );
         return false;
       }
     }

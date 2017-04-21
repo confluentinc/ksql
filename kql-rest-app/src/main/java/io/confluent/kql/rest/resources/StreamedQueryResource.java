@@ -128,7 +128,7 @@ public class StreamedQueryResource {
       intoTable = queryId;
       topicUtil.ensureTopicExists(queryId);
 
-      log.info(String.format("Assigning query ID %s to streamed query \"%s\"", queryId, queryString));
+      log.info("Assigning query ID {} to streamed query \"%s\"", queryId, queryString);
 
       // TODO: Find a better way to do this
       String redirectedQuery = String.format("CREATE STREAM %s AS %s;", queryId, queryString);

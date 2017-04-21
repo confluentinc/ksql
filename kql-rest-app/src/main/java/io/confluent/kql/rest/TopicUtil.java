@@ -18,15 +18,14 @@ public class TopicUtil {
 
   private final KafkaAdminClient client;
 
-
   public TopicUtil(KafkaAdminClient client) {
     this.client = client;
   }
 
   public void ensureTopicExists(String topic) {
-    log.info(String.format("Checking for existence of topic %s", topic));
+    log.debug("Checking for existence of topic {}", topic);
     if (client.topics(Collections.singletonList(topic)).isEmpty()) {
-      log.info(String.format("Creating topic %s", topic));
+      log.info("Creating topic {}", topic);
       // TODO: Think about num partitions / replication factor to use here
       CreateTopicsRequest.TopicDetails topicDetails =
           new CreateTopicsRequest.TopicDetails(1, (short) 1);

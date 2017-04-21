@@ -8,7 +8,7 @@ import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.rest.computation.CommandRunner;
-import io.confluent.kql.rest.computation.QueryHandler;
+import io.confluent.kql.rest.computation.StatementExecutor;
 import io.confluent.kql.rest.resources.KQLResource;
 import io.confluent.kql.rest.resources.StatusResource;
 import io.confluent.kql.rest.resources.StreamedQueryResource;
@@ -168,7 +168,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
         new StringDeserializer()
     );
 
-    QueryHandler queryHandler = new QueryHandler(
+    StatementExecutor statementExecutor = new StatementExecutor(
         topicUtil,
         kqlEngine,
         statementParser
@@ -177,7 +177,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     String nodeId = config.getString(KQLRestConfig.NODE_ID_CONFIG);
 
     CommandRunner commandRunner = new CommandRunner(
-        queryHandler,
+        statementExecutor,
         commandTopic,
         nodeId,
         commandConsumer,
@@ -189,7 +189,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     );
 
 
-    StatusResource statusResource = new StatusResource(queryHandler);
+    StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         kqlEngine,
         topicUtil,
@@ -201,7 +201,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     KQLResource kqlResource = new KQLResource(
         kqlEngine,
         commandRunner,
-        queryHandler
+        statementExecutor
     );
 
     commandRunner.processPriorCommands();

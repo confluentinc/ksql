@@ -48,9 +48,9 @@ import java.util.regex.Pattern;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well as tracking
  * their statuses as things move along.
  */
-public class QueryHandler {
+public class StatementExecutor {
 
-  private static final Logger log = LoggerFactory.getLogger(QueryHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
   private static final Pattern UNQUOTED_TERMINATE_PATTERN =
       Pattern.compile("\\s*TERMINATE\\s+([A-Z][A-Z0-9_@:]*)\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
@@ -65,7 +65,7 @@ public class QueryHandler {
   private final Map<String, StatementStatus> statusStore;
   private final Map<String, QueryMetadata> liveQueryMap;
 
-  public QueryHandler(TopicUtil topicUtil, KQLEngine kqlEngine, StatementParser statementParser) {
+  public StatementExecutor(TopicUtil topicUtil, KQLEngine kqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
     this.kqlEngine = kqlEngine;
     this.statementParser = statementParser;
@@ -217,7 +217,7 @@ public class QueryHandler {
 
   /**
    * Register the existence of a new statement that has been written to the command topic. All other statement status
-   * information is updated exclusively by the current {@link QueryHandler} instance, but in the (unlikely but possible)
+   * information is updated exclusively by the current {@link StatementExecutor} instance, but in the (unlikely but possible)
    * event that a statement is written to the command topic but never picked up by this instance, it should be possible
    * to know that it was at least written to the topic in the first place.
    * @param statementId The ID of the statement that has been written to the command topic.

@@ -1,6 +1,6 @@
 package io.confluent.kql.rest.resources;
 
-import io.confluent.kql.rest.computation.QueryHandler;
+import io.confluent.kql.rest.computation.StatementExecutor;
 import io.confluent.kql.rest.computation.StatementStatus;
 
 import javax.json.Json;
@@ -18,10 +18,10 @@ import java.util.Optional;
 @Produces(MediaType.APPLICATION_JSON)
 public class StatusResource {
 
-  private final QueryHandler queryHandler;
+  private final StatementExecutor statementExecutor;
 
-  public StatusResource(QueryHandler queryHandler) {
-    this.queryHandler = queryHandler;
+  public StatusResource(StatementExecutor statementExecutor) {
+    this.statementExecutor = statementExecutor;
   }
 
   @GET
@@ -30,7 +30,7 @@ public class StatusResource {
       JsonObjectBuilder result = Json.createObjectBuilder();
       JsonObjectBuilder statuses = Json.createObjectBuilder();
 
-      for (Map.Entry<String, StatementStatus> queryStatus : queryHandler.getStatuses().entrySet()) {
+      for (Map.Entry<String, StatementStatus> queryStatus : statementExecutor.getStatuses().entrySet()) {
         statuses.add(queryStatus.getKey().toUpperCase(), queryStatus.getValue().getStatus().name());
       }
 
@@ -44,7 +44,7 @@ public class StatusResource {
   @Path("/{statementId}")
   public Response getQueryStatus(@PathParam("statementId") String statementId) {
     try {
-      Optional<StatementStatus> statementStatus = queryHandler.getStatus(statementId.toUpperCase());
+      Optional<StatementStatus> statementStatus = statementExecutor.getStatus(statementId.toUpperCase());
 
       if (!statementStatus.isPresent()) {
         throw new Exception(String.format("Statement not found: '%s", statementId));

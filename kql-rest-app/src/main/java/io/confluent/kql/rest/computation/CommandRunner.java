@@ -33,13 +33,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Handles the logic of polling for new queries, assigning them an ID, and then delegating their execution to a
- * {@link QueryHandler}. Also responsible for taking care of any exceptions that occur in the process.
+ * {@link StatementExecutor}. Also responsible for taking care of any exceptions that occur in the process.
  */
 public class CommandRunner implements Runnable, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
-  private final QueryHandler queryHandler;
+  private final StatementExecutor statementExecutor;
   private final String commandTopic;
   private final String nodeId;
   private final Consumer<String, String> commandConsumer;
@@ -48,13 +48,13 @@ public class CommandRunner implements Runnable, Closeable {
   private final AtomicInteger statementSuffix;
 
   public CommandRunner(
-      QueryHandler queryHandler,
+      StatementExecutor statementExecutor,
       String commandTopic,
       String nodeId,
       KafkaConsumer<String, String> commandConsumer,
       KafkaProducer<String, String> commandProducer
   ) {
-    this.queryHandler = queryHandler;
+    this.statementExecutor = statementExecutor;
     this.commandTopic = commandTopic;
     this.nodeId = nodeId;
     // TODO: Remove commandConsumer/commandProducer as parameters if not needed in testing
@@ -76,7 +76,7 @@ public class CommandRunner implements Runnable, Closeable {
     int newStatementSuffix = 0;
 
     LinkedHashMap<String, String> priorCommands = getPriorCommands();
-    queryHandler.handleStatements(priorCommands);
+    statementExecutor.handleStatements(priorCommands);
 
     for (String statementId : priorCommands.keySet()) {
       if (statementId.startsWith(statementPrefix)) {
@@ -236,7 +236,7 @@ public class CommandRunner implements Runnable, Closeable {
   private void executeStatement(String statementStr, String statementId) {
     log.info("Executing statement: " + statementStr);
     try {
-      queryHandler.handleStatement(statementStr, statementId);
+      statementExecutor.handleStatement(statementStr, statementId);
     } catch (WakeupException wue) {
       throw wue;
     } catch (Exception exception) {

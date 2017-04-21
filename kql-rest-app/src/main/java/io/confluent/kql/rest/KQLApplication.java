@@ -11,7 +11,7 @@ import io.confluent.kql.rest.computation.CommandRunner;
 import io.confluent.kql.rest.computation.StatementExecutor;
 import io.confluent.kql.rest.resources.KQLResource;
 import io.confluent.kql.rest.resources.StatusResource;
-import io.confluent.kql.rest.resources.StreamedQueryResource;
+import io.confluent.kql.rest.resources.streaming.StreamedQueryResource;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.rest.Application;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

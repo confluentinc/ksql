@@ -17,6 +17,7 @@ public class KQLRestConfigTest {
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "kql_config_test");
     result.put(KQLRestConfig.NODE_ID_CONFIG, "node_1");
+    result.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
     return result;
   }
 

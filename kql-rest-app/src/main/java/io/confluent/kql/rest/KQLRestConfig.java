@@ -17,9 +17,9 @@ import java.util.Map;
 // of this one.
 public class KQLRestConfig extends RestConfig {
 
-  public static final String KQL_STREAMS_PREFIX            = "kql.core.streams.";
-  public static final String COMMAND_CONSUMER_PREFIX       = "kql.command.consumer.";
-  public static final String COMMAND_PRODUCER_PREFIX       = "kql.command.producer.";
+  public static final String KQL_STREAMS_PREFIX       = "kql.core.streams.";
+  public static final String COMMAND_CONSUMER_PREFIX  = "kql.command.consumer.";
+  public static final String COMMAND_PRODUCER_PREFIX  = "kql.command.producer.";
 
   public static final String NODE_ID_CONFIG = "node.id";
   public static final ConfigDef.Type NODE_ID_TYPE = ConfigDef.Type.STRING;
@@ -27,12 +27,11 @@ public class KQLRestConfig extends RestConfig {
   public static final String NODE_ID_DOC =
       "A (case-insensitive) unique identifier for the node to add to the cluster";
 
-  public static final String COMMAND_TOPIC_CONFIG = "command.topic";
-  public static final ConfigDef.Type COMMAND_TOPIC_TYPE = ConfigDef.Type.STRING;
-  public static final String COMMAND_TOPIC_DEFAULT = "kql_commands";
-  public static final ConfigDef.Importance COMMAND_TOPIC_IMPORTANCE = ConfigDef.Importance.LOW;
-  public static final String COMMAND_TOPIC_DOC =
-      "The name of the Kafka topic to use for reading/writing commands for persistent queries";
+  public static final String COMMAND_TOPIC_SUFFIX_CONFIG = "command.topic.suffix";
+  public static final ConfigDef.Type COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
+  public static final ConfigDef.Importance COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
+  public static final String COMMAND_TOPIC_SUFFIX_DOC =
+      "A suffix to append to the end of the name of the Kafka topic to use for distributing commands";
 
   public static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
   public static final ConfigDef.Type STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE = ConfigDef.Type.LONG;
@@ -59,11 +58,10 @@ public class KQLRestConfig extends RestConfig {
         NODE_ID_IMPORTANCE,
         NODE_ID_DOC
     ).define(
-        COMMAND_TOPIC_CONFIG,
-        COMMAND_TOPIC_TYPE,
-        COMMAND_TOPIC_DEFAULT,
-        COMMAND_TOPIC_IMPORTANCE,
-        COMMAND_TOPIC_DOC
+        COMMAND_TOPIC_SUFFIX_CONFIG,
+        COMMAND_TOPIC_SUFFIX_TYPE,
+        COMMAND_TOPIC_SUFFIX_IMPORTANCE,
+        COMMAND_TOPIC_SUFFIX_DOC
     ).define(
         STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE,
@@ -113,5 +111,9 @@ public class KQLRestConfig extends RestConfig {
     Map<String, Object> result = getPropertiesWithOverrides(KQL_STREAMS_PREFIX);
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, getInternalApplicationId("kql_stream"));
     return result;
+  }
+
+  public String getCommandTopic() {
+    return String.format("%s_%s", getString(APPLICATION_ID_CONFIG), getString(COMMAND_TOPIC_SUFFIX_CONFIG));
   }
 }

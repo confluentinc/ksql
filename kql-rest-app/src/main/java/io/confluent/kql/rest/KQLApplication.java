@@ -160,7 +160,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
     KQLEngine kqlEngine = new KQLEngine(metaStore, kqlConfig);
     StatementParser statementParser = new StatementParser(kqlEngine);
 
-    String commandTopic = config.getString(KQLRestConfig.COMMAND_TOPIC_CONFIG);
+    String commandTopic = config.getCommandTopic();
     topicUtil.ensureTopicExists(commandTopic);
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();

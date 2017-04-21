@@ -57,6 +57,7 @@ public class QueryComputer implements Runnable, Closeable {
     this.queryHandler = queryHandler;
     this.commandTopic = commandTopic;
     this.nodeId = nodeId;
+    // TODO: Remove commandConsumer/commandProducer as parameters if not needed in testing
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
 

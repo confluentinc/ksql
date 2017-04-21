@@ -8,11 +8,11 @@
         function sendRequest(resource) {
             xhr.abort();
 
-            var kql = document.getElementById('kql').value.replace(/\n/g, ' ').replace(/\r/g, ' ');
+            var kql = document.getElementById('kql').value;
 
             xhr.onreadystatechange = function() {
-                if ((xhr.readyState === 3 || xhr.readyState === 4) && xhr.response !== '' && xhr.response !== '\n') {
-                    document.getElementById('response').innerHTML = xhr.response;
+                if (xhr.readyState === 3 || xhr.readyState === 4) {
+                    document.getElementById('response').innerHTML = xhr.response.replace(/\n{2,}/g, '\n');
                 }
                 if (xhr.readyState === 4 || xhr.readyState === 0) {
                     document.getElementById("request_loading").hidden = true;

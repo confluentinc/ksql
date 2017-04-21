@@ -9,17 +9,25 @@ import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 class QueryRowWriter<K> implements ForeachAction<K, GenericRow> {
   private final OutputStream output;
   private final AtomicReference<Throwable> streamsException;
   private final List<Field> columns;
+  private final AtomicBoolean rowsWritten;
 
-  public QueryRowWriter(OutputStream output, AtomicReference<Throwable> streamsException, List<Field> columns) {
+  public QueryRowWriter(
+      OutputStream output,
+      AtomicReference<Throwable> streamsException,
+      List<Field> columns,
+      AtomicBoolean rowsWritten
+  ) {
     this.output = output;
     this.streamsException = streamsException;
     this.columns = columns;
+    this.rowsWritten = rowsWritten;
   }
 
   @Override
@@ -63,6 +71,7 @@ class QueryRowWriter<K> implements ForeachAction<K, GenericRow> {
     synchronized (output) {
       output.write((message.build().toString() + "\n").getBytes());
       output.flush();
+      rowsWritten.set(true);
     }
   }
 

@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 class QueryStreamWriter implements StreamingOutput {
@@ -92,7 +93,9 @@ class QueryStreamWriter implements StreamingOutput {
 
   @Override
   public void write(OutputStream output) throws IOException {
-    queryKStream.foreach(new QueryRowWriter<>(output, streamsException, columns));
+    AtomicBoolean rowsWritten = new AtomicBoolean(false);
+
+    queryKStream.foreach(new QueryRowWriter<>(output, streamsException, columns, rowsWritten));
 
     Map<String, Object> streamedQueryProperties = new HashMap<>(streamsProperties);
     streamedQueryProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, streamName);
@@ -112,10 +115,11 @@ class QueryStreamWriter implements StreamingOutput {
         }
         // If no new rows have been written, the user may have terminated the connection without us knowing.
         // Check by trying to write a single newline.
-        // TODO: Consider not writing the newline if it's known that rows have been written recently
-        synchronized (output) {
-          output.write("\n".getBytes());
-          output.flush();
+        if (!rowsWritten.getAndSet(false)) {
+          synchronized (output) {
+            output.write("\n".getBytes());
+            output.flush();
+          }
         }
       }
     } catch (EOFException exception) {

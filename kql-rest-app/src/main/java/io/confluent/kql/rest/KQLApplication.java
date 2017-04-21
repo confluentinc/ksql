@@ -149,8 +149,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
   public static KQLApplication buildApplication(Properties props, boolean quickstart) throws Exception {
     KQLRestConfig config = new KQLRestConfig(props);
 
-    Map<String, QueryMetadata> liveQueryMap = new HashMap<>();
-
     @SuppressWarnings("unchecked")
     KafkaAdminClient client = new KafkaAdminClient((Map) props);
     TopicUtil topicUtil = new TopicUtil(client);
@@ -175,7 +173,6 @@ public class KQLApplication extends Application<KQLRestConfig> {
     QueryHandler queryHandler = new QueryHandler(
         topicUtil,
         kqlEngine,
-        liveQueryMap,
         statementParser
     );
 
@@ -204,9 +201,9 @@ public class KQLApplication extends Application<KQLRestConfig> {
         config.getKqlStreamsProperties()
     );
     KQLResource kqlResource = new KQLResource(
-        liveQueryMap,
         kqlEngine,
-        queryComputer
+        queryComputer,
+        queryHandler
     );
 
     queryComputer.processPriorCommands();

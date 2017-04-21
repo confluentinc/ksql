@@ -21,6 +21,7 @@ import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.rest.computation.QueryComputer;
+import io.confluent.kql.rest.computation.QueryHandler;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SchemaUtil;
@@ -50,18 +51,18 @@ public class KQLResource {
 
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KQLResource.class);
 
-  private final Map<String, QueryMetadata> liveQueryMap;
   private final KQLEngine kqlEngine;
   private final QueryComputer queryComputer;
+  private final QueryHandler queryHandler;
 
   public KQLResource(
-      Map<String, QueryMetadata> liveQueryMap,
       KQLEngine kqlEngine,
-      QueryComputer queryComputer
+      QueryComputer queryComputer,
+      QueryHandler queryHandler
   ) {
-    this.liveQueryMap = liveQueryMap;
     this.kqlEngine = kqlEngine;
     this.queryComputer = queryComputer;
+    this.queryHandler = queryHandler;
   }
 
   @POST
@@ -178,7 +179,7 @@ public class KQLResource {
   // Only shows queries running on the current machine, not across the entire cluster
   private JsonObject showQueries() {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    for (Map.Entry<String, QueryMetadata> queryEntry : liveQueryMap.entrySet()) {
+    for (Map.Entry<String, QueryMetadata> queryEntry : queryHandler.getLiveQueries().entrySet()) {
       KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
           (KQLStructuredDataOutputNode) queryEntry.getValue().getQueryOutputNode();
       JsonObjectBuilder query = Json.createObjectBuilder();

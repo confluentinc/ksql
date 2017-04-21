@@ -61,22 +61,17 @@ public class QueryHandler {
 
   private final TopicUtil topicUtil;
   private final KQLEngine kqlEngine;
-  private final Map<String, QueryMetadata> liveQueryMap;
   private final StatementParser statementParser;
   private final Map<String, StatementStatus> statusStore;
+  private final Map<String, QueryMetadata> liveQueryMap;
 
-  public QueryHandler(
-      TopicUtil topicUtil,
-      KQLEngine kqlEngine,
-      Map<String, QueryMetadata> liveQueryMap,
-      StatementParser statementParser
-  ) {
+  public QueryHandler(TopicUtil topicUtil, KQLEngine kqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
     this.kqlEngine = kqlEngine;
-    this.liveQueryMap = liveQueryMap;
     this.statementParser = statementParser;
 
     this.statusStore = new HashMap<>();
+    this.liveQueryMap = new HashMap<>();
   }
 
   /**
@@ -232,6 +227,13 @@ public class QueryHandler {
         statementId,
         new StatementStatus(StatementStatus.Status.QUEUED, "Statement written to command topic")
     );
+  }
+
+  /**
+   * @return A map detailing IDs and metadata for all currently-running queries
+   */
+  public Map<String, QueryMetadata> getLiveQueries() {
+    return new HashMap<>(liveQueryMap);
   }
 
   private Map<String, String> getTerminatedQueries(Map<String, String> commands) {

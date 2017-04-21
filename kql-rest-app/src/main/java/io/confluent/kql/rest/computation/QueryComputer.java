@@ -163,7 +163,7 @@ public class QueryComputer implements Runnable, Closeable {
     Map<TopicPartition, Long> currentOffsets = new HashMap<>();
 
     List<ConsumerRecord<String, String>> result = new ArrayList<>();
-    log.info("Polling end offset(s) for command topic");
+    log.debug("Polling end offset(s) for command topic");
     Map<TopicPartition, Long> endOffsets = commandConsumer.endOffsets(commandTopicPartitions);
     // Only want to poll for end offsets at the very beginning, and when we think we may be caught up.
     // So, this outer loop tries to catch up (via the inner loop), then when it believes it has (signalled by having
@@ -173,7 +173,7 @@ public class QueryComputer implements Runnable, Closeable {
     // continue.
     do {
       while (!offsetsCaughtUp(currentOffsets, endOffsets)) {
-        log.info("Polling for prior command records");
+        log.debug("Polling for prior command records");
         ConsumerRecords<String, String> records = commandConsumer.poll(30000);
         if (records.isEmpty()) {
           log.warn("No records received after 30 seconds of polling; something may be wrong");
@@ -208,7 +208,7 @@ public class QueryComputer implements Runnable, Closeable {
   }
 
   private boolean offsetsCaughtUp(Map<TopicPartition, Long> offsets, Map<TopicPartition, Long> endOffsets) {
-    log.info("Checking to see if consumed command records are caught up with end offset(s)");
+    log.debug("Checking to see if consumed command records are caught up with end offset(s)");
     for (Map.Entry<TopicPartition, Long> endOffset : endOffsets.entrySet()) {
       long offset = offsets.getOrDefault(endOffset.getKey(), 0L);
       /*
@@ -218,7 +218,7 @@ public class QueryComputer implements Runnable, Closeable {
           Hence, "offset + 1" instead of just "offset"
        */
       if (offset + 1 < endOffset.getValue()) {
-        log.info(String.format(
+        log.debug(String.format(
             "Consumed command records are not yet caught up with offset for partition %d; end offset is %d, but last "
             + "consumed offset is %d",
             endOffset.getKey().partition(),
@@ -228,7 +228,7 @@ public class QueryComputer implements Runnable, Closeable {
         return false;
       }
     }
-    log.info("Consumed command records are caught up with end offset(s)");
+    log.debug("Consumed command records are caught up with end offset(s)");
     return true;
   }
 

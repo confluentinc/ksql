@@ -8,7 +8,7 @@ import io.confluent.kql.parser.tree.Statement;
 
 import java.util.List;
 
-public class StatementParser {
+class StatementParser {
   private final KQLEngine kqlEngine;
 
   public StatementParser(KQLEngine kqlEngine) {

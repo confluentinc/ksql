@@ -7,13 +7,12 @@ import io.confluent.adminclient.KafkaAdminClient;
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
-import io.confluent.kql.rest.computation.QueryComputer;
+import io.confluent.kql.rest.computation.CommandRunner;
 import io.confluent.kql.rest.computation.QueryHandler;
 import io.confluent.kql.rest.resources.KQLResource;
 import io.confluent.kql.rest.resources.StatusResource;
 import io.confluent.kql.rest.resources.StreamedQueryResource;
 import io.confluent.kql.util.KQLConfig;
-import io.confluent.kql.util.QueryMetadata;
 import io.confluent.rest.Application;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -34,7 +33,6 @@ import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -42,30 +40,30 @@ public class KQLApplication extends Application<KQLRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KQLApplication.class);
 
-  private final QueryComputer queryComputer;
+  private final CommandRunner commandRunner;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KQLResource kqlResource;
   private final boolean enableQuickstartPage;
 
-  private final Thread queryComputerThread;
+  private final Thread commandRunnerThread;
 
   public KQLApplication(
       KQLRestConfig config,
-      QueryComputer queryComputer,
+      CommandRunner commandRunner,
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KQLResource kqlResource,
       boolean enableQuickstartPage
   ) {
     super(config);
-    this.queryComputer = queryComputer;
+    this.commandRunner = commandRunner;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.kqlResource = kqlResource;
     this.enableQuickstartPage = enableQuickstartPage;
 
-    this.queryComputerThread = new Thread(queryComputer);
+    this.commandRunnerThread = new Thread(commandRunner);
   }
 
   @Override
@@ -94,17 +92,17 @@ public class KQLApplication extends Application<KQLRestConfig> {
   @Override
   public void start() throws Exception {
     super.start();
-    queryComputerThread.start();
+    commandRunnerThread.start();
   }
 
   @Override
   public void onShutdown() {
     super.onShutdown();
-    queryComputer.close();
+    commandRunner.close();
     try {
-      queryComputerThread.join();
+      commandRunnerThread.join();
     } catch (InterruptedException exception) {
-      log.error("Interrupted while waiting for QueryComputer thread to complete", exception);
+      log.error("Interrupted while waiting for CommandRunner thread to complete", exception);
     }
   }
 
@@ -178,7 +176,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
 
     String nodeId = config.getString(KQLRestConfig.NODE_ID_CONFIG);
 
-    QueryComputer queryComputer = new QueryComputer(
+    CommandRunner commandRunner = new CommandRunner(
         queryHandler,
         commandTopic,
         nodeId,
@@ -202,15 +200,15 @@ public class KQLApplication extends Application<KQLRestConfig> {
     );
     KQLResource kqlResource = new KQLResource(
         kqlEngine,
-        queryComputer,
+        commandRunner,
         queryHandler
     );
 
-    queryComputer.processPriorCommands();
+    commandRunner.processPriorCommands();
 
     return new KQLApplication(
         config,
-        queryComputer,
+        commandRunner,
         statusResource,
         streamedQueryResource,
         kqlResource,

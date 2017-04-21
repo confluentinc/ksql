@@ -20,7 +20,7 @@ import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.computation.QueryComputer;
+import io.confluent.kql.rest.computation.CommandRunner;
 import io.confluent.kql.rest.computation.QueryHandler;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.QueryMetadata;
@@ -52,16 +52,16 @@ public class KQLResource {
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KQLResource.class);
 
   private final KQLEngine kqlEngine;
-  private final QueryComputer queryComputer;
+  private final CommandRunner commandRunner;
   private final QueryHandler queryHandler;
 
   public KQLResource(
       KQLEngine kqlEngine,
-      QueryComputer queryComputer,
+      CommandRunner commandRunner,
       QueryHandler queryHandler
   ) {
     this.kqlEngine = kqlEngine;
-    this.queryComputer = queryComputer;
+    this.commandRunner = commandRunner;
     this.queryHandler = queryHandler;
   }
 
@@ -129,7 +129,7 @@ public class KQLResource {
             || statement instanceof CreateTableAsSelect
             || statement instanceof TerminateQuery
     ) {
-      String commandId = queryComputer.distributeStatement(statementString);
+      String commandId = commandRunner.distributeStatement(statementString);
       result.add("statement_id", commandId);
     } else {
       if (statement != null) {

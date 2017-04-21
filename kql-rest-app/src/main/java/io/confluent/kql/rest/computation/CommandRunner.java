@@ -35,9 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Handles the logic of polling for new queries, assigning them an ID, and then delegating their execution to a
  * {@link QueryHandler}. Also responsible for taking care of any exceptions that occur in the process.
  */
-public class QueryComputer implements Runnable, Closeable {
+public class CommandRunner implements Runnable, Closeable {
 
-  private static final Logger log = LoggerFactory.getLogger(QueryComputer.class);
+  private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
   private final QueryHandler queryHandler;
   private final String commandTopic;
@@ -47,7 +47,7 @@ public class QueryComputer implements Runnable, Closeable {
   private final AtomicBoolean closed;
   private final AtomicInteger statementSuffix;
 
-  public QueryComputer(
+  public CommandRunner(
       QueryHandler queryHandler,
       String commandTopic,
       String nodeId,
@@ -125,6 +125,7 @@ public class QueryComputer implements Runnable, Closeable {
   public void close() {
     closed.set(true);
     commandConsumer.wakeup();
+    commandProducer.close();
   }
 
   /**

@@ -18,9 +18,11 @@ class StatementParser {
   public Statement parseSingleStatement(String statementString) throws Exception {
     List<Statement> statements = kqlEngine.getStatements(statementString);
     if (statements == null) {
-      throw new Exception("Call to KQLEngine.getStatements() returned null");
+      throw new IllegalArgumentException("Call to KQLEngine.getStatements() returned null");
     } else if ((statements.size() != 1)) {
-      throw new Exception(String.format("Expected exactly one KQL statement; found %d instead", statements.size()));
+      throw new IllegalArgumentException(
+          String.format("Expected exactly one KQL statement; found %d instead", statements.size())
+      );
     } else {
       return statements.get(0);
     }

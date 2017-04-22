@@ -110,12 +110,12 @@
             <version>1.8.1</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni -->
-        <dependency>
-            <groupId>org.rocksdb</groupId>
-            <artifactId>rocksdbjni</artifactId>
-            <version>4.11.2</version>
-        </dependency>
+        <!--&lt;!&ndash; https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni &ndash;&gt;-->
+        <!--<dependency>-->
+            <!--<groupId>org.rocksdb</groupId>-->
+            <!--<artifactId>rocksdbjni</artifactId>-->
+            <!--<version>4.11.2</version>-->
+        <!--</dependency>-->
 
         <!-- https://mvnrepository.com/artifact/junit/junit -->
         <dependency>

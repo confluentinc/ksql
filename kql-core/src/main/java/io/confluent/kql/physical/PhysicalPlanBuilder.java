@@ -34,6 +34,8 @@ import io.confluent.kql.structured.SchemaKStream;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.SerDeUtil;
+import io.confluent.kql.util.WindowedSerde;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -253,11 +255,20 @@ public class PhysicalPlanBuilder {
           == StructuredDataSource.DataSourceType.KTABLE) {
 
         KQLTable kqlTable = (KQLTable) structuredDataSourceNode.getStructuredDataSource();
-        KTable
-            kTable =
-            builder
-                .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
-                       kqlTable.getStateStoreName());
+        KTable kTable;
+        if (kqlTable.isWinidowed()) {
+          kTable =
+              builder
+                  .table(new WindowedSerde(), genericRowSerde, kqlTable.getKqlTopic()
+                             .getKafkaTopicName(),
+                         kqlTable.getStateStoreName());
+        } else {
+          kTable =
+              builder
+                  .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
+                         kqlTable.getStateStoreName());
+        }
+
         return new SchemaKTable(sourceNode.getSchema(), kTable,
                                 sourceNode.getKeyField(), new ArrayList<>(), kqlTable.isWinidowed());
       }

@@ -58,7 +58,9 @@ public class SchemaKTable extends SchemaKStream {
           KeyValue<String, GenericRow>>() {
         @Override
         public KeyValue<String, GenericRow> apply(Windowed<String> key, GenericRow genericRow) {
-          System.out.println(key.key() + " : " + key.window() + " ==> " + genericRow.toString());
+          if (genericRow != null) {
+            System.out.println(key.key() + " : " + key.window() + " ==> " + genericRow);
+          }
           return new KeyValue<String, GenericRow>(key.key(), genericRow);
         }
 

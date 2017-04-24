@@ -1,4 +1,4 @@
-package io.confluent.kql.rest.resources.streaming;
+package io.confluent.kql.rest.server.resources.streaming;
 
 import io.confluent.kql.physical.GenericRow;
 import org.apache.kafka.connect.data.Field;

@@ -1,7 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest.resources;
+package io.confluent.kql.rest.server.resources;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;

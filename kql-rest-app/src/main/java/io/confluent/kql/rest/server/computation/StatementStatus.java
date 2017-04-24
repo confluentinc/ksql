@@ -1,4 +1,4 @@
-package io.confluent.kql.rest.computation;
+package io.confluent.kql.rest.server.computation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;

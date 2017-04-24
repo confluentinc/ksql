@@ -1,4 +1,4 @@
-package io.confluent.kql.rest.resources;
+package io.confluent.kql.rest.server.resources;
 
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.KQLStream;
@@ -20,8 +20,8 @@ import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.computation.CommandRunner;
-import io.confluent.kql.rest.computation.StatementExecutor;
+import io.confluent.kql.rest.server.computation.CommandRunner;
+import io.confluent.kql.rest.server.computation.StatementExecutor;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SchemaUtil;

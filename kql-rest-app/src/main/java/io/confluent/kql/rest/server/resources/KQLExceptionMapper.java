@@ -1,4 +1,4 @@
-package io.confluent.kql.rest.resources;
+package io.confluent.kql.rest.server.resources;
 
 import javax.json.Json;
 import javax.json.JsonValue;

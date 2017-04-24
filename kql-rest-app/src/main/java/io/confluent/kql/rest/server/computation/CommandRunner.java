@@ -1,7 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest.computation;
+package io.confluent.kql.rest.server.computation;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

@@ -1,7 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest;
+package io.confluent.kql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
 import io.confluent.rest.RestConfig;

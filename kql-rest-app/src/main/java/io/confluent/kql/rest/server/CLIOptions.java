@@ -1,7 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest;
+package io.confluent.kql.rest.server;
 
 import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.SingleCommand;

@@ -1,14 +1,14 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest.resources.streaming;
+package io.confluent.kql.rest.server.resources.streaming;
 
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.Statement;
-import io.confluent.kql.rest.StatementParser;
-import io.confluent.kql.rest.TopicUtil;
-import io.confluent.kql.rest.resources.KQLJsonRequest;
+import io.confluent.kql.rest.server.StatementParser;
+import io.confluent.kql.rest.server.TopicUtil;
+import io.confluent.kql.rest.server.resources.KQLJsonRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package io.confluent.kql.rest.computation;
+package io.confluent.kql.rest.server.computation;
 
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.ddl.DDLConfig;
@@ -21,8 +21,8 @@ import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
-import io.confluent.kql.rest.StatementParser;
-import io.confluent.kql.rest.TopicUtil;
+import io.confluent.kql.rest.server.StatementParser;
+import io.confluent.kql.rest.server.TopicUtil;
 import io.confluent.kql.structured.SchemaKStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.util.KQLException;

@@ -1,7 +1,7 @@
-package io.confluent.kql.rest.resources;
+package io.confluent.kql.rest.server.resources;
 
-import io.confluent.kql.rest.computation.StatementExecutor;
-import io.confluent.kql.rest.computation.StatementStatus;
+import io.confluent.kql.rest.server.computation.StatementExecutor;
+import io.confluent.kql.rest.server.computation.StatementStatus;
 
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;

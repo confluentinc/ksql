@@ -1,11 +1,11 @@
-package io.confluent.kql.rest.resources.streaming;
+package io.confluent.kql.rest.server.resources.streaming;
 
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.resources.KQLExceptionMapper;
+import io.confluent.kql.rest.server.resources.KQLExceptionMapper;
 import io.confluent.kql.util.QueryMetadata;
 import io.confluent.kql.util.SerDeUtil;
 import io.confluent.kql.util.WindowedSerde;

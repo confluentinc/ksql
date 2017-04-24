@@ -1,18 +1,18 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.kql.rest;
+package io.confluent.kql.rest.server;
 
 import io.confluent.adminclient.KafkaAdminClient;
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
-import io.confluent.kql.rest.computation.CommandRunner;
-import io.confluent.kql.rest.computation.StatementExecutor;
-import io.confluent.kql.rest.resources.KQLExceptionMapper;
-import io.confluent.kql.rest.resources.KQLResource;
-import io.confluent.kql.rest.resources.StatusResource;
-import io.confluent.kql.rest.resources.streaming.StreamedQueryResource;
+import io.confluent.kql.rest.server.computation.CommandRunner;
+import io.confluent.kql.rest.server.computation.StatementExecutor;
+import io.confluent.kql.rest.server.resources.KQLExceptionMapper;
+import io.confluent.kql.rest.server.resources.KQLResource;
+import io.confluent.kql.rest.server.resources.StatusResource;
+import io.confluent.kql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.rest.Application;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -37,9 +37,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
-public class KQLApplication extends Application<KQLRestConfig> {
+public class KQLRestApplication extends Application<KQLRestConfig> {
 
-  private static final Logger log = LoggerFactory.getLogger(KQLApplication.class);
+  private static final Logger log = LoggerFactory.getLogger(KQLRestApplication.class);
 
   private final CommandRunner commandRunner;
   private final StatusResource statusResource;
@@ -49,7 +49,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
 
   private final Thread commandRunnerThread;
 
-  public KQLApplication(
+  public KQLRestApplication(
       KQLRestConfig config,
       CommandRunner commandRunner,
       StatusResource statusResource,
@@ -140,13 +140,13 @@ public class KQLApplication extends Application<KQLRestConfig> {
     }
 
     Properties props = getProps(cliOptions.getPropertiesFile());
-    KQLApplication app = buildApplication(props, cliOptions.getQuickstart());
+    KQLRestApplication app = buildApplication(props, cliOptions.getQuickstart());
     app.start();
     app.join();
     System.err.println("Server shutting down...");
   }
 
-  public static KQLApplication buildApplication(Properties props, boolean quickstart) throws Exception {
+  public static KQLRestApplication buildApplication(Properties props, boolean quickstart) throws Exception {
     KQLRestConfig config = new KQLRestConfig(props);
 
     @SuppressWarnings("unchecked")
@@ -208,7 +208,7 @@ public class KQLApplication extends Application<KQLRestConfig> {
 
     commandRunner.processPriorCommands();
 
-    return new KQLApplication(
+    return new KQLRestApplication(
         config,
         commandRunner,
         statusResource,

@@ -34,6 +34,8 @@ import io.confluent.kql.structured.SchemaKStream;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.SerDeUtil;
+import io.confluent.kql.util.WindowedSerde;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -153,6 +155,7 @@ public class PhysicalPlanBuilder {
     // Aggregate computations
     Map<Integer, KQLAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
     Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
+    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
 
     List resultColumns = new ArrayList();
     int nonAggColumnIndex = 0;
@@ -162,6 +165,8 @@ public class PhysicalPlanBuilder {
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
       resultColumns.add("");
+      Field field = aggregateArgExpanded.getSchema().fields().get(index);
+      aggregateSchema.field(field.name(), field.schema());
     }
     int udafIndex = resultColumns.size();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
@@ -176,11 +181,18 @@ public class PhysicalPlanBuilder {
       resultColumns.add(aggregateFunction.getIntialValue());
 
       udafIndex++;
+      aggregateSchema.field("AGG_COL_" + udafIndex, aggregateFunction.getReturnType());
     }
+
+    Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
+                                                                   .getStructuredDataSource()
+                                                                  .getKqlTopic()
+                                                                  .getKqlTopicSerDe(),
+                                                                      aggregateSchema);
 
     SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KUDAFInitializer(resultColumns),
-        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), genericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
+        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), aggValueGenericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
 
     // Post aggregate computations
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -243,11 +255,20 @@ public class PhysicalPlanBuilder {
           == StructuredDataSource.DataSourceType.KTABLE) {
 
         KQLTable kqlTable = (KQLTable) structuredDataSourceNode.getStructuredDataSource();
-        KTable
-            kTable =
-            builder
-                .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
-                       kqlTable.getStateStoreName());
+        KTable kTable;
+        if (kqlTable.isWinidowed()) {
+          kTable =
+              builder
+                  .table(new WindowedSerde(), genericRowSerde, kqlTable.getKqlTopic()
+                             .getKafkaTopicName(),
+                         kqlTable.getStateStoreName());
+        } else {
+          kTable =
+              builder
+                  .table(Serdes.String(), genericRowSerde, kqlTable.getKqlTopic().getKafkaTopicName(),
+                         kqlTable.getStateStoreName());
+        }
+
         return new SchemaKTable(sourceNode.getSchema(), kTable,
                                 sourceNode.getKeyField(), new ArrayList<>(), kqlTable.isWinidowed());
       }

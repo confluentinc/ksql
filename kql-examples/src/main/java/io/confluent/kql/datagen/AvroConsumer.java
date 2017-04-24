@@ -47,8 +47,7 @@ public class AvroConsumer {
       final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer(null);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer
-          (null);
+      final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer(null);
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

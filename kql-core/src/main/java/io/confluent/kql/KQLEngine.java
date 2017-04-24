@@ -26,26 +26,33 @@ import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.TerminateQuery;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.QueryMetadata;
 
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KQLEngine {
+public class KQLEngine implements Closeable {
 
   KQLConfig kqlConfig;
   QueryEngine queryEngine;
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
+  Map<String, QueryMetadata> liveQueries = new HashMap<>();
 
   static final String QUERY_ID_PREFIX = "KQL_";
   int queryIdCounter = 0;
@@ -71,6 +78,7 @@ public class KQLEngine {
     for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
+    Map<String, String> queryStrings = new HashMap<>();
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
       Pair<Statement, DataSourceExtractor>
           statementInfo =
@@ -83,7 +91,9 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 intoTable.getName().getSuffix()
         ));
-        queryList.add(new Pair(getNextQueryId(), query));
+        String queryId = getNextQueryId();
+        queryList.add(new Pair<>(queryId, query));
+        queryStrings.put(queryId, getStatementString(singleStatementContext));
       } else if (statement instanceof CreateStreamAsSelect) {
         CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
         QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery()
@@ -94,7 +104,9 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 createStreamAsSelect.getName()
                                                                     .getSuffix()));
-        queryList.add(new Pair(getNextQueryId(), query));
+        String queryId = getNextQueryId();
+        queryList.add(new Pair<>(queryId, query));
+        queryStrings.put(queryId, getStatementString(singleStatementContext));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
         QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery()
@@ -107,7 +119,9 @@ public class KQLEngine {
         tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
                                                                 createTableAsSelect.getName()
                                                                     .getSuffix()));
-        queryList.add(new Pair(getNextQueryId(), query));
+        String queryId = getNextQueryId();
+        queryList.add(new Pair<>(queryId, query));
+        queryStrings.put(queryId, getStatementString(singleStatementContext));
       } else if (statement instanceof CreateTopic) {
         KQLTopic kqlTopic = ddlEngine.createTopic((CreateTopic) statement);
         if (kqlTopic != null) {
@@ -135,8 +149,15 @@ public class KQLEngine {
         runningQueries =
         queryEngine.buildRunPhysicalPlans(createNewAppId, metaStore, logicalPlans);
 
+    for (QueryMetadata queryMetadata : runningQueries) {
+      QueryMetadata queryInfo = new QueryMetadata(
+          queryStrings.get(queryMetadata.getQueryId()),
+          queryMetadata.getQueryKafkaStreams(),
+          queryMetadata.getQueryOutputNode()
+      );
+      liveQueries.put(queryMetadata.getQueryId(), queryInfo);
+    }
     return runningQueries;
-
   }
 
   public StructuredDataSource getResultDatasource(final Select select, final Table into) {
@@ -147,7 +168,6 @@ public class KQLEngine {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        String fieldType = null;
         dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
       }
 
@@ -162,6 +182,14 @@ public class KQLEngine {
                       kqlTopic
         );
     return resultStream;
+  }
+
+  private String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {
+    CharStream charStream = singleStatementContext.start.getInputStream();
+    return charStream.getText(new Interval(
+        singleStatementContext.start.getStartIndex(),
+        singleStatementContext.stop.getStopIndex()
+    ));
   }
 
   public List<Statement> getStatements(final String sqlString) {
@@ -211,8 +239,27 @@ public class KQLEngine {
     return queryId;
   }
 
-  public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {
+  public boolean terminateQuery(String queryId) {
+    QueryMetadata queryMetadata = liveQueries.remove(queryId);
+    if (queryMetadata == null) {
+      return false;
+    }
+    queryMetadata.getQueryKafkaStreams().close();
+    return true;
+  }
 
+  public Map<String, QueryMetadata> getLiveQueries() {
+    return new HashMap<>(liveQueries);
+  }
+
+  @Override
+  public void close() {
+    for (String runningQueryId : liveQueries.keySet()) {
+      liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
+    }
+  }
+
+  public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {
     this.kqlConfig = kqlConfig;
     this.metaStore = metaStore;
     this.queryEngine = new QueryEngine(kqlConfig);

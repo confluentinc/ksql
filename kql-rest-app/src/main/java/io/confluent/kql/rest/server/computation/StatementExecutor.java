@@ -63,7 +63,6 @@ public class StatementExecutor {
   private final KQLEngine kqlEngine;
   private final StatementParser statementParser;
   private final Map<String, StatementStatus> statusStore;
-  private final Map<String, QueryMetadata> liveQueryMap;
 
   public StatementExecutor(TopicUtil topicUtil, KQLEngine kqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
@@ -71,7 +70,6 @@ public class StatementExecutor {
     this.statementParser = statementParser;
 
     this.statusStore = new HashMap<>();
-    this.liveQueryMap = new HashMap<>();
   }
 
   /**
@@ -229,13 +227,6 @@ public class StatementExecutor {
     );
   }
 
-  /**
-   * @return A map detailing IDs and metadata for all currently-running queries
-   */
-  public Map<String, QueryMetadata> getLiveQueries() {
-    return new HashMap<>(liveQueryMap);
-  }
-
   private Map<String, String> getTerminatedQueries(Map<String, String> commands) {
     Map<String, String> result = new HashMap<>();
 
@@ -344,26 +335,14 @@ public class StatementExecutor {
       }
     }
 
-    QueryMetadata queryPairInfo = kqlEngine.runMultipleQueries(false, queryString).get(0);
-
-    if (queryPairInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
-      // TODO: The query string shouldn't really be used as the query ID in the metadata here... think about a better way to store live queries
-      QueryMetadata queryInfo =
-          new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), queryPairInfo.getQueryOutputNode());
-      liveQueryMap.put(queryId, queryInfo);
-    } else {
-      throw new Exception(String.format("Unexpected query output node: %s", queryPairInfo.getQueryOutputNode()));
-    }
+    kqlEngine.runMultipleQueries(false, queryString);
   }
 
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
     String queryId = terminateQuery.getQueryId().toString();
-    if (!liveQueryMap.containsKey(queryId)) {
+    if (!kqlEngine.terminateQuery(queryId)) {
       throw new Exception(String.format("No running query with id '%s' was found", queryId));
     }
-    QueryMetadata kafkaStreamsQuery = liveQueryMap.get(queryId);
-    kafkaStreamsQuery.getQueryKafkaStreams().close();
-    liveQueryMap.remove(queryId);
     String queryStatementId = queryId.substring(0, queryId.length() - "_QUERY".length());
     statusStore.put(queryStatementId, new StatementStatus(StatementStatus.Status.TERMINATED, "Query terminated"));
   }

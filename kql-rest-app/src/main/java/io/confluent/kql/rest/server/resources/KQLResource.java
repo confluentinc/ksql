@@ -176,7 +176,7 @@ public class KQLResource {
   // Only shows queries running on the current machine, not across the entire cluster
   private JsonObject showQueries() {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    for (Map.Entry<String, QueryMetadata> queryEntry : statementExecutor.getLiveQueries().entrySet()) {
+    for (Map.Entry<String, QueryMetadata> queryEntry : kqlEngine.getLiveQueries().entrySet()) {
       KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
           (KQLStructuredDataOutputNode) queryEntry.getValue().getQueryOutputNode();
       JsonObjectBuilder query = Json.createObjectBuilder();

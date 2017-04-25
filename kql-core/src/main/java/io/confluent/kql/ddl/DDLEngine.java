@@ -157,7 +157,7 @@ public class DDLEngine {
     keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (kqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new KQLException("THe corresponding topic is does not exist.");
+      throw new KQLException(String.format("The corresponding topic, %s, does not exist.", topicName));
     }
 
     KQLStream
@@ -176,9 +176,9 @@ public class DDLEngine {
     String tableName = createTable.getName().getSuffix();
     if (kqlEngine.getMetaStore().getSource(tableName) != null) {
       if (createTable.isNotExists()) {
-        System.out.println("Topic already exists.");
+        System.out.println("Table already exists.");
       } else {
-        throw new KQLException("Topic already exists.");
+        throw new KQLException("Table already exists.");
       }
       return null;
     }

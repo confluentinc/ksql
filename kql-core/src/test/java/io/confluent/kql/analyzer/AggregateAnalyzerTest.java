@@ -99,7 +99,7 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testExpressionArgAggregateQueryAnalysis() {
-    String queryStr = "SELECT col1, sum(col3*col0), sum(floor(col3)*3.0 FROM test1 window w "
+    String queryStr = "SELECT col1, sum(col3*col0), sum(floor(col3)*3.0) FROM test1 window w "
                       + "TUMBLING ( size 2 second) WHERE col0 > "
                       + "100 "
                       + "group "
@@ -128,7 +128,7 @@ public class AggregateAnalyzerTest {
 
   @Test
   public void testAggregateWithExpressionQueryAnalysis() {
-    String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0 FROM test1 "
+    String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
                       + "window w "
                       + "TUMBLING ( size 2 second) WHERE col0 > "
                       + "100 "

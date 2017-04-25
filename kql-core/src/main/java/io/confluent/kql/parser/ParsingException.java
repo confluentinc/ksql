@@ -15,8 +15,7 @@ public class ParsingException
   private final int line;
   private final int charPositionInLine;
 
-  public ParsingException(String message, RecognitionException cause, int line,
-                          int charPositionInLine) {
+  public ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
     super(message, cause);
 
     this.line = line;
@@ -31,20 +30,24 @@ public class ParsingException
     this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
   }
 
-  public int getLineNumber() {
+  public int getLineNumber()
+  {
     return line;
   }
 
-  public int getColumnNumber() {
+  public int getColumnNumber()
+  {
     return charPositionInLine + 1;
   }
 
-  public String getErrorMessage() {
+  public String getErrorMessage()
+  {
     return super.getMessage();
   }
 
   @Override
-  public String getMessage() {
+  public String getMessage()
+  {
     return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
   }
 }

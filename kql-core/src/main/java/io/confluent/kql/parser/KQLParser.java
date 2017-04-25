@@ -11,8 +11,11 @@ import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
@@ -76,7 +79,14 @@ public class KQLParser {
         new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
     CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
     SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
-    sqlBaseParser.setErrorHandler(new KQLParserErrorStrategy());
+
+    sqlBaseLexer.removeErrorListeners();
+    sqlBaseLexer.addErrorListener(ERROR_LISTENER);
+
+    sqlBaseParser.removeErrorListeners();
+    sqlBaseParser.addErrorListener(ERROR_LISTENER);
+
+//    sqlBaseParser.setErrorHandler(new KQLParserErrorStrategy());
     Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
     ParserRuleContext tree;
     try {
@@ -94,4 +104,14 @@ public class KQLParser {
 
     return tree;
   }
+
+  private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener()
+  {
+    @Override
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String message, RecognitionException e)
+    {
+      throw new ParsingException(message, e, line, charPositionInLine);
+    }
+  };
+
 }

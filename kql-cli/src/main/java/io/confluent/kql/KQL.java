@@ -224,6 +224,7 @@ public class KQL {
       console.println("Command/Statement is incorrect or not supported.");
 
     } catch (Exception e) {
+//      e.printStackTrace();
       console.println("Exception: " + e.getMessage());
     }
 
@@ -242,7 +243,7 @@ public class KQL {
       statements = kqlEngine.getStatements(statementStr);
     } catch (Exception ex) {
       // Do nothing
-      ex.printStackTrace();
+//      ex.printStackTrace();
       System.err.println(ex.getMessage());
     }
 

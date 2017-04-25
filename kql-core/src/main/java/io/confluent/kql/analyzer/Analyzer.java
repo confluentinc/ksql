@@ -41,9 +41,12 @@ import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
 
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 import java.util.Set;
+
+import static java.lang.String.format;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
@@ -113,7 +116,35 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.getHaving().isPresent()) {
       analyzeHaving(node.getHaving().get(), context);
     }
+
+    analyzeExpressions();
+
     return null;
+  }
+
+  private void analyzeExpressions() {
+    Schema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
+    boolean isJoinSchema = false;
+    if (analysis.getJoin() != null) {
+      schema = analysis.getJoin().getSchema();
+      isJoinSchema = true;
+    }
+    ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(schema, isJoinSchema);
+
+    for (Expression selectExpression: analysis.getSelectExpressions()) {
+      expressionAnalyzer.analyzeExpression(selectExpression);
+    }
+    if (analysis.getWhereExpression() != null) {
+      expressionAnalyzer.analyzeExpression(analysis.getWhereExpression());
+    }
+    if (!analysis.getGroupByExpressions().isEmpty()) {
+      for (Expression expression: analysis.getGroupByExpressions()) {
+        expressionAnalyzer.analyzeExpression(expression);
+      }
+    }
+    if (analysis.getHavingExpression() != null) {
+      expressionAnalyzer.analyzeExpression(analysis.getHavingExpression());
+    }
   }
 
   @Override
@@ -137,11 +168,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
     if (leftDataSource == null) {
-      throw new KQLException(leftSideName + " does not exist.");
+      throw new KQLException(format("Resource %s does not exist.", leftSideName));
     }
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
-      throw new KQLException(rightSideName + " does not exist.");
+      throw new KQLException(format("Resource %s does not exist.", rightSideName));
     }
 
     StructuredDataSourceNode

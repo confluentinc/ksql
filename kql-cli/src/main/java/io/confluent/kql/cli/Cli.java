@@ -105,7 +105,6 @@ public class Cli {
         terminal.writer().println("An unexpected exception with no message was encountered.");
       }
     }
-    return;
   }
 
   protected void handleMetaCommand(String trimmedLine) throws IOException {

@@ -45,19 +45,16 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 
 public class KQL {
 
   KQLEngine kqlEngine;
-  LiveQueryMap liveQueries = new LiveQueryMap();
   KQLConfig config;
-  QueryMetadata cliCurrentQuery = null;
+  String currentQueryId = null;
 
   boolean isCLI = true;
 
@@ -76,16 +73,14 @@ public class KQL {
                                    "terminate", "exit", "describe", "print", "list topics",
                                    "list streams", "create topic", "create stream", "create table"));
       console.setExpandEvents(false); // Disable event expansion so things like '!=' are left alone by the console reader
-      String line = null;
+      String line;
       while ((line = console.readLine()) != null) {
         if (line.length() == 0) {
           continue;
         }
         if (line.trim().toLowerCase().startsWith("exit")) {
           // Close all running queries first!
-          for (String runningQueryId : liveQueries.keySet()) {
-            liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
-          }
+          kqlEngine.close();
           console.println();
           console.println("Goodbye!");
           console.println();
@@ -96,10 +91,10 @@ public class KQL {
           printCommandList();
           continue;
         } else if (line.trim().equalsIgnoreCase("close")) {
-          if (cliCurrentQuery != null) {
+          if (currentQueryId != null) {
             console.println("Terminating the currently-running console query");
-            cliCurrentQuery.getQueryKafkaStreams().close();
-            cliCurrentQuery = null;
+            kqlEngine.terminateQuery(currentQueryId);
+            currentQueryId = null;
           } else {
             console.println("There is no currently-running console query to terminate");
           }
@@ -123,7 +118,6 @@ public class KQL {
   }
 
   public void runQueriesFromFile(String queryFilePath) throws Exception {
-
     System.out.println(
         "********************************************************************************************************");
     System.out
@@ -131,10 +125,7 @@ public class KQL {
     System.out.println(
         "********************************************************************************************************");
     String queryString = KQLUtil.readQueryFile(queryFilePath);
-    List<QueryMetadata>
-        runningQueries =
-        kqlEngine.runMultipleQueries(false, queryString);
-
+    kqlEngine.runMultipleQueries(false, queryString);
   }
 
 
@@ -207,7 +198,6 @@ public class KQL {
           console.println("Topic does not exist: " + printTopic.getTopic().getSuffix());
           return;
         }
-        String topicsName = kqlTopic.getTopicName();
         long interval;
         if (printTopic.getIntervalValue() == null) {
           interval = -1;
@@ -307,23 +297,15 @@ public class KQL {
       }
     }
 
-    QueryMetadata
-        queryPairInfo =
+    QueryMetadata queryMetadata =
         kqlEngine.runMultipleQueries(true, queryString).get(0);
 
-    if (queryPairInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
-      QueryMetadata
-          queryInfo =
-          new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLStructuredDataOutputNode)
-              queryPairInfo.getQueryOutputNode());
-      liveQueries.put(queryPairInfo.getQueryId(), queryInfo);
-    } else if (queryPairInfo.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
-      if (cliCurrentQuery != null) {
+    if (queryMetadata.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
+      if (currentQueryId != null) {
         console.println("Terminating the currently-running console query first");
-        cliCurrentQuery.getQueryKafkaStreams().close();
+        kqlEngine.terminateQuery(currentQueryId);
       }
-      cliCurrentQuery = new QueryMetadata(queryString, queryPairInfo.getQueryKafkaStreams(), (KQLConsoleOutputNode)
-          queryPairInfo.getQueryOutputNode());
+      currentQueryId = queryMetadata.getQueryId();
     }
     if (isCLI) {
       console.println();
@@ -332,24 +314,13 @@ public class KQL {
 
   private void terminateQuery(final TerminateQuery terminateQuery) throws IOException {
     String queryId = terminateQuery.getQueryId().toString();
-    terminateQuery(queryId);
-  }
-
-  private void terminateQuery(final String queryId) throws IOException {
-    if (!liveQueries.containsKey(queryId)) {
+    if (kqlEngine.terminateQuery(queryId)) {
+      console.println("Terminated query with id = " + queryId);
+    } else {
       console.println("No running query with id = " + queryId + " was found!");
-      console.flush();
-      return;
     }
-    QueryMetadata
-        kafkaStreamsQuery =
-        liveQueries.get(queryId);
-    console.println("Query: " + kafkaStreamsQuery.getQueryId());
-    kafkaStreamsQuery.getQueryKafkaStreams().close();
-    liveQueries.remove(queryId);
-    console.println("Terminated query with id = " + queryId);
+    console.flush();
   }
-
 
   private void listTopics() throws IOException {
     MetaStore metaStore = kqlEngine.getMetaStore();
@@ -368,7 +339,6 @@ public class KQL {
         "-------------------------------------------+--------------------------------------------+------------------------------------+--------------------");
     for (String topicName : topicMap.keySet()) {
       KQLTopic kqlTopic = topicMap.get(topicName);
-      String formatStr = kqlTopic.getKqlTopicSerDe().getSerDe().toString();
       String notes = "";
       if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
         KQLAvroTopicSerDe kqlAvroTopicSerDe = (KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe();
@@ -395,7 +365,7 @@ public class KQL {
         streamsInfo.add(
             " " + padRight(datasourceName, 27) + "|  " + padRight(kqlStream.getKqlTopic()
                                                                          .getName(), 38)
-            + "|  " + padRight(kqlStream.getKeyField().name().toString(), 30) + "|    "
+            + "|  " + padRight(kqlStream.getKeyField().name(), 30) + "|    "
             + padRight(kqlStream.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 28));
       }
     }
@@ -427,7 +397,7 @@ public class KQL {
         KQLTable kqlTable = (KQLTable) dataSource;
         tablesInfo.add(
             " " + padRight(datasourceName, 27) + "|  " + padRight(kqlTable.getKqlTopic().getName(), 38)
-            + "|  " + padRight(kqlTable.getKeyField().name().toString(), 30) + "|    "
+            + "|  " + padRight(kqlTable.getKeyField().name(), 30) + "|    "
             + padRight(kqlTable.getKqlTopic().getKqlTopicSerDe().getSerDe().toString(), 28) + "|    "
             + padRight(kqlTable.getStateStoreName(), 30));
       }
@@ -493,21 +463,26 @@ public class KQL {
   }
 
   private void showQueries() throws IOException {
+    Map<String, QueryMetadata> liveQueries = kqlEngine.getLiveQueries();
     console.println("Running queries: ");
     console.println(
         " Query ID   |         Query                                                                    |         Query Sink Topic");
+    int numQueries = 0;
     for (String queryId : liveQueries.keySet()) {
-      console.println(
-          "------------+----------------------------------------------------------------------------------+-----------------------------------");
       QueryMetadata queryInfo = liveQueries.get(queryId);
-      KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
-                                                                    queryInfo.getQueryOutputNode();
-      console.println(
-          padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName());
+      if (queryInfo.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
+        numQueries++;
+        console.println(
+            "------------+----------------------------------------------------------------------------------+-----------------------------------");
+        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
+            queryInfo.getQueryOutputNode();
+        console.println(
+            padRight(queryId, 12) + "|   " + padRight(queryInfo.getQueryId(), 80) + "|   " + kqlStructuredDataOutputNode.getKafkaTopicName());
+      }
     }
     console.println(
         "------------+----------------------------------------------------------------------------------+-----------------------------------");
-    console.println("( " + liveQueries.size() + " rows)");
+    console.println("( " + numQueries + " rows)");
     console.flush();
   }
 
@@ -580,34 +555,5 @@ public class KQL {
     }
 
     kql.startConsole();
-  }
-
-  class LiveQueryMap {
-
-    Map<String, QueryMetadata> liveQueries = new HashMap<>();
-
-    public QueryMetadata get(String key) {
-      return liveQueries.get(key);
-    }
-
-    public void put(String key, QueryMetadata value) {
-      liveQueries.put(key, value);
-    }
-
-    public Set<String> keySet() {
-      return liveQueries.keySet();
-    }
-
-    public void remove(String key) {
-      liveQueries.remove(key);
-    }
-
-    public int size() {
-      return liveQueries.size();
-    }
-
-    public boolean containsKey(String key) {
-      return liveQueries.containsKey(key);
-    }
   }
 }

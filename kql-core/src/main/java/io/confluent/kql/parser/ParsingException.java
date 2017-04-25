@@ -30,24 +30,20 @@ public class ParsingException
     this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
   }
 
-  public int getLineNumber()
-  {
+  public int getLineNumber() {
     return line;
   }
 
-  public int getColumnNumber()
-  {
+  public int getColumnNumber() {
     return charPositionInLine + 1;
   }
 
-  public String getErrorMessage()
-  {
+  public String getErrorMessage() {
     return super.getMessage();
   }
 
   @Override
-  public String getMessage()
-  {
+  public String getMessage() {
     return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
   }
 }

@@ -21,7 +21,6 @@ import io.confluent.kql.parser.tree.LikePredicate;
 import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
-import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.util.SchemaUtil;
 
 

@@ -105,11 +105,9 @@ public class KQLParser {
     return tree;
   }
 
-  private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener()
-  {
+  private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
-    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String message, RecognitionException e)
-    {
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String message, RecognitionException e) {
       throw new ParsingException(message, e, line, charPositionInLine);
     }
   };

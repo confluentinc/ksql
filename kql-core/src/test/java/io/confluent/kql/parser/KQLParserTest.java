@@ -170,7 +170,8 @@ public class KQLParserTest {
   public void testSimpleLeftJoin() throws Exception {
     String
         queryStr =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
+        + "t1.col1 = t2.col1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     Query query = (Query) statement;
@@ -189,7 +190,8 @@ public class KQLParserTest {
   public void testLeftJoinWithFilter() throws Exception {
     String
         queryStr =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
+        "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = "
+        + "t2.col1 WHERE t2.col2 = 'test';";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     Query query = (Query) statement;
@@ -213,7 +215,8 @@ public class KQLParserTest {
     Query query = (Query) statement;
     Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    Assert.assertTrue("testSelectAll fails", querySpecification.getSelect().getSelectItems().size() == 4);
+    Assert.assertTrue("testSelectAll fails", querySpecification.getSelect().getSelectItems()
+                                                 .size() == 6);
   }
 
   @Test
@@ -228,7 +231,8 @@ public class KQLParserTest {
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     Assert.assertTrue("testSelectAllJoin fails", querySpecification.getFrom().get() instanceof Join);
     Join join = (Join) querySpecification.getFrom().get();
-    Assert.assertTrue("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems().size() == 9);
+    Assert.assertTrue("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems
+        ().size() == 11);
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getLeft()).getAlias().equalsIgnoreCase("T1"));
     Assert.assertTrue("testLeftJoinWithFilter fails", ((AliasedRelation)join.getRight()).getAlias().equalsIgnoreCase("T2"));
   }

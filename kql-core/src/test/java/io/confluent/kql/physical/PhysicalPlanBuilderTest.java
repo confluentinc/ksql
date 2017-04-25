@@ -81,7 +81,8 @@ public class PhysicalPlanBuilderTest {
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
-        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
+                              .size() == 6);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
     }
 
@@ -89,30 +90,35 @@ public class PhysicalPlanBuilderTest {
     public void testSimpleLeftJoinLogicalPlan() throws Exception {
         String
                 simpleQuery =
-                "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+                "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
+                + "ON t1.col1 = t2.col1;";
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
-        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 4);
+        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase
             ("T1.COL1"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(3).name().equalsIgnoreCase
-            ("T2.COL2"));
+            ("T1.COL5"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
-        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 9);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
+                              .size() == 11);
     }
 
     @Test
     public void testSimpleLeftJoinFilterLogicalPlan() throws Exception {
         String
                 simpleQuery =
-                "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t1.col0 > 10 AND t2.col3 = 10.8;";
+                "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
+                + "ON "
+                + "t1.col1 = t2.col1 WHERE t1.col0 > 10 AND t2.col3 = 10.8;";
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
-        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 4);
+        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).name().equalsIgnoreCase
             ("T2.COL1"));
-        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 9);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
+                              .size() == 11);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
     }
 

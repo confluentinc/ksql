@@ -140,7 +140,7 @@ public class SchemaKTableTest {
                                            kqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 4);
+    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
                       filteredSchemaKStream.getSchema().fields().get(0));
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==

@@ -27,6 +27,8 @@ public class GenericRow {
         stringBuilder.append("null");
       } else if (obj.getClass().isArray()) {
         stringBuilder.append(Arrays.toString((Object[]) obj));
+      } else if (obj instanceof String) {
+        stringBuilder.append("'" + obj + "'");
       } else {
         stringBuilder.append(obj);
       }

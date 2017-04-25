@@ -338,5 +338,17 @@ public class KQLParserTest {
     Assert.assertTrue(createTopic.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
     Assert.assertTrue(createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
-  
+
+  @Test
+  public void testShouldFailIfWrongKeyword() throws Exception {
+    try {
+      String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+      Statement statement = kqlParser.buildAST(simpleQuery, metaStore).get(0);
+      Assert.fail();
+    } catch (ParsingException parsingException) {
+      String errorMessage = parsingException.getMessage();
+      Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
+    }
+  }
+
 }

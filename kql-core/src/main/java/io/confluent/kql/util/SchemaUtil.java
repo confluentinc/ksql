@@ -59,21 +59,6 @@ public class SchemaUtil {
         throw new KQLException("Type is not supported: " + kqlType);
 
     }
-//    if (kqlType.equals("STRING")) {
-//      return Schema.STRING_SCHEMA;
-//    } else if (kqlType.equals("BOOLEAN")) {
-//      return Schema.BOOLEAN_SCHEMA;
-//    } else if (kqlType.equals("INTEGER")) {
-//      return Schema.INT32_SCHEMA;
-//    } else if (kqlType.equals("BIGINT")) {
-//      return Schema.INT64_SCHEMA;
-//    } else if (kqlType.equals("DOUBLE")) {
-//      return Schema.FLOAT64_SCHEMA;
-//    } else if (kqlType.startsWith("ARRAY")) {
-//      return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType.length() - 1)));
-//    }
-//    throw new KQLException("Type is not supported: " + kqlType);
-
   }
 
 

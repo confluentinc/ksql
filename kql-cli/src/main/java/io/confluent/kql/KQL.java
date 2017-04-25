@@ -13,15 +13,11 @@ import com.github.rvesse.airline.annotations.restrictions.PortType;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
-import io.confluent.kql.rest.client.KQLRestClient;
-import io.confluent.kql.rest.server.KQLRestApplication;
 import io.confluent.kql.rest.server.KQLRestConfig;
-import io.confluent.rest.RestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Properties;
 
 public class KQL {
@@ -51,7 +47,7 @@ public class KQL {
         name = PORT_NUMBER_OPTION_NAME,
         description = "The portNumber to use for the connection (defaults to " + PORT_NUMBER_OPTION_DEFAULT + ")"
     )
-    private Integer portNumber;
+    private int portNumber = PORT_NUMBER_OPTION_DEFAULT;
 
     @Option(
         name = KAFKA_BOOTSTRAP_SERVER_OPTION_NAME,
@@ -90,43 +86,17 @@ public class KQL {
 
     @Override
     public void run() {
-      Properties restServerProperties;
+      Properties serverProperties;
       try {
-        restServerProperties = getStandaloneProperties();
+        serverProperties = getStandaloneProperties();
       } catch (IOException exception) {
         throw new RuntimeException(exception);
       }
 
-      KQLRestApplication restServer;
       try {
-        restServer = KQLRestApplication.buildApplication(restServerProperties, false);
+        new io.confluent.kql.cli.StandaloneCli(serverProperties, portNumber).repl();
       } catch (Exception exception) {
         throw new RuntimeException(exception);
-      }
-
-      List<String> listeners = restServer.getConfiguration().getList(RestConfig.LISTENERS_CONFIG);
-      if (listeners.isEmpty()) {
-        throw new RuntimeException("Could not deduce location of standalone server");
-      }
-      String server = listeners.get(0);
-
-      try {
-        restServer.start();
-      } catch (Exception exception) {
-        throw new RuntimeException(exception);
-      }
-
-      try {
-        new io.confluent.kql.Cli(new KQLRestClient(server)).repl();
-      } catch (IOException exception) {
-        throw new RuntimeException(exception);
-      } finally {
-        try {
-          restServer.stop();
-          restServer.join();
-        } catch (Exception exception) {
-          throw new RuntimeException(exception);
-        }
       }
     }
 
@@ -139,7 +109,6 @@ public class KQL {
     }
 
     private void addDefaultProperties(Properties properties) {
-      properties.put(RestConfig.LISTENERS_CONFIG, String.format("http://localhost:%d", PORT_NUMBER_OPTION_DEFAULT));
       properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
       properties.put(KQLRestConfig.NODE_ID_CONFIG, NODE_ID_OPTION_DEFAULT);
@@ -153,9 +122,6 @@ public class KQL {
     }
 
     private void addFlagProperties(Properties properties) {
-      if (portNumber != null) {
-        properties.put(RestConfig.LISTENERS_CONFIG, String.format("http://localhost:%d", portNumber));
-      }
       if (bootstrapServer != null) {
         properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
       }
@@ -185,7 +151,7 @@ public class KQL {
     @Override
     public void run() {
       try {
-        new io.confluent.kql.Cli(new KQLRestClient(server)).repl();
+        new io.confluent.kql.cli.DistributedCli(server).repl();
       } catch (IOException exception) {
         throw new RuntimeException(exception);
       }

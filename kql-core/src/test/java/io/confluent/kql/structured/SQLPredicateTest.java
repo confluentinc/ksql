@@ -46,8 +46,6 @@ public class SQLPredicateTest {
     kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlStream.getKqlTopic()
                                                                         .getKqlTopicSerDe(), null),
                              kqlStream.getKqlTopic().getKafkaTopicName());
-//    initialSchemaKStream = new SchemaKStream(kqlStream.getSchema(), kStream,
-//                                             kqlStream.getKeyField(), new ArrayList<>());
   }
 
   private Analysis analyze(String queryStr) {

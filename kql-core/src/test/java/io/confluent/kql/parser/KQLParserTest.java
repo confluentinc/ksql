@@ -56,7 +56,7 @@ public class KQLParserTest {
   public void testProjection() throws Exception {
     String queryStr = "SELECT col0, col2, col3 FROM test1;";
     Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
-    Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
+    Assert.assertTrue("testProjection fails", statement instanceof Query);
     Query query = (Query) statement;
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
     QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
@@ -65,6 +65,29 @@ public class KQLParserTest {
     SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
     Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("COL0"));
     Assert.assertTrue("testProjection fails", column0.getExpression().toString().equalsIgnoreCase("TEST1.COL0"));
+  }
+
+  @Test
+  public void testProjectionWithArrayMap() throws Exception {
+    String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
+    Statement statement = kqlParser.buildAST(queryStr, metaStore).get(0);
+    Assert.assertTrue("testProjectionWithArrayMap fails", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testProjectionWithArrayMap fails", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    Assert.assertTrue("testProjectionWithArrayMap fails", querySpecification.getSelect().getSelectItems()
+                                                  .size() == 5);
+    Assert.assertTrue("testProjectionWithArrayMap fails", querySpecification.getSelect().getSelectItems().get(0) instanceof SingleColumn);
+    SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    Assert.assertTrue("testProjectionWithArrayMap fails", column0.getAlias().get().equalsIgnoreCase("COL0"));
+    Assert.assertTrue("testProjectionWithArrayMap fails", column0.getExpression().toString().equalsIgnoreCase("TEST1.COL0"));
+
+    SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
+    SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
+    Assert.assertTrue("testProjectionWithArrayMap fails", column3.getExpression().toString()
+        .equalsIgnoreCase("TEST1.COL4[0]"));
+    Assert.assertTrue("testProjectionWithArrayMap fails", column4.getExpression().toString()
+        .equalsIgnoreCase("TEST1.COL5['key1']"));
   }
 
   @Test

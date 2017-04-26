@@ -25,9 +25,7 @@ import io.confluent.kql.serde.json.KQLJsonPOJODeserializer;
 import io.confluent.kql.serde.json.KQLJsonPOJOSerializer;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 
-/**
- * Created by hojjat on 12/9/16.
- */
+
 public class SerDeUtil {
 
   public static Serde<GenericRow> getGenericRowJSONSerde(Schema schema) {

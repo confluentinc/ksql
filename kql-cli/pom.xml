@@ -16,6 +16,12 @@
         <main-class>io.confluent.kql.KQL</main-class>
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
+
+        <guava.version>21.0</guava.version>
+        <jline.version>2.14.3</jline.version>
+        <rvesse.version>2.3.0</rvesse.version>
+        <inject.version>1</inject.version>
+        <ksql.version>1.0-SNAPSHOT</ksql.version>
     </properties>
 
     <dependencies>
@@ -23,31 +29,31 @@
         <dependency>
             <groupId>KQL</groupId>
             <artifactId>kql-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
-            <version>1</version>
+            <version>${inject.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
-            <version>2.2.0</version>
+            <version>${rvesse.version}</version>
         </dependency>
 
         <dependency>
             <groupId>jline</groupId>
             <artifactId>jline</artifactId>
-            <version>2.14.2</version>
+            <version>${jline.version}</version>
         </dependency>
     </dependencies>
     <build>

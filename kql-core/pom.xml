@@ -11,123 +11,109 @@
 
     <artifactId>kql-core</artifactId>
 
+
+    <properties>
+        <java.version>1.8</java.version>
+        <kafka.version>0.10.2.0</kafka.version>
+        <airlift.version>0.29</airlift.version>
+        <guava.version>21.0</guava.version>
+        <jsr305.version>3.0.2</jsr305.version>
+        <antlr.version>4.7</antlr.version>
+        <janino.version>3.0.7</janino.version>
+        <avro.version>1.8.1</avro.version>
+        <junit.version>4.12</junit.version>
+        <csv.version>1.4</csv.version>
+        <janino.version>3.0.7</janino.version>
+    </properties>
+
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka_2.11 -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <!--<version>0.10.1.0</version>-->
-            <version>0.10.2.0</version>
+            <version>${kafka.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <!--<version>0.10.1.0</version>-->
-            <version>0.10.2.0</version>
+            <version>${kafka.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <!--<version>0.10.1.0</version>-->
-            <version>0.10.2.0</version>
+            <version>${kafka.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/connect-api -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <!--<version>0.10.1.0</version> -->
-            <version>0.10.2.0</version>
+            <version>${kafka.version}</version>
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/connect-json -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
-            <!--<version>0.10.1.0</version>-->
-            <version>0.10.2.0</version>
+            <version>${kafka.version}</version>
         </dependency>
 
-        <!--<dependency>-->
-            <!--<groupId>javax.inject</groupId>-->
-            <!--<artifactId>javax.inject</artifactId>-->
-            <!--<version>1</version>-->
-        <!--</dependency>-->
 
-        <!-- https://mvnrepository.com/artifact/io.airlift/slice -->
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>0.23</version>
+            <version>${airlift.version}</version>
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <version>${guava.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.google.code.findbugs/jsr305 -->
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
-            <version>3.0.1</version>
+            <version>${jsr305.version}</version>
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4-runtime -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
-            <version>4.5.3</version>
+            <version>${antlr.version}</version>
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/org.codehaus.janino/commons-compiler -->
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>commons-compiler</artifactId>
-            <version>3.0.6</version>
+            <version>${janino.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>
-            <version>3.0.6</version>
+            <version>${janino.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.avro/avro -->
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.8.1</version>
+            <version>${avro.version}</version>
         </dependency>
 
-        <!--&lt;!&ndash; https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni &ndash;&gt;-->
-        <!--<dependency>-->
-            <!--<groupId>org.rocksdb</groupId>-->
-            <!--<artifactId>rocksdbjni</artifactId>-->
-            <!--<version>4.11.2</version>-->
-        <!--</dependency>-->
-
-        <!-- https://mvnrepository.com/artifact/junit/junit -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>${junit.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
-            <version>1.4</version>
+            <version>${csv.version}</version>
         </dependency>
     </dependencies>
 
@@ -136,7 +122,7 @@
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.5.3</version>
+                <version>${antlr.version}</version>
                 <configuration>
                     <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
                     <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
@@ -154,14 +140,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro-maven-plugin</artifactId>
-                <version>1.8.1</version>
+                <version>${avro.version}</version>
                 <configuration>
                     <stringType>String</stringType>
                 </configuration>

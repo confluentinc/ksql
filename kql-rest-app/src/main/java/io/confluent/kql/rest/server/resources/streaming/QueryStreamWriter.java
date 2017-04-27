@@ -67,7 +67,7 @@ class QueryStreamWriter implements StreamingOutput {
     this.streamsProperties = streamsProperties;
 
     // TODO: Find a better way to do this
-    String redirectedQuery = String.format("CREATE STREAM %s AS %s;", streamName, queryString);
+    String redirectedQuery = String.format("CREATE STREAM %s AS %s", streamName, queryString);
 
     // Want to create a new application ID in order to ensure that the stream is read from the beginning
     QueryMetadata queryMetadata = kqlEngine.runMultipleQueries(true, redirectedQuery).get(0);

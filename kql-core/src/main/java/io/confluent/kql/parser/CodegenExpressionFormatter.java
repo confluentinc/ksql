@@ -424,7 +424,7 @@ public class CodegenExpressionFormatter {
         if (paternString.endsWith("%")) {
           return new Pair<>(valueString + ".contains(\"" + paternString.substring(1,
                                                                                   paternString
-                                                                                      .length()-1)
+                                                                                      .length() - 1)
                             + "\")",
                             Schema
               .STRING_SCHEMA);

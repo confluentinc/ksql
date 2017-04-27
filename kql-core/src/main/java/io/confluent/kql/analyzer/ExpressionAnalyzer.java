@@ -117,7 +117,7 @@ public class ExpressionAnalyzer {
     @Override
     protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
       String columnName = node.getName().getSuffix();
-      columnName = columnName.substring(columnName.indexOf(".")+1);
+      columnName = columnName.substring(columnName.indexOf(".") + 1);
       Field schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (schemaField == null) {
         throw new RuntimeException(

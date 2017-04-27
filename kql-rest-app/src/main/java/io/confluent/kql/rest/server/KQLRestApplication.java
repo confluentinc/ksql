@@ -125,9 +125,11 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
 
     Properties props = getProps(cliOptions.getPropertiesFile());
     KQLRestApplication app = buildApplication(props, cliOptions.getQuickstart());
+    log.info("Starting server");
     app.start();
+    log.info("Server up and running");
     app.join();
-    System.err.println("Server shutting down...");
+    log.info("Server shutting down");
   }
 
   public static KQLRestApplication buildApplication(Properties props, boolean quickstart) throws Exception {

@@ -96,16 +96,16 @@ public class CommandRunner implements Runnable, Closeable {
   public void run() {
     try {
       while (!closed.get()) {
-        log.info("Polling for new writes to command topic");
+        log.debug("Polling for new writes to command topic");
         ConsumerRecords<String, String> records = commandConsumer.poll(Long.MAX_VALUE);
-        log.info("Found {} new writes to command topic", records.count());
+        log.debug("Found {} new writes to command topic", records.count());
         for (ConsumerRecord<String, String> record : records) {
           String statementId = record.key();
           String statementStr = record.value();
           if (statementStr != null) {
             executeStatement(statementStr, statementId);
           } else {
-            log.info("Skipping null statement for ID {}", statementId);
+            log.debug("Skipping null statement for ID {}", statementId);
           }
         }
       }

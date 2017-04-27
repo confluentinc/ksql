@@ -6,34 +6,36 @@ import io.confluent.kql.rest.server.KQLRestConfig;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
-public class StandaloneCli extends Cli {
+public class LocalCli extends Cli {
 
   private final KQLRestApplication serverApplication;
 
-  public StandaloneCli(Properties serverProperties, int portNumber) throws Exception {
+  public LocalCli(Properties serverProperties, int portNumber) throws Exception {
     super(new KQLRestClient(getServerAddress(portNumber)));
 
     // Have to override listeners config to make sure it aligns with port number for client
     serverProperties.put(KQLRestConfig.LISTENERS_CONFIG, getServerAddress(portNumber));
+
     this.serverApplication = KQLRestApplication.buildApplication(serverProperties, false);
+    serverApplication.start();
   }
 
   @Override
-  public void repl() throws IOException {
-    try {
-      serverApplication.start();
-    } catch (Exception exception) {
-      throw new RuntimeException(exception);
-    }
-
-    super.repl();
-
+  public void close() throws IOException {
+    serverApplication.onShutdown();
     try {
       serverApplication.stop();
       serverApplication.join();
+    } catch (TimeoutException exception) {
+
+    } catch (IOException exception) {
+      throw exception;
     } catch (Exception exception) {
       throw new RuntimeException(exception);
+    } finally {
+      super.close();
     }
   }
 

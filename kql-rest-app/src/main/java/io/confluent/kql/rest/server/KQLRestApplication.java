@@ -78,7 +78,6 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
   @Override
   public ResourceCollection getStaticResources() {
     if (enableQuickstartPage) {
-      System.err.println("ENABLING QUICKSTART RESOURCE");
       return new ResourceCollection(Resource.newClassPathResource("/io/confluent/kql/rest/"));
     } else {
       return super.getStaticResources();
@@ -115,21 +114,6 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (enableQuickstartPage) {
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "^/quickstart\\.html$");
-    }
-  }
-
-  @Path("/quickstart")
-  public static class QuickstartResource {
-    private final File quickstartFile;
-
-    public QuickstartResource(File quickstartFile) {
-      this.quickstartFile = quickstartFile;
-    }
-
-    @GET
-    @Produces(MediaType.TEXT_HTML)
-    public File getQuickstart() {
-      return quickstartFile;
     }
   }
 

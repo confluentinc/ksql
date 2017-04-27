@@ -3,7 +3,6 @@
  **/
 package io.confluent.kql;
 
-import com.github.rvesse.airline.Cli;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -13,6 +12,9 @@ import com.github.rvesse.airline.annotations.restrictions.PortType;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
+import io.confluent.kql.cli.Cli;
+import io.confluent.kql.cli.RemoteCli;
+import io.confluent.kql.cli.LocalCli;
 import io.confluent.kql.rest.server.KQLRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -22,12 +24,25 @@ import java.util.Properties;
 
 public class KQL {
 
-  @Command(name = "standalone", description = "Run a standalone Cli session")
-  public static class Standalone implements Runnable {
+  public static abstract class KQLCommand implements Runnable {
+    protected abstract Cli getCli() throws Exception;
+
+    @Override
+    public void run() {
+      try (Cli cli = getCli()) {
+        cli.repl();
+      } catch (Exception exception) {
+        throw new RuntimeException(exception);
+      }
+    }
+  }
+
+  @Command(name = "local", description = "Run a local (standalone) Cli session")
+  public static class Local extends KQLCommand {
 
     private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
-    private static final String PORT_NUMBER_OPTION_NAME = "--portNumber";
+    private static final String PORT_NUMBER_OPTION_NAME = "--port-number";
     private static final int PORT_NUMBER_OPTION_DEFAULT = 6969;
 
     private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
@@ -57,22 +72,22 @@ public class KQL {
 
     @Option(
         name = APPLICATION_ID_OPTION_NAME,
-        description = "The application ID to use for the created Kafka Streams instance(s) (defaults to "
-            + APPLICATION_ID_OPTION_DEFAULT + ")"
+        description = "The application ID to use for the created Kafka Streams instance(s) (defaults to '"
+            + APPLICATION_ID_OPTION_DEFAULT + "')"
     )
     private String applicationId;
 
     @Option(
         name = NODE_ID_OPTION_NAME,
-        description = "The node ID to assign to the standalone KQL server instance (defaults to "
-            + NODE_ID_OPTION_DEFAULT + ")"
+        description = "The node ID to assign to the standalone KQL server instance (defaults to '"
+            + NODE_ID_OPTION_DEFAULT + "')"
     )
     private String nodeId;
 
     @Option(
         name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
-        description = "The suffix to append to the end of the name of the command topic (defaults to "
-            + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT + ")"
+        description = "The suffix to append to the end of the name of the command topic (defaults to '"
+            + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT + "')"
     )
     private String commandTopicSuffix;
 
@@ -85,7 +100,7 @@ public class KQL {
     private String propertiesFile;
 
     @Override
-    public void run() {
+    protected Cli getCli() throws Exception {
       Properties serverProperties;
       try {
         serverProperties = getStandaloneProperties();
@@ -93,11 +108,7 @@ public class KQL {
         throw new RuntimeException(exception);
       }
 
-      try {
-        new io.confluent.kql.cli.StandaloneCli(serverProperties, portNumber).repl();
-      } catch (Exception exception) {
-        throw new RuntimeException(exception);
-      }
+      return new LocalCli(serverProperties, portNumber);
     }
 
     private Properties getStandaloneProperties() throws IOException {
@@ -137,8 +148,8 @@ public class KQL {
     }
   }
 
-  @Command(name = "distributed", description = "Connect to a distributed KQL session")
-  public static class Distributed implements Runnable {
+  @Command(name = "remote", description = "Connect to a remote (possibly distributed) KQL session")
+  public static class Remote extends KQLCommand {
 
     @Once
     @Required
@@ -149,22 +160,18 @@ public class KQL {
     private String server;
 
     @Override
-    public void run() {
-      try {
-        new io.confluent.kql.cli.DistributedCli(server).repl();
-      } catch (IOException exception) {
-        throw new RuntimeException(exception);
-      }
+    public Cli getCli() throws Exception {
+      return new RemoteCli(server);
     }
   }
 
   public static void main(String[] args) throws IOException {
 
-    Cli<Runnable> cli = Cli.<Runnable>builder("Cli")
+    com.github.rvesse.airline.Cli<Runnable> cli = com.github.rvesse.airline.Cli.<Runnable>builder("Cli")
         .withDescription("Kafka Query Language")
         .withDefaultCommand(Help.class)
-        .withCommand(Standalone.class)
-        .withCommand(Distributed.class)
+        .withCommand(Local.class)
+        .withCommand(Remote.class)
         .build();
 
     try {

@@ -9,10 +9,15 @@ import javax.ws.rs.core.MediaType;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.InputStream;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 
-public class KQLRestClient {
+public class KQLRestClient implements Closeable, AutoCloseable {
 
   private final Client client;
 
@@ -44,9 +49,14 @@ public class KQLRestClient {
     return parseJsonResponse(makeGetRequest(String.format("status/%s", statementId)));
   }
 
-  public InputStream makeQueryRequest(String kql) {
+  public QueryStream makeQueryRequest(String kql) {
     JsonObject requestData = Json.createObjectBuilder().add("kql", kql).build();
-    return (InputStream) makePostRequest("query", requestData).getEntity();
+    return new QueryStream(makePostRequest("query", requestData));
+  }
+
+  @Override
+  public void close() {
+    client.close();
   }
 
   private Response makePostRequest(String path, JsonValue data) {
@@ -63,6 +73,71 @@ public class KQLRestClient {
 
   private JsonStructure parseJsonResponse(Response response) {
     return Json.createReader((InputStream) response.getEntity()).read();
+  }
+
+  public static class QueryStream implements Closeable, AutoCloseable, Iterator<JsonStructure> {
+    private final Response response;
+    private final Scanner responseScanner;
+
+    private JsonStructure bufferedRow;
+    private boolean closed;
+
+    public QueryStream(Response response) {
+      this.response = response;
+
+      this.responseScanner = new Scanner((InputStream) response.getEntity());
+
+      this.bufferedRow = null;
+      this.closed = false;
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (closed) {
+        throw new IllegalStateException("Cannot call hasNext() once closed");
+      }
+
+      if (bufferedRow != null) {
+        return true;
+      }
+
+      while (responseScanner.hasNextLine()) {
+        String responseLine = responseScanner.nextLine().trim();
+        if (!responseLine.isEmpty()) {
+          InputStream responseLineInputStream = new ByteArrayInputStream(responseLine.getBytes());
+          bufferedRow = Json.createReader(responseLineInputStream).read();
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    @Override
+    public JsonStructure next() {
+      if (closed) {
+        throw new IllegalStateException("Cannot call next() once closed");
+      }
+
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+
+      JsonStructure result = bufferedRow;
+      bufferedRow = null;
+      return result;
+    }
+
+    @Override
+    public void close() {
+      if (closed) {
+        throw new IllegalStateException("Cannot call close() when already closed");
+      }
+
+      closed = true;
+      responseScanner.close();
+      response.close();
+    }
   }
 
 }

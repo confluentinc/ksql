@@ -2,6 +2,7 @@ package io.confluent.kql.rest.server.resources;
 
 import javax.json.Json;
 import javax.json.JsonValue;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import java.io.PrintWriter;
@@ -17,7 +18,10 @@ public class KQLExceptionMapper implements ExceptionMapper<Throwable> {
 
   public static Response stackTraceResponse(Throwable exception) {
     JsonValue entity = stackTraceJson(exception);
-    return Response.serverError().entity(entity.toString()).build();
+    return Response.status(Response.Status.BAD_REQUEST)
+        .type(MediaType.APPLICATION_JSON_TYPE)
+        .entity(entity.toString())
+        .build();
   }
 
   /* TODO: Considering adding more programmatic structure to an exception when converting to JSON--maybe something like:
@@ -37,7 +41,10 @@ public class KQLExceptionMapper implements ExceptionMapper<Throwable> {
   // To be used at a later date when expected exceptions can be separated from unexpected ones
   public static Response errorMessageResponse(Throwable exception) {
     JsonValue entity = errorMessageJson(exception);
-    return Response.status(Response.Status.BAD_REQUEST).entity(entity.toString()).build();
+    return Response.status(Response.Status.BAD_REQUEST)
+        .type(MediaType.APPLICATION_JSON_TYPE)
+        .entity(entity.toString())
+        .build();
   }
 
   public static JsonValue errorMessageJson(Throwable exception) {

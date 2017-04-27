@@ -51,8 +51,8 @@ public class CommandRunner implements Runnable, Closeable {
       StatementExecutor statementExecutor,
       String commandTopic,
       String nodeId,
-      KafkaConsumer<String, String> commandConsumer,
-      KafkaProducer<String, String> commandProducer
+      Consumer<String, String> commandConsumer,
+      Producer<String, String> commandProducer
   ) {
     this.statementExecutor = statementExecutor;
     this.commandTopic = commandTopic;

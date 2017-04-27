@@ -3,15 +3,16 @@ package io.confluent.kql.cli;
 import io.confluent.kql.rest.client.KQLRestClient;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
-public class DistributedCli extends Cli {
+public class RemoteCli extends Cli {
 
-  public DistributedCli(String serverAddress) throws IOException {
+  public RemoteCli(String serverAddress) throws IOException {
     super(new KQLRestClient(serverAddress));
   }
 
   @Override
-  protected void handleMetaCommand(String trimmedLine) throws IOException {
+  protected void handleMetaCommand(String trimmedLine) throws IOException, InterruptedException, ExecutionException {
     String[] commandArgs = trimmedLine.split("\\s+", 2);
     String command = commandArgs[0];
     switch (command) {

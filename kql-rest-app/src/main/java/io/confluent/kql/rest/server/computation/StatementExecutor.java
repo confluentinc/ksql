@@ -27,7 +27,6 @@ import io.confluent.kql.structured.SchemaKStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
-import io.confluent.kql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.slf4j.Logger;

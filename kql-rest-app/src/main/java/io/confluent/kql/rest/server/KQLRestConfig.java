@@ -98,8 +98,9 @@ public class KQLRestConfig extends RestConfig {
 
   public Map<String, Object> getCommandConsumerProperties() {
     Map<String, Object> result = getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
+//    result.remove(ConsumerConfig.GROUP_ID_CONFIG);
     result.put(ConsumerConfig.GROUP_ID_CONFIG, getInternalApplicationId("command_consumer"));
-    result.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//    result.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     return result;
   }
 

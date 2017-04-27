@@ -15,18 +15,28 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
-import java.io.ByteArrayInputStream;
+import javax.json.JsonWriter;
+import javax.json.JsonWriterFactory;
+import javax.json.stream.JsonGenerator;
+import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Cli {
+public class Cli implements Closeable, AutoCloseable {
 
   private static final String DEFAULT_PROMPT = "kql> ";
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
+
+  private final ExecutorService queryStreamExecutorService;
+  private final JsonWriterFactory jsonWriterFactory;
 
   protected final KQLRestClient restClient;
   protected final Terminal terminal;
@@ -37,13 +47,17 @@ public class Cli {
   public Cli(KQLRestClient restClient) throws IOException {
     this.restClient = restClient;
 
-    this.terminal = TerminalBuilder.terminal();
-    this.lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+    this.terminal = TerminalBuilder.builder().system(true).build();
+    this.lineReader = LineReaderBuilder.builder().appName("KQL").terminal(terminal).build();
 
     // Otherwise, things like '!=' will cause things to break
     this.lineReader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
 
     this.prompt = DEFAULT_PROMPT;
+
+    this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+
+    this.jsonWriterFactory = Json.createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
   }
 
   public void repl() throws IOException {
@@ -56,8 +70,13 @@ public class Cli {
     } catch (EndOfFileException exception) {
       // EOF is fine, just terminate the REPL
     }
-    terminal.writer().println();
     terminal.flush();
+  }
+
+  @Override
+  public void close() throws IOException {
+    queryStreamExecutorService.shutdownNow();
+    restClient.close();
     terminal.close();
   }
 
@@ -72,7 +91,9 @@ public class Cli {
     }
   }
 
-  private void handleLine(String trimmedLine) throws IOException {
+  private void handleLine(String line) {
+    String trimmedLine = Optional.ofNullable(line).orElse("").trim();
+
     if (trimmedLine.isEmpty()) {
       return;
     }
@@ -98,16 +119,12 @@ public class Cli {
         multiLineBuffer.append(trimmedLine);
         handleStatements(multiLineBuffer.toString());
       }
-    } catch (RuntimeException exception) {
-      if (exception.getMessage() != null) {
-        terminal.writer().println(exception.getMessage());
-      } else {
-        terminal.writer().println("An unexpected exception with no message was encountered.");
-      }
+    } catch (Exception exception) {
+      exception.printStackTrace(terminal.writer());
     }
   }
 
-  protected void handleMetaCommand(String trimmedLine) throws IOException {
+  protected void handleMetaCommand(String trimmedLine) throws IOException, InterruptedException, ExecutionException {
     String[] commandArgs = trimmedLine.split("\\s+", 2);
     String command = commandArgs[0];
     switch (command) {
@@ -166,65 +183,39 @@ public class Cli {
     printJsonResponse(jsonResponse);
   }
 
-  private void handleStreamedQuery(String query) throws IOException {
-    AtomicBoolean continueStreaming = new AtomicBoolean(true);
-    Thread queryPrintThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try (Scanner queryScanner = new Scanner(restClient.makeQueryRequest(query))) {
-          while (continueStreaming.get() && queryScanner.hasNextLine()) {
-            String line = queryScanner.nextLine();
-            if (!line.trim().isEmpty()) {
-              InputStream lineInputStream = new ByteArrayInputStream(line.getBytes());
-              try {
-                printJsonResponse(Json.createReader(lineInputStream).read());
-                terminal.flush();
-              } catch (IOException exception) {
-                throw new RuntimeException(exception);
-              }
-            }
+  private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
+    try (KQLRestClient.QueryStream queryStream = restClient.makeQueryRequest(query)) {
+      Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
+        @Override
+        public void run() {
+          while (queryStream.hasNext()) {
+            terminal.writer().println(queryStream.next());
+            terminal.flush();
           }
         }
-      }
-    });
-    queryPrintThread.start();
+      });
 
-    // Have to find some way to call console.readLine(), since that's the only way to cause a UserInterruptException to
-    // be thrown; in this case, a separate thread is dispatched to print out the contents of the streamed query, while
-    // the current thread just continuously calls console.readLine() and ignores all user input until they press ^C,
-    // triggering the UserInterruptException and causing everything to go back to normal.
-    try {
-      while (true) {
-        lineReader.readLine("");
+      terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
+        @Override
+        public void handle(Terminal.Signal signal) {
+          queryStreamFuture.cancel(true);
+        }
+      });
+
+      try {
+        queryStreamFuture.get();
+      } catch (CancellationException exception) {
+        System.err.println("Query terminated");
       }
-    } catch (UserInterruptException exception) {
-      continueStreaming.set(false);
+
+      terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_DFL);
     }
-    try {
-      queryPrintThread.join();
-    } catch (InterruptedException exception) {
-      throw new RuntimeException(exception);
-    }
-    terminal.writer().println("Query terminated");
   }
 
   private void printJsonResponse(JsonStructure jsonResponse) throws IOException {
-    switch (jsonResponse.getValueType()) {
-      case OBJECT:
-        terminal.writer().println(jsonResponse.toString());
-        break;
-      case ARRAY:
-        JsonArray responseArray = (JsonArray) jsonResponse;
-        for (JsonValue responseElement : responseArray) {
-          terminal.writer().println(responseElement.toString());
-        }
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected JSON response type: %s",
-            jsonResponse.getValueType().toString()
-        ));
-    }
+    jsonWriterFactory.createWriter(terminal.writer()).write(jsonResponse);
+    terminal.writer().println();
+    terminal.flush();
   }
 
   private void printHelpMessage() throws IOException {
@@ -248,7 +239,7 @@ public class Cli {
     terminal.writer().println("                          Example: :status KQL_NODE_69_STATEMENT_69");
     terminal.writer().println("    :query <query>      - Stream the results of <query> to the console");
     terminal.writer().println("                          Example: :query SELECT * FROM movies WHERE imdb_score = 69;");
-    terminal.writer().println("                          NOTE: Press ctrl-C to stop streaming a query");
+    terminal.writer().println("                          NOTE: Use ctrl-C to stop streaming a query");
     printExtraMetaCommandsHelp();
     terminal.writer().println();
     terminal.writer().println();

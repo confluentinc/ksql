@@ -3,6 +3,8 @@
  **/
 package io.confluent.kql.rest.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import io.confluent.adminclient.KafkaAdminClient;
 import io.confluent.kql.KQLEngine;
 import io.confluent.kql.metastore.MetaStore;
@@ -15,6 +17,7 @@ import io.confluent.kql.rest.server.resources.StatusResource;
 import io.confluent.kql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.rest.Application;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -108,7 +111,14 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
 
   @Override
   public void configureBaseApplication(Configurable<?> config, Map<String, String> metricTags) {
-    super.configureBaseApplication(config, metricTags);
+    // Would call this but it registers additional, unwanted exception mappers
+    // super.configureBaseApplication(config, metricTags);
+    // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
+    ObjectMapper jsonMapper = getJsonMapper();
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
+    config.register(jsonProvider);
+    config.register(JsonParseExceptionMapper.class);
+
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (enableQuickstartPage) {

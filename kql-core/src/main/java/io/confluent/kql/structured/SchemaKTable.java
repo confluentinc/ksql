@@ -26,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKTable extends SchemaKStream {
 
@@ -51,32 +52,11 @@ public class SchemaKTable extends SchemaKStream {
     return this;
   }
 
-  public SchemaKStream print() {
-
-    if (isWindowed) {
-      KStream printKTable = kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow,
-          KeyValue<String, GenericRow>>() {
-        @Override
-        public KeyValue<String, GenericRow> apply(Windowed<String> key, GenericRow genericRow) {
-          if (genericRow != null) {
-            System.out.println(key.key() + " : " + key.window() + " ==> " + genericRow);
-          }
-          return new KeyValue<String, GenericRow>(key.key(), genericRow);
-        }
-
-      });
-    } else {
-      KStream printKTable = kTable.toStream().map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-        @Override
-        public KeyValue<String, GenericRow> apply(String key, GenericRow genericRow) {
-          System.out.println(key + " ==> " + genericRow.toString());
-          return new KeyValue<String, GenericRow>(key, genericRow);
-        }
-
-      });
-    }
-
-    return this;
+  @Override
+  public QueuedSchemaKStream toQueue() {
+    SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
+    kTable.toStream().foreach(new QueuePopulator(rowQueue));
+    return new QueuedSchemaKStream(this, rowQueue);
   }
 
   @Override

@@ -18,7 +18,7 @@ import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.FilterNode;
 import io.confluent.kql.planner.plan.JoinNode;
-import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLBareOutputNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
@@ -114,10 +114,10 @@ public class PhysicalPlanBuilder {
 
       this.planSink = kqlStructuredDataOutputNode;
       return resultSchemaStream;
-    } else if (outputNode instanceof KQLConsoleOutputNode) {
-      SchemaKStream resultSchemaStream = schemaKStream.print();
-      KQLConsoleOutputNode kqlConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
-      this.planSink = kqlConsoleOutputNode;
+    } else if (outputNode instanceof KQLBareOutputNode) {
+      SchemaKStream resultSchemaStream = schemaKStream.toQueue();
+      KQLBareOutputNode kqlBareOutputNode = (KQLBareOutputNode) outputNode;
+      this.planSink = kqlBareOutputNode;
       return resultSchemaStream;
     }
     throw new KQLException("Unsupported output logical node: " + outputNode.getClass().getName());

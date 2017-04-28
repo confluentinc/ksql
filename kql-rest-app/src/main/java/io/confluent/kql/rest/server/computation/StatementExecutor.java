@@ -85,6 +85,8 @@ public class StatementExecutor {
       Statement statement = statementParser.parseSingleStatement(commandEntry.getValue());
       boolean isCreateStream = statement instanceof CreateStreamAsSelect;
       boolean isCreateTable = statement instanceof CreateTableAsSelect;
+      // In this case, we want to fully deduce the metadata for the created stream/table and then store that in the
+      // metastore, all without actually running it.
       if ((isCreateStream || isCreateTable) && terminatedQueries.containsKey(commandEntry.getKey() + "_QUERY")) {
         Query query;
         if (isCreateStream) {
@@ -154,7 +156,7 @@ public class StatementExecutor {
             new StatementStatus(StatementStatus.Status.SUCCESS, "Termination request granted")
         );
       } else if (!(statement instanceof TerminateQuery)) {
-        log.info("Executing prior statement: '{}'", commandEntry.getKey());
+        log.info("Executing prior statement: '{}'", commandEntry.getValue());
         try {
           handleStatement(commandEntry.getValue(), commandEntry.getKey());
         } catch (Exception exception) {

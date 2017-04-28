@@ -64,7 +64,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinLogicalPlan() throws Exception {
-    String simpleQuery = "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+    String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
 //    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
@@ -83,7 +83,8 @@ public class LogicalPlannerTest {
   public void testSimpleLeftJoinFilterLogicalPlan() throws Exception {
     String
         simpleQuery =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
+        "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
+        + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
 //    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
@@ -91,7 +92,7 @@ public class LogicalPlannerTest {
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     Assert.assertTrue(projectNode.getKeyField().name().equalsIgnoreCase("t1.col1"));
-    Assert.assertTrue(projectNode.getSchema().fields().size() == 4);
+    Assert.assertTrue(projectNode.getSchema().fields().size() == 5);
 
     Assert.assertTrue(projectNode.getSources().get(0) instanceof FilterNode);
     FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);

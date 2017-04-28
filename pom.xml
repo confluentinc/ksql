@@ -24,6 +24,17 @@
 
     <properties>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
+        <java.version>1.8</java.version>
+        <kafka.version>0.11.0.0-SNAPSHOT</kafka.version>
+        <airlift.version>0.29</airlift.version>
+        <guava.version>21.0</guava.version>
+        <jsr305.version>3.0.2</jsr305.version>
+        <antlr.version>4.7</antlr.version>
+        <janino.version>3.0.7</janino.version>
+        <avro.version>1.8.1</avro.version>
+        <junit.version>4.12</junit.version>
+        <csv.version>1.4</csv.version>
+        <janino.version>3.0.7</janino.version>
     </properties>
 
     <dependencies>
@@ -31,37 +42,37 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>0.11.0.0-SNAPSHOT</version>
+            <version>${kafka.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <version>0.11.0.0-SNAPSHOT</version>
+            <version>${kafka.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>0.23</version>
+            <version>${airlift.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
-            <version>3.0.1</version>
+            <version>${jsr305.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
-            <version>4.5.3</version>
+            <version>${antlr.version}</version>
         </dependency>
 
     </dependencies>

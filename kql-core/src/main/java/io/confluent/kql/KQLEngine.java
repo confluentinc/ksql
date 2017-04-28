@@ -26,8 +26,6 @@ import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.parser.tree.TerminateQuery;
-import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;

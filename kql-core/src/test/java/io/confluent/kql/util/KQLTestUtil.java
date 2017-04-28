@@ -20,7 +20,9 @@ public class KQLTestUtil {
         .field("COL0", SchemaBuilder.INT64_SCHEMA)
         .field("COL1", SchemaBuilder.STRING_SCHEMA)
         .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA);
+        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
+        .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
     KQLTopic
         KQLTopic1 =

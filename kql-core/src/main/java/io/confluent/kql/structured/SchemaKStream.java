@@ -17,50 +17,44 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueJoiner;
+import org.apache.kafka.streams.kstream.Windowed;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {
 
   final Schema schema;
   final KStream kStream;
   final Field keyField;
-  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   final List<SchemaKStream> sourceSchemaKStreams;
+  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
   public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
     this.keyField = keyField;
-    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.sourceSchemaKStreams = sourceSchemaKStreams;
+    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
+  }
+
+  public QueuedSchemaKStream toQueue() {
+    SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
+    kStream.foreach(new QueuePopulator(rowQueue));
+    return new QueuedSchemaKStream(this, rowQueue);
   }
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
-
     kStream.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
-    return this;
-  }
-
-  public SchemaKStream print() {
-    KStream
-        printKStream =
-        kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-          @Override
-          public KeyValue<String, GenericRow> apply(String key, GenericRow genericRow) {
-            System.out.println(key + " ==> " + genericRow.toString());
-            return new KeyValue<String, GenericRow>(key, genericRow);
-          }
-
-        });
     return this;
   }
 
@@ -210,5 +204,29 @@ public class SchemaKStream {
 
   public List<SchemaKStream> getSourceSchemaKStreams() {
     return sourceSchemaKStreams;
+  }
+
+  protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
+    private final SynchronousQueue<KeyValue<String, GenericRow>> queue;
+
+    public QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue) {
+      this.queue = queue;
+    }
+
+    @Override
+    public void apply(K key, GenericRow value) {
+      try {
+        String keyString;
+        if (key instanceof Windowed) {
+          Windowed windowedKey = (Windowed) key;
+          keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
+        } else {
+          keyString = key.toString();
+        }
+        queue.put(new KeyValue<>(keyString, value));
+      } catch (InterruptedException exception) {
+        throw new RuntimeException(exception);
+      }
+    }
   }
 }

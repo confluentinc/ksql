@@ -76,7 +76,8 @@ public class AnalyzerTest {
   public void testSimpleLeftJoinAnalysis() throws Exception {
     String
         simpleQuery =
-        "SELECT t1.col1, t2.col1, col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
+        + "t1.col1 = t2.col1;";
     Analysis analysis = analyze(simpleQuery);
     Assert.assertNotNull("INTO is null", analysis.into);
     Assert.assertNotNull("JOIN is null", analysis.join);
@@ -108,12 +109,18 @@ public class AnalyzerTest {
         select3 =
         SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
+    String
+        select4 =
+        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(3))
+            .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("T2.COL4"));
+    Assert.assertTrue(select4.equalsIgnoreCase("T1.COL5"));
 
     Assert.assertTrue(analysis.selectExpressionAlias.get(0).equalsIgnoreCase("T1_COL1"));
     Assert.assertTrue(analysis.selectExpressionAlias.get(1).equalsIgnoreCase("T2_COL1"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(2).equalsIgnoreCase("COL4"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(3).equalsIgnoreCase("T2_COL2"));
+    Assert.assertTrue(analysis.selectExpressionAlias.get(2).equalsIgnoreCase("T2_COL4"));
+    Assert.assertTrue(analysis.selectExpressionAlias.get(3).equalsIgnoreCase("COL5"));
+    Assert.assertTrue(analysis.selectExpressionAlias.get(4).equalsIgnoreCase("T2_COL2"));
 
   }
 

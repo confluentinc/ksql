@@ -422,16 +422,22 @@ public class CodegenExpressionFormatter {
 
       if (paternString.startsWith("%")) {
         if (paternString.endsWith("%")) {
-          return new Pair<>(valueString + ".contains(\"" + paternString.substring(1) + "\")", Schema
+          return new Pair<>("(" + valueString + ").contains(\"" + paternString.substring(1,
+                                                                                  paternString
+                                                                                      .length() - 1)
+                            + "\")",
+                            Schema
               .STRING_SCHEMA);
         } else {
-          return new Pair<>(valueString + ".endsWith(\"" + paternString.substring(1) + "\")", Schema
+          return new Pair<>("(" + valueString + ").endsWith(\"" + paternString.substring(1) +
+                            "\")", Schema
               .STRING_SCHEMA);
         }
       }
 
       if (paternString.endsWith("%")) {
-        return new Pair<>(valueString + ".startsWith(\"" + paternString.substring(0, paternString
+        return new Pair<>("(" + valueString + ").startsWith(\"" + paternString.substring(0,
+                                                                                         paternString
             .length() - 1) + "\")",
                           Schema
             .STRING_SCHEMA);

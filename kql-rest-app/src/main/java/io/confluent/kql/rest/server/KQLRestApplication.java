@@ -26,12 +26,7 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.core.Configurable;
-import javax.ws.rs.core.MediaType;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
@@ -41,6 +36,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KQLRestApplication.class);
 
+  private final KQLEngine kqlEngine;
   private final CommandRunner commandRunner;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
@@ -50,6 +46,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
   private final Thread commandRunnerThread;
 
   public KQLRestApplication(
+      KQLEngine kqlEngine,
       KQLRestConfig config,
       CommandRunner commandRunner,
       StatusResource statusResource,
@@ -58,6 +55,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
       boolean enableQuickstartPage
   ) {
     super(config);
+    this.kqlEngine = kqlEngine;
     this.commandRunner = commandRunner;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
@@ -98,13 +96,14 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
 
   @Override
   public void onShutdown() {
-    super.onShutdown();
+    kqlEngine.close();
     commandRunner.close();
     try {
       commandRunnerThread.join();
     } catch (InterruptedException exception) {
       log.error("Interrupted while waiting for CommandRunner thread to complete", exception);
     }
+    super.onShutdown();
   }
 
   @Override
@@ -180,11 +179,8 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         kqlEngine,
-        topicUtil,
-        nodeId,
         statementParser,
-        config.getLong(KQLRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG),
-        config.getKqlStreamsProperties()
+        config.getLong(KQLRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
     KQLResource kqlResource = new KQLResource(
         kqlEngine,
@@ -195,6 +191,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     commandRunner.processPriorCommands();
 
     return new KQLRestApplication(
+        kqlEngine,
         config,
         commandRunner,
         statusResource,

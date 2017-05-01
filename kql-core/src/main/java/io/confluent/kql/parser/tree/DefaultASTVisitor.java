@@ -69,10 +69,6 @@ public abstract class DefaultASTVisitor<R, C>
     return visitStatement(node, context);
   }
 
-  protected R visitShowTables(ShowTables node, C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitShowSchemas(ShowSchemas node, C context) {
     return visitStatement(node, context);
   }

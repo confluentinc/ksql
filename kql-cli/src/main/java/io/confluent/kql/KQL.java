@@ -26,7 +26,7 @@ import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.QuerySpecification;
 import io.confluent.kql.parser.tree.SetProperty;
 import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.ShowQueries;
+import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.Table;
 import io.confluent.kql.parser.tree.TerminateQuery;
@@ -170,8 +170,8 @@ public class KQL {
         ExportCatalog exportCatalog = (ExportCatalog) statement;
         exportCatalog(exportCatalog.getCatalogFilePath());
         return;
-      } else if (statement instanceof ShowQueries) {
-        showQueries();
+      } else if (statement instanceof ListQueries) {
+        listQueries();
         return;
       } else if (statement instanceof ListTopics) {
         listTopics();
@@ -462,7 +462,7 @@ public class KQL {
     console.flush();
   }
 
-  private void showQueries() throws IOException {
+  private void listQueries() throws IOException {
     Map<String, QueryMetadata> liveQueries = kqlEngine.getLiveQueries();
     console.println("Running queries: ");
     console.println(

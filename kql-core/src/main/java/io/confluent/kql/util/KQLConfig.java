@@ -37,4 +37,5 @@ public class KQLConfig extends AbstractConfig {
     );
     return result;
   }
+
 }

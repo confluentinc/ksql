@@ -39,14 +39,14 @@ singleExpression
 
 statement
     : query                                                            #querystatement
-    | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
-    | SHOW STREAMS                                                     #showTopics
-    | LIST TOPICS                                                      #listTopics
-    | LIST STREAMS                                                     #listStreams
-    | LIST TABLES                                                      #listTables
+    //| SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
+    | (LIST | SHOW) PROPERTIES                                         #listProperties
+    | (LIST | SHOW) TOPICS                                             #listTopics
+    | (LIST | SHOW) STREAMS                                            #listStreams
+    | (LIST | SHOW) TABLES                                             #listTables
     | DESCRIBE qualifiedName                                           #showColumns
     | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
-    | SHOW QUERIES                                                     #showQueries
+    | (LIST | SHOW) QUERIES                                            #listQueries
     | TERMINATE qualifiedName                                          #terminateQuery
     | SET qualifiedName EQ expression                                  #setProperty
     | LOAD expression                                                  #loadProperties
@@ -177,9 +177,6 @@ selectItem
     | ASTERISK                      #selectAll
     ;
 
-//relation
-//    : relationPrimary
-//    ;
 
 relation
     : left=relation
@@ -618,6 +615,7 @@ EXECUTE: 'EXECUTE';
 SAMPLE: 'SAMPLE';
 EXPORT: 'EXPORT';
 CATALOG: 'CATALOG';
+PROPERTIES: 'PROPERTIES';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

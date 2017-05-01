@@ -80,9 +80,7 @@ import io.confluent.kql.parser.tree.SearchedCaseExpression;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.ShowQueries;
-import io.confluent.kql.parser.tree.ShowTables;
-import io.confluent.kql.parser.tree.ShowTopics;
+import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.SimpleCaseExpression;
 import io.confluent.kql.parser.tree.SimpleGroupBy;
 import io.confluent.kql.parser.tree.SingleColumn;
@@ -552,26 +550,11 @@ public class AstBuilder
     return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
   }
 
-
-  @Override
-  public Node visitShowTables(SqlBaseParser.ShowTablesContext context) {
-    return new ShowTables(
-        getLocation(context),
-        Optional.ofNullable(context.qualifiedName())
-            .map(AstBuilder::getQualifiedName),
-        getTextIfPresent(context.pattern)
-            .map(text -> unquote(text, "'")));
-  }
-
   @Override
   public Node visitExportCatalog(SqlBaseParser.ExportCatalogContext context) {
     return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
-  @Override
-  public Node visitShowTopics(SqlBaseParser.ShowTopicsContext context) {
-    return new ShowTopics(Optional.ofNullable(getLocation(context)));
-  }
 
   @Override
   public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
@@ -595,8 +578,8 @@ public class AstBuilder
 
 
   @Override
-  public Node visitShowQueries(SqlBaseParser.ShowQueriesContext context) {
-    return new ShowQueries(Optional.ofNullable(getLocation(context)));
+  public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
+    return new ListQueries(Optional.ofNullable(getLocation(context)));
   }
 
   @Override

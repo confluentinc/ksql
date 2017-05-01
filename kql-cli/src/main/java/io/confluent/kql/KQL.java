@@ -17,6 +17,7 @@ import io.confluent.kql.parser.tree.CreateTableAsSelect;
 import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.DropTable;
 import io.confluent.kql.parser.tree.ExportCatalog;
+import io.confluent.kql.parser.tree.ListProperties;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
@@ -43,17 +44,20 @@ import jline.console.ConsoleReader;
 import jline.console.completer.AnsiStringsCompleter;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public class KQL {
 
   KQLEngine kqlEngine;
-  KQLConfig config;
+//  KQLConfig config;
   String currentQueryId = null;
 
   boolean isCLI = true;
@@ -169,6 +173,12 @@ public class KQL {
       } else if (statement instanceof ExportCatalog) {
         ExportCatalog exportCatalog = (ExportCatalog) statement;
         exportCatalog(exportCatalog.getCatalogFilePath());
+        return;
+      } else if (statement instanceof SetProperty) {
+        setProperty((SetProperty)statement);
+        return;
+      } else if (statement instanceof ListProperties) {
+        listProperties();
         return;
       } else if (statement instanceof ListQueries) {
         listQueries();
@@ -462,6 +472,51 @@ public class KQL {
     console.flush();
   }
 
+  private void listProperties() throws IOException {
+    Map<String, Object> kqlConfigProperties = kqlEngine.kqlConfigProperties;
+    KQLConfig kqlConfig = new KQLConfig(kqlConfigProperties);
+    StreamsConfig streamsConfig = new StreamsConfig(kqlConfig.getResetStreamsProperties("Test"));
+    Map<String, ?> props = streamsConfig.values();
+    Map<String, ?> consumerProps = streamsConfig.getRestoreConsumerConfigs(props.get("client.id").toString());
+    Map<String, ?> producerProps = streamsConfig.getProducerConfigs(props.get("client.id").toString());
+    console.println("------------------------------------------------------------------------------------");
+    console.println("Streams config properties: ");
+    for (String propName: props.keySet()) {
+      console.println(String.format(" %s = %s", propName, props.get(propName)));
+    }
+    console.println("Consumer config properties: ");
+    for (String propName: consumerProps.keySet()) {
+      console.println(String.format(" %s = %s", propName, consumerProps.get(propName)));
+    }
+    console.println("Producer config properties: ");
+    for (String propName: producerProps.keySet()) {
+      console.println(String.format(" %s = %s", propName, producerProps.get(propName)));
+    }
+    console.println("------------------------------------------------------------------------------------");
+  }
+
+//  private void setProperty(String propertyName, Object propertyValue) throws IOException {
+private void setProperty(SetProperty setProperty) throws IOException {
+    Map<String, Object> kqlConfigProperties = kqlEngine.kqlConfigProperties;
+    KQLConfig kqlConfig = new KQLConfig(kqlConfigProperties);
+    StreamsConfig streamsConfig = new StreamsConfig(kqlConfig.getResetStreamsProperties("Test"));
+    Map<String, ?> consumerProps = streamsConfig.getRestoreConsumerConfigs(kqlConfig.values().get("client.id").toString());
+    Map<String, ?> producerProps = streamsConfig.getProducerConfigs(kqlConfig.values().get("client.id").toString());
+    Set<String> validConfigProprtyNames = new HashSet<>(streamsConfig.getProducerConfigs("Test")
+                                                            .keySet());
+    validConfigProprtyNames.addAll(consumerProps.keySet());
+    validConfigProprtyNames.addAll(producerProps.keySet());
+    String propertyName = setProperty.getPropertyName();
+    String propertyValue = setProperty.getPropertyValue();
+    if (!validConfigProprtyNames.contains(propertyName)) {
+      console.println(String.format(" Property with name %s does not exist.", propertyName));
+    } else {
+      kqlEngine.kqlConfigProperties.put(propertyName, propertyValue);
+      console.println(String.format(" %s = %s", propertyName, propertyValue));
+    }
+
+  }
+
   private void listQueries() throws IOException {
     Map<String, QueryMetadata> liveQueries = kqlEngine.getLiveQueries();
     console.println("Running queries: ");
@@ -487,7 +542,9 @@ public class KQL {
   }
 
   private void printTopic(final KQLTopic kqlTopic, final long interval) throws IOException {
-    new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, this.config);
+    Map<String, Object> kqlConfigProperties = kqlEngine.kqlConfigProperties;
+    KQLConfig kqlConfig = new KQLConfig(kqlConfigProperties);
+    new TopicPrinter().printGenericRowTopic(kqlTopic, console, interval, kqlConfig);
   }
 
   private void exportCatalog(final String filePath) {
@@ -507,9 +564,8 @@ public class KQL {
     return String.format("%1$-" + n + "s", s);
   }
 
-  private KQL(MetaStore metaStore, KQLConfig config) throws IOException {
-    this.config = config;
-    kqlEngine = new KQLEngine(metaStore, config);
+  private KQL(MetaStore metaStore, Map<String, Object> kqlProperties) throws IOException {
+    kqlEngine = new KQLEngine(metaStore, kqlProperties);
   }
 
 
@@ -531,7 +587,7 @@ public class KQL {
       metaStore = new MetaStoreImpl();
     }
 
-    KQL kql = new KQL(metaStore, new KQLConfig(kqlProperties));
+    KQL kql = new KQL(metaStore, kqlProperties);
 
     String queries = cliOptions.getQueries();
     if (queries != null) {

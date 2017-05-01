@@ -56,6 +56,7 @@ import io.confluent.kql.parser.tree.JoinOn;
 import io.confluent.kql.parser.tree.JoinUsing;
 import io.confluent.kql.parser.tree.LambdaExpression;
 import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.ListProperties;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
@@ -79,6 +80,7 @@ import io.confluent.kql.parser.tree.SampledRelation;
 import io.confluent.kql.parser.tree.SearchedCaseExpression;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SetProperty;
 import io.confluent.kql.parser.tree.ShowColumns;
 import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.SimpleCaseExpression;
@@ -590,6 +592,17 @@ public class AstBuilder
   @Override
   public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
     return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
+  }
+
+  @Override
+  public Node visitListProperties(SqlBaseParser.ListPropertiesContext context) {
+    return new ListProperties(Optional.ofNullable(getLocation(context)));
+  }
+
+  @Override
+  public Node visitSetProperty(SqlBaseParser.SetPropertyContext context) {
+    return new SetProperty(Optional.ofNullable(getLocation(context)), context.qualifiedName().getText(),
+                           context.expression().getText());
   }
 
   @Override

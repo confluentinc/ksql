@@ -39,7 +39,6 @@ singleExpression
 
 statement
     : query                                                            #querystatement
-    //| SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
     | (LIST | SHOW) PROPERTIES                                         #listProperties
     | (LIST | SHOW) TOPICS                                             #listTopics
     | (LIST | SHOW) STREAMS                                            #listStreams

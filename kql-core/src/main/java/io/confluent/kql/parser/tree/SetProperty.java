@@ -11,26 +11,26 @@ import static java.util.Objects.requireNonNull;
 
 public class SetProperty extends Statement {
 
-  private final Optional<String> propertyName;
+  private final String propertyName;
   private final String propertyValue;
 
-  public SetProperty(Optional<String> propertyName, String propertyValue) {
-    this(Optional.empty(), propertyName, propertyValue);
-  }
 
-  public SetProperty(NodeLocation location, Optional<String> propertyName, String propertyValue) {
-    this(Optional.of(location), propertyName, propertyValue);
-  }
-
-  private SetProperty(Optional<NodeLocation> location, Optional<String> propertyName,
+  public SetProperty(Optional<NodeLocation> location, String propertyName,
                       String propertyValue) {
     super(location);
-    requireNonNull(propertyName, "catalog is null");
+    requireNonNull(propertyName, "propertyName is null");
     requireNonNull(propertyValue, "propertyValue is null");
     this.propertyName = propertyName;
     this.propertyValue = propertyValue;
   }
 
+  public String getPropertyName() {
+    return propertyName;
+  }
+
+  public String getPropertyValue() {
+    return propertyValue;
+  }
 
   @Override
   public int hashCode() {

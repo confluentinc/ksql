@@ -47,10 +47,10 @@ import java.util.Map;
 
 public class QueryEngine {
 
-  private KQLConfig kqlConfig;
+  private final Map<String, Object> kqlProperties;
 
-  public QueryEngine(final KQLConfig kqlConfig) {
-    this.kqlConfig = kqlConfig;
+  public QueryEngine(final Map<String, Object> kqlProperties) {
+    this.kqlProperties = kqlProperties;
   }
 
   public Pair<KafkaStreams, OutputNode> processQuery(final String queryId, final Query queryNode,
@@ -76,6 +76,7 @@ public class QueryEngine {
     PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
 
     String applicationId = queryId + "_" + System.currentTimeMillis();
+    KQLConfig kqlConfig = new KQLConfig(kqlProperties);
     Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
 
     KStreamBuilder builder = new KStreamBuilder();
@@ -177,6 +178,7 @@ public class QueryEngine {
       if (addUniqueTimeSuffix) {
         applicationId += "_" + System.currentTimeMillis();
       }
+      KQLConfig kqlConfig = new KQLConfig(kqlProperties);
       Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
 
       KStreamBuilder builder = new KStreamBuilder();

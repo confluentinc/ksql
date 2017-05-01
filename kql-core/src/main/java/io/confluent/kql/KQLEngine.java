@@ -46,7 +46,7 @@ import java.util.Map;
 
 public class KQLEngine implements Closeable {
 
-  KQLConfig kqlConfig;
+  final Map<String, Object> kqlConfigProperties;
   QueryEngine queryEngine;
   DDLEngine ddlEngine = new DDLEngine(this);
   MetaStore metaStore = null;
@@ -257,9 +257,9 @@ public class KQLEngine implements Closeable {
     }
   }
 
-  public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {
-    this.kqlConfig = kqlConfig;
+  public KQLEngine(final MetaStore metaStore, final Map<String, Object> kqlProperties) throws IOException {
+    this.kqlConfigProperties = kqlProperties;
     this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(kqlConfig);
+    this.queryEngine = new QueryEngine(kqlProperties);
   }
 }

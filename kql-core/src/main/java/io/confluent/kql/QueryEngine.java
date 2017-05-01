@@ -21,9 +21,10 @@ import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
 import io.confluent.kql.planner.LogicalPlanner;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLBareOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
+import io.confluent.kql.structured.QueuedSchemaKStream;
 import io.confluent.kql.structured.SchemaKStream;
 import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.util.KQLConfig;
@@ -35,6 +36,7 @@ import io.confluent.kql.parser.tree.SelectItem;
 import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.parser.tree.Select;
 
+import io.confluent.kql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -53,7 +55,7 @@ public class QueryEngine {
     this.kqlProperties = kqlProperties;
   }
 
-  public Pair<KafkaStreams, OutputNode> processQuery(final String queryId, final Query queryNode,
+  public QueryMetadata processQuery(final String queryId, final Query queryNode,
                                                      final MetaStore metaStore)
       throws Exception {
 
@@ -88,8 +90,13 @@ public class QueryEngine {
     KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
     streams.start();
 
-    return new Pair<>(streams, physicalPlanBuilder.getPlanSink());
-
+    QueryMetadata baseQueryMetadata = new QueryMetadata(queryId, streams, physicalPlanBuilder.getPlanSink());
+    if (schemaKStream instanceof QueuedSchemaKStream) {
+      QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
+      return new QueuedQueryMetadata(baseQueryMetadata, queuedSchemaKStream.getQueue());
+    } else {
+      return baseQueryMetadata;
+    }
   }
 
   public List<Pair<String, PlanNode>> buildLogicalPlans(final MetaStore metaStore,
@@ -219,10 +226,20 @@ public class QueryEngine {
         }
 
         metaStore.putSource(sinkDataSource);
-      } else if (outputNode instanceof KQLConsoleOutputNode) {
-        KQLConsoleOutputNode kqlConsoleOutputNode = (KQLConsoleOutputNode) outputNode;
+      } else if (outputNode instanceof KQLBareOutputNode) {
+        if (!(schemaKStream instanceof QueuedSchemaKStream)) {
+          throw new Exception(String.format(
+              "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
+              + "KQLBareOutputNode, found a %s instead",
+              schemaKStream.getClass().getCanonicalName()
+          ));
+        }
+        QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
+        KQLBareOutputNode kqlBareOutputNode = (KQLBareOutputNode) outputNode;
         sinkDataSource = new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null, null);
-        physicalPlans.add(new QueryMetadata(queryLogicalPlan.getLeft(), streams, kqlConsoleOutputNode));
+        physicalPlans.add(
+            new QueuedQueryMetadata(queryLogicalPlan.getLeft(), streams, kqlBareOutputNode, queuedSchemaKStream.getQueue())
+        );
       } else {
         throw new KQLException("Sink data source is not correct.");
       }

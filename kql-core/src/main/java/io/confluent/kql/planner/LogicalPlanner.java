@@ -12,7 +12,7 @@ import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.AggregateNode;
 import io.confluent.kql.planner.plan.FilterNode;
-import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.planner.plan.KQLBareOutputNode;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
@@ -69,7 +69,7 @@ public class LogicalPlanner {
     StructuredDataSource intoDataSource = analysis.getInto();
 
     if (intoDataSource instanceof KQLSTDOUT) {
-      return new KQLConsoleOutputNode(new PlanNodeId(KQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+      return new KQLBareOutputNode(new PlanNodeId(KQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema);
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;

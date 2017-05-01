@@ -31,12 +31,13 @@ import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.Table;
 import io.confluent.kql.parser.tree.TerminateQuery;
-import io.confluent.kql.planner.plan.KQLConsoleOutputNode;
+import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.KQLUtil;
 import io.confluent.kql.util.QueryMetadata;
+import io.confluent.kql.util.QueuedQueryMetadata;
 import io.confluent.kql.util.SchemaUtil;
 import io.confluent.kql.util.TopicPrinter;
 import jline.TerminalFactory;
@@ -45,6 +46,7 @@ import jline.console.completer.AnsiStringsCompleter;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.KeyValue;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -52,22 +54,23 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.SynchronousQueue;
 
 
 public class KQL {
 
   KQLEngine kqlEngine;
-//  KQLConfig config;
-  String currentQueryId = null;
+  KQLConfig config;
+  String currentQueryId;
+  Thread currentQueryThread;
 
   boolean isCLI = true;
 
-  ConsoleReader console = null;
+  ConsoleReader console;
 
   public void startConsole() throws Exception {
     try {
       console = new ConsoleReader();
-      console.setExpandEvents(false); // Otherwise, the '!=' operator is handled incorrectly
       console.setPrompt("kql> ");
       console.println("=========================================================================");
       console.println("KQL (Kafka Query Language) 0.0.1");
@@ -77,28 +80,18 @@ public class KQL {
                                    "terminate", "exit", "describe", "print", "list topics",
                                    "list streams", "create topic", "create stream", "create table"));
       console.setExpandEvents(false); // Disable event expansion so things like '!=' are left alone by the console reader
-      String line;
-      while ((line = console.readLine()) != null) {
-        if (line.length() == 0) {
+      for (String line = console.readLine(); line != null; line = console.readLine()) {
+        if (line.trim().isEmpty()) {
           continue;
         }
         if (line.trim().toLowerCase().startsWith("exit")) {
-          // Close all running queries first!
-          kqlEngine.close();
-          console.println();
-          console.println("Goodbye!");
-          console.println();
-          console.flush();
-          console.close();
-          System.exit(0);
+          break;
         } else if (line.trim().toLowerCase().startsWith("help")) {
           printCommandList();
           continue;
         } else if (line.trim().equalsIgnoreCase("close")) {
-          if (currentQueryId != null) {
-            console.println("Terminating the currently-running console query");
-            kqlEngine.terminateQuery(currentQueryId);
-            currentQueryId = null;
+          if (stopCurrentQuery()) {
+            console.println("Query terminated");
           } else {
             console.println("There is no currently-running console query to terminate");
           }
@@ -114,6 +107,13 @@ public class KQL {
       e.printStackTrace();
     } finally {
       try {
+        stopCurrentQuery();
+        kqlEngine.close();
+        console.println();
+        console.println("Goodbye!");
+        console.println();
+        console.flush();
+        console.close();
         TerminalFactory.get().restore();
       } catch (Exception e) {
         e.printStackTrace();
@@ -175,7 +175,7 @@ public class KQL {
         exportCatalog(exportCatalog.getCatalogFilePath());
         return;
       } else if (statement instanceof SetProperty) {
-        setProperty((SetProperty)statement);
+        setProperty((SetProperty) statement);
         return;
       } else if (statement instanceof ListProperties) {
         listProperties();
@@ -310,12 +310,18 @@ public class KQL {
     QueryMetadata queryMetadata =
         kqlEngine.runMultipleQueries(true, queryString).get(0);
 
-    if (queryMetadata.getQueryOutputNode() instanceof KQLConsoleOutputNode) {
+    if (queryMetadata instanceof QueuedQueryMetadata) {
       if (currentQueryId != null) {
         console.println("Terminating the currently-running console query first");
-        kqlEngine.terminateQuery(currentQueryId);
+        if (stopCurrentQuery()) {
+          console.println("Query terminated");
+        } else {
+          console.println("Query may not have been successfully terminated");
+        }
       }
       currentQueryId = queryMetadata.getQueryId();
+      currentQueryThread = new Thread(new QueuedQueryPrinter(((QueuedQueryMetadata) queryMetadata).getRowQueue()));
+      currentQueryThread.start();
     }
     if (isCLI) {
       console.println();
@@ -502,8 +508,7 @@ private void setProperty(SetProperty setProperty) throws IOException {
     StreamsConfig streamsConfig = new StreamsConfig(kqlConfig.getResetStreamsProperties("Test"));
     Map<String, ?> consumerProps = streamsConfig.getRestoreConsumerConfigs(kqlConfig.values().get("client.id").toString());
     Map<String, ?> producerProps = streamsConfig.getProducerConfigs(kqlConfig.values().get("client.id").toString());
-    Set<String> validConfigProprtyNames = new HashSet<>(streamsConfig.getProducerConfigs("Test")
-                                                            .keySet());
+    Set<String> validConfigProprtyNames = new HashSet<>(streamsConfig.values().keySet());
     validConfigProprtyNames.addAll(consumerProps.keySet());
     validConfigProprtyNames.addAll(producerProps.keySet());
     String propertyName = setProperty.getPropertyName();
@@ -559,6 +564,27 @@ private void setProperty(SetProperty setProperty) throws IOException {
     }
   }
 
+  private boolean stopCurrentQuery() {
+    if (currentQueryId == null) {
+      return false;
+    }
+    boolean result;
+    result = kqlEngine.terminateQuery(currentQueryId);
+    currentQueryId = null;
+    if (currentQueryThread == null) {
+      return result;
+    }
+    currentQueryThread.interrupt();
+    try {
+      currentQueryThread.join();
+    } catch (InterruptedException exception) {
+      return result;
+    } finally {
+      currentQueryThread = null;
+    }
+    return result;
+  }
+
 
   private static String padRight(String s, int n) {
     return String.format("%1$-" + n + "s", s);
@@ -566,6 +592,29 @@ private void setProperty(SetProperty setProperty) throws IOException {
 
   private KQL(MetaStore metaStore, Map<String, Object> kqlProperties) throws IOException {
     kqlEngine = new KQLEngine(metaStore, kqlProperties);
+  }
+
+  private class QueuedQueryPrinter implements Runnable {
+    private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+
+    public QueuedQueryPrinter(SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
+      this.rowQueue = rowQueue;
+    }
+
+    @Override
+    public void run() {
+      try {
+        while (true) {
+          KeyValue<String, GenericRow> row = rowQueue.take();
+          console.println(String.format("%s => %s", row.key, row.value));
+          console.flush();
+        }
+      } catch (IOException exception) {
+        throw new RuntimeException(exception);
+      } catch (InterruptedException exception) {
+        // Interrupt is used to signal the thread to stop
+      }
+    }
   }
 
 

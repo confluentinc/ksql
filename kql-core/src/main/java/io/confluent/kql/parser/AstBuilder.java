@@ -601,13 +601,15 @@ public class AstBuilder
 
   @Override
   public Node visitSetProperty(SqlBaseParser.SetPropertyContext context) {
-    return new SetProperty(Optional.ofNullable(getLocation(context)), context.qualifiedName().getText(),
-                           context.expression().getText());
+    String propertyName = context.STRING(0).getText();
+    propertyName = propertyName.substring(1, propertyName.length() - 1);
+    String propertyValue = context.STRING(1).getText();
+    propertyValue = propertyValue.substring(1, propertyValue.length() - 1);
+    return new SetProperty(Optional.ofNullable(getLocation(context)), propertyName, propertyValue);
   }
 
   @Override
   public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
-//        return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), visitNumericLiteral(context.n));
     if (context.number() == null) {
       return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), null);
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {

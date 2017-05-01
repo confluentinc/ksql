@@ -47,7 +47,7 @@ statement
     | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
     | (LIST | SHOW) QUERIES                                            #listQueries
     | TERMINATE qualifiedName                                          #terminateQuery
-    | SET qualifiedName EQ expression                                  #setProperty
+    | SET STRING EQ STRING                                             #setProperty
     | LOAD expression                                                  #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                    #createTopic

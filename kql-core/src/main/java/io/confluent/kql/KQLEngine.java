@@ -28,7 +28,6 @@ import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
-import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.QueryMetadata;
 

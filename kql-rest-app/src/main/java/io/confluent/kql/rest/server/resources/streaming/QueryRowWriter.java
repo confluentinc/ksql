@@ -44,6 +44,9 @@ class QueryRowWriter implements Runnable {
     } catch (InterruptedException exception) {
       // Interrupt is used to end the thread
     } catch (Exception exception) {
+      // Would just throw the exception, but 1) can't throw checked exceptions from Runnable.run(), and 2) seems easier
+      // than converting the exception into an unchecked exception and then throwing it to a custom
+      // Thread.UncaughtExceptionHandler
       streamsException.compareAndSet(null, exception);
     }
   }

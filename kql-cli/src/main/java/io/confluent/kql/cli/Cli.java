@@ -45,6 +45,8 @@ public class Cli implements Closeable, AutoCloseable {
     this.restClient = restClient;
 
     this.terminal = TerminalBuilder.builder().system(true).build();
+
+    // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder().appName("KQL").terminal(terminal).build();
 
     // Otherwise, things like '!=' will cause things to break

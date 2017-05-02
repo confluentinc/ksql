@@ -98,7 +98,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
   }
 
   @Override
-  public void onShutdown() {
+  public void stop() throws Exception {
     kqlEngine.close();
     commandRunner.close();
     try {
@@ -106,7 +106,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     } catch (InterruptedException exception) {
       log.error("Interrupted while waiting for CommandRunner thread to complete", exception);
     }
-    super.onShutdown();
+    super.stop();
   }
 
   @Override

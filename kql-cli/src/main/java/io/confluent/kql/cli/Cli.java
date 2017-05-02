@@ -205,7 +205,7 @@ public class Cli implements Closeable, AutoCloseable {
       try {
         queryStreamFuture.get();
       } catch (CancellationException exception) {
-        System.err.println("Query terminated");
+        terminal.writer().println("Query terminated");
       }
 
       terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_DFL);

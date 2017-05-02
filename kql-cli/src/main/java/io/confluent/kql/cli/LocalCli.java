@@ -24,12 +24,23 @@ public class LocalCli extends Cli {
 
   @Override
   public void close() throws IOException {
-    serverApplication.onShutdown();
     try {
       serverApplication.stop();
       serverApplication.join();
     } catch (TimeoutException exception) {
+      /*
+          This is only thrown under the following circumstances:
 
+            1. A user makes a request for a streamed query.
+            2. The user terminates the request for the streamed query.
+            3. Before the thread(s) responsible for streaming the query have terminated, serverApplication.stop() is
+               called.
+
+          Even if the threads then manage to terminate within the graceful shutdown window for the server, the
+          TimeoutException is still thrown.
+
+          TODO: Prevent the TimeoutException from being thrown when this happens.
+       */
     } catch (IOException exception) {
       throw exception;
     } catch (Exception exception) {

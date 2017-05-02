@@ -40,16 +40,16 @@ class QueryStreamWriter implements StreamingOutput {
 
   @Override
   public void write(OutputStream out) throws IOException {
-    AtomicBoolean rowsWritten = new AtomicBoolean(false);
-    QueryRowWriter queryRowWriter = new QueryRowWriter(
-        out,
-        streamsException,
-        queryMetadata.getRowQueue(),
-        queryMetadata.getQueryOutputNode().getSchema().fields(),
-        rowsWritten
-    );
-    Thread rowWriterThread = new Thread(queryRowWriter);
     try {
+      AtomicBoolean rowsWritten = new AtomicBoolean(false);
+      QueryRowWriter queryRowWriter = new QueryRowWriter(
+          out,
+          streamsException,
+          queryMetadata.getRowQueue(),
+          queryMetadata.getQueryOutputNode().getSchema().fields(),
+          rowsWritten
+      );
+      Thread rowWriterThread = new Thread(queryRowWriter);
       rowWriterThread.start();
       try {
         while (true) {
@@ -75,12 +75,14 @@ class QueryStreamWriter implements StreamingOutput {
         out.flush();
       }
 
-      try {
-        rowWriterThread.interrupt();
-        rowWriterThread.join();
-      } catch (InterruptedException exception) {
-        log.warn("Failed to join row writer thread; setting to daemon to avoid hanging on shutdown");
-        rowWriterThread.setDaemon(true);
+      if (rowWriterThread.isAlive()) {
+        try {
+          rowWriterThread.interrupt();
+          rowWriterThread.join();
+        } catch (InterruptedException exception) {
+          log.warn("Failed to join row writer thread; setting to daemon to avoid hanging on shutdown");
+          rowWriterThread.setDaemon(true);
+        }
       }
 
     } finally {

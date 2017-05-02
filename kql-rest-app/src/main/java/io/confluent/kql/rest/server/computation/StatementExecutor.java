@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.rest.server.computation;
 
 import io.confluent.kql.KQLEngine;

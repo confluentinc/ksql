@@ -1,3 +1,6 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
 package io.confluent.kql.rest.server.resources.streaming;
 
 import io.confluent.kql.physical.GenericRow;

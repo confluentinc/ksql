@@ -211,7 +211,6 @@ public class KQLResource {
     return result.build();
   }
 
-  // TODO: Stop showing streamed queries
   private JsonObject listStreams() {
     JsonObjectBuilder result = Json.createObjectBuilder();
     Map<String, StructuredDataSource> allDataSources = kqlEngine.getMetaStore().getAllStructuredDataSources();
@@ -223,7 +222,6 @@ public class KQLResource {
     return result.build();
   }
 
-  // TODO: Stop showing streamed queries
   private JsonObject listTables() {
     JsonObjectBuilder result = Json.createObjectBuilder();
     Map<String, StructuredDataSource> allDataSources = kqlEngine.getMetaStore().getAllStructuredDataSources();

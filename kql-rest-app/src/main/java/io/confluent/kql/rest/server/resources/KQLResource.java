@@ -177,12 +177,15 @@ public class KQLResource {
   private JsonObject showQueries() {
     JsonObjectBuilder result = Json.createObjectBuilder();
     for (Map.Entry<String, QueryMetadata> queryEntry : kqlEngine.getLiveQueries().entrySet()) {
-      KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
-          (KQLStructuredDataOutputNode) queryEntry.getValue().getQueryOutputNode();
-      JsonObjectBuilder query = Json.createObjectBuilder();
-      query.add("query", queryEntry.getValue().getQueryId());
-      query.add("kafka_topic", kqlStructuredDataOutputNode.getKafkaTopicName());
-      result.add(queryEntry.getKey(), query.build());
+      QueryMetadata queryMetadata = queryEntry.getValue();
+      if (queryMetadata.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
+        KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
+            (KQLStructuredDataOutputNode) queryEntry.getValue().getQueryOutputNode();
+        JsonObjectBuilder query = Json.createObjectBuilder();
+        query.add("query", queryEntry.getValue().getQueryId());
+        query.add("kafka_topic", kqlStructuredDataOutputNode.getKafkaTopicName());
+        result.add(queryEntry.getKey(), query.build());
+      }
     }
     return result.build();
   }

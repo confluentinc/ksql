@@ -216,9 +216,9 @@ public class StatementExecutor {
 
   /**
    * Register the existence of a new statement that has been written to the command topic. All other statement status
-   * information is updated exclusively by the current {@link StatementExecutor} instance, but in the (unlikely but possible)
-   * event that a statement is written to the command topic but never picked up by this instance, it should be possible
-   * to know that it was at least written to the topic in the first place.
+   * information is updated exclusively by the current {@link StatementExecutor} instance, but in the
+   * (unlikely but possible) event that a statement is written to the command topic but never picked up by this
+   * instance, it should be possible to know that it was at least written to the topic in the first place.
    * @param statementId The ID of the statement that has been written to the command topic.
    */
   public void registerQueuedStatement(String statementId) {

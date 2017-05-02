@@ -12,10 +12,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 import javax.json.Json;
-import javax.json.JsonArray;
 import javax.json.JsonStructure;
-import javax.json.JsonValue;
-import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
 import java.io.Closeable;

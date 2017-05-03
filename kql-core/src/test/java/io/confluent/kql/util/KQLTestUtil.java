@@ -25,13 +25,13 @@ public class KQLTestUtil {
         .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
     KQLTopic
-        KQLTopic1 =
+        kqlTopic1 =
         new KQLTopic("TEST1", "test1", new KQLJsonTopicSerDe(null));
 
     KQLStream kqlStream = new KQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
-                                        KQLTopic1);
+                                        kqlTopic1);
 
-    metaStore.putTopic(KQLTopic1);
+    metaStore.putTopic(kqlTopic1);
     metaStore.putSource(kqlStream);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
@@ -42,12 +42,12 @@ public class KQLTestUtil {
         .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
 
     KQLTopic
-        KQLTopic2 =
+        kqlTopic2 =
         new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe(null));
     KQLTable kqlTable = new KQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     KQLTopic2, "TEST2", false);
+                                     kqlTopic2, "TEST2", false);
 
-    metaStore.putTopic(KQLTopic2);
+    metaStore.putTopic(kqlTopic2);
     metaStore.putSource(kqlTable);
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
@@ -57,13 +57,13 @@ public class KQLTestUtil {
             .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
 
     KQLTopic
-            KQLTopicOrders =
+            kqlTopicOrders =
             new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe(null));
 
     KQLStream kqlStreamOrders = new KQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
-            KQLTopic1);
+                                              kqlTopicOrders);
 
-    metaStore.putTopic(KQLTopicOrders);
+    metaStore.putTopic(kqlTopicOrders);
     metaStore.putSource(kqlStreamOrders);
 
     return metaStore;

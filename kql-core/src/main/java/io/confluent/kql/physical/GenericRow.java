@@ -42,6 +42,19 @@ public class GenericRow {
     return stringBuilder.toString();
   }
 
+  public boolean hasTheSameContent(Object other) {
+    if (!(other instanceof GenericRow)) {
+      return  false;
+    }
+    GenericRow otherGenericRow = (GenericRow) other;
+    if (columns.size() != otherGenericRow.columns.size()) {
+      return false;
+    }
+
+    // For now string matching is used to compare the rows.
+    return this.toString().equals(otherGenericRow.toString());
+  }
+
   public List<Object> getColumns() {
     return columns;
   }

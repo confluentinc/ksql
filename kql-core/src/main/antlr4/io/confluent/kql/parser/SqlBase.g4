@@ -47,7 +47,7 @@ statement
     | DESCRIBE qualifiedName                                           #showColumns
     | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
     | SHOW QUERIES                                                     #showQueries
-    | TERMINATE qualifiedName                                          #terminateQuery
+    | TERMINATE INTEGER_VALUE                                          #terminateQuery
     | SET qualifiedName EQ expression                                  #setProperty
     | LOAD expression                                                  #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName

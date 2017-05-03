@@ -23,10 +23,11 @@ import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
-import io.confluent.kql.rest.server.computation.CommandRunner;
+import io.confluent.kql.rest.server.computation.CommandId;
+import io.confluent.kql.rest.server.computation.CommandStore;
 import io.confluent.kql.rest.server.computation.StatementExecutor;
 import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
-import io.confluent.kql.util.QueryMetadata;
+import io.confluent.kql.util.PersistentQueryMetadata;
 import io.confluent.kql.util.SchemaUtil;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -55,16 +56,16 @@ public class KQLResource {
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(KQLResource.class);
 
   private final KQLEngine kqlEngine;
-  private final CommandRunner commandRunner;
+  private final CommandStore commandStore;
   private final StatementExecutor statementExecutor;
 
   public KQLResource(
       KQLEngine kqlEngine,
-      CommandRunner commandRunner,
+      CommandStore commandStore,
       StatementExecutor statementExecutor
   ) {
     this.kqlEngine = kqlEngine;
-    this.commandRunner = commandRunner;
+    this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
   }
 
@@ -91,7 +92,7 @@ public class KQLResource {
     return Response.ok(result.build().toString()).build();
   }
 
-  private List<String> getStatementStrings(String kqlString) {
+  public List<String> getStatementStrings(String kqlString) {
     List<SqlBaseParser.SingleStatementContext> statementContexts = new KQLParser().getStatements(kqlString);
     List<String> result = new ArrayList<>(statementContexts.size());
     for (SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
@@ -128,9 +129,9 @@ public class KQLResource {
             || statement instanceof CreateTableAsSelect
             || statement instanceof TerminateQuery
     ) {
-      String commandId = commandRunner.distributeStatement(statementString);
+      CommandId commandId = commandStore.distributeStatement(statementString, statement);
       statementExecutor.registerQueuedStatement(commandId);
-      result.add("statement_id", commandId);
+      result.add("statement_id", commandId.toString());
     } else {
       if (statement != null) {
         throw new Exception(String.format(
@@ -179,17 +180,19 @@ public class KQLResource {
   // Only shows queries running on the current machine, not across the entire cluster
   private JsonObject showQueries() {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    for (Map.Entry<String, QueryMetadata> queryEntry : kqlEngine.getLiveQueries().entrySet()) {
-      QueryMetadata queryMetadata = queryEntry.getValue();
-      if (queryMetadata.getQueryOutputNode() instanceof KQLStructuredDataOutputNode) {
-        KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
-            (KQLStructuredDataOutputNode) queryEntry.getValue().getQueryOutputNode();
-        JsonObjectBuilder query = Json.createObjectBuilder();
-        query.add("query", queryEntry.getValue().getQueryId());
-        query.add("kafka_topic", kqlStructuredDataOutputNode.getKafkaTopicName());
-        result.add(queryEntry.getKey(), query.build());
-      }
+
+    for (PersistentQueryMetadata persistentQueryMetadata : kqlEngine.getPersistentQueries().values()) {
+      KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
+          (KQLStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
+
+      JsonObjectBuilder persistentQuery = Json.createObjectBuilder();
+
+      persistentQuery.add("query", persistentQueryMetadata.getStatementString());
+      persistentQuery.add("kafka_topic", kqlStructuredDataOutputNode.getKafkaTopicName());
+
+      result.add(Long.toString(persistentQueryMetadata.getId()), persistentQuery.build());
     }
+
     return result.build();
   }
 

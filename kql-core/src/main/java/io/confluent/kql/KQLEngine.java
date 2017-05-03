@@ -30,6 +30,7 @@ import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
+import io.confluent.kql.util.PersistentQueryMetadata;
 import io.confluent.kql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
@@ -38,22 +39,21 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class KQLEngine implements Closeable {
 
-  KQLConfig kqlConfig;
-  QueryEngine queryEngine;
-  DDLEngine ddlEngine = new DDLEngine(this);
-  MetaStore metaStore = null;
-  Map<String, QueryMetadata> liveQueries = new HashMap<>();
-
-  static final String QUERY_ID_PREFIX = "KQL_";
-  int queryIdCounter = 0;
+  private final QueryEngine queryEngine;
+  private final DDLEngine ddlEngine;
+  private final MetaStore metaStore;
+  private final Map<Long, PersistentQueryMetadata> persistentQueries;
+  private final Set<QueryMetadata> liveQueries;
 
   /**
    * Runs the set of queries in the given query string. This method is used when the queries are
@@ -63,8 +63,7 @@ public class KQLEngine implements Closeable {
    * @return
    * @throws Exception
    */
-  public List<QueryMetadata> runMultipleQueries(final boolean createNewAppId,
-      final String queriesString) throws Exception {
+  public List<QueryMetadata> runMultipleQueries(boolean createNewAppId, String queriesString) throws Exception {
 
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
@@ -76,50 +75,42 @@ public class KQLEngine implements Closeable {
     for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
-    Map<String, String> queryStrings = new HashMap<>();
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-      Pair<Statement, DataSourceExtractor>
-          statementInfo =
+      Pair<Statement, DataSourceExtractor> statementInfo =
           kqlParser.prepareStatement(singleStatementContext, tempMetaStore);
       Statement statement = statementInfo.getLeft();
       if (statement instanceof Query) {
-        Query query = (Query) statement;
-        QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-        Table intoTable = (Table) querySpecification.getInto().get();
-        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
-                                                                intoTable.getName().getSuffix()
-        ));
-        String queryId = getNextQueryId();
-        queryList.add(new Pair<>(queryId, query));
-        queryStrings.put(queryId, getStatementString(singleStatementContext));
+        queryList.add(new Pair<>(getStatementString(singleStatementContext), (Query) statement));
       } else if (statement instanceof CreateStreamAsSelect) {
         CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery()
-            .getQueryBody();
-        Query query = addInto(createStreamAsSelect.getQuery(), querySpecification,
-                              createStreamAsSelect.getName().getSuffix(), createStreamAsSelect
-                                  .getProperties());
-        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
-                                                                createStreamAsSelect.getName()
-                                                                    .getSuffix()));
-        String queryId = getNextQueryId();
-        queryList.add(new Pair<>(queryId, query));
-        queryStrings.put(queryId, getStatementString(singleStatementContext));
+        QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+        Query query = addInto(
+            createStreamAsSelect.getQuery(),
+            querySpecification,
+            createStreamAsSelect.getName().getSuffix(),
+            createStreamAsSelect.getProperties()
+        );
+        tempMetaStore.putSource(queryEngine.getResultDatasource(
+            querySpecification.getSelect(),
+            createStreamAsSelect.getName().getSuffix()
+        ));
+        queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery()
-            .getQueryBody();
+        QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
 
-        Query query = addInto(createTableAsSelect.getQuery(), querySpecification,
-                              createTableAsSelect.getName().getSuffix(), createTableAsSelect
-                                  .getProperties());
+        Query query = addInto(
+            createTableAsSelect.getQuery(),
+            querySpecification,
+            createTableAsSelect.getName().getSuffix(),
+            createTableAsSelect.getProperties()
+        );
 
-        tempMetaStore.putSource(queryEngine.getResultDatasource(querySpecification.getSelect(),
-                                                                createTableAsSelect.getName()
-                                                                    .getSuffix()));
-        String queryId = getNextQueryId();
-        queryList.add(new Pair<>(queryId, query));
-        queryStrings.put(queryId, getStatementString(singleStatementContext));
+        tempMetaStore.putSource(queryEngine.getResultDatasource(
+            querySpecification.getSelect(),
+            createTableAsSelect.getName().getSuffix()
+        ));
+        queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTopic) {
         KQLTopic kqlTopic = ddlEngine.createTopic((CreateTopic) statement);
         if (kqlTopic != null) {
@@ -143,18 +134,18 @@ public class KQLEngine implements Closeable {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata>
-        runningQueries =
-        queryEngine.buildRunPhysicalPlans(createNewAppId, metaStore, logicalPlans);
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId, metaStore, logicalPlans);
 
     for (QueryMetadata queryMetadata : runningQueries) {
-      QueryMetadata queryInfo = new QueryMetadata(
-          queryStrings.get(queryMetadata.getQueryId()),
-          queryMetadata.getQueryKafkaStreams(),
-          queryMetadata.getQueryOutputNode()
-      );
-      liveQueries.put(queryMetadata.getQueryId(), queryInfo);
+
+      liveQueries.add(queryMetadata);
+
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+        persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
+      }
     }
+
     return runningQueries;
   }
 
@@ -168,18 +159,10 @@ public class KQLEngine implements Closeable {
         String fieldName = singleColumn.getAlias().get();
         dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
       }
-
-
     }
 
-    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
-                                     null);
-    StructuredDataSource
-        resultStream =
-        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                      kqlTopic
-        );
-    return resultStream;
+    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(), null);
+    return new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0), kqlTopic);
   }
 
   private String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {
@@ -191,10 +174,7 @@ public class KQLEngine implements Closeable {
   }
 
   public List<Statement> getStatements(final String sqlString) {
-    // First parse the query and build the AST
-    KQLParser kqlParser = new KQLParser();
-    List<Statement> builtASTStatements = kqlParser.buildAST(sqlString, metaStore);
-    return builtASTStatements;
+    return new KQLParser().buildAST(sqlString, metaStore);
   }
 
 
@@ -204,22 +184,17 @@ public class KQLEngine implements Closeable {
                            Expression> intoProperties) {
     Table intoTable = new Table(QualifiedName.of(intoName));
     intoTable.setProperties(intoProperties);
-    QuerySpecification newQuerySpecification = new QuerySpecification(querySpecification
-                                                                          .getSelect(),
-                                                                      java.util.Optional
-                                                                          .ofNullable(intoTable),
-                                                                      querySpecification.getFrom(),
-                                                                      querySpecification
-                                                                          .getWindowExpression(),
-                                                                      querySpecification
-                                                                          .getWhere(),
-                                                                      querySpecification
-                                                                          .getGroupBy(),
-                                                                      querySpecification
-                                                                          .getHaving(),
-                                                                      querySpecification
-                                                                          .getOrderBy(),
-                                                                      querySpecification.getLimit());
+    QuerySpecification newQuerySpecification = new QuerySpecification(
+        querySpecification.getSelect(),
+        Optional.of(intoTable),
+        querySpecification.getFrom(),
+        querySpecification.getWindowExpression(),
+        querySpecification.getWhere(),
+        querySpecification.getGroupBy(),
+        querySpecification.getHaving(),
+        querySpecification.getOrderBy(),
+        querySpecification.getLimit()
+    );
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
@@ -231,36 +206,39 @@ public class KQLEngine implements Closeable {
     return ddlEngine;
   }
 
-  private String getNextQueryId() {
-    String queryId = QUERY_ID_PREFIX + queryIdCounter;
-    queryIdCounter++;
-    return queryId;
-  }
-
-  public boolean terminateQuery(String queryId) {
-    QueryMetadata queryMetadata = liveQueries.remove(queryId);
+  public boolean terminateQuery(long queryId, boolean closeStreams) {
+    QueryMetadata queryMetadata = persistentQueries.remove(queryId);
     if (queryMetadata == null) {
       return false;
     }
-    queryMetadata.getQueryKafkaStreams().close();
+    liveQueries.remove(queryMetadata);
+    if (closeStreams) {
+      queryMetadata.getKafkaStreams().close();
+    }
     return true;
   }
 
-  public Map<String, QueryMetadata> getLiveQueries() {
-    return new HashMap<>(liveQueries);
+  public Map<Long, PersistentQueryMetadata> getPersistentQueries() {
+    return new HashMap<>(persistentQueries);
+  }
+
+  public Set<QueryMetadata> getLiveQueries() {
+    return new HashSet<>(liveQueries);
   }
 
   @Override
   public void close() {
-    for (String runningQueryId : liveQueries.keySet()) {
-      liveQueries.get(runningQueryId).getQueryKafkaStreams().close();
+    for (QueryMetadata queryMetadata : liveQueries) {
+      queryMetadata.getKafkaStreams().close();
     }
   }
 
-  public KQLEngine(final MetaStore metaStore, final KQLConfig kqlConfig) throws IOException {
-    this.kqlConfig = kqlConfig;
+  public KQLEngine(MetaStore metaStore, KQLConfig kqlConfig) {
     this.metaStore = metaStore;
     this.queryEngine = new QueryEngine(kqlConfig);
+    this.ddlEngine = new DDLEngine(this);
+    this.persistentQueries = new HashMap<>();
+    this.liveQueries = new HashSet<>();
   }
 
   public QueryEngine getQueryEngine() {

@@ -51,9 +51,6 @@ public class KQL {
     private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
     private static final String APPLICATION_ID_OPTION_DEFAULT = "kql_standalone_cli";
 
-    private static final String NODE_ID_OPTION_NAME = "--node-id";
-    private static final String NODE_ID_OPTION_DEFAULT = "node";
-
     private static final String COMMAND_TOPIC_SUFFIX_OPTION_NAME = "--command-topic-suffix";
     private static final String COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT = "commands";
 
@@ -76,13 +73,6 @@ public class KQL {
             + APPLICATION_ID_OPTION_DEFAULT + "')"
     )
     private String applicationId;
-
-    @Option(
-        name = NODE_ID_OPTION_NAME,
-        description = "The node ID to assign to the standalone KQL server instance (defaults to '"
-            + NODE_ID_OPTION_DEFAULT + "')"
-    )
-    private String nodeId;
 
     @Option(
         name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
@@ -122,7 +112,6 @@ public class KQL {
     private void addDefaultProperties(Properties properties) {
       properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-      properties.put(KQLRestConfig.NODE_ID_CONFIG, NODE_ID_OPTION_DEFAULT);
       properties.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT);
     }
 
@@ -138,9 +127,6 @@ public class KQL {
       }
       if (applicationId != null) {
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-      }
-      if (nodeId != null) {
-        properties.put(KQLRestConfig.NODE_ID_CONFIG, nodeId);
       }
       if (commandTopicSuffix != null) {
         properties.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, commandTopicSuffix);

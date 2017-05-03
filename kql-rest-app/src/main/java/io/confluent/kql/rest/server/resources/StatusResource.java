@@ -3,8 +3,9 @@
  **/
 package io.confluent.kql.rest.server.resources;
 
+import io.confluent.kql.rest.server.computation.CommandId;
 import io.confluent.kql.rest.server.computation.StatementExecutor;
-import io.confluent.kql.rest.server.computation.StatementStatus;
+import io.confluent.kql.rest.server.computation.CommandStatus;
 
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
@@ -32,24 +33,26 @@ public class StatusResource {
     JsonObjectBuilder result = Json.createObjectBuilder();
     JsonObjectBuilder statuses = Json.createObjectBuilder();
 
-    for (Map.Entry<String, StatementStatus> queryStatus : statementExecutor.getStatuses().entrySet()) {
-      statuses.add(queryStatus.getKey().toUpperCase(), queryStatus.getValue().getStatus().name());
+    for (Map.Entry<CommandId, CommandStatus> queryStatus : statementExecutor.getStatuses().entrySet()) {
+      statuses.add(queryStatus.getKey().toString(), queryStatus.getValue().getStatus().name());
     }
 
     return Response.ok(result.add("statuses", statuses.build()).build().toString()).build();
   }
 
   @GET
-  @Path("/{statementId}")
-  public Response getQueryStatus(@PathParam("statementId") String statementId) throws Exception {
-    Optional<StatementStatus> statementStatus = statementExecutor.getStatus(statementId.toUpperCase());
+  @Path("/{type}/{entity}")
+  public Response getQueryStatus(@PathParam("type") String type, @PathParam("entity") String entity) throws Exception {
+    CommandId commandId = new CommandId(type, entity);
+
+    Optional<CommandStatus> statementStatus = statementExecutor.getStatus(commandId);
 
     if (!statementStatus.isPresent()) {
-      throw new Exception(String.format("Statement not found: '%s", statementId));
+      throw new Exception("Command not found");
     }
 
     JsonObjectBuilder status = Json.createObjectBuilder();
-    status.add("statement_id", statementId.toUpperCase());
+    status.add("command_id", commandId.toString());
     status.add("status", statementStatus.get().getStatus().name());
     status.add("message", statementStatus.get().getMessage());
 

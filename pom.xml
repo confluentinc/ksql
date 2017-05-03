@@ -35,6 +35,7 @@
         <junit.version>4.12</junit.version>
         <csv.version>1.4</csv.version>
         <janino.version>3.0.7</janino.version>
+        <confluent.version>3.3.0-SNAPSHOT</confluent.version>
     </properties>
 
     <dependencies>

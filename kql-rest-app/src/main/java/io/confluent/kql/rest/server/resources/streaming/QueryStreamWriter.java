@@ -34,11 +34,13 @@ class QueryStreamWriter implements StreamingOutput {
       ));
     }
 
+    queryMetadata.getKafkaStreams().start();
+
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
 
     this.streamsException = new AtomicReference<>(null);
-    this.queryMetadata.getQueryKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
   }
 
   @Override
@@ -49,7 +51,7 @@ class QueryStreamWriter implements StreamingOutput {
           out,
           streamsException,
           queryMetadata.getRowQueue(),
-          queryMetadata.getQueryOutputNode().getSchema().fields(),
+          queryMetadata.getOutputNode().getSchema().fields(),
           rowsWritten
       );
       Thread rowWriterThread = new Thread(queryRowWriter);
@@ -89,8 +91,8 @@ class QueryStreamWriter implements StreamingOutput {
       }
 
     } finally {
-      queryMetadata.getQueryKafkaStreams().close();
-      queryMetadata.getQueryKafkaStreams().cleanUp();
+      queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().cleanUp();
     }
   }
 

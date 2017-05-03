@@ -17,6 +17,6 @@ public class KQLJsonRequest {
   // In case this is ever useful for debugging
   @Override
   public String toString() {
-    return String.format("KQLRequest {\"kql\":\"%s\"", kql);
+    return String.format("KQLRequest {\"kql\":\"%s\"}", kql);
   }
 }

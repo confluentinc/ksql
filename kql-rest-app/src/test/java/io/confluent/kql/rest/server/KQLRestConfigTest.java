@@ -1,4 +1,4 @@
-package io.confluent.kql.rest;
+package io.confluent.kql.rest.server;
 
 import io.confluent.kql.rest.server.KQLRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -17,7 +17,6 @@ public class KQLRestConfigTest {
     Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "kql_config_test");
-    result.put(KQLRestConfig.NODE_ID_CONFIG, "node_1");
     result.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
     return result;
   }
@@ -59,7 +58,6 @@ public class KQLRestConfigTest {
         OVERRIDE_BOOTSTRAP_SERVERS,
         testProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
     );
-    assertKeyEquals(KQLRestConfig.NODE_ID_CONFIG, inputProperties, testProperties);
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls

@@ -21,12 +21,6 @@ public class KQLRestConfig extends RestConfig {
   public static final String COMMAND_CONSUMER_PREFIX  = "kql.command.consumer.";
   public static final String COMMAND_PRODUCER_PREFIX  = "kql.command.producer.";
 
-  public static final String NODE_ID_CONFIG = "node.id";
-  public static final ConfigDef.Type NODE_ID_TYPE = ConfigDef.Type.STRING;
-  public static final ConfigDef.Importance NODE_ID_IMPORTANCE = ConfigDef.Importance.HIGH;
-  public static final String NODE_ID_DOC =
-      "A (case-insensitive) unique identifier for the node to add to the cluster";
-
   public static final String COMMAND_TOPIC_SUFFIX_CONFIG = "command.topic.suffix";
   public static final ConfigDef.Type COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
   public static final ConfigDef.Importance COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
@@ -53,11 +47,6 @@ public class KQLRestConfig extends RestConfig {
 
   static {
     CONFIG_DEF = baseConfigDef().define(
-        NODE_ID_CONFIG,
-        NODE_ID_TYPE,
-        NODE_ID_IMPORTANCE,
-        NODE_ID_DOC
-    ).define(
         COMMAND_TOPIC_SUFFIX_CONFIG,
         COMMAND_TOPIC_SUFFIX_TYPE,
         COMMAND_TOPIC_SUFFIX_IMPORTANCE,
@@ -92,16 +81,8 @@ public class KQLRestConfig extends RestConfig {
     return result;
   }
 
-  private String getInternalApplicationId(String suffix) {
-    return String.format("%s_%s_%s", getString(APPLICATION_ID_CONFIG), getString(NODE_ID_CONFIG), suffix);
-  }
-
   public Map<String, Object> getCommandConsumerProperties() {
-    Map<String, Object> result = getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
-//    result.remove(ConsumerConfig.GROUP_ID_CONFIG);
-    result.put(ConsumerConfig.GROUP_ID_CONFIG, getInternalApplicationId("command_consumer"));
-//    result.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    return result;
+    return getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
   }
 
   public Map<String, Object> getCommandProducerProperties() {
@@ -109,9 +90,7 @@ public class KQLRestConfig extends RestConfig {
   }
 
   public Map<String, Object> getKqlStreamsProperties() {
-    Map<String, Object> result = getPropertiesWithOverrides(KQL_STREAMS_PREFIX);
-    result.put(StreamsConfig.APPLICATION_ID_CONFIG, getInternalApplicationId("kql_stream"));
-    return result;
+    return getPropertiesWithOverrides(KQL_STREAMS_PREFIX);
   }
 
   public String getCommandTopic() {

@@ -95,7 +95,7 @@ public class JSONFormatTest {
 
 
   @Test
-  public void testSelectSProjectTest() throws Exception {
+  public void testSelectProject() throws Exception {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY"
                                        + " FROM "
                                        + "ORDERS;");

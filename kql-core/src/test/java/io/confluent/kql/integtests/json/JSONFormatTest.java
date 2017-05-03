@@ -78,7 +78,7 @@ public class JSONFormatTest {
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
     kqlEngine = new KQLEngine(metaStore, configMap);
-    inputData = getDataList();
+    inputData = getInputData();
     produceInputData(inputData, kqlStreamOrders.getSchema());
   }
 
@@ -148,7 +148,7 @@ public class JSONFormatTest {
                  1110.99,
                  970.0 })));
 
-    Assert.assertEquals(results.size() , inputData.size());
+    Assert.assertEquals(results.size() , expectedResults.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
     terminateAllQueries();
   }
@@ -210,7 +210,7 @@ public class JSONFormatTest {
 
   }
 
-  private Map<String, GenericRow> getDataList() {
+  private Map<String, GenericRow> getInputData() {
 
     Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);

@@ -86,6 +86,7 @@ public class JSONFormatTest {
   @Test
   public void testSelectStar() throws Exception {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT * FROM ORDERS;");
+    Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("STARTSTREAM").getSchema();
     Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
     Assert.assertEquals(results.size() , inputData.size());
@@ -99,12 +100,12 @@ public class JSONFormatTest {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY"
                                        + " FROM "
                                        + "ORDERS;");
+    Thread.sleep(1000);
     SchemaBuilder resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA));
 
-    Thread.sleep(1000);
     Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
 
     Map<String, GenericRow> expectedResults = new HashMap<>();

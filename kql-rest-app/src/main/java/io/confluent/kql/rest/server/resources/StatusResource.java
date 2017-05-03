@@ -42,7 +42,7 @@ public class StatusResource {
 
   @GET
   @Path("/{type}/{entity}")
-  public Response getQueryStatus(@PathParam("type") String type, @PathParam("entity") String entity) throws Exception {
+  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity) throws Exception {
     CommandId commandId = new CommandId(type, entity);
 
     Optional<CommandStatus> statementStatus = statementExecutor.getStatus(commandId);

@@ -89,9 +89,10 @@ public class JSONFormatTest {
     Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("STARTSTREAM").getSchema();
     Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
-    Assert.assertEquals(results.size() , inputData.size());
+    Assert.assertEquals(inputData.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, inputData));
     terminateAllQueries();
+    System.out.println(">>>>>>>>>>>> Passed!!!");
   }
 
 
@@ -100,7 +101,7 @@ public class JSONFormatTest {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY"
                                        + " FROM "
                                        + "ORDERS;");
-    Thread.sleep(1000);
+    Thread.sleep(5000);
     SchemaBuilder resultSchema = SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
@@ -148,7 +149,7 @@ public class JSONFormatTest {
                  1110.99,
                  970.0 })));
 
-    Assert.assertEquals(results.size() , expectedResults.size());
+    Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
     terminateAllQueries();
   }

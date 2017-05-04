@@ -37,8 +37,6 @@
         <csv.version>1.4</csv.version>
         <janino.version>3.0.7</janino.version>
         <confluent.version>3.3.0-SNAPSHOT</confluent.version>
-
-        <checkstyle.config.location>checkstyle/checkstyle.xml</checkstyle.config.location>
     </properties>
 
     <dependencies>
@@ -165,6 +163,7 @@
                         </configuration>
                         <goals>
                             <goal>check</goal>
+                            <goal>checkstyle</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -184,5 +183,4 @@
             </plugin>
         </plugins>
     </reporting>
-
 </project>

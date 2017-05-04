@@ -77,7 +77,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
           .getKqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
-        switch (analysis.getIntoFormat()) {
+        switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
             intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
             break;

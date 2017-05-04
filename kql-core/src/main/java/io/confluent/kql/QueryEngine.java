@@ -17,10 +17,14 @@ import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
 import io.confluent.kql.planner.LogicalPlanner;
-import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.KQLBareOutputNode;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.structured.QueuedSchemaKStream;
@@ -31,11 +35,6 @@ import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.PersistentQueryMetadata;
 import io.confluent.kql.util.QueryMetadata;
-import io.confluent.kql.parser.tree.Query;
-import io.confluent.kql.parser.tree.SelectItem;
-import io.confluent.kql.parser.tree.SingleColumn;
-import io.confluent.kql.parser.tree.Select;
-
 import io.confluent.kql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -136,7 +135,6 @@ public class QueryEngine {
     for (Pair<String, PlanNode> statementPlanPair : logicalPlans) {
 
       PlanNode logicalPlan = statementPlanPair.getRight();
-
       KStreamBuilder builder = new KStreamBuilder();
 
       //Build a physical plan, in this case a Kafka Streams DSL

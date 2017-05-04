@@ -56,6 +56,7 @@ import io.confluent.kql.parser.tree.JoinOn;
 import io.confluent.kql.parser.tree.JoinUsing;
 import io.confluent.kql.parser.tree.LambdaExpression;
 import io.confluent.kql.parser.tree.LikePredicate;
+import io.confluent.kql.parser.tree.ListProperties;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
@@ -79,10 +80,9 @@ import io.confluent.kql.parser.tree.SampledRelation;
 import io.confluent.kql.parser.tree.SearchedCaseExpression;
 import io.confluent.kql.parser.tree.Select;
 import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SetProperty;
 import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.ShowQueries;
-import io.confluent.kql.parser.tree.ShowTables;
-import io.confluent.kql.parser.tree.ShowTopics;
+import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.SimpleCaseExpression;
 import io.confluent.kql.parser.tree.SimpleGroupBy;
 import io.confluent.kql.parser.tree.SingleColumn;
@@ -552,26 +552,11 @@ public class AstBuilder
     return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
   }
 
-
-  @Override
-  public Node visitShowTables(SqlBaseParser.ShowTablesContext context) {
-    return new ShowTables(
-        getLocation(context),
-        Optional.ofNullable(context.qualifiedName())
-            .map(AstBuilder::getQualifiedName),
-        getTextIfPresent(context.pattern)
-            .map(text -> unquote(text, "'")));
-  }
-
   @Override
   public Node visitExportCatalog(SqlBaseParser.ExportCatalogContext context) {
     return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
-  @Override
-  public Node visitShowTopics(SqlBaseParser.ShowTopicsContext context) {
-    return new ShowTopics(Optional.ofNullable(getLocation(context)));
-  }
 
   @Override
   public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
@@ -595,8 +580,8 @@ public class AstBuilder
 
 
   @Override
-  public Node visitShowQueries(SqlBaseParser.ShowQueriesContext context) {
-    return new ShowQueries(Optional.ofNullable(getLocation(context)));
+  public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
+    return new ListQueries(Optional.ofNullable(getLocation(context)));
   }
 
   @Override
@@ -610,8 +595,21 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitListProperties(SqlBaseParser.ListPropertiesContext context) {
+    return new ListProperties(Optional.ofNullable(getLocation(context)));
+  }
+
+  @Override
+  public Node visitSetProperty(SqlBaseParser.SetPropertyContext context) {
+    String propertyName = context.STRING(0).getText();
+    propertyName = propertyName.substring(1, propertyName.length() - 1);
+    String propertyValue = context.STRING(1).getText();
+    propertyValue = propertyValue.substring(1, propertyValue.length() - 1);
+    return new SetProperty(Optional.ofNullable(getLocation(context)), propertyName, propertyValue);
+  }
+
+  @Override
   public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
-//        return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), visitNumericLiteral(context.n));
     if (context.number() == null) {
       return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), null);
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {

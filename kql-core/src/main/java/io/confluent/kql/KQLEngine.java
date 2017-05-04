@@ -5,38 +5,31 @@ package io.confluent.kql;
 
 import io.confluent.kql.ddl.DDLEngine;
 import io.confluent.kql.metastore.KQLStream;
+import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
-import io.confluent.kql.metastore.KQLTable;
-import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.SqlBaseParser;
+import io.confluent.kql.parser.tree.CreateStream;
+import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.CreateTableAsSelect;
+import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.Query;
 import io.confluent.kql.parser.tree.QuerySpecification;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.Table;
-import io.confluent.kql.parser.tree.CreateStreamAsSelect;
-import io.confluent.kql.parser.tree.CreateTableAsSelect;
-import io.confluent.kql.parser.tree.SelectItem;
-import io.confluent.kql.parser.tree.QualifiedName;
-import io.confluent.kql.parser.tree.CreateTopic;
-import io.confluent.kql.parser.tree.CreateStream;
-import io.confluent.kql.parser.tree.CreateTable;
-import io.confluent.kql.parser.tree.SingleColumn;
-import io.confluent.kql.parser.tree.Select;
-import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.Pair;
 import io.confluent.kql.util.PersistentQueryMetadata;
 import io.confluent.kql.util.QueryMetadata;
-
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -56,14 +49,13 @@ public class KQLEngine implements Closeable {
   private final Set<QueryMetadata> liveQueries;
 
   /**
-   * Runs the set of queries in the given query string. This method is used when the queries are
-   * passed through a file.
+   * Runs the set of queries in the given query string.
    *
    * @param queriesString
    * @return
    * @throws Exception
    */
-  public List<QueryMetadata> runMultipleQueries(boolean createNewAppId, String queriesString) throws Exception {
+  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString) throws Exception {
 
     // Parse and AST creation
     KQLParser kqlParser = new KQLParser();
@@ -147,22 +139,6 @@ public class KQLEngine implements Closeable {
     }
 
     return runningQueries;
-  }
-
-  public StructuredDataSource getResultDatasource(final Select select, final Table into) {
-
-    SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
-
-    for (SelectItem selectItem : select.getSelectItems()) {
-      if (selectItem instanceof SingleColumn) {
-        SingleColumn singleColumn = (SingleColumn) selectItem;
-        String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
-      }
-    }
-
-    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(), null);
-    return new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0), kqlTopic);
   }
 
   private String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {

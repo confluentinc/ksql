@@ -8,15 +8,15 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-public class ShowQueries extends Statement {
+public class ListProperties extends Statement {
 
-  public ShowQueries(Optional<NodeLocation> location) {
+  public ListProperties(Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash("ShowQueries");
+    return Objects.hash("ListProperties");
   }
 
   @Override

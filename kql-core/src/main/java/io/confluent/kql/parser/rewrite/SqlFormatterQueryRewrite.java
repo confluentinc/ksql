@@ -42,7 +42,6 @@ import io.confluent.kql.parser.tree.CreateView;
 import io.confluent.kql.parser.tree.DropView;
 import io.confluent.kql.parser.tree.Explain;
 import io.confluent.kql.parser.tree.ShowSchemas;
-import io.confluent.kql.parser.tree.ShowTables;
 import io.confluent.kql.parser.tree.ShowCreate;
 import io.confluent.kql.parser.tree.ShowColumns;
 import io.confluent.kql.parser.tree.ShowPartitions;
@@ -490,22 +489,6 @@ public final class SqlFormatterQueryRewrite {
         builder.append(" FROM ")
             .append(node.getCatalog().get());
       }
-
-      node.getLikePattern().ifPresent((value) ->
-                                          builder.append(" LIKE ")
-                                              .append(ExpressionFormatterQueryRewrite
-                                                          .formatStringLiteral(value)));
-
-      return null;
-    }
-
-    @Override
-    protected Void visitShowTables(ShowTables node, Integer context) {
-      builder.append("SHOW TABLES");
-
-      node.getSchema().ifPresent((value) ->
-                                     builder.append(" FROM ")
-                                         .append(value));
 
       node.getLikePattern().ifPresent((value) ->
                                           builder.append(" LIKE ")

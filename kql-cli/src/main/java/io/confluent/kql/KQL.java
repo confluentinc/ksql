@@ -13,8 +13,8 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.kql.cli.Cli;
-import io.confluent.kql.cli.RemoteCli;
 import io.confluent.kql.cli.LocalCli;
+import io.confluent.kql.cli.RemoteCli;
 import io.confluent.kql.rest.server.KQLRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 

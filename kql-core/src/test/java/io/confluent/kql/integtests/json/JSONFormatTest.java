@@ -107,17 +107,8 @@ public class JSONFormatTest {
   @Test
   public void testSelectProject() throws Exception {
     final String streamName = "STARTSTREAM";
-    final String field1 = "ITEMID";
-    final String field2 = "ORDERUNITS";
-    final String field3 = "PRICEARRAY";
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s, %s, %s FROM %s;",
-        streamName,
-        field1,
-        field2,
-        field3,
-        inputStream
-    );
+    final String queryString =
+        String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
@@ -173,6 +164,115 @@ public class JSONFormatTest {
     kqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
+
+  @Test
+  public void testSelectFilter() throws Exception {
+    final String streamName = "FILTERSTREAM";
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT * FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
+        streamName,
+        inputStream
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    Map<String, Double> mapField = new HashMap<>();
+    mapField.put("key1", 1.0);
+    mapField.put("key2", 2.0);
+    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
+                                                         "ITEM_8", 80.0, new
+                                                             Double[]{1100.0,
+                                                                      1110.99,
+                                                                      970.0 },
+                                                         mapField)));
+
+    Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    kqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+  @Test
+  public void testSelectExpression() throws Exception {
+    final String streamName = "FILTERSTREAM";
+
+    final String selectColumns =
+        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
+    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
+
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
+        streamName,
+        selectColumns,
+        inputStream,
+        whereClause
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+//    Map<String, Double> mapField = new HashMap<>();
+//    mapField.put("key1", 1.0);
+//    mapField.put("key2", 2.0);
+//    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
+
+    Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    kqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+  @Test
+  public void testSelectUDFs() throws Exception {
+    final String streamName = "UDFSTREAM";
+
+    final String selectColumns =
+        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
+    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
+
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
+        streamName,
+        selectColumns,
+        inputStream,
+        whereClause
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+//    Map<String, Double> mapField = new HashMap<>();
+//    mapField.put("key1", 1.0);
+//    mapField.put("key2", 2.0);
+//    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
+
+    Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    kqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
 
   //*********************************************************//
 

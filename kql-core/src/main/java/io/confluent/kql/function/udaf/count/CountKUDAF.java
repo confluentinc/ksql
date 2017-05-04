@@ -8,15 +8,15 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
 
-public class CountKUDAF extends KQLAggregateFunction<Object, Integer> {
+public class CountKUDAF extends KQLAggregateFunction<Object, Long> {
 
   public CountKUDAF(Integer argIndexInValue) {
-    super(argIndexInValue, 0, Schema.INT32_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
+    super(argIndexInValue, 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
           "COUNT", CountKUDAF.class);
   }
 
   @Override
-  public Integer aggregate(Object currentVal, Integer currentAggVal) {
+  public Long aggregate(Object currentVal, Long currentAggVal) {
     return currentAggVal + 1;
   }
 }

@@ -92,7 +92,6 @@ public class JSONFormatTest {
     Assert.assertEquals(inputData.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, inputData));
     terminateAllQueries();
-    System.out.println(">>>>>>>>>>>> Passed!!!");
   }
 
 
@@ -155,9 +154,77 @@ public class JSONFormatTest {
   }
 
 
+  @Test
+  public void testSelectFilter() throws Exception {
+    kqlEngine.runMultipleQueries(true, "CREATE STREAM FILTERSTREAM AS SELECT * FROM ORDERS "
+                                       + "WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';");
+    Thread.sleep(1000);
+    Schema resultSchema = metaStore.getSource("FILTERSTREAM").getSchema();
+    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema);
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    Map<String, Double> mapField = new HashMap<>();
+    mapField.put("key1", 1.0);
+    mapField.put("key2", 2.0);
+    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
+                                                         "ITEM_8", 80.0, new
+                                                             Double[]{1100.0,
+                                                                      1110.99,
+                                                                      970.0 },
+                                                         mapField)));
 
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+    terminateAllQueries();
+  }
 
+  @Test
+  public void testSelectExpression() throws Exception {
+    kqlEngine.runMultipleQueries(true, "CREATE STREAM FILTERSTREAM AS SELECT ITEMID, "
+                                       + "ORDERUNITS*10, PRICEARRAY[0]+10, "
+                                       + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, "
+                                       + "PRICEARRAY[1]>1000 "
+                                       + "FROM "
+                                       + "ORDERS "
+                                       + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%_8';");
+    Thread.sleep(1000);
+    Schema resultSchema = metaStore.getSource("FILTERSTREAM").getSchema();
+    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema);
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    Map<String, Double> mapField = new HashMap<>();
+    mapField.put("key1", 1.0);
+    mapField.put("key2", 2.0);
+    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+    terminateAllQueries();
+  }
+
+  @Test
+  public void testSelectUDFs() throws Exception {
+    kqlEngine.runMultipleQueries(true, "CREATE STREAM UDFSTREAM AS SELECT ITEMID, "
+                                       + "ORDERUNITS*10, PRICEARRAY[0]+10, "
+                                       + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, "
+                                       + "PRICEARRAY[1]>1000 "
+                                       + "FROM "
+                                       + "ORDERS "
+                                       + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%_8';");
+    Thread.sleep(1000);
+    Schema resultSchema = metaStore.getSource("UDFSTREAM").getSchema();
+    Map<String, GenericRow> results = readResults("UDFSTREAM", resultSchema);
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    Map<String, Double> mapField = new HashMap<>();
+    mapField.put("key1", 1.0);
+    mapField.put("key2", 2.0);
+    mapField.put("key3", 3.0);
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+    terminateAllQueries();
+  }
 
   //*********************************************************//
 

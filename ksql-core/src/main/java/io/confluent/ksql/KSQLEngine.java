@@ -24,12 +24,15 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -202,6 +205,43 @@ public class KSQLEngine implements Closeable {
     return new HashSet<>(liveQueries);
   }
 
+  public static boolean isValidStreamsProperty(String property) {
+    if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
+      String strippedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
+      return ConsumerConfig.configNames().contains(strippedProperty);
+    } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
+      String strippedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
+      return ProducerConfig.configNames().contains(strippedProperty);
+    } else {
+      return StreamsConfig.configDef().names().contains(property)
+          || ConsumerConfig.configNames().contains(property)
+          || ProducerConfig.configNames().contains(property);
+    }
+  }
+
+  // May want to flesh this out a little more in the future and improve error messages, but right now this does what it
+  // needs to--makes sure the given properties would create a valid StreamsConfig object
+  public void validateStreamsProperties(Map<String, Object> streamsProperties) {
+    new StreamsConfig(streamsProperties);
+  }
+
+  public void setProperty(String property, Object value) {
+    if (!isValidStreamsProperty(property)) {
+      throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
+    }
+
+    Map<String, Object> newProperties = queryEngine.getStreamsProperties();
+    newProperties.put(property, value);
+
+    try {
+      validateStreamsProperties(newProperties);
+    } catch (ConfigException configException) {
+      throw new IllegalArgumentException(String.format("Failed to set property '%s'", property), configException);
+    }
+
+    queryEngine.setStreamsProperty(property, value);
+  }
+
   @Override
   public void close() {
     for (QueryMetadata queryMetadata : liveQueries) {
@@ -209,9 +249,11 @@ public class KSQLEngine implements Closeable {
     }
   }
 
-  public KSQLEngine(MetaStore metaStore, KSQLConfig ksqlConfig) {
+  public KSQLEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
+    validateStreamsProperties(streamsProperties);
+
     this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(ksqlConfig);
+    this.queryEngine = new QueryEngine(streamsProperties);
     this.ddlEngine = new DDLEngine(this);
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();

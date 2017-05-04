@@ -30,7 +30,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -43,19 +42,31 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
-  private KSQLConfig ksqlConfig;
+  private final Map<String, Object> streamsProperties;
   private final AtomicLong queryIdCounter;
 
-  public QueryEngine(final KSQLConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+  public QueryEngine(Map<String, Object> streamsProperties) {
+    Objects.requireNonNull(streamsProperties, "Streams properties map cannot be null as it may be mutated later on");
+    this.streamsProperties = streamsProperties;
+
     this.queryIdCounter = new AtomicLong(1);
+  }
+
+  public Map<String, Object> getStreamsProperties() {
+    return new HashMap<>(streamsProperties);
+  }
+
+  public void setStreamsProperty(String property, Object value) {
+    streamsProperties.put(property, value);
   }
 
   public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore, List<Pair<String, Query>> queryList) {
@@ -117,11 +128,6 @@ public class QueryEngine {
       logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
     }
     return logicalPlansList;
-  }
-
-  private StructuredDataSource getPlanDataSource(PlanNode outputNode) {
-    KSQLTopic ksqlTopic = new KSQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
-    return new KSQLStream(outputNode.getId().toString(), outputNode.getSchema(), outputNode.getKeyField(), ksqlTopic);
   }
 
   public List<QueryMetadata> buildPhysicalPlans(
@@ -231,8 +237,9 @@ public class QueryEngine {
   }
 
   private KafkaStreams buildStreams(KStreamBuilder builder, String applicationId) {
-    Map<String, Object> streamsProperties = ksqlConfig.getResetStreamsProperties(applicationId);
-    return new KafkaStreams(builder, new StreamsConfig(streamsProperties));
+    Map<String, Object> newStreamsProperties = getStreamsProperties();
+    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    return new KafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 
   private long getNextQueryId() {

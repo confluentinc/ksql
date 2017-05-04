@@ -21,7 +21,6 @@ import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KSQLResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -160,8 +159,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
 
-    KSQLConfig ksqlConfig = new KSQLConfig(config.getKsqlStreamsProperties());
-    KSQLEngine ksqlEngine = new KSQLEngine(metaStore, ksqlConfig);
+    KSQLEngine ksqlEngine = new KSQLEngine(metaStore, config.getKsqlStreamsProperties());
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     String commandTopic = config.getCommandTopic();

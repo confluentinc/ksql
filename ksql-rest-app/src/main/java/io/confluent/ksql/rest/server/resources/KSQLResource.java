@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -122,6 +123,8 @@ public class KSQLResource {
       result.add("queries", showQueries());
     } else if (statement instanceof ShowColumns) {
       result.add("description", describe(((ShowColumns) statement).getTable().getSuffix()));
+    } else if (statement instanceof SetProperty) {
+      result.add("set_property", setProperty((SetProperty) statement));
     } else if (statement instanceof CreateTopic
             || statement instanceof CreateStream
             || statement instanceof CreateTable
@@ -211,6 +214,14 @@ public class KSQLResource {
       fields.add(fieldName, type);
     }
     result.add("schema", fields);
+    return result.build();
+  }
+
+  private JsonObject setProperty(SetProperty setProperty) {
+    JsonObjectBuilder result = Json.createObjectBuilder();
+    ksqlEngine.setProperty(setProperty.getPropertyName(), setProperty.getPropertyValue());
+    result.add("property", setProperty.getPropertyName());
+    result.add("value", setProperty.getPropertyValue());
     return result.build();
   }
 

@@ -124,7 +124,7 @@ public class LogicalPlannerTest {
     Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
     Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
     Assert.assertTrue(aggregateNode.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
-    Assert.assertTrue(aggregateNode.getSchema().fields().get(2).schema() == Schema.INT32_SCHEMA);
+    Assert.assertTrue(aggregateNode.getSchema().fields().get(2).schema() == Schema.INT64_SCHEMA);
     Assert.assertTrue(logicalPlan.getSources().get(0).getSchema().fields().size() == 3);
 
   }

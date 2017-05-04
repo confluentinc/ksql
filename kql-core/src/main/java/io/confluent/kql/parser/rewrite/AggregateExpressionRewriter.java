@@ -3,8 +3,6 @@
  **/
 package io.confluent.kql.parser.rewrite;
 
-import java.util.ArrayList;
-import java.util.List;
 import io.confluent.kql.function.KQLFunctions;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.ExpressionRewriter;
@@ -12,6 +10,9 @@ import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.kql.parser.tree.FunctionCall;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
 

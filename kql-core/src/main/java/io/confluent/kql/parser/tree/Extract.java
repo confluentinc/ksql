@@ -4,7 +4,6 @@
 package io.confluent.kql.parser.tree;
 
 import javax.annotation.concurrent.Immutable;
-
 import java.util.Objects;
 import java.util.Optional;
 

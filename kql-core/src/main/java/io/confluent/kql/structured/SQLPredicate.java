@@ -10,7 +10,6 @@ import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 import io.confluent.kql.util.SchemaUtil;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;

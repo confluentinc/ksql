@@ -4,7 +4,6 @@
 package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

@@ -3,6 +3,8 @@
  **/
 package io.confluent.kql.serde.csv;
 
+import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.util.KQLException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -12,9 +14,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.kql.physical.GenericRow;
-import io.confluent.kql.util.KQLException;
 
 public class KQLCsvDeserializer implements Deserializer<GenericRow> {
 

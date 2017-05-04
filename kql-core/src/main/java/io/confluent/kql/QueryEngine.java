@@ -11,17 +11,20 @@ import io.confluent.kql.analyzer.Analyzer;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
-import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.Select;
+import io.confluent.kql.parser.tree.SelectItem;
+import io.confluent.kql.parser.tree.SingleColumn;
 import io.confluent.kql.physical.PhysicalPlanBuilder;
 import io.confluent.kql.planner.LogicalPlanner;
-import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.KQLBareOutputNode;
+import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
 import io.confluent.kql.planner.plan.OutputNode;
 import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.structured.QueuedSchemaKStream;
@@ -30,12 +33,8 @@ import io.confluent.kql.structured.SchemaKTable;
 import io.confluent.kql.util.KQLConfig;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
+import io.confluent.kql.util.PersistentQueryMetadata;
 import io.confluent.kql.util.QueryMetadata;
-import io.confluent.kql.parser.tree.Query;
-import io.confluent.kql.parser.tree.SelectItem;
-import io.confluent.kql.parser.tree.SingleColumn;
-import io.confluent.kql.parser.tree.Select;
-
 import io.confluent.kql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -46,61 +45,20 @@ import org.apache.kafka.streams.kstream.KStreamBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
-  private final Map<String, Object> kqlProperties;
+  private KQLConfig kqlConfig;
+  private final AtomicLong queryIdCounter;
 
-  public QueryEngine(final Map<String, Object> kqlProperties) {
-    this.kqlProperties = kqlProperties;
+  public QueryEngine(final KQLConfig kqlConfig) {
+    this.kqlConfig = kqlConfig;
+    this.queryIdCounter = new AtomicLong(1);
   }
 
-  public QueryMetadata processQuery(final String queryId, final Query queryNode,
-                                                     final MetaStore metaStore)
-      throws Exception {
-
-    // Analyze the query to resolve the references and extract operations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(queryNode, new AnalysisContext(null, null));
-
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
-    for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
-      aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-
-    }
-
-
-    // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-
-    String applicationId = queryId + "_" + System.currentTimeMillis();
-    KQLConfig kqlConfig = new KQLConfig(kqlProperties);
-    Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
-
-    KStreamBuilder builder = new KStreamBuilder();
-
-    //Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-    SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-
-    KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
-    streams.start();
-
-    QueryMetadata baseQueryMetadata = new QueryMetadata(queryId, streams, physicalPlanBuilder.getPlanSink());
-    if (schemaKStream instanceof QueuedSchemaKStream) {
-      QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-      return new QueuedQueryMetadata(baseQueryMetadata, queuedSchemaKStream.getQueue());
-    } else {
-      return baseQueryMetadata;
-    }
-  }
-
-  public List<Pair<String, PlanNode>> buildLogicalPlans(final MetaStore metaStore,
-                                                        final List<Pair<String, Query>> queryList) {
+  public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore, List<Pair<String, Query>> queryList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
@@ -111,11 +69,12 @@ public class QueryEngine {
       tempMetaStore.putSource(metaStore.getSource(dataSourceName));
     }
 
-    for (Pair<String, Query> query : queryList) {
+    for (Pair<String, Query> statementQueryPair : queryList) {
+      Query query = statementQueryPair.getRight();
       // Analyze the query to resolve the references and extract operations
       Analysis analysis = new Analysis();
       Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
-      analyzer.process(query.getRight(), new AnalysisContext(null, null));
+      analyzer.process(query, new AnalysisContext(null, null));
 
       AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
       AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
@@ -143,8 +102,7 @@ public class QueryEngine {
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KQLStructuredDataOutputNode) {
-        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode)
-            logicalPlan;
+        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode) logicalPlan;
         StructuredDataSource
             structuredDataSource =
             new KQLStream(kqlStructuredDataOutputNode.getId().toString(),
@@ -156,90 +114,98 @@ public class QueryEngine {
         tempMetaStore.putSource(structuredDataSource);
       }
 
-      logicalPlansList.add(new Pair<String, PlanNode>(query.getLeft(), logicalPlan));
+      logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
     }
     return logicalPlansList;
   }
 
   private StructuredDataSource getPlanDataSource(PlanNode outputNode) {
-
-    KQLTopic
-        kqlTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
-    StructuredDataSource
-        structuredDataSource =
-        new KQLStream(outputNode.getId().toString(), outputNode.getSchema(),
-                      outputNode.getKeyField(),
-                      kqlTopic);
-    return structuredDataSource;
+    KQLTopic kqlTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
+    return new KQLStream(outputNode.getId().toString(), outputNode.getSchema(), outputNode.getKeyField(), kqlTopic);
   }
 
-  public List<QueryMetadata> buildRunPhysicalPlans(
-      final boolean addUniqueTimeSuffix, final MetaStore metaStore,
-      final List<Pair<String, PlanNode>> queryLogicalPlans)
-      throws Exception {
+  public List<QueryMetadata> buildPhysicalPlans(
+      boolean addUniqueTimeSuffix,
+      MetaStore metaStore,
+      List<Pair<String, PlanNode>> logicalPlans
+  ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
-    for (Pair<String, PlanNode> queryLogicalPlan : queryLogicalPlans) {
-      String applicationId = queryLogicalPlan.getLeft();
-      if (addUniqueTimeSuffix) {
-        applicationId += "_" + System.currentTimeMillis();
-      }
-      KQLConfig kqlConfig = new KQLConfig(kqlProperties);
-      Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
+    for (Pair<String, PlanNode> statementPlanPair : logicalPlans) {
 
+      PlanNode logicalPlan = statementPlanPair.getRight();
       KStreamBuilder builder = new KStreamBuilder();
 
       //Build a physical plan, in this case a Kafka Streams DSL
       PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
-      SchemaKStream
-          schemaKStream =
-          physicalPlanBuilder.buildPhysicalPlan(queryLogicalPlan.getRight());
-
-      KafkaStreams streams = new KafkaStreams(builder, new StreamsConfig(streamsProperties));
-      streams.start();
+      SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
+      boolean isBareQuery = outputNode instanceof KQLBareOutputNode;
 
-      StructuredDataSource sinkDataSource;
-      if (outputNode instanceof KQLStructuredDataOutputNode) {
-        KQLStructuredDataOutputNode outputKafkaTopicNode = (KQLStructuredDataOutputNode) outputNode;
-        physicalPlans.add(new QueryMetadata(queryLogicalPlan.getLeft(), streams, outputKafkaTopicNode));
-        if (metaStore.getTopic(outputKafkaTopicNode.getKafkaTopicName()) == null) {
-          metaStore.putTopic(outputKafkaTopicNode.getKqlTopic());
+      // Check to make sure the logical and physical plans match up; important to do this BEFORE actually starting up
+      // the corresponding Kafka Streams job
+      if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
+        throw new Exception(String.format(
+            "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
+                + "KQLBareOutputNode, found a %s instead",
+            schemaKStream.getClass().getCanonicalName()
+        ));
+      }
+
+      if (isBareQuery) {
+        String applicationId = getBareQueryApplicationId();
+        if (addUniqueTimeSuffix) {
+          applicationId = addTimeSuffix(applicationId);
         }
+
+        KafkaStreams streams = buildStreams(builder, applicationId);
+
+        QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
+        KQLBareOutputNode kqlBareOutputNode = (KQLBareOutputNode) outputNode;
+        physicalPlans.add(new QueuedQueryMetadata(
+            statementPlanPair.getLeft(),
+            streams,
+            kqlBareOutputNode,
+            queuedSchemaKStream.getQueue()
+        ));
+
+      } else if (outputNode instanceof KQLStructuredDataOutputNode) {
+        long queryId = getNextQueryId();
+        String applicationId = String.format("ksql_query_%d", queryId);
+        if (addUniqueTimeSuffix) {
+          applicationId = addTimeSuffix(applicationId);
+        }
+
+        KafkaStreams streams = buildStreams(builder, applicationId);
+
+        KQLStructuredDataOutputNode kafkaTopicOutputNode = (KQLStructuredDataOutputNode) outputNode;
+        physicalPlans.add(
+            new PersistentQueryMetadata(statementPlanPair.getLeft(), streams, kafkaTopicOutputNode, queryId)
+        );
+        if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
+          metaStore.putTopic(kafkaTopicOutputNode.getKqlTopic());
+        }
+        StructuredDataSource sinkDataSource;
         if (schemaKStream instanceof SchemaKTable) {
           SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
           sinkDataSource =
-              new KQLTable(outputKafkaTopicNode.getId().toString(),
-                           outputKafkaTopicNode.getSchema(),
-                           schemaKStream.getKeyField(),
-                           outputKafkaTopicNode.getKqlTopic(), outputKafkaTopicNode.getId()
-                                                                   .toString() + "_statestore",
-                           schemaKTable.isWindowed());
+              new KQLTable(kafkaTopicOutputNode.getId().toString(),
+                  kafkaTopicOutputNode.getSchema(),
+                  schemaKStream.getKeyField(),
+                  kafkaTopicOutputNode.getKqlTopic(), kafkaTopicOutputNode.getId()
+                  .toString() + "_statestore",
+                  schemaKTable.isWindowed());
         } else {
           sinkDataSource =
-              new KQLStream(outputKafkaTopicNode.getId().toString(),
-                            outputKafkaTopicNode.getSchema(),
-                            schemaKStream.getKeyField(),
-                            outputKafkaTopicNode.getKqlTopic());
+              new KQLStream(kafkaTopicOutputNode.getId().toString(),
+                  kafkaTopicOutputNode.getSchema(),
+                  schemaKStream.getKeyField(),
+                  kafkaTopicOutputNode.getKqlTopic());
         }
 
         metaStore.putSource(sinkDataSource);
-      } else if (outputNode instanceof KQLBareOutputNode) {
-        if (!(schemaKStream instanceof QueuedSchemaKStream)) {
-          throw new Exception(String.format(
-              "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
-              + "KQLBareOutputNode, found a %s instead",
-              schemaKStream.getClass().getCanonicalName()
-          ));
-        }
-        QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-        KQLBareOutputNode kqlBareOutputNode = (KQLBareOutputNode) outputNode;
-        sinkDataSource = new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null, null);
-        physicalPlans.add(
-            new QueuedQueryMetadata(queryLogicalPlan.getLeft(), streams, kqlBareOutputNode, queuedSchemaKStream.getQueue())
-        );
       } else {
         throw new KQLException("Sink data source is not correct.");
       }
@@ -256,20 +222,29 @@ public class QueryEngine {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        String fieldType = null;
         dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
       }
-
-
     }
 
-    KQLTopic kqlTopic = new KQLTopic(name, name,
-                                     null);
-    StructuredDataSource
-        resultStream =
-        new KQLStream(name, dataSource.schema(), dataSource.fields().get(0),
-                      kqlTopic
-        );
-    return resultStream;
+    KQLTopic kqlTopic = new KQLTopic(name, name, null);
+    return new KQLStream(name, dataSource.schema(), dataSource.fields().get(0), kqlTopic);
+  }
+
+  private KafkaStreams buildStreams(KStreamBuilder builder, String applicationId) {
+    Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
+    return new KafkaStreams(builder, new StreamsConfig(streamsProperties));
+  }
+
+  private long getNextQueryId() {
+    return queryIdCounter.getAndIncrement();
+  }
+
+  // TODO: This should probably be changed
+  private String getBareQueryApplicationId() {
+    return String.format("ksql_bare_query_%d", Math.abs(ThreadLocalRandom.current().nextLong()));
+  }
+
+  private String addTimeSuffix(String original) {
+    return String.format("%s_%d", original, System.currentTimeMillis());
   }
 }

@@ -6,8 +6,6 @@ package io.confluent.kql.parser;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedMap;
-
-
 import io.confluent.kql.parser.tree.AliasedRelation;
 import io.confluent.kql.parser.tree.AllColumns;
 import io.confluent.kql.parser.tree.AstVisitor;

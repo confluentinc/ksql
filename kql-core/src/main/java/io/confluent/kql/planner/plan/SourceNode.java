@@ -4,8 +4,8 @@
 package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.confluent.kql.metastore.StructuredDataSource;
+
 import javax.annotation.concurrent.Immutable;
 
 

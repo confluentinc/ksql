@@ -3,14 +3,13 @@
  **/
 package io.confluent.kql.function.udaf.sum;
 
+import io.confluent.kql.function.KQLAggFunctionDeterminer;
+import io.confluent.kql.function.KQLAggregateFunction;
+import io.confluent.kql.util.KQLException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
 import java.util.List;
-
-import io.confluent.kql.function.KQLAggFunctionDeterminer;
-import io.confluent.kql.function.KQLAggregateFunction;
-import io.confluent.kql.util.KQLException;
 
 public class SumAggFunctionDeterminer extends KQLAggFunctionDeterminer {
 

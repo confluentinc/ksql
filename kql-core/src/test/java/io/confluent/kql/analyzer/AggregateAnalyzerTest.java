@@ -1,20 +1,18 @@
 package io.confluent.kql.analyzer;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.rewrite.AggregateExpressionRewriter;
-import io.confluent.kql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.kql.parser.tree.ComparisonExpression;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.util.KQLTestUtil;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
 
 public class AggregateAnalyzerTest {
 

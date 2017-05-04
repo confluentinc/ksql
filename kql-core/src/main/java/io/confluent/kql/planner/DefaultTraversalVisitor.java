@@ -4,8 +4,6 @@
 package io.confluent.kql.planner;
 
 
-import java.util.Set;
-
 import io.confluent.kql.parser.tree.AliasedRelation;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;
@@ -56,6 +54,8 @@ import io.confluent.kql.parser.tree.Window;
 import io.confluent.kql.parser.tree.WindowFrame;
 import io.confluent.kql.parser.tree.With;
 import io.confluent.kql.parser.tree.WithQuery;
+
+import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>
     extends AstVisitor<R, C> {

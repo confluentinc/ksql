@@ -1,17 +1,6 @@
 package io.confluent.kql.structured;
 
 
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import io.confluent.kql.analyzer.AggregateAnalysis;
 import io.confluent.kql.analyzer.AggregateAnalyzer;
 import io.confluent.kql.analyzer.Analysis;
@@ -29,6 +18,16 @@ import io.confluent.kql.planner.plan.PlanNode;
 import io.confluent.kql.planner.plan.ProjectNode;
 import io.confluent.kql.util.KQLTestUtil;
 import io.confluent.kql.util.SerDeUtil;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SchemaKStreamTest {
 

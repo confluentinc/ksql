@@ -3,13 +3,13 @@
  **/
 package io.confluent.kql.analyzer;
 
+import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.FunctionCall;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.kql.parser.tree.Expression;
-import io.confluent.kql.parser.tree.FunctionCall;
 
 public class AggregateAnalysis {
 

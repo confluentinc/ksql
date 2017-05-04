@@ -8,26 +8,40 @@ import io.confluent.kql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 
+import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 
 public class QueuedQueryMetadata extends QueryMetadata {
+
   private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
 
   public QueuedQueryMetadata(
-      String queryId,
-      KafkaStreams queryKafkaStreams,
-      OutputNode queryOutputNode,
+      String statementString,
+      KafkaStreams kafkaStreams,
+      OutputNode outputNode,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue
   ) {
-    super(queryId, queryKafkaStreams, queryOutputNode);
+    super(statementString, kafkaStreams, outputNode);
     this.rowQueue = rowQueue;
-  }
-
-  public QueuedQueryMetadata(QueryMetadata queryMetadata, SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
-    this(queryMetadata.getQueryId(), queryMetadata.queryKafkaStreams, queryMetadata.queryOutputNode, rowQueue);
   }
 
   public SynchronousQueue<KeyValue<String, GenericRow>> getRowQueue() {
     return rowQueue;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof QueuedQueryMetadata)) {
+      return false;
+    }
+
+    QueuedQueryMetadata that = (QueuedQueryMetadata) o;
+
+    return Objects.equals(this.rowQueue, that.rowQueue) && super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(rowQueue, super.hashCode());
   }
 }

@@ -6,7 +6,6 @@ package io.confluent.kql.parser;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
 import io.confluent.kql.parser.tree.AllColumns;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.kql.parser.tree.ArithmeticUnaryExpression;

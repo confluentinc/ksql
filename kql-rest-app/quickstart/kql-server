@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+
+BASE_DIR=$(dirname "$0")
+
+KQL_SERVER="$BASE_DIR/../target/kql-server"
+
+if ! [ -f "$KQL_SERVER" ]; then
+  echo 1>&2 "Server script not found. Perhaps you forgot to build?"
+  exit 1
+fi
+
+"$KQL_SERVER" "$@"

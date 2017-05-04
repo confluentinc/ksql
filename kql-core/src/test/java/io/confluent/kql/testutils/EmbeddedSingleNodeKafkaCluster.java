@@ -1,14 +1,12 @@
 package io.confluent.kql.testutils;
 
-import org.apache.curator.test.InstanceSpec;
+import kafka.server.KafkaConfig$;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Properties;
-
-import kafka.server.KafkaConfig$;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
@@ -63,6 +61,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     effectiveConfig.put(KafkaConfig$.MODULE$.PortProp(), DEFAULT_BROKER_PORT);
     effectiveConfig.put(KafkaConfig$.MODULE$.DeleteTopicEnableProp(), true);
     effectiveConfig.put(KafkaConfig$.MODULE$.LogCleanerDedupeBufferSizeProp(), 2 * 1024 * 1024L);
+    effectiveConfig.put(KafkaConfig$.MODULE$.OffsetsTopicReplicationFactorProp(), (short) 1);
     return effectiveConfig;
   }
 

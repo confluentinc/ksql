@@ -3,30 +3,49 @@
  **/
 package io.confluent.kql.util;
 
+import io.confluent.kql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
 
-import io.confluent.kql.planner.plan.OutputNode;
+import java.util.Objects;
 
 public class QueryMetadata {
-  final String queryId;
-  final KafkaStreams queryKafkaStreams;
-  final OutputNode queryOutputNode;
+  private final String statementString;
+  private final KafkaStreams kafkaStreams;
+  private final OutputNode outputNode;
 
-  public QueryMetadata(final String queryId, final KafkaStreams queryKafkaStreams, final OutputNode queryOutputNode) {
-    this.queryId = queryId;
-    this.queryKafkaStreams = queryKafkaStreams;
-    this.queryOutputNode = queryOutputNode;
+  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode) {
+    this.statementString = statementString;
+    this.kafkaStreams = kafkaStreams;
+    this.outputNode = outputNode;
   }
 
-  public String getQueryId() {
-    return queryId;
+  public String getStatementString() {
+    return statementString;
   }
 
-  public KafkaStreams getQueryKafkaStreams() {
-    return queryKafkaStreams;
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
   }
 
-  public OutputNode getQueryOutputNode() {
-    return queryOutputNode;
+  public OutputNode getOutputNode() {
+    return outputNode;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof QueryMetadata)) {
+      return false;
+    }
+
+    QueryMetadata that = (QueryMetadata) o;
+
+    return Objects.equals(this.statementString, that.statementString)
+        && Objects.equals(this.kafkaStreams, that.kafkaStreams)
+        && Objects.equals(this.outputNode, that.outputNode);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(kafkaStreams, outputNode);
   }
 }

@@ -46,7 +46,7 @@ statement
     | DESCRIBE qualifiedName                                           #showColumns
     | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
     | (LIST | SHOW) QUERIES                                            #listQueries
-    | TERMINATE qualifiedName                                          #terminateQuery
+    | TERMINATE INTEGER_VALUE                                          #terminateQuery
     | SET STRING EQ STRING                                             #setProperty
     | LOAD expression                                                  #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName

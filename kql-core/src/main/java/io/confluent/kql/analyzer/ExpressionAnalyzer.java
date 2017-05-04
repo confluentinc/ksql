@@ -3,9 +3,6 @@
  **/
 package io.confluent.kql.analyzer;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
 import io.confluent.kql.parser.tree.ArithmeticBinaryExpression;
@@ -22,6 +19,8 @@ import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
 import io.confluent.kql.util.SchemaUtil;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 
 public class ExpressionAnalyzer {

@@ -5,10 +5,9 @@ package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.confluent.kql.metastore.KQLTopic;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import io.confluent.kql.metastore.KQLTopic;
 
 public class KQLStructuredDataOutputNode extends OutputNode {
 

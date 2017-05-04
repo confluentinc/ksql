@@ -12,6 +12,7 @@
         <module>kql-core</module>
         <module>kql-cli</module>
         <module>kql-examples</module>
+        <module>kql-rest-app</module>
     </modules>
     
     <repositories>
@@ -24,7 +25,8 @@
     <properties>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <java.version>1.8</java.version>
-        <kafka.version>0.10.2.0</kafka.version>
+        <kafka.version>0.11.0.0-SNAPSHOT</kafka.version>
+        <kafka.scala.version>2.11</kafka.scala.version>
         <airlift.version>0.29</airlift.version>
         <guava.version>21.0</guava.version>
         <jsr305.version>3.0.2</jsr305.version>
@@ -34,14 +36,14 @@
         <junit.version>4.12</junit.version>
         <csv.version>1.4</csv.version>
         <janino.version>3.0.7</janino.version>
+        <confluent.version>3.3.0-SNAPSHOT</confluent.version>
     </properties>
 
     <dependencies>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka_2.11 -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${kafka.scala.version}</artifactId>
             <version>${kafka.version}</version>
         </dependency>
 
@@ -51,36 +53,41 @@
             <version>${kafka.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/io.airlift/slice -->
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
             <version>${airlift.version}</version>
         </dependency>
 
-
-        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.google.code.findbugs/jsr305 -->
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>${jsr305.version}</version>
         </dependency>
 
-
-        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4-runtime -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.7</version>
+        </dependency>
 
     </dependencies>
 
@@ -104,6 +111,20 @@
                         </execution>
                     </executions>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>2.17</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>6.19</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
@@ -142,6 +163,7 @@
                         </configuration>
                         <goals>
                             <goal>check</goal>
+                            <goal>checkstyle</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -161,5 +183,4 @@
             </plugin>
         </plugins>
     </reporting>
-
 </project>

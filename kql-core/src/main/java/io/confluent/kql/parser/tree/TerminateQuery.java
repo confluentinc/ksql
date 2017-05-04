@@ -11,22 +11,22 @@ import static java.util.Objects.requireNonNull;
 
 public class TerminateQuery extends Statement {
 
-  private final QualifiedName queryId;
+  private final long queryId;
 
-  public TerminateQuery(QualifiedName queryId) {
+  public TerminateQuery(long queryId) {
     this(Optional.empty(), queryId);
   }
 
-  public TerminateQuery(NodeLocation location, QualifiedName queryId) {
+  public TerminateQuery(NodeLocation location, long queryId) {
     this(Optional.of(location), queryId);
   }
 
-  private TerminateQuery(Optional<NodeLocation> location, QualifiedName queryId) {
+  private TerminateQuery(Optional<NodeLocation> location, long queryId) {
     super(location);
     this.queryId = requireNonNull(queryId, "table is null");
   }
 
-  public QualifiedName getQueryId() {
+  public long getQueryId() {
     return queryId;
   }
 

@@ -3,10 +3,9 @@
  **/
 package io.confluent.kql.serde.json;
 
-import org.apache.kafka.connect.data.Schema;
-
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.serde.KQLTopicSerDe;
+import org.apache.kafka.connect.data.Schema;
 
 public class KQLJsonTopicSerDe extends KQLTopicSerDe {
 

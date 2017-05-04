@@ -20,7 +20,6 @@ import io.confluent.kql.parser.tree.LogicalBinaryExpression;
 import io.confluent.kql.parser.tree.NotExpression;
 import io.confluent.kql.parser.tree.QualifiedNameReference;
 import io.confluent.kql.parser.tree.SubscriptExpression;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;

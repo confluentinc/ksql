@@ -3,11 +3,10 @@
  **/
 package io.confluent.kql.function.udaf.count;
 
+import io.confluent.kql.function.KQLAggregateFunction;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
-
-import io.confluent.kql.function.KQLAggregateFunction;
 
 public class CountKUDAF extends KQLAggregateFunction<Object, Long> {
 

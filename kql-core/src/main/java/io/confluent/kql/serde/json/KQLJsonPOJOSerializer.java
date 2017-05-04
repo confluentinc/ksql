@@ -5,15 +5,13 @@ package io.confluent.kql.serde.json;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.confluent.kql.physical.GenericRow;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import io.confluent.kql.physical.GenericRow;
 
 public class KQLJsonPOJOSerializer implements Serializer<GenericRow> {
 

@@ -3,15 +3,6 @@
  **/
 package io.confluent.kql.util;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import io.confluent.kql.metastore.MetastoreUtil;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.KQLTopicSerDe;
@@ -24,6 +15,14 @@ import io.confluent.kql.serde.csv.KQLCsvTopicSerDe;
 import io.confluent.kql.serde.json.KQLJsonPOJODeserializer;
 import io.confluent.kql.serde.json.KQLJsonPOJOSerializer;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class SerDeUtil {

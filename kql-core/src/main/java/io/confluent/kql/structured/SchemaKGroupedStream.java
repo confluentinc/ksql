@@ -9,7 +9,6 @@ import io.confluent.kql.parser.tree.WindowExpression;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 import io.confluent.kql.util.KQLException;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

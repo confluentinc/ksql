@@ -90,13 +90,11 @@ public class KQLResourceTest {
     }
 
     public void replayAll() {
-      replay(kqlEngine);
-      replay(commandStore);
-      replay(statementExecutor);
+      replay(kqlEngine, commandStore, statementExecutor);
     }
   }
 
-  private static KQLJsonRequest createJsonRequest(String kql) {
+  static KQLJsonRequest createJsonRequest(String kql) {
     KQLJsonRequest result = new KQLJsonRequest();
     result.kql = kql;
     return result;

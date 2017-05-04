@@ -14,6 +14,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,12 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   public byte[] serialize(final String topic, final GenericRow genericRow) {
     GenericRecord avroRecord = new GenericData.Record(avroSchema);
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      avroRecord.put(fields.get(i).name(), genericRow.columns.get(i));
+      if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
+        avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.columns.get(i)));
+      } else {
+        avroRecord.put(fields.get(i).name(), genericRow.columns.get(i));
+      }
+
     }
 
     try {

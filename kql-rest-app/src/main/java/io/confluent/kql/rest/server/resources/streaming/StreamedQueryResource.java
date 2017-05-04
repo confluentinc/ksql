@@ -40,7 +40,7 @@ public class StreamedQueryResource {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response performQuery(KQLJsonRequest request) throws Exception {
+  public Response streamQuery(KQLJsonRequest request) throws Exception {
     String kql = Objects.requireNonNull(request.getKql(), "\"kql\" field must be given");
     Statement statement = statementParser.parseSingleStatement(kql);
     if (statement instanceof Query) {

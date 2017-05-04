@@ -223,10 +223,6 @@ public class JSONFormatTest {
     Schema resultSchema = metaStore.getSource(streamName).getSchema();
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-//    Map<String, Double> mapField = new HashMap<>();
-//    mapField.put("key1", 1.0);
-//    mapField.put("key2", 2.0);
-//    mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
     Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());
@@ -260,10 +256,6 @@ public class JSONFormatTest {
     Schema resultSchema = metaStore.getSource(streamName).getSchema();
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-//    Map<String, Double> mapField = new HashMap<>();
-//    mapField.put("key1", 1.0);
-//    mapField.put("key2", 2.0);
-//    mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
     Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());

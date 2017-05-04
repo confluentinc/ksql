@@ -47,6 +47,7 @@ public class JSONFormatTest {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
+  private static final long RESULTS_POLL_MAX_TIME_MS = 30000;
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
 
@@ -88,14 +89,17 @@ public class JSONFormatTest {
   public void testSelectStar() throws Exception {
     final String streamName = "STARTSTREAM";
     final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
+
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
-    Thread.sleep(1000);
+
     Schema resultSchema = metaStore.getSource(streamName).getSchema();
-    Map<String, GenericRow> results = readResults(streamName, resultSchema);
+    Map<String, GenericRow> results = readResults(streamName, resultSchema, inputData.size());
+
     Assert.assertEquals(inputData.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, inputData));
+
     kqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
@@ -119,15 +123,7 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Thread.sleep(5000);
-
-    // TODO: Why isn't this just fetched from the metastore, like in testSelectStar()?
-    SchemaBuilder resultSchema = SchemaBuilder.struct()
-        .field(field1, SchemaBuilder.STRING_SCHEMA)
-        .field(field2, SchemaBuilder.FLOAT64_SCHEMA)
-        .field(field3, SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA));
-
-    Map<String, GenericRow> results = readResults(streamName, resultSchema);
+    Schema resultSchema = metaStore.getSource(streamName).getSchema();
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -169,14 +165,13 @@ public class JSONFormatTest {
                  1110.99,
                  970.0 })));
 
+    Map<String, GenericRow> results = readResults(streamName, resultSchema, expectedResults.size());
+
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
     kqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
-
-
-
-
 
 
   //*********************************************************//
@@ -201,7 +196,7 @@ public class JSONFormatTest {
     producer.close();
   }
 
-  private Map<String, GenericRow> readResults(String resultTopic, Schema resultSchema) {
+  private Map<String, GenericRow> readResults(String resultTopic, Schema resultSchema, int expectedValues) {
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
@@ -211,15 +206,16 @@ public class JSONFormatTest {
         StringDeserializer(), new KQLJsonPOJODeserializer(resultSchema));
 
     consumer.subscribe(Collections.singletonList(resultTopic));
-    int pollIntervalMs = 500;
-    int maxTotalPollTimeMs = 20000;
-    int totalPollTimeMs = 0;
+    long pollStart = System.currentTimeMillis();
+    long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
     Map<String, GenericRow> consumedValues = new HashMap<>();
-    while (totalPollTimeMs < maxTotalPollTimeMs) {
-      totalPollTimeMs += pollIntervalMs;
-      ConsumerRecords<String, GenericRow> records = consumer.poll(pollIntervalMs);
+    while (System.currentTimeMillis() < pollEnd) {
+      ConsumerRecords<String, GenericRow> records = consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()));
       for (ConsumerRecord<String, GenericRow> record : records) {
         consumedValues.put(record.key(), record.value());
+      }
+      if (expectedValues > 0 && consumedValues.size() >= expectedValues) {
+        break;
       }
     }
     consumer.close();

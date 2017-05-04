@@ -3,12 +3,11 @@
  **/
 package io.confluent.kql.function.udaf;
 
+import io.confluent.kql.physical.GenericRow;
 import org.apache.kafka.streams.kstream.Initializer;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import io.confluent.kql.physical.GenericRow;
 
 public class KUDAFInitializer implements Initializer<GenericRow> {
 

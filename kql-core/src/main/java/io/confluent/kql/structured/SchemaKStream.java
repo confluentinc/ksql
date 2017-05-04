@@ -10,7 +10,6 @@ import io.confluent.kql.util.ExpressionMetadata;
 import io.confluent.kql.util.ExpressionUtil;
 import io.confluent.kql.util.GenericRowValueTypeEnforcer;
 import io.confluent.kql.util.SchemaUtil;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -25,9 +24,9 @@ import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {

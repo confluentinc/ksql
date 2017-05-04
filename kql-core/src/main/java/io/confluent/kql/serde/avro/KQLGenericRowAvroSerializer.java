@@ -3,6 +3,7 @@
  **/
 package io.confluent.kql.serde.avro;
 
+import io.confluent.kql.physical.GenericRow;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -17,8 +18,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.kql.physical.GenericRow;
 
 public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
 

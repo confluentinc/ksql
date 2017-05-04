@@ -3,10 +3,9 @@
  **/
 package io.confluent.kql.util;
 
+import io.confluent.kql.function.udf.KUDF;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
-
-import io.confluent.kql.function.udf.KUDF;
 
 public class ExpressionMetadata {
 

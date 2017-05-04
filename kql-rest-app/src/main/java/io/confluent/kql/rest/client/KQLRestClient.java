@@ -3,14 +3,14 @@
  **/
 package io.confluent.kql.rest.client;
 
+import javax.json.Json;
+import javax.json.JsonObject;
 import javax.json.JsonStructure;
 import javax.json.JsonValue;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
-import javax.json.Json;
-import javax.json.JsonObject;
 import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;

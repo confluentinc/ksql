@@ -4,7 +4,6 @@
 package io.confluent.kql.rest.server;
 
 import io.confluent.adminclient.KafkaAdminClient;
-
 import org.apache.kafka.common.requests.CreateTopicsRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

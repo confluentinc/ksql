@@ -9,12 +9,12 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
 import io.confluent.kql.parser.tree.CreateTopic;
 import io.confluent.kql.parser.tree.Expression;
+import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.StringLiteral;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
@@ -192,7 +192,7 @@ public class KQLResourceTest {
   public void testShowQueries() throws Exception {
     TestKqlResource testResource = new TestKqlResource();
     final String kqlString = "SHOW QUERIES;";
-    final ShowQueries kqlStatement = new ShowQueries(Optional.empty());
+    final ListQueries kqlStatement = new ListQueries(Optional.empty());
 
     final String mockQueryStatement = "CREATE STREAM lol AS SELECT * FROM test_stream WHERE s2_f2 > 69;";
 

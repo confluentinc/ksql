@@ -272,7 +272,7 @@ public class StatementExecutor {
       }
     }
 
-    QueryMetadata queryMetadata = kqlEngine.runMultipleQueries(false, queryString).get(0);
+    QueryMetadata queryMetadata = kqlEngine.buildMultipleQueries(false, queryString).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

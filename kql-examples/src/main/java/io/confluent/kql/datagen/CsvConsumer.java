@@ -6,7 +6,6 @@ package io.confluent.kql.datagen;
 import io.confluent.kql.physical.GenericRow;
 import io.confluent.kql.serde.csv.KQLCsvDeserializer;
 import io.confluent.kql.serde.csv.KQLCsvSerializer;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;

@@ -5,7 +5,6 @@ import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.util.KQLTestUtil;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

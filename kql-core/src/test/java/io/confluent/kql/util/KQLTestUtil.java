@@ -6,7 +6,6 @@ import io.confluent.kql.metastore.KQLTable;
 import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.metastore.MetaStoreImpl;
-
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import org.apache.kafka.connect.data.SchemaBuilder;
 

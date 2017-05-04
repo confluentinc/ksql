@@ -14,7 +14,6 @@ import io.confluent.kql.parser.tree.NodeLocation;
 import io.confluent.kql.parser.tree.QualifiedName;
 import io.confluent.kql.parser.tree.Relation;
 import io.confluent.kql.parser.tree.Table;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;

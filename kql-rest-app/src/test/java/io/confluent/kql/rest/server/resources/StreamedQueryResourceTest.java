@@ -76,7 +76,7 @@ public class StreamedQueryResourceTest {
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, rowQueue);
 
     KQLEngine mockKQLEngine = mock(KQLEngine.class);
-    expect(mockKQLEngine.runMultipleQueries(true, queryString))
+    expect(mockKQLEngine.buildMultipleQueries(true, queryString))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 
     StatementParser mockStatementParser = mock(StatementParser.class);

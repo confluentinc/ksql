@@ -5,9 +5,9 @@ package io.confluent.kql.planner;
 
 import io.confluent.kql.analyzer.AggregateAnalysis;
 import io.confluent.kql.analyzer.Analysis;
+import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.KQLStream;
 import io.confluent.kql.metastore.KQLTable;
-import io.confluent.kql.metastore.KQLSTDOUT;
 import io.confluent.kql.metastore.StructuredDataSource;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.planner.plan.AggregateNode;
@@ -22,7 +22,6 @@ import io.confluent.kql.planner.plan.SourceNode;
 import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.util.ExpressionTypeManager;
 import io.confluent.kql.util.SchemaUtil;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

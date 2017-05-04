@@ -4,7 +4,6 @@
 package io.confluent.kql.parser;
 
 import io.confluent.kql.parser.tree.NodeLocation;
-
 import org.antlr.v4.runtime.RecognitionException;
 
 import static java.lang.String.format;

@@ -9,9 +9,13 @@ import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.KQLParser;
 import io.confluent.kql.parser.tree.Expression;
 import io.confluent.kql.parser.tree.Statement;
-import io.confluent.kql.planner.plan.*;
+import io.confluent.kql.planner.plan.AggregateNode;
+import io.confluent.kql.planner.plan.FilterNode;
+import io.confluent.kql.planner.plan.JoinNode;
+import io.confluent.kql.planner.plan.PlanNode;
+import io.confluent.kql.planner.plan.ProjectNode;
+import io.confluent.kql.planner.plan.StructuredDataSourceNode;
 import io.confluent.kql.util.KQLTestUtil;
-
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;

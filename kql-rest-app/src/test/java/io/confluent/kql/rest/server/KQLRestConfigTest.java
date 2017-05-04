@@ -1,6 +1,5 @@
 package io.confluent.kql.rest.server;
 
-import io.confluent.kql.rest.server.KQLRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 

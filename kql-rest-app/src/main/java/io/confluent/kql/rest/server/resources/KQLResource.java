@@ -15,11 +15,11 @@ import io.confluent.kql.parser.tree.CreateStreamAsSelect;
 import io.confluent.kql.parser.tree.CreateTable;
 import io.confluent.kql.parser.tree.CreateTableAsSelect;
 import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.ListQueries;
 import io.confluent.kql.parser.tree.ListStreams;
 import io.confluent.kql.parser.tree.ListTables;
 import io.confluent.kql.parser.tree.ListTopics;
 import io.confluent.kql.parser.tree.ShowColumns;
-import io.confluent.kql.parser.tree.ShowQueries;
 import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.parser.tree.TerminateQuery;
 import io.confluent.kql.planner.plan.KQLStructuredDataOutputNode;
@@ -118,7 +118,7 @@ public class KQLResource {
       result.add("streams", listStreams());
     } else if (statement instanceof ListTables) {
       result.add("tables", listTables());
-    } else if (statement instanceof ShowQueries) {
+    } else if (statement instanceof ListQueries) {
       result.add("queries", showQueries());
     } else if (statement instanceof ShowColumns) {
       result.add("description", describe(((ShowColumns) statement).getTable().getSuffix()));

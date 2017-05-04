@@ -4,8 +4,8 @@
 package io.confluent.kql.rest.server.resources;
 
 import io.confluent.kql.rest.server.computation.CommandId;
-import io.confluent.kql.rest.server.computation.StatementExecutor;
 import io.confluent.kql.rest.server.computation.CommandStatus;
+import io.confluent.kql.rest.server.computation.StatementExecutor;
 
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;

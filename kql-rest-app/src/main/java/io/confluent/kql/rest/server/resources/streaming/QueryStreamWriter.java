@@ -26,7 +26,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final AtomicReference<Throwable> streamsException;
 
   QueryStreamWriter(KQLEngine kqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
-    QueryMetadata queryMetadata = kqlEngine.runMultipleQueries(true, queryString).get(0);
+    QueryMetadata queryMetadata = kqlEngine.buildMultipleQueries(true, queryString).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
           "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",

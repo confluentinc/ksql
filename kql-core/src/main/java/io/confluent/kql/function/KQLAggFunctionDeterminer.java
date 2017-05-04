@@ -4,6 +4,7 @@
 package io.confluent.kql.function;
 
 import org.apache.kafka.connect.data.Schema;
+
 import java.util.List;
 
 

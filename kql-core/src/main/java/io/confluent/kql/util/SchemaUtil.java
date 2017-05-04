@@ -4,7 +4,6 @@
 package io.confluent.kql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

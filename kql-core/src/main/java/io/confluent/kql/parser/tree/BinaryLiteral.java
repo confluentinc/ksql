@@ -6,7 +6,6 @@
 package io.confluent.kql.parser.tree;
 
 import com.google.common.io.BaseEncoding;
-
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.confluent.kql.parser.ParsingException;

@@ -1,5 +1,17 @@
 package io.confluent.kql.integtests.json;
 
+import io.confluent.kql.KQLEngine;
+import io.confluent.kql.metastore.KQLStream;
+import io.confluent.kql.metastore.KQLTopic;
+import io.confluent.kql.metastore.MetaStore;
+import io.confluent.kql.metastore.MetaStoreImpl;
+import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.serde.json.KQLJsonPOJODeserializer;
+import io.confluent.kql.serde.json.KQLJsonPOJOSerializer;
+import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.kql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.kql.util.KQLConfig;
+import io.confluent.kql.util.PersistentQueryMetadata;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -22,19 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-
-import io.confluent.kql.KQLEngine;
-import io.confluent.kql.metastore.KQLStream;
-import io.confluent.kql.metastore.KQLTopic;
-import io.confluent.kql.metastore.MetaStore;
-import io.confluent.kql.metastore.MetaStoreImpl;
-import io.confluent.kql.physical.GenericRow;
-import io.confluent.kql.serde.json.KQLJsonPOJODeserializer;
-import io.confluent.kql.serde.json.KQLJsonPOJOSerializer;
-import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
-import io.confluent.kql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.kql.util.QueryMetadata;
 
 /**
  * Created by hojjat on 5/3/17.
@@ -49,9 +48,10 @@ public class JSONFormatTest {
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
   private static final String inputTopic = "orders_topic";
+  private static final String inputStream = "ORDERS";
 
   @Before
-  public void before() throws IOException, ExecutionException, InterruptedException {
+  public void before() throws IOException {
     metaStore = new MetaStoreImpl();
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
         .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
@@ -66,7 +66,7 @@ public class JSONFormatTest {
         new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe(null));
 
     KQLStream
-        kqlStreamOrders = new KQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
+        kqlStreamOrders = new KQLStream(inputStream, schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
                                         kqlTopicOrders);
 
     metaStore.putTopic(kqlTopicOrders);
@@ -77,7 +77,8 @@ public class JSONFormatTest {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
-    kqlEngine = new KQLEngine(metaStore, configMap);
+    KQLConfig kqlConfig = new KQLConfig(configMap);
+    kqlEngine = new KQLEngine(metaStore, kqlConfig);
     inputData = getInputData();
     produceInputData(inputData, kqlStreamOrders.getSchema());
   }
@@ -85,29 +86,48 @@ public class JSONFormatTest {
 
   @Test
   public void testSelectStar() throws Exception {
-    kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT * FROM ORDERS;");
+    final String streamName = "STARTSTREAM";
+    final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
     Thread.sleep(1000);
-    Schema resultSchema = metaStore.getSource("STARTSTREAM").getSchema();
-    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
+    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Map<String, GenericRow> results = readResults(streamName, resultSchema);
     Assert.assertEquals(inputData.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, inputData));
-    terminateAllQueries();
-    System.out.println(">>>>>>>>>>>> Passed!!!");
+    kqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
 
   @Test
   public void testSelectProject() throws Exception {
-    kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY"
-                                       + " FROM "
-                                       + "ORDERS;");
-    Thread.sleep(5000);
-    SchemaBuilder resultSchema = SchemaBuilder.struct()
-        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA));
+    final String streamName = "STARTSTREAM";
+    final String field1 = "ITEMID";
+    final String field2 = "ORDERUNITS";
+    final String field3 = "PRICEARRAY";
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT %s, %s, %s FROM %s;",
+        streamName,
+        field1,
+        field2,
+        field3,
+        inputStream
+    );
 
-    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) kqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Thread.sleep(5000);
+
+    // TODO: Why isn't this just fetched from the metastore, like in testSelectStar()?
+    SchemaBuilder resultSchema = SchemaBuilder.struct()
+        .field(field1, SchemaBuilder.STRING_SCHEMA)
+        .field(field2, SchemaBuilder.FLOAT64_SCHEMA)
+        .field(field3, SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA));
+
+    Map<String, GenericRow> results = readResults(streamName, resultSchema);
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -151,7 +171,7 @@ public class JSONFormatTest {
 
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
-    terminateAllQueries();
+    kqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
 
@@ -162,23 +182,19 @@ public class JSONFormatTest {
   //*********************************************************//
 
 
-  private void produceInputData(Map<String, GenericRow> recordsToPublish, Schema
-      schema) {
+  private void produceInputData(Map<String, GenericRow> recordsToPublish, Schema schema) {
 
     Properties producerConfig = new Properties();
-    producerConfig
-        .put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
 
-    KafkaProducer<String, GenericRow>
-        producer = new KafkaProducer<String, GenericRow>(producerConfig, new StringSerializer(), new
-        KQLJsonPOJOSerializer(schema));
+    KafkaProducer<String, GenericRow> producer =
+        new KafkaProducer<>(producerConfig, new StringSerializer(), new KQLJsonPOJOSerializer(schema));
+
     for (String key: recordsToPublish.keySet()) {
       GenericRow row = recordsToPublish.get(key);
-      ProducerRecord
-          producerRecord = new ProducerRecord(inputTopic, key, row);
-//      System.out.println(key + " : " + row);
+      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(inputTopic, key, row);
       producer.send(producerRecord);
     }
 
@@ -293,12 +309,4 @@ public class JSONFormatTest {
     }
     return true;
   }
-
-  private void terminateAllQueries() {
-    Map<String, QueryMetadata> liveQueries = kqlEngine.getLiveQueries();
-    for (String queryId: liveQueries.keySet()) {
-      kqlEngine.terminateQuery(queryId);
-    }
-  }
-
 }

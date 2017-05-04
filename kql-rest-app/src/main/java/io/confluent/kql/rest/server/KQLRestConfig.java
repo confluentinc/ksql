@@ -5,7 +5,6 @@ package io.confluent.kql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
 import io.confluent.rest.RestConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;

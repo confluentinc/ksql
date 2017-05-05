@@ -141,7 +141,7 @@ public class KQLEngine implements Closeable {
     return runningQueries;
   }
 
-  private String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {
+  public static String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {
     CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(new Interval(
         singleStatementContext.start.getStartIndex(),

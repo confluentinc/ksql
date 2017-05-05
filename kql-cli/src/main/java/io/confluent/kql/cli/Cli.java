@@ -3,6 +3,9 @@
  **/
 package io.confluent.kql.cli;
 
+import io.confluent.kql.KQLEngine;
+import io.confluent.kql.parser.KQLParser;
+import io.confluent.kql.parser.SqlBaseParser;
 import io.confluent.kql.rest.client.KQLRestClient;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
@@ -141,13 +144,6 @@ public class Cli implements Closeable, AutoCloseable {
         printJsonResponse(jsonResponse);
         break;
       }
-      case ":query":
-        if (commandArgs.length == 1) {
-          throw new RuntimeException(String.format("'%s' meta-command must be followed by a query to stream", command));
-        }
-        String query = commandArgs[1];
-        handleStreamedQuery(query);
-        break;
       case ":prompt":
         if (commandArgs.length == 1) {
           throw new RuntimeException(String.format(
@@ -177,9 +173,15 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void handleStatements(String line) throws IOException {
-    JsonStructure jsonResponse = restClient.makeKQLRequest(line);
-    printJsonResponse(jsonResponse);
+  private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
+    for (SqlBaseParser.SingleStatementContext statementContext : new KQLParser().getStatements(line)) {
+      String ksql = KQLEngine.getStatementString(statementContext);
+      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+        handleStreamedQuery(ksql);
+      } else {
+        printJsonResponse(restClient.makeKQLRequest(ksql));
+      }
+    }
   }
 
   private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
@@ -236,9 +238,6 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.writer().println("                          Example: :status");
     terminal.writer().println("    :status <id>        - Check on the status of the statement with ID <id>");
     terminal.writer().println("                          Example: :status KQL_NODE_69_STATEMENT_69");
-    terminal.writer().println("    :query <query>      - Stream the results of <query> to the console");
-    terminal.writer().println("                          Example: :query SELECT * FROM movies WHERE imdb_score = 69;");
-    terminal.writer().println("                          NOTE: Use ctrl-C to stop streaming a query");
     printExtraMetaCommandsHelp();
     terminal.writer().println();
     terminal.writer().println();

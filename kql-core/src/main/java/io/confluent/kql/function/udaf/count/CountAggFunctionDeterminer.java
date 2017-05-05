@@ -3,13 +3,12 @@
  **/
 package io.confluent.kql.function.udaf.count;
 
+import io.confluent.kql.function.KQLAggFunctionDeterminer;
+import io.confluent.kql.function.KQLAggregateFunction;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
 import java.util.List;
-
-import io.confluent.kql.function.KQLAggFunctionDeterminer;
-import io.confluent.kql.function.KQLAggregateFunction;
 
 public class CountAggFunctionDeterminer extends KQLAggFunctionDeterminer {
 

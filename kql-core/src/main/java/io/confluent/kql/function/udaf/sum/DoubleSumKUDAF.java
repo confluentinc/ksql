@@ -3,9 +3,10 @@
  **/
 package io.confluent.kql.function.udaf.sum;
 
-import org.apache.kafka.connect.data.Schema;
-import java.util.Arrays;
 import io.confluent.kql.function.KQLAggregateFunction;
+import org.apache.kafka.connect.data.Schema;
+
+import java.util.Arrays;
 
 public class DoubleSumKUDAF extends KQLAggregateFunction<Double, Double> {
 

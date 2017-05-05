@@ -3,11 +3,10 @@
  **/
 package io.confluent.kql.serde.csv;
 
+import io.confluent.kql.physical.GenericRow;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
-
-import io.confluent.kql.physical.GenericRow;
 
 
 public class KQLCsvSerializer implements Serializer<GenericRow> {

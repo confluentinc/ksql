@@ -3,11 +3,11 @@
  **/
 package io.confluent.kql.function.udaf;
 
-import org.apache.kafka.streams.kstream.Aggregator;
-import java.util.Map;
-
 import io.confluent.kql.function.KQLAggregateFunction;
 import io.confluent.kql.physical.GenericRow;
+import org.apache.kafka.streams.kstream.Aggregator;
+
+import java.util.Map;
 
 public class KUDAFAggregator implements Aggregator<String, GenericRow, GenericRow> {
 

@@ -5,6 +5,7 @@ package io.confluent.kql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
+
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ListTables extends Statement {

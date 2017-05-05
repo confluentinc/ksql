@@ -5,13 +5,10 @@ package io.confluent.kql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import com.google.common.collect.ImmutableList;
-
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
-
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;

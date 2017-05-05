@@ -5,7 +5,6 @@ package io.confluent.kql.parser.tree;
 
 import io.confluent.kql.parser.CodegenExpressionFormatter;
 import io.confluent.kql.parser.ExpressionFormatter;
-
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Optional;

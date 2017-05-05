@@ -2,21 +2,25 @@ package io.confluent.kql.parser;
 
 
 import io.confluent.kql.ddl.DDLConfig;
-import io.confluent.kql.metastore.KQLStream;
-import io.confluent.kql.metastore.KQLTopic;
 import io.confluent.kql.metastore.MetaStore;
 import io.confluent.kql.parser.rewrite.KQLRewriteParser;
-
-import io.confluent.kql.parser.rewrite.SqlFormatterQueryRewrite;
-import io.confluent.kql.parser.tree.*;
-import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.kql.parser.tree.AliasedRelation;
+import io.confluent.kql.parser.tree.ComparisonExpression;
+import io.confluent.kql.parser.tree.CreateStream;
+import io.confluent.kql.parser.tree.CreateStreamAsSelect;
+import io.confluent.kql.parser.tree.CreateTable;
+import io.confluent.kql.parser.tree.CreateTopic;
+import io.confluent.kql.parser.tree.Join;
+import io.confluent.kql.parser.tree.Query;
+import io.confluent.kql.parser.tree.QuerySpecification;
+import io.confluent.kql.parser.tree.Relation;
+import io.confluent.kql.parser.tree.SingleColumn;
+import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.util.KQLTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.List;
 
 public class KQLParserTest {
 

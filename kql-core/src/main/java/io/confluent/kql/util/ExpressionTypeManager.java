@@ -4,7 +4,6 @@
 package io.confluent.kql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import io.confluent.kql.function.KQLAggregateFunction;
 import io.confluent.kql.function.KQLFunction;
 import io.confluent.kql.function.KQLFunctions;
@@ -25,7 +24,6 @@ import io.confluent.kql.parser.tree.QualifiedNameReference;
 import io.confluent.kql.parser.tree.StringLiteral;
 import io.confluent.kql.parser.tree.SubscriptExpression;
 import io.confluent.kql.planner.PlanException;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 

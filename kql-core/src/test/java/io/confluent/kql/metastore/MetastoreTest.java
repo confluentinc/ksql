@@ -4,14 +4,11 @@
 package io.confluent.kql.metastore;
 
 
-import org.apache.kafka.connect.data.SchemaBuilder;
+import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.kql.util.KQLTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
-import io.confluent.kql.util.KQLException;
-import io.confluent.kql.util.KQLTestUtil;
 
 public class MetastoreTest {
 

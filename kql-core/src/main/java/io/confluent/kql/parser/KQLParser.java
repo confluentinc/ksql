@@ -9,7 +9,6 @@ import io.confluent.kql.parser.tree.Statement;
 import io.confluent.kql.util.DataSourceExtractor;
 import io.confluent.kql.util.KQLException;
 import io.confluent.kql.util.Pair;
-
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;

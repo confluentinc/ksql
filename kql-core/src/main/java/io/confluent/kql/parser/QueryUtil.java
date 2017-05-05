@@ -4,8 +4,6 @@
 package io.confluent.kql.parser;
 
 import com.google.common.collect.ImmutableList;
-
-
 import io.confluent.kql.parser.tree.AliasedRelation;
 import io.confluent.kql.parser.tree.AllColumns;
 import io.confluent.kql.parser.tree.ComparisonExpression;

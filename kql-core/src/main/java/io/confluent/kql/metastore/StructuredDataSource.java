@@ -5,7 +5,6 @@
 package io.confluent.kql.metastore;
 
 import io.confluent.kql.util.KQLException;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 

@@ -3,14 +3,13 @@
  **/
 package io.confluent.kql.metastore;
 
+import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.confluent.kql.serde.avro.KQLAvroTopicSerDe;
-import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 
 import java.io.File;
 

@@ -6,7 +6,9 @@ package io.confluent.kql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
+import io.confluent.kql.physical.GenericRow;
+import io.confluent.kql.util.KQLException;
+import io.confluent.kql.util.SchemaUtil;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -18,10 +20,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.kql.util.KQLException;
-import io.confluent.kql.util.SchemaUtil;
-import io.confluent.kql.physical.GenericRow;
 
 public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
 

@@ -5,7 +5,6 @@ package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
-import io.confluent.adminclient.KafkaAdminClient;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -24,6 +23,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -154,7 +154,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     KSQLRestConfig config = new KSQLRestConfig(props);
 
     @SuppressWarnings("unchecked")
-    KafkaAdminClient client = new KafkaAdminClient((Map) props);
+    AdminClient client = AdminClient.create((Map) props);
     TopicUtil topicUtil = new TopicUtil(client);
 
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache

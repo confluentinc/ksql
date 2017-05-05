@@ -11,6 +11,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Window;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -35,6 +38,7 @@ import io.confluent.kql.serde.json.KQLJsonPOJOSerializer;
 import io.confluent.kql.serde.json.KQLJsonTopicSerDe;
 import io.confluent.kql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.kql.util.QueryMetadata;
+import io.confluent.kql.util.WindowedSerde;
 
 /**
  * Created by hojjat on 5/3/17.
@@ -88,7 +92,7 @@ public class JSONFormatTest {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM STARTSTREAM AS SELECT * FROM ORDERS;");
     Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("STARTSTREAM").getSchema();
-    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
+    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema, inputData.size());
     Assert.assertEquals(inputData.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, inputData));
     terminateAllQueries();
@@ -105,8 +109,6 @@ public class JSONFormatTest {
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA));
-
-    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema);
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -147,7 +149,7 @@ public class JSONFormatTest {
         Double[]{1100.0,
                  1110.99,
                  970.0 })));
-
+    Map<String, GenericRow> results = readResults("STARTSTREAM", resultSchema, expectedResults.size());
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
     terminateAllQueries();
@@ -160,7 +162,7 @@ public class JSONFormatTest {
                                        + "WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';");
     Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("FILTERSTREAM").getSchema();
-    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema);
+
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);
@@ -172,7 +174,7 @@ public class JSONFormatTest {
                                                                       1110.99,
                                                                       970.0 },
                                                          mapField)));
-
+    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema, expectedResults.size());
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
     terminateAllQueries();
@@ -189,14 +191,14 @@ public class JSONFormatTest {
                                        + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%_8';");
     Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("FILTERSTREAM").getSchema();
-    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema);
+
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
-
+    Map<String, GenericRow> results = readResults("FILTERSTREAM", resultSchema, expectedResults.size());
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
     terminateAllQueries();
@@ -205,24 +207,63 @@ public class JSONFormatTest {
   @Test
   public void testSelectUDFs() throws Exception {
     kqlEngine.runMultipleQueries(true, "CREATE STREAM UDFSTREAM AS SELECT ITEMID, "
-                                       + "ORDERUNITS*10, PRICEARRAY[0]+10, "
-                                       + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, "
-                                       + "PRICEARRAY[1]>1000 "
+                                       + "LCASE(ITEMID), SUBSTRING(ITEMID, 0, 5), "
+                                       + "LEN(UCASE(CONCAT(ITEMID, '_test'))) + 10, "
+                                       + "ABS(ORDERUNITS * -10) "
                                        + "FROM "
                                        + "ORDERS "
-                                       + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%_8';");
+                                       + "WHERE ORDERUNITS > 60;");
     Thread.sleep(1000);
     Schema resultSchema = metaStore.getSource("UDFSTREAM").getSchema();
-    Map<String, GenericRow> results = readResults("UDFSTREAM", resultSchema);
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    Map<String, Double> mapField = new HashMap<>();
-    mapField.put("key1", 1.0);
-    mapField.put("key2", 2.0);
-    mapField.put("key3", 3.0);
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+
+    expectedResults.put("7", new GenericRow(Arrays.asList("ITEM_7", "item_7", "ITEM_", 21,
+                                                          700.0)));
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", "item_8", "ITEM_", 21,
+                                                          800.0)));
+    Map<String, GenericRow> results = readResults("UDFSTREAM", resultSchema, expectedResults.size());
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedResults(results, expectedResults));
+    terminateAllQueries();
+  }
+
+  @Test
+  public void testAggregateSumCount() throws Exception {
+    Map<String, GenericRow>  extraInputData = getInputData();
+    produceInputData(extraInputData, metaStore.getSource("ORDERS").getSchema());
+    kqlEngine.runMultipleQueries(true, "CREATE STREAM AGGSTREAM AS SELECT ITEMID, "
+                                       + "COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS)/COUNT"
+                                       + "(ORDERUNITS),"
+                                       + "SUM(PRICEARRAY[0]+10) "
+                                       + "FROM "
+                                       + "ORDERS "
+                                       + "WINDOW TUMBLING ( SIZE 100 MILLISECOND)"
+                                       + "WHERE ORDERUNITS > 60 "
+                                       + "GROUP BY ITEMID "
+                                       + "HAVING SUM(ORDERUNITS) > 130;");
+    Thread.sleep(5000);
+    Schema resultSchema = metaStore.getSource("AGGSTREAM").getSchema();
+
+    Map<Windowed<String>, GenericRow> expectedResults = new HashMap<>();
+
+    expectedResults.put(new Windowed<>("ITEM_7", new Window(0, 1) {
+      @Override
+      public boolean overlap(Window window) {
+        return false;
+      }
+    }), new GenericRow(Arrays.asList ("ITEM_7", 2, 140.0, 70.0, 2220.0)));
+    expectedResults.put(new Windowed<>("ITEM_8", new Window(0, 1) {
+      @Override
+      public boolean overlap(Window window) {
+        return false;
+      }
+    }), new GenericRow(Arrays.asList("ITEM_8", 2, 160.0, 80.0, 2220.0)));
+    Map<Windowed<String>, GenericRow> results = readTableResults("AGGSTREAM", resultSchema,
+                                                          expectedResults
+        .size());
+//    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedWindowedResults(results, expectedResults));
     terminateAllQueries();
   }
 
@@ -245,14 +286,13 @@ public class JSONFormatTest {
       GenericRow row = recordsToPublish.get(key);
       ProducerRecord
           producerRecord = new ProducerRecord(inputTopic, key, row);
-//      System.out.println(key + " : " + row);
       producer.send(producerRecord);
     }
 
     producer.close();
   }
 
-  private Map<String, GenericRow> readResults(String resultTopic, Schema resultSchema) {
+  private Map<String, GenericRow> readResults(String resultTopic, Schema resultSchema, int maxMessages) {
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
@@ -266,7 +306,8 @@ public class JSONFormatTest {
     int maxTotalPollTimeMs = 20000;
     int totalPollTimeMs = 0;
     Map<String, GenericRow> consumedValues = new HashMap<>();
-    while (totalPollTimeMs < maxTotalPollTimeMs) {
+    while (totalPollTimeMs < maxTotalPollTimeMs && continueConsuming(consumedValues.size(),
+                                                                     maxMessages)) {
       totalPollTimeMs += pollIntervalMs;
       ConsumerRecords<String, GenericRow> records = consumer.poll(pollIntervalMs);
       for (ConsumerRecord<String, GenericRow> record : records) {
@@ -276,6 +317,36 @@ public class JSONFormatTest {
     consumer.close();
     return consumedValues;
 
+  }
+
+  private Map<Windowed<String>, GenericRow> readTableResults(String resultTopic, Schema resultSchema, int maxMessages) {
+    Properties consumerConfig = new Properties();
+    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
+                       "filter-integration-test-standard-consumer");
+    consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    KafkaConsumer<Windowed<String>, GenericRow> consumer = new KafkaConsumer<Windowed<String>,
+        GenericRow>(consumerConfig, new WindowedDeserializer<>(new StringDeserializer()), new
+        KQLJsonPOJODeserializer(resultSchema));
+    consumer.subscribe(Collections.singletonList(resultTopic));
+    int pollIntervalMs = 500;
+    int maxTotalPollTimeMs = 20000;
+    int totalPollTimeMs = 0;
+    Map<Windowed<String>, GenericRow> consumedValues = new HashMap<>();
+    while (totalPollTimeMs < maxTotalPollTimeMs && continueConsuming(consumedValues.size(), maxMessages)) {
+      totalPollTimeMs += pollIntervalMs;
+      ConsumerRecords<Windowed<String>, GenericRow> records = consumer.poll(pollIntervalMs);
+      for (ConsumerRecord<Windowed<String>, GenericRow> record : records) {
+        consumedValues.put(record.key(), record.value());
+      }
+    }
+    consumer.close();
+    return consumedValues;
+
+  }
+
+  private static boolean continueConsuming(int messagesConsumed, int maxMessages) {
+    return maxMessages <= 0 || messagesConsumed < maxMessages;
   }
 
   private Map<String, GenericRow> getInputData() {
@@ -359,6 +430,23 @@ public class JSONFormatTest {
       }
     }
     return true;
+  }
+
+  private boolean assertExpectedWindowedResults(Map<Windowed<String>, GenericRow> actualResult,
+                                        Map<Windowed<String>, GenericRow> expectedResult) {
+    Map<String, GenericRow> actualResultSimplified = new HashMap<>();
+    Map<String, GenericRow> expectedResultSimplified = new HashMap<>();
+    for (Windowed<String> k: expectedResult.keySet()) {
+      expectedResultSimplified.put(k.key(), expectedResult.get(k));
+    }
+
+    for (Windowed<String> k: actualResult.keySet()) {
+      if (actualResult.get(k) != null) {
+        actualResultSimplified.put(k.key(), actualResult.get(k));
+      }
+
+    }
+    return assertExpectedResults(actualResultSimplified, expectedResultSimplified);
   }
 
   private void terminateAllQueries() {

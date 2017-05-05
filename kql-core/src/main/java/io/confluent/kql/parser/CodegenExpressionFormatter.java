@@ -386,19 +386,18 @@ public class CodegenExpressionFormatter {
     @Override
     protected Pair<String, Schema> visitArithmeticUnary(ArithmeticUnaryExpression node,
                                                              Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
-//            String value = process(node.getValue(), unmangleNames);
-//
-//            switch (node.getSign()) {
-//                case MINUS:
-//                    // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-//                    String separator = value.startsWith("-") ? " " : "";
-//                    return "-" + separator + value;
-//                case PLUS:
-//                    return "+" + value;
-//                default:
-//                    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
-//            }
+      Pair<String, Schema> value = process(node.getValue(), unmangleNames);
+
+      switch (node.getSign()) {
+        case MINUS:
+          // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
+          String separator = value.getLeft().startsWith("-") ? " " : "";
+          return new Pair<>("-" + separator + value.getLeft(), value.getRight());
+        case PLUS:
+          return new Pair<>("+" + value.getLeft(), value.getRight());
+        default:
+          throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+      }
     }
 
     @Override

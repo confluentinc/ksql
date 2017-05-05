@@ -223,6 +223,7 @@ public class KSQLEngine implements Closeable {
   // needs to--makes sure the given properties would create a valid StreamsConfig object
   public void validateStreamsProperties(Map<String, Object> streamsProperties) {
     new StreamsConfig(streamsProperties);
+    // TODO: Validate consumer and producer properties as well
   }
 
   public void setProperty(String property, Object value) {
@@ -236,7 +237,7 @@ public class KSQLEngine implements Closeable {
     try {
       validateStreamsProperties(newProperties);
     } catch (ConfigException configException) {
-      throw new IllegalArgumentException(String.format("Failed to set property '%s'", property), configException);
+      throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'", property, value));
     }
 
     queryEngine.setStreamsProperty(property, value);

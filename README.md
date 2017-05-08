@@ -1,2 +1,2 @@
 # ksql
-Kafka Query Language!
+Kafka Structured Query Language!

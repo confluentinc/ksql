@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KS?QL Quickstart</title>
+    <script>
+        var xhr = new XMLHttpRequest();
+        function sendRequest(resource, printResponse) {
+            xhr.abort();
+
+            var ksql = document.getElementById('ksql').value;
+
+            xhr.onreadystatechange = function() {
+                if (xhr.response.trim() !== '' && (xhr.readyState === 3 || xhr.readyState === 4)) {
+                    printResponse(xhr.response);
+                }
+                if (xhr.readyState === 4 || xhr.readyState === 0) {
+                    document.getElementById("request_loading").hidden = true;
+                    document.getElementById("cancel_request").hidden = true;
+                }
+            }
+
+            var data = JSON.stringify({'ksql': ksql})
+
+            document.getElementById("cancel_request").hidden = false;
+            document.getElementById("request_loading").hidden = false;
+            xhr.open('POST', resource);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(data);
+        }
+
+        function cancelRequest() {
+            var responseElement = document.getElementById('response');
+            var response = responseElement.innerHTML;
+            xhr.abort();
+            responseElement.innerHTML = response;
+        }
+
+        function printQueryRow(response) {
+            if (response.trim() !== '') {
+                document.getElementById('response').innerHTML = xhr.response.replace(/\n{2,}/g, '\n');
+            }
+        }
+
+        function printKSQLResponse(response) {
+            if (response.trim() !== '') {
+                try {
+                    var jsonResponse = JSON.parse(response);
+                    document.getElementById('response').innerHTML = JSON.stringify(jsonResponse, null, 2);
+                } catch (SyntaxError) {
+                    document.getElementById('response').innerHTML = response.trim();
+                }
+            }
+        }
+    </script>
+    <style>
+        .request {
+            width:100%;
+            height:100px;
+
+            font-size:20px;
+            font-family:monospace;
+        }
+
+        .loading {
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% {
+            opacity: 0.1;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0.1;
+          }
+        }
+
+        .response {
+            width:100%;
+            height:1000px;
+
+            overflow-y:scroll;
+
+            border:2px solid gray;
+
+            font-size:20px;
+        }
+    </style>
+</head>
+<body>
+    KSQL:
+    <br />
+    <textarea class="request" id="ksql"></textarea>
+    <br />
+    <br />
+    <br />
+    <button onclick="sendRequest('/ksql', printKSQLResponse);">Send Request!</button>
+        &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
+    <br />
+    <br />
+    <button onclick="sendRequest('/query', printQueryRow);">Stream a query!</button>
+        &nbsp;&nbsp;(example: "SELECT * FROM foo;")
+    <br />
+    <br />
+    <span class="loading" id="request_loading" hidden>Request loading...</span>
+    <button hidden id="cancel_request" onclick="xhr.abort();">Cancel request...</button>
+    <br />
+    <br />
+    <br />
+    Server response:
+    <br />
+    <pre id="response" class="response"></pre>
+</body>
+</html>

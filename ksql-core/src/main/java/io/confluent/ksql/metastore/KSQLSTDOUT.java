@@ -9,7 +9,7 @@ import org.apache.kafka.connect.data.Schema;
 
 public class KSQLSTDOUT extends StructuredDataSource {
 
-  public static final String KQL_STDOUT_NAME = "KQL_STDOUT_NAME";
+  public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
   public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
                     final DataSourceType dataSourceType) {

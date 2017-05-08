@@ -2,11 +2,11 @@
 
 BASE_DIR=$(dirname "$0")
 
-KQL_SERVER="$BASE_DIR/../target/kql-server"
+KSQL_SERVER="$BASE_DIR/../target/ksql-server"
 
-if ! [ -f "$KQL_SERVER" ]; then
+if ! [ -f "$KSQL_SERVER" ]; then
   echo 1>&2 "Server script not found. Perhaps you forgot to build?"
   exit 1
 fi
 
-"$KQL_SERVER" "$@"
+"$KSQL_SERVER" "$@"

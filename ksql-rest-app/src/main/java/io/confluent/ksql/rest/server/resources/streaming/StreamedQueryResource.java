@@ -41,12 +41,12 @@ public class StreamedQueryResource {
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Response streamQuery(KSQLJsonRequest request) throws Exception {
-    String kql = Objects.requireNonNull(request.getKql(), "\"ksql\" field must be given");
-    Statement statement = statementParser.parseSingleStatement(kql);
+    String ksql = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
+    Statement statement = statementParser.parseSingleStatement(ksql);
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter =
-          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, kql);
-      log.info("Streaming query '{}'", kql);
+          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql);
+      log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
     } else {
       throw new Exception(

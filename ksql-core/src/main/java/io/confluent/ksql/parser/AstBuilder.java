@@ -301,7 +301,7 @@ public class AstBuilder
       into = (Table) visit(context.into);
     } else {
       // TODO: Generate a unique name
-      String intoName = "KQL_Stream_" + System.currentTimeMillis();
+      String intoName = "KSQL_Stream_" + System.currentTimeMillis();
       into = new Table(QualifiedName.of(intoName), true);
     }
 
@@ -531,7 +531,7 @@ public class AstBuilder
           alias = Optional.of(dereferenceExpression.getFieldName());
         }
       } else {
-        alias = Optional.of("KQL_COL_" + selectItemIndex);
+        alias = Optional.of("KSQL_COL_" + selectItemIndex);
       }
     } else {
       alias = Optional.of(alias.get());

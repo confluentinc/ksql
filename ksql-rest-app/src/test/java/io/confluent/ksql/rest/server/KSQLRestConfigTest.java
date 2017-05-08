@@ -15,7 +15,7 @@ public class KSQLRestConfigTest {
   private Map<String, Object> getBaseProperties() {
     Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    result.put(StreamsConfig.APPLICATION_ID_CONFIG, "kql_config_test");
+    result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     result.put(KSQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
     return result;
   }
@@ -25,7 +25,7 @@ public class KSQLRestConfigTest {
   }
 
   @Test
-  public void testGetKqlStreamsProperties() {
+  public void testGetKsqlStreamsProperties() {
     final long BASE_COMMIT_INTERVAL_MS = 1000;
     final long OVERRIDE_COMMIT_INTERVAL_MS = 100;
 
@@ -39,15 +39,15 @@ public class KSQLRestConfigTest {
         BASE_COMMIT_INTERVAL_MS
     );
     inputProperties.put(
-        KSQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        KSQLRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
         OVERRIDE_COMMIT_INTERVAL_MS
     );
     inputProperties.put(
-        KSQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        KSQLRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
         OVERRIDE_BOOTSTRAP_SERVERS
     );
 
-    Map<String, Object> testProperties = new KSQLRestConfig(inputProperties).getKqlStreamsProperties();
+    Map<String, Object> testProperties = new KSQLRestConfig(inputProperties).getKsqlStreamsProperties();
 
     assertEquals(
         OVERRIDE_COMMIT_INTERVAL_MS,

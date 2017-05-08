@@ -207,7 +207,7 @@ public class AggregateAnalyzerTest {
     Assert.assertTrue(aggregateAnalysis.getHavingExpression() instanceof ComparisonExpression);
     Assert.assertTrue(aggregateAnalysis.getHavingExpression().toString().equalsIgnoreCase(""
                                                                                           + ""
-                                                                                          + "(KQL_AGG_VARIABLE_3 > 10)"));
+                                                                                          + "(KSQL_AGG_VARIABLE_3 > 10)"));
 
   }
 }

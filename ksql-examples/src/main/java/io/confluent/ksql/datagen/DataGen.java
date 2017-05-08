@@ -61,7 +61,7 @@ public class DataGen {
 
     Properties props = new Properties();
     props.put("bootstrap.servers", arguments.bootstrapServer);
-    props.put("client.id", "KQLDataGenProducer");
+    props.put("client.id", "KSQLDataGenProducer");
 
     dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName, arguments.iterations);
   }

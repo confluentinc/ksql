@@ -51,7 +51,7 @@ public class Cli implements Closeable, AutoCloseable {
     this.terminal = TerminalBuilder.builder().system(true).build();
 
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
-    this.lineReader = LineReaderBuilder.builder().appName("KQL").terminal(terminal).build();
+    this.lineReader = LineReaderBuilder.builder().appName("KSQL").terminal(terminal).build();
 
     // Otherwise, things like '!=' will cause things to break
     this.lineReader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
@@ -180,7 +180,7 @@ public class Cli implements Closeable, AutoCloseable {
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
         handleStreamedQuery(ksql);
       } else {
-        printJsonResponse(restClient.makeKQLRequest(ksql));
+        printJsonResponse(restClient.makeKSQLRequest(ksql));
       }
     }
   }
@@ -277,16 +277,16 @@ public class Cli implements Closeable, AutoCloseable {
 //    terminal.writer().println("                          Example: :output JSON");
 //    terminal.writer().println("    :output CLI <width> - Change the output format to CLI, with a minimum column width of <width>");
 //    terminal.writer().println("                          Example: :output CLI 69");
-    terminal.writer().println("    :status             - Check on the statuses of all KQL statements processed by the server");
+    terminal.writer().println("    :status             - Check on the statuses of all KSQL statements processed by the server");
     terminal.writer().println("                          Example: :status");
     terminal.writer().println("    :status <id>        - Check on the status of the statement with ID <id>");
-    terminal.writer().println("                          Example: :status KQL_NODE_69_STATEMENT_69");
+    terminal.writer().println("                          Example: :status KSQL_NODE_69_STATEMENT_69");
     printExtraMetaCommandsHelp();
     terminal.writer().println();
     terminal.writer().println();
     terminal.writer().println("default behavior:");
     terminal.writer().println();
-    terminal.writer().println("    Lines are read one at a time and are sent to the server as KQL unless one of "
+    terminal.writer().println("    Lines are read one at a time and are sent to the server as KSQL unless one of "
         + "the following is true:"
     );
     terminal.writer().println();
@@ -298,7 +298,7 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.writer().println();
     terminal.writer().println("    3. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
         + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
-        + "all lines read during this time is sent to the server as KQL."
+        + "all lines read during this time is sent to the server as KSQL."
     );
   }
 

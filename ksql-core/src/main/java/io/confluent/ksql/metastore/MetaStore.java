@@ -23,7 +23,7 @@ public interface MetaStore {
 
   public Set<String> getAllStructuredDataSourceNames();
 
-  public Map<String, KSQLTopic> getAllKQLTopics();
+  public Map<String, KSQLTopic> getAllKSQLTopics();
 
   public Set<String> getAllTopicNames();
 }

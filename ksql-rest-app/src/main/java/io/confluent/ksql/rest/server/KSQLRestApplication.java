@@ -88,7 +88,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
   @Override
   public ResourceCollection getStaticResources() {
     if (enableQuickstartPage) {
-      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/kql/rest/"));
+      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
     } else {
       return super.getStaticResources();
     }
@@ -160,7 +160,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
 
-    KSQLConfig ksqlConfig = new KSQLConfig(config.getKqlStreamsProperties());
+    KSQLConfig ksqlConfig = new KSQLConfig(config.getKsqlStreamsProperties());
     KSQLEngine ksqlEngine = new KSQLEngine(metaStore, ksqlConfig);
     StatementParser statementParser = new StatementParser(ksqlEngine);
 

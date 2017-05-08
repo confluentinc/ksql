@@ -1,8 +1,8 @@
 {
-  "name": "kql_catalog",
+  "name": "ksql_catalog",
   "topics" :[
     {
-      "namespace": "kql-topics",
+      "namespace": "ksql-topics",
       "topicname": "ORDERS_TOPIC_AVRO",
       "kafkatopicname": "orders_kafka_topic_avro",
       "serde": "avro",
@@ -10,21 +10,21 @@
     }
   ,
     {
-      "namespace": "kql-topics",
+      "namespace": "ksql-topics",
       "topicname": "PAGEVIEW_TOPIC",
       "kafkatopicname": "pageview_kafka_topic_json",
       "serde": "json"
     }
   ,
     {
-      "namespace": "kql-topics",
+      "namespace": "ksql-topics",
       "topicname": "ORDERS_TOPIC",
       "kafkatopicname": "orders_kafka_topic",
       "serde": "json"
     }
   ,
     {
-      "namespace": "kql-topics",
+      "namespace": "ksql-topics",
       "topicname": "USERS_TOPIC",
       "kafkatopicname": "users_kafka_topic_json",
       "serde": "json"
@@ -34,7 +34,7 @@
 ,
   "schemas" :[
     {
-      "namespace": "kql",
+      "namespace": "ksql",
       "type": "STREAM",
       "name": "ORDERS",
       "key": "ORDERTIME",
@@ -47,7 +47,7 @@
     }
   ,
     {
-      "namespace": "kql",
+      "namespace": "ksql",
       "type": "STREAM",
       "name": "PAGEVIEW",
       "key": "VIEWTIME",
@@ -59,7 +59,7 @@
     }
   ,
     {
-      "namespace": "kql",
+      "namespace": "ksql",
       "type": "TABLE",
       "name": "USERS",
       "key": "USERID",
@@ -73,7 +73,7 @@
     }
   ,
     {
-      "namespace": "kql",
+      "namespace": "ksql",
       "type": "STREAM",
       "name": "ORDERS_AVRO",
       "key": "ORDERTIME",

@@ -8,7 +8,7 @@
         function sendRequest(resource, printResponse) {
             xhr.abort();
 
-            var kql = document.getElementById('kql').value;
+            var ksql = document.getElementById('ksql').value;
 
             xhr.onreadystatechange = function() {
                 if (xhr.response.trim() !== '' && (xhr.readyState === 3 || xhr.readyState === 4)) {
@@ -20,7 +20,7 @@
                 }
             }
 
-            var data = JSON.stringify({'kql': kql})
+            var data = JSON.stringify({'ksql': ksql})
 
             document.getElementById("cancel_request").hidden = false;
             document.getElementById("request_loading").hidden = false;
@@ -91,13 +91,13 @@
     </style>
 </head>
 <body>
-    KQL:
+    KSQL:
     <br />
-    <textarea class="request" id="kql"></textarea>
+    <textarea class="request" id="ksql"></textarea>
     <br />
     <br />
     <br />
-    <button onclick="sendRequest('/kql', printKSQLResponse);">Send Request!</button>
+    <button onclick="sendRequest('/ksql', printKSQLResponse);">Send Request!</button>
         &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
     <br />
     <br />

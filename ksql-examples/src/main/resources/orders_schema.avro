@@ -1,5 +1,5 @@
 {
-        "namespace": "kql",
+        "namespace": "ksql",
         "name": "orders",
         "type": "record",
         "fields": [

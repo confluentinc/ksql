@@ -36,8 +36,8 @@ public class SchemaUtil {
   }
 
 
-  public static Schema getTypeSchema(final String kqlType) {
-    switch (kqlType) {
+  public static Schema getTypeSchema(final String ksqlType) {
+    switch (ksqlType) {
       case "STRING":
         return Schema.STRING_SCHEMA;
       case "BOOLEAN":
@@ -49,13 +49,13 @@ public class SchemaUtil {
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
       case "ARRAY":
-        return SchemaBuilder.array(getTypeSchema(kqlType.substring("ARRAY".length() + 1, kqlType
+        return SchemaBuilder.array(getTypeSchema(ksqlType.substring("ARRAY".length() + 1, ksqlType
                                                                                              .length() - 1).trim()));
       case "MAP":
-        return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(kqlType.substring(kqlType
-                                                                                           .indexOf(",") + 1, kqlType.length() - 1).trim()));
+        return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(ksqlType.substring(ksqlType
+                                                                                           .indexOf(",") + 1, ksqlType.length() - 1).trim()));
       default:
-        throw new KSQLException("Type is not supported: " + kqlType);
+        throw new KSQLException("Type is not supported: " + ksqlType);
 
     }
   }

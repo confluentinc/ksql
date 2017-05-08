@@ -24,7 +24,7 @@ import java.util.Properties;
 
 public class KSQL {
 
-  public static abstract class KQLCommand implements Runnable {
+  public static abstract class KSQLCommand implements Runnable {
     protected abstract Cli getCli() throws Exception;
 
     @Override
@@ -38,7 +38,7 @@ public class KSQL {
   }
 
   @Command(name = "local", description = "Run a local (standalone) Cli session")
-  public static class Local extends KQLCommand {
+  public static class Local extends KSQLCommand {
 
     private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
@@ -49,7 +49,7 @@ public class KSQL {
     private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
     private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
-    private static final String APPLICATION_ID_OPTION_DEFAULT = "kql_standalone_cli";
+    private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
 
     private static final String COMMAND_TOPIC_SUFFIX_OPTION_NAME = "--command-topic-suffix";
     private static final String COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT = "commands";
@@ -83,7 +83,7 @@ public class KSQL {
 
     @Option(
         name = PROPERTIES_FILE_OPTION_NAME,
-        description = "A file specifying properties for KQL and its underlying Kafka Streams instance(s) "
+        description = "A file specifying properties for KSQL and its underlying Kafka Streams instance(s) "
             + "(can specify port number, bootstrap server, etc. but these options will be overridden if also given via "
             + "flags)"
     )
@@ -134,14 +134,14 @@ public class KSQL {
     }
   }
 
-  @Command(name = "remote", description = "Connect to a remote (possibly distributed) KQL session")
-  public static class Remote extends KQLCommand {
+  @Command(name = "remote", description = "Connect to a remote (possibly distributed) KSQL session")
+  public static class Remote extends KSQLCommand {
 
     @Once
     @Required
     @Arguments(
         title = "server",
-        description = "The address of the KQL server to connect to (ex: http://confluent.io:6969)"
+        description = "The address of the KSQL server to connect to (ex: http://confluent.io:6969)"
     )
     private String server;
 

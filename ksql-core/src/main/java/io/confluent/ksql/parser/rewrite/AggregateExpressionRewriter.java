@@ -16,7 +16,7 @@ import java.util.List;
 
 public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
 
-  public final static String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KQL_AGG_VARIABLE_";
+  public final static String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
   int aggVariableIndex = 0;
 
   @Override

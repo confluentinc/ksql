@@ -55,12 +55,12 @@ public class KSQLResourceTest {
     mockMetastore = new MetaStoreImpl();
 
     Schema schema1 = SchemaBuilder.struct().field("s1_f1", Schema.BOOLEAN_SCHEMA);
-    KSQLTopic ksqlTopic1 = new KSQLTopic("kql_topic_1", "kafka_topic_1", new KSQLJsonTopicSerDe(schema1));
+    KSQLTopic ksqlTopic1 = new KSQLTopic("ksql_topic_1", "kafka_topic_1", new KSQLJsonTopicSerDe(schema1));
     mockMetastore.putTopic(ksqlTopic1);
     mockMetastore.putSource(new KSQLTable("test_table", schema1, schema1.field("s1_f1"), ksqlTopic1, "statestore", false));
 
     Schema schema2 = SchemaBuilder.struct().field("s2_f1", Schema.STRING_SCHEMA).field("s2_f2", Schema.INT32_SCHEMA);
-    KSQLTopic ksqlTopic2 = new KSQLTopic("kql_topic_2", "kafka_topic_2", new KSQLJsonTopicSerDe(schema2));
+    KSQLTopic ksqlTopic2 = new KSQLTopic("ksql_topic_2", "kafka_topic_2", new KSQLJsonTopicSerDe(schema2));
     mockMetastore.putTopic(ksqlTopic2);
     mockMetastore.putSource(new KSQLStream("test_stream", schema2, schema2.field("s2_f2"), ksqlTopic2));
   }
@@ -94,24 +94,24 @@ public class KSQLResourceTest {
     }
   }
 
-  static KSQLJsonRequest createJsonRequest(String kql) {
+  static KSQLJsonRequest createJsonRequest(String ksql) {
     KSQLJsonRequest result = new KSQLJsonRequest();
-    result.kql = kql;
+    result.ksql = ksql;
     return result;
   }
 
   private JsonValue makeSingleRequest(
       TestKSQLResource testResource,
-      String kqlString,
-      Statement kqlStatement,
+      String ksqlString,
+      Statement ksqlStatement,
       String responseField
   ) throws Exception{
-    expect(testResource.ksqlEngine.getStatements(kqlString)).andReturn(Collections.singletonList(kqlStatement));
-    expect(testResource.getStatementStrings(kqlString)).andReturn(Collections.singletonList(kqlString));
+    expect(testResource.ksqlEngine.getStatements(ksqlString)).andReturn(Collections.singletonList(ksqlStatement));
+    expect(testResource.getStatementStrings(ksqlString)).andReturn(Collections.singletonList(ksqlString));
 
     testResource.replayAll();
 
-    String responseEntity = (String) testResource.handleKQLStatements(createJsonRequest(kqlString)).getEntity();
+    String responseEntity = (String) testResource.handleKSQLStatements(createJsonRequest(ksqlString)).getEntity();
     JsonArray jsonResponse = Json.createReader(new ByteArrayInputStream(responseEntity.getBytes())).readArray();
 
     assertEquals(1, jsonResponse.size());
@@ -130,31 +130,31 @@ public class KSQLResourceTest {
   public void testCreateTopic() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
 
-    final String kqlTopic = "foo";
+    final String ksqlTopic = "foo";
     final String kafkaTopic = "bar";
     final String format = "json";
 
-    final String kqlString =
-        String.format("CREATE TOPIC %s WITH (kafka_topic='%s', format='%s');", kqlTopic, kafkaTopic, format);
+    final String ksqlString =
+        String.format("CREATE TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic, kafkaTopic, format);
 
     final Map<String, Expression> createTopicProperties = new HashMap<>();
     createTopicProperties.put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
     createTopicProperties.put(DDLConfig.FORMAT_PROPERTY, new StringLiteral(format));
 
-    final CreateTopic kqlStatement = new CreateTopic(
-        QualifiedName.of(kqlTopic),
+    final CreateTopic ksqlStatement = new CreateTopic(
+        QualifiedName.of(ksqlTopic),
         false,
         createTopicProperties
     );
 
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, kqlTopic);
+    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
 
-    expect(testResource.commandStore.distributeStatement(kqlString, kqlStatement)).andReturn(commandId);
+    expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
 
     testResource.statementExecutor.registerQueuedStatement(commandId);
     expectLastCall();
 
-    JsonValue statementIdElement = makeSingleRequest(testResource, kqlString, kqlStatement, "statement_id");
+    JsonValue statementIdElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "statement_id");
     assertThat(statementIdElement, instanceOf(JsonString.class));
 
     JsonString statementIdString = (JsonString) statementIdElement;
@@ -164,10 +164,10 @@ public class KSQLResourceTest {
   @Test
   public void testErroneousStatement() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "DESCRIBE nonexistent_table;";
-    final ShowColumns kqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
+    final String ksqlString = "DESCRIBE nonexistent_table;";
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
 
-    JsonValue errorElement = makeSingleRequest(testResource, kqlString, kqlStatement, "error");
+    JsonValue errorElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "error");
     assertThat(errorElement, instanceOf(JsonObject.class));
 
     JsonObject errorObject = (JsonObject) errorElement;
@@ -177,22 +177,22 @@ public class KSQLResourceTest {
   @Test
   public void testListTopic() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "LIST TOPICS;";
-    final ListTopics kqlStatement = new ListTopics(Optional.empty());
+    final String ksqlString = "LIST TOPICS;";
+    final ListTopics ksqlStatement = new ListTopics(Optional.empty());
 
-    JsonValue topicsElement = makeSingleRequest(testResource, kqlString, kqlStatement, "topics");
+    JsonValue topicsElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "topics");
     assertThat(topicsElement, instanceOf(JsonObject.class));
 
     JsonObject topicsObject = (JsonObject) topicsElement;
-    assertEquals(mockMetastore.getAllKQLTopics().size(), topicsObject.size());
+    assertEquals(mockMetastore.getAllKSQLTopics().size(), topicsObject.size());
     assertEquals(mockMetastore.getAllTopicNames(), topicsObject.keySet());
   }
 
   @Test
   public void testShowQueries() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "SHOW QUERIES;";
-    final ListQueries kqlStatement = new ListQueries(Optional.empty());
+    final String ksqlString = "SHOW QUERIES;";
+    final ListQueries ksqlStatement = new ListQueries(Optional.empty());
 
     final String mockQueryStatement = "CREATE STREAM lol AS SELECT * FROM test_stream WHERE s2_f2 > 69;";
 
@@ -212,7 +212,7 @@ public class KSQLResourceTest {
 
     expect(testResource.ksqlEngine.getPersistentQueries()).andReturn(mockQueries);
 
-    JsonValue queriesElement = makeSingleRequest(testResource, kqlString, kqlStatement, "queries");
+    JsonValue queriesElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "queries");
     assertThat(queriesElement, instanceOf(JsonObject.class));
 
     JsonObject queriesObject = (JsonObject) queriesElement;
@@ -223,19 +223,19 @@ public class KSQLResourceTest {
   @Test
   public void testDescribeStatement() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "DESCRIBE test_table;";
-    final ShowColumns kqlStatement = new ShowColumns(QualifiedName.of("test_table"));
+    final String ksqlString = "DESCRIBE test_table;";
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("test_table"));
 
-    makeSingleRequest(testResource, kqlString, kqlStatement, "description");
+    makeSingleRequest(testResource, ksqlString, ksqlStatement, "description");
   }
 
   @Test
   public void testListStreamsStatement() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "LIST STREAMS;";
-    final ListStreams kqlStatement = new ListStreams(Optional.empty());
+    final String ksqlString = "LIST STREAMS;";
+    final ListStreams ksqlStatement = new ListStreams(Optional.empty());
 
-    JsonValue streamsElement = makeSingleRequest(testResource, kqlString, kqlStatement, "streams");
+    JsonValue streamsElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "streams");
     assertThat(streamsElement, instanceOf(JsonObject.class));
 
     JsonObject streamsObject = (JsonObject) streamsElement;
@@ -245,10 +245,10 @@ public class KSQLResourceTest {
   @Test
   public void testListTablesStatement() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
-    final String kqlString = "LIST TABLES;";
-    final ListTables kqlStatement = new ListTables(Optional.empty());
+    final String ksqlString = "LIST TABLES;";
+    final ListTables ksqlStatement = new ListTables(Optional.empty());
 
-    JsonValue tablesElement = makeSingleRequest(testResource, kqlString, kqlStatement, "tables");
+    JsonValue tablesElement = makeSingleRequest(testResource, ksqlString, ksqlStatement, "tables");
     assertThat(tablesElement, instanceOf(JsonObject.class));
 
     JsonObject streamsObject = (JsonObject) tablesElement;

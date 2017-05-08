@@ -256,7 +256,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSource into;
     if (node.isSTDOut) {
       into =
-          new KSQLSTDOUT(KSQLSTDOUT.KQL_STDOUT_NAME, null, null,
+          new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null,
                         StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = new KSQLStream(node.getName().getSuffix(), null, null, null);

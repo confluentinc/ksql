@@ -31,8 +31,8 @@ import java.util.Map;
 
 public class KSQLFunctions {
 
-  public static Map<String, KSQLFunction> kqlFunctionMap = new HashMap<>();
-  public static Map<String, KSQLAggFunctionDeterminer> kqlAggregateFunctionMap = new HashMap<>();
+  public static Map<String, KSQLFunction> ksqlFunctionMap = new HashMap<>();
+  public static Map<String, KSQLAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
 
   static {
 
@@ -108,15 +108,15 @@ public class KSQLFunctions {
   }
 
   public static KSQLFunction getFunction(String functionName) {
-    return kqlFunctionMap.get(functionName);
+    return ksqlFunctionMap.get(functionName);
   }
 
   public static void addFunction(KSQLFunction ksqlFunction) {
-    kqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
+    ksqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
   }
 
   public static boolean isAnAggregateFunction(String functionName) {
-    if (kqlAggregateFunctionMap.get(functionName) != null) {
+    if (ksqlAggregateFunctionMap.get(functionName) != null) {
       return true;
     }
     return false;
@@ -124,7 +124,7 @@ public class KSQLFunctions {
 
   public static KSQLAggregateFunction getAggregateFunction(String functionName, List<Expression>
       functionArgs, Schema schema) {
-    KSQLAggFunctionDeterminer ksqlAggFunctionDeterminer = kqlAggregateFunctionMap.get(functionName);
+    KSQLAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap.get(functionName);
     if (ksqlAggFunctionDeterminer == null) {
       throw new KSQLException("No aggregate function with name " + functionName + " exists!");
     }
@@ -135,7 +135,7 @@ public class KSQLFunctions {
   }
 
   public static void addAggregateFunctionDeterminer(KSQLAggFunctionDeterminer ksqlAggFunctionDeterminer) {
-    kqlAggregateFunctionMap.put(ksqlAggFunctionDeterminer.functionName, ksqlAggFunctionDeterminer);
+    ksqlAggregateFunctionMap.put(ksqlAggFunctionDeterminer.functionName, ksqlAggFunctionDeterminer);
   }
 
 

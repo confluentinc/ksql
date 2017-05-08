@@ -62,7 +62,7 @@ public class QueryEngine {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName : metaStore.getAllKQLTopics().keySet()) {
+    for (String topicName : metaStore.getAllKSQLTopics().keySet()) {
       tempMetaStore.putTopic(metaStore.getTopic(topicName));
     }
     for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {

@@ -39,8 +39,8 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public JsonStructure makeKQLRequest(String kql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", kql).build();
+  public JsonStructure makeKSQLRequest(String ksql) {
+    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
     return parseJsonResponse(makePostRequest("ksql", requestData));
   }
 
@@ -52,8 +52,8 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     return parseJsonResponse(makeGetRequest(String.format("status/%s", statementId)));
   }
 
-  public QueryStream makeQueryRequest(String kql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", kql).build();
+  public QueryStream makeQueryRequest(String ksql) {
+    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
     return new QueryStream(makePostRequest("query", requestData));
   }
 

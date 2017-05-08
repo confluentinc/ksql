@@ -16,7 +16,7 @@ import java.util.Map;
 // of this one.
 public class KSQLRestConfig extends RestConfig {
 
-  public static final String KQL_STREAMS_PREFIX       = "ksql.core.streams.";
+  public static final String KSQL_STREAMS_PREFIX       = "ksql.core.streams.";
   public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
   public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
 
@@ -88,8 +88,8 @@ public class KSQLRestConfig extends RestConfig {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 
-  public Map<String, Object> getKqlStreamsProperties() {
-    return getPropertiesWithOverrides(KQL_STREAMS_PREFIX);
+  public Map<String, Object> getKsqlStreamsProperties() {
+    return getPropertiesWithOverrides(KSQL_STREAMS_PREFIX);
   }
 
   public String getCommandTopic() {

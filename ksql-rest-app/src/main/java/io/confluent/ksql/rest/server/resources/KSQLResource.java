@@ -70,9 +70,9 @@ public class KSQLResource {
   }
 
   @POST
-  public Response handleKQLStatements(KSQLJsonRequest request) throws Exception {
-    List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKql());
-    List<String> statementStrings = getStatementStrings(request.getKql());
+  public Response handleKSQLStatements(KSQLJsonRequest request) throws Exception {
+    List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
+    List<String> statementStrings = getStatementStrings(request.getKsql());
     if (parsedStatements.size() != statementStrings.size()) {
       throw new Exception(String.format(
           "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
@@ -92,8 +92,8 @@ public class KSQLResource {
     return Response.ok(result.build().toString()).build();
   }
 
-  public List<String> getStatementStrings(String kqlString) {
-    List<SqlBaseParser.SingleStatementContext> statementContexts = new KSQLParser().getStatements(kqlString);
+  public List<String> getStatementStrings(String ksqlString) {
+    List<SqlBaseParser.SingleStatementContext> statementContexts = new KSQLParser().getStatements(ksqlString);
     List<String> result = new ArrayList<>(statementContexts.size());
     for (SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
       // Taken from http://stackoverflow.com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
@@ -162,7 +162,7 @@ public class KSQLResource {
 
   private JsonObject listTopics() {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    Map<String, KSQLTopic> topicMap = ksqlEngine.getMetaStore().getAllKQLTopics();
+    Map<String, KSQLTopic> topicMap = ksqlEngine.getMetaStore().getAllKSQLTopics();
     for (Map.Entry<String, KSQLTopic> topicEntry : topicMap.entrySet()) {
       result.add(topicEntry.getKey(), formatTopicAsJson(topicEntry.getValue()).build());
     }
@@ -171,7 +171,7 @@ public class KSQLResource {
 
   private JsonObjectBuilder formatDataSourceAsJson(StructuredDataSource dataSource) {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    result.add("kql_topic", dataSource.getKsqlTopic().getName());
+    result.add("ksql_topic", dataSource.getKsqlTopic().getName());
     result.add("key", dataSource.getKeyField().name());
     result.add("format", dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString());
     return result;

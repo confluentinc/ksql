@@ -122,8 +122,8 @@
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>${antlr.version}</version>
                 <configuration>
-                    <!--<sourceDirectory>src/main/antlr4/io/confluksql/kql/parser</sourceDirectory>-->
-                    <!--<outputDirectory>src/main/java/io/confluksql/kql/parser</outputDirectory>-->
+                    <!--<sourceDirectory>src/main/antlr4/io/confluksql/ksql/parser</sourceDirectory>-->
+                    <!--<outputDirectory>src/main/java/io/confluksql/ksql/parser</outputDirectory>-->
                     <visitor>true</visitor>
                 </configuration>
                 <executions>

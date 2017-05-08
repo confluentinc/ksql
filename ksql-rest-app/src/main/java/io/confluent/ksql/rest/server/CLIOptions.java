@@ -16,7 +16,7 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import javax.inject.Inject;
 import java.io.IOException;
 
-@Command(name = "KQL-Server", description = "KQL Cluster")
+@Command(name = "KSQL-Server", description = "KSQL Cluster")
 public class CLIOptions {
 
   private static final String QUICKSTART_OPTION_NAME = "--quickstart";
@@ -29,7 +29,7 @@ public class CLIOptions {
   @Required
   @Arguments(
       title = "properties-file",
-      description = "A file specifying properties for the KQL Server, KQL, and its underlying Kafka Streams instance(s)"
+      description = "A file specifying properties for the KSQL Server, KSQL, and its underlying Kafka Streams instance(s)"
   )
   private String propertiesFile;
   public String getPropertiesFile() {

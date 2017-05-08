@@ -21,7 +21,7 @@ public class StatementParser {
       throw new IllegalArgumentException("Call to KSQLEngine.getStatements() returned null");
     } else if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
-          String.format("Expected exactly one KQL statement; found %d instead", statements.size())
+          String.format("Expected exactly one KSQL statement; found %d instead", statements.size())
       );
     } else {
       return statements.get(0);

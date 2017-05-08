@@ -55,7 +55,7 @@ public class MetastoreUtil {
         fieldType = fields.get(i).get("type").textValue();
       }
 
-      dataSourceBuilder.field(fieldName, getKQLType(fieldType));
+      dataSourceBuilder.field(fieldName, getKSQLType(fieldType));
     }
 
     Schema dataSource = dataSourceBuilder.build();
@@ -105,7 +105,7 @@ public class MetastoreUtil {
     return new KSQLTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
-  private Schema getKQLType(final String sqlType) {
+  private Schema getKSQLType(final String sqlType) {
     switch (sqlType.toUpperCase()) {
       case "STRING":
         return Schema.STRING_SCHEMA;
@@ -122,7 +122,7 @@ public class MetastoreUtil {
     }
   }
 
-  private String getKQLTypeInJson(final Schema schemaType) {
+  private String getKSQLTypeInJson(final Schema schemaType) {
     if (schemaType == Schema.INT64_SCHEMA) {
       return "LONG";
     } else if (schemaType == Schema.STRING_SCHEMA) {
@@ -231,7 +231,7 @@ public class MetastoreUtil {
           stringBuilder.append(", \n");
         }
         stringBuilder.append("\t\t\t     {\"name\": \"" + field.name() + "\", \"type\": "
-                             + "\"" + getKQLTypeInJson(field.schema()) + "\"} ");
+                             + "\"" + getKSQLTypeInJson(field.schema()) + "\"} ");
       }
       stringBuilder.append("\t\t\t ]\n");
       stringBuilder.append("\t\t}\n");
@@ -240,9 +240,9 @@ public class MetastoreUtil {
   }
 
   public void writeMetastoreToFile(String filePath, MetaStore metaStore) {
-    StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"kql_catalog\",\n ");
+    StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"ksql_catalog\",\n ");
 
-    addTopics(stringBuilder, metaStore.getAllKQLTopics());
+    addTopics(stringBuilder, metaStore.getAllKSQLTopics());
     stringBuilder.append("\n\t, \n");
     addSchemas(stringBuilder, metaStore.getAllStructuredDataSources());
     stringBuilder.append("}");
@@ -258,7 +258,7 @@ public class MetastoreUtil {
 
 
   public static final String DEFAULT_METASTORE_SCHEMA = "{\n"
-                                                        + "\t\"name\": \"kql_catalog\",\n"
+                                                        + "\t\"name\": \"ksql_catalog\",\n"
                                                         + "\t\"topics\":[],\n"
                                                         + "\t\"schemas\" :[]\n"
                                                         + "}";

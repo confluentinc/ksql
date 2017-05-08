@@ -104,7 +104,7 @@ public class AvroConsumer {
         source =
         builder.stream(Serdes.String(), genericRowSerde, "StreamExample1-GenericRow-order");
 
-    source.map(new KQLPrintKeyValueMapper());
+    source.map(new KSQLPrintKeyValueMapper());
 
     KafkaStreams streams = new KafkaStreams(builder, props);
     streams.start();
@@ -120,10 +120,10 @@ public class AvroConsumer {
     streams.close();
   }
 
-  class KQLPrintKeyValueMapper
+  class KSQLPrintKeyValueMapper
       implements KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> {
 
-    public KQLPrintKeyValueMapper() {
+    public KSQLPrintKeyValueMapper() {
     }
 
     @Override

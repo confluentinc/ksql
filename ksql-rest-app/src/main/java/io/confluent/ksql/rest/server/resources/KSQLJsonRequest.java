@@ -8,15 +8,15 @@ import javax.xml.bind.annotation.XmlAccessorType;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 public class KSQLJsonRequest {
-  public String kql;
+  public String ksql;
 
-  public String getKql() {
-    return kql;
+  public String getKsql() {
+    return ksql;
   }
 
   // In case this is ever useful for debugging
   @Override
   public String toString() {
-    return String.format("KQLRequest {\"ksql\":\"%s\"}", kql);
+    return String.format("KSQLRequest {\"ksql\":\"%s\"}", ksql);
   }
 }

@@ -68,7 +68,7 @@ public class LogicalPlanner {
     StructuredDataSource intoDataSource = analysis.getInto();
 
     if (intoDataSource instanceof KSQLSTDOUT) {
-      return new KSQLBareOutputNode(new PlanNodeId(KSQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+      return new KSQLBareOutputNode(new PlanNodeId(KSQLSTDOUT.KSQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema);
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;

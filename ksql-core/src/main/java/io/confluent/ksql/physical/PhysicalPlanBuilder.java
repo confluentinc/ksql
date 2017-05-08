@@ -191,7 +191,7 @@ public class PhysicalPlanBuilder {
 
     SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KUDAFInitializer(resultColumns),
-        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), aggValueGenericRowSerde, "KQL_Agg_Query_" + System.currentTimeMillis());
+        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
 
     // Post aggregate computations
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();

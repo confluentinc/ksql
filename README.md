@@ -1,2 +1,2 @@
-# kql
+# ksql
 Kafka Query Language!

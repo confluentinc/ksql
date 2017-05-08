@@ -92,12 +92,12 @@ public class DDLEngine {
       default:
         throw new KSQLException("The specified topic serde is not supported.");
     }
-    KSQLTopic kQLTopic = new KSQLTopic(topicName, kafkaTopicName, topicSerDe);
+    KSQLTopic ksqlTopic = new KSQLTopic(topicName, kafkaTopicName, topicSerDe);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putTopic(kQLTopic);
-    return kQLTopic;
+    ksqlEngine.getMetaStore().putTopic(ksqlTopic);
+    return ksqlTopic;
   }
 
   private String enforceString(final String propertyName, final String propertyValue) {
@@ -133,7 +133,7 @@ public class DDLEngine {
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
     for (TableElement tableElement : createStream.getElements()) {
-      streamSchema = streamSchema.field(tableElement.getName(), getKQLType(tableElement.getType()));
+      streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 
     if (createStream.getProperties().size() == 0) {
@@ -189,7 +189,7 @@ public class DDLEngine {
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
     for (TableElement tableElement : createTable.getElements()) {
-      tableSchema = tableSchema.field(tableElement.getName(), getKQLType(tableElement.getType()));
+      tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 
     if (createTable.getProperties().size() == 0) {
@@ -247,7 +247,7 @@ public class DDLEngine {
   }
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
-  private Schema getKQLType(final String sqlType) {
+  private Schema getKSQLType(final String sqlType) {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
@@ -267,7 +267,7 @@ public class DDLEngine {
       default:
         if (sqlType.startsWith("ARRAY")) {
           return SchemaBuilder
-              .array(getKQLType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
+              .array(getKSQLType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
         } else if (sqlType.startsWith("MAP")) {
           //TODO: For now only primitive data types for map are supported. Will have to add
           // nested types.
@@ -278,7 +278,7 @@ public class DDLEngine {
           }
           String keyType = mapTypesStrs[0].trim();
           String valueType = mapTypesStrs[1].trim();
-          return SchemaBuilder.map(getKQLType(keyType), getKQLType(valueType));
+          return SchemaBuilder.map(getKSQLType(keyType), getKSQLType(valueType));
         }
         throw new KSQLException("Unsupported type: " + sqlType);
     }

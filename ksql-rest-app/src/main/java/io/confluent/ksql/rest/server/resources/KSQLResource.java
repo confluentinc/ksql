@@ -15,6 +15,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -48,6 +49,7 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Path("/ksql")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -125,6 +127,8 @@ public class KSQLResource {
       result.add("description", describe(((ShowColumns) statement).getTable().getSuffix()));
     } else if (statement instanceof SetProperty) {
       result.add("set_property", setProperty((SetProperty) statement));
+    } else if (statement instanceof ListProperties) {
+      result.add("properties", listProperties());
     } else if (statement instanceof CreateTopic
             || statement instanceof CreateStream
             || statement instanceof CreateTable
@@ -217,11 +221,20 @@ public class KSQLResource {
     return result.build();
   }
 
+  // TODO: Right now properties can only be set for a single node. Do we want to distribute this?
   private JsonObject setProperty(SetProperty setProperty) {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    ksqlEngine.setProperty(setProperty.getPropertyName(), setProperty.getPropertyValue());
+    ksqlEngine.setStreamsProperty(setProperty.getPropertyName(), setProperty.getPropertyValue());
     result.add("property", setProperty.getPropertyName());
     result.add("value", setProperty.getPropertyValue());
+    return result.build();
+  }
+
+  private JsonObject listProperties() {
+    JsonObjectBuilder result = Json.createObjectBuilder();
+    for (Map.Entry<String, Object> propertyEntry : ksqlEngine.getStreamsProperties().entrySet()) {
+      result.add(propertyEntry.getKey(), Objects.toString(propertyEntry.getValue()));
+    }
     return result.build();
   }
 

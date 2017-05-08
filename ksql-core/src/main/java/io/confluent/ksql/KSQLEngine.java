@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class KSQLEngine implements Closeable {
 
@@ -226,7 +228,7 @@ public class KSQLEngine implements Closeable {
     // TODO: Validate consumer and producer properties as well
   }
 
-  public void setProperty(String property, Object value) {
+  public void setStreamsProperty(String property, Object value) {
     if (!isValidStreamsProperty(property)) {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
@@ -241,6 +243,16 @@ public class KSQLEngine implements Closeable {
     }
 
     queryEngine.setStreamsProperty(property, value);
+  }
+
+  public Map<String, Object> getStreamsProperties() {
+    Map<String, Object> result = new HashMap<>();
+    for (Map.Entry<String, Object> propertyEntry : queryEngine.getStreamsProperties().entrySet()) {
+      if (isValidStreamsProperty(propertyEntry.getKey())) {
+        result.put(propertyEntry.getKey(), propertyEntry.getValue());
+      }
+    }
+    return result;
   }
 
   @Override

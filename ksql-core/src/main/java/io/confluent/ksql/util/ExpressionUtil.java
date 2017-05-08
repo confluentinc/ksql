@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.KQLFunction;
-import io.confluent.ksql.function.KQLFunctions;
+import io.confluent.ksql.function.KSQLFunction;
+import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.function.udf.KUDF;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -98,10 +98,10 @@ public class ExpressionUtil {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KQLFunction kqlFunction = KQLFunctions.getFunction(functionName);
+      KSQLFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
       parameterMap.put(node.getName().getSuffix(),
-//                       SchemaUtil.getJavaType(kqlFunction.getReturnType()));
-                       kqlFunction.getKudfClass());
+//                       SchemaUtil.getJavaType(ksqlFunction.getReturnType()));
+                       ksqlFunction.getKudfClass());
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }

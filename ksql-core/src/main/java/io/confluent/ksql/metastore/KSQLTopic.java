@@ -4,24 +4,24 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.serde.KQLTopicSerDe;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.serde.KSQLTopicSerDe;
+import io.confluent.ksql.util.KSQLException;
 
-public class KQLTopic implements DataSource {
+public class KSQLTopic implements DataSource {
 
   final String topicName;
   final String kafkaTopicName;
-  final KQLTopicSerDe kqlTopicSerDe;
+  final KSQLTopicSerDe ksqlTopicSerDe;
 
-  public KQLTopic(final String topicName, final String kafkaTopicName, final KQLTopicSerDe
-      kqlTopicSerDe) {
+  public KSQLTopic(final String topicName, final String kafkaTopicName, final KSQLTopicSerDe
+      ksqlTopicSerDe) {
     this.topicName = topicName;
     this.kafkaTopicName = kafkaTopicName;
-    this.kqlTopicSerDe = kqlTopicSerDe;
+    this.ksqlTopicSerDe = ksqlTopicSerDe;
   }
 
-  public KQLTopicSerDe getKqlTopicSerDe() {
-    return kqlTopicSerDe;
+  public KSQLTopicSerDe getKsqlTopicSerDe() {
+    return ksqlTopicSerDe;
   }
 
   public String getKafkaTopicName() {
@@ -39,7 +39,7 @@ public class KQLTopic implements DataSource {
       case "AVRO":
         return DataSourceSerDe.AVRO;
       default:
-        throw new KQLException("DataSource Type is not supported: " + dataSourceSerdeName);
+        throw new KSQLException("DataSource Type is not supported: " + dataSourceSerdeName);
     }
   }
 

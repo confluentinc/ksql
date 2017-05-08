@@ -10,13 +10,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 
-public class KQLRestConfigTest {
+public class KSQLRestConfigTest {
 
   private Map<String, Object> getBaseProperties() {
     Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "kql_config_test");
-    result.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
+    result.put(KSQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
     return result;
   }
 
@@ -39,15 +39,15 @@ public class KQLRestConfigTest {
         BASE_COMMIT_INTERVAL_MS
     );
     inputProperties.put(
-        KQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        KSQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
         OVERRIDE_COMMIT_INTERVAL_MS
     );
     inputProperties.put(
-        KQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        KSQLRestConfig.KQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
         OVERRIDE_BOOTSTRAP_SERVERS
     );
 
-    Map<String, Object> testProperties = new KQLRestConfig(inputProperties).getKqlStreamsProperties();
+    Map<String, Object> testProperties = new KSQLRestConfig(inputProperties).getKqlStreamsProperties();
 
     assertEquals(
         OVERRIDE_COMMIT_INTERVAL_MS,
@@ -60,14 +60,14 @@ public class KQLRestConfigTest {
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls
-  // to KQLRestConfig.getOriginals() do not actually return the same object (mutability would then be an issue)
+  // to KSQLRestConfig.getOriginals() do not actually return the same object (mutability would then be an issue)
   @Test
   public void testOriginalsReplicability() {
     final String COMMIT_INTERVAL_MS = "10";
 
     Map<String, Object> inputProperties = getBaseProperties();
     inputProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, COMMIT_INTERVAL_MS);
-    KQLRestConfig config = new KQLRestConfig(inputProperties);
+    KSQLRestConfig config = new KSQLRestConfig(inputProperties);
 
     final Map<String, Object> originals1 = config.getOriginals();
     final Map<String, Object> originals2 = config.getOriginals();

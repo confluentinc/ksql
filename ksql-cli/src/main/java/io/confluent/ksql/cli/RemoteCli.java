@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.client.KQLRestClient;
+import io.confluent.ksql.rest.client.KSQLRestClient;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutionException;
 public class RemoteCli extends Cli {
 
   public RemoteCli(String serverAddress) throws IOException {
-    super(new KQLRestClient(serverAddress));
+    super(new KSQLRestClient(serverAddress));
   }
 
   @Override

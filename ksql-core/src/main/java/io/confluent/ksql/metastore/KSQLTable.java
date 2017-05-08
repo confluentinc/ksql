@@ -7,14 +7,14 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public class KQLTable extends StructuredDataSource {
+public class KSQLTable extends StructuredDataSource {
 
   final String stateStoreName;
   final boolean isWinidowed;
 
-  public KQLTable(final String datasourceName, final Schema schema, final Field keyField,
-                  final KQLTopic kqlTopic, final String stateStoreName, boolean isWinidowed) {
-    super(datasourceName, schema, keyField, DataSourceType.KTABLE, kqlTopic);
+  public KSQLTable(final String datasourceName, final Schema schema, final Field keyField,
+                   final KSQLTopic ksqlTopic, final String stateStoreName, boolean isWinidowed) {
+    super(datasourceName, schema, keyField, DataSourceType.KTABLE, ksqlTopic);
     this.stateStoreName = stateStoreName;
     this.isWinidowed = isWinidowed;
   }

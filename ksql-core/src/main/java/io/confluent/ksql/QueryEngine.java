@@ -8,9 +8,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -23,15 +23,15 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
-import io.confluent.ksql.planner.plan.KQLBareOutputNode;
-import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KSQLBareOutputNode;
+import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KQLConfig;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -50,11 +50,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
-  private KQLConfig kqlConfig;
+  private KSQLConfig ksqlConfig;
   private final AtomicLong queryIdCounter;
 
-  public QueryEngine(final KQLConfig kqlConfig) {
-    this.kqlConfig = kqlConfig;
+  public QueryEngine(final KSQLConfig ksqlConfig) {
+    this.ksqlConfig = ksqlConfig;
     this.queryIdCounter = new AtomicLong(1);
   }
 
@@ -101,16 +101,16 @@ public class QueryEngine {
 
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-      if (logicalPlan instanceof KQLStructuredDataOutputNode) {
-        KQLStructuredDataOutputNode kqlStructuredDataOutputNode = (KQLStructuredDataOutputNode) logicalPlan;
+      if (logicalPlan instanceof KSQLStructuredDataOutputNode) {
+        KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode) logicalPlan;
         StructuredDataSource
             structuredDataSource =
-            new KQLStream(kqlStructuredDataOutputNode.getId().toString(),
-                          kqlStructuredDataOutputNode.getSchema(),
-                          kqlStructuredDataOutputNode.getKeyField(),
-                          kqlStructuredDataOutputNode.getKqlTopic());
+            new KSQLStream(ksqlStructuredDataOutputNode.getId().toString(),
+                          ksqlStructuredDataOutputNode.getSchema(),
+                          ksqlStructuredDataOutputNode.getKeyField(),
+                          ksqlStructuredDataOutputNode.getKsqlTopic());
 
-        tempMetaStore.putTopic(kqlStructuredDataOutputNode.getKqlTopic());
+        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
         tempMetaStore.putSource(structuredDataSource);
       }
 
@@ -120,8 +120,8 @@ public class QueryEngine {
   }
 
   private StructuredDataSource getPlanDataSource(PlanNode outputNode) {
-    KQLTopic kqlTopic = new KQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
-    return new KQLStream(outputNode.getId().toString(), outputNode.getSchema(), outputNode.getKeyField(), kqlTopic);
+    KSQLTopic ksqlTopic = new KSQLTopic(outputNode.getId().toString(), outputNode.getId().toString(), null);
+    return new KSQLStream(outputNode.getId().toString(), outputNode.getSchema(), outputNode.getKeyField(), ksqlTopic);
   }
 
   public List<QueryMetadata> buildPhysicalPlans(
@@ -142,14 +142,14 @@ public class QueryEngine {
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
-      boolean isBareQuery = outputNode instanceof KQLBareOutputNode;
+      boolean isBareQuery = outputNode instanceof KSQLBareOutputNode;
 
       // Check to make sure the logical and physical plans match up; important to do this BEFORE actually starting up
       // the corresponding Kafka Streams job
       if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
         throw new Exception(String.format(
             "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
-                + "KQLBareOutputNode, found a %s instead",
+                + "KSQLBareOutputNode, found a %s instead",
             schemaKStream.getClass().getCanonicalName()
         ));
       }
@@ -163,15 +163,15 @@ public class QueryEngine {
         KafkaStreams streams = buildStreams(builder, applicationId);
 
         QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-        KQLBareOutputNode kqlBareOutputNode = (KQLBareOutputNode) outputNode;
+        KSQLBareOutputNode ksqlBareOutputNode = (KSQLBareOutputNode) outputNode;
         physicalPlans.add(new QueuedQueryMetadata(
             statementPlanPair.getLeft(),
             streams,
-            kqlBareOutputNode,
+            ksqlBareOutputNode,
             queuedSchemaKStream.getQueue()
         ));
 
-      } else if (outputNode instanceof KQLStructuredDataOutputNode) {
+      } else if (outputNode instanceof KSQLStructuredDataOutputNode) {
         long queryId = getNextQueryId();
         String applicationId = String.format("ksql_query_%d", queryId);
         if (addUniqueTimeSuffix) {
@@ -180,34 +180,34 @@ public class QueryEngine {
 
         KafkaStreams streams = buildStreams(builder, applicationId);
 
-        KQLStructuredDataOutputNode kafkaTopicOutputNode = (KQLStructuredDataOutputNode) outputNode;
+        KSQLStructuredDataOutputNode kafkaTopicOutputNode = (KSQLStructuredDataOutputNode) outputNode;
         physicalPlans.add(
             new PersistentQueryMetadata(statementPlanPair.getLeft(), streams, kafkaTopicOutputNode, queryId)
         );
         if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
-          metaStore.putTopic(kafkaTopicOutputNode.getKqlTopic());
+          metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
         }
         StructuredDataSource sinkDataSource;
         if (schemaKStream instanceof SchemaKTable) {
           SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
           sinkDataSource =
-              new KQLTable(kafkaTopicOutputNode.getId().toString(),
+              new KSQLTable(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getKqlTopic(), kafkaTopicOutputNode.getId()
+                  kafkaTopicOutputNode.getKsqlTopic(), kafkaTopicOutputNode.getId()
                   .toString() + "_statestore",
                   schemaKTable.isWindowed());
         } else {
           sinkDataSource =
-              new KQLStream(kafkaTopicOutputNode.getId().toString(),
+              new KSQLStream(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getKqlTopic());
+                  kafkaTopicOutputNode.getKsqlTopic());
         }
 
         metaStore.putSource(sinkDataSource);
       } else {
-        throw new KQLException("Sink data source is not correct.");
+        throw new KSQLException("Sink data source is not correct.");
       }
 
     }
@@ -226,12 +226,12 @@ public class QueryEngine {
       }
     }
 
-    KQLTopic kqlTopic = new KQLTopic(name, name, null);
-    return new KQLStream(name, dataSource.schema(), dataSource.fields().get(0), kqlTopic);
+    KSQLTopic ksqlTopic = new KSQLTopic(name, name, null);
+    return new KSQLStream(name, dataSource.schema(), dataSource.fields().get(0), ksqlTopic);
   }
 
   private KafkaStreams buildStreams(KStreamBuilder builder, String applicationId) {
-    Map<String, Object> streamsProperties = kqlConfig.getResetStreamsProperties(applicationId);
+    Map<String, Object> streamsProperties = ksqlConfig.getResetStreamsProperties(applicationId);
     return new KafkaStreams(builder, new StreamsConfig(streamsProperties));
   }
 

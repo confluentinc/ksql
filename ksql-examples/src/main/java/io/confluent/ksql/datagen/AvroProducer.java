@@ -4,7 +4,7 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.avro.KQLGenericRowAvroSerializer;
+import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -19,9 +19,9 @@ public class AvroProducer extends DataGenProducer {
       org.apache.kafka.connect.data.Schema kafkaSchema,
       String topicName
   ) {
-    Serializer<GenericRow> result = new KQLGenericRowAvroSerializer(kafkaSchema);
+    Serializer<GenericRow> result = new KSQLGenericRowAvroSerializer(kafkaSchema);
     Map<String, String> serializerConfiguration = new HashMap<>();
-    serializerConfiguration.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchema.toString());
+    serializerConfiguration.put(KSQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchema.toString());
     result.configure(serializerConfiguration, false);
     return result;
   }

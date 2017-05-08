@@ -4,8 +4,8 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.avro.KQLGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KQLGenericRowAvroSerializer;
+import io.confluent.ksql.serde.avro.KSQLGenericRowAvroDeserializer;
+import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -41,12 +41,12 @@ public class AvroConsumer {
   private static Serde<GenericRow> getGenericRowSerde() {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
-      serdeProps.put(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
+      serdeProps.put(KSQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
-      final Serializer<GenericRow> genericRowSerializer = new KQLGenericRowAvroSerializer(null);
+      final Serializer<GenericRow> genericRowSerializer = new KSQLGenericRowAvroSerializer(null);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLGenericRowAvroDeserializer(null);
+      final Deserializer<GenericRow> genericRowDeserializer = new KSQLGenericRowAvroDeserializer(null);
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

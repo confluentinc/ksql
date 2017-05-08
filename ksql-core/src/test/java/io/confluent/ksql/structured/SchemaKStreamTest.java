@@ -6,9 +6,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.KQLStream;
+import io.confluent.ksql.metastore.KSQLStream;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
@@ -16,7 +16,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.util.KSQLTestUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -32,26 +32,26 @@ import java.util.List;
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
-  private static final KQLParser kqlParser = new KQLParser();
+  private static final KSQLParser KSQL_PARSER = new KSQLParser();
 
   MetaStore metaStore;
   KStream kStream;
-  KQLStream kqlStream;
+  KSQLStream ksqlStream;
 
   @Before
   public void init() {
-    metaStore = KQLTestUtil.getNewMetaStore();
-    kqlStream = (KQLStream) metaStore.getSource("TEST1");
+    metaStore = KSQLTestUtil.getNewMetaStore();
+    ksqlStream = (KSQLStream) metaStore.getSource("TEST1");
     KStreamBuilder builder = new KStreamBuilder();
-    kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(kqlStream.getKqlTopic()
-                                                                        .getKqlTopicSerDe(), null),
-                    kqlStream.getKqlTopic().getKafkaTopicName());
-//    initialSchemaKStream = new SchemaKStream(kqlStream.getSchema(), kStream,
-//                                             kqlStream.getKeyField(), new ArrayList<>());
+    kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(ksqlStream.getKsqlTopic()
+                                                                        .getKsqlTopicSerDe(), null),
+                    ksqlStream.getKsqlTopic().getKafkaTopicName());
+//    initialSchemaKStream = new SchemaKStream(ksqlStream.getSchema(), kStream,
+//                                             ksqlStream.getKeyField(), new ArrayList<>());
   }
 
   private Analysis analyze(String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
     System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
@@ -61,7 +61,7 @@ public class SchemaKStreamTest {
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
@@ -82,7 +82,7 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             kqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>());
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -107,7 +107,7 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             kqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>());
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -134,7 +134,7 @@ public class SchemaKStreamTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             kqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>());
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
@@ -163,7 +163,7 @@ public class SchemaKStreamTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             kqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
                                                                             .get(1));

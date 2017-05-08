@@ -8,23 +8,23 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.List;
 
 
-public abstract class KQLAggFunctionDeterminer {
+public abstract class KSQLAggFunctionDeterminer {
 
   final String functionName;
-  final List<KQLAggregateFunction> aggregateFunctionList;
+  final List<KSQLAggregateFunction> aggregateFunctionList;
 
-  public KQLAggFunctionDeterminer(String functionName, List<KQLAggregateFunction> aggregateFunctionList) {
+  public KSQLAggFunctionDeterminer(String functionName, List<KSQLAggregateFunction> aggregateFunctionList) {
     this.functionName = functionName;
     this.aggregateFunctionList = aggregateFunctionList;
   }
 
-  public abstract KQLAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
+  public abstract KSQLAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
 
   public String getFunctionName() {
     return functionName;
   }
 
-  public List<KQLAggregateFunction> getAggregateFunctionList() {
+  public List<KSQLAggregateFunction> getAggregateFunctionList() {
     return aggregateFunctionList;
   }
 }

@@ -1,13 +1,13 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.util.KSQLTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,16 +16,16 @@ import java.util.List;
 
 public class AggregateAnalyzerTest {
 
-  private static final KQLParser kqlParser = new KQLParser();
+  private static final KSQLParser KSQL_PARSER = new KSQLParser();
   private MetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = KQLTestUtil.getNewMetaStore();
+    metaStore = KSQLTestUtil.getNewMetaStore();
   }
 
   private Analysis analyze(final String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
 //    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();

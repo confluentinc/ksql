@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.function.udaf;
 
-import io.confluent.ksql.function.KQLAggregateFunction;
+import io.confluent.ksql.function.KSQLAggregateFunction;
 import io.confluent.ksql.physical.GenericRow;
 import org.apache.kafka.streams.kstream.Aggregator;
 
@@ -11,10 +11,10 @@ import java.util.Map;
 
 public class KUDAFAggregator implements Aggregator<String, GenericRow, GenericRow> {
 
-  Map<Integer, KQLAggregateFunction> aggValToAggFunctionMap;
+  Map<Integer, KSQLAggregateFunction> aggValToAggFunctionMap;
   Map<Integer, Integer> aggValToValColumnMap;
 
-  public KUDAFAggregator(Map<Integer, KQLAggregateFunction> aggValToAggFunctionMap, Map<Integer,
+  public KUDAFAggregator(Map<Integer, KSQLAggregateFunction> aggValToAggFunctionMap, Map<Integer,
       Integer> aggValToValColumnMap) {
     this.aggValToAggFunctionMap = aggValToAggFunctionMap;
     this.aggValToValColumnMap = aggValToValColumnMap;
@@ -28,9 +28,9 @@ public class KUDAFAggregator implements Aggregator<String, GenericRow, GenericRo
     }
 
     for (int aggFunctionIndex: aggValToAggFunctionMap.keySet()) {
-      KQLAggregateFunction kqlAggregateFunction = aggValToAggFunctionMap.get(aggFunctionIndex);
-      aggRowValue.getColumns().set(aggFunctionIndex, kqlAggregateFunction.aggregate(
-          rowValue.getColumns().get(kqlAggregateFunction.getArgIndexInValue()), aggRowValue.getColumns().get(aggFunctionIndex))
+      KSQLAggregateFunction ksqlAggregateFunction = aggValToAggFunctionMap.get(aggFunctionIndex);
+      aggRowValue.getColumns().set(aggFunctionIndex, ksqlAggregateFunction.aggregate(
+          rowValue.getColumns().get(ksqlAggregateFunction.getArgIndexInValue()), aggRowValue.getColumns().get(aggFunctionIndex))
       );
     }
     return aggRowValue;

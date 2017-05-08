@@ -8,7 +8,7 @@ import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -46,15 +46,15 @@ public class SchemaKGroupedStream {
                                 final String storeName) {
     KTable<Windowed<String>, GenericRow> aggKtable;
     if (windowExpression != null) {
-      if (windowExpression.getKqlWindowExpression() instanceof TumblingWindowExpression) {
+      if (windowExpression.getKsqlWindowExpression() instanceof TumblingWindowExpression) {
         TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
-            windowExpression.getKqlWindowExpression();
+            windowExpression.getKsqlWindowExpression();
         aggKtable =
             kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(tumblingWindowExpression
                                                                          .getSize(),
                                                                      tumblingWindowExpression.getSizeUnit())), topicValueSerDe, storeName);
-      } else if (windowExpression.getKqlWindowExpression() instanceof HoppingWindowExpression) {
-        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) windowExpression.getKqlWindowExpression();
+      } else if (windowExpression.getKsqlWindowExpression() instanceof HoppingWindowExpression) {
+        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) windowExpression.getKsqlWindowExpression();
         aggKtable =
             kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
                                                                                                         hoppingWindowExpression.getSizeUnit()))
@@ -62,7 +62,7 @@ public class SchemaKGroupedStream {
                                                                                hoppingWindowExpression.getAdvanceByUnit())),
                                      topicValueSerDe, storeName);
       } else {
-        throw new KQLException("Could not set the window expression for aggregate.");
+        throw new KSQLException("Could not set the window expression for aggregate.");
       }
     } else {
       aggKtable =

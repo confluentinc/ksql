@@ -1,15 +1,15 @@
 package io.confluent.ksql.util;
 
 
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public class KQLTestUtil {
+public class KSQLTestUtil {
 
   public static MetaStore getNewMetaStore() {
 
@@ -23,15 +23,15 @@ public class KQLTestUtil {
         .field("COL4", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
-    KQLTopic
-        kqlTopic1 =
-        new KQLTopic("TEST1", "test1", new KQLJsonTopicSerDe(null));
+    KSQLTopic
+        ksqlTopic1 =
+        new KSQLTopic("TEST1", "test1", new KSQLJsonTopicSerDe(null));
 
-    KQLStream kqlStream = new KQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
-                                        kqlTopic1);
+    KSQLStream ksqlStream = new KSQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
+        ksqlTopic1);
 
-    metaStore.putTopic(kqlTopic1);
-    metaStore.putSource(kqlStream);
+    metaStore.putTopic(ksqlTopic1);
+    metaStore.putSource(ksqlStream);
 
     SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
         .field("COL0", SchemaBuilder.INT64_SCHEMA)
@@ -40,14 +40,14 @@ public class KQLTestUtil {
         .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
         .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
 
-    KQLTopic
-        kqlTopic2 =
-        new KQLTopic("TEST2", "test2", new KQLJsonTopicSerDe(null));
-    KQLTable kqlTable = new KQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                     kqlTopic2, "TEST2", false);
+    KSQLTopic
+        ksqlTopic2 =
+        new KSQLTopic("TEST2", "test2", new KSQLJsonTopicSerDe(null));
+    KSQLTable ksqlTable = new KSQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
+        ksqlTopic2, "TEST2", false);
 
-    metaStore.putTopic(kqlTopic2);
-    metaStore.putSource(kqlTable);
+    metaStore.putTopic(ksqlTopic2);
+    metaStore.putSource(ksqlTable);
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
             .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
@@ -55,15 +55,15 @@ public class KQLTestUtil {
             .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
             .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
 
-    KQLTopic
-            kqlTopicOrders =
-            new KQLTopic("ORDERS_TOPIC", "orders_topic", new KQLJsonTopicSerDe(null));
+    KSQLTopic
+        ksqlTopicOrders =
+            new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
 
-    KQLStream kqlStreamOrders = new KQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
-                                              kqlTopicOrders);
+    KSQLStream ksqlStreamOrders = new KSQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
+        ksqlTopicOrders);
 
-    metaStore.putTopic(kqlTopicOrders);
-    metaStore.putSource(kqlStreamOrders);
+    metaStore.putTopic(ksqlTopicOrders);
+    metaStore.putSource(ksqlStreamOrders);
 
     return metaStore;
   }

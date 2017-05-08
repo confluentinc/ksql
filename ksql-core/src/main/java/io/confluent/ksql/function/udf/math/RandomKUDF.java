@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KQLFunctionException;
+import io.confluent.ksql.function.KSQLFunctionException;
 import io.confluent.ksql.function.udf.KUDF;
 
 public class RandomKUDF implements KUDF {
@@ -17,7 +17,7 @@ public class RandomKUDF implements KUDF {
   @Override
   public Object evaluate(Object... args) {
     if (args.length != 0) {
-      throw new KQLFunctionException("Random udf should have no input argument.");
+      throw new KSQLFunctionException("Random udf should have no input argument.");
     }
     return Math.random();
   }

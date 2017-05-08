@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import java.util.Map;
 
 
-public class KQLCsvSerializer implements Serializer<GenericRow> {
+public class KSQLCsvSerializer implements Serializer<GenericRow> {
 
 
   @Override

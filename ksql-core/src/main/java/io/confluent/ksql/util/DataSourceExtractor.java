@@ -79,7 +79,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
           fromDataSource =
           metaStore.getSource(table.getName().getSuffix());
       if (fromDataSource == null) {
-        throw new KQLException(table.getName().getSuffix() + " does not exist.");
+        throw new KSQLException(table.getName().getSuffix() + " does not exist.");
       }
       this.fromSchema = fromDataSource.getSchema();
       return null;
@@ -111,7 +111,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
         leftDataSource =
         metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
     if (leftDataSource == null) {
-      throw new KQLException(((Table) left.getRelation()).getName().getSuffix() + " does not "
+      throw new KSQLException(((Table) left.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
     }
     this.joinLeftSchema = leftDataSource.getSchema();
@@ -121,7 +121,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
         rightDataSource =
         metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
     if (rightDataSource == null) {
-      throw new KQLException(((Table) right.getRelation()).getName().getSuffix() + " does not "
+      throw new KSQLException(((Table) right.getRelation()).getName().getSuffix() + " does not "
                              + "exist.");
     }
     this.joinRightSchema = rightDataSource.getSchema();

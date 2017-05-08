@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
+public class KSQLGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
   public static final String AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT = "/tmp/";
@@ -34,7 +34,7 @@ public class KQLGenericRowAvroSerializer implements Serializer<GenericRow> {
   Encoder encoder;
   List<Schema.Field> fields;
 
-  public KQLGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema) {
+  public KSQLGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema) {
     this.schema = schema;
   }
 

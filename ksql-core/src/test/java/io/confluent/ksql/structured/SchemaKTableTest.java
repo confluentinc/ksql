@@ -6,9 +6,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.KQLTable;
+import io.confluent.ksql.metastore.KSQLTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
@@ -16,7 +16,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.util.KSQLTestUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -32,26 +32,26 @@ import java.util.List;
 public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
-  private static final KQLParser kqlParser = new KQLParser();
+  private static final KSQLParser KSQL_PARSER = new KSQLParser();
 
   MetaStore metaStore;
   KTable kTable;
-  KQLTable kqlTable;
+  KSQLTable ksqlTable;
 
   @Before
   public void init() {
-    metaStore = KQLTestUtil.getNewMetaStore();
-    kqlTable = (KQLTable) metaStore.getSource("TEST2");
+    metaStore = KSQLTestUtil.getNewMetaStore();
+    ksqlTable = (KSQLTable) metaStore.getSource("TEST2");
     KStreamBuilder builder = new KStreamBuilder();
     kTable = builder
-            .table(Serdes.String(), SerDeUtil.getRowSerDe(kqlTable.getKqlTopic().getKqlTopicSerDe
-                       (), null), kqlTable.getKqlTopic().getKafkaTopicName(),
-                   kqlTable.getStateStoreName());
+            .table(Serdes.String(), SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe
+                       (), null), ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                   ksqlTable.getStateStoreName());
 
   }
 
   private Analysis analyze(String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
     System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
@@ -61,7 +61,7 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
@@ -82,7 +82,7 @@ public class SchemaKTableTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                             kqlTable.getKeyField(), new ArrayList<>(), false);
+                                             ksqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions
         ());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -108,7 +108,7 @@ public class SchemaKTableTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           kqlTable.getKeyField(), new ArrayList<>(), false);
+                                           ksqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -135,7 +135,7 @@ public class SchemaKTableTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           kqlTable.getKeyField(), new ArrayList<>(), false);
+                                           ksqlTable.getKeyField(), new ArrayList<>(), false);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);

@@ -9,24 +9,24 @@ import java.util.Optional;
 public class WindowExpression extends Node {
 
   private final String windowName;
-  private  final KQLWindowExpression kqlWindowExpression;
+  private  final KSQLWindowExpression ksqlWindowExpression;
 
-  public WindowExpression(String windowName, KQLWindowExpression kqlWindowExpression) {
-    this(Optional.empty(), windowName, kqlWindowExpression);
+  public WindowExpression(String windowName, KSQLWindowExpression ksqlWindowExpression) {
+    this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
-  protected WindowExpression(Optional<NodeLocation> location, String windowName, KQLWindowExpression kqlWindowExpression) {
+  protected WindowExpression(Optional<NodeLocation> location, String windowName, KSQLWindowExpression ksqlWindowExpression) {
     super(location);
     this.windowName = windowName;
-    this.kqlWindowExpression = kqlWindowExpression;
+    this.ksqlWindowExpression = ksqlWindowExpression;
   }
 
   public String getWindowName() {
     return windowName;
   }
 
-  public KQLWindowExpression getKqlWindowExpression() {
-    return kqlWindowExpression;
+  public KSQLWindowExpression getKsqlWindowExpression() {
+    return ksqlWindowExpression;
   }
 
   @Override
@@ -38,17 +38,17 @@ public class WindowExpression extends Node {
       return false;
     }
     WindowExpression o = (WindowExpression) obj;
-    return Objects.equals(kqlWindowExpression, o.kqlWindowExpression);
+    return Objects.equals(ksqlWindowExpression, o.ksqlWindowExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(windowName, kqlWindowExpression);
+    return Objects.hash(windowName, ksqlWindowExpression);
   }
 
   @Override
   public String toString() {
-    return " WINDOW " + windowName + " " + kqlWindowExpression.toString();
+    return " WINDOW " + windowName + " " + ksqlWindowExpression.toString();
   }
 
   public static enum WindowUnit { DAY, HOUR, MINUTE, SECOND, MILLISECOND }

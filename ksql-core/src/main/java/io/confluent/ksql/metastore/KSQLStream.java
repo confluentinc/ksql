@@ -7,10 +7,10 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public class KQLStream extends StructuredDataSource {
+public class KSQLStream extends StructuredDataSource {
 
-  public KQLStream(final String datasourceName, final Schema schema, final Field keyField,
-                   final KQLTopic kqlTopic) {
-    super(datasourceName, schema, keyField, DataSourceType.KSTREAM, kqlTopic);
+  public KSQLStream(final String datasourceName, final Schema schema, final Field keyField,
+                    final KSQLTopic ksqlTopic) {
+    super(datasourceName, schema, keyField, DataSourceType.KSTREAM, ksqlTopic);
   }
 }

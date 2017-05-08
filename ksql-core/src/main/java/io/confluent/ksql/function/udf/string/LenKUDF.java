@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KQLFunctionException;
+import io.confluent.ksql.function.KSQLFunctionException;
 import io.confluent.ksql.function.udf.KUDF;
 
 public class LenKUDF implements KUDF {
@@ -17,7 +17,7 @@ public class LenKUDF implements KUDF {
   @Override
   public Object evaluate(Object... args) {
     if (args.length != 1) {
-      throw new KQLFunctionException("Length udf should have one input argument.");
+      throw new KSQLFunctionException("Length udf should have one input argument.");
     }
     return args[0].toString().length();
   }

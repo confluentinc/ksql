@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
+public class KSQLJsonPOJODeserializer implements Deserializer<GenericRow> {
 
   private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -31,7 +31,7 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KQLJsonPOJODeserializer(Schema schema) {
+  public KSQLJsonPOJODeserializer(Schema schema) {
     this.schema = schema;
   }
 
@@ -105,7 +105,7 @@ public class KQLJsonPOJODeserializer implements Deserializer<GenericRow> {
         }
         return mapField;
       default:
-        throw new KQLException("Type is not supported: " + fieldSchema.type());
+        throw new KSQLException("Type is not supported: " + fieldSchema.type());
 
     }
 

@@ -14,7 +14,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
-public class KQLParserErrorStrategy extends DefaultErrorStrategy {
+public class KSQLParserErrorStrategy extends DefaultErrorStrategy {
 
   public void reportError(Parser recognizer, RecognitionException e) {
     if (!this.inErrorRecoveryMode(recognizer)) {

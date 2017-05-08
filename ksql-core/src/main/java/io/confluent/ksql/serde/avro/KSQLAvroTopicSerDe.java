@@ -4,14 +4,14 @@
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.serde.KQLTopicSerDe;
+import io.confluent.ksql.serde.KSQLTopicSerDe;
 
-public class KQLAvroTopicSerDe extends KQLTopicSerDe {
+public class KSQLAvroTopicSerDe extends KSQLTopicSerDe {
 
   private final String schemaString;
   private final String schemaFilePath;
 
-  public KQLAvroTopicSerDe(final String schemaFilePath, final String schemaString) {
+  public KSQLAvroTopicSerDe(final String schemaFilePath, final String schemaString) {
     super(StructuredDataSource.DataSourceSerDe.AVRO);
     this.schemaString = schemaString;
     this.schemaFilePath = schemaFilePath;

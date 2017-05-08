@@ -7,7 +7,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.function.Function;
 
 
-public class KQLParser {
+public class KSQLParser {
 
 
   /**
@@ -47,7 +47,7 @@ public class KQLParser {
       return astNodes;
     } catch (ParseCancellationException ex) {
       // if we fail, parse with LL mode
-      throw new KQLException(ex.getMessage());
+      throw new KSQLException(ex.getMessage());
     }
   }
 
@@ -85,7 +85,7 @@ public class KQLParser {
     sqlBaseParser.removeErrorListeners();
     sqlBaseParser.addErrorListener(ERROR_LISTENER);
 
-//    sqlBaseParser.setErrorHandler(new KQLParserErrorStrategy());
+//    sqlBaseParser.setErrorHandler(new KSQLParserErrorStrategy());
     Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
     ParserRuleContext tree;
     try {

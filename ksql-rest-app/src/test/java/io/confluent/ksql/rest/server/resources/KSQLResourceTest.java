@@ -2,9 +2,9 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.ddl.DDLConfig;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateTopic;
@@ -17,11 +17,11 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -47,7 +47,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class KQLResourceTest {
+public class KSQLResourceTest {
 
   private static final MetaStore mockMetastore;
 
@@ -55,23 +55,23 @@ public class KQLResourceTest {
     mockMetastore = new MetaStoreImpl();
 
     Schema schema1 = SchemaBuilder.struct().field("s1_f1", Schema.BOOLEAN_SCHEMA);
-    KQLTopic kqlTopic1 = new KQLTopic("kql_topic_1", "kafka_topic_1", new KQLJsonTopicSerDe(schema1));
-    mockMetastore.putTopic(kqlTopic1);
-    mockMetastore.putSource(new KQLTable("test_table", schema1, schema1.field("s1_f1"), kqlTopic1, "statestore", false));
+    KSQLTopic ksqlTopic1 = new KSQLTopic("kql_topic_1", "kafka_topic_1", new KSQLJsonTopicSerDe(schema1));
+    mockMetastore.putTopic(ksqlTopic1);
+    mockMetastore.putSource(new KSQLTable("test_table", schema1, schema1.field("s1_f1"), ksqlTopic1, "statestore", false));
 
     Schema schema2 = SchemaBuilder.struct().field("s2_f1", Schema.STRING_SCHEMA).field("s2_f2", Schema.INT32_SCHEMA);
-    KQLTopic kqlTopic2 = new KQLTopic("kql_topic_2", "kafka_topic_2", new KQLJsonTopicSerDe(schema2));
-    mockMetastore.putTopic(kqlTopic2);
-    mockMetastore.putSource(new KQLStream("test_stream", schema2, schema2.field("s2_f2"), kqlTopic2));
+    KSQLTopic ksqlTopic2 = new KSQLTopic("kql_topic_2", "kafka_topic_2", new KSQLJsonTopicSerDe(schema2));
+    mockMetastore.putTopic(ksqlTopic2);
+    mockMetastore.putSource(new KSQLStream("test_stream", schema2, schema2.field("s2_f2"), ksqlTopic2));
   }
 
-  private static class TestKqlResource extends KQLResource {
+  private static class TestKSQLResource extends KSQLResource {
 
     public final KSQLEngine ksqlEngine;
     public final CommandStore commandStore;
     public final StatementExecutor statementExecutor;
 
-    private TestKqlResource(KSQLEngine ksqlEngine, CommandStore commandStore, StatementExecutor statementExecutor) {
+    private TestKSQLResource(KSQLEngine ksqlEngine, CommandStore commandStore, StatementExecutor statementExecutor) {
       super(ksqlEngine, commandStore, statementExecutor);
 
       this.ksqlEngine = ksqlEngine;
@@ -81,7 +81,7 @@ public class KQLResourceTest {
       expect(ksqlEngine.getMetaStore()).andStubReturn(mockMetastore);
     }
 
-    public TestKqlResource() {
+    public TestKSQLResource() {
       this(
           mock(KSQLEngine.class),
           mock(CommandStore.class),
@@ -94,14 +94,14 @@ public class KQLResourceTest {
     }
   }
 
-  static KQLJsonRequest createJsonRequest(String kql) {
-    KQLJsonRequest result = new KQLJsonRequest();
+  static KSQLJsonRequest createJsonRequest(String kql) {
+    KSQLJsonRequest result = new KSQLJsonRequest();
     result.kql = kql;
     return result;
   }
 
   private JsonValue makeSingleRequest(
-      TestKqlResource testResource,
+      TestKSQLResource testResource,
       String kqlString,
       Statement kqlStatement,
       String responseField
@@ -128,7 +128,7 @@ public class KQLResourceTest {
 
   @Test
   public void testCreateTopic() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
 
     final String kqlTopic = "foo";
     final String kafkaTopic = "bar";
@@ -163,7 +163,7 @@ public class KQLResourceTest {
 
   @Test
   public void testErroneousStatement() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "DESCRIBE nonexistent_table;";
     final ShowColumns kqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
 
@@ -176,7 +176,7 @@ public class KQLResourceTest {
 
   @Test
   public void testListTopic() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "LIST TOPICS;";
     final ListTopics kqlStatement = new ListTopics(Optional.empty());
 
@@ -190,13 +190,13 @@ public class KQLResourceTest {
 
   @Test
   public void testShowQueries() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "SHOW QUERIES;";
     final ListQueries kqlStatement = new ListQueries(Optional.empty());
 
     final String mockQueryStatement = "CREATE STREAM lol AS SELECT * FROM test_stream WHERE s2_f2 > 69;";
 
-    final KQLStructuredDataOutputNode mockQueryOutputNode = mock(KQLStructuredDataOutputNode.class);
+    final KSQLStructuredDataOutputNode mockQueryOutputNode = mock(KSQLStructuredDataOutputNode.class);
     expect(mockQueryOutputNode.getKafkaTopicName()).andReturn("lol");
     replay(mockQueryOutputNode);
 
@@ -222,7 +222,7 @@ public class KQLResourceTest {
 
   @Test
   public void testDescribeStatement() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "DESCRIBE test_table;";
     final ShowColumns kqlStatement = new ShowColumns(QualifiedName.of("test_table"));
 
@@ -231,7 +231,7 @@ public class KQLResourceTest {
 
   @Test
   public void testListStreamsStatement() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "LIST STREAMS;";
     final ListStreams kqlStatement = new ListStreams(Optional.empty());
 
@@ -244,7 +244,7 @@ public class KQLResourceTest {
 
   @Test
   public void testListTablesStatement() throws Exception {
-    TestKqlResource testResource = new TestKqlResource();
+    TestKSQLResource testResource = new TestKSQLResource();
     final String kqlString = "LIST TABLES;";
     final ListTables kqlStatement = new ListTables(Optional.empty());
 

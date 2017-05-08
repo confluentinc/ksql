@@ -4,12 +4,12 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DDLEngine;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -24,7 +24,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KQLConfig;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class KQLEngine implements Closeable {
+public class KSQLEngine implements Closeable {
 
   private final QueryEngine queryEngine;
   private final DDLEngine ddlEngine;
@@ -58,10 +58,10 @@ public class KQLEngine implements Closeable {
   public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString) throws Exception {
 
     // Parse and AST creation
-    KQLParser kqlParser = new KQLParser();
+    KSQLParser ksqlParser = new KSQLParser();
     List<SqlBaseParser.SingleStatementContext>
         parsedStatements =
-        kqlParser.getStatements(queriesString);
+        ksqlParser.getStatements(queriesString);
     List<Pair<String, Query>> queryList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
     for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
@@ -69,7 +69,7 @@ public class KQLEngine implements Closeable {
     }
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
       Pair<Statement, DataSourceExtractor> statementInfo =
-          kqlParser.prepareStatement(singleStatementContext, tempMetaStore);
+          ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
       Statement statement = statementInfo.getLeft();
       if (statement instanceof Query) {
         queryList.add(new Pair<>(getStatementString(singleStatementContext), (Query) statement));
@@ -104,20 +104,20 @@ public class KQLEngine implements Closeable {
         ));
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTopic) {
-        KQLTopic kqlTopic = ddlEngine.createTopic((CreateTopic) statement);
-        if (kqlTopic != null) {
-          tempMetaStore.putTopic(kqlTopic);
+        KSQLTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);
+        if (ksqlTopic != null) {
+          tempMetaStore.putTopic(ksqlTopic);
         }
 
       } else if (statement instanceof CreateStream) {
-        KQLStream kqlStream = ddlEngine.createStream((CreateStream) statement);
-        if (kqlStream != null) {
-          tempMetaStore.putSource(kqlStream);
+        KSQLStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
+        if (ksqlStream != null) {
+          tempMetaStore.putSource(ksqlStream);
         }
       } else if (statement instanceof CreateTable) {
-        KQLTable kqlTable = ddlEngine.createTable((CreateTable) statement);
-        if (kqlTable != null) {
-          tempMetaStore.putSource(kqlTable);
+        KSQLTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
+        if (ksqlTable != null) {
+          tempMetaStore.putSource(ksqlTable);
         }
       }
     }
@@ -150,7 +150,7 @@ public class KQLEngine implements Closeable {
   }
 
   public List<Statement> getStatements(final String sqlString) {
-    return new KQLParser().buildAST(sqlString, metaStore);
+    return new KSQLParser().buildAST(sqlString, metaStore);
   }
 
 
@@ -209,9 +209,9 @@ public class KQLEngine implements Closeable {
     }
   }
 
-  public KQLEngine(MetaStore metaStore, KQLConfig kqlConfig) {
+  public KSQLEngine(MetaStore metaStore, KSQLConfig ksqlConfig) {
     this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(kqlConfig);
+    this.queryEngine = new QueryEngine(ksqlConfig);
     this.ddlEngine = new DDLEngine(this);
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();

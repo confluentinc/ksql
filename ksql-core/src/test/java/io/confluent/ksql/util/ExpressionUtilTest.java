@@ -5,7 +5,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.tree.Statement;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -17,14 +17,14 @@ import java.util.List;
 
 public class ExpressionUtilTest {
 
-    private static final KQLParser kqlParser = new KQLParser();
+    private static final KSQLParser KSQL_PARSER = new KSQLParser();
     private MetaStore metaStore;
     private Schema schema;
     private ExpressionUtil expressionUtil;
 
     @Before
     public void init() {
-        metaStore = KQLTestUtil.getNewMetaStore();
+        metaStore = KSQLTestUtil.getNewMetaStore();
         schema = SchemaBuilder.struct()
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
@@ -34,7 +34,7 @@ public class ExpressionUtilTest {
     }
 
     private Analysis analyzeQuery(String queryStr) {
-        List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+        List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
         // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis, metaStore);

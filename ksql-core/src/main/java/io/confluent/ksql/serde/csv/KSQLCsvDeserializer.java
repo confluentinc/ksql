@@ -4,7 +4,7 @@
 package io.confluent.ksql.serde.csv;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class KQLCsvDeserializer implements Deserializer<GenericRow> {
+public class KSQLCsvDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
@@ -33,7 +33,7 @@ public class KQLCsvDeserializer implements Deserializer<GenericRow> {
       }
       return new GenericRow(columns);
     } catch (IOException e) {
-      throw new KQLException("Could not parse the CSV record: " + recordCsvString);
+      throw new KSQLException("Could not parse the CSV record: " + recordCsvString);
     }
   }
 

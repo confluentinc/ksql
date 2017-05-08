@@ -4,8 +4,8 @@
 package io.confluent.ksql.metastore;
 
 
-import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
+import io.confluent.ksql.util.KSQLTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,20 +16,19 @@ public class MetastoreTest {
 
   @Before
   public void init() {
-    metaStore = KQLTestUtil.getNewMetaStore();
+    metaStore = KSQLTestUtil.getNewMetaStore();
   }
 
   @Test
   public void testTopicMap() {
-    KQLTopic kqlTopic = new KQLTopic("testTopic", "testTopicKafka", new KQLJsonTopicSerDe(null));
-    metaStore.putTopic(kqlTopic);
-    KQLTopic kqlTopic1 = metaStore.getTopic("testTopic");
-    Assert.assertNotNull(kqlTopic1);
+    KSQLTopic ksqlTopic1 = new KSQLTopic("testTopic", "testTopicKafka", new KSQLJsonTopicSerDe(null));
+    metaStore.putTopic(ksqlTopic1);
+    KSQLTopic ksqlTopic2 = metaStore.getTopic("testTopic");
+    Assert.assertNotNull(ksqlTopic2);
 
-    // Check non-existant topic
-    KQLTopic kqlTopic3 = metaStore.getTopic("TESTTOPIC_");
-    Assert.assertNull(kqlTopic3);
-
+    // Check non-existent topic
+    KSQLTopic ksqlTopic3 = metaStore.getTopic("TESTTOPIC_");
+    Assert.assertNull(ksqlTopic3);
   }
 
   @Test
@@ -38,20 +37,18 @@ public class MetastoreTest {
     Assert.assertNotNull(structuredDataSource1);
     Assert.assertTrue(structuredDataSource1.dataSourceType == DataSource.DataSourceType.KSTREAM);
 
-    // Check non-existant stream
-    StructuredDataSource structuredDataSource2 = metaStore.getSource("nonExistantStream");
+    // Check non-existent stream
+    StructuredDataSource structuredDataSource2 = metaStore.getSource("nonExistentStream");
     Assert.assertNull(structuredDataSource2);
-
   }
 
   @Test
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource structuredDataSource2 = new KQLStream("testStream",
+    StructuredDataSource structuredDataSource2 = new KSQLStream("testStream",
                                                                structuredDataSource1.getSchema(),
-                                                               structuredDataSource1.getKeyField
-                                                                   (),
-                                                               structuredDataSource1.getKqlTopic());
+                                                               structuredDataSource1.getKeyField(),
+                                                               structuredDataSource1.getKsqlTopic());
     metaStore.putSource(structuredDataSource2);
     StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");
     Assert.assertNotNull(structuredDataSource3);

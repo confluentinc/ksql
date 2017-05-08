@@ -4,15 +4,15 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 
-public class KQLFunctionException extends KQLException {
+public class KSQLFunctionException extends KSQLException {
 
-  public KQLFunctionException(String message) {
+  public KSQLFunctionException(String message) {
     super(message);
   }
 
-  public KQLFunctionException(String s, Throwable throwable) {
+  public KSQLFunctionException(String s, Throwable throwable) {
     super(s, throwable);
   }
 }

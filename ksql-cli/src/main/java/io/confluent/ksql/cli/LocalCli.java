@@ -3,9 +3,9 @@
  **/
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.client.KQLRestClient;
-import io.confluent.ksql.rest.server.KQLRestApplication;
-import io.confluent.ksql.rest.server.KQLRestConfig;
+import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.server.KSQLRestApplication;
+import io.confluent.ksql.rest.server.KSQLRestConfig;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -13,15 +13,15 @@ import java.util.concurrent.TimeoutException;
 
 public class LocalCli extends Cli {
 
-  private final KQLRestApplication serverApplication;
+  private final KSQLRestApplication serverApplication;
 
   public LocalCli(Properties serverProperties, int portNumber) throws Exception {
-    super(new KQLRestClient(getServerAddress(portNumber)));
+    super(new KSQLRestClient(getServerAddress(portNumber)));
 
     // Have to override listeners config to make sure it aligns with port number for client
-    serverProperties.put(KQLRestConfig.LISTENERS_CONFIG, getServerAddress(portNumber));
+    serverProperties.put(KSQLRestConfig.LISTENERS_CONFIG, getServerAddress(portNumber));
 
-    this.serverApplication = KQLRestApplication.buildApplication(serverProperties, false);
+    this.serverApplication = KSQLRestApplication.buildApplication(serverProperties, false);
     serverApplication.start();
   }
 

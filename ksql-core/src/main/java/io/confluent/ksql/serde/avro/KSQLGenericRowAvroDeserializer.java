@@ -4,7 +4,7 @@
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
+public class KSQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
   private final org.apache.kafka.connect.data.Schema schema;
 
@@ -28,13 +28,13 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
   Schema avroSchema;
   GenericDatumReader<GenericRecord> reader;
 
-  public KQLGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema) {
+  public KSQLGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema) {
     this.schema = schema;
   }
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowSchema = (String) map.get(KQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
+    rowSchema = (String) map.get(KSQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
     if (rowSchema == null) {
       throw new SerializationException("Avro schema is not set for the deserializer.");
     }
@@ -86,7 +86,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
         }
         return arrayField;
       default:
-        throw new KQLException("Type is not supported: " + fieldSchema.getType());
+        throw new KSQLException("Type is not supported: " + fieldSchema.getType());
 
     }
   }
@@ -109,7 +109,7 @@ public class KQLGenericRowAvroDeserializer implements Deserializer<GenericRow> {
       case MAP:
         return (new HashMap<>()).getClass();
       default:
-        throw new KQLException("Type is not supported: " + schema.getType());
+        throw new KSQLException("Type is not supported: " + schema.getType());
     }
   }
 

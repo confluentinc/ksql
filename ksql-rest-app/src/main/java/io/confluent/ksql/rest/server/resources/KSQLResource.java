@@ -4,11 +4,11 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.KSQLEngine;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -22,11 +22,11 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
+import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import org.antlr.v4.runtime.CharStream;
@@ -51,15 +51,15 @@ import java.util.Map;
 @Path("/ksql")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class KQLResource {
+public class KSQLResource {
 
-  private static final org.slf4j.Logger log = LoggerFactory.getLogger(KQLResource.class);
+  private static final org.slf4j.Logger log = LoggerFactory.getLogger(KSQLResource.class);
 
   private final KSQLEngine ksqlEngine;
   private final CommandStore commandStore;
   private final StatementExecutor statementExecutor;
 
-  public KQLResource(
+  public KSQLResource(
       KSQLEngine ksqlEngine,
       CommandStore commandStore,
       StatementExecutor statementExecutor
@@ -70,7 +70,7 @@ public class KQLResource {
   }
 
   @POST
-  public Response handleKQLStatements(KQLJsonRequest request) throws Exception {
+  public Response handleKQLStatements(KSQLJsonRequest request) throws Exception {
     List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKql());
     List<String> statementStrings = getStatementStrings(request.getKql());
     if (parsedStatements.size() != statementStrings.size()) {
@@ -86,14 +86,14 @@ public class KQLResource {
       try {
         result.add(executeStatement(statementString, parsedStatements.get(i)));
       } catch (Exception exception) {
-        result.add(KQLExceptionMapper.stackTraceJson(exception));
+        result.add(KSQLExceptionMapper.stackTraceJson(exception));
       }
     }
     return Response.ok(result.build().toString()).build();
   }
 
   public List<String> getStatementStrings(String kqlString) {
-    List<SqlBaseParser.SingleStatementContext> statementContexts = new KQLParser().getStatements(kqlString);
+    List<SqlBaseParser.SingleStatementContext> statementContexts = new KSQLParser().getStatements(kqlString);
     List<String> result = new ArrayList<>(statementContexts.size());
     for (SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
       // Taken from http://stackoverflow.com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
@@ -150,20 +150,20 @@ public class KQLResource {
     return result.build();
   }
 
-  private JsonObjectBuilder formatTopicAsJson(KQLTopic kqlTopic) {
+  private JsonObjectBuilder formatTopicAsJson(KSQLTopic ksqlTopic) {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    result.add("kafka_topic", kqlTopic.getKafkaTopicName());
-    result.add("format", kqlTopic.getKqlTopicSerDe().getSerDe().toString());
-    if (kqlTopic.getKqlTopicSerDe() instanceof KQLAvroTopicSerDe) {
-      result.add("avro_schema", ((KQLAvroTopicSerDe) kqlTopic.getKqlTopicSerDe()).getSchemaString());
+    result.add("kafka_topic", ksqlTopic.getKafkaTopicName());
+    result.add("format", ksqlTopic.getKsqlTopicSerDe().getSerDe().toString());
+    if (ksqlTopic.getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe) {
+      result.add("avro_schema", ((KSQLAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe()).getSchemaString());
     }
     return result;
   }
 
   private JsonObject listTopics() {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    Map<String, KQLTopic> topicMap = ksqlEngine.getMetaStore().getAllKQLTopics();
-    for (Map.Entry<String, KQLTopic> topicEntry : topicMap.entrySet()) {
+    Map<String, KSQLTopic> topicMap = ksqlEngine.getMetaStore().getAllKQLTopics();
+    for (Map.Entry<String, KSQLTopic> topicEntry : topicMap.entrySet()) {
       result.add(topicEntry.getKey(), formatTopicAsJson(topicEntry.getValue()).build());
     }
     return result.build();
@@ -171,9 +171,9 @@ public class KQLResource {
 
   private JsonObjectBuilder formatDataSourceAsJson(StructuredDataSource dataSource) {
     JsonObjectBuilder result = Json.createObjectBuilder();
-    result.add("kql_topic", dataSource.getKqlTopic().getName());
+    result.add("kql_topic", dataSource.getKsqlTopic().getName());
     result.add("key", dataSource.getKeyField().name());
-    result.add("format", dataSource.getKqlTopic().getKqlTopicSerDe().getSerDe().toString());
+    result.add("format", dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString());
     return result;
   }
 
@@ -182,13 +182,13 @@ public class KQLResource {
     JsonObjectBuilder result = Json.createObjectBuilder();
 
     for (PersistentQueryMetadata persistentQueryMetadata : ksqlEngine.getPersistentQueries().values()) {
-      KQLStructuredDataOutputNode kqlStructuredDataOutputNode =
-          (KQLStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
+      KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode =
+          (KSQLStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
 
       JsonObjectBuilder persistentQuery = Json.createObjectBuilder();
 
       persistentQuery.add("query", persistentQueryMetadata.getStatementString());
-      persistentQuery.add("kafka_topic", kqlStructuredDataOutputNode.getKafkaTopicName());
+      persistentQuery.add("kafka_topic", ksqlStructuredDataOutputNode.getKafkaTopicName());
 
       result.add(Long.toString(persistentQueryMetadata.getId()), persistentQuery.build());
     }
@@ -218,7 +218,7 @@ public class KQLResource {
     JsonObjectBuilder result = Json.createObjectBuilder();
     Map<String, StructuredDataSource> allDataSources = ksqlEngine.getMetaStore().getAllStructuredDataSources();
     for (Map.Entry<String, StructuredDataSource> dataSourceEntry : allDataSources.entrySet()) {
-      if (dataSourceEntry.getValue() instanceof KQLStream) {
+      if (dataSourceEntry.getValue() instanceof KSQLStream) {
         result.add(dataSourceEntry.getKey(), formatDataSourceAsJson(dataSourceEntry.getValue()).build());
       }
     }
@@ -229,10 +229,10 @@ public class KQLResource {
     JsonObjectBuilder result = Json.createObjectBuilder();
     Map<String, StructuredDataSource> allDataSources = ksqlEngine.getMetaStore().getAllStructuredDataSources();
     for (Map.Entry<String, StructuredDataSource> dataSourceEntry : allDataSources.entrySet()) {
-      if (dataSourceEntry.getValue() instanceof KQLTable) {
-        KQLTable kqlTable = (KQLTable) dataSourceEntry.getValue();
-        JsonObjectBuilder datasourceInfo = formatDataSourceAsJson(kqlTable);
-        datasourceInfo.add("statestore", kqlTable.getStateStoreName());
+      if (dataSourceEntry.getValue() instanceof KSQLTable) {
+        KSQLTable ksqlTable = (KSQLTable) dataSourceEntry.getValue();
+        JsonObjectBuilder datasourceInfo = formatDataSourceAsJson(ksqlTable);
+        datasourceInfo.add("statestore", ksqlTable.getStateStoreName());
         result.add(dataSourceEntry.getKey(), datasourceInfo.build());
       }
     }

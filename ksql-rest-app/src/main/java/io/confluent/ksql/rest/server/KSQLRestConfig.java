@@ -9,12 +9,12 @@ import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;
 
-// Although it would be nice to somehow extend the functionality of this class to encompass that of the KQLConfig, there
-// is no clean way to do so since the KQLConfig inherits from the Kafka AbstractConfig class, and the RestConfig
+// Although it would be nice to somehow extend the functionality of this class to encompass that of the KSQLConfig, there
+// is no clean way to do so since the KSQLConfig inherits from the Kafka AbstractConfig class, and the RestConfig
 // inherits from the Confluent AbstractConfig class. Making the two get along and play nicely together in one class is
-// more work than it's worth, so any and all validation to be performed by the KQLConfig class will be handled outside
+// more work than it's worth, so any and all validation to be performed by the KSQLConfig class will be handled outside
 // of this one.
-public class KQLRestConfig extends RestConfig {
+public class KSQLRestConfig extends RestConfig {
 
   public static final String KQL_STREAMS_PREFIX       = "ksql.core.streams.";
   public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
@@ -65,7 +65,7 @@ public class KQLRestConfig extends RestConfig {
     );
   }
 
-  public KQLRestConfig(Map<?, ?> props) {
+  public KSQLRestConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
   }
 

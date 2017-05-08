@@ -4,9 +4,9 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.function.KQLAggregateFunction;
-import io.confluent.ksql.function.KQLFunction;
-import io.confluent.ksql.function.KQLFunctions;
+import io.confluent.ksql.function.KSQLAggregateFunction;
+import io.confluent.ksql.function.KSQLFunction;
+import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
@@ -155,14 +155,14 @@ public class ExpressionTypeManager
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
 
-    KQLFunction kqlFunction = KQLFunctions.getFunction(node.getName().getSuffix());
-    if (kqlFunction != null) {
-      expressionTypeContext.setSchema(kqlFunction.getReturnType());
-    } else if (KQLFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
-      KQLAggregateFunction kqlAggregateFunction = KQLFunctions.getAggregateFunction(node.getName().getSuffix(), node.getArguments(), schema);
-      expressionTypeContext.setSchema(kqlAggregateFunction.getReturnType());
+    KSQLFunction ksqlFunction = KSQLFunctions.getFunction(node.getName().getSuffix());
+    if (ksqlFunction != null) {
+      expressionTypeContext.setSchema(ksqlFunction.getReturnType());
+    } else if (KSQLFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
+      KSQLAggregateFunction ksqlAggregateFunction = KSQLFunctions.getAggregateFunction(node.getName().getSuffix(), node.getArguments(), schema);
+      expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
-      throw new KQLException("Unknown function: " + node.getName().toString());
+      throw new KSQLException("Unknown function: " + node.getName().toString());
     }
     return null;
   }

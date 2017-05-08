@@ -5,27 +5,27 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLTopic;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public class KQLStructuredDataOutputNode extends OutputNode {
+public class KSQLStructuredDataOutputNode extends OutputNode {
 
   final String kafkaTopicName;
-  final KQLTopic kqlTopic;
+  final KSQLTopic ksqlTopic;
   private final Field keyField;
 
 
   @JsonCreator
-  public KQLStructuredDataOutputNode(@JsonProperty("id") final PlanNodeId id,
-                                     @JsonProperty("source") final PlanNode source,
-                                     @JsonProperty("schema") final Schema schema,
-                                     @JsonProperty("kqlTopic") final KQLTopic kqlTopic,
-                                     @JsonProperty("topicName") final String topicName) {
+  public KSQLStructuredDataOutputNode(@JsonProperty("id") final PlanNodeId id,
+                                      @JsonProperty("source") final PlanNode source,
+                                      @JsonProperty("schema") final Schema schema,
+                                      @JsonProperty("ksqlTopic") final KSQLTopic ksqlTopic,
+                                      @JsonProperty("topicName") final String topicName) {
     super(id, source, schema);
     this.kafkaTopicName = topicName;
     this.keyField = source.getKeyField();
-    this.kqlTopic = kqlTopic;
+    this.ksqlTopic = ksqlTopic;
   }
 
   public String getKafkaTopicName() {
@@ -37,8 +37,8 @@ public class KQLStructuredDataOutputNode extends OutputNode {
     return keyField;
   }
 
-  public KQLTopic getKqlTopic() {
-    return kqlTopic;
+  public KSQLTopic getKsqlTopic() {
+    return ksqlTopic;
   }
 
 }

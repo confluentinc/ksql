@@ -6,8 +6,8 @@ package io.confluent.ksql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -107,7 +107,7 @@ import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.With;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -424,7 +424,7 @@ public class AstBuilder
 
       return new WindowExpression(windowName, hoppingWindowExpression);
     }
-    throw new KQLException("Window description is not correct.");
+    throw new KSQLException("Window description is not correct.");
   }
 
   @Override
@@ -560,7 +560,7 @@ public class AstBuilder
   @Override
   public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
     if (context.TOPICS() == null) {
-      throw new KQLException("Syntax error! Did you mean: list topics");
+      throw new KSQLException("Syntax error! Did you mean: list topics");
     }
     return new ListTopics(Optional.ofNullable(getLocation(context)));
   }
@@ -618,7 +618,7 @@ public class AstBuilder
       return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
                             (LongLiteral) visitIntegerLiteral(integerLiteralContext));
     } else {
-      throw new KQLException("Interval value should be integer in 'PRINT' command!");
+      throw new KSQLException("Interval value should be integer in 'PRINT' command!");
     }
 
   }
@@ -1008,7 +1008,7 @@ public class AstBuilder
     // If this is join.
     if (dataSourceExtractor.getJoinLeftSchema() != null) {
       if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-        throw new KQLException("Field " + columnName + " is ambiguous.");
+        throw new KSQLException("Field " + columnName + " is ambiguous.");
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
         Expression
             baseExpression =
@@ -1486,7 +1486,7 @@ public class AstBuilder
     } else if (baseType.TIMESTAMP_WITH_TIME_ZONE() != null) {
       return baseType.TIMESTAMP_WITH_TIME_ZONE().getText().toUpperCase();
     } else {
-      throw new KQLException(
+      throw new KSQLException(
           "Base type must contain either identifier, time with time zone, or timestamp with time zone"
       );
     }
@@ -1529,17 +1529,17 @@ public class AstBuilder
 
     }
 
-    KQLTopic kqlTopic = new KQLTopic(into.getName().toString(), into.getName().toString(),
+    KSQLTopic ksqlTopic = new KSQLTopic(into.getName().toString(), into.getName().toString(),
                                      null);
     StructuredDataSource
         resultStream =
-        new KQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
-                      kqlTopic
+        new KSQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
+            ksqlTopic
         );
     return resultStream;
   }
 
-  private static class InvalidColumnReferenceException extends KQLException {
+  private static class InvalidColumnReferenceException extends KSQLException {
     public InvalidColumnReferenceException(String message) {
       super(message);
     }

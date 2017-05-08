@@ -13,7 +13,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KQLJsonPOJOSerializer implements Serializer<GenericRow> {
+public class KSQLJsonPOJOSerializer implements Serializer<GenericRow> {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Schema schema;
@@ -21,7 +21,7 @@ public class KQLJsonPOJOSerializer implements Serializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KQLJsonPOJOSerializer(Schema schema) {
+  public KSQLJsonPOJOSerializer(Schema schema) {
     this.schema = schema;
   }
 

@@ -7,7 +7,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 
-public abstract class KQLAggregateFunction<V, A> {
+public abstract class KSQLAggregateFunction<V, A> {
 
   final int argIndexInValue;
   public final A intialValue;
@@ -16,7 +16,7 @@ public abstract class KQLAggregateFunction<V, A> {
   final String functionName;
   final Class kudafClass;
 
-  public KQLAggregateFunction(Integer argIndexInValue) {
+  public KSQLAggregateFunction(Integer argIndexInValue) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = null;
     this.returnType = null;
@@ -25,8 +25,8 @@ public abstract class KQLAggregateFunction<V, A> {
     this.kudafClass = null;
   };
 
-  public KQLAggregateFunction(int argIndexInValue, A intialValue, Schema returnType, List<Schema> arguments, String functionName,
-                              Class kudafClass) {
+  public KSQLAggregateFunction(int argIndexInValue, A intialValue, Schema returnType, List<Schema> arguments, String functionName,
+                               Class kudafClass) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = intialValue;
     this.returnType = returnType;

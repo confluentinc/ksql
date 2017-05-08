@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -15,17 +15,17 @@ public abstract class StructuredDataSource implements DataSource {
   final Schema schema;
   final Field keyField;
 
-  final KQLTopic kqlTopic;
+  final KSQLTopic ksqlTopic;
 
 
   public StructuredDataSource(final String datasourceName, final Schema schema,
                               final Field keyField,
-                              final DataSourceType dataSourceType, final KQLTopic kqlTopic) {
+                              final DataSourceType dataSourceType, final KSQLTopic ksqlTopic) {
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;
     this.dataSourceType = dataSourceType;
-    this.kqlTopic = kqlTopic;
+    this.ksqlTopic = ksqlTopic;
   }
 
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
@@ -35,7 +35,7 @@ public abstract class StructuredDataSource implements DataSource {
       case "TABLE":
         return DataSourceType.KTABLE;
       default:
-        throw new KQLException("DataSource Type is not supported: " + dataSourceTypeName);
+        throw new KSQLException("DataSource Type is not supported: " + dataSourceTypeName);
     }
   }
 
@@ -57,7 +57,7 @@ public abstract class StructuredDataSource implements DataSource {
     return this.dataSourceType;
   }
 
-  public KQLTopic getKqlTopic() {
-    return kqlTopic;
+  public KSQLTopic getKsqlTopic() {
+    return ksqlTopic;
   }
 }

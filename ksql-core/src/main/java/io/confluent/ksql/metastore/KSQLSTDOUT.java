@@ -7,12 +7,12 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public class KQLSTDOUT extends StructuredDataSource {
+public class KSQLSTDOUT extends StructuredDataSource {
 
   public static final String KQL_STDOUT_NAME = "KQL_STDOUT_NAME";
 
-  public KQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
-                   final DataSourceType dataSourceType) {
+  public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
+                    final DataSourceType dataSourceType) {
     super(datasourceName, schema, keyField, dataSourceType, null);
   }
 

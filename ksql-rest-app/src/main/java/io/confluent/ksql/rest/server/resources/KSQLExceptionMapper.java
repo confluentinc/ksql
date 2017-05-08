@@ -11,7 +11,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class KQLExceptionMapper implements ExceptionMapper<Throwable> {
+public class KSQLExceptionMapper implements ExceptionMapper<Throwable> {
 
   @Override
   public Response toResponse(Throwable exception) {

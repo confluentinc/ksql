@@ -6,7 +6,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -15,7 +15,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.util.KSQLTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,17 +25,17 @@ import java.util.List;
 
 public class LogicalPlannerTest {
 
-  private static final KQLParser kqlParser = new KQLParser();
+  private static final KSQLParser KSQL_PARSER = new KSQLParser();
 
   private MetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = KQLTestUtil.getNewMetaStore();
+    metaStore = KSQLTestUtil.getNewMetaStore();
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
@@ -123,7 +123,7 @@ public class LogicalPlannerTest {
     Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECOND ) "));
     Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
     Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
     Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
@@ -146,7 +146,7 @@ public class LogicalPlannerTest {
     Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECOND , ADVANCE BY 1 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECOND , ADVANCE BY 1 SECOND ) "));
     Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
     Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
     Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);

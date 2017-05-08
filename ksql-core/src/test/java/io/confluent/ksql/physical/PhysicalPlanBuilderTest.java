@@ -7,7 +7,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
@@ -15,7 +15,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KQLTestUtil;
+import io.confluent.ksql.util.KSQLTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.junit.Assert;
@@ -27,20 +27,20 @@ import java.util.List;
 public class PhysicalPlanBuilderTest {
 
     KStreamBuilder kStreamBuilder;
-    KQLParser kqlParser;
+    KSQLParser ksqlParser;
     PhysicalPlanBuilder physicalPlanBuilder;
     MetaStore metaStore;
 
     @Before
     public void before() {
         kStreamBuilder = new KStreamBuilder();
-        kqlParser = new KQLParser();
-        metaStore = KQLTestUtil.getNewMetaStore();
+        ksqlParser = new KSQLParser();
+        metaStore = KSQLTestUtil.getNewMetaStore();
         physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder);
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
-        List<Statement> statements = kqlParser.buildAST(queryStr, metaStore);
+        List<Statement> statements = ksqlParser.buildAST(queryStr, metaStore);
         // Analyze the query to resolve the references and extract oeprations
 //        Analysis analysis = new Analysis();
 //        Analyzer analyzer = new Analyzer(analysis, metaStore);

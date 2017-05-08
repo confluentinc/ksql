@@ -3,22 +3,22 @@
  **/
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.KQLEngine;
+import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.Statement;
 
 import java.util.List;
 
 public class StatementParser {
-  private final KQLEngine kqlEngine;
+  private final KSQLEngine ksqlEngine;
 
-  public StatementParser(KQLEngine kqlEngine) {
-    this.kqlEngine = kqlEngine;
+  public StatementParser(KSQLEngine ksqlEngine) {
+    this.ksqlEngine = ksqlEngine;
   }
 
   public Statement parseSingleStatement(String statementString) throws Exception {
-    List<Statement> statements = kqlEngine.getStatements(statementString);
+    List<Statement> statements = ksqlEngine.getStatements(statementString);
     if (statements == null) {
-      throw new IllegalArgumentException("Call to KQLEngine.getStatements() returned null");
+      throw new IllegalArgumentException("Call to KSQLEngine.getStatements() returned null");
     } else if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
           String.format("Expected exactly one KQL statement; found %d instead", statements.size())

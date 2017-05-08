@@ -4,8 +4,8 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.csv.KQLCsvDeserializer;
-import io.confluent.ksql.serde.csv.KQLCsvSerializer;
+import io.confluent.ksql.serde.csv.KSQLCsvDeserializer;
+import io.confluent.ksql.serde.csv.KSQLCsvSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -31,10 +31,10 @@ public class CsvConsumer {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new KQLCsvSerializer();
+      final Serializer<GenericRow> genericRowSerializer = new KSQLCsvSerializer();
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KQLCsvDeserializer();
+      final Deserializer<GenericRow> genericRowDeserializer = new KSQLCsvDeserializer();
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

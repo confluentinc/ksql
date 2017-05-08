@@ -4,12 +4,12 @@
 package io.confluent.ksql.serde.csv;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.serde.KQLTopicSerDe;
+import io.confluent.ksql.serde.KSQLTopicSerDe;
 
 
-public class KQLCsvTopicSerDe extends KQLTopicSerDe {
+public class KSQLCsvTopicSerDe extends KSQLTopicSerDe {
 
-  public KQLCsvTopicSerDe() {
+  public KSQLCsvTopicSerDe() {
     super(StructuredDataSource.DataSourceSerDe.CSV);
   }
 }

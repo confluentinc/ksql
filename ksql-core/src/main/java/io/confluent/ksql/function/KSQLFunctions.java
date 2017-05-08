@@ -20,7 +20,7 @@ import io.confluent.ksql.function.udf.string.TrimKUDF;
 import io.confluent.ksql.function.udf.string.UCaseKUDF;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KQLFunctions {
+public class KSQLFunctions {
 
   public static Map<String, KSQLFunction> kqlFunctionMap = new HashMap<>();
   public static Map<String, KSQLAggFunctionDeterminer> kqlAggregateFunctionMap = new HashMap<>();
@@ -126,7 +126,7 @@ public class KQLFunctions {
       functionArgs, Schema schema) {
     KSQLAggFunctionDeterminer ksqlAggFunctionDeterminer = kqlAggregateFunctionMap.get(functionName);
     if (ksqlAggFunctionDeterminer == null) {
-      throw new KQLException("No aggregate function with name " + functionName + " exists!");
+      throw new KSQLException("No aggregate function with name " + functionName + " exists!");
     }
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));

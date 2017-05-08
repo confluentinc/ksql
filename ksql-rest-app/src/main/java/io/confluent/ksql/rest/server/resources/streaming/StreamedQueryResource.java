@@ -3,11 +3,11 @@
  **/
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.KQLEngine;
+import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.KQLJsonRequest;
+import io.confluent.ksql.rest.server.resources.KSQLJsonRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,28 +24,28 @@ import java.util.Objects;
 public class StreamedQueryResource {
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
-  private final KQLEngine kqlEngine;
+  private final KSQLEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
 
   public StreamedQueryResource(
-      KQLEngine kqlEngine,
+      KSQLEngine ksqlEngine,
       StatementParser statementParser,
       long disconnectCheckInterval
   ) {
-    this.kqlEngine = kqlEngine;
+    this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KQLJsonRequest request) throws Exception {
+  public Response streamQuery(KSQLJsonRequest request) throws Exception {
     String kql = Objects.requireNonNull(request.getKql(), "\"ksql\" field must be given");
     Statement statement = statementParser.parseSingleStatement(kql);
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter =
-          new QueryStreamWriter(kqlEngine, disconnectCheckInterval, kql);
+          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, kql);
       log.info("Streaming query '{}'", kql);
       return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
     } else {

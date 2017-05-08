@@ -5,11 +5,11 @@ package io.confluent.ksql.serde;
 
 import io.confluent.ksql.metastore.StructuredDataSource;
 
-public abstract class KQLTopicSerDe {
+public abstract class KSQLTopicSerDe {
 
   private final StructuredDataSource.DataSourceSerDe serDe;
 
-  protected KQLTopicSerDe(StructuredDataSource.DataSourceSerDe serDe) {
+  protected KSQLTopicSerDe(StructuredDataSource.DataSourceSerDe serDe) {
     this.serDe = serDe;
   }
 

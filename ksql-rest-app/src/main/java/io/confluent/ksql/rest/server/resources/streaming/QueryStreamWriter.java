@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.KQLEngine;
-import io.confluent.ksql.rest.server.resources.KQLExceptionMapper;
+import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.slf4j.Logger;
@@ -25,8 +25,8 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final AtomicReference<Throwable> streamsException;
 
-  QueryStreamWriter(KQLEngine kqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
-    QueryMetadata queryMetadata = kqlEngine.buildMultipleQueries(true, queryString).get(0);
+  QueryStreamWriter(KSQLEngine ksqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
+    QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
           "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",
@@ -76,7 +76,7 @@ class QueryStreamWriter implements StreamingOutput {
         // The user has terminated the connection; we can stop writing
       } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
-        out.write(("\n" + KQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
+        out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
         out.flush();
       }
 

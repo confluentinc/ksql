@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.KQLEngine;
+import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.ddl.DDLConfig;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -17,10 +17,10 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.TopicUtil;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -48,13 +48,13 @@ public class StatementExecutor {
       Pattern.compile("\\s*TERMINATE\\s+([0-9]+)\\s*;?\\s*");
 
   private final TopicUtil topicUtil;
-  private final KQLEngine kqlEngine;
+  private final KSQLEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
 
-  public StatementExecutor(TopicUtil topicUtil, KQLEngine kqlEngine, StatementParser statementParser) {
+  public StatementExecutor(TopicUtil topicUtil, KSQLEngine ksqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
-    this.kqlEngine = kqlEngine;
+    this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
 
     this.statusStore = new HashMap<>();
@@ -158,7 +158,7 @@ public class StatementExecutor {
   // Copied from io.confluent.ksql.ddl.DDLEngine
   private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
-      throw new KQLException(propertyName + " value is string and should be enclosed between " + "\"'\".");
+      throw new KSQLException(propertyName + " value is string and should be enclosed between " + "\"'\".");
     }
     return propertyValue.substring(1, propertyValue.length() - 1);
   }
@@ -202,24 +202,24 @@ public class StatementExecutor {
           createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
       kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
       topicUtil.ensureTopicExists(kafkaTopicName);
-      kqlEngine.getDdlEngine().createTopic(createTopic);
+      ksqlEngine.getDdlEngine().createTopic(createTopic);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Topic created"));
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
       String streamName = createStream.getName().getSuffix();
       topicUtil.ensureTopicExists(streamName);
-      kqlEngine.getDdlEngine().createStream(createStream);
+      ksqlEngine.getDdlEngine().createStream(createStream);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Stream created"));
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
       String tableName = createTable.getName().getSuffix();
       topicUtil.ensureTopicExists(tableName);
-      kqlEngine.getDdlEngine().createTable(createTable);
+      ksqlEngine.getDdlEngine().createTable(createTable);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Table created"));
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-      Query query = kqlEngine.addInto(
+      Query query = ksqlEngine.addInto(
           createStreamAsSelect.getQuery(),
           querySpecification,
           createStreamAsSelect.getName().getSuffix(),
@@ -231,7 +231,7 @@ public class StatementExecutor {
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
       QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-      Query query = kqlEngine.addInto(
+      Query query = ksqlEngine.addInto(
           createTableAsSelect.getQuery(),
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
@@ -263,7 +263,7 @@ public class StatementExecutor {
       Optional<Relation> into = querySpecification.getInto();
       if (into.isPresent() && into.get() instanceof Table) {
         Table table = (Table) into.get();
-        if (kqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
+        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()
@@ -272,7 +272,7 @@ public class StatementExecutor {
       }
     }
 
-    QueryMetadata queryMetadata = kqlEngine.buildMultipleQueries(false, queryString).get(0);
+    QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(false, queryString).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -282,7 +282,7 @@ public class StatementExecutor {
         CommandId terminateId = terminatedQueries.get(queryId);
         statusStore.put(terminateId, new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted"));
         statusStore.put(commandId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));
-        kqlEngine.terminateQuery(queryId, false);
+        ksqlEngine.terminateQuery(queryId, false);
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
         statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, successMessage));
@@ -299,8 +299,8 @@ public class StatementExecutor {
 
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
     long queryId = terminateQuery.getQueryId();
-    QueryMetadata queryMetadata = kqlEngine.getPersistentQueries().get(queryId);
-    if (!kqlEngine.terminateQuery(queryId, true)) {
+    QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
+    if (!ksqlEngine.terminateQuery(queryId, true)) {
       throw new Exception(String.format("No running query with id %d was found", queryId));
     }
 
@@ -317,7 +317,7 @@ public class StatementExecutor {
         throw new Exception(String.format("Unexpected source type for running query: %s", sourceType));
     }
 
-    String queryEntity = ((KQLStructuredDataOutputNode) queryMetadata.getOutputNode()).getKqlTopic().getName();
+    String queryEntity = ((KSQLStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
 
     CommandId queryStatementId = new CommandId(commandType, queryEntity);
     statusStore.put(queryStatementId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));

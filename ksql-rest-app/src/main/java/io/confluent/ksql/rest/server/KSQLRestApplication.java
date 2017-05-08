@@ -17,11 +17,11 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.rest.server.resources.KQLExceptionMapper;
-import io.confluent.ksql.rest.server.resources.KQLResource;
+import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
+import io.confluent.ksql.rest.server.resources.KSQLResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.util.KQLConfig;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -44,26 +44,26 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
-public class KQLRestApplication extends Application<KQLRestConfig> {
+public class KSQLRestApplication extends Application<KSQLRestConfig> {
 
-  private static final Logger log = LoggerFactory.getLogger(KQLRestApplication.class);
+  private static final Logger log = LoggerFactory.getLogger(KSQLRestApplication.class);
 
   private final KSQLEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
-  private final KQLResource kqlResource;
+  private final KSQLResource ksqlResource;
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
 
-  public KQLRestApplication(
+  public KSQLRestApplication(
       KSQLEngine ksqlEngine,
-      KQLRestConfig config,
+      KSQLRestConfig config,
       CommandRunner commandRunner,
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
-      KQLResource kqlResource,
+      KSQLResource ksqlResource,
       boolean enableQuickstartPage
   ) {
     super(config);
@@ -71,18 +71,18 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     this.commandRunner = commandRunner;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
-    this.kqlResource = kqlResource;
+    this.ksqlResource = ksqlResource;
     this.enableQuickstartPage = enableQuickstartPage;
 
     this.commandRunnerThread = new Thread(commandRunner);
   }
 
   @Override
-  public void setupResources(Configurable<?> config, KQLRestConfig appConfig) {
+  public void setupResources(Configurable<?> config, KSQLRestConfig appConfig) {
     config.register(statusResource);
-    config.register(kqlResource);
+    config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(new KQLExceptionMapper());
+    config.register(new KSQLExceptionMapper());
   }
 
   @Override
@@ -142,7 +142,7 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     }
 
     Properties props = getProps(cliOptions.getPropertiesFile());
-    KQLRestApplication app = buildApplication(props, cliOptions.getQuickstart());
+    KSQLRestApplication app = buildApplication(props, cliOptions.getQuickstart());
     log.info("Starting server");
     app.start();
     log.info("Server up and running");
@@ -150,8 +150,8 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     log.info("Server shutting down");
   }
 
-  public static KQLRestApplication buildApplication(Properties props, boolean quickstart) throws Exception {
-    KQLRestConfig config = new KQLRestConfig(props);
+  public static KSQLRestApplication buildApplication(Properties props, boolean quickstart) throws Exception {
+    KSQLRestConfig config = new KSQLRestConfig(props);
 
     @SuppressWarnings("unchecked")
     KafkaAdminClient client = new KafkaAdminClient((Map) props);
@@ -160,8 +160,8 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
 
-    KQLConfig kqlConfig = new KQLConfig(config.getKqlStreamsProperties());
-    KSQLEngine ksqlEngine = new KSQLEngine(metaStore, kqlConfig);
+    KSQLConfig ksqlConfig = new KSQLConfig(config.getKqlStreamsProperties());
+    KSQLEngine ksqlEngine = new KSQLEngine(metaStore, ksqlConfig);
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     String commandTopic = config.getCommandTopic();
@@ -201,9 +201,9 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         statementParser,
-        config.getLong(KQLRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
+        config.getLong(KSQLRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
-    KQLResource kqlResource = new KQLResource(
+    KSQLResource ksqlResource = new KSQLResource(
         ksqlEngine,
         commandStore,
         statementExecutor
@@ -211,13 +211,13 @@ public class KQLRestApplication extends Application<KQLRestConfig> {
 
     commandRunner.processPriorCommands();
 
-    return new KQLRestApplication(
+    return new KSQLRestApplication(
         ksqlEngine,
         config,
         commandRunner,
         statusResource,
         streamedQueryResource,
-        kqlResource,
+        ksqlResource,
         quickstart
     );
   }

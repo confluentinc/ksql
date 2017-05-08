@@ -5,9 +5,9 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Optional;
 
-public abstract class KQLWindowExpression extends Node {
+public abstract class KSQLWindowExpression extends Node {
 
-  protected KQLWindowExpression(Optional<NodeLocation> location) {
+  protected KSQLWindowExpression(Optional<NodeLocation> location) {
     super(location);
   }
 }

@@ -9,15 +9,15 @@ import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;
 
-public class KQLConfig extends AbstractConfig {
+public class KSQLConfig extends AbstractConfig {
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef(StreamsConfig.configDef());
 
-  public KQLConfig(Map<?, ?> props) {
+  public KSQLConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
   }
 
-  protected KQLConfig(ConfigDef config, Map<?, ?> props) {
+  protected KSQLConfig(ConfigDef config, Map<?, ?> props) {
     super(config, props);
   }
 

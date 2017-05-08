@@ -6,7 +6,7 @@ package io.confluent.ksql.parser.tree;
 import java.util.Objects;
 import java.util.Optional;
 
-public class HoppingWindowExpression extends KQLWindowExpression {
+public class HoppingWindowExpression extends KSQLWindowExpression {
 
   private final long size;
   private final WindowExpression.WindowUnit sizeUnit;

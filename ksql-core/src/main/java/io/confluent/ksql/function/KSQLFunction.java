@@ -8,15 +8,15 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
 
-public class KQLFunction {
+public class KSQLFunction {
 
   final Schema returnType;
   final List<Schema> arguments;
   final String functionName;
   final Class kudfClass;
 
-  public KQLFunction(Schema returnType, List<Schema> arguments, String functionName,
-                     Class kudfClass) {
+  public KSQLFunction(Schema returnType, List<Schema> arguments, String functionName,
+                      Class kudfClass) {
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;

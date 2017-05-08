@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.function.udf.util;
 
-import io.confluent.ksql.function.KQLFunctionException;
+import io.confluent.ksql.function.KSQLFunctionException;
 import io.confluent.ksql.function.udf.KUDF;
 
 public class CastKUDF implements KUDF {
@@ -17,7 +17,7 @@ public class CastKUDF implements KUDF {
   @Override
   public Object evaluate(Object... args) {
     if (args.length != 2) {
-      throw new KQLFunctionException("Concat udf should have two input argument.");
+      throw new KSQLFunctionException("Concat udf should have two input argument.");
     }
     String string = args[1].toString();
 

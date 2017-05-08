@@ -5,9 +5,9 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.ddl.DDLConfig;
 import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.metastore.KQLSTDOUT;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTopic;
+import io.confluent.ksql.metastore.KSQLSTDOUT;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -33,11 +33,11 @@ import io.confluent.ksql.planner.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.serde.KQLTopicSerDe;
-import io.confluent.ksql.serde.avro.KQLAvroTopicSerDe;
-import io.confluent.ksql.serde.csv.KQLCsvTopicSerDe;
-import io.confluent.ksql.serde.json.KQLJsonTopicSerDe;
-import io.confluent.ksql.util.KQLException;
+import io.confluent.ksql.serde.KSQLTopicSerDe;
+import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
+import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
+import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
+import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -64,7 +64,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
 
     process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
-    if (!(analysis.getInto() instanceof KQLSTDOUT)) {
+    if (!(analysis.getInto() instanceof KSQLSTDOUT)) {
       List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
@@ -73,31 +73,31 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         intoKafkaTopicName = intoStructuredDataSource.getName();
       }
 
-      KQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKqlTopic()
-          .getKqlTopicSerDe();
+      KSQLTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
+          .getKsqlTopicSerDe();
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
+            intoTopicSerde = new KSQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
             break;
           case DataSource.JSON_SERDE_NAME:
-            intoTopicSerde = new KQLJsonTopicSerDe(null);
+            intoTopicSerde = new KSQLJsonTopicSerDe(null);
             break;
           case DataSource.CSV_SERDE_NAME:
-            intoTopicSerde = new KQLCsvTopicSerDe();
+            intoTopicSerde = new KSQLCsvTopicSerDe();
             break;
         }
       } else {
-        if (intoTopicSerde instanceof KQLAvroTopicSerDe) {
-          intoTopicSerde = new KQLAvroTopicSerDe(null, null);
+        if (intoTopicSerde instanceof KSQLAvroTopicSerDe) {
+          intoTopicSerde = new KSQLAvroTopicSerDe(null, null);
         }
       }
 
-      KQLTopic newIntoKQLTopic = new KQLTopic(intoKafkaTopicName,
+      KSQLTopic newIntoKSQLTopic = new KSQLTopic(intoKafkaTopicName,
                                               intoKafkaTopicName, intoTopicSerde);
-      KQLStream intoKQLStream = new KQLStream(intoStructuredDataSource.getName(),
-                                              null, null, newIntoKQLTopic);
-      analysis.setInto(intoKQLStream);
+      KSQLStream intoKSQLStream = new KSQLStream(intoStructuredDataSource.getName(),
+                                              null, null, newIntoKSQLTopic);
+      analysis.setInto(intoKSQLStream);
     }
 
     process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
@@ -157,7 +157,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
     
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
-      throw new KQLException("Join criteria is not supported.");
+      throw new KSQLException("Join criteria is not supported.");
     }
 
     String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
@@ -167,18 +167,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
     if (leftDataSource == null) {
-      throw new KQLException(format("Resource %s does not exist.", leftSideName));
+      throw new KSQLException(format("Resource %s does not exist.", leftSideName));
     }
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
-      throw new KQLException(format("Resource %s does not exist.", rightSideName));
+      throw new KSQLException(format("Resource %s does not exist.", rightSideName));
     }
 
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
                                      leftDataSource.getKeyField(),
-                                     leftDataSource.getKqlTopic().getTopicName(),
+                                     leftDataSource.getKsqlTopic().getTopicName(),
                                      leftAlias, leftDataSource.getDataSourceType(),
                                      leftDataSource);
     StructuredDataSourceNode
@@ -186,7 +186,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
                                      rightDataSource.getSchema(),
                                      rightDataSource.getKeyField(),
-                                     rightDataSource.getKqlTopic().getTopicName(),
+                                     rightDataSource.getKsqlTopic().getTopicName(),
                                      rightAlias, rightDataSource.getDataSourceType(),
                                      rightDataSource);
 
@@ -208,7 +208,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         joinType = JoinNode.Type.FULL;
         break;
       default:
-        throw new KQLException("Join type is not supported: " + node.getType().name());
+        throw new KSQLException("Join type is not supported: " + node.getType().name());
     }
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
@@ -230,7 +230,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           (QualifiedNameReference) expression;
       return leftQualifiedNameReference.getName().getSuffix();
     } else {
-      throw new KQLException("Join criteria is not supported.");
+      throw new KSQLException("Join criteria is not supported.");
     }
   }
 
@@ -239,7 +239,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
     if (metaStore.getSource(structuredDataSourceName) ==
         null) {
-      throw new KQLException(structuredDataSourceName + " does not exist.");
+      throw new KSQLException(structuredDataSourceName + " does not exist.");
     }
     Pair<StructuredDataSource, String>
         fromDataSource =
@@ -256,15 +256,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSource into;
     if (node.isSTDOut) {
       into =
-          new KQLSTDOUT(KQLSTDOUT.KQL_STDOUT_NAME, null, null,
+          new KSQLSTDOUT(KSQLSTDOUT.KQL_STDOUT_NAME, null, null,
                         StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into = new KQLStream(node.getName().getSuffix(), null, null, null);
+      into = new KSQLStream(node.getName().getSuffix(), null, null, null);
 
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
         if (!serde.startsWith("'") && !serde.endsWith("'")) {
-          throw new KQLException(
+          throw new KSQLException(
               serde + " value is string and should be enclosed between " + "\"'\".");
         }
         serde = serde.substring(1, serde.length() - 1);
@@ -274,7 +274,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
             avroSchemaFilePath = node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
             if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
-              throw new KQLException(
+              throw new KSQLException(
                   avroSchemaFilePath + " value is string and should be enclosed between "
                   + "\"'\".");
             }
@@ -289,14 +289,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             intoKafkaTopicName =
             node.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
         if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
-          throw new KQLException(
+          throw new KSQLException(
               intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
         }
         intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
       }
     } else {
-      throw new KQLException("INTO clause is not set correctly!");
+      throw new KSQLException("INTO clause is not set correctly!");
     }
     analysis.setInto(into);
     return null;
@@ -315,7 +315,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         AllColumns allColumns = (AllColumns) selectItem;
         if ((this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources()
                                                                  .isEmpty())) {
-          throw new KQLException("FROM clause was not resolved!");
+          throw new KSQLException("FROM clause was not resolved!");
         }
         if (analysis.getJoin() != null) {
           JoinNode joinNode = analysis.getJoin();

@@ -5,15 +5,15 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.metastore.KQLSTDOUT;
-import io.confluent.ksql.metastore.KQLStream;
-import io.confluent.ksql.metastore.KQLTable;
+import io.confluent.ksql.metastore.KSQLSTDOUT;
+import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KSQLTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.KQLBareOutputNode;
-import io.confluent.ksql.planner.plan.KQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KSQLBareOutputNode;
+import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
@@ -67,16 +67,16 @@ public class LogicalPlanner {
   private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
-    if (intoDataSource instanceof KQLSTDOUT) {
-      return new KQLBareOutputNode(new PlanNodeId(KQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
+    if (intoDataSource instanceof KSQLSTDOUT) {
+      return new KSQLBareOutputNode(new PlanNodeId(KSQLSTDOUT.KQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema);
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
 
-      return new KQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
+      return new KSQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
                                              sourcePlanNode,
-                                             inputSchema, intoStructuredDataSource.getKqlTopic(),
-                                             intoStructuredDataSource.getKqlTopic()
+                                             inputSchema, intoStructuredDataSource.getKsqlTopic(),
+                                             intoStructuredDataSource.getKsqlTopic()
                                                  .getTopicName());
 
     }
@@ -141,18 +141,18 @@ public class LogicalPlanner {
     String alias = analysis.getFromDataSources().get(0).getRight();
     Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
 
-    if (fromDataSource instanceof KQLStream) {
-      KQLStream fromStream = (KQLStream) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
+    if (fromDataSource instanceof KSQLStream) {
+      KSQLStream fromStream = (KSQLStream) fromDataSource;
+      return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
-                                          fromStream.getKqlTopic().getTopicName(),
+                                          fromStream.getKsqlTopic().getTopicName(),
                                           alias, fromStream.getDataSourceType(),
                                           fromStream);
-    } else if (fromDataSource instanceof KQLTable) {
-      KQLTable fromTable = (KQLTable) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KQLTopic"), fromSchema,
+    } else if (fromDataSource instanceof KSQLTable) {
+      KSQLTable fromTable = (KSQLTable) fromDataSource;
+      return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
-                                          fromTable.getKqlTopic().getTopicName(),
+                                          fromTable.getKsqlTopic().getTopicName(),
                                           alias, fromTable.getDataSourceType(),
                                           fromTable);
     }

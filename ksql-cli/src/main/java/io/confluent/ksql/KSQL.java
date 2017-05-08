@@ -15,14 +15,14 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.RemoteCli;
-import io.confluent.ksql.rest.server.KQLRestConfig;
+import io.confluent.ksql.rest.server.KSQLRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-public class KQL {
+public class KSQL {
 
   public static abstract class KQLCommand implements Runnable {
     protected abstract Cli getCli() throws Exception;
@@ -112,7 +112,7 @@ public class KQL {
     private void addDefaultProperties(Properties properties) {
       properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-      properties.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT);
+      properties.put(KSQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT);
     }
 
     private void addFileProperties(Properties properties) throws IOException {
@@ -129,7 +129,7 @@ public class KQL {
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
       }
       if (commandTopicSuffix != null) {
-        properties.put(KQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, commandTopicSuffix);
+        properties.put(KSQLRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, commandTopicSuffix);
       }
     }
   }

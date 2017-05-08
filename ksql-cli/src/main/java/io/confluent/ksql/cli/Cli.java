@@ -3,10 +3,10 @@
  **/
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.KQLEngine;
-import io.confluent.ksql.parser.KQLParser;
+import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.rest.client.KQLRestClient;
+import io.confluent.ksql.rest.client.KSQLRestClient;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -39,13 +39,13 @@ public class Cli implements Closeable, AutoCloseable {
   private final ExecutorService queryStreamExecutorService;
   private final JsonWriterFactory jsonWriterFactory;
 
-  protected final KQLRestClient restClient;
+  protected final KSQLRestClient restClient;
   protected final Terminal terminal;
   protected final LineReader lineReader;
 
   private String prompt;
 
-  public Cli(KQLRestClient restClient) throws IOException {
+  public Cli(KSQLRestClient restClient) throws IOException {
     this.restClient = restClient;
 
     this.terminal = TerminalBuilder.builder().system(true).build();
@@ -175,8 +175,8 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
-    for (SqlBaseParser.SingleStatementContext statementContext : new KQLParser().getStatements(line)) {
-      String ksql = KQLEngine.getStatementString(statementContext);
+    for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
+      String ksql = KSQLEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
         handleStreamedQuery(ksql);
       } else {
@@ -188,7 +188,7 @@ public class Cli implements Closeable, AutoCloseable {
   private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
     displayQueryTerminateInstructions();
 
-    try (KQLRestClient.QueryStream queryStream = restClient.makeQueryRequest(query)) {
+    try (KSQLRestClient.QueryStream queryStream = restClient.makeQueryRequest(query)) {
       Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
         @Override
         public void run() {

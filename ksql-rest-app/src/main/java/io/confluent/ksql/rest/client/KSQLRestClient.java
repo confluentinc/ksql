@@ -20,13 +20,13 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 
-public class KQLRestClient implements Closeable, AutoCloseable {
+public class KSQLRestClient implements Closeable, AutoCloseable {
 
   private final Client client;
 
   private String serverAddress;
 
-  public KQLRestClient(String serverAddress) {
+  public KSQLRestClient(String serverAddress) {
     this.client = ClientBuilder.newClient();
     this.serverAddress = serverAddress;
   }

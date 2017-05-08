@@ -4,15 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>KQL</groupId>
-    <artifactId>KQL</artifactId>
+    <groupId>KSQL</groupId>
+    <artifactId>KSQL</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>kql-core</module>
-        <module>kql-cli</module>
-        <module>kql-examples</module>
-        <module>kql-rest-app</module>
+        <module>ksql-core</module>
+        <module>ksql-cli</module>
+        <module>ksql-examples</module>
+        <module>ksql-rest-app</module>
     </modules>
     
     <repositories>

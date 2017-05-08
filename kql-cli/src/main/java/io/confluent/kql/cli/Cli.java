@@ -3,13 +3,18 @@
  **/
 package io.confluent.kql.cli;
 
+import io.confluent.kql.KQLEngine;
+import io.confluent.kql.parser.KQLParser;
+import io.confluent.kql.parser.SqlBaseParser;
 import io.confluent.kql.rest.client.KQLRestClient;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 import javax.json.Json;
 import javax.json.JsonStructure;
@@ -141,13 +146,6 @@ public class Cli implements Closeable, AutoCloseable {
         printJsonResponse(jsonResponse);
         break;
       }
-      case ":query":
-        if (commandArgs.length == 1) {
-          throw new RuntimeException(String.format("'%s' meta-command must be followed by a query to stream", command));
-        }
-        String query = commandArgs[1];
-        handleStreamedQuery(query);
-        break;
       case ":prompt":
         if (commandArgs.length == 1) {
           throw new RuntimeException(String.format(
@@ -177,12 +175,20 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void handleStatements(String line) throws IOException {
-    JsonStructure jsonResponse = restClient.makeKQLRequest(line);
-    printJsonResponse(jsonResponse);
+  private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
+    for (SqlBaseParser.SingleStatementContext statementContext : new KQLParser().getStatements(line)) {
+      String ksql = KQLEngine.getStatementString(statementContext);
+      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+        handleStreamedQuery(ksql);
+      } else {
+        printJsonResponse(restClient.makeKQLRequest(ksql));
+      }
+    }
   }
 
   private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
+    displayQueryTerminateInstructions();
+
     try (KQLRestClient.QueryStream queryStream = restClient.makeQueryRequest(query)) {
       Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
         @Override
@@ -209,6 +215,46 @@ public class Cli implements Closeable, AutoCloseable {
 
       terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_DFL);
     }
+
+    eraseQueryTerminateInstructions();
+  }
+
+  private void displayQueryTerminateInstructions() throws InterruptedException {
+//    Doesn't work on my Mac
+//    terminal.puts(InfoCmp.Capability.cursor_to_ll);
+    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
+
+    terminal.puts(InfoCmp.Capability.delete_line);
+
+    terminal.puts(InfoCmp.Capability.enter_standout_mode);
+    terminal.writer().print("Use ^C to terminate the query");
+    terminal.puts(InfoCmp.Capability.exit_standout_mode);
+
+    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 2);
+
+    // There's got to be a better way to do this. The idea is to clear the screen and move the cursor to the top-left
+    // corner, but without actually erasing any output that might be on the terminal screen beforehand.
+    terminal.puts(InfoCmp.Capability.cursor_home);
+    for (int i = 0; i < terminal.getHeight(); i++) {
+      terminal.puts(InfoCmp.Capability.scroll_forward);
+    }
+
+    terminal.flush();
+  }
+
+  private void eraseQueryTerminateInstructions() {
+    terminal.puts(InfoCmp.Capability.save_cursor);
+
+    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 1);
+
+    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
+    terminal.puts(InfoCmp.Capability.delete_line);
+
+    terminal.puts(InfoCmp.Capability.restore_cursor);
+
+    terminal.puts(InfoCmp.Capability.scroll_forward);
+
+    terminal.flush();
   }
 
   private void printJsonResponse(JsonStructure jsonResponse) throws IOException {
@@ -236,9 +282,6 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.writer().println("                          Example: :status");
     terminal.writer().println("    :status <id>        - Check on the status of the statement with ID <id>");
     terminal.writer().println("                          Example: :status KQL_NODE_69_STATEMENT_69");
-    terminal.writer().println("    :query <query>      - Stream the results of <query> to the console");
-    terminal.writer().println("                          Example: :query SELECT * FROM movies WHERE imdb_score = 69;");
-    terminal.writer().println("                          NOTE: Use ctrl-C to stop streaming a query");
     printExtraMetaCommandsHelp();
     terminal.writer().println();
     terminal.writer().println();

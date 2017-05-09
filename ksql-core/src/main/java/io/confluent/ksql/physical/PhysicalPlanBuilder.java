@@ -134,25 +134,17 @@ public class PhysicalPlanBuilder {
     List<Expression> aggArgExpansionList = new ArrayList<>();
     Map<String, Integer> expressionNames = new HashMap<>();
     for (Expression expression: aggregateNode.getRequiredColumnList()) {
-      if (expressionNames.containsKey(expression.toString())) {
-        continue;
-      } else {
+      if (!expressionNames.containsKey(expression.toString())) {
         expressionNames.put(expression.toString(), aggArgExpansionList.size());
         aggArgExpansionList.add(expression);
       }
     }
     for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
-      if (expressionNames.containsKey(expression.toString())) {
-        continue;
-      } else {
+      if (!expressionNames.containsKey(expression.toString())) {
         expressionNames.put(expression.toString(), aggArgExpansionList.size());
         aggArgExpansionList.add(expression);
       }
     }
-
-//    if (aggregateNode.getHavingExpressions() != null) {
-//      aggArgExpansionList.add(aggregateNode.getHavingExpressions());
-//    }
 
     SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
@@ -211,8 +203,7 @@ public class PhysicalPlanBuilder {
     for (int i = 0; i < aggregateNode.getRequiredColumnList().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
-    int aggFunctionVarSuffix = 0;
-    for (int i = 0; i < aggregateNode.getFunctionList().size(); i++) {
+    for (int aggFunctionVarSuffix = 0; aggFunctionVarSuffix < aggregateNode.getFunctionList().size(); aggFunctionVarSuffix++) {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
@@ -222,7 +213,6 @@ public class PhysicalPlanBuilder {
       fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
                           + aggFunctionVarSuffix, fieldSchema);
-      aggFunctionVarSuffix++;
     }
 
     Schema aggStageSchema = schemaBuilder.build();

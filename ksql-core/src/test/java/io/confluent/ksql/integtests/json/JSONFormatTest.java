@@ -10,7 +10,6 @@ import io.confluent.ksql.serde.json.KSQLJsonPOJODeserializer;
 import io.confluent.ksql.serde.json.KSQLJsonPOJOSerializer;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -89,8 +88,7 @@ public class JSONFormatTest {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
-    KSQLConfig ksqlConfig = new KSQLConfig(configMap);
-    ksqlEngine = new KSQLEngine(metaStore, ksqlConfig);
+    ksqlEngine = new KSQLEngine(metaStore, configMap);
     inputData = getInputData();
     inputRecordsMetadata = produceInputData(inputData, ksqlStreamOrders.getSchema());
   }

@@ -37,17 +37,22 @@ public class KSQLJsonPOJOSerializer implements Serializer<GenericRow> {
     }
 
     try {
-      Map map = new HashMap();
-      for (int i = 0; i < data.getColumns().size(); i++) {
-        String jsonFieldName = schema.fields().get(i).name().substring(schema.fields().get(i)
-                                                                           .name().indexOf(".") +
-                                                                       1).toLowerCase();
-        map.put(jsonFieldName, data.getColumns().get(i));
-      }
-      return objectMapper.writeValueAsBytes(map);
+      return objectMapper.writeValueAsBytes(dataToMap(data));
     } catch (Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }
+  }
+
+  public Map<String, Object> dataToMap(final GenericRow data) {
+    Map<String, Object> result = new HashMap<>();
+
+    for (int i = 0; i < data.getColumns().size(); i++) {
+      String schemaColumnName = schema.fields().get(i).name();
+      String mapColumnName = schemaColumnName.substring(schemaColumnName.indexOf('.') + 1);
+      result.put(mapColumnName, data.getColumns().get(i));
+    }
+
+    return result;
   }
 
   @Override

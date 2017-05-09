@@ -27,6 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {
@@ -220,7 +221,7 @@ public class SchemaKStream {
           Windowed windowedKey = (Windowed) key;
           keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
         } else {
-          keyString = key.toString();
+          keyString = Objects.toString(key);
         }
         queue.put(new KeyValue<>(keyString, value));
       } catch (InterruptedException exception) {

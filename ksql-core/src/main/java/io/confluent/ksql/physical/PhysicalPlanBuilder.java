@@ -132,16 +132,19 @@ public class PhysicalPlanBuilder {
 
     // Pre aggregate computations
     List<Expression> aggArgExpansionList = new ArrayList<>();
+    Map<String, Integer> expressionNames = new HashMap<>();
     for (Expression expression: aggregateNode.getRequiredColumnList()) {
-      aggArgExpansionList.add(expression);
+      if (!expressionNames.containsKey(expression.toString())) {
+        expressionNames.put(expression.toString(), aggArgExpansionList.size());
+        aggArgExpansionList.add(expression);
+      }
     }
     for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
-      aggArgExpansionList.add(expression);
+      if (!expressionNames.containsKey(expression.toString())) {
+        expressionNames.put(expression.toString(), aggArgExpansionList.size());
+        aggArgExpansionList.add(expression);
+      }
     }
-
-//    if (aggregateNode.getHavingExpressions() != null) {
-//      aggArgExpansionList.add(aggregateNode.getHavingExpressions());
-//    }
 
     SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
@@ -167,20 +170,21 @@ public class PhysicalPlanBuilder {
       Field field = aggregateArgExpanded.getSchema().fields().get(index);
       aggregateSchema.field(field.name(), field.schema());
     }
-    int udafIndex = resultColumns.size();
+    int udafIndexInAggSchema = resultColumns.size();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
       KSQLAggregateFunction aggregateFunctionInfo = KSQLFunctions.getAggregateFunction(functionCall
                                                                                       .getName()
                                                                                      .toString(),
                                                                                  functionCall
                                                                                      .getArguments(), aggregateArgExpanded.getSchema());
+      int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
       KSQLAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
           .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
-      aggValToAggFunctionMap.put(udafIndex, aggregateFunction);
+      aggValToAggFunctionMap.put(udafIndexInAggSchema, aggregateFunction);
       resultColumns.add(aggregateFunction.getIntialValue());
 
-      udafIndex++;
-      aggregateSchema.field("AGG_COL_" + udafIndex, aggregateFunction.getReturnType());
+      udafIndexInAggSchema++;
+      aggregateSchema.field("AGG_COL_" + udafIndexInAggSchema, aggregateFunction.getReturnType());
     }
 
     Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
@@ -199,8 +203,7 @@ public class PhysicalPlanBuilder {
     for (int i = 0; i < aggregateNode.getRequiredColumnList().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
-    int aggFunctionVarSuffix = 0;
-    for (int i = aggregateNode.getRequiredColumnList().size(); i < fields.size(); i++) {
+    for (int aggFunctionVarSuffix = 0; aggFunctionVarSuffix < aggregateNode.getFunctionList().size(); aggFunctionVarSuffix++) {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
@@ -210,7 +213,6 @@ public class PhysicalPlanBuilder {
       fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
                           + aggFunctionVarSuffix, fieldSchema);
-      aggFunctionVarSuffix++;
     }
 
     Schema aggStageSchema = schemaBuilder.build();

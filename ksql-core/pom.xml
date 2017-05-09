@@ -38,8 +38,8 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <version>0.10.2.0</version>
-            <!--<version>${kafka.version}</version>-->
+            <!--<version>0.10.2.0</version>-->
+            <version>${kafka.version}</version>
         </dependency>
 
         <dependency>

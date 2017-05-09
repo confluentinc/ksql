@@ -13,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
-// TODO: Update to official AdminClient once it's available
-
 public class TopicUtil {
   private static final Logger log = LoggerFactory.getLogger(TopicUtil.class);
 

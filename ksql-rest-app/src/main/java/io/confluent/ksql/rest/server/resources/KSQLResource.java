@@ -179,7 +179,7 @@ public class KSQLResource {
   private JsonObjectBuilder formatDataSourceAsJson(StructuredDataSource dataSource) {
     JsonObjectBuilder result = Json.createObjectBuilder();
     result.add("ksql_topic", dataSource.getKsqlTopic().getName());
-    result.add("key", dataSource.getKeyField().name());
+    result.add("key", ( dataSource.getKeyField() != null)? dataSource.getKeyField().name() : "null");
     result.add("format", dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString());
     return result;
   }
@@ -209,7 +209,7 @@ public class KSQLResource {
     if (dataSource == null) {
       throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
     }
-    result.add("key", dataSource.getKeyField().name());
+    result.add("key", ( dataSource.getKeyField() != null)? dataSource.getKeyField().name() : "null");
     result.add("type", dataSource.getDataSourceType().toString());
     JsonObjectBuilder fields = Json.createObjectBuilder();
     for (Field schemaField : dataSource.getSchema().fields()) {

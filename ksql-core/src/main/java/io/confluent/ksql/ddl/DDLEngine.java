@@ -148,13 +148,12 @@ public class DDLEngine {
     String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
-    if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
-      throw new KSQLException("Key field name for the stream should be set in WITH clause.");
+    String keyName = "";
+    if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) != null) {
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+      keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
     }
-
-    // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-    String keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
-    keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
       throw new KSQLException(String.format("The corresponding topic, %s, does not exist.", topicName));
@@ -162,8 +161,8 @@ public class DDLEngine {
 
     KSQLStream
         ksqlStream =
-        new KSQLStream(streamName, streamSchema, streamSchema.field(keyName),
-                      ksqlEngine.getMetaStore().getTopic(topicName));
+        new KSQLStream(streamName, streamSchema, (keyName.length() == 0) ? null : streamSchema.field(keyName),
+                                             ksqlEngine.getMetaStore().getTopic(topicName));
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
@@ -213,13 +212,13 @@ public class DDLEngine {
         .toString();
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
+    String keyName = "";
     if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
-      throw new KSQLException("Key field name for the stream should be set in WITH clause.");
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+      keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
     }
 
-    // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-    String keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
-    keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
 
     boolean isWindowed = false;
     if (createTable.getProperties().get(DDLConfig.IS_WINDOWED_PROPERTY) != null) {
@@ -236,9 +235,9 @@ public class DDLEngine {
       throw new KSQLException("The corresponding topic does not exist.");
     }
 
-    KSQLTable ksqlTable = new KSQLTable(tableName, tableSchema, tableSchema.field(keyName),
-                                     ksqlEngine.getMetaStore().getTopic(topicName),
-                                     stateStoreName, isWindowed);
+    KSQLTable ksqlTable = new KSQLTable(tableName, tableSchema, (keyName.length() == 0) ? null : tableSchema.field(keyName),
+                                        ksqlEngine.getMetaStore().getTopic(topicName),
+                                        stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore

@@ -34,7 +34,8 @@ import java.util.regex.Pattern;
 
 public class Cli implements Closeable, AutoCloseable {
 
-  private static final String DEFAULT_PROMPT = "ksql> ";
+  private static final String DEFAULT_PRIMARY_PROMPT = "ksql> ";
+  private static final String DEFAULT_SECONDARY_PROMPT = "      ";
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
 
   private final ExecutorService queryStreamExecutorService;
@@ -45,7 +46,8 @@ public class Cli implements Closeable, AutoCloseable {
   protected final Terminal terminal;
   protected final LineReader lineReader;
 
-  private String prompt;
+  private String primaryPrompt;
+  private String secondaryPrompt;
 
   public Cli(KSQLRestClient restClient) throws IOException {
     this.restClient = restClient;
@@ -59,7 +61,8 @@ public class Cli implements Closeable, AutoCloseable {
     // Otherwise, things like '!=' will cause things to break
     this.lineReader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
 
-    this.prompt = DEFAULT_PROMPT;
+    this.primaryPrompt = DEFAULT_PRIMARY_PROMPT;
+    this.secondaryPrompt = DEFAULT_SECONDARY_PROMPT;
 
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
@@ -69,19 +72,18 @@ public class Cli implements Closeable, AutoCloseable {
     registerDefaultCliSpecificCommands();
   }
 
-  public void repl() {
+  public void repl() throws IOException {
     terminal.flush();
     while (true) {
       try {
         handleLine(readLine());
         terminal.flush();
       } catch (EndOfFileException exception) {
-        break;
+        // EOF is fine, just terminate the REPL
       } catch (Exception exception) {
         exception.printStackTrace(terminal.writer());
       }
     }
-    terminal.flush();
   }
 
   @Override
@@ -166,29 +168,31 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void printHelp() {
-        terminal.writer().println("\tprompt <prompt>: Set the CLI prompt to <prompt>");
+        terminal.writer().println("\tprompt <prompt>: Set the primary prompt to <prompt>");
         terminal.writer().println("\t                 example: \"prompt my_awesome_prompt>\", or \"prompt 'my ''awesome'' prompt> '\"");
       }
 
       @Override
       public void execute(String commandStrippedLine) {
-        if (commandStrippedLine.trim().isEmpty()) {
-          throw new RuntimeException("Prompt command must be followed by a new prompt to use");
-        }
+        primaryPrompt = parsePromptString(commandStrippedLine);
+      }
+    });
 
-        String trimmedLine = commandStrippedLine.trim();
-        if (trimmedLine.contains("'")) {
-          Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(trimmedLine);
-          if (quotedPromptMatcher.matches()) {
-            prompt = trimmedLine.substring(1, trimmedLine.length() - 1).replace("''", "'");
-          } else {
-            throw new RuntimeException(
-                "Failed to parse prompt string. All non-enclosing single quotes must be doubled."
-            );
-          }
-        } else {
-          prompt = trimmedLine;
-        }
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "prompt2";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tprompt2 <prompt>: Set the secondary prompt to <prompt>");
+        terminal.writer().println("\t                  example: \"prompt2 my_awesome_prompt\", or \"prompt2 'my ''awesome'' prompt> '\"");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        secondaryPrompt = parsePromptString(commandStrippedLine);
       }
     });
 
@@ -210,13 +214,33 @@ public class Cli implements Closeable, AutoCloseable {
     });
   }
 
-  private String readLine() throws IOException {
-    while (true) {
-      try {
-        return lineReader.readLine(prompt);
-      } catch (UserInterruptException exception) {
-        terminal.writer().println("^C");
-        terminal.flush();
+  private String parsePromptString(String commandStrippedLine) {
+    if (commandStrippedLine.trim().isEmpty()) {
+      throw new RuntimeException("Prompt command must be followed by a new prompt to use");
+    }
+
+    String trimmedLine = commandStrippedLine.trim();
+    if (trimmedLine.contains("'")) {
+      Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(trimmedLine);
+      if (quotedPromptMatcher.matches()) {
+        return trimmedLine.substring(1, trimmedLine.length() - 1).replace("''", "'");
+      } else {
+        throw new RuntimeException(
+            "Failed to parse prompt string. All non-enclosing single quotes must be doubled."
+        );
+      }
+    } else {
+      return trimmedLine;
+    }
+  }
+
+  public void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
+    for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
+      String ksql = KSQLEngine.getStatementString(statementContext);
+      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+        handleStreamedQuery(ksql);
+      } else {
+        printJsonResponse(restClient.makeKSQLRequest(ksql));
       }
     }
   }
@@ -250,15 +274,22 @@ public class Cli implements Closeable, AutoCloseable {
       multiLineBuffer.append(trimmedLine);
       handleStatements(multiLineBuffer.toString());
     }
+
   }
 
-  private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
-    for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
-      String ksql = KSQLEngine.getStatementString(statementContext);
-      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
-        handleStreamedQuery(ksql);
-      } else {
-        printJsonResponse(restClient.makeKSQLRequest(ksql));
+  private String readLine() throws IOException {
+    StringBuilder result = new StringBuilder();
+    while (true) {
+      try {
+        String line = Optional.ofNullable(lineReader.readLine(primaryPrompt)).orElse("").trim();
+        while (line.endsWith("\\")) {
+          result.append(line.substring(0, line.length() - 1)).append(System.lineSeparator());
+          line = Optional.ofNullable(lineReader.readLine(secondaryPrompt)).orElse("").trim();
+        }
+        return result.append(line).toString().trim();
+      } catch (UserInterruptException exception) {
+        terminal.writer().println("^C");
+        terminal.flush();
       }
     }
   }
@@ -340,9 +371,7 @@ public class Cli implements Closeable, AutoCloseable {
 
   protected interface CliSpecificCommand {
     String getName();
-
     void printHelp();
-
     void execute(String commandStrippedLine) throws IOException;
   }
 }

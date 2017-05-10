@@ -27,10 +27,22 @@ public class KSQL {
   public static abstract class KSQLCommand implements Runnable {
     protected abstract Cli getCli() throws Exception;
 
+    private static final String NON_INTERACTIVE_KSQL_STRING_OPTION_NAME = "--exec";
+
+    @Option(
+        name = NON_INTERACTIVE_KSQL_STRING_OPTION_NAME,
+        description = "One or more KSQL statements to run non-interactively, exiting immediately after"
+    )
+    String nonInteractiveKsqlString;
+
     @Override
     public void run() {
       try (Cli cli = getCli()) {
-        cli.repl();
+        if (nonInteractiveKsqlString != null) {
+          cli.handleStatements(nonInteractiveKsqlString);
+        } else {
+          cli.repl();
+        }
       } catch (Exception exception) {
         throw new RuntimeException(exception);
       }
@@ -59,27 +71,27 @@ public class KSQL {
         name = PORT_NUMBER_OPTION_NAME,
         description = "The portNumber to use for the connection (defaults to " + PORT_NUMBER_OPTION_DEFAULT + ")"
     )
-    private int portNumber = PORT_NUMBER_OPTION_DEFAULT;
+    int portNumber = PORT_NUMBER_OPTION_DEFAULT;
 
     @Option(
         name = KAFKA_BOOTSTRAP_SERVER_OPTION_NAME,
         description = "The Kafka server to connect to (defaults to " + KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT + ")"
     )
-    private String bootstrapServer;
+    String bootstrapServer;
 
     @Option(
         name = APPLICATION_ID_OPTION_NAME,
         description = "The application ID to use for the created Kafka Streams instance(s) (defaults to '"
             + APPLICATION_ID_OPTION_DEFAULT + "')"
     )
-    private String applicationId;
+    String applicationId;
 
     @Option(
         name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
         description = "The suffix to append to the end of the name of the command topic (defaults to '"
             + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT + "')"
     )
-    private String commandTopicSuffix;
+    String commandTopicSuffix;
 
     @Option(
         name = PROPERTIES_FILE_OPTION_NAME,
@@ -87,7 +99,7 @@ public class KSQL {
             + "(can specify port number, bootstrap server, etc. but these options will be overridden if also given via "
             + "flags)"
     )
-    private String propertiesFile;
+    String propertiesFile;
 
     @Override
     protected Cli getCli() throws Exception {
@@ -143,7 +155,7 @@ public class KSQL {
         title = "server",
         description = "The address of the KSQL server to connect to (ex: http://confluent.io:6969)"
     )
-    private String server;
+    String server;
 
     @Override
     public Cli getCli() throws Exception {

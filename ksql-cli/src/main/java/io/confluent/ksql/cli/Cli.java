@@ -123,11 +123,7 @@ public class Cli implements Closeable, AutoCloseable {
         terminal.writer().println();
         terminal.writer().println("    1. The line is empty or entirely whitespace. In this case, no request is made to the server.");
         terminal.writer().println();
-        terminal.writer().println("    2. The line begins with ':'. In this case, the line is parsed as a meta-command "
-            + "(as detailed above)."
-        );
-        terminal.writer().println();
-        terminal.writer().println("    3. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
+        terminal.writer().println("    2. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
             + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
             + "all lines read during this time is sent to the server as KSQL."
         );

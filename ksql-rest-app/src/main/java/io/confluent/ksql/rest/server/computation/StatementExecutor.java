@@ -34,6 +34,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +56,7 @@ public class StatementExecutor {
   private final KSQLEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
+  private final Map<CommandId, CommandStatusFuture> statusFutures;
 
   public StatementExecutor(TopicUtil topicUtil, KSQLEngine ksqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
@@ -59,6 +64,7 @@ public class StatementExecutor {
     this.statementParser = statementParser;
 
     this.statusStore = new HashMap<>();
+    this.statusFutures = new HashMap<>();
   }
 
   /**
@@ -133,11 +139,36 @@ public class StatementExecutor {
    * instance, it should be possible to know that it was at least written to the topic in the first place.
    * @param commandId The ID of the statement that has been written to the command topic.
    */
-  public void registerQueuedStatement(CommandId commandId) {
+  public Future<CommandStatus> registerQueuedStatement(CommandId commandId) {
     statusStore.put(
         commandId,
         new CommandStatus(CommandStatus.Status.QUEUED, "Statement written to command topic")
     );
+
+    CommandStatusFuture result;
+    synchronized (statusFutures) {
+      result = statusFutures.get(commandId);
+      if (result != null) {
+        return result;
+      } else {
+        result = new CommandStatusFuture(commandId);
+        statusFutures.put(commandId, result);
+        return result;
+      }
+    }
+  }
+
+  private void completeStatusFuture(CommandId commandId, CommandStatus commandStatus) {
+    synchronized (statusFutures) {
+      CommandStatusFuture statusFuture = statusFutures.get(commandId);
+      if (statusFuture != null) {
+        statusFuture.complete(commandStatus);
+      } else {
+        CommandStatusFuture newStatusFuture = new CommandStatusFuture(commandId);
+        newStatusFuture.complete(commandStatus);
+        statusFutures.put(commandId, newStatusFuture);
+      }
+    }
   }
 
   private Map<Long, CommandId> getTerminatedQueries(Map<CommandId, String> commands) {
@@ -187,7 +218,9 @@ public class StatementExecutor {
       StringWriter stringWriter = new StringWriter();
       PrintWriter printWriter = new PrintWriter(stringWriter);
       exception.printStackTrace(printWriter);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString()));
+      CommandStatus errorStatus = new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString());
+      statusStore.put(commandId, errorStatus);
+      completeStatusFuture(commandId, errorStatus);
     }
   }
 
@@ -197,23 +230,24 @@ public class StatementExecutor {
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries
   ) throws Exception {
+    String successMessage;
     if (statement instanceof CreateTopic) {
       CreateTopic createTopic = (CreateTopic) statement;
       String kafkaTopicName =
           createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
       kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
       ksqlEngine.getDdlEngine().createTopic(createTopic);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Topic created"));
+      successMessage = "Topic created";
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
       String streamName = createStream.getName().getSuffix();
       ksqlEngine.getDdlEngine().createStream(createStream);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Stream created"));
+      successMessage = "Stream created";
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
       String tableName = createTable.getName().getSuffix();
       ksqlEngine.getDdlEngine().createTable(createTable);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Table created"));
+      successMessage = "Table created";
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
@@ -224,7 +258,12 @@ public class StatementExecutor {
           createStreamAsSelect.getProperties()
       );
       String streamName = createStreamAsSelect.getName().getSuffix();
-      startQuery(statementStr, query, commandId, terminatedQueries, "Stream created and running");
+      topicUtil.ensureTopicExists(streamName);
+      if (startQuery(statementStr, query, commandId, terminatedQueries)) {
+        successMessage = "Stream created and running";
+      } else {
+        return;
+      }
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
       QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
@@ -235,24 +274,30 @@ public class StatementExecutor {
           createTableAsSelect.getProperties()
       );
       String tableName = createTableAsSelect.getName().getSuffix();
-      startQuery(statementStr, query, commandId, terminatedQueries, "Table created and running");
+      if (startQuery(statementStr, query, commandId, terminatedQueries)) {
+        successMessage = "Table created and running";
+      } else {
+        return;
+      }
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted"));
+      successMessage = "Termination request granted";
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
     }
+    CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+    statusStore.put(commandId, successStatus);
+    completeStatusFuture(commandId, successStatus);
   }
 
-  private void startQuery(
+  private boolean startQuery(
       String queryString,
       Query query,
       CommandId commandId,
-      Map<Long, CommandId> terminatedQueries,
-      String successMessage
+      Map<Long, CommandId> terminatedQueries
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -279,9 +324,10 @@ public class StatementExecutor {
         statusStore.put(terminateId, new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted"));
         statusStore.put(commandId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));
         ksqlEngine.terminateQuery(queryId, false);
+        return false;
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
-        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.RUNNING, successMessage));
+        return true;
       }
 
     } else {
@@ -317,5 +363,71 @@ public class StatementExecutor {
 
     CommandId queryStatementId = new CommandId(commandType, queryEntity);
     statusStore.put(queryStatementId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));
+  }
+
+  private class CommandStatusFuture implements Future<CommandStatus> {
+
+    private final CommandId commandId;
+    private final AtomicReference<CommandStatus> result;
+
+    public CommandStatusFuture(CommandId commandId) {
+      this.commandId = commandId;
+      this.result = new AtomicReference<>(null);
+    }
+
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+      return false; // TODO: Is an implementation of this method necessary?
+    }
+
+    @Override
+    public boolean isCancelled() {
+      return false; // TODO: Is an implementation of this method necessary?
+    }
+
+    @Override
+    public boolean isDone() {
+      return result.get() != null;
+    }
+
+    @Override
+    public CommandStatus get() throws InterruptedException {
+      synchronized (result) {
+        while (result.get() == null) {
+          result.wait();
+        }
+        removeFromFutures();
+        return result.get();
+      }
+    }
+
+    @Override
+    public CommandStatus get(long timeout, TimeUnit unit)
+        throws InterruptedException, TimeoutException {
+      long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
+      synchronized (result) {
+        while (result.get() == null) {
+          result.wait(Math.max(1, endTimeMs - System.currentTimeMillis()));
+        }
+        if (result.get() == null) {
+          throw new TimeoutException();
+        }
+        removeFromFutures();
+        return result.get();
+      }
+    }
+
+    private void complete(CommandStatus result) {
+      synchronized (this.result) {
+        this.result.set(result);
+        this.result.notifyAll();
+      }
+    }
+
+    private void removeFromFutures() {
+      synchronized (statusFutures) {
+        statusFutures.remove(commandId);
+      }
+    }
   }
 }

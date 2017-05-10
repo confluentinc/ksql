@@ -18,7 +18,8 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
-import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLRequest;
@@ -42,10 +43,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -73,12 +75,14 @@ public class KSQLResourceTest {
 
   private static class TestKSQLResource extends KSQLResource {
 
+    public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
+
     public final KSQLEngine ksqlEngine;
     public final CommandStore commandStore;
     public final StatementExecutor statementExecutor;
 
     private TestKSQLResource(KSQLEngine ksqlEngine, CommandStore commandStore, StatementExecutor statementExecutor) {
-      super(ksqlEngine, commandStore, statementExecutor);
+      super(ksqlEngine, commandStore, statementExecutor, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
 
       this.ksqlEngine = ksqlEngine;
       this.commandStore = commandStore;
@@ -145,16 +149,26 @@ public class KSQLResourceTest {
     );
 
     final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
+    final CommandStatus commandStatus = new CommandStatus(
+        CommandStatus.Status.SUCCESS,
+        "Topic created successfully"
+    );
+    final CommandStatusEntity expectedCommandStatusEntity =
+        new CommandStatusEntity(ksqlString, commandStatus, commandId);
+
+    @SuppressWarnings("unchecked")
+    final Future<CommandStatus> mockCommandStatusFuture = mock(Future.class);
+    expect(mockCommandStatusFuture.get(TestKSQLResource.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS))
+        .andReturn(commandStatus);
+    replay(mockCommandStatusFuture);
 
     expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
+    expect(testResource.statementExecutor.registerQueuedStatement(commandId)).andReturn(mockCommandStatusFuture);
 
-    testResource.statementExecutor.registerQueuedStatement(commandId);
-    expectLastCall();
+    CommandStatusEntity testCommandStatusEntity =
+        makeSingleRequest(testResource, ksqlString, ksqlStatement, CommandStatusEntity.class);
 
-    CommandIdEntity commandIdEntity =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, CommandIdEntity.class);
-
-    assertEquals(commandId, commandIdEntity.getCommandId());
+    assertEquals(expectedCommandStatusEntity, testCommandStatusEntity);
   }
 
   @Test

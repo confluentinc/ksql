@@ -213,7 +213,8 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     KSQLResource ksqlResource = new KSQLResource(
         ksqlEngine,
         commandStore,
-        statementExecutor
+        statementExecutor,
+        config.getLong(KSQLRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
     );
 
     commandRunner.processPriorCommands();

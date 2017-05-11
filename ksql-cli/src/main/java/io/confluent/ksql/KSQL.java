@@ -162,8 +162,6 @@ public class KSQL {
 
     try {
       cli.parse(args).run();
-      // TEMPORARY WORKAROUND I SWEAR
-      System.exit(0);
     } catch (ParseException exception) {
       if (exception.getMessage() != null) {
         System.err.println(exception.getMessage());

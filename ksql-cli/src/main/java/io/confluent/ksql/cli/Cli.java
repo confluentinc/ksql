@@ -49,6 +49,7 @@ public class Cli implements Closeable, AutoCloseable {
     this.restClient = restClient;
 
     this.terminal = TerminalBuilder.builder().system(true).build();
+    this.terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN); // Ignore ^C when not reading a line
 
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder().appName("KSQL").terminal(terminal).build();
@@ -202,6 +203,8 @@ public class Cli implements Closeable, AutoCloseable {
       terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
         @Override
         public void handle(Terminal.Signal signal) {
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+          eraseQueryTerminateInstructions();
           queryStreamFuture.cancel(true);
         }
       });
@@ -211,11 +214,7 @@ public class Cli implements Closeable, AutoCloseable {
       } catch (CancellationException exception) {
         terminal.writer().println("Query terminated");
       }
-
-      terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_DFL);
     }
-
-    eraseQueryTerminateInstructions();
   }
 
   private void displayQueryTerminateInstructions() throws InterruptedException {

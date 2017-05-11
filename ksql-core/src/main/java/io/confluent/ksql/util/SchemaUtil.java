@@ -8,7 +8,13 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import io.confluent.ksql.ddl.DDLConfig;
 
 public class SchemaUtil {
 
@@ -65,6 +71,8 @@ public class SchemaUtil {
     if (schema.fields() != null) {
       for (Field field : schema.fields()) {
         if (field.name().equals(fieldName)) {
+          return field;
+        } else if (field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1))) {
           return field;
         }
       }
@@ -133,6 +141,36 @@ public class SchemaUtil {
         //TODO: Add complex types later!
         return "";
     }
+  }
+
+  public synchronized static Schema addImplicitKeyToSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    schemaBuilder.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
+    for (Field field: schema.fields()) {
+      schemaBuilder.field(field.name(), field.schema());
+    }
+    return schemaBuilder.build();
+  }
+
+  public synchronized static Schema removeImplicitRowKeyFromSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field: schema.fields()) {
+      if (!field.name().equalsIgnoreCase(DDLConfig.KEY_NAME_COLUMN_NAME)) {
+        schemaBuilder.field(field.name(), field.schema());
+      }
+    }
+    return schemaBuilder.build();
+  }
+
+  public synchronized static Set<Integer> getRowKeyIndexes(Schema schema) {
+    Set indexSet = new HashSet();
+    for (int i = 0; i < schema.fields().size(); i++) {
+      Field field = schema.fields().get(i);
+      if (field.name().equalsIgnoreCase(DDLConfig.KEY_NAME_COLUMN_NAME)) {
+        indexSet.add(i);
+      }
+    }
+    return indexSet;
   }
 
 }

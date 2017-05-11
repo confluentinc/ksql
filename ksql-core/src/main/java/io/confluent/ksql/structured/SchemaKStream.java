@@ -6,10 +6,13 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.function.udf.KUDF;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.serde.KSQLTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SerDeUtil;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -28,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {
@@ -42,6 +46,14 @@ public class SchemaKStream {
                        final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
+//    .map(new KeyValueMapper<String, GenericRow, KeyValue<String,
+//        GenericRow>>() {
+//      @Override
+//      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+//        row.getColumns().set(0, key);
+//        return new KeyValue<>(key, row);
+//      }
+//    });
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -53,8 +65,22 @@ public class SchemaKStream {
     return new QueuedSchemaKStream(this, rowQueue);
   }
 
-  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
-    kStream.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
+      Set<Integer> rowkeyIndexes) {
+    kStream
+        .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+      @Override
+      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+        List columns = new ArrayList();
+        for (int i = 0; i < row.columns.size(); i++) {
+          if (!rowkeyIndexes.contains(i)) {
+            columns.add(row.columns.get(i));
+          }
+        }
+        return new KeyValue<>(key, new GenericRow(columns));
+      }
+    }).to
+        (Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
   }
 
@@ -135,7 +161,8 @@ public class SchemaKStream {
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
                                 final Field joinKey,
-                                final Serde<GenericRow> resultValueSerDe) {
+                                KSQLTopicSerDe joinSerDe) {
+//                                final Serde<GenericRow> resultValueSerDe) {
 
     KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
       @Override
@@ -154,7 +181,8 @@ public class SchemaKStream {
         GenericRow joinGenericRow = new GenericRow(columns);
         return joinGenericRow;
       }
-    }, Serdes.String(), resultValueSerDe);
+//    }, Serdes.String(), resultValueSerDe);
+    }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));
   }
@@ -173,6 +201,13 @@ public class SchemaKStream {
             value.getColumns().get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
                 .toString();
         return newKey;
+      }
+    }).map(new KeyValueMapper<String, GenericRow, KeyValue<String,
+        GenericRow>>() {
+      @Override
+      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+        row.getColumns().set(0, key);
+        return new KeyValue<>(key, row);
       }
     });
 

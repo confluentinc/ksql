@@ -132,6 +132,7 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
+    streamSchema.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -187,6 +188,7 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
+    tableSchema.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -213,7 +215,7 @@ public class DDLEngine {
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
     String keyName = "";
-    if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
+    if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) != null) {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
       keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
       keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);

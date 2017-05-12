@@ -289,7 +289,8 @@ public class PhysicalPlanBuilder {
                       GenericRow>>() {
                     @Override
                     public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
-                      row.getColumns().set(0, key);
+                      row.getColumns().set(0, String.format("%s : Window{start=%s, end=%s}", key
+                          .key(), key.window().start(), key.window().end()));
                       return new KeyValue<>(key, row);
                     }
                   });

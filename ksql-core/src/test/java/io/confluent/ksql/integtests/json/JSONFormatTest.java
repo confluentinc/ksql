@@ -92,10 +92,12 @@ public class JSONFormatTest {
     ksqlEngine = new KSQLEngine(metaStore, configMap);
     inputData = getInputData();
 
-    String ordersTopicStr = "CREATE TOPIC orders_topic WITH (format = 'json', "
-                          + "kafka_topic='orders_topic_json');";
-    String ordersStreamStr = "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid "
-                             + "varchar, orderunits double, arraycol array<double>, mapcol map<varchar, double>) WITH (topicname = 'orders_topic' , key='ordertime');";
+    String ordersTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
+                          + "kafka_topic='%s');", inputTopic, inputTopic);
+    String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+                                    + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+                             + "map<varchar, double>) WITH (topicname = '%s' , "
+                                           + "key='ordertime');", inputStream, inputTopic);
 
     ksqlEngine.buildMultipleQueries(false, ordersTopicStr);
     ksqlEngine.buildMultipleQueries(false, ordersStreamStr);
@@ -107,14 +109,14 @@ public class JSONFormatTest {
 
   @Test
   public void testSelectStar() throws Exception {
-    final String streamName = "STARTSTREAM";
+    final String streamName = "STARSTREAM";
     final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Thread.sleep(50000);
+//    Thread.sleep(50000);
     Schema resultSchema = metaStore.getSource(streamName).getSchema();
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, inputData.size());
 

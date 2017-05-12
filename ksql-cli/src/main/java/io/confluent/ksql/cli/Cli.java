@@ -22,6 +22,7 @@ import javax.json.stream.JsonGenerator;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +39,7 @@ public class Cli implements Closeable, AutoCloseable {
 
   private final ExecutorService queryStreamExecutorService;
   private final JsonWriterFactory jsonWriterFactory;
+  private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
 
   protected final KSQLRestClient restClient;
   protected final Terminal terminal;
@@ -62,17 +64,22 @@ public class Cli implements Closeable, AutoCloseable {
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
     this.jsonWriterFactory = Json.createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
+
+    this.cliSpecificCommands = new LinkedHashMap<>();
+    registerDefaultCliSpecificCommands();
   }
 
-  public void repl() throws IOException {
+  public void repl() {
     terminal.flush();
-    try {
-      while (true) {
+    while (true) {
+      try {
         handleLine(readLine());
         terminal.flush();
+      } catch (EndOfFileException exception) {
+        break;
+      } catch (Exception exception) {
+        exception.printStackTrace(terminal.writer());
       }
-    } catch (EndOfFileException exception) {
-      // EOF is fine, just terminate the REPL
     }
     terminal.flush();
   }
@@ -82,6 +89,125 @@ public class Cli implements Closeable, AutoCloseable {
     queryStreamExecutorService.shutdownNow();
     restClient.close();
     terminal.close();
+  }
+
+  protected void registerCliSpecificCommand(CliSpecificCommand cliSpecificCommand) {
+    cliSpecificCommands.put(cliSpecificCommand.getName(), cliSpecificCommand);
+  }
+
+  private void registerDefaultCliSpecificCommands() {
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "help";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\thelp: Show this message");
+      }
+
+      @Override
+      public void execute(String line) {
+        terminal.writer().println("CLI-specific commands (exactly one per line):");
+        terminal.writer().println();
+        for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
+          cliSpecificCommand.printHelp();
+          terminal.writer().println();
+        }
+        terminal.writer().println();
+        terminal.writer().println("default behavior:");
+        terminal.writer().println();
+        terminal.writer().println("    Lines are read one at a time and are sent to the server as KSQL unless one of "
+            + "the following is true:"
+        );
+        terminal.writer().println();
+        terminal.writer().println("    1. The line is empty or entirely whitespace. In this case, no request is made to the server.");
+        terminal.writer().println();
+        terminal.writer().println("    2. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
+            + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
+            + "all lines read during this time is sent to the server as KSQL."
+        );
+        terminal.writer().println();
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "status";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tstatus:      Get status information on all distributed statements");
+        terminal.writer().println("\tstatus <id>: Get detailed status information on the command with an ID of <id>");
+        terminal.writer().println("\t             example: \"status stream/MY_AWESOME_KSQL_STREAM\"");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        JsonStructure jsonResponse;
+        if (commandStrippedLine.trim().isEmpty()) {
+          jsonResponse = restClient.makeStatusRequest();
+        } else {
+          String statementId = commandStrippedLine.trim();
+          jsonResponse = restClient.makeStatusRequest(statementId);
+        }
+        printJsonResponse(jsonResponse);
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "prompt";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tprompt <prompt>: Set the CLI prompt to <prompt>");
+        terminal.writer().println("\t                 example: \"prompt my_awesome_prompt>\", or \"prompt 'my ''awesome'' prompt> '\"");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) {
+        if (commandStrippedLine.trim().isEmpty()) {
+          throw new RuntimeException("Prompt command must be followed by a new prompt to use");
+        }
+
+        String trimmedLine = commandStrippedLine.trim();
+        if (trimmedLine.contains("'")) {
+          Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(trimmedLine);
+          if (quotedPromptMatcher.matches()) {
+            prompt = trimmedLine.substring(1, trimmedLine.length() - 1).replace("''", "'");
+          } else {
+            throw new RuntimeException(
+                "Failed to parse prompt string. All non-enclosing single quotes must be doubled."
+            );
+          }
+        } else {
+          prompt = trimmedLine;
+        }
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "exit";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\texit: Exit the CLI (^D works as well)");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        throw new EndOfFileException();
+      }
+    });
   }
 
   private String readLine() throws IOException {
@@ -95,83 +221,34 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void handleLine(String line) {
+  private void handleLine(String line) throws Exception {
     String trimmedLine = Optional.ofNullable(line).orElse("").trim();
 
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    try {
-      if (trimmedLine.startsWith(":")) {
-        handleMetaCommand(trimmedLine);
-      } else {
-        StringBuilder multiLineBuffer = new StringBuilder();
-        while (trimmedLine.endsWith("\\")) {
-          multiLineBuffer.append(trimmedLine.substring(0, trimmedLine.length() - 1));
-          try {
-            trimmedLine = lineReader.readLine("");
-            if (trimmedLine == null) {
-              return;
-            }
-            trimmedLine = trimmedLine.trim();
-          } catch (UserInterruptException exception) {
-            terminal.writer().println("^C");
+    String[] commandArgs = trimmedLine.split("\\s+", 2);
+    CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(commandArgs[0].toLowerCase());
+    if (cliSpecificCommand != null) {
+      cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
+    } else {
+      StringBuilder multiLineBuffer = new StringBuilder();
+      while (trimmedLine.endsWith("\\")) {
+        multiLineBuffer.append(trimmedLine.substring(0, trimmedLine.length() - 1));
+        try {
+          trimmedLine = lineReader.readLine("");
+          if (trimmedLine == null) {
             return;
           }
+          trimmedLine = trimmedLine.trim();
+        } catch (UserInterruptException exception) {
+          terminal.writer().println("^C");
+          return;
         }
-        multiLineBuffer.append(trimmedLine);
-        handleStatements(multiLineBuffer.toString());
       }
-    } catch (Exception exception) {
-      exception.printStackTrace(terminal.writer());
-    }
-  }
-
-  protected void handleMetaCommand(String trimmedLine) throws IOException, InterruptedException, ExecutionException {
-    String[] commandArgs = trimmedLine.split("\\s+", 2);
-    String command = commandArgs[0];
-    switch (command) {
-      case ":":
-        terminal.writer().println("Lines beginning with ':' must contain exactly one meta-command");
-        break;
-      case ":status": {
-        JsonStructure jsonResponse;
-        if (commandArgs.length == 1) {
-          jsonResponse = restClient.makeStatusRequest();
-        } else {
-          String statementId = commandArgs[1];
-          jsonResponse = restClient.makeStatusRequest(statementId);
-        }
-        printJsonResponse(jsonResponse);
-        break;
-      }
-      case ":prompt":
-        if (commandArgs.length == 1) {
-          throw new RuntimeException(String.format(
-              "'%s' meta-command must be followed by a new prompt value, optionally enclosed in single quotes",
-              command
-          ));
-        }
-        String newPrompt = commandArgs[1];
-        if (newPrompt.startsWith("'")) {
-          Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(newPrompt);
-          if (quotedPromptMatcher.matches()) {
-            prompt = newPrompt.substring(1, newPrompt.length() - 1).replace("''", "'");
-          } else {
-            throw new RuntimeException(
-                "Failed to parse prompt string. All non-enclosing single quotes must be doubled."
-            );
-          }
-        } else {
-          prompt = newPrompt;
-        }
-        break;
-      case ":help":
-        printHelpMessage();
-        break;
-      default:
-        throw new RuntimeException(String.format("Unknown meta-command: '%s'", command));
+      multiLineBuffer.append(trimmedLine);
+      handleStatements(multiLineBuffer.toString());
     }
   }
 
@@ -261,46 +338,11 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.flush();
   }
 
-  private void printHelpMessage() throws IOException {
-    terminal.writer().println("meta-commands (one per line, must be on their own line):");
-    terminal.writer().println();
-    terminal.writer().println("    :exit               - Exit the REPL (^D is also fine)");
-    terminal.writer().println("    :help               - Show this message");
-    terminal.writer().println("    :prompt <prompt>    - Change the prompt to <prompt>");
-    terminal.writer().println("                          Example: :prompt 'my ''special'' prompt> '");
-//    terminal.writer().println("    :output             - Show the current output format");
-//    terminal.writer().println("                          Example: :output");
-//    terminal.writer().println("    :output <format>    - Change the output format to <format> (case-insensitive), "
-//        + "currently only 'json' and 'cli' are supported)"
-//    );
-//    terminal.writer().println("                          Example: :output JSON");
-//    terminal.writer().println("    :output CLI <width> - Change the output format to CLI, with a minimum column width of <width>");
-//    terminal.writer().println("                          Example: :output CLI 69");
-    terminal.writer().println("    :status             - Check on the statuses of all KSQL statements processed by the server");
-    terminal.writer().println("                          Example: :status");
-    terminal.writer().println("    :status <id>        - Check on the status of the statement with ID <id>");
-    terminal.writer().println("                          Example: :status KSQL_NODE_69_STATEMENT_69");
-    printExtraMetaCommandsHelp();
-    terminal.writer().println();
-    terminal.writer().println();
-    terminal.writer().println("default behavior:");
-    terminal.writer().println();
-    terminal.writer().println("    Lines are read one at a time and are sent to the server as KSQL unless one of "
-        + "the following is true:"
-    );
-    terminal.writer().println();
-    terminal.writer().println("    1. The line is empty or entirely whitespace. In this case, no request is made to the server.");
-    terminal.writer().println();
-    terminal.writer().println("    2. The line begins with ':'. In this case, the line is parsed as a meta-command "
-        + "(as detailed above)."
-    );
-    terminal.writer().println();
-    terminal.writer().println("    3. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
-        + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
-        + "all lines read during this time is sent to the server as KSQL."
-    );
-  }
+  protected interface CliSpecificCommand {
+    String getName();
 
-  protected void printExtraMetaCommandsHelp() throws IOException {
+    void printHelp();
+
+    void execute(String commandStrippedLine) throws IOException;
   }
 }

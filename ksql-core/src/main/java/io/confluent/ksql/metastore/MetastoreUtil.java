@@ -92,10 +92,9 @@ public class MetastoreUtil {
                                + "set in the schema.");
       }
       String schemaPath = node.get("avroschemafile").asText();
-      String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KSQLAvroTopicSerDe(schemaPath, avroSchema);
+      topicSerDe = new KSQLAvroTopicSerDe(schemaPath);
     } else if ("JSON".equals(serde)) {
-      topicSerDe = new KSQLJsonTopicSerDe(null);
+      topicSerDe = new KSQLJsonTopicSerDe();
     } else if ("CSV".equals(serde)) {
       topicSerDe = new KSQLCsvTopicSerDe();
     } else {

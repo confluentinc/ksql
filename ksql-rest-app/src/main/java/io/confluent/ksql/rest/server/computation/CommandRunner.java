@@ -3,6 +3,7 @@
  **/
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.rest.server.computation.CommandId;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;

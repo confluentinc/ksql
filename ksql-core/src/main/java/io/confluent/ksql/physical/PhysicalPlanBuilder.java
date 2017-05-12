@@ -444,7 +444,7 @@ public class PhysicalPlanBuilder {
         metastoreUtil.buildAvroSchema(ksqlStructuredDataOutputNode.getSchema(),
                                       ksqlStructuredDataOutputNode.getKsqlTopic().getName());
     metastoreUtil.writeAvroSchemaFile(avroSchema, avroSchemaFilePathVal);
-    KSQLAvroTopicSerDe ksqlAvroTopicSerDe = new KSQLAvroTopicSerDe(avroSchemaFilePathVal, avroSchema);
+    KSQLAvroTopicSerDe ksqlAvroTopicSerDe = new KSQLAvroTopicSerDe(avroSchemaFilePathVal);
     KSQLTopic newKSQLTopic = new KSQLTopic(ksqlStructuredDataOutputNode.getKsqlTopic()
                                             .getName(), ksqlStructuredDataOutputNode
                                             .getKsqlTopic().getKafkaTopicName(), ksqlAvroTopicSerDe);

@@ -25,7 +25,7 @@ public class KSQLTestUtil {
 
     KSQLTopic
         ksqlTopic1 =
-        new KSQLTopic("TEST1", "test1", new KSQLJsonTopicSerDe(null));
+        new KSQLTopic("TEST1", "test1", new KSQLJsonTopicSerDe());
 
     KSQLStream ksqlStream = new KSQLStream("TEST1", schemaBuilder1, schemaBuilder1.field("COL0"),
         ksqlTopic1);
@@ -42,7 +42,7 @@ public class KSQLTestUtil {
 
     KSQLTopic
         ksqlTopic2 =
-        new KSQLTopic("TEST2", "test2", new KSQLJsonTopicSerDe(null));
+        new KSQLTopic("TEST2", "test2", new KSQLJsonTopicSerDe());
     KSQLTable ksqlTable = new KSQLTable("TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
         ksqlTopic2, "TEST2", false);
 
@@ -57,7 +57,7 @@ public class KSQLTestUtil {
 
     KSQLTopic
         ksqlTopicOrders =
-            new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
+            new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe());
 
     KSQLStream ksqlStreamOrders = new KSQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
         ksqlTopicOrders);

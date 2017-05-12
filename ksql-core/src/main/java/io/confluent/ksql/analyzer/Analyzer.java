@@ -79,10 +79,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KSQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
+            intoTopicSerde = new KSQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath());
             break;
           case DataSource.JSON_SERDE_NAME:
-            intoTopicSerde = new KSQLJsonTopicSerDe(null);
+            intoTopicSerde = new KSQLJsonTopicSerDe();
             break;
           case DataSource.CSV_SERDE_NAME:
             intoTopicSerde = new KSQLCsvTopicSerDe();
@@ -90,7 +90,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
       } else {
         if (intoTopicSerde instanceof KSQLAvroTopicSerDe) {
-          intoTopicSerde = new KSQLAvroTopicSerDe(null, null);
+          intoTopicSerde = new KSQLAvroTopicSerDe(null);
         }
       }
 

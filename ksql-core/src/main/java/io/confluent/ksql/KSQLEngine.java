@@ -229,13 +229,13 @@ public class KSQLEngine implements Closeable {
     // TODO: Validate consumer and producer properties as well
   }
 
-  public void setStreamsProperty(String property, Object value) {
+  public Object setStreamsProperty(String property, Object value) {
     if (!isValidStreamsProperty(property)) {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
 
     Map<String, Object> newProperties = queryEngine.getStreamsProperties();
-    newProperties.put(property, value);
+    Object result = newProperties.put(property, value);
 
     try {
       validateStreamsProperties(newProperties);
@@ -244,6 +244,7 @@ public class KSQLEngine implements Closeable {
     }
 
     queryEngine.setStreamsProperty(property, value);
+    return result;
   }
 
   public Map<String, Object> getStreamsProperties() {

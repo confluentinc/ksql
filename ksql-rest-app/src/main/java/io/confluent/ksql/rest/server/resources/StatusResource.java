@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.json.CommandStatus;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.CommandStatus;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 
 import javax.json.Json;

@@ -78,15 +78,15 @@ public class DDLEngine {
         }
         String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
         avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
-        try {
-          String avroSchema = getAvroSchema(avroSchemaFile);
-          topicSerDe = new KSQLAvroTopicSerDe(avroSchemaFile, avroSchema);
-        } catch (IOException e) {
-          throw new KSQLException("Could not read avro schema from file: " + avroSchemaFile);
-        }
+//        try {
+//          String avroSchema = getAvroSchema(avroSchemaFile);
+        topicSerDe = new KSQLAvroTopicSerDe(avroSchemaFile);
+//        } catch (IOException e) {
+//          throw new KSQLException("Could not read avro schema from file: " + avroSchemaFile);
+//        }
         break;
       case DataSource.JSON_SERDE_NAME:
-        topicSerDe = new KSQLJsonTopicSerDe(null);
+        topicSerDe = new KSQLJsonTopicSerDe();
         break;
       case DataSource.CSV_SERDE_NAME:
         topicSerDe = new KSQLCsvTopicSerDe();

@@ -8,17 +8,11 @@ import io.confluent.ksql.serde.KSQLTopicSerDe;
 
 public class KSQLAvroTopicSerDe extends KSQLTopicSerDe {
 
-  private final String schemaString;
   private final String schemaFilePath;
 
-  public KSQLAvroTopicSerDe(final String schemaFilePath, final String schemaString) {
+  public KSQLAvroTopicSerDe(final String schemaFilePath) {
     super(StructuredDataSource.DataSourceSerDe.AVRO);
-    this.schemaString = schemaString;
     this.schemaFilePath = schemaFilePath;
-  }
-
-  public String getSchemaString() {
-    return schemaString;
   }
 
   public String getSchemaFilePath() {

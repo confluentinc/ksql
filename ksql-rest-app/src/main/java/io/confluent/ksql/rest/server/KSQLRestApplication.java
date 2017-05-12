@@ -4,6 +4,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
@@ -11,6 +12,8 @@ import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.rest.json.CommandIdResponse;
+import io.confluent.ksql.rest.json.SchemaMapper;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -29,6 +32,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.glassfish.jersey.server.ServerProperties;
@@ -123,10 +128,20 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
 
   @Override
   public void configureBaseApplication(Configurable<?> config, Map<String, String> metricTags) {
+    SchemaMapper schemaMapper = new SchemaMapper();
+
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     ObjectMapper jsonMapper = getJsonMapper();
+    jsonMapper.registerModule(
+        new SimpleModule()
+            .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
+            .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
+            .addSerializer(Field.class, schemaMapper.getFieldSerializer())
+            .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
+    );
+
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);

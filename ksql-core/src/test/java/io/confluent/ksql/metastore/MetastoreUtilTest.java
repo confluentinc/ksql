@@ -82,7 +82,7 @@ public class MetastoreUtilTest {
 
     String topicName = "TOPIC_NAME";
     String kafkaTopicName = "KAFKA_TOPIC_NAME";
-    KSQLTopic topic = new KSQLTopic(topicName, kafkaTopicName, new KSQLJsonTopicSerDe(null));
+    KSQLTopic topic = new KSQLTopic(topicName, kafkaTopicName, new KSQLJsonTopicSerDe());
     expectedMetaStore.putTopic(topic);
 
     String tableSourceName = "TABLE_SOURCE";

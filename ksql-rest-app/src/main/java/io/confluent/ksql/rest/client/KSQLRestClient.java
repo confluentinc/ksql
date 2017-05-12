@@ -3,6 +3,13 @@
  **/
 package io.confluent.ksql.rest.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.confluent.ksql.rest.json.SchemaMapper;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonStructure;
@@ -27,8 +34,19 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
   private String serverAddress;
 
   public KSQLRestClient(String serverAddress) {
-    this.client = ClientBuilder.newClient();
     this.serverAddress = serverAddress;
+
+    SchemaMapper schemaMapper = new SchemaMapper();
+    ObjectMapper objectMapper = new ObjectMapper()
+        .registerModule(
+            new SimpleModule()
+                .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
+                .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
+                .addSerializer(Field.class, schemaMapper.getFieldSerializer())
+                .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
+        );
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
   public String getServerAddress() {

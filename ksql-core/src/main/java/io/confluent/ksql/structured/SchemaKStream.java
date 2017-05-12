@@ -46,14 +46,6 @@ public class SchemaKStream {
                        final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kStream = kStream;
-//    .map(new KeyValueMapper<String, GenericRow, KeyValue<String,
-//        GenericRow>>() {
-//      @Override
-//      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-//        row.getColumns().set(0, key);
-//        return new KeyValue<>(key, row);
-//      }
-//    });
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -162,7 +154,6 @@ public class SchemaKStream {
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
                                 final Field joinKey,
                                 KSQLTopicSerDe joinSerDe) {
-//                                final Serde<GenericRow> resultValueSerDe) {
 
     KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
       @Override
@@ -181,7 +172,6 @@ public class SchemaKStream {
         GenericRow joinGenericRow = new GenericRow(columns);
         return joinGenericRow;
       }
-//    }, Serdes.String(), resultValueSerDe);
     }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));

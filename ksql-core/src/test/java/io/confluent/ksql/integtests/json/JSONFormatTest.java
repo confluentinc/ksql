@@ -62,8 +62,9 @@ public class JSONFormatTest {
   private static final String inputStream = "ORDERS";
 
   @Before
-  public void before() throws IOException, InterruptedException, TimeoutException, ExecutionException {
+  public void before() throws Exception {
     metaStore = new MetaStoreImpl();
+
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
         .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
         .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
@@ -71,17 +72,17 @@ public class JSONFormatTest {
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
-
-    KSQLTopic
-        ksqlTopicOrders =
-        new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
-
-    KSQLStream
-        ksqlStreamOrders = new KSQLStream(inputStream, schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
-        ksqlTopicOrders);
-
-    metaStore.putTopic(ksqlTopicOrders);
-    metaStore.putSource(ksqlStreamOrders);
+//
+//    KSQLTopic
+//        ksqlTopicOrders =
+//        new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
+//
+//    KSQLStream
+//        ksqlStreamOrders = new KSQLStream(inputStream, schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
+//        ksqlTopicOrders);
+//
+//    metaStore.putTopic(ksqlTopicOrders);
+//    metaStore.putSource(ksqlStreamOrders);
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("application.id", "KSQL");
@@ -90,7 +91,17 @@ public class JSONFormatTest {
     configMap.put("auto.offset.reset", "earliest");
     ksqlEngine = new KSQLEngine(metaStore, configMap);
     inputData = getInputData();
-    inputRecordsMetadata = produceInputData(inputData, ksqlStreamOrders.getSchema());
+
+    String ordersTopicStr = "CREATE TOPIC orders_topic WITH (format = 'json', "
+                          + "kafka_topic='orders_topic_json');";
+    String ordersStreamStr = "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid "
+                             + "varchar, orderunits double, arraycol array<double>, mapcol map<varchar, double>) WITH (topicname = 'orders_topic' , key='ordertime');";
+
+    ksqlEngine.buildMultipleQueries(false, ordersTopicStr);
+    ksqlEngine.buildMultipleQueries(false, ordersStreamStr);
+    inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
+    System.out.println("Broker: " + CLUSTER.bootstrapServers());
+    System.out.println("ZK: " + CLUSTER.zookeeperConnect());
   }
 
 
@@ -103,6 +114,7 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
+    Thread.sleep(50000);
     Schema resultSchema = metaStore.getSource(streamName).getSchema();
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, inputData.size());
 

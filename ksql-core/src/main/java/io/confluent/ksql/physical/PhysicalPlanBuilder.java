@@ -360,10 +360,6 @@ public class PhysicalPlanBuilder {
           KSQLTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
           String joinKeyFieldName = (joinNode.getLeftAlias() + "." + leftSchemaKStream
               .getKeyField().name());
-//          joinSchemaKStream =
-//              leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
-//                                         joinNode.getSchema().field(joinKeyFieldName), SerDeUtil
-//                                             .getRowSerDe(joinSerDe, joinNode.getSchema()));
           joinSchemaKStream =
               leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
                                          joinNode.getSchema().field(joinKeyFieldName), joinSerDe);

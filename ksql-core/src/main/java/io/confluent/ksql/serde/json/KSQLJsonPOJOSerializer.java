@@ -44,6 +44,9 @@ public class KSQLJsonPOJOSerializer implements Serializer<GenericRow> {
   }
 
   public Map<String, Object> dataToMap(final GenericRow data) {
+    if (data == null) {
+      return null;
+    }
     Map<String, Object> result = new HashMap<>();
 
     for (int i = 0; i < data.getColumns().size(); i++) {

@@ -165,7 +165,9 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     String commandTopic = config.getCommandTopic();
-    topicUtil.ensureTopicExists(commandTopic);
+    if (!topicUtil.ensureTopicExists(commandTopic)) {
+      throw new Exception(String.format("Failed to guarantee existence of command topic '%s'", commandTopic));
+    }
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
     KafkaConsumer<CommandId, String> commandConsumer = new KafkaConsumer<>(

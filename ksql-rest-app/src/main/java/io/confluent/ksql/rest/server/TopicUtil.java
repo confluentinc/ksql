@@ -27,17 +27,31 @@ public class TopicUtil {
    * partition and a replication factor of 1.
    * TODO: Think about num partitions / replication factor to use here
    * @param topic The name of the topic to create
-   * @throws InterruptedException
-   * @throws ExecutionException
+   * @return Whether or not the operation succeeded.
    */
-  public void ensureTopicExists(String topic) throws InterruptedException, ExecutionException {
-    log.debug("Checking for existence of topic {}", topic);
-    ListTopicsResults topics = client.listTopics();
-    if (!topics.names().get().contains(topic)) {
-      log.info("Creating topic {}", topic);
-      NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
-      CreateTopicResults createTopicResults = client.createTopics(Collections.singleton(newTopic));
-      createTopicResults.all().get();
+  public boolean ensureTopicExists(String topic) {
+    try {
+      if (!topicExists(topic)) {
+        log.info("Creating topic '{}'", topic);
+        NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
+        CreateTopicResults createTopicResults = client.createTopics(Collections.singleton(newTopic));
+        createTopicResults.all().get();
+      }
+      return true;
+    } catch (Exception exception) {
+      log.warn("Exception encountered while ensuring topic '{}' exists", topic, exception);
+      return false;
     }
+  }
+
+  /**
+   * Synchronously check for the existence of a topic.
+   * @param topic The name of the topic to check for
+   * @return Whether or not the topic already exists
+   */
+  public boolean topicExists(String topic) throws InterruptedException, ExecutionException {
+    log.debug("Checking for existence of topic '{}'", topic);
+    ListTopicsResults topics = client.listTopics();
+    return topics.names().get().contains(topic);
   }
 }

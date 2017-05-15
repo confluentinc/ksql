@@ -41,7 +41,7 @@ public class SourceDescription extends KSQLStatementResponse {
     return Objects.hash(getDescription());
   }
 
-  private static class Description {
+  public static class Description {
     private final String name;
     private final Schema schema;
     private final DataSource.DataSourceType type;

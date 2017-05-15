@@ -34,7 +34,7 @@ public class KSQLError extends KSQLStatementResponse {
     return Objects.hash(getError());
   }
 
-  private static class Error {
+  public static class Error {
     private final String message;
     private final List<String> stackTrace;
 

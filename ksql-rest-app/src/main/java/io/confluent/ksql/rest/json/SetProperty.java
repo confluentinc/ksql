@@ -32,7 +32,7 @@ public class SetProperty extends KSQLStatementResponse {
     return Objects.hash(getAdjustedProperty());
   }
 
-  private static class AdjustedProperty {
+  public static class AdjustedProperty {
     private final String property;
     private final Object oldValue;
     private final Object newValue;

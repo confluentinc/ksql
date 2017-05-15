@@ -27,19 +27,19 @@ public class KSQL {
   public static abstract class KSQLCommand implements Runnable {
     protected abstract Cli getCli() throws Exception;
 
-    private static final String NON_INTERACTIVE_KSQL_STRING_OPTION_NAME = "--exec";
+    private static final String NON_INTERACTIVE_TEXT_OPTION_NAME = "--exec";
 
     @Option(
-        name = NON_INTERACTIVE_KSQL_STRING_OPTION_NAME,
-        description = "One or more KSQL statements to run non-interactively, exiting immediately after"
+        name = NON_INTERACTIVE_TEXT_OPTION_NAME,
+        description = "Text to run non-interactively, exiting immediately after"
     )
-    String nonInteractiveKsqlString;
+    String nonInteractiveText;
 
     @Override
     public void run() {
       try (Cli cli = getCli()) {
-        if (nonInteractiveKsqlString != null) {
-          cli.runNonInteractively(nonInteractiveKsqlString);
+        if (nonInteractiveText != null) {
+          cli.runNonInteractively(nonInteractiveText);
         } else {
           cli.runInteractively();
         }

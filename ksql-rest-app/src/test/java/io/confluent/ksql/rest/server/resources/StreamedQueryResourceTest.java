@@ -96,8 +96,10 @@ public class StreamedQueryResourceTest {
       public void run() {
         try {
           responseStream.write(responseOutputStream);
+        } catch (EOFException exception) {
+          // It's fine
         } catch (IOException exception) {
-          exception.printStackTrace();
+          throw new RuntimeException(exception);
         }
       }
     });
@@ -158,19 +160,37 @@ public class StreamedQueryResourceTest {
     @Override
     public void flush() throws IOException {
       throwIfClosed();
-      super.flush();
+      try {
+        super.flush();
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.flush();
+        throwIfClosed();
+        throw exception;
+      }
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
       throwIfClosed();
-      super.write(b, off, len);
+      try {
+        super.write(b, off, len);
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.write();
+        throwIfClosed();
+        throw exception;
+      }
     }
 
     @Override
     public void write(int b) throws IOException {
       throwIfClosed();
-      super.write(b);
+      try {
+        super.write(b);
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.write();
+        throwIfClosed();
+        throw exception;
+      }
     }
   }
 }

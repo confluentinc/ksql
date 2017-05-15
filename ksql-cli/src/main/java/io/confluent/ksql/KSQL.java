@@ -39,9 +39,9 @@ public class KSQL {
     public void run() {
       try (Cli cli = getCli()) {
         if (nonInteractiveKsqlString != null) {
-          cli.handleStatements(nonInteractiveKsqlString);
+          cli.runNonInteractively(nonInteractiveKsqlString);
         } else {
-          cli.repl();
+          cli.runInteractively();
         }
       } catch (Exception exception) {
         throw new RuntimeException(exception);

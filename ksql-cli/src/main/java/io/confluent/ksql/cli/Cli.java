@@ -21,8 +21,10 @@ import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -72,18 +74,47 @@ public class Cli implements Closeable, AutoCloseable {
     registerDefaultCliSpecificCommands();
   }
 
-  public void repl() throws IOException {
+  public void runInteractively() throws IOException {
     terminal.flush();
     while (true) {
       try {
         handleLine(readLine());
-        terminal.flush();
       } catch (EndOfFileException exception) {
         // EOF is fine, just terminate the REPL
+        return;
       } catch (Exception exception) {
         exception.printStackTrace(terminal.writer());
       }
+      terminal.flush();
     }
+  }
+
+  public void runNonInteractively(String input) throws Exception {
+    // Allow exceptions to halt execution of the KSQL script as soon as the first one is encountered
+    for (String logicalLine : getLogicalLines(input)) {
+      try {
+        handleLine(logicalLine);
+      } catch (EndOfFileException exception) {
+        // Swallow these silently; they're thrown by the exit command to terminate the REPL
+        return;
+      }
+    }
+  }
+
+  private List<String> getLogicalLines(String input) {
+    List<String> result = new ArrayList<>();
+    StringBuilder logicalLine = new StringBuilder();
+    for (String physicalLine : input.split("\n")) {
+      if (!physicalLine.trim().isEmpty()) {
+        if (physicalLine.endsWith("\\")) {
+          logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
+        } else {
+          result.add(logicalLine.append(physicalLine).toString().trim());
+          logicalLine = new StringBuilder();
+        }
+      }
+    }
+    return result;
   }
 
   @Override
@@ -257,24 +288,8 @@ public class Cli implements Closeable, AutoCloseable {
     if (cliSpecificCommand != null) {
       cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
     } else {
-      StringBuilder multiLineBuffer = new StringBuilder();
-      while (trimmedLine.endsWith("\\")) {
-        multiLineBuffer.append(trimmedLine.substring(0, trimmedLine.length() - 1));
-        try {
-          trimmedLine = lineReader.readLine("");
-          if (trimmedLine == null) {
-            return;
-          }
-          trimmedLine = trimmedLine.trim();
-        } catch (UserInterruptException exception) {
-          terminal.writer().println("^C");
-          return;
-        }
-      }
-      multiLineBuffer.append(trimmedLine);
-      handleStatements(multiLineBuffer.toString());
+      handleStatements(line);
     }
-
   }
 
   private String readLine() throws IOException {
@@ -283,7 +298,7 @@ public class Cli implements Closeable, AutoCloseable {
       try {
         String line = Optional.ofNullable(lineReader.readLine(primaryPrompt)).orElse("").trim();
         while (line.endsWith("\\")) {
-          result.append(line.substring(0, line.length() - 1)).append(System.lineSeparator());
+          result.append(line.substring(0, line.length() - 1));
           line = Optional.ofNullable(lineReader.readLine(secondaryPrompt)).orElse("").trim();
         }
         return result.append(line).toString().trim();

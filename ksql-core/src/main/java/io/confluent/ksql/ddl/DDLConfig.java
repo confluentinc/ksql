@@ -15,6 +15,4 @@ public class DDLConfig {
   public static final String KEY_NAME_PROPERTY = "KEY";
   public static final String IS_WINDOWED_PROPERTY = "WINDOWED";
 
-  public static final String KEY_NAME_COLUMN_NAME = "ROWKEY";
-
 }

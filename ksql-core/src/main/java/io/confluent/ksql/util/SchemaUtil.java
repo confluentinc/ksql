@@ -12,10 +12,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.confluent.ksql.ddl.DDLConfig;
-
 public class SchemaUtil {
 
+
+  public final static String ROWKEY_NAME = "ROWKEY";
+  public final static String ROWTIME_NAME = "ROWTIME";
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -143,7 +144,7 @@ public class SchemaUtil {
 
   public synchronized static Schema addImplicitKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
+    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (Field field: schema.fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
@@ -153,7 +154,7 @@ public class SchemaUtil {
   public synchronized static Schema removeImplicitRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
-      if (!field.name().equalsIgnoreCase(DDLConfig.KEY_NAME_COLUMN_NAME)) {
+      if (!field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
@@ -164,7 +165,7 @@ public class SchemaUtil {
     Set indexSet = new HashSet();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
-      if (field.name().equalsIgnoreCase(DDLConfig.KEY_NAME_COLUMN_NAME)) {
+      if (field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         indexSet.add(i);
       }
     }

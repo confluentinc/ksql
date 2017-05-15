@@ -21,6 +21,8 @@ import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -132,8 +134,12 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
-    streamSchema.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
+    streamSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                + " You cannot use it as a column name.");
+      }
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 
@@ -188,8 +194,12 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    tableSchema.field(DDLConfig.KEY_NAME_COLUMN_NAME, Schema.STRING_SCHEMA);
+    tableSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                + " You cannot use it as a column name.");
+      }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 

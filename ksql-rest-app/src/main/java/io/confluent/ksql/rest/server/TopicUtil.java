@@ -3,32 +3,55 @@
  **/
 package io.confluent.ksql.rest.server;
 
-import io.confluent.adminclient.KafkaAdminClient;
-import org.apache.kafka.common.requests.CreateTopicsRequest;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.CreateTopicResults;
+import org.apache.kafka.clients.admin.ListTopicsResults;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-
-// TODO: Update to official AdminClient once it's available
+import java.util.concurrent.ExecutionException;
 
 public class TopicUtil {
   private static final Logger log = LoggerFactory.getLogger(TopicUtil.class);
 
-  private final KafkaAdminClient client;
+  private final AdminClient client;
 
-  public TopicUtil(KafkaAdminClient client) {
+  public TopicUtil(AdminClient client) {
     this.client = client;
   }
 
-  public void ensureTopicExists(String topic) {
-    log.debug("Checking for existence of topic {}", topic);
-    if (client.topics(Collections.singletonList(topic)).isEmpty()) {
-      log.info("Creating topic {}", topic);
-      // TODO: Think about num partitions / replication factor to use here
-      CreateTopicsRequest.TopicDetails topicDetails =
-          new CreateTopicsRequest.TopicDetails(1, (short) 1);
-      client.createTopics(Collections.singletonMap(topic, topicDetails));
+  /**
+   * Synchronously check for the existence of a topic and, in the event that it does not exist, create it with a single
+   * partition and a replication factor of 1.
+   * TODO: Think about num partitions / replication factor to use here
+   * @param topic The name of the topic to create
+   * @return Whether or not the operation succeeded.
+   */
+  public boolean ensureTopicExists(String topic) {
+    try {
+      if (!topicExists(topic)) {
+        log.info("Creating topic '{}'", topic);
+        NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
+        CreateTopicResults createTopicResults = client.createTopics(Collections.singleton(newTopic));
+        createTopicResults.all().get();
+      }
+      return true;
+    } catch (Exception exception) {
+      log.warn("Exception encountered while ensuring topic '{}' exists", topic, exception);
+      return false;
     }
+  }
+
+  /**
+   * Synchronously check for the existence of a topic.
+   * @param topic The name of the topic to check for
+   * @return Whether or not the topic already exists
+   */
+  public boolean topicExists(String topic) throws InterruptedException, ExecutionException {
+    log.debug("Checking for existence of topic '{}'", topic);
+    ListTopicsResults topics = client.listTopics();
+    return topics.names().get().contains(topic);
   }
 }

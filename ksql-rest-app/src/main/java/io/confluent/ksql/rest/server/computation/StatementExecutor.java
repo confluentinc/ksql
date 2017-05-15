@@ -281,7 +281,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
-        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, successMessage));
+        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.RUNNING, successMessage));
       }
 
     } else {

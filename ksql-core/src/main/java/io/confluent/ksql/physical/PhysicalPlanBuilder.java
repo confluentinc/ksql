@@ -122,11 +122,11 @@ public class PhysicalPlanBuilder {
       SchemaKStream resultSchemaStream = schemaKStream.into(ksqlStructuredDataOutputNodeNoRowKey
                                                                 .getKafkaTopicName(), SerDeUtil
           .getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()),rowkeyIndexes);
+                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()), rowkeyIndexes);
 
 
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
-      KSQLStructuredDataOutputNode(
+          KSQLStructuredDataOutputNode(
           ksqlStructuredDataOutputNodeNoRowKey.getId(),
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
           SchemaUtil.addImplicitKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),

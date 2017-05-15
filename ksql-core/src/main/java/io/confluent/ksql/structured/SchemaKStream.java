@@ -61,18 +61,17 @@ public class SchemaKStream {
       Set<Integer> rowkeyIndexes) {
     kStream
         .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-      @Override
-      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-        List columns = new ArrayList();
-        for (int i = 0; i < row.columns.size(); i++) {
-          if (!rowkeyIndexes.contains(i)) {
-            columns.add(row.columns.get(i));
+          @Override
+          public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+            List columns = new ArrayList();
+            for (int i = 0; i < row.columns.size(); i++) {
+              if (!rowkeyIndexes.contains(i)) {
+                columns.add(row.columns.get(i));
+              }
+            }
+            return new KeyValue<>(key, new GenericRow(columns));
           }
-        }
-        return new KeyValue<>(key, new GenericRow(columns));
-      }
-    }).to
-        (Serdes.String(), topicValueSerDe, kafkaTopicName);
+        }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
   }
 

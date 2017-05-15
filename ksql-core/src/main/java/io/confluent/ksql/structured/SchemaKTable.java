@@ -47,6 +47,9 @@ public class SchemaKTable extends SchemaKStream {
       kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>() {
         @Override
         public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
+          if (row == null) {
+            return new KeyValue<>(key, null);
+          }
           List columns = new ArrayList();
           for (int i = 0; i < row.columns.size(); i++) {
             if (!rowkeyIndexes.contains(i)) {
@@ -60,6 +63,9 @@ public class SchemaKTable extends SchemaKStream {
       kTable.toStream().map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
         @Override
         public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+          if (row == null) {
+            return new KeyValue<>(key, null);
+          }
           List columns = new ArrayList();
           for (int i = 0; i < row.columns.size(); i++) {
             if (!rowkeyIndexes.contains(i)) {

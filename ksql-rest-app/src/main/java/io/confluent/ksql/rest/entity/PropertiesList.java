@@ -1,9 +1,13 @@
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
+
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import java.util.Map;
 import java.util.Objects;
 
-public class PropertiesList extends KSQLStatementResponse {
+@JsonTypeName("properties")
+public class PropertiesList extends KSQLEntity {
   private final Map<String, Object> properties;
 
   public PropertiesList(String statementText, Map<String, Object> properties) {
@@ -11,6 +15,7 @@ public class PropertiesList extends KSQLStatementResponse {
     this.properties = properties;
   }
 
+  @JsonUnwrapped
   public Map<String, Object> getProperties() {
     return properties;
   }

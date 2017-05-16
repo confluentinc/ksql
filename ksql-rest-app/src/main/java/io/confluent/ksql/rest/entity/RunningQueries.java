@@ -1,18 +1,22 @@
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class QueriesList extends KSQLStatementResponse {
+@JsonTypeName("running_queries")
+public class RunningQueries extends KSQLEntity {
   private final List<RunningQuery> queries;
 
-  public QueriesList(String statementText, List<RunningQuery> queries) {
+  public RunningQueries(String statementText, List<RunningQuery> queries) {
     super(statementText);
     this.queries = queries;
   }
 
+  @JsonUnwrapped
   public List<RunningQuery> getQueries() {
     return new ArrayList<>(queries);
   }
@@ -65,10 +69,10 @@ public class QueriesList extends KSQLStatementResponse {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof QueriesList)) {
+    if (!(o instanceof RunningQueries)) {
       return false;
     }
-    QueriesList that = (QueriesList) o;
+    RunningQueries that = (RunningQueries) o;
     return Objects.equals(getQueries(), that.getQueries());
   }
 

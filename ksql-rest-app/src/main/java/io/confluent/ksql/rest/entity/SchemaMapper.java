@@ -1,4 +1,4 @@
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;

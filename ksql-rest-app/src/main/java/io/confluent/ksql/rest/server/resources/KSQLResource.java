@@ -24,15 +24,15 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
-import io.confluent.ksql.rest.json.CommandIdResponse;
-import io.confluent.ksql.rest.json.KSQLError;
-import io.confluent.ksql.rest.json.KSQLStatementResponse;
-import io.confluent.ksql.rest.json.PropertiesList;
-import io.confluent.ksql.rest.json.QueriesList;
-import io.confluent.ksql.rest.json.SourceDescription;
-import io.confluent.ksql.rest.json.StreamsList;
-import io.confluent.ksql.rest.json.TablesList;
-import io.confluent.ksql.rest.json.TopicsList;
+import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.KSQLError;
+import io.confluent.ksql.rest.entity.KSQLEntity;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.RunningQueries;
+import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
@@ -85,7 +85,7 @@ public class KSQLResource {
           statementStrings.size()
       ));
     }
-    List<KSQLStatementResponse> result = new ArrayList<>();
+    KSQLResponseList result = new KSQLResponseList();
     for (int i = 0; i < parsedStatements.size(); i++) {
       String statementText = statementStrings.get(i);
       try {
@@ -115,7 +115,7 @@ public class KSQLResource {
     return result;
   }
 
-  private KSQLStatementResponse executeStatement(String statementText, Statement statement) throws Exception {
+  private KSQLEntity executeStatement(String statementText, Statement statement) throws Exception {
     if (statement instanceof ListTopics) {
       return listTopics(statementText);
     } else if (statement instanceof ListStreams) {
@@ -139,7 +139,7 @@ public class KSQLResource {
     ) {
       CommandId commandId = commandStore.distributeStatement(statementText, statement);
       statementExecutor.registerQueuedStatement(commandId);
-      return new CommandIdResponse(statementText, commandId);
+      return new CommandIdEntity(statementText, commandId);
     } else {
       if (statement != null) {
         throw new Exception(String.format(
@@ -162,19 +162,19 @@ public class KSQLResource {
   }
 
   // Only shows queries running on the current machine, not across the entire cluster
-  private QueriesList showQueries(String statementText) {
-    List<QueriesList.RunningQuery> runningQueries = new ArrayList<>();
+  private RunningQueries showQueries(String statementText) {
+    List<RunningQueries.RunningQuery> runningQueries = new ArrayList<>();
     for (PersistentQueryMetadata persistentQueryMetadata : ksqlEngine.getPersistentQueries().values()) {
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KSQLStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
 
-      runningQueries.add(new QueriesList.RunningQuery(
+      runningQueries.add(new RunningQueries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
           persistentQueryMetadata.getId()
       ));
     }
-    return new QueriesList(statementText, runningQueries);
+    return new RunningQueries(statementText, runningQueries);
   }
 
   private SourceDescription describe(String statementText, String name) throws Exception {
@@ -192,11 +192,11 @@ public class KSQLResource {
   }
 
   // TODO: Right now properties can only be set for a single node. Do we want to distribute this?
-  private io.confluent.ksql.rest.json.SetProperty setProperty(String statementText, SetProperty setProperty) {
+  private io.confluent.ksql.rest.entity.SetProperty setProperty(String statementText, SetProperty setProperty) {
     String property = setProperty.getPropertyName();
     Object newValue = setProperty.getPropertyValue();
     Object oldValue = ksqlEngine.setStreamsProperty(property, newValue);
-    return new io.confluent.ksql.rest.json.SetProperty(statementText, property, oldValue, newValue);
+    return new io.confluent.ksql.rest.entity.SetProperty(statementText, property, oldValue, newValue);
   }
 
   private PropertiesList listProperties(String statementText) {
@@ -216,5 +216,9 @@ public class KSQLResource {
         .filter(dataSourceClass::isInstance)
         .map(dataSourceClass::cast)
         .collect(Collectors.toList());
+  }
+
+  private static class KSQLResponseList extends ArrayList<KSQLEntity> {
+    // Only here so that type erasure doesn't cause annotations on the KSQLEntity class to be ignored
   }
 }

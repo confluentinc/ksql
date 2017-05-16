@@ -1,21 +1,25 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.rest.server.computation.CommandId;
 
 import java.util.Objects;
 
-public class CommandIdResponse extends KSQLStatementResponse {
+@JsonTypeName("command_id")
+public class CommandIdEntity extends KSQLEntity {
 
   private final CommandId commandId;
 
-  public CommandIdResponse(String statementText, CommandId commandId) {
+  public CommandIdEntity(String statementText, CommandId commandId) {
     super(statementText);
     this.commandId = commandId;
   }
 
+  @JsonUnwrapped
   public CommandId getCommandId() {
     return commandId;
   }
@@ -25,10 +29,10 @@ public class CommandIdResponse extends KSQLStatementResponse {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof CommandIdResponse)) {
+    if (!(o instanceof CommandIdEntity)) {
       return false;
     }
-    CommandIdResponse that = (CommandIdResponse) o;
+    CommandIdEntity that = (CommandIdEntity) o;
     return Objects.equals(getCommandId(), that.getCommandId());
   }
 

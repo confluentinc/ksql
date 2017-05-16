@@ -1,5 +1,7 @@
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KSQLTopic;
 
 import java.util.ArrayList;
@@ -7,7 +9,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-public class TopicsList extends KSQLStatementResponse {
+@JsonTypeName("topics")
+public class TopicsList extends KSQLEntity {
   private final Collection<KSQLTopic> topics;
 
   public TopicsList(String statementText, Collection<KSQLTopic> topics) {
@@ -15,6 +18,7 @@ public class TopicsList extends KSQLStatementResponse {
     this.topics = topics;
   }
 
+  @JsonUnwrapped
   public List<KSQLTopic> getTopics() {
     return new ArrayList<>(topics);
   }

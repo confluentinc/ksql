@@ -1,12 +1,15 @@
-package io.confluent.ksql.rest.json;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KSQLTable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TablesList extends KSQLStatementResponse {
+@JsonTypeName("tables")
+public class TablesList extends KSQLEntity {
   private final List<KSQLTable> tables;
 
   public TablesList(String statementText, List<KSQLTable> tables) {
@@ -14,6 +17,7 @@ public class TablesList extends KSQLStatementResponse {
     this.tables = tables;
   }
 
+  @JsonUnwrapped
   public List<KSQLTable> getTables() {
     return new ArrayList<>(tables);
   }

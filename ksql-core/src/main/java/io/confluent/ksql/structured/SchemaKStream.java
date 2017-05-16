@@ -238,8 +238,11 @@ public class SchemaKStream {
     }
 
     @Override
-    public void apply(K key, GenericRow value) {
+    public void apply(K key, GenericRow row) {
       try {
+        if (row == null) {
+          return;
+        }
         String keyString;
         if (key instanceof Windowed) {
           Windowed windowedKey = (Windowed) key;
@@ -247,7 +250,7 @@ public class SchemaKStream {
         } else {
           keyString = Objects.toString(key);
         }
-        queue.put(new KeyValue<>(keyString, value));
+        queue.put(new KeyValue<>(keyString, row));
       } catch (InterruptedException exception) {
         throw new RuntimeException(exception);
       }

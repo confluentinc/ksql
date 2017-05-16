@@ -98,6 +98,7 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {
     SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
+    Set<Integer> rowkeyIndexes = SchemaUtil.getRowKeyIndexes(outputNode.getSchema());
     if (outputNode instanceof KSQLStructuredDataOutputNode) {
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode)
           outputNode;
@@ -118,7 +119,7 @@ public class PhysicalPlanBuilder {
                                                                      .getSchemaFilePath());
       }
 
-      Set<Integer> rowkeyIndexes = SchemaUtil.getRowKeyIndexes(ksqlStructuredDataOutputNode.getSchema());
+
       SchemaKStream resultSchemaStream = schemaKStream.into(ksqlStructuredDataOutputNodeNoRowKey
                                                                 .getKafkaTopicName(), SerDeUtil
           .getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
@@ -272,7 +273,12 @@ public class PhysicalPlanBuilder {
       Serde<GenericRow>
           genericRowSerde =
           SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                    .getKsqlTopic().getKsqlTopicSerDe(), structuredDataSourceNode.getSchema());
+                                    .getKsqlTopic().getKsqlTopicSerDe(),
+                                SchemaUtil.removeImplicitRowKeyFromSchema(structuredDataSourceNode.getSchema()));
+      Serde<GenericRow> genericRowSerdeAfterRead =
+          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
+                                    .getKsqlTopic().getKsqlTopicSerDe(),
+                                structuredDataSourceNode.getSchema());
 
       if (structuredDataSourceNode.getDataSourceType()
           == StructuredDataSource.DataSourceType.KTABLE) {
@@ -289,12 +295,14 @@ public class PhysicalPlanBuilder {
                       GenericRow>>() {
                     @Override
                     public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
-                      row.getColumns().set(0, String.format("%s : Window{start=%s, end=%s}", key
-                          .key(), key.window().start(), key.window().end()));
+                      if (row != null) {
+                        row.getColumns().add(0, String.format("%s : Window{start=%s, end=%s}", key
+                            .key(), key.window().start(), key.window().end()));
+                      }
                       return new KeyValue<>(key, row);
                     }
                   });
-          kTable = kStream.groupByKey(new WindowedSerde(), genericRowSerde).reduce(new Reducer<GenericRow>() {
+          kTable = kStream.groupByKey(new WindowedSerde(), genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
             @Override
             public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
               return newValue;
@@ -310,11 +318,13 @@ public class PhysicalPlanBuilder {
                       GenericRow>>() {
                     @Override
                     public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-                      row.getColumns().set(0, key);
+                      if (row != null) {
+                        row.getColumns().add(0, key);
+                      }
                       return new KeyValue<>(key, row);
                     }
                   });
-          kTable = kStream.groupByKey(Serdes.String(), genericRowSerde).reduce(new Reducer<GenericRow>() {
+          kTable = kStream.groupByKey(Serdes.String(), genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
             @Override
             public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
               return newValue;
@@ -335,7 +345,9 @@ public class PhysicalPlanBuilder {
                   GenericRow>>() {
                 @Override
                 public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-                  row.getColumns().set(0, key);
+                  if (row != null) {
+                    row.getColumns().add(0, key);
+                  }
                   return new KeyValue<>(key, row);
                 }
               });

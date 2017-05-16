@@ -154,8 +154,10 @@ public class SchemaUtil {
   public synchronized static Schema removeImplicitRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
-      if (!field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        schemaBuilder.field(field.name(), field.schema());
+      String fieldName = field.name();
+      fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
+      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        schemaBuilder.field(fieldName, field.schema());
       }
     }
     return schemaBuilder.build();

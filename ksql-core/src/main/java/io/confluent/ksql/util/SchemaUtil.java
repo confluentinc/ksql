@@ -9,9 +9,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SchemaUtil {
 
+
+  public final static String ROWKEY_NAME = "ROWKEY";
+  public final static String ROWTIME_NAME = "ROWTIME";
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -65,6 +70,8 @@ public class SchemaUtil {
     if (schema.fields() != null) {
       for (Field field : schema.fields()) {
         if (field.name().equals(fieldName)) {
+          return field;
+        } else if (field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1))) {
           return field;
         }
       }
@@ -133,6 +140,38 @@ public class SchemaUtil {
         //TODO: Add complex types later!
         return "";
     }
+  }
+
+  public synchronized static Schema addImplicitKeyToSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
+    for (Field field: schema.fields()) {
+      schemaBuilder.field(field.name(), field.schema());
+    }
+    return schemaBuilder.build();
+  }
+
+  public synchronized static Schema removeImplicitRowKeyFromSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field: schema.fields()) {
+      String fieldName = field.name();
+      fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
+      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        schemaBuilder.field(fieldName, field.schema());
+      }
+    }
+    return schemaBuilder.build();
+  }
+
+  public synchronized static Set<Integer> getRowKeyIndexes(Schema schema) {
+    Set indexSet = new HashSet();
+    for (int i = 0; i < schema.fields().size(); i++) {
+      Field field = schema.fields().get(i);
+      if (field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        indexSet.add(i);
+      }
+    }
+    return indexSet;
   }
 
 }

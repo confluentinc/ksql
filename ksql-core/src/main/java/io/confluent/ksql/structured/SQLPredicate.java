@@ -93,6 +93,9 @@ public class SQLPredicate {
           boolean result = (Boolean) ee.evaluate(values);
           return result;
         } catch (InvocationTargetException e) {
+          if (e.getTargetException() instanceof NullPointerException) {
+            return false;
+          }
           e.printStackTrace();
         } catch (Exception e) {
           e.printStackTrace();

@@ -16,12 +16,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Windowed;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKTable extends SchemaKStream {
@@ -37,12 +40,41 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe) {
+  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
+                           Set<Integer> rowkeyIndexes) {
 
     if (isWindowed) {
-      kTable.to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+      kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>() {
+        @Override
+        public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
+          if (row == null) {
+            return new KeyValue<>(key, null);
+          }
+          List columns = new ArrayList();
+          for (int i = 0; i < row.columns.size(); i++) {
+            if (!rowkeyIndexes.contains(i)) {
+              columns.add(row.columns.get(i));
+            }
+          }
+          return new KeyValue<>(key, new GenericRow(columns));
+        }
+      }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
     } else {
-      kTable.to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+      kTable.toStream().map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+        @Override
+        public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+          if (row == null) {
+            return new KeyValue<>(key, null);
+          }
+          List columns = new ArrayList();
+          for (int i = 0; i < row.columns.size(); i++) {
+            if (!rowkeyIndexes.contains(i)) {
+              columns.add(row.columns.get(i));
+            }
+          }
+          return new KeyValue<>(key, new GenericRow(columns));
+        }
+      }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     }
 
     return this;

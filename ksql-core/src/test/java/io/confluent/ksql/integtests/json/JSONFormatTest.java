@@ -11,6 +11,8 @@ import io.confluent.ksql.serde.json.KSQLJsonPOJOSerializer;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -25,6 +27,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,9 +35,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -62,8 +67,9 @@ public class JSONFormatTest {
   private static final String inputStream = "ORDERS";
 
   @Before
-  public void before() throws IOException, InterruptedException, TimeoutException, ExecutionException {
+  public void before() throws Exception {
     metaStore = new MetaStoreImpl();
+
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
         .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
         .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
@@ -72,16 +78,6 @@ public class JSONFormatTest {
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
-    KSQLTopic
-        ksqlTopicOrders =
-        new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
-
-    KSQLStream
-        ksqlStreamOrders = new KSQLStream(inputStream, schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
-        ksqlTopicOrders);
-
-    metaStore.putTopic(ksqlTopicOrders);
-    metaStore.putSource(ksqlStreamOrders);
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("application.id", "KSQL");
@@ -90,20 +86,32 @@ public class JSONFormatTest {
     configMap.put("auto.offset.reset", "earliest");
     ksqlEngine = new KSQLEngine(metaStore, configMap);
     inputData = getInputData();
-    inputRecordsMetadata = produceInputData(inputData, ksqlStreamOrders.getSchema());
+
+    String ordersTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
+                          + "kafka_topic='%s');", inputTopic, inputTopic);
+    String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+                                    + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+                             + "map<varchar, double>) WITH (topicname = '%s' , "
+                                           + "key='ordertime');", inputStream, inputTopic);
+
+    ksqlEngine.buildMultipleQueries(false, ordersTopicStr);
+    ksqlEngine.buildMultipleQueries(false, ordersStreamStr);
+    inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
+
   }
 
 
   @Test
   public void testSelectStar() throws Exception {
-    final String streamName = "STARTSTREAM";
+    final String streamName = "STARSTREAM";
     final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, inputData.size());
 
     Assert.assertEquals(inputData.size(), results.size());
@@ -111,6 +119,8 @@ public class JSONFormatTest {
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
+
+
 
 
   @Test
@@ -123,7 +133,8 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -187,7 +198,8 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
@@ -229,7 +241,8 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -262,7 +275,8 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -276,22 +290,20 @@ public class JSONFormatTest {
   }
 
   @Test
-  public void testAggregateSumCount() throws Exception {
-    Map<String, GenericRow>  extraInputData = getInputData();
-    Map<String, RecordMetadata> extraInputRecordsMetadata =
-        produceInputData(extraInputData, metaStore.getSource(inputStream).getSchema());
+  public void testAggSelectStar() throws Exception {
 
-    final long windowSizeMs = 100;
-
-    final String streamName = "AGGSTREAM";
-
+    produceInputData(inputData, SchemaUtil
+        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
+    final String streamName = "AGGTEST";
+    final long windowSizeSecond = 2;
     final String selectColumns =
         "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS)/COUNT(ORDERUNITS), SUM(PRICEARRAY[0]+10)";
-    final String window = String.format("TUMBLING ( SIZE %d MILLISECOND)", windowSizeMs);
-    final String havingClause = "SUM(ORDERUNITS) > 130";
+    final String window = String.format("TUMBLING ( SIZE %d SECOND)", windowSizeSecond);
+    final String havingClause = "SUM(ORDERUNITS) > 150";
 
     final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s FROM %s WINDOW %s WHERE ORDERUNITS > 60 GROUP BY ITEMID HAVING %s;",
+        "CREATE TABLE %s AS SELECT %s FROM %s WINDOW %s WHERE ORDERUNITS > 60 GROUP BY ITEMID "
+        + "HAVING %s;",
         streamName,
         selectColumns,
         inputStream,
@@ -302,35 +314,17 @@ public class JSONFormatTest {
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = metaStore.getSource(streamName).getSchema();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
+    Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, 1);
 
     Map<Windowed<String>, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(new Windowed<String>("ITEM_8", new TimeWindow(0, 1)), new GenericRow(Arrays
+                                                                                              .asList
+        ("ITEM_8", 2,
+         160.0, 80.0, 2220.0)));
 
-    long firstItem7Window = inputRecordsMetadata.get("7").timestamp() / windowSizeMs;
-    long secondItem7Window = extraInputRecordsMetadata.get("7").timestamp() / windowSizeMs;
-    if (firstItem7Window == secondItem7Window) {
-      expectedResults.put(new Windowed<>("ITEM_7", new Window(0, 1) {
-        @Override
-        public boolean overlap(Window window) {
-          return false;
-        }
-      }), new GenericRow(Arrays.asList("ITEM_7", 2, 140.0, 70.0, 2220.0)));
-    }
-
-    long firstItem8Window = inputRecordsMetadata.get("8").timestamp() / windowSizeMs;
-    long secondItem8Window = extraInputRecordsMetadata.get("8").timestamp() / windowSizeMs;
-    if (firstItem8Window == secondItem8Window) {
-      expectedResults.put(new Windowed<>("ITEM_8", new Window(0, 1) {
-        @Override
-        public boolean overlap(Window window) {
-          return false;
-        }
-      }), new GenericRow(Arrays.asList("ITEM_8", 2, 160.0, 80.0, 2220.0)));
-    }
-
-    Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, expectedResults.size());
-
+    Assert.assertEquals(1, results.size());
     Assert.assertTrue(assertExpectedWindowedResults(results, expectedResults));
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);

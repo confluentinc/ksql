@@ -6,6 +6,9 @@ package io.confluent.ksql.parser.tree;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.SchemaUtil;
+
 import static java.util.Objects.requireNonNull;
 
 public class SingleColumn
@@ -35,6 +38,16 @@ public class SingleColumn
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
+
+    if (alias.isPresent() && alias.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+      String expressionStr = expression.toString();
+      if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
+                                                                                        .ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                + " You cannot use it as an alias for a column.");
+      }
+
+    }
 
     this.expression = expression;
     this.alias = alias;

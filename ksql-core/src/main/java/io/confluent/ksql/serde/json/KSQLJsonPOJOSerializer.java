@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.physical.GenericRow;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashMap;
@@ -44,12 +45,19 @@ public class KSQLJsonPOJOSerializer implements Serializer<GenericRow> {
   }
 
   public Map<String, Object> dataToMap(final GenericRow data) {
+    if (data == null) {
+      return null;
+    }
     Map<String, Object> result = new HashMap<>();
 
     for (int i = 0; i < data.getColumns().size(); i++) {
       String schemaColumnName = schema.fields().get(i).name();
       String mapColumnName = schemaColumnName.substring(schemaColumnName.indexOf('.') + 1);
       result.put(mapColumnName, data.getColumns().get(i));
+    }
+
+    for (Field field : schema.fields()) {
+
     }
 
     return result;

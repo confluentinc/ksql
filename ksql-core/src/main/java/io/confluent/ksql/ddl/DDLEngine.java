@@ -21,6 +21,8 @@ import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -132,7 +134,12 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
+    streamSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                + " You cannot use it as a column name.");
+      }
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 
@@ -187,7 +194,12 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
+    tableSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                + " You cannot use it as a column name.");
+      }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
 
@@ -213,7 +225,7 @@ public class DDLEngine {
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
     String keyName = "";
-    if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) == null) {
+    if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) != null) {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
       keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
       keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);

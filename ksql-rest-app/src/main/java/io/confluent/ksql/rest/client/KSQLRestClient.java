@@ -102,8 +102,8 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
 
   private Response makeGetRequest(String path) {
     return client.target(serverAddress).path(path)
-            .request(MediaType.APPLICATION_JSON_TYPE)
-            .get();
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .get();
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<GenericRow> {

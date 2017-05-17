@@ -48,7 +48,7 @@ public class StreamedQueryResource {
       QueryStreamWriter queryStreamWriter =
           new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql);
       log.info("Streaming query '{}'", ksql);
-      return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
+      return Response.ok().entity(queryStreamWriter).build();
     } else if (statement instanceof PrintTopic) {
       PrintTopic printTopic = (PrintTopic) statement;
       long interval = -1;
@@ -59,7 +59,7 @@ public class StreamedQueryResource {
           .getTopic()
           .toString(), interval, disconnectCheckInterval);
       log.info("Streaming query '{}'", ksql);
-      return Response.ok().entity(topicStreamWriter).type(MediaType.APPLICATION_JSON).build();
+      return Response.ok().entity(topicStreamWriter).build();
     } else {
       throw new Exception(
           String.format("Statement type `%s' not supported for this resource", statement.getClass().getName())

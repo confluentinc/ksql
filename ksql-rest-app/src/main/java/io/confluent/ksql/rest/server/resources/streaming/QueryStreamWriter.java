@@ -7,6 +7,7 @@ import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import org.eclipse.jetty.io.EofException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,10 +75,18 @@ class QueryStreamWriter implements StreamingOutput {
         }
       } catch (EOFException exception) {
         // The user has terminated the connection; we can stop writing
+      } catch (InterruptedException exception) {
+        // The most likely cause of this is the server shutting down. Should just try to close gracefully, without
+        // writing any more to the connection stream.
+        log.warn("Interrupted while writing to connection stream");
       } catch (Throwable exception) {
-        log.error("Exception occurred while writing to connection stream: ", exception);
-        out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
-        out.flush();
+        log.error("Exception occurred while writing to connection stream", exception);
+        try {
+          out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
+          out.flush();
+        } catch (Exception secondException) {
+          log.error("Exception occurred while writing error to connection stream", secondException);
+        }
       }
 
       if (rowWriterThread.isAlive()) {

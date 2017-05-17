@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.DataSource;
 import org.apache.kafka.connect.data.Schema;
@@ -14,12 +16,13 @@ public class SourceDescription extends KSQLEntity {
   private final DataSource.DataSourceType type;
   private final String key;
 
+  @JsonCreator
   public SourceDescription(
-      String statementText,
-      String name,
-      Schema schema,
-      DataSource.DataSourceType type,
-      String key
+      @JsonProperty("statementText") String statementText,
+      @JsonProperty("name")          String name,
+      @JsonProperty("schema")        Schema schema,
+      @JsonProperty("type")          DataSource.DataSourceType type,
+      @JsonProperty("key")           String key
   ) {
     super(statementText);
     this.name = name;

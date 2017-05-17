@@ -1,10 +1,14 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @JsonTypeName("error")
 public class KSQLError extends KSQLEntity {
@@ -12,14 +16,23 @@ public class KSQLError extends KSQLEntity {
   private final String message;
   private final List<String> stackTrace;
 
-  public KSQLError(String statementText, Throwable exception) {
+  @JsonCreator
+  public KSQLError(
+      @JsonProperty("statementText") String statementText,
+      @JsonProperty("message")       String message,
+      @JsonProperty("stackTrace")    List<String> stackTrace
+  ) {
     super(statementText);
-    this.message = exception.getMessage();
+    this.message = message;
+    this.stackTrace = stackTrace;
+  }
 
-    this.stackTrace = new ArrayList<>(exception.getStackTrace().length);
-    for (StackTraceElement stackTraceElement : exception.getStackTrace()) {
-      this.stackTrace.add(stackTraceElement.toString());
-    }
+  public KSQLError(String statementText, Throwable exception) {
+    this(statementText, exception.getMessage(), getStackTraceStrings(exception));
+  }
+
+  public static List<String> getStackTraceStrings(Throwable exception) {
+    return Arrays.stream(exception.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.toList());
   }
 
   public String getMessage() {

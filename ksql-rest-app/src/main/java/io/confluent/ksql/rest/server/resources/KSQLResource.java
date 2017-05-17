@@ -25,8 +25,10 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.KSQLError;
 import io.confluent.ksql.rest.entity.KSQLEntity;
+import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.RunningQueries;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -75,7 +77,7 @@ public class KSQLResource {
   }
 
   @POST
-  public Response handleKSQLStatements(KSQLJsonRequest request) throws Exception {
+  public Response handleKSQLStatements(KSQLRequest request) throws Exception {
     List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
     List<String> statementStrings = getStatementStrings(request.getKsql());
     if (parsedStatements.size() != statementStrings.size()) {
@@ -85,7 +87,7 @@ public class KSQLResource {
           statementStrings.size()
       ));
     }
-    KSQLResponseList result = new KSQLResponseList();
+    KSQLEntityList result = new KSQLEntityList();
     for (int i = 0; i < parsedStatements.size(); i++) {
       String statementText = statementStrings.get(i);
       try {
@@ -158,7 +160,7 @@ public class KSQLResource {
   }
 
   private TopicsList listTopics(String statementText) {
-    return new TopicsList(statementText, ksqlEngine.getMetaStore().getAllKSQLTopics().values());
+    return TopicsList.fromKsqlTopics(statementText, ksqlEngine.getMetaStore().getAllKSQLTopics().values());
   }
 
   // Only shows queries running on the current machine, not across the entire cluster
@@ -204,11 +206,11 @@ public class KSQLResource {
   }
 
   private StreamsList listStreams(String statementText) {
-    return new StreamsList(statementText, getSpecificSources(KSQLStream.class));
+    return StreamsList.fromKsqlStreams(statementText, getSpecificSources(KSQLStream.class));
   }
 
   private TablesList listTables(String statementText) {
-    return new TablesList(statementText, getSpecificSources(KSQLTable.class));
+    return TablesList.fromKsqlTables(statementText, getSpecificSources(KSQLTable.class));
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {
@@ -216,9 +218,5 @@ public class KSQLResource {
         .filter(dataSourceClass::isInstance)
         .map(dataSourceClass::cast)
         .collect(Collectors.toList());
-  }
-
-  private static class KSQLResponseList extends ArrayList<KSQLEntity> {
-    // Only here so that type erasure doesn't cause annotations on the KSQLEntity class to be ignored
   }
 }

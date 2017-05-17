@@ -4,6 +4,7 @@ import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -86,7 +87,7 @@ public class StreamedQueryResourceTest {
 
     StreamedQueryResource testResource = new StreamedQueryResource(mockKSQLEngine, mockStatementParser, 1000);
 
-    Response response = testResource.streamQuery(KSQLResourceTest.createJsonRequest(queryString));
+    Response response = testResource.streamQuery(new KSQLRequest(queryString));
     PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     StreamingOutput responseStream = (StreamingOutput) response.getEntity();

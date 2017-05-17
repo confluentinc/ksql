@@ -3,10 +3,17 @@
  **/
 package io.confluent.ksql.cli;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -15,13 +22,8 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
-import javax.json.Json;
-import javax.json.JsonStructure;
-import javax.json.JsonWriterFactory;
-import javax.json.stream.JsonGenerator;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -38,8 +40,8 @@ public class Cli implements Closeable, AutoCloseable {
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
 
   private final ExecutorService queryStreamExecutorService;
-  private final JsonWriterFactory jsonWriterFactory;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
+  private final ObjectMapper objectMapper;
 
   protected final KSQLRestClient restClient;
   protected final Terminal terminal;
@@ -63,10 +65,19 @@ public class Cli implements Closeable, AutoCloseable {
 
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
-    this.jsonWriterFactory = Json.createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
-
     this.cliSpecificCommands = new LinkedHashMap<>();
     registerDefaultCliSpecificCommands();
+
+    SchemaMapper schemaMapper = new SchemaMapper();
+    this.objectMapper = new ObjectMapper()
+        .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+        .registerModule(
+            new SimpleModule()
+                .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
+                .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
+                .addSerializer(Field.class, schemaMapper.getFieldSerializer())
+                .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
+            );
   }
 
   public void repl() {
@@ -147,14 +158,14 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void execute(String commandStrippedLine) throws IOException {
-        JsonStructure jsonResponse;
+        Object response;
         if (commandStrippedLine.trim().isEmpty()) {
-          jsonResponse = restClient.makeStatusRequest();
+          response = restClient.makeStatusRequest();
         } else {
           String statementId = commandStrippedLine.trim();
-          jsonResponse = restClient.makeStatusRequest(statementId);
+          response = restClient.makeStatusRequest(statementId);
         }
-        printJsonResponse(jsonResponse);
+        printJsonResponse(response);
       }
     });
 
@@ -253,14 +264,22 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
+    StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
-      String ksql = KSQLEngine.getStatementString(statementContext);
+      String statementText = KSQLEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext ||
           statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
-        handleStreamedQuery(ksql);
+        if (consecutiveStatements.length() != 0) {
+          printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
+          consecutiveStatements = new StringBuilder();
+        }
+        handleStreamedQuery(statementText);
       } else {
-        printJsonResponse(restClient.makeKSQLRequest(ksql));
+        consecutiveStatements.append(statementText);
       }
+    }
+    if (consecutiveStatements.length() != 0) {
+      printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
     }
   }
 
@@ -333,8 +352,9 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.flush();
   }
 
-  private void printJsonResponse(JsonStructure jsonResponse) throws IOException {
-    jsonWriterFactory.createWriter(terminal.writer()).write(jsonResponse);
+  private void printJsonResponse(Object entity) throws IOException {
+    ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
+    objectWriter.writeValue(terminal.writer(), entity);
     terminal.writer().println();
     terminal.flush();
   }

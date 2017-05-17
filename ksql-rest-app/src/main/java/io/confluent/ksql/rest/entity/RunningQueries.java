@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
@@ -7,18 +9,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("running_queries")
+@JsonTypeName("runningQueries")
 public class RunningQueries extends KSQLEntity {
-  private final List<RunningQuery> queries;
+  private final List<RunningQuery> runningQueries;
 
-  public RunningQueries(String statementText, List<RunningQuery> queries) {
+  @JsonCreator
+  public RunningQueries(
+      @JsonProperty("statementText")   String statementText,
+      @JsonProperty("runningQueries") List<RunningQuery> runningQueries
+  ) {
     super(statementText);
-    this.queries = queries;
+    this.runningQueries = runningQueries;
   }
 
   @JsonUnwrapped
-  public List<RunningQuery> getQueries() {
-    return new ArrayList<>(queries);
+  public List<RunningQuery> getRunningQueries() {
+    return new ArrayList<>(runningQueries);
   }
 
   public static class RunningQuery {
@@ -73,11 +79,11 @@ public class RunningQueries extends KSQLEntity {
       return false;
     }
     RunningQueries that = (RunningQueries) o;
-    return Objects.equals(getQueries(), that.getQueries());
+    return Objects.equals(getRunningQueries(), that.getRunningQueries());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getQueries());
+    return Objects.hash(getRunningQueries());
   }
 }

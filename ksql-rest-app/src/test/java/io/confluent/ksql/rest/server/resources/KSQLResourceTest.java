@@ -20,14 +20,15 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
-import io.confluent.ksql.rest.json.CommandIdResponse;
-import io.confluent.ksql.rest.json.KSQLError;
-import io.confluent.ksql.rest.json.KSQLStatementResponse;
-import io.confluent.ksql.rest.json.QueriesList;
-import io.confluent.ksql.rest.json.SourceDescription;
-import io.confluent.ksql.rest.json.StreamsList;
-import io.confluent.ksql.rest.json.TablesList;
-import io.confluent.ksql.rest.json.TopicsList;
+import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.KSQLError;
+import io.confluent.ksql.rest.entity.KSQLEntity;
+import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.entity.RunningQueries;
+import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -100,13 +102,7 @@ public class KSQLResourceTest {
     }
   }
 
-  static KSQLJsonRequest createJsonRequest(String ksql) {
-    KSQLJsonRequest result = new KSQLJsonRequest();
-    result.ksql = ksql;
-    return result;
-  }
-
-  private <R extends KSQLStatementResponse> R makeSingleRequest(
+  private <R extends KSQLEntity> R makeSingleRequest(
       TestKSQLResource testResource,
       String ksqlString,
       Statement ksqlStatement,
@@ -117,7 +113,7 @@ public class KSQLResourceTest {
 
     testResource.replayAll();
 
-    Object responseEntity = testResource.handleKSQLStatements(createJsonRequest(ksqlString)).getEntity();
+    Object responseEntity = testResource.handleKSQLStatements(new KSQLRequest(ksqlString)).getEntity();
     assertThat(responseEntity, instanceOf(List.class));
 
     List responseList = (List) responseEntity;
@@ -157,10 +153,10 @@ public class KSQLResourceTest {
     testResource.statementExecutor.registerQueuedStatement(commandId);
     expectLastCall();
 
-    CommandIdResponse commandIdResponse =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, CommandIdResponse.class);
+    CommandIdEntity commandIdEntity =
+        makeSingleRequest(testResource, ksqlString, ksqlStatement, CommandIdEntity.class);
 
-    assertEquals(commandId, commandIdResponse.getCommandId());
+    assertEquals(commandId, commandIdEntity.getCommandId());
   }
 
   @Test
@@ -180,16 +176,19 @@ public class KSQLResourceTest {
 
     TopicsList topicsList = makeSingleRequest(testResource, ksqlString, ksqlStatement, TopicsList.class);
 
-    Collection<KSQLTopic> testTopics = topicsList.getTopics();
-    Collection<KSQLTopic> expectedTopics = testResource.ksqlEngine.getMetaStore().getAllKSQLTopics().values();
+    Collection<TopicsList.TopicInfo> testTopics = topicsList.getTopics();
+    Collection<TopicsList.TopicInfo> expectedTopics = testResource.ksqlEngine.getMetaStore()
+        .getAllKSQLTopics().values().stream()
+        .map(TopicsList.TopicInfo::new)
+        .collect(Collectors.toList());
 
     assertEquals(expectedTopics.size(), testTopics.size());
 
-    for (KSQLTopic testTopic : testTopics) {
+    for (TopicsList.TopicInfo testTopic : testTopics) {
       assertTrue(expectedTopics.contains(testTopic));
     }
 
-    for (KSQLTopic expectedTopic : expectedTopics) {
+    for (TopicsList.TopicInfo expectedTopic : expectedTopics) {
       assertTrue(testTopics.contains(expectedTopic));
     }
   }
@@ -220,13 +219,13 @@ public class KSQLResourceTest {
     );
     final Map<Long, PersistentQueryMetadata> mockQueries = Collections.singletonMap(mockQueryId, mockQuery);
 
-    final QueriesList.RunningQuery expectedRunningQuery =
-        new QueriesList.RunningQuery(mockQueryStatement, mockKafkaTopic, mockQueryId);
+    final RunningQueries.RunningQuery expectedRunningQuery =
+        new RunningQueries.RunningQuery(mockQueryStatement, mockKafkaTopic, mockQueryId);
 
     expect(testResource.ksqlEngine.getPersistentQueries()).andReturn(mockQueries);
 
-    QueriesList queriesList = makeSingleRequest(testResource, ksqlString, ksqlStatement, QueriesList.class);
-    List<QueriesList.RunningQuery> testQueries = queriesList.getQueries();
+    RunningQueries runningQueries = makeSingleRequest(testResource, ksqlString, ksqlStatement, RunningQueries.class);
+    List<RunningQueries.RunningQuery> testQueries = runningQueries.getRunningQueries();
 
     assertEquals(1, testQueries.size());
     assertEquals(expectedRunningQuery, testQueries.get(0));
@@ -239,18 +238,19 @@ public class KSQLResourceTest {
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName));
 
-    SourceDescription sourceDescription =
+    SourceDescription testDescription =
         makeSingleRequest(testResource, ksqlString, ksqlStatement, SourceDescription.class);
 
     StructuredDataSource expectedSource = testResource.ksqlEngine.getMetaStore().getSource(tableName);
 
-    SourceDescription.Description expectedDescription = new SourceDescription.Description(
+    SourceDescription expectedDescription = new SourceDescription(
+        ksqlString,
         tableName,
         expectedSource.getSchema(),
         DataSource.DataSourceType.KTABLE,
         expectedSource.getKeyField().name()
     );
-    assertEquals(expectedDescription, sourceDescription.getDescription());
+    assertEquals(expectedDescription, testDescription);
   }
 
   @Test
@@ -261,10 +261,11 @@ public class KSQLResourceTest {
 
     StreamsList streamsList = makeSingleRequest(testResource, ksqlString, ksqlStatement, StreamsList.class);
 
-    List<KSQLStream> testStreams = streamsList.getStreams();
+    List<StreamsList.StreamInfo> testStreams = streamsList.getStreams();
     assertEquals(1, testStreams.size());
 
-    KSQLStream expectedStream = (KSQLStream) testResource.ksqlEngine.getMetaStore().getSource("test_stream");
+    StreamsList.StreamInfo expectedStream =
+        new StreamsList.StreamInfo((KSQLStream) testResource.ksqlEngine.getMetaStore().getSource("test_stream"));
 
     assertEquals(expectedStream, testStreams.get(0));
   }
@@ -277,10 +278,11 @@ public class KSQLResourceTest {
 
     TablesList tablesList = makeSingleRequest(testResource, ksqlString, ksqlStatement, TablesList.class);
 
-    List<KSQLTable> testTables = tablesList.getTables();
+    List<TablesList.TableInfo> testTables = tablesList.getTables();
     assertEquals(1, testTables.size());
 
-    KSQLTable expectedTable = (KSQLTable) testResource.ksqlEngine.getMetaStore().getSource("test_table");
+    TablesList.TableInfo expectedTable =
+        new TablesList.TableInfo((KSQLTable) testResource.ksqlEngine.getMetaStore().getSource("test_table"));
 
     assertEquals(expectedTable, testTables.get(0));
   }

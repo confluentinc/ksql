@@ -5,7 +5,13 @@ package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.confluent.ksql.rest.json.SchemaMapper;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KSQLEntity;
+import io.confluent.ksql.rest.entity.KSQLEntityList;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -13,7 +19,6 @@ import org.apache.kafka.connect.data.Schema;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonStructure;
-import javax.json.JsonValue;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -23,9 +28,10 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
-
 
 public class KSQLRestClient implements Closeable, AutoCloseable {
 
@@ -57,17 +63,26 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public JsonStructure makeKSQLRequest(String ksql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
-    return parseJsonResponse(makePostRequest("ksql", requestData));
+  public List<KSQLEntity> makeKSQLRequest(String ksql) {
+    KSQLRequest jsonRequest = new KSQLRequest(ksql);
+    Response response = makePostRequest("ksql", jsonRequest);
+    List<KSQLEntity> result = response.readEntity(KSQLEntityList.class);
+    response.close();
+    return result;
   }
 
-  public JsonStructure makeStatusRequest() {
-    return parseJsonResponse(makeGetRequest("status"));
+  public Map<CommandId, CommandStatus.Status> makeStatusRequest() {
+    Response response = makeGetRequest("status");
+    Map<CommandId, CommandStatus.Status> result = response.readEntity(CommandStatuses.class);
+    response.close();
+    return result;
   }
 
-  public JsonStructure makeStatusRequest(String statementId) {
-    return parseJsonResponse(makeGetRequest(String.format("status/%s", statementId)));
+  public CommandStatus makeStatusRequest(String commandId) {
+    Response response = makeGetRequest(String.format("status/%s", commandId));
+    CommandStatus result = response.readEntity(CommandStatus.class);
+    response.close();
+    return result;
   }
 
   public QueryStream makeQueryRequest(String ksql) {
@@ -80,20 +95,17 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     client.close();
   }
 
-  private Response makePostRequest(String path, JsonValue data) {
-    return client.target(serverAddress).path(path)
-            .request(MediaType.APPLICATION_JSON_TYPE)
-            .post(Entity.json(data.toString()));
+  private Response makePostRequest(String path, Object jsonEntity) {
+    return client.target(serverAddress)
+        .path(path)
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .post(Entity.json(jsonEntity));
   }
 
   private Response makeGetRequest(String path) {
     return client.target(serverAddress).path(path)
             .request(MediaType.APPLICATION_JSON_TYPE)
             .get();
-  }
-
-  private JsonStructure parseJsonResponse(Response response) {
-    return Json.createReader((InputStream) response.getEntity()).read();
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<JsonStructure> {
@@ -160,5 +172,4 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
       response.close();
     }
   }
-
 }

@@ -8,7 +8,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.KSQLJsonRequest;
+import io.confluent.ksql.rest.entity.KSQLRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +41,7 @@ public class StreamedQueryResource {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KSQLJsonRequest request) throws Exception {
+  public Response streamQuery(KSQLRequest request) throws Exception {
     String ksql = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
     Statement statement = statementParser.parseSingleStatement(ksql);
     if (statement instanceof Query) {

@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
@@ -10,7 +12,11 @@ import java.util.Objects;
 public class PropertiesList extends KSQLEntity {
   private final Map<String, Object> properties;
 
-  public PropertiesList(String statementText, Map<String, Object> properties) {
+  @JsonCreator
+  public PropertiesList(
+      @JsonProperty("statementText") String statementText,
+      @JsonProperty("properties")    Map<String, Object> properties
+  ) {
     super(statementText);
     this.properties = properties;
   }

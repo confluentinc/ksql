@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
@@ -11,7 +13,13 @@ public class SetProperty extends KSQLEntity {
   private final Object oldValue;
   private final Object newValue;
 
-  public SetProperty(String statementText, String property, Object oldValue, Object newValue) {
+  @JsonCreator
+  public SetProperty(
+      @JsonProperty("statementText") String statementText,
+      @JsonProperty("property")      String property,
+      @JsonProperty("oldValue")      Object oldValue,
+      @JsonProperty("newValue")      Object newValue
+  ) {
     super(statementText);
     this.property = property;
     this.oldValue = oldValue;

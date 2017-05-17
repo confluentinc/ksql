@@ -10,10 +10,11 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
-public class TopicUtil {
+public class TopicUtil implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(TopicUtil.class);
 
   private final AdminClient client;
@@ -53,5 +54,13 @@ public class TopicUtil {
     log.debug("Checking for existence of topic '{}'", topic);
     ListTopicsResults topics = client.listTopics();
     return topics.names().get().contains(topic);
+  }
+
+  /**
+   * Close the underlying Kafka admin client.
+   */
+  @Override
+  public void close() {
+    client.close();
   }
 }

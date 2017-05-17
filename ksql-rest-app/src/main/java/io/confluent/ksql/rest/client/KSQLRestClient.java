@@ -17,7 +17,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.json.Json;
-import javax.json.JsonObject;
 import javax.json.JsonStructure;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -86,8 +85,8 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
   }
 
   public QueryStream makeQueryRequest(String ksql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
-    return new QueryStream(makePostRequest("query", requestData));
+    KSQLRequest jsonRequest = new KSQLRequest(ksql);
+    return new QueryStream(makePostRequest("query", jsonRequest));
   }
 
   @Override

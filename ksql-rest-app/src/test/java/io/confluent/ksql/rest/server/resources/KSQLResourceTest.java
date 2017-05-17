@@ -20,7 +20,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandIdEntity;
 import io.confluent.ksql.rest.entity.KSQLEntity;
-import io.confluent.ksql.rest.entity.KSQLError;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.RunningQueries;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -163,7 +163,7 @@ public class KSQLResourceTest {
     final String ksqlString = "DESCRIBE nonexistent_table;";
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
 
-    makeSingleRequest(testResource, ksqlString, ksqlStatement, KSQLError.class);
+    makeSingleRequest(testResource, ksqlString, ksqlStatement, ErrorMessageEntity.class);
   }
 
   @Test

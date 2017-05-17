@@ -25,9 +25,10 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
-import io.confluent.ksql.rest.entity.KSQLError;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.RunningQueries;
@@ -91,7 +92,7 @@ public class KSQLResource {
       try {
         result.add(executeStatement(statementText, parsedStatements.get(i)));
       } catch (Exception exception) {
-        result.add(new KSQLError(statementText, exception));
+        result.add(new ErrorMessageEntity(statementText, exception));
       }
     }
     return Response.ok(result).build();

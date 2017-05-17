@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = CommandIdEntity.class, name = "commandId"),
-    @JsonSubTypes.Type(value = KSQLError.class, name = "error"),
+    @JsonSubTypes.Type(value = ErrorMessageEntity.class, name = "error"),
     @JsonSubTypes.Type(value = PropertiesList.class, name = "properties"),
     @JsonSubTypes.Type(value = RunningQueries.class, name = "runningQueries"),
     @JsonSubTypes.Type(value = SetProperty.class, name = "setProperty"),

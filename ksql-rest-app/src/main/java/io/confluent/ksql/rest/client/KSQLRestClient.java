@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.KSQLRequest;
@@ -61,31 +62,36 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public List<KSQLEntity> makeKSQLRequest(String ksql) {
+  public RestResponse<List<KSQLEntity>> makeKSQLRequest(String ksql) {
     KSQLRequest jsonRequest = new KSQLRequest(ksql);
     Response response = makePostRequest("ksql", jsonRequest);
     List<KSQLEntity> result = response.readEntity(KSQLEntityList.class);
     response.close();
-    return result;
+    return RestResponse.successful(result);
   }
 
-  public Map<CommandId, CommandStatus.Status> makeStatusRequest() {
+  public RestResponse<Map<CommandId, CommandStatus.Status>> makeStatusRequest() {
     Response response = makeGetRequest("status");
     Map<CommandId, CommandStatus.Status> result = response.readEntity(CommandStatuses.class);
     response.close();
-    return result;
+    return RestResponse.successful(result);
   }
 
-  public CommandStatus makeStatusRequest(String commandId) {
+  public RestResponse<CommandStatus> makeStatusRequest(String commandId) {
+    RestResponse<CommandStatus> result;
     Response response = makeGetRequest(String.format("status/%s", commandId));
-    CommandStatus result = response.readEntity(CommandStatus.class);
+    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+      result = RestResponse.successful(response.readEntity(CommandStatus.class));
+    } else {
+      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+    }
     response.close();
     return result;
   }
 
-  public QueryStream makeQueryRequest(String ksql) {
+  public RestResponse<QueryStream> makeQueryRequest(String ksql) {
     KSQLRequest jsonRequest = new KSQLRequest(ksql);
-    return new QueryStream(makePostRequest("query", jsonRequest));
+    return RestResponse.successful(new QueryStream(makePostRequest("query", jsonRequest)));
   }
 
   @Override

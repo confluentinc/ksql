@@ -3,7 +3,9 @@
  **/
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -75,7 +77,9 @@ class QueryStreamWriter implements StreamingOutput {
         // The user has terminated the connection; we can stop writing
       } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
-        out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
+        out.write("\n".getBytes());
+        out.write(new ObjectMapper().writeValueAsBytes(new ErrorMessage(exception)));
+        out.write("\n".getBytes());
         out.flush();
       }
 

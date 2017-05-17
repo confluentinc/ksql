@@ -2,7 +2,6 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,25 +9,22 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@JsonTypeName("error")
-public class KSQLError extends KSQLEntity {
+public class ErrorMessage {
 
   private final String message;
   private final List<String> stackTrace;
 
   @JsonCreator
-  public KSQLError(
-      @JsonProperty("statementText") String statementText,
+  public ErrorMessage(
       @JsonProperty("message")       String message,
       @JsonProperty("stackTrace")    List<String> stackTrace
   ) {
-    super(statementText);
     this.message = message;
     this.stackTrace = stackTrace;
   }
 
-  public KSQLError(String statementText, Throwable exception) {
-    this(statementText, exception.getMessage(), getStackTraceStrings(exception));
+  public ErrorMessage(Throwable exception) {
+    this(exception.getMessage(), getStackTraceStrings(exception));
   }
 
   public static List<String> getStackTraceStrings(Throwable exception) {
@@ -48,12 +44,12 @@ public class KSQLError extends KSQLEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof KSQLError)) {
+    if (!(o instanceof ErrorMessage)) {
       return false;
     }
-    KSQLError ksqlError = (KSQLError) o;
-    return Objects.equals(getMessage(), ksqlError.getMessage()) &&
-        Objects.equals(getStackTrace(), ksqlError.getStackTrace());
+    ErrorMessage that = (ErrorMessage) o;
+    return Objects.equals(getMessage(), that.getMessage()) &&
+        Objects.equals(getStackTrace(), that.getStackTrace());
   }
 
   @Override

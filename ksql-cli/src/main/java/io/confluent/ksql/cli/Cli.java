@@ -11,6 +11,8 @@ import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.KSQLParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -25,6 +27,7 @@ import org.jline.utils.InfoCmp;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -158,14 +161,14 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void execute(String commandStrippedLine) throws IOException {
-        Object response;
+        RestResponse response;
         if (commandStrippedLine.trim().isEmpty()) {
           response = restClient.makeStatusRequest();
         } else {
           String statementId = commandStrippedLine.trim();
           response = restClient.makeStatusRequest(statementId);
         }
-        printJsonResponse(response);
+        printJsonResponse(response.get());
       }
     });
 
@@ -270,7 +273,7 @@ public class Cli implements Closeable, AutoCloseable {
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext ||
           statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         if (consecutiveStatements.length() != 0) {
-          printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
+          printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()).get());
           consecutiveStatements = new StringBuilder();
         }
         handleStreamedQuery(statementText);
@@ -279,42 +282,47 @@ public class Cli implements Closeable, AutoCloseable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
+      printJsonResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()).get());
     }
   }
 
   private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
     displayQueryTerminateInstructions();
 
-    try (KSQLRestClient.QueryStream queryStream = restClient.makeQueryRequest(query)) {
-      Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            while (queryStream.hasNext()) {
-              printJsonResponse(queryStream.next());
-              terminal.flush();
+    RestResponse<KSQLRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
+    if (queryResponse.isSuccessful()) {
+      try (KSQLRestClient.QueryStream queryStream = queryResponse.getResponse()) {
+        Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              while (queryStream.hasNext()) {
+                printJsonResponse(queryStream.next());
+                terminal.flush();
+              }
+            } catch (IOException exception) {
+              exception.printStackTrace(terminal.writer());
             }
-          } catch (IOException exception) {
-            exception.printStackTrace(terminal.writer());
           }
-        }
-      });
+        });
 
-      terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
-        @Override
-        public void handle(Terminal.Signal signal) {
-          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-          eraseQueryTerminateInstructions();
-          queryStreamFuture.cancel(true);
-        }
-      });
+        terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
+          @Override
+          public void handle(Terminal.Signal signal) {
+            terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+            eraseQueryTerminateInstructions();
+            queryStreamFuture.cancel(true);
+          }
+        });
 
-      try {
-        queryStreamFuture.get();
-      } catch (CancellationException exception) {
-        terminal.writer().println("Query terminated");
+        try {
+          queryStreamFuture.get();
+        } catch (CancellationException exception) {
+          terminal.writer().println("Query terminated");
+        }
       }
+    } else {
+      printJsonResponse(queryResponse.getErrorMessage());
     }
   }
 

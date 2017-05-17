@@ -5,6 +5,7 @@ package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KSQLEntity;
@@ -16,15 +17,13 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-import javax.json.Json;
-import javax.json.JsonStructure;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -107,16 +106,18 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
             .get();
   }
 
-  public static class QueryStream implements Closeable, AutoCloseable, Iterator<JsonStructure> {
+  public static class QueryStream implements Closeable, AutoCloseable, Iterator<GenericRow> {
     private final Response response;
+    private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
 
-    private JsonStructure bufferedRow;
+    private GenericRow bufferedRow;
     private boolean closed;
 
     public QueryStream(Response response) {
       this.response = response;
 
+      this.objectMapper = new ObjectMapper();
       this.responseScanner = new Scanner((InputStream) response.getEntity());
 
       this.bufferedRow = null;
@@ -136,8 +137,12 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
       while (responseScanner.hasNextLine()) {
         String responseLine = responseScanner.nextLine().trim();
         if (!responseLine.isEmpty()) {
-          InputStream responseLineInputStream = new ByteArrayInputStream(responseLine.getBytes());
-          bufferedRow = Json.createReader(responseLineInputStream).read();
+          try {
+            bufferedRow = objectMapper.readValue(responseLine, GenericRow.class);
+          } catch (IOException exception) {
+            close();
+            return false;
+          }
           return true;
         }
       }
@@ -146,7 +151,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     }
 
     @Override
-    public JsonStructure next() {
+    public GenericRow next() {
       if (closed) {
         throw new IllegalStateException("Cannot call next() once closed");
       }
@@ -155,7 +160,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
         throw new NoSuchElementException();
       }
 
-      JsonStructure result = bufferedRow;
+      GenericRow result = bufferedRow;
       bufferedRow = null;
       return result;
     }

@@ -5,14 +5,10 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.json.KSQLJsonPOJOSerializer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -21,7 +17,6 @@ class QueryRowWriter implements Runnable {
   private final OutputStream output;
   private final AtomicReference<Throwable> streamsException;
   private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
-  private final Schema rowSchema;
   private final AtomicBoolean rowsWritten;
   private final ObjectMapper objectMapper;
 
@@ -29,13 +24,11 @@ class QueryRowWriter implements Runnable {
       OutputStream output,
       AtomicReference<Throwable> streamsException,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
-      Schema rowSchema,
       AtomicBoolean rowsWritten
   ) {
     this.output = output;
     this.streamsException = streamsException;
     this.rowQueue = rowQueue;
-    this.rowSchema = rowSchema;
     this.rowsWritten = rowsWritten;
 
     this.objectMapper = new ObjectMapper();
@@ -45,8 +38,7 @@ class QueryRowWriter implements Runnable {
   public void run() {
     try {
       while (true) {
-        KeyValue<String, GenericRow> row = rowQueue.take();
-        write(row.key, row.value);
+        write(rowQueue.take().value);
       }
     } catch (InterruptedException exception) {
       // Interrupt is used to end the thread
@@ -58,15 +50,8 @@ class QueryRowWriter implements Runnable {
     }
   }
 
-  private void write(String key, GenericRow genericRow) throws IOException {
-    Map<String, Object> row = new HashMap<>();
-
-    Map<String, Object> values = new KSQLJsonPOJOSerializer(rowSchema).dataToMap(genericRow);
-    row.put("values", values);
-    row.put("key", key);
-
+  private void write(GenericRow row) throws IOException {
     byte[] rowMessage = objectMapper.writeValueAsBytes(row);
-
     synchronized (output) {
       output.write(rowMessage);
       output.write("\n".getBytes());

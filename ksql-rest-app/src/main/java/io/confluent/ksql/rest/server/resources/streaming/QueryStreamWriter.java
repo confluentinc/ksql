@@ -51,7 +51,6 @@ class QueryStreamWriter implements StreamingOutput {
           out,
           streamsException,
           queryMetadata.getRowQueue(),
-          queryMetadata.getOutputNode().getSchema(),
           rowsWritten
       );
       Thread rowWriterThread = new Thread(queryRowWriter);

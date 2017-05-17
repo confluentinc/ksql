@@ -290,9 +290,13 @@ public class Cli implements Closeable, AutoCloseable {
       Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
         @Override
         public void run() {
-          while (queryStream.hasNext()) {
-            terminal.writer().println(queryStream.next());
-            terminal.flush();
+          try {
+            while (queryStream.hasNext()) {
+              printJsonResponse(queryStream.next());
+              terminal.flush();
+            }
+          } catch (IOException exception) {
+            exception.printStackTrace(terminal.writer());
           }
         }
       });

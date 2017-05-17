@@ -1,5 +1,6 @@
 package io.confluent.ksql.rest.server.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.GenericRow;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +32,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertTrue;
 
 public class StreamedQueryResourceTest {
 
@@ -43,6 +46,8 @@ public class StreamedQueryResourceTest {
 
     final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
 
+    final LinkedList<GenericRow> writtenRows = new LinkedList<>();
+
     final Thread rowQueuePopulatorThread = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -50,6 +55,9 @@ public class StreamedQueryResourceTest {
           for (int i = 0; ; i++) {
             String key = Integer.toString(i);
             GenericRow value = new GenericRow(Collections.singletonList(i));
+            synchronized (writtenRows) {
+              writtenRows.add(value);
+            }
             rowQueue.put(new KeyValue<>(key, value));
           }
         } catch (InterruptedException exception) {
@@ -107,14 +115,18 @@ public class StreamedQueryResourceTest {
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
     queryWriterThread.start();
 
-    // Here we just scan the response and make sure that there's at least five non-empty lines in it
-    // Could actually verify its contents, but that would involve parsing JSON and would be fragile if the format ever
-    // changed in the future
     Scanner responseScanner = new Scanner(responseInputStream);
+    ObjectMapper objectMapper = new ObjectMapper();
     for (int i = 0; i < 5; i++) {
       String responseLine = responseScanner.nextLine();
       if (responseLine.trim().isEmpty()) {
         i--;
+      } else {
+        GenericRow expectedRow;
+        synchronized (writtenRows) {
+          expectedRow = writtenRows.poll();
+        }
+        assertTrue(expectedRow.hasTheSameContent(objectMapper.readValue(responseLine, GenericRow.class)));
       }
     }
 

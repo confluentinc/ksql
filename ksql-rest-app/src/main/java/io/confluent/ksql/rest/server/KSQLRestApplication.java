@@ -52,6 +52,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KSQLResource ksqlResource;
+  private final TopicUtil topicUtil;
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
@@ -63,6 +64,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KSQLResource ksqlResource,
+      TopicUtil topicUtil,
       boolean enableQuickstartPage
   ) {
     super(config);
@@ -71,6 +73,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
+    this.topicUtil = topicUtil;
     this.enableQuickstartPage = enableQuickstartPage;
 
     this.commandRunnerThread = new Thread(commandRunner);
@@ -109,6 +112,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
   public void stop() throws Exception {
     ksqlEngine.close();
     commandRunner.close();
+    topicUtil.close();
     try {
       commandRunnerThread.join();
     } catch (InterruptedException exception) {
@@ -218,6 +222,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
         statusResource,
         streamedQueryResource,
         ksqlResource,
+        topicUtil,
         quickstart
     );
   }

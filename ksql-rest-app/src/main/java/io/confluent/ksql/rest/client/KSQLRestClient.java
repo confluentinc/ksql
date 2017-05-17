@@ -10,9 +10,9 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
+import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -140,7 +140,6 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
           try {
             bufferedRow = objectMapper.readValue(responseLine, GenericRow.class);
           } catch (IOException exception) {
-            close();
             return false;
           }
           return true;

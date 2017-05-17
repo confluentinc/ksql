@@ -284,13 +284,13 @@ public class JSONFormatTest {
   @Test
   public void testAggSelectStar() throws Exception {
 
-    produceInputData(inputData, SchemaUtil
+    Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil
         .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
     final String streamName = "AGGTEST";
-    final long windowSizeSecond = 2;
+    final long windowSizeMilliseconds = 2000;
     final String selectColumns =
         "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS)/COUNT(ORDERUNITS), SUM(PRICEARRAY[0]+10)";
-    final String window = String.format("TUMBLING ( SIZE %d SECOND)", windowSizeSecond);
+    final String window = String.format("TUMBLING ( SIZE %d MILLISECOND)", windowSizeMilliseconds);
     final String havingClause = "SUM(ORDERUNITS) > 150";
 
     final String queryString = String.format(
@@ -308,15 +308,21 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
     Schema resultSchema = SchemaUtil
         .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
-    Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, 1);
+
+    long firstItem8Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
+    long secondItem8Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
 
     Map<Windowed<String>, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put(new Windowed<String>("ITEM_8", new TimeWindow(0, 1)), new GenericRow(Arrays
-                                                                                              .asList
-        ("ITEM_8", 2,
-         160.0, 80.0, 2220.0)));
+    if (firstItem8Window == secondItem8Window) {
+      expectedResults.put(
+          new Windowed<>("ITEM_8",new TimeWindow(0, 1)),
+          new GenericRow(Arrays.asList("ITEM_8", 2, 160.0, 80.0, 2220.0))
+      );
+    }
 
-    Assert.assertEquals(1, results.size());
+    Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedWindowedResults(results, expectedResults));
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
@@ -336,9 +342,9 @@ public class JSONFormatTest {
         new KafkaProducer<>(producerConfig, new StringSerializer(), new KSQLJsonPOJOSerializer(schema));
 
     Map<String, RecordMetadata> result = new HashMap<>();
-    for (String key: recordsToPublish.keySet()) {
-      GenericRow row = recordsToPublish.get(key);
-      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(inputTopic, key, row);
+    for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
+      String key = recordEntry.getKey();
+      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(inputTopic, key, recordEntry.getValue());
       Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }

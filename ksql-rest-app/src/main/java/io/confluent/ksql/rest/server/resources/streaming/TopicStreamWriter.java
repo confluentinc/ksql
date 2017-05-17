@@ -43,16 +43,16 @@ import io.confluent.ksql.util.KSQLException;
 public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
-  private String topicName;
-  private Serde valueSerde;
-  private KSQLTopic ksqlTopic;
-  private long interval;
-  long disconnectCheckInterval;
-  Map<String, Object> ksqlEngineCurrentStreamsProperties;
+  private final Serde valueSerde;
+  private final KSQLTopic ksqlTopic;
+  private final long interval;
+  final long disconnectCheckInterval;
+  private final Map<String, Object> ksqlEngineCurrentStreamsProperties;
   private final String avroSchemaString;
 
 
-  public TopicStreamWriter(KSQLEngine ksqlEngine, String topicName, long interval, long disconnectCheckInterval) {
+  public TopicStreamWriter(final KSQLEngine ksqlEngine, final String topicName, final long
+      interval, final long disconnectCheckInterval) {
 
     this.ksqlEngineCurrentStreamsProperties = ksqlEngine.getStreamsProperties();
     this.interval = interval;
@@ -143,8 +143,12 @@ public class TopicStreamWriter implements StreamingOutput {
       try {
         if (interval > 0) {
           if (recordIndex % interval == 0) {
-            out.write(row.toString().getBytes());
-            out.write("\n".getBytes());
+            if (row != null) {
+              out.write(row.toString().getBytes());
+              out.write("\n".getBytes());
+            } else {
+              out.write("null\n".getBytes());
+            }
           }
         } else {
           if (row != null) {
@@ -224,7 +228,4 @@ public class TopicStreamWriter implements StreamingOutput {
       }
     }
   }
-
-
-
 }

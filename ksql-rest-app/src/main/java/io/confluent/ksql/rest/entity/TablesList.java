@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KSQLTable;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,25 +54,19 @@ public class TablesList extends KSQLEntity {
 
   public static class TableInfo {
     private final String name;
-    private final Schema schema;
-    private final Field keyField;
-    private final TopicsList.TopicInfo topicInfo;
+    private final String topic;
     private final String stateStoreName;
     private final boolean isWindowed;
 
     @JsonCreator
     public TableInfo(
         @JsonProperty("name")           String name,
-        @JsonProperty("schema")         Schema schema,
-        @JsonProperty("keyField")       Field keyField,
-        @JsonProperty("topicInfo")      TopicsList.TopicInfo topicInfo,
+        @JsonProperty("topic")          String topic,
         @JsonProperty("stateStoreName") String stateStoreName,
         @JsonProperty("isWindowed")     boolean isWindowed
     ) {
       this.name = name;
-      this.schema = schema;
-      this.keyField = keyField;
-      this.topicInfo = topicInfo;
+      this.topic = topic;
       this.stateStoreName = stateStoreName;
       this.isWindowed = isWindowed;
     }
@@ -82,9 +74,7 @@ public class TablesList extends KSQLEntity {
     public TableInfo(KSQLTable ksqlTable) {
       this(
           ksqlTable.getName(),
-          ksqlTable.getSchema(),
-          ksqlTable.getKeyField(),
-          new TopicsList.TopicInfo(ksqlTable.getKsqlTopic()),
+          ksqlTable.getKsqlTopic().getName(),
           ksqlTable.getStateStoreName(),
           ksqlTable.isWinidowed()
       );
@@ -94,16 +84,8 @@ public class TablesList extends KSQLEntity {
       return name;
     }
 
-    public Schema getSchema() {
-      return schema;
-    }
-
-    public Field getKeyField() {
-      return keyField;
-    }
-
-    public TopicsList.TopicInfo getTopicInfo() {
-      return topicInfo;
+    public String getTopic() {
+      return topic;
     }
 
     public String getStateStoreName() {
@@ -125,15 +107,13 @@ public class TablesList extends KSQLEntity {
       TableInfo tableInfo = (TableInfo) o;
       return getIsWindowed() == tableInfo.getIsWindowed() &&
           Objects.equals(getName(), tableInfo.getName()) &&
-          Objects.equals(getSchema(), tableInfo.getSchema()) &&
-          Objects.equals(getKeyField(), tableInfo.getKeyField()) &&
-          Objects.equals(getTopicInfo(), tableInfo.getTopicInfo()) &&
+          Objects.equals(getTopic(), tableInfo.getTopic()) &&
           Objects.equals(getStateStoreName(), tableInfo.getStateStoreName());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getName(), getSchema(), getKeyField(), getTopicInfo(), getStateStoreName(), getIsWindowed());
+      return Objects.hash(getName(), getTopic(), getStateStoreName(), isWindowed);
     }
   }
 }

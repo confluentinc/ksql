@@ -54,17 +54,17 @@ public class TopicsList extends KSQLEntity {
   }
 
   public static class TopicInfo {
-    private final String topicName;
+    private final String name;
     private final String kafkaTopic;
     private final DataSource.DataSourceSerDe format;
 
     @JsonCreator
     public TopicInfo(
-        @JsonProperty("topicName")  String topicName,
+        @JsonProperty("name")       String name,
         @JsonProperty("kafkaTopic") String kafkaTopic,
         @JsonProperty("format")     DataSource.DataSourceSerDe format
     ) {
-      this.topicName = topicName;
+      this.name = name;
       this.kafkaTopic = kafkaTopic;
       this.format = format;
     }
@@ -73,8 +73,8 @@ public class TopicsList extends KSQLEntity {
       this(ksqlTopic.getTopicName(), ksqlTopic.getKafkaTopicName(), ksqlTopic.getKsqlTopicSerDe().getSerDe());
     }
 
-    public String getTopicName() {
-      return topicName;
+    public String getName() {
+      return name;
     }
 
     public String getKafkaTopic() {
@@ -94,14 +94,14 @@ public class TopicsList extends KSQLEntity {
         return false;
       }
       TopicInfo topicInfo = (TopicInfo) o;
-      return Objects.equals(getTopicName(), topicInfo.getTopicName()) &&
+      return Objects.equals(getName(), topicInfo.getName()) &&
           Objects.equals(getKafkaTopic(), topicInfo.getKafkaTopic()) &&
           getFormat() == topicInfo.getFormat();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getTopicName(), getKafkaTopic(), getFormat());
+      return Objects.hash(getName(), getKafkaTopic(), getFormat());
     }
   }
 }

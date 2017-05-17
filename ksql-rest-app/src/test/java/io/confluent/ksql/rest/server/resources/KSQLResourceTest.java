@@ -241,15 +241,9 @@ public class KSQLResourceTest {
     SourceDescription testDescription =
         makeSingleRequest(testResource, ksqlString, ksqlStatement, SourceDescription.class);
 
-    StructuredDataSource expectedSource = testResource.ksqlEngine.getMetaStore().getSource(tableName);
+    SourceDescription expectedDescription =
+        new SourceDescription(ksqlString, testResource.ksqlEngine.getMetaStore().getSource(tableName));
 
-    SourceDescription expectedDescription = new SourceDescription(
-        ksqlString,
-        tableName,
-        expectedSource.getSchema(),
-        DataSource.DataSourceType.KTABLE,
-        expectedSource.getKeyField().name()
-    );
     assertEquals(expectedDescription, testDescription);
   }
 

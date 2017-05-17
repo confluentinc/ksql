@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Objects;
@@ -29,6 +30,16 @@ public class SourceDescription extends KSQLEntity {
     this.schema = schema;
     this.type = type;
     this.key = key;
+  }
+
+  public SourceDescription(String statementText, StructuredDataSource dataSource) {
+    this(
+        statementText,
+        dataSource.getName(),
+        dataSource.getSchema(),
+        dataSource.getDataSourceType(),
+        dataSource.getKeyField().name()
+    );
   }
 
   public String getName() {

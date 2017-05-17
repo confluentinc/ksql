@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KSQLStream;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,29 +54,21 @@ public class StreamsList extends KSQLEntity {
 
   public static class StreamInfo {
     private final String name;
-    private final Schema schema;
-    private final Field keyField;
-    private final TopicsList.TopicInfo topicInfo;
+    private final String topic;
 
     @JsonCreator
     public StreamInfo(
-        @JsonProperty("name")      String name,
-        @JsonProperty("schema")    Schema schema,
-        @JsonProperty("keyField")  Field keyField,
-        @JsonProperty("topicInfo") TopicsList.TopicInfo topicInfo
+        @JsonProperty("name")  String name,
+        @JsonProperty("topic") String topic
     ) {
       this.name = name;
-      this.schema = schema;
-      this.keyField = keyField;
-      this.topicInfo = topicInfo;
+      this.topic = topic;
     }
 
     public StreamInfo(KSQLStream ksqlStream) {
       this(
           ksqlStream.getName(),
-          ksqlStream.getSchema(),
-          ksqlStream.getKeyField(),
-          new TopicsList.TopicInfo(ksqlStream.getKsqlTopic())
+          ksqlStream.getKsqlTopic().getName()
       );
     }
 
@@ -86,16 +76,8 @@ public class StreamsList extends KSQLEntity {
       return name;
     }
 
-    public Schema getSchema() {
-      return schema;
-    }
-
-    public Field getKeyField() {
-      return keyField;
-    }
-
-    public TopicsList.TopicInfo getTopicInfo() {
-      return topicInfo;
+    public String getTopic() {
+      return topic;
     }
 
     @Override
@@ -108,14 +90,12 @@ public class StreamsList extends KSQLEntity {
       }
       StreamInfo that = (StreamInfo) o;
       return Objects.equals(getName(), that.getName()) &&
-          Objects.equals(getSchema(), that.getSchema()) &&
-          Objects.equals(getKeyField(), that.getKeyField()) &&
-          Objects.equals(getTopicInfo(), that.getTopicInfo());
+          Objects.equals(getTopic(), that.getTopic());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getName(), getSchema(), getKeyField(), getTopicInfo());
+      return Objects.hash(getName(), getTopic());
     }
   }
 }

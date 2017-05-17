@@ -184,13 +184,7 @@ public class KSQLResource {
     if (dataSource == null) {
       throw new Exception(String.format("Could not find '%s' in the metastore", name));
     }
-    return new SourceDescription(
-        statementText,
-        name,
-        dataSource.getSchema(),
-        dataSource.getDataSourceType(),
-        Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(null)
-    );
+    return new SourceDescription(statementText, dataSource);
   }
 
   // TODO: Right now properties can only be set for a single node. Do we want to distribute this?

@@ -55,9 +55,9 @@ public class StreamedQueryResource {
       if (printTopic.getIntervalValue() != null) {
         interval = printTopic.getIntervalValue().getValue();
       }
-       TopicStreamWriter topicStreamWriter = new TopicStreamWriter(ksqlEngine, printTopic
-                                                                                   .getTopic()
-           .toString(), interval, disconnectCheckInterval);
+      TopicStreamWriter topicStreamWriter = new TopicStreamWriter(ksqlEngine, printTopic
+          .getTopic()
+          .toString(), interval, disconnectCheckInterval);
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(topicStreamWriter).type(MediaType.APPLICATION_JSON).build();
     } else {

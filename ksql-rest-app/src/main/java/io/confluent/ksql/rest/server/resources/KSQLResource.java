@@ -25,9 +25,9 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.KSQLError;
-import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.RunningQueries;
@@ -41,7 +41,6 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.connect.data.Field;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
@@ -52,7 +51,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Path("/ksql")

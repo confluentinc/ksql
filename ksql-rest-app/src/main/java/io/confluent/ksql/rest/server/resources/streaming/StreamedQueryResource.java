@@ -7,8 +7,8 @@ import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.server.StatementParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

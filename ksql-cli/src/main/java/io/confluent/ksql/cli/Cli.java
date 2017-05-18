@@ -348,6 +348,7 @@ public class Cli implements Closeable, AutoCloseable {
       try {
         if (streamedQueryTimeoutMs == null) {
           queryStreamFuture.get();
+          Thread.sleep(1000); // God help me I don't know why this is needed but it sure as hell is
         } else {
           try {
             queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);

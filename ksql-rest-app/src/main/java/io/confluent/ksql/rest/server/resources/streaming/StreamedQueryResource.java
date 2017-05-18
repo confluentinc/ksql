@@ -4,6 +4,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -48,6 +49,17 @@ public class StreamedQueryResource {
           new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql);
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).type(MediaType.APPLICATION_JSON).build();
+    } else if (statement instanceof PrintTopic) {
+      PrintTopic printTopic = (PrintTopic) statement;
+      long interval = -1;
+      if (printTopic.getIntervalValue() != null) {
+        interval = printTopic.getIntervalValue().getValue();
+      }
+      TopicStreamWriter topicStreamWriter = new TopicStreamWriter(ksqlEngine, printTopic
+          .getTopic()
+          .toString(), interval, disconnectCheckInterval);
+      log.info("Streaming query '{}'", ksql);
+      return Response.ok().entity(topicStreamWriter).type(MediaType.APPLICATION_JSON).build();
     } else {
       throw new Exception(
           String.format("Statement type `%s' not supported for this resource", statement.getClass().getName())

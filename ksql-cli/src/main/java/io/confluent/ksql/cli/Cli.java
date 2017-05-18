@@ -255,7 +255,8 @@ public class Cli implements Closeable, AutoCloseable {
   private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
     for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
       String ksql = KSQLEngine.getStatementString(statementContext);
-      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext ||
+          statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         handleStreamedQuery(ksql);
       } else {
         printJsonResponse(restClient.makeKSQLRequest(ksql));

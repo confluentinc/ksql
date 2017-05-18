@@ -15,22 +15,30 @@ import static org.easymock.EasyMock.verify;
 // allows the terminal object to be injectable?
 public class CliTest {
 
+  private static Cli getTestCli(KSQLRestClient restClient) throws Exception {
+    return new Cli(restClient, null, null);
+  }
+
+  private static Cli getTestCli() throws Exception {
+    return getTestCli(null);
+  }
+
   @Test
   public void testEmptyInput() throws Exception {
-    new Cli(null).runNonInteractively("");
+    getTestCli().runNonInteractively("");
   }
 
   @Test
   public void testExitInput() throws Exception {
-    new Cli(null).runNonInteractively("exit");
-    new Cli(null).runNonInteractively("\nexit\n\n\n");
-    new Cli(null).runNonInteractively("exit\nexit\nexit");
-    new Cli(null).runNonInteractively("\n\nexit\nexit\n\n\n\nexit\n\n\n");
+    getTestCli().runNonInteractively("exit");
+    getTestCli().runNonInteractively("\nexit\n\n\n");
+    getTestCli().runNonInteractively("exit\nexit\nexit");
+    getTestCli().runNonInteractively("\n\nexit\nexit\n\n\n\nexit\n\n\n");
   }
 
   @Test
   public void testHelpInput() throws Exception {
-    new Cli(null).runNonInteractively("help");
+    getTestCli().runNonInteractively("help");
   }
 
   @Test
@@ -42,7 +50,7 @@ public class CliTest {
     expect(mockRestClient.makeStatusRequest(commandId)).andReturn(Json.createObjectBuilder().build());
     replay(mockRestClient);
 
-    new Cli(mockRestClient).runNonInteractively(String.format("status\nstatus %s", commandId));
+    getTestCli(mockRestClient).runNonInteractively(String.format("status\nstatus %s", commandId));
     verify(mockRestClient);
   }
 
@@ -61,7 +69,7 @@ public class CliTest {
     expect(mockRestClient.makeQueryRequest(testBareQuery)).andReturn(mockQueryStream);
     replay(mockRestClient);
 
-    new Cli(mockRestClient).runNonInteractively(testBareQuery);
+    getTestCli(mockRestClient).runNonInteractively(testBareQuery);
     verify(mockRestClient);
     verify(mockQueryStream);
   }

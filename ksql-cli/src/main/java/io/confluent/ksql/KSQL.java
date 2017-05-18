@@ -10,6 +10,7 @@ import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Port;
 import com.github.rvesse.airline.annotations.restrictions.PortType;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.Cli;
@@ -28,12 +29,32 @@ public class KSQL {
     protected abstract Cli getCli() throws Exception;
 
     private static final String NON_INTERACTIVE_TEXT_OPTION_NAME = "--exec";
+    private static final String STREAMED_QUERY_ROW_LIMIT_OPTION_NAME = "--query-row-limit";
+    private static final String STREAMED_QUERY_TIMEOUT_OPTION_NAME = "--query-timeout";
 
     @Option(
         name = NON_INTERACTIVE_TEXT_OPTION_NAME,
         description = "Text to run non-interactively, exiting immediately after"
     )
     String nonInteractiveText;
+
+    @Option(
+        name = STREAMED_QUERY_ROW_LIMIT_OPTION_NAME,
+        description = "An optional maximum number of rows to read from streamed queries"
+    )
+    @LongRange(
+        min = 1
+    )
+    Long streamedQueryRowLimit;
+
+    @Option(
+        name = STREAMED_QUERY_TIMEOUT_OPTION_NAME,
+        description = "An optional time limit (in milliseconds) for streamed queries"
+    )
+    @LongRange(
+        min = 1
+    )
+    Long streamedQueryTimeoutMs;
 
     @Override
     public void run() {
@@ -110,7 +131,7 @@ public class KSQL {
         throw new RuntimeException(exception);
       }
 
-      return new LocalCli(serverProperties, portNumber);
+      return new LocalCli(serverProperties, portNumber, streamedQueryRowLimit, streamedQueryTimeoutMs);
     }
 
     private Properties getStandaloneProperties() throws IOException {
@@ -159,7 +180,7 @@ public class KSQL {
 
     @Override
     public Cli getCli() throws Exception {
-      return new RemoteCli(server);
+      return new RemoteCli(server, streamedQueryRowLimit, streamedQueryTimeoutMs);
     }
   }
 

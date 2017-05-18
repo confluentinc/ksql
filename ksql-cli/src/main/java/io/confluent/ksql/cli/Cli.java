@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +46,9 @@ public class Cli implements Closeable, AutoCloseable {
   private final JsonWriterFactory jsonWriterFactory;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
 
+  private final Long streamedQueryRowLimit;
+  private final Long streamedQueryTimeoutMs;
+
   protected final KSQLRestClient restClient;
   protected final Terminal terminal;
   protected final LineReader lineReader;
@@ -51,7 +56,9 @@ public class Cli implements Closeable, AutoCloseable {
   private String primaryPrompt;
   private String secondaryPrompt;
 
-  public Cli(KSQLRestClient restClient) throws IOException {
+  public Cli(KSQLRestClient restClient, Long streamedQueryRowLimit, Long streamedQueryTimeoutMs) throws IOException {
+    this.streamedQueryRowLimit  = streamedQueryRowLimit;
+    this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
     this.restClient = restClient;
 
     this.terminal = TerminalBuilder.builder().system(true).build();
@@ -316,10 +323,16 @@ public class Cli implements Closeable, AutoCloseable {
       Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
         @Override
         public void run() {
-          while (queryStream.hasNext()) {
+          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
             terminal.writer().println(queryStream.next());
             terminal.flush();
           }
+          eraseQueryTerminateInstructions();
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+        }
+
+        private boolean keepReading(long rowsRead) {
+          return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
         }
       });
 
@@ -333,10 +346,20 @@ public class Cli implements Closeable, AutoCloseable {
       });
 
       try {
-        queryStreamFuture.get();
+        if (streamedQueryTimeoutMs == null) {
+          queryStreamFuture.get();
+        } else {
+          try {
+            queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
+          } catch (TimeoutException exception) {
+            queryStreamFuture.cancel(true);
+          }
+        }
       } catch (CancellationException exception) {
-        terminal.writer().println("Query terminated");
+        // It's fine
       }
+      terminal.writer().println("Query terminated");
+      terminal.writer().flush();
     }
   }
 

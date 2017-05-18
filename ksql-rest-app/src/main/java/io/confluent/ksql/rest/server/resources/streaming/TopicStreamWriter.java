@@ -4,7 +4,6 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -12,11 +11,9 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,8 +56,7 @@ public class TopicStreamWriter implements StreamingOutput {
     this.disconnectCheckInterval = disconnectCheckInterval;
     ksqlTopic = ksqlEngine.getMetaStore().getTopic(topicName);
     if (ksqlTopic == null) {
-      throw new KSQLException(String.format("Topic %s not found. Make sure the name is spelled "
-                                            + "correctly!", topicName));
+      throw new KSQLException(String.format("Topic %s not found.", topicName));
     }
 
     if (ksqlTopic.getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe) {
@@ -98,12 +94,13 @@ public class TopicStreamWriter implements StreamingOutput {
       KStream<String, GenericRow>
           source =
           builder.stream(Serdes.String(), valueSerde, ksqlTopic.getKafkaTopicName());
-      source.map(new KSQLPrintAvroKeyValueMapper(out, interval));
+      source.foreach(new AvroTopicRowWriter(out, interval, avroSchemaString));
+
     } else {
       KStream<String, String>
           source =
           builder.stream(Serdes.String(), valueSerde, ksqlTopic.getKafkaTopicName());
-      source.map(new KSQLPrintKeyValueMapper(out, interval));
+      source.foreach(new JsonTopicRowWriter(out, interval));
     }
 
     KafkaStreams streams = new KafkaStreams(builder, streamsProperties);
@@ -119,100 +116,55 @@ public class TopicStreamWriter implements StreamingOutput {
       }
     } catch (EOFException exception) {
       // The user has terminated the connection; we can stop writing
+      streams.close();
     } catch (Throwable exception) {
       log.error("Exception occurred while writing to connection stream: ", exception);
       out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
       out.flush();
+      streams.close();
     }
   }
 
-  class KSQLPrintKeyValueMapper
-      implements KeyValueMapper<String, String, KeyValue<String, String>> {
+  class JsonTopicRowWriter extends TopicRowWriter<String, String> {
 
-    long recordIndex = 0;
-    long interval;
-    OutputStream out;
-
-    public KSQLPrintKeyValueMapper(OutputStream out, long interval) {
-      this.out = out;
-      this.interval = interval;
+    public JsonTopicRowWriter(OutputStream out, long interval) {
+      super(out, interval);
     }
 
     @Override
-    public KeyValue<String, String> apply(String key, String row) {
-      try {
-        if (interval > 0) {
-          if (recordIndex % interval == 0) {
-            if (row != null) {
-              out.write(row.toString().getBytes());
-              out.write("\n".getBytes());
-            } else {
-              out.write("null\n".getBytes());
-            }
-          }
-        } else {
-          if (row != null) {
-            out.write(row.toString().getBytes());
-            out.write("\n".getBytes());
-          } else {
-            out.write("null\n".getBytes());
-          }
-        }
+    public void apply(Object k, Object v) {
+      writeRow(getRowBytes((String) k, (String) v));
+    }
 
-        recordIndex++;
-      } catch (Exception exception) {
-        // Do nothing!
+    private byte[] getRowBytes(String key, String value) {
+      Map<String, Object> kvMap = new HashMap<>();
+      kvMap.put("values", value);
+      kvMap.put("key", key);
+      try {
+        return objectMapper.writeValueAsBytes(kvMap);
+      } catch (JsonProcessingException e) {
+        return null;
       }
-      return new KeyValue<String, String>(key, row);
     }
   }
 
-  class KSQLPrintAvroKeyValueMapper implements KeyValueMapper<String, GenericRow, KeyValue<String,
-      String>> {
-    long recordIndex = 0;
-    long interval;
-    OutputStream out;
+  class AvroTopicRowWriter extends TopicRowWriter<String, GenericRow> {
+
     Schema.Parser parser;
     Schema avroSchema;
-    ObjectMapper objectMapper;
 
-    public KSQLPrintAvroKeyValueMapper(OutputStream out, long interval) {
-      this.out = out;
-      this.interval = interval;
+    public AvroTopicRowWriter(OutputStream out, long interval, String avroSchemaString) {
+      super(out, interval);
       this.parser = new Schema.Parser();
       avroSchema = parser.parse(avroSchemaString);
-      this.objectMapper = new ObjectMapper();
     }
 
     @Override
-    public KeyValue<String, String> apply(String key, GenericRow row) {
-      try {
-        if (interval > 0) {
-          if (recordIndex % interval == 0) {
-            if (row != null) {
-              out.write(getKeyValueBytes(key, row));
-              out.write("\n".getBytes());
-            } else {
-              out.write("null\n".getBytes());
-            }
-          }
-        } else {
-          if (row != null) {
-            out.write(getKeyValueBytes(key, row));
-            out.write("\n".getBytes());
-          } else {
-            out.write("null\n".getBytes());
-          }
-        }
-
-        recordIndex++;
-      } catch (IOException exception) {
-        // Do nothing!
-      }
-      return new KeyValue<String, String>(key, row.toString());
+    public void apply(Object k, Object v) {
+      writeRow(getRowBytes((String) k, (GenericRow) v));
     }
 
-    private byte[] getKeyValueBytes(String key, GenericRow row) {
+    private byte[] getRowBytes(String key, GenericRow row) {
       Map<String, Object> rowVals = new HashMap<>();
       for (int i = 0; i < avroSchema.getFields().size(); i++) {
         String fieldName = avroSchema.getFields().get(i).name();

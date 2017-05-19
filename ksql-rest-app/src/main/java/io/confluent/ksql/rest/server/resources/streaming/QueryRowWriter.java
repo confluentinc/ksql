@@ -51,9 +51,8 @@ class QueryRowWriter implements Runnable {
   }
 
   private void write(GenericRow row) throws IOException {
-    byte[] rowMessage = objectMapper.writeValueAsBytes(row);
     synchronized (output) {
-      output.write(rowMessage);
+      objectMapper.writeValue(output, row);
       output.write("\n".getBytes());
       output.flush();
       rowsWritten.set(true);

@@ -77,10 +77,12 @@ class QueryStreamWriter implements StreamingOutput {
         // The user has terminated the connection; we can stop writing
       } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
-        out.write("\n".getBytes());
-        out.write(new ObjectMapper().writeValueAsBytes(new ErrorMessage(exception)));
-        out.write("\n".getBytes());
-        out.flush();
+        synchronized (out) {
+          out.write("\n".getBytes());
+          new ObjectMapper().writeValue(out, new ErrorMessage(exception));
+          out.write("\n".getBytes());
+          out.flush();
+        }
       }
 
       if (rowWriterThread.isAlive()) {

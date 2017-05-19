@@ -127,19 +127,11 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
 
   @Override
   public void configureBaseApplication(Configurable<?> config, Map<String, String> metricTags) {
-    SchemaMapper schemaMapper = new SchemaMapper();
-
     // Would call this but it registers additional, unwanted exception mappers
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     ObjectMapper jsonMapper = getJsonMapper();
-    jsonMapper.registerModule(
-        new SimpleModule()
-            .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
-            .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
-            .addSerializer(Field.class, schemaMapper.getFieldSerializer())
-            .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
-    );
+    new SchemaMapper().registerToObjectMapper(jsonMapper);
 
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
     config.register(jsonProvider);

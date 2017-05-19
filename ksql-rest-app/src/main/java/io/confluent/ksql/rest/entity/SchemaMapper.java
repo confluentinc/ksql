@@ -1,14 +1,15 @@
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.ValueNode;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -18,43 +19,37 @@ import java.util.Collections;
 import java.util.Map;
 
 public class SchemaMapper {
-  private final JsonConverter jsonConverter;
-  private final JsonSerializer<Schema> schemaSerializer;
-  private final JsonDeserializer<Schema> schemaDeserializer;
-  private final JsonSerializer<Field> fieldSerializer;
-  private final JsonDeserializer<Field> fieldDeserializer;
+  private final Map<String, ?> configs;
 
   public SchemaMapper() {
     this(Collections.emptyMap());
   }
 
   public SchemaMapper(Map<String, ?> configs) {
-    this.jsonConverter = new JsonConverter();
-    this.jsonConverter.configure(configs, false);
-
-    this.schemaSerializer = new SchemaJsonSerializer();
-    this.schemaDeserializer = new SchemaJsonDeserializer();
-    this.fieldSerializer = new FieldJsonSerializer();
-    this.fieldDeserializer = new FieldJsonDeserializer();
+    this.configs = configs;
   }
 
-  public JsonSerializer<Schema> getSchemaSerializer() {
-    return schemaSerializer;
+  public ObjectMapper registerToObjectMapper(ObjectMapper objectMapper) {
+    return objectMapper
+        .registerModule(new SimpleModule()
+            .addSerializer(Schema.class, new SchemaJsonSerializer(createNewConverter()))
+            .addDeserializer(Schema.class, new SchemaJsonDeserializer(createNewConverter())))
+        .addMixIn(Field.class, FieldMixin.class);
   }
 
-  public JsonDeserializer<Schema> getSchemaDeserializer() {
-    return schemaDeserializer;
+  private JsonConverter createNewConverter() {
+    JsonConverter result = new JsonConverter();
+    result.configure(configs, false);
+    return result;
   }
 
-  public JsonSerializer<Field> getFieldSerializer() {
-    return fieldSerializer;
-  }
+  private static class SchemaJsonSerializer extends JsonSerializer<Schema> {
+    private final JsonConverter jsonConverter;
 
-  public JsonDeserializer<Field> getFieldDeserializer() {
-    return fieldDeserializer;
-  }
+    public SchemaJsonSerializer(JsonConverter jsonConverter) {
+      this.jsonConverter = jsonConverter;
+    }
 
-  private class SchemaJsonSerializer extends JsonSerializer<Schema> {
     @Override
     public void serialize(Schema schema, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
         throws IOException {
@@ -62,7 +57,13 @@ public class SchemaMapper {
     }
   }
 
-  private class SchemaJsonDeserializer extends JsonDeserializer<Schema> {
+  private static class SchemaJsonDeserializer extends JsonDeserializer<Schema> {
+    private final JsonConverter jsonConverter;
+
+    public SchemaJsonDeserializer(JsonConverter jsonConverter) {
+      this.jsonConverter = jsonConverter;
+    }
+
     @Override
     public Schema deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
         throws IOException {
@@ -70,59 +71,18 @@ public class SchemaMapper {
     }
   }
 
-  private class FieldJsonSerializer extends JsonSerializer<Field> {
-    @Override
-    public void serialize(Field field, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-        throws IOException {
-      jsonGenerator.writeStartObject();
+  private static class FieldMixin {
+    @JsonProperty("name") private String name;
+    @JsonProperty("index") private int index;
+    @JsonProperty("schema") private Schema schema;
 
-      jsonGenerator.writeStringField("name", field.name());
+    @JsonCreator
+    public FieldMixin(
+        @JsonProperty("name") String name,
+        @JsonProperty("index") int index,
+        @JsonProperty("schema") Schema schema
+    ) {
 
-      jsonGenerator.writeFieldName("index");
-      jsonGenerator.writeNumber(field.index());
-
-      jsonGenerator.writeFieldName("schema");
-      jsonGenerator.writeTree(jsonConverter.asJsonSchema(field.schema()));
-
-      jsonGenerator.writeEndObject();
-    }
-  }
-
-  private class FieldJsonDeserializer extends JsonDeserializer<Field> {
-    @Override
-    public Field deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
-      TreeNode treeNode = jsonParser.readValueAsTree();
-      if (!treeNode.isObject()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-
-      TreeNode nameField = treeNode.get("name");
-      if (nameField == null || !nameField.isValueNode()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-      ValueNode nameValueNode = (ValueNode) nameField;
-      if (!nameValueNode.isTextual()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-      String name = nameValueNode.asText();
-
-      TreeNode indexField = treeNode.get("index");
-      if (indexField == null || !indexField.isValueNode()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-      ValueNode indexValueNode = (ValueNode) indexField;
-      if (!indexValueNode.isNumber()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-      int index = indexValueNode.asInt();
-
-      TreeNode schemaField = treeNode.get("schema");
-      if (schemaField == null || !schemaField.isObject()) {
-        throw new RuntimeException("Invalid JSON format for serialized Field object");
-      }
-      Schema schema = jsonConverter.asConnectSchema((ObjectNode) schemaField);
-
-      return new Field(name, index, schema);
     }
   }
 }

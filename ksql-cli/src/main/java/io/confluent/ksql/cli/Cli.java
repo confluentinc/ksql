@@ -71,16 +71,10 @@ public class Cli implements Closeable, AutoCloseable {
     this.cliSpecificCommands = new LinkedHashMap<>();
     registerDefaultCliSpecificCommands();
 
-    SchemaMapper schemaMapper = new SchemaMapper();
     this.objectMapper = new ObjectMapper()
-        .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
-        .registerModule(
-            new SimpleModule()
-                .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
-                .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
-                .addSerializer(Field.class, schemaMapper.getFieldSerializer())
-                .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
-            );
+        .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+
+    new SchemaMapper().registerToObjectMapper(objectMapper);
   }
 
   public void repl() {

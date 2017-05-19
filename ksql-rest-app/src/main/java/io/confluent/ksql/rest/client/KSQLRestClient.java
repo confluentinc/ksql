@@ -41,15 +41,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
   public KSQLRestClient(String serverAddress) {
     this.serverAddress = serverAddress;
 
-    SchemaMapper schemaMapper = new SchemaMapper();
-    ObjectMapper objectMapper = new ObjectMapper()
-        .registerModule(
-            new SimpleModule()
-                .addSerializer(Schema.class, schemaMapper.getSchemaSerializer())
-                .addDeserializer(Schema.class, schemaMapper.getSchemaDeserializer())
-                .addSerializer(Field.class, schemaMapper.getFieldSerializer())
-                .addDeserializer(Field.class, schemaMapper.getFieldDeserializer())
-        );
+    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }

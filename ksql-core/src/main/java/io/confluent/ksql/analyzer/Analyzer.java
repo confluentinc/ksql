@@ -79,10 +79,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KSQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath());
+            intoTopicSerde = new KSQLAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
             break;
           case DataSource.JSON_SERDE_NAME:
-            intoTopicSerde = new KSQLJsonTopicSerDe();
+            intoTopicSerde = new KSQLJsonTopicSerDe(null);
             break;
           case DataSource.CSV_SERDE_NAME:
             intoTopicSerde = new KSQLCsvTopicSerDe();
@@ -90,14 +90,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
       } else {
         if (intoTopicSerde instanceof KSQLAvroTopicSerDe) {
-          intoTopicSerde = new KSQLAvroTopicSerDe(null);
+          intoTopicSerde = new KSQLAvroTopicSerDe(null, null);
         }
       }
 
       KSQLTopic newIntoKSQLTopic = new KSQLTopic(intoKafkaTopicName,
-                                              intoKafkaTopicName, intoTopicSerde);
+          intoKafkaTopicName, intoTopicSerde);
       KSQLStream intoKSQLStream = new KSQLStream(intoStructuredDataSource.getName(),
-                                              null, null, newIntoKSQLTopic);
+          null, null, newIntoKSQLTopic);
       analysis.setInto(intoKSQLStream);
     }
 
@@ -156,7 +156,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
     String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
-    
+
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
       throw new KSQLException("Join criteria is not supported.");
     }
@@ -178,18 +178,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                     leftDataSource.getKeyField(),
-                                     leftDataSource.getKsqlTopic().getTopicName(),
-                                     leftAlias, leftDataSource.getDataSourceType(),
-                                     leftDataSource);
+            leftDataSource.getKeyField(),
+            leftDataSource.getKsqlTopic().getTopicName(),
+            leftAlias, leftDataSource.getDataSourceType(),
+            leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-                                     rightDataSource.getSchema(),
-                                     rightDataSource.getKeyField(),
-                                     rightDataSource.getKsqlTopic().getTopicName(),
-                                     rightAlias, rightDataSource.getDataSourceType(),
-                                     rightDataSource);
+            rightDataSource.getSchema(),
+            rightDataSource.getKeyField(),
+            rightDataSource.getKsqlTopic().getTopicName(),
+            rightAlias, rightDataSource.getDataSourceType(),
+            rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -213,8 +213,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
-                     rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
-                     rightAlias);
+            rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
+            rightAlias);
     analysis.setJoin(joinNode);
     return null;
   }
@@ -258,7 +258,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.isSTDOut) {
       into =
           new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null,
-                        StructuredDataSource.DataSourceType.KSTREAM);
+              StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = new KSQLStream(node.getName().getSuffix(), null, null, null);
 
@@ -278,7 +278,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
               throw new KSQLException(
                   avroSchemaFilePath + " value is string and should be enclosed between "
-                  + "\"'\".");
+                      + "\"'\".");
             }
             avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
           }
@@ -340,7 +340,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         // expand * and T.*
         AllColumns allColumns = (AllColumns) selectItem;
         if ((this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources()
-                                                                 .isEmpty())) {
+            .isEmpty())) {
           throw new KSQLException("FROM clause was not resolved!");
         }
         if (analysis.getJoin() != null) {
@@ -351,14 +351,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getLeftAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getLeftAlias() + "_" + field.name());
+                joinNode.getLeftAlias() + "_" + field.name());
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
             QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getRightAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getRightAlias() + "_" + field.name());
+                joinNode.getRightAlias() + "_" + field.name());
           }
         } else {
           for (Field field : this.analysis.getFromDataSources().get(0).getLeft().getSchema()

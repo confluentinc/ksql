@@ -56,10 +56,6 @@ public class KSQLJsonPOJOSerializer implements Serializer<GenericRow> {
       result.put(mapColumnName, data.getColumns().get(i));
     }
 
-    for (Field field : schema.fields()) {
-
-    }
-
     return result;
   }
 

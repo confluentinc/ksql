@@ -82,7 +82,7 @@ public class MetastoreUtilTest {
 
     String topicName = "TOPIC_NAME";
     String kafkaTopicName = "KAFKA_TOPIC_NAME";
-    KSQLTopic topic = new KSQLTopic(topicName, kafkaTopicName, new KSQLJsonTopicSerDe());
+    KSQLTopic topic = new KSQLTopic(topicName, kafkaTopicName, new KSQLJsonTopicSerDe(null));
     expectedMetaStore.putTopic(topic);
 
     String tableSourceName = "TABLE_SOURCE";
@@ -91,7 +91,7 @@ public class MetastoreUtilTest {
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
     expectedMetaStore.putSource(new KSQLTable(tableSourceName, tableSchema, tableKey, topic,
-                                             tableStateStore, false));
+        tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";

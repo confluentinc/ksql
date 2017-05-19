@@ -27,7 +27,7 @@ import java.util.Set;
 public class MetastoreUtil {
 
   private StructuredDataSource createStructuredDataSource(final MetaStore metaStore,
-                                                         final JsonNode node)
+                                                          final JsonNode node)
       throws
       IOException {
 
@@ -39,7 +39,7 @@ public class MetastoreUtil {
     KSQLTopic ksqlTopic = (KSQLTopic) metaStore.getTopic(topicname);
     if (ksqlTopic == null) {
       throw new KSQLException("Unable to add the structured data source. The corresponding topic "
-                             + "does not exist: " + topicname);
+          + "does not exist: " + topicname);
     }
 
     String type = node.get("type").asText().toUpperCase();
@@ -89,12 +89,13 @@ public class MetastoreUtil {
     if ("AVRO".equals(serde)) {
       if (node.get("avroschemafile") == null) {
         throw new KSQLException("For avro SerDe avro schema file path (avroschemafile) should be "
-                               + "set in the schema.");
+            + "set in the schema.");
       }
       String schemaPath = node.get("avroschemafile").asText();
-      topicSerDe = new KSQLAvroTopicSerDe(schemaPath);
+      String avroSchema = getAvroSchema(schemaPath);
+      topicSerDe = new KSQLAvroTopicSerDe(schemaPath, avroSchema);
     } else if ("JSON".equals(serde)) {
-      topicSerDe = new KSQLJsonTopicSerDe();
+      topicSerDe = new KSQLJsonTopicSerDe(null);
     } else if ("CSV".equals(serde)) {
       topicSerDe = new KSQLCsvTopicSerDe();
     } else {
@@ -230,7 +231,7 @@ public class MetastoreUtil {
           stringBuilder.append(", \n");
         }
         stringBuilder.append("\t\t\t     {\"name\": \"" + field.name() + "\", \"type\": "
-                             + "\"" + getKSQLTypeInJson(field.schema()) + "\"} ");
+            + "\"" + getKSQLTypeInJson(field.schema()) + "\"} ");
       }
       stringBuilder.append("\t\t\t ]\n");
       stringBuilder.append("\t\t}\n");
@@ -257,10 +258,10 @@ public class MetastoreUtil {
 
 
   public static final String DEFAULT_METASTORE_SCHEMA = "{\n"
-                                                        + "\t\"name\": \"ksql_catalog\",\n"
-                                                        + "\t\"topics\":[],\n"
-                                                        + "\t\"schemas\" :[]\n"
-                                                        + "}";
+      + "\t\"name\": \"ksql_catalog\",\n"
+      + "\t\"topics\":[],\n"
+      + "\t\"schemas\" :[]\n"
+      + "}";
 
   private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
@@ -300,9 +301,9 @@ public class MetastoreUtil {
       fieldNameSet.add(fieldName);
       stringBuilder
           .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": " +
-                  getAvroTypeName(field
-                                                                                               .schema())
-                  + "}");
+              getAvroTypeName(field
+                  .schema())
+              + "}");
     }
     stringBuilder.append("\n\t]\n");
     stringBuilder.append("}");
@@ -327,7 +328,7 @@ public class MetastoreUtil {
               + getAvroTypeName(schema.valueSchema()) + "}";
         } else if (schema.type() == Schema.Type.MAP) {
           return "{\"type\": \"map\", \"values\": "
-                 + getAvroTypeName(schema.valueSchema()) + "}";
+              + getAvroTypeName(schema.valueSchema()) + "}";
         }
         throw new KSQLException("Unsupported AVRO type: " + schema.type().name());
     }

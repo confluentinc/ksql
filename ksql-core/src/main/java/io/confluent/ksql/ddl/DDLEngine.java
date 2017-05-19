@@ -78,15 +78,15 @@ public class DDLEngine {
         }
         String avroSchemaFile = createTopic.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE).toString();
         avroSchemaFile = enforceString(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
-//        try {
-//          String avroSchema = getAvroSchema(avroSchemaFile);
-        topicSerDe = new KSQLAvroTopicSerDe(avroSchemaFile);
-//        } catch (IOException e) {
-//          throw new KSQLException("Could not read avro schema from file: " + avroSchemaFile);
-//        }
+        try {
+          String avroSchema = getAvroSchema(avroSchemaFile);
+          topicSerDe = new KSQLAvroTopicSerDe(avroSchemaFile, avroSchema);
+        } catch (IOException e) {
+          throw new KSQLException("Could not read avro schema from file: " + avroSchemaFile);
+        }
         break;
       case DataSource.JSON_SERDE_NAME:
-        topicSerDe = new KSQLJsonTopicSerDe();
+        topicSerDe = new KSQLJsonTopicSerDe(null);
         break;
       case DataSource.CSV_SERDE_NAME:
         topicSerDe = new KSQLCsvTopicSerDe();
@@ -105,7 +105,7 @@ public class DDLEngine {
   private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
       throw new KSQLException(propertyName + " value is string and should be enclosed between "
-                             + "\"'\".");
+          + "\"'\".");
     }
     return propertyValue.substring(1, propertyValue.length() - 1);
   }
@@ -138,7 +138,7 @@ public class DDLEngine {
     for (TableElement tableElement : createStream.getElements()) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                + " You cannot use it as a column name.");
+            + " You cannot use it as a column name.");
       }
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -169,7 +169,7 @@ public class DDLEngine {
     KSQLStream
         ksqlStream =
         new KSQLStream(streamName, streamSchema, (keyName.length() == 0) ? null : streamSchema.field(keyName),
-                                             ksqlEngine.getMetaStore().getTopic(topicName));
+            ksqlEngine.getMetaStore().getTopic(topicName));
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
@@ -198,7 +198,7 @@ public class DDLEngine {
     for (TableElement tableElement : createTable.getElements()) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                + " You cannot use it as a column name.");
+            + " You cannot use it as a column name.");
       }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -248,8 +248,8 @@ public class DDLEngine {
     }
 
     KSQLTable ksqlTable = new KSQLTable(tableName, tableSchema, (keyName.length() == 0) ? null : tableSchema.field(keyName),
-                                        ksqlEngine.getMetaStore().getTopic(topicName),
-                                        stateStoreName, isWindowed);
+        ksqlEngine.getMetaStore().getTopic(topicName),
+        stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore

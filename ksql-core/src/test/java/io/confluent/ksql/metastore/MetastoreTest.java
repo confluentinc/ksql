@@ -21,7 +21,7 @@ public class MetastoreTest {
 
   @Test
   public void testTopicMap() {
-    KSQLTopic ksqlTopic1 = new KSQLTopic("testTopic", "testTopicKafka", new KSQLJsonTopicSerDe());
+    KSQLTopic ksqlTopic1 = new KSQLTopic("testTopic", "testTopicKafka", new KSQLJsonTopicSerDe(null));
     metaStore.putTopic(ksqlTopic1);
     KSQLTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);
@@ -46,9 +46,9 @@ public class MetastoreTest {
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
     StructuredDataSource structuredDataSource2 = new KSQLStream("testStream",
-                                                               structuredDataSource1.getSchema(),
-                                                               structuredDataSource1.getKeyField(),
-                                                               structuredDataSource1.getKsqlTopic());
+        structuredDataSource1.getSchema(),
+        structuredDataSource1.getKeyField(),
+        structuredDataSource1.getKsqlTopic());
     metaStore.putSource(structuredDataSource2);
     StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");
     Assert.assertNotNull(structuredDataSource3);

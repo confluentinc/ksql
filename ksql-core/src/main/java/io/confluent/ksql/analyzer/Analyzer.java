@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.KSQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.connect.data.Field;
@@ -269,6 +270,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
+        analysis.getIntoProperties().put(DDLConfig.FORMAT_PROPERTY, serde);
         if ("AVRO".equals(serde)) {
           String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
@@ -281,6 +283,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
           }
           analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
+          analysis.getIntoProperties().put(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
+
         }
       }
 
@@ -294,10 +298,32 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
+        analysis.getIntoProperties().put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
       }
+      if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
+        try {
+          int numberOfPartitions = Integer.parseInt(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
+          analysis.getIntoProperties().put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, numberOfPartitions);
+
+        } catch (NumberFormatException e) {
+          throw new KSQLException("Invalid number of partitions in WITH clause: " + node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
+        }
+      }
+
+      if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
+        try {
+          short numberOfReplications = Short.parseShort(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+          analysis.getIntoProperties().put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
+        } catch (NumberFormatException e) {
+          throw new KSQLException("Invalid number of replications in WITH clause: " + node
+              .getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+        }
+      }
+
     } else {
       throw new KSQLException("INTO clause is not set correctly!");
     }
+
     analysis.setInto(into);
     return null;
   }

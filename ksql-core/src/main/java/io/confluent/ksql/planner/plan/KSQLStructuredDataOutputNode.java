@@ -9,11 +9,14 @@ import io.confluent.ksql.metastore.KSQLTopic;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Map;
+
 public class KSQLStructuredDataOutputNode extends OutputNode {
 
   final String kafkaTopicName;
   final KSQLTopic ksqlTopic;
   private final Field keyField;
+  final Map<String, Object> outputProperties;
 
 
   @JsonCreator
@@ -21,11 +24,14 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
                                       @JsonProperty("source") final PlanNode source,
                                       @JsonProperty("schema") final Schema schema,
                                       @JsonProperty("ksqlTopic") final KSQLTopic ksqlTopic,
-                                      @JsonProperty("topicName") final String topicName) {
+                                      @JsonProperty("topicName") final String topicName,
+                                      @JsonProperty("outputProperties") final Map<String, Object>
+                                            outputProperties) {
     super(id, source, schema);
     this.kafkaTopicName = topicName;
     this.keyField = source.getKeyField();
     this.ksqlTopic = ksqlTopic;
+    this.outputProperties = outputProperties;
   }
 
   public String getKafkaTopicName() {
@@ -41,4 +47,7 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
     return ksqlTopic;
   }
 
+  public Map<String, Object> getOutputProperties() {
+    return outputProperties;
+  }
 }

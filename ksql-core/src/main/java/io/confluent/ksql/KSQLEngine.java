@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -50,6 +51,8 @@ public class KSQLEngine implements Closeable {
   private final MetaStore metaStore;
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
+
+  private KSQLConfig ksqlConfig;
 
   /**
    * Runs the set of queries in the given query string.
@@ -263,8 +266,9 @@ public class KSQLEngine implements Closeable {
   public KSQLEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
     validateStreamsProperties(streamsProperties);
 
+    this.ksqlConfig = new KSQLConfig(streamsProperties);
     this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(streamsProperties);
+    this.queryEngine = new QueryEngine(ksqlConfig);
     this.ddlEngine = new DDLEngine(this);
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();

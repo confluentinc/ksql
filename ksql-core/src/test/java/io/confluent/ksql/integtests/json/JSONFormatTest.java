@@ -16,20 +16,24 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.requests.MetadataResponse;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
+import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,6 +52,7 @@ public class JSONFormatTest {
   KSQLEngine ksqlEngine;
   Map<String, GenericRow> inputData;
   Map<String, RecordMetadata> inputRecordsMetadata;
+  Map<String, Object> configMap;
 
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
@@ -70,7 +75,7 @@ public class JSONFormatTest {
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
-    Map<String, Object> configMap = new HashMap<>();
+    configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
@@ -325,6 +330,34 @@ public class JSONFormatTest {
     Assert.assertEquals(expectedResults.size(), results.size());
     Assert.assertTrue(assertExpectedWindowedResults(results, expectedResults));
 
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+
+  @Test
+  public void testSinkProperties() throws Exception {
+    final String streamName = "STARSTREAM";
+    final int resultPartitionCount = 3;
+    final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
+                                             + "FROM %s;",
+                                             streamName, resultPartitionCount, inputStream);
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    StreamsKafkaClient streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(configMap));
+    final MetadataResponse metadata = streamsKafkaClient.fetchMetadata();
+    final Collection<MetadataResponse.TopicMetadata> topicsMetadata = metadata.topicMetadata();
+
+    boolean topicExists = false;
+    for (MetadataResponse.TopicMetadata topicMetadata: topicsMetadata) {
+      if (topicMetadata.topic().equalsIgnoreCase(streamName)) {
+        topicExists = true;
+        Assert.assertTrue(topicMetadata.partitionMetadata().size() == resultPartitionCount);
+      }
+    }
+    Assert.assertTrue(topicExists);
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 

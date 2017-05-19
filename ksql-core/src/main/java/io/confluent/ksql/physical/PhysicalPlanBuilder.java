@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
@@ -47,6 +48,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Reducer;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +61,15 @@ public class PhysicalPlanBuilder {
 
   KStreamBuilder builder;
   OutputNode planSink = null;
+  StreamsKafkaClient streamsKafkaClient = null;
 
-  public PhysicalPlanBuilder(final KStreamBuilder builder) {
+  KSQLConfig ksqlConfig = null;
 
+  public PhysicalPlanBuilder(final KStreamBuilder builder, final StreamsKafkaClient
+      streamsKafkaClient, final KSQLConfig ksqlConfig) {
     this.builder = builder;
+    this.streamsKafkaClient = streamsKafkaClient;
+    this.ksqlConfig = ksqlConfig;
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
@@ -108,8 +115,7 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNode.getSource(),
               SchemaUtil.removeImplicitRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
               ksqlStructuredDataOutputNode.getKsqlTopic(),
-              ksqlStructuredDataOutputNode.getKafkaTopicName()
-                                       );
+              ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
           .getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe) {
         KSQLAvroTopicSerDe ksqlAvroTopicSerDe = (KSQLAvroTopicSerDe) ksqlStructuredDataOutputNodeNoRowKey
@@ -119,11 +125,24 @@ public class PhysicalPlanBuilder {
                                                                      .getSchemaFilePath());
       }
 
+      KSQLConfig ksqlConfigClone = ksqlConfig.clone();
+
+      Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
+          .getOutputProperties();
+      if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_PARTITIONS)) {
+        ksqlConfigClone.put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, outputProperties.get(KSQLConfig
+                                                                                           .SINK_NUMBER_OF_PARTITIONS));
+      }
+      if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS)) {
+        ksqlConfigClone.put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KSQLConfig
+                                                                                           .SINK_NUMBER_OF_REPLICATIONS));
+      }
 
       SchemaKStream resultSchemaStream = schemaKStream.into(ksqlStructuredDataOutputNodeNoRowKey
                                                                 .getKafkaTopicName(), SerDeUtil
           .getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()), rowkeyIndexes);
+                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()), rowkeyIndexes,
+                                                            streamsKafkaClient, ksqlConfigClone);
 
 
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
@@ -132,7 +151,8 @@ public class PhysicalPlanBuilder {
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
           SchemaUtil.addImplicitKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
           ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
-          ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName()
+          ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
+          ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties()
       );
       this.planSink = ksqlStructuredDataOutputNodeWithRowkey;
       return resultSchemaStream;
@@ -432,7 +452,7 @@ public class PhysicalPlanBuilder {
     KSQLStructuredDataOutputNode newKSQLStructuredDataOutputNode = new KSQLStructuredDataOutputNode(
         ksqlStructuredDataOutputNode.getId(), ksqlStructuredDataOutputNode.getSource(),
         ksqlStructuredDataOutputNode.getSchema(), newKSQLTopic,
-        ksqlStructuredDataOutputNode.getKafkaTopicName());
+        ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
     return newKSQLStructuredDataOutputNode;
   }
 

@@ -11,11 +11,14 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.Pair;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Analysis {
 
   StructuredDataSource into;
+  Map<String, Object> intoProperties = new HashMap<>();
   String intoFormat = null;
   // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
   String intoAvroSchemaFilePath = null;
@@ -132,6 +135,10 @@ public class Analysis {
 
   public void setHavingExpression(Expression havingExpression) {
     this.havingExpression = havingExpression;
+  }
+
+  public Map<String, Object> getIntoProperties() {
+    return intoProperties;
   }
 }
 

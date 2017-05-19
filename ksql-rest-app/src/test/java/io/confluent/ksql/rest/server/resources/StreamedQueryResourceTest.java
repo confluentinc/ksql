@@ -64,7 +64,7 @@ public class StreamedQueryResourceTest {
           // This should happen during the test, so it's fine
         }
       }
-    });
+    }, "Row Queue Populator");
     rowQueuePopulatorThread.setUncaughtExceptionHandler(threadExceptionHandler);
     rowQueuePopulatorThread.start();
 
@@ -111,13 +111,16 @@ public class StreamedQueryResourceTest {
           throw new RuntimeException(exception);
         }
       }
-    });
+    }, "Query Writer");
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
     queryWriterThread.start();
 
     Scanner responseScanner = new Scanner(responseInputStream);
     ObjectMapper objectMapper = new ObjectMapper();
     for (int i = 0; i < 5; i++) {
+      if (!responseScanner.hasNextLine()) {
+        throw new Exception("Response input stream failed to have expected line available");
+      }
       String responseLine = responseScanner.nextLine();
       if (responseLine.trim().isEmpty()) {
         i--;

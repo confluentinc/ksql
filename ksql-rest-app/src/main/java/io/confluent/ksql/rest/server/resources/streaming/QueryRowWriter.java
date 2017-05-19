@@ -3,6 +3,7 @@
  **/
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.physical.GenericRow;
 import org.apache.kafka.streams.KeyValue;
@@ -31,7 +32,7 @@ class QueryRowWriter implements Runnable {
     this.rowQueue = rowQueue;
     this.rowsWritten = rowsWritten;
 
-    this.objectMapper = new ObjectMapper();
+    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
   }
 
   @Override

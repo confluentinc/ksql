@@ -6,7 +6,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.slf4j.Logger;

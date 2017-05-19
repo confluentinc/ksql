@@ -3,11 +3,11 @@
  **/
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
+
+import java.util.Objects;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 

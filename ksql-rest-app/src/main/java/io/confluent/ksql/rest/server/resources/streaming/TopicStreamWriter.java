@@ -5,6 +5,10 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.metastore.KSQLTopic;
+import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
+import io.confluent.ksql.serde.avro.KSQLGenericRowAvroDeserializer;
+import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -14,22 +18,15 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
-
-import io.confluent.ksql.metastore.KSQLTopic;
-import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
-import io.confluent.ksql.serde.avro.KSQLGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
 
 
 public class TopicStreamWriter implements StreamingOutput {

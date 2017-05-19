@@ -4,7 +4,6 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -15,8 +14,6 @@ import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;

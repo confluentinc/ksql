@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+// TODO: Add a field for status code
 public class ErrorMessage {
 
   private final String message;

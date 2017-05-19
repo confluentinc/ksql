@@ -14,6 +14,7 @@ public class KSQLExceptionMapper implements ExceptionMapper<Throwable> {
   @Override
   public Response toResponse(Throwable exception) {
     // TODO: Distinguish between exceptions that warrant a stack trace and ones that don't
+    // TODO: Return actually meaningful status codes
     return Response
         .status(Response.Status.BAD_REQUEST)
         .type(MediaType.APPLICATION_JSON_TYPE)

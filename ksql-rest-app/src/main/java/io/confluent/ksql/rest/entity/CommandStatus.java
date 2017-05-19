@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
 
-@JsonTypeName("command_status")
+@JsonTypeName("commandStatus")
 @JsonTypeInfo(
     include = JsonTypeInfo.As.WRAPPER_OBJECT,
     use = JsonTypeInfo.Id.NAME

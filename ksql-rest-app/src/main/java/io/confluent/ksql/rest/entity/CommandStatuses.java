@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@JsonTypeName("command_statuses")
+@JsonTypeName("commandStatuses")
 @JsonTypeInfo(
     include = JsonTypeInfo.As.WRAPPER_OBJECT,
     use = JsonTypeInfo.Id.NAME

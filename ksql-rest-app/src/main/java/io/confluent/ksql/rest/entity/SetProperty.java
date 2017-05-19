@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
 
-@JsonTypeName("set_property")
+@JsonTypeName("setProperty")
 public class SetProperty extends KSQLEntity {
 
   private final String property;

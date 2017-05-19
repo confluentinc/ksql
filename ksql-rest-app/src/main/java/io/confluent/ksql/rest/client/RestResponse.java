@@ -31,22 +31,6 @@ public abstract class RestResponse<R> {
     return successful(response);
   }
 
-  public <S> RestResponse<S> map(Function<? super R, ? extends S> mapper) {
-    if (isSuccessful()) {
-      return successful(mapper.apply(getResponse()));
-    } else {
-      return erroneous(getErrorMessage());
-    }
-  }
-
-  public <S> RestResponse<S> flatMap(Function<? super R, ? extends RestResponse<S>> mapper) {
-    if (isSuccessful()) {
-      return mapper.apply(getResponse());
-    } else {
-      return erroneous(getErrorMessage());
-    }
-  }
-
   public Object get() {
     if (isSuccessful()) {
       return getResponse();

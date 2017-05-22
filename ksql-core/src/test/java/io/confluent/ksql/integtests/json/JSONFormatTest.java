@@ -43,9 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * Created by hojjat on 5/3/17.
- */
 public class JSONFormatTest {
 
   MetaStore metaStore;
@@ -108,7 +105,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, inputData.size());
 
     Assert.assertEquals(inputData.size(), results.size());
@@ -131,7 +128,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -196,7 +193,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
@@ -239,7 +236,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -273,7 +270,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -290,7 +287,7 @@ public class JSONFormatTest {
   public void testAggSelectStar() throws Exception {
 
     Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil
-        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
     final String streamName = "AGGTEST";
     final long windowSizeMilliseconds = 2000;
     final String selectColumns =
@@ -312,7 +309,7 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
 
     long firstItem8Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
     long secondItem8Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;

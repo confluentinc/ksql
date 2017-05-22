@@ -47,7 +47,10 @@ import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Reducer;
+import org.apache.kafka.streams.kstream.ValueTransformer;
+import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.ArrayList;
@@ -105,7 +108,7 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {
     SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
-    Set<Integer> rowkeyIndexes = SchemaUtil.getRowKeyIndexes(outputNode.getSchema());
+    Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
     if (outputNode instanceof KSQLStructuredDataOutputNode) {
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode)
           outputNode;
@@ -113,7 +116,7 @@ public class PhysicalPlanBuilder {
           KSQLStructuredDataOutputNode(
               ksqlStructuredDataOutputNode.getId(),
               ksqlStructuredDataOutputNode.getSource(),
-              SchemaUtil.removeImplicitRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
+              SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
               ksqlStructuredDataOutputNode.getKsqlTopic(),
               ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
@@ -149,7 +152,7 @@ public class PhysicalPlanBuilder {
           KSQLStructuredDataOutputNode(
           ksqlStructuredDataOutputNodeNoRowKey.getId(),
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
-          SchemaUtil.addImplicitKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
+          SchemaUtil.addImplicitRowTimeRowKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
           ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
           ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
           ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties()
@@ -294,7 +297,7 @@ public class PhysicalPlanBuilder {
           genericRowSerde =
           SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
                                     .getKsqlTopic().getKsqlTopicSerDe(),
-                                SchemaUtil.removeImplicitRowKeyFromSchema(structuredDataSourceNode.getSchema()));
+                                SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(structuredDataSourceNode.getSchema()));
       Serde<GenericRow> genericRowSerdeAfterRead =
           SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
                                     .getKsqlTopic().getKsqlTopicSerDe(),
@@ -322,6 +325,7 @@ public class PhysicalPlanBuilder {
                       return new KeyValue<>(key, row);
                     }
                   });
+          kStream = addTimestampColumn(kStream);
           kTable = kStream.groupByKey(new WindowedSerde(), genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
             @Override
             public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
@@ -344,6 +348,7 @@ public class PhysicalPlanBuilder {
                       return new KeyValue<>(key, row);
                     }
                   });
+          kStream = addTimestampColumn(kStream);
           kTable = kStream.groupByKey(Serdes.String(), genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
             @Override
             public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
@@ -371,6 +376,7 @@ public class PhysicalPlanBuilder {
                   return new KeyValue<>(key, row);
                 }
               });
+      kStream = addTimestampColumn(kStream);
       return new SchemaKStream(sourceNode.getSchema(), kStream,
                                sourceNode.getKeyField(), new ArrayList<>());
     }
@@ -504,5 +510,38 @@ public class PhysicalPlanBuilder {
       }
     }
     return -1;
+  }
+
+  private KStream addTimestampColumn(KStream kStream) {
+    return kStream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
+      @Override
+      public ValueTransformer<GenericRow, GenericRow> get() {
+        return new ValueTransformer<GenericRow, GenericRow>() {
+          ProcessorContext processorContext;
+          @Override
+          public void init(ProcessorContext processorContext) {
+            this.processorContext = processorContext;
+          }
+
+          @Override
+          public GenericRow transform(GenericRow row) {
+            if (row != null) {
+              row.getColumns().add(0, processorContext.timestamp());
+            }
+            return row;
+          }
+
+          @Override
+          public GenericRow punctuate(long l) {
+            return null;
+          }
+
+          @Override
+          public void close() {
+
+          }
+        };
+      }
+    });
   }
 }

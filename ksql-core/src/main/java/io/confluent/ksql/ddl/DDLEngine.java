@@ -134,11 +134,17 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
+    streamSchema.field(SchemaUtil.ROWTIME_NAME, Schema.FLOAT64_SCHEMA);
     streamSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                + " You cannot use it as a column name.");
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
+          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
+                                + "reserved "
+                                + "token for "
+                                + "implicit "
+                                + "column."
+                                + " You cannot use them as a column name.");
       }
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -194,11 +200,17 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
+    tableSchema.field(SchemaUtil.ROWTIME_NAME, Schema.FLOAT64_SCHEMA);
     tableSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                + " You cannot use it as a column name.");
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
+          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
+                                + "reserved "
+                                + "token for "
+                                + "implicit "
+                                + "column."
+                                + " You cannot use them as a column name.");
       }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }

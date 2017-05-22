@@ -142,8 +142,9 @@ public class SchemaUtil {
     }
   }
 
-  public synchronized static Schema addImplicitKeyToSchema(Schema schema) {
+  public synchronized static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.FLOAT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (Field field: schema.fields()) {
       schemaBuilder.field(field.name(), field.schema());
@@ -151,23 +152,25 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public synchronized static Schema removeImplicitRowKeyFromSchema(Schema schema) {
+  public synchronized static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
-      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) && !fieldName.equalsIgnoreCase(SchemaUtil
+                                                                                       .ROWKEY_NAME)) {
         schemaBuilder.field(fieldName, field.schema());
       }
     }
     return schemaBuilder.build();
   }
 
-  public synchronized static Set<Integer> getRowKeyIndexes(Schema schema) {
+  public synchronized static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
     Set indexSet = new HashSet();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
-      if (field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+      if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || field.name().equalsIgnoreCase(SchemaUtil
+                                                                                           .ROWKEY_NAME)) {
         indexSet.add(i);
       }
     }

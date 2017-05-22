@@ -6,6 +6,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -129,7 +130,8 @@ public class StreamedQueryResourceTest {
         synchronized (writtenRows) {
           expectedRow = writtenRows.poll();
         }
-        assertTrue(expectedRow.hasTheSameContent(objectMapper.readValue(responseLine, GenericRow.class)));
+        GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
+        assertTrue(expectedRow.hasTheSameContent(testRow));
       }
     }
 

@@ -46,9 +46,9 @@ public class MetastoreTest {
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
     StructuredDataSource structuredDataSource2 = new KSQLStream("testStream",
-                                                               structuredDataSource1.getSchema(),
-                                                               structuredDataSource1.getKeyField(),
-                                                               structuredDataSource1.getKsqlTopic());
+        structuredDataSource1.getSchema(),
+        structuredDataSource1.getKeyField(),
+        structuredDataSource1.getKsqlTopic());
     metaStore.putSource(structuredDataSource2);
     StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");
     Assert.assertNotNull(structuredDataSource3);

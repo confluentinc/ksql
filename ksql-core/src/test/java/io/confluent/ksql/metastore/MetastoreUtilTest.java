@@ -91,7 +91,7 @@ public class MetastoreUtilTest {
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
     expectedMetaStore.putSource(new KSQLTable(tableSourceName, tableSchema, tableKey, topic,
-                                             tableStateStore, false));
+        tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";

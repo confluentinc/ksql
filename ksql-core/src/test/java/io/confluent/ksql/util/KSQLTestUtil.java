@@ -50,14 +50,14 @@ public class KSQLTestUtil {
     metaStore.putSource(ksqlTable);
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
-            .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
-            .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
-            .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-            .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
+        .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
+        .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
+        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
+        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
 
     KSQLTopic
         ksqlTopicOrders =
-            new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
+        new KSQLTopic("ORDERS_TOPIC", "orders_topic", new KSQLJsonTopicSerDe(null));
 
     KSQLStream ksqlStreamOrders = new KSQLStream("ORDERS", schemaBuilderOrders, schemaBuilderOrders.field("ORDERTIME"),
         ksqlTopicOrders);

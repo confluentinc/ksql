@@ -11,6 +11,7 @@ import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -127,6 +128,8 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     ObjectMapper jsonMapper = getJsonMapper();
+    new SchemaMapper().registerToObjectMapper(jsonMapper);
+
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(jsonMapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);

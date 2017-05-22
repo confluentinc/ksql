@@ -7,7 +7,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KSQLTopicSerDe;
 import io.confluent.ksql.util.KSQLConfig;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

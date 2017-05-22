@@ -32,6 +32,8 @@ public class KSQL {
     private static final String STREAMED_QUERY_ROW_LIMIT_OPTION_NAME = "--query-row-limit";
     private static final String STREAMED_QUERY_TIMEOUT_OPTION_NAME = "--query-timeout";
 
+    private static final String OUTPUT_FORMAT_OPTION_NAME = "--output";
+
     @Option(
         name = NON_INTERACTIVE_TEXT_OPTION_NAME,
         description = "Text to run non-interactively, exiting immediately after"
@@ -56,6 +58,13 @@ public class KSQL {
     )
     Long streamedQueryTimeoutMs;
 
+    @Option(
+        name = OUTPUT_FORMAT_OPTION_NAME,
+        description = "The output format to use "
+            + "(either 'JSON' or 'TABULAR'; can be changed during REPL as well; defaults to TABULAR)"
+    )
+    String outputFormat = Cli.OutputFormat.TABULAR.name();
+
     @Override
     public void run() {
       try (Cli cli = getCli()) {
@@ -66,6 +75,14 @@ public class KSQL {
         }
       } catch (Exception exception) {
         throw new RuntimeException(exception);
+      }
+    }
+
+    protected Cli.OutputFormat parseOutputFormat() {
+      try {
+        return Cli.OutputFormat.valueOf(outputFormat.toUpperCase());
+      } catch (IllegalArgumentException exception) {
+        throw new ParseException(String.format("Invalid output format: '%s'", outputFormat));
       }
     }
   }
@@ -131,7 +148,13 @@ public class KSQL {
         throw new RuntimeException(exception);
       }
 
-      return new LocalCli(serverProperties, portNumber, streamedQueryRowLimit, streamedQueryTimeoutMs);
+      return new LocalCli(
+          serverProperties,
+          portNumber,
+          streamedQueryRowLimit,
+          streamedQueryTimeoutMs,
+          parseOutputFormat()
+      );
     }
 
     private Properties getStandaloneProperties() throws IOException {
@@ -180,7 +203,7 @@ public class KSQL {
 
     @Override
     public Cli getCli() throws Exception {
-      return new RemoteCli(server, streamedQueryRowLimit, streamedQueryTimeoutMs);
+      return new RemoteCli(server, streamedQueryRowLimit, streamedQueryTimeoutMs, parseOutputFormat());
     }
   }
 

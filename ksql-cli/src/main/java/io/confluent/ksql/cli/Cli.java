@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 
 public class Cli implements Closeable, AutoCloseable {
 
-  private enum OutputFormat {
+  public enum OutputFormat {
     JSON,
     TABULAR
   }
@@ -72,8 +72,6 @@ public class Cli implements Closeable, AutoCloseable {
   private static final String DEFAULT_SECONDARY_PROMPT = "      ";
 
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
-
-  private static final OutputFormat DEFAULT_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
   private final ExecutorService queryStreamExecutorService;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
@@ -91,7 +89,15 @@ public class Cli implements Closeable, AutoCloseable {
 
   private OutputFormat outputFormat;
 
-  public Cli(KSQLRestClient restClient, Long streamedQueryRowLimit, Long streamedQueryTimeoutMs) throws IOException {
+  public Cli(
+      KSQLRestClient restClient,
+      Long streamedQueryRowLimit,
+      Long streamedQueryTimeoutMs,
+      OutputFormat outputFormat
+  ) throws IOException {
+    Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
+    Objects.requireNonNull(outputFormat, "Must provide the CLI with a beginning output format");
+
     this.streamedQueryRowLimit  = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
     this.restClient = restClient;
@@ -108,7 +114,7 @@ public class Cli implements Closeable, AutoCloseable {
     this.primaryPrompt = DEFAULT_PRIMARY_PROMPT;
     this.secondaryPrompt = DEFAULT_SECONDARY_PROMPT;
 
-    this.outputFormat = DEFAULT_OUTPUT_FORMAT;
+    this.outputFormat = outputFormat;
 
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
@@ -194,7 +200,7 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void execute(String line) {
-        terminal.writer().println("CLI-specific commands (exactly one per line):");
+        terminal.writer().println("CLI-specific commands (EACH MUST BE ON THEIR OWN LINE):");
         terminal.writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
@@ -429,8 +435,11 @@ public class Cli implements Closeable, AutoCloseable {
           @Override
           public void run() {
             for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-              terminal.writer().println(queryStream.next());
-              terminal.flush();
+              try {
+                printStreamedRow(queryStream.next());
+              } catch (IOException exception) {
+                throw new RuntimeException(exception);
+              }
             }
           }
         });

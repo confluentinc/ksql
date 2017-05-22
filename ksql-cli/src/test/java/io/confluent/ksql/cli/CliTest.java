@@ -3,6 +3,7 @@ package io.confluent.ksql.cli;
 import io.confluent.ksql.rest.client.KSQLRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -18,11 +19,11 @@ import static org.easymock.EasyMock.verify;
 public class CliTest {
 
   private static Cli getTestCli(KSQLRestClient restClient) throws Exception {
-    return new Cli(restClient, null, null);
+    return new Cli(restClient, null, null, Cli.OutputFormat.JSON);
   }
 
   private static Cli getTestCli() throws Exception {
-    return getTestCli(null);
+    return getTestCli(mock(KSQLRestClient.class));
   }
 
   @Test
@@ -49,7 +50,7 @@ public class CliTest {
 
     KSQLRestClient mockRestClient = mock(KSQLRestClient.class);
     expect(mockRestClient.makeStatusRequest())
-        .andReturn(RestResponse.successful(Collections.emptyMap()));
+        .andReturn(RestResponse.successful(new CommandStatuses(Collections.emptyMap())));
     expect(mockRestClient.makeStatusRequest(commandId))
         .andReturn(RestResponse.successful(new CommandStatus(CommandStatus.Status.SUCCESS, "Success")));
     replay(mockRestClient);

@@ -15,9 +15,19 @@ public class LocalCli extends Cli {
 
   private final KSQLRestApplication serverApplication;
 
-  public LocalCli(Properties serverProperties, int portNumber, Long streamedQueryRowLimit, Long streamedQueryTimeoutMs)
-      throws Exception {
-    super(new KSQLRestClient(getServerAddress(portNumber)), streamedQueryRowLimit, streamedQueryTimeoutMs);
+  public LocalCli(
+      Properties serverProperties,
+      int portNumber,
+      Long streamedQueryRowLimit,
+      Long streamedQueryTimeoutMs,
+      OutputFormat outputFormat
+  ) throws Exception {
+    super(
+        new KSQLRestClient(getServerAddress(portNumber)),
+        streamedQueryRowLimit,
+        streamedQueryTimeoutMs,
+        outputFormat
+    );
 
     // Have to override listeners config to make sure it aligns with port number for client
     serverProperties.put(KSQLRestConfig.LISTENERS_CONFIG, getServerAddress(portNumber));

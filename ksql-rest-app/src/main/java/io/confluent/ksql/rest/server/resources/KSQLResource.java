@@ -145,13 +145,14 @@ public class KSQLResource {
             || statement instanceof TerminateQuery
     ) {
       CommandId commandId = commandStore.distributeStatement(statementText, statement);
+      CommandStatus commandStatus;
       try {
-        CommandStatus commandStatus = statementExecutor.registerQueuedStatement(commandId)
+        commandStatus = statementExecutor.registerQueuedStatement(commandId)
             .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
-        return new CommandStatusEntity(statementText, commandStatus, commandId);
       } catch (TimeoutException exception) {
-        return new CommandIdEntity(statementText, commandId);
+        commandStatus = statementExecutor.getStatus(commandId).get();
       }
+      return new CommandStatusEntity(statementText, commandId, commandStatus);
     } else {
       if (statement != null) {
         throw new Exception(String.format(

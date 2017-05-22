@@ -18,6 +18,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.rest.entity.CommandIdEntity;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.easymock.EasyMock.expect;
@@ -128,7 +130,7 @@ public class KSQLResourceTest {
   }
 
   @Test
-  public void testCreateTopic() throws Exception {
+  public void testInstantCreateTopic() throws Exception {
     TestKSQLResource testResource = new TestKSQLResource();
 
     final String ksqlTopic = "foo";
@@ -154,7 +156,7 @@ public class KSQLResourceTest {
         "Topic created successfully"
     );
     final CommandStatusEntity expectedCommandStatusEntity =
-        new CommandStatusEntity(ksqlString, commandStatus, commandId);
+        new CommandStatusEntity(ksqlString, commandId, commandStatus);
 
     @SuppressWarnings("unchecked")
     final Future<CommandStatus> mockCommandStatusFuture = mock(Future.class);
@@ -165,10 +167,52 @@ public class KSQLResourceTest {
     expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
     expect(testResource.statementExecutor.registerQueuedStatement(commandId)).andReturn(mockCommandStatusFuture);
 
-    CommandStatusEntity testCommandStatusEntity =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, CommandStatusEntity.class);
+    KSQLEntity testKSQLEntity =
+        makeSingleRequest(testResource, ksqlString, ksqlStatement, KSQLEntity.class);
 
-    assertEquals(expectedCommandStatusEntity, testCommandStatusEntity);
+    assertEquals(expectedCommandStatusEntity, testKSQLEntity);
+  }
+
+  @Test
+  public void testTimeoutCreateTopic() throws Exception {
+    TestKSQLResource testResource = new TestKSQLResource();
+
+    final String ksqlTopic = "foo";
+    final String kafkaTopic = "bar";
+    final String format = "json";
+
+    final String ksqlString =
+        String.format("CREATE TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic, kafkaTopic, format);
+
+    final Map<String, Expression> createTopicProperties = new HashMap<>();
+    createTopicProperties.put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
+    createTopicProperties.put(DDLConfig.FORMAT_PROPERTY, new StringLiteral(format));
+
+    final CreateTopic ksqlStatement = new CreateTopic(
+        QualifiedName.of(ksqlTopic),
+        false,
+        createTopicProperties
+    );
+
+    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
+    final CommandStatus commandStatus = new CommandStatus(CommandStatus.Status.QUEUED, "Command written to topic");
+    final CommandStatusEntity expectedCommandStatusEntity =
+        new CommandStatusEntity(ksqlString, commandId, commandStatus);
+
+    @SuppressWarnings("unchecked")
+    final Future<CommandStatus> mockCommandStatusFuture = mock(Future.class);
+    expect(mockCommandStatusFuture.get(TestKSQLResource.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS))
+        .andThrow(new TimeoutException());
+    replay(mockCommandStatusFuture);
+
+    expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
+    expect(testResource.statementExecutor.registerQueuedStatement(commandId)).andReturn(mockCommandStatusFuture);
+    expect(testResource.statementExecutor.getStatus(commandId)).andReturn(Optional.of(commandStatus));
+
+    KSQLEntity testKSQLEntity =
+        makeSingleRequest(testResource, ksqlString, ksqlStatement, KSQLEntity.class);
+
+    assertEquals(expectedCommandStatusEntity, testKSQLEntity);
   }
 
   @Test

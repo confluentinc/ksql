@@ -8,6 +8,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -19,6 +20,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -41,7 +43,10 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                           Set<Integer> rowkeyIndexes) {
+                           Set<Integer> rowkeyIndexes, final StreamsKafkaClient
+                                 streamsKafkaClient, KSQLConfig ksqlConfig) {
+
+    createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
     if (isWindowed) {
       kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>() {

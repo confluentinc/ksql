@@ -14,4 +14,8 @@ public class KSQLJsonTopicSerDe extends KSQLTopicSerDe {
     super(StructuredDataSource.DataSourceSerDe.JSON);
     this.rowSchema = rowSchema;
   }
+
+  public Schema getRowSchema() {
+    return rowSchema;
+  }
 }

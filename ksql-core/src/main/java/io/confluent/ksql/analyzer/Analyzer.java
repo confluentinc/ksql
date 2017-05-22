@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.KSQLTopicSerDe;
 import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.connect.data.Field;
@@ -94,9 +95,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
 
       KSQLTopic newIntoKSQLTopic = new KSQLTopic(intoKafkaTopicName,
-                                              intoKafkaTopicName, intoTopicSerde);
+          intoKafkaTopicName, intoTopicSerde);
       KSQLStream intoKSQLStream = new KSQLStream(intoStructuredDataSource.getName(),
-                                              null, null, newIntoKSQLTopic);
+          null, null, newIntoKSQLTopic);
       analysis.setInto(intoKSQLStream);
     }
 
@@ -155,7 +156,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
     String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
-    
+
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
       throw new KSQLException("Join criteria is not supported.");
     }
@@ -177,18 +178,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                     leftDataSource.getKeyField(),
-                                     leftDataSource.getKsqlTopic().getTopicName(),
-                                     leftAlias, leftDataSource.getDataSourceType(),
-                                     leftDataSource);
+            leftDataSource.getKeyField(),
+            leftDataSource.getKsqlTopic().getTopicName(),
+            leftAlias, leftDataSource.getDataSourceType(),
+            leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-                                     rightDataSource.getSchema(),
-                                     rightDataSource.getKeyField(),
-                                     rightDataSource.getKsqlTopic().getTopicName(),
-                                     rightAlias, rightDataSource.getDataSourceType(),
-                                     rightDataSource);
+            rightDataSource.getSchema(),
+            rightDataSource.getKeyField(),
+            rightDataSource.getKsqlTopic().getTopicName(),
+            rightAlias, rightDataSource.getDataSourceType(),
+            rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -212,8 +213,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
-                     rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
-                     rightAlias);
+            rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
+            rightAlias);
     analysis.setJoin(joinNode);
     return null;
   }
@@ -257,7 +258,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.isSTDOut) {
       into =
           new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null,
-                        StructuredDataSource.DataSourceType.KSTREAM);
+              StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = new KSQLStream(node.getName().getSuffix(), null, null, null);
 
@@ -269,6 +270,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         serde = serde.substring(1, serde.length() - 1);
         analysis.setIntoFormat(serde);
+        analysis.getIntoProperties().put(DDLConfig.FORMAT_PROPERTY, serde);
         if ("AVRO".equals(serde)) {
           String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
           if (node.getProperties().get(DDLConfig.AVRO_SCHEMA_FILE) != null) {
@@ -276,11 +278,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
               throw new KSQLException(
                   avroSchemaFilePath + " value is string and should be enclosed between "
-                  + "\"'\".");
+                      + "\"'\".");
             }
             avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
           }
           analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
+          analysis.getIntoProperties().put(DDLConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
+
         }
       }
 
@@ -294,10 +298,32 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
+        analysis.getIntoProperties().put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
       }
+      if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
+        try {
+          int numberOfPartitions = Integer.parseInt(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
+          analysis.getIntoProperties().put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, numberOfPartitions);
+
+        } catch (NumberFormatException e) {
+          throw new KSQLException("Invalid number of partitions in WITH clause: " + node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
+        }
+      }
+
+      if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
+        try {
+          short numberOfReplications = Short.parseShort(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+          analysis.getIntoProperties().put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
+        } catch (NumberFormatException e) {
+          throw new KSQLException("Invalid number of replications in WITH clause: " + node
+              .getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+        }
+      }
+
     } else {
       throw new KSQLException("INTO clause is not set correctly!");
     }
+
     analysis.setInto(into);
     return null;
   }
@@ -314,7 +340,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         // expand * and T.*
         AllColumns allColumns = (AllColumns) selectItem;
         if ((this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources()
-                                                                 .isEmpty())) {
+            .isEmpty())) {
           throw new KSQLException("FROM clause was not resolved!");
         }
         if (analysis.getJoin() != null) {
@@ -325,14 +351,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getLeftAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getLeftAlias() + "_" + field.name());
+                joinNode.getLeftAlias() + "_" + field.name());
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
             QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getRightAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
-                                   joinNode.getRightAlias() + "_" + field.name());
+                joinNode.getRightAlias() + "_" + field.name());
           }
         } else {
           for (Field field : this.analysis.getFromDataSources().get(0).getLeft().getSchema()

@@ -15,14 +15,19 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLTestUtil;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PhysicalPlanBuilderTest {
 
@@ -36,7 +41,13 @@ public class PhysicalPlanBuilderTest {
         kStreamBuilder = new KStreamBuilder();
         ksqlParser = new KSQLParser();
         metaStore = KSQLTestUtil.getNewMetaStore();
-        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder);
+        Map configMap = new HashMap<>();
+        configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "");
+        configMap.put("application.id", "KSQL");
+        configMap.put("commit.interval.ms", 0);
+        configMap.put("cache.max.bytes.buffering", 0);
+        configMap.put("auto.offset.reset", "earliest");
+        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, null, new KSQLConfig(configMap));
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {

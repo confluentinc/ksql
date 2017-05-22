@@ -18,6 +18,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.TopicUtil;
 import io.confluent.ksql.util.KSQLException;
@@ -201,19 +202,16 @@ public class StatementExecutor {
       String kafkaTopicName =
           createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
       kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
-      topicUtil.ensureTopicExists(kafkaTopicName);
       ksqlEngine.getDdlEngine().createTopic(createTopic);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Topic created"));
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
       String streamName = createStream.getName().getSuffix();
-      topicUtil.ensureTopicExists(streamName);
       ksqlEngine.getDdlEngine().createStream(createStream);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Stream created"));
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
       String tableName = createTable.getName().getSuffix();
-      topicUtil.ensureTopicExists(tableName);
       ksqlEngine.getDdlEngine().createTable(createTable);
       statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Table created"));
     } else if (statement instanceof CreateStreamAsSelect) {
@@ -226,7 +224,6 @@ public class StatementExecutor {
           createStreamAsSelect.getProperties()
       );
       String streamName = createStreamAsSelect.getName().getSuffix();
-      topicUtil.ensureTopicExists(streamName);
       startQuery(statementStr, query, commandId, terminatedQueries, "Stream created and running");
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
@@ -238,7 +235,6 @@ public class StatementExecutor {
           createTableAsSelect.getProperties()
       );
       String tableName = createTableAsSelect.getName().getSuffix();
-      topicUtil.ensureTopicExists(tableName);
       startQuery(statementStr, query, commandId, terminatedQueries, "Table created and running");
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
@@ -285,7 +281,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
-        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, successMessage));
+        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.RUNNING, successMessage));
       }
 
     } else {

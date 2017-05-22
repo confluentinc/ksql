@@ -30,21 +30,21 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,22 +53,24 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
-  private final Map<String, Object> streamsProperties;
+  private final KSQLConfig ksqlConfig;
   private final AtomicLong queryIdCounter;
 
-  public QueryEngine(Map<String, Object> streamsProperties) {
-    Objects.requireNonNull(streamsProperties, "Streams properties map cannot be null as it may be mutated later on");
-    this.streamsProperties = streamsProperties;
+  private StreamsKafkaClient streamsKafkaClient;
 
+  public QueryEngine(KSQLConfig ksqlConfig) {
+    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+    this.ksqlConfig = ksqlConfig;
+    this.streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
     this.queryIdCounter = new AtomicLong(1);
   }
 
   public Map<String, Object> getStreamsProperties() {
-    return new HashMap<>(streamsProperties);
+    return ksqlConfig.getKsqlConfigProps();
   }
 
   public void setStreamsProperty(String property, Object value) {
-    streamsProperties.put(property, value);
+    ksqlConfig.put(property, value);
   }
 
   public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore, List<Pair<String, Query>> queryList) {
@@ -146,7 +148,8 @@ public class QueryEngine {
       KStreamBuilder builder = new KStreamBuilder();
 
       //Build a physical plan, in this case a Kafka Streams DSL
-      PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder);
+      PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
+                                                                        streamsKafkaClient, ksqlConfig);
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -259,4 +262,5 @@ public class QueryEngine {
   private String addTimeSuffix(String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
   }
+
 }

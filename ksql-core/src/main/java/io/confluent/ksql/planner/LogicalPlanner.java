@@ -77,7 +77,7 @@ public class LogicalPlanner {
                                              sourcePlanNode,
                                              inputSchema, intoStructuredDataSource.getKsqlTopic(),
                                              intoStructuredDataSource.getKsqlTopic()
-                                                 .getTopicName());
+                                                 .getTopicName(), analysis.getIntoProperties());
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");

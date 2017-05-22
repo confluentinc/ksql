@@ -3,8 +3,9 @@
  **/
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KSQLEngine;
-import io.confluent.ksql.rest.server.resources.KSQLExceptionMapper;
+import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.eclipse.jetty.io.EofException;
@@ -52,7 +53,6 @@ class QueryStreamWriter implements StreamingOutput {
           out,
           streamsException,
           queryMetadata.getRowQueue(),
-          queryMetadata.getOutputNode().getSchema(),
           rowsWritten
       );
       Thread rowWriterThread = new Thread(queryRowWriter);
@@ -80,12 +80,12 @@ class QueryStreamWriter implements StreamingOutput {
         // writing any more to the connection stream.
         log.warn("Interrupted while writing to connection stream");
       } catch (Throwable exception) {
-        log.error("Exception occurred while writing to connection stream", exception);
-        try {
-          out.write(("\n" + KSQLExceptionMapper.stackTraceJson(exception).toString() + "\n").getBytes());
+        log.error("Exception occurred while writing to connection stream: ", exception);
+        synchronized (out) {
+          out.write("\n".getBytes());
+          new ObjectMapper().writeValue(out, new ErrorMessage(exception));
+          out.write("\n".getBytes());
           out.flush();
-        } catch (Exception secondException) {
-          log.error("Exception occurred while writing error to connection stream", secondException);
         }
       }
 

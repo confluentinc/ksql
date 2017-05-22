@@ -4,15 +4,13 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
-import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 import javax.ws.rs.client.Client;
@@ -24,8 +22,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -51,17 +47,17 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public RestResponse<List<KSQLEntity>> makeKSQLRequest(String ksql) {
+  public RestResponse<KSQLEntityList> makeKSQLRequest(String ksql) {
     KSQLRequest jsonRequest = new KSQLRequest(ksql);
     Response response = makePostRequest("ksql", jsonRequest);
-    List<KSQLEntity> result = response.readEntity(KSQLEntityList.class);
+    KSQLEntityList result = response.readEntity(KSQLEntityList.class);
     response.close();
     return RestResponse.successful(result);
   }
 
-  public RestResponse<Map<CommandId, CommandStatus.Status>> makeStatusRequest() {
+  public RestResponse<CommandStatuses> makeStatusRequest() {
     Response response = makeGetRequest("status");
-    Map<CommandId, CommandStatus.Status> result = response.readEntity(CommandStatuses.class);
+    CommandStatuses result = response.readEntity(CommandStatuses.class);
     response.close();
     return RestResponse.successful(result);
   }
@@ -80,7 +76,12 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
 
   public RestResponse<QueryStream> makeQueryRequest(String ksql) {
     KSQLRequest jsonRequest = new KSQLRequest(ksql);
-    return RestResponse.successful(new QueryStream(makePostRequest("query", jsonRequest)));
+    Response response = makePostRequest("query", jsonRequest);
+    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+      return RestResponse.successful(new QueryStream(response));
+    } else {
+      return RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+    }
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(String ksql) {
@@ -113,12 +114,12 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
         .get();
   }
 
-  public static class QueryStream implements Closeable, AutoCloseable, Iterator<GenericRow> {
+  public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
     private final Response response;
     private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
 
-    private GenericRow bufferedRow;
+    private StreamedRow bufferedRow;
     private boolean closed;
 
     public QueryStream(Response response) {
@@ -145,9 +146,10 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
         String responseLine = responseScanner.nextLine().trim();
         if (!responseLine.isEmpty()) {
           try {
-            bufferedRow = objectMapper.readValue(responseLine, GenericRow.class);
+            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
           } catch (IOException exception) {
-            return false;
+            // TODO: Should the exception be handled somehow else? Swallowing it silently seems like a bad idea...
+            throw new RuntimeException(exception);
           }
           return true;
         }
@@ -157,7 +159,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     }
 
     @Override
-    public GenericRow next() {
+    public StreamedRow next() {
       if (closed) {
         throw new IllegalStateException("Cannot call next() once closed");
       }
@@ -166,7 +168,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
         throw new NoSuchElementException();
       }
 
-      GenericRow result = bufferedRow;
+      StreamedRow result = bufferedRow;
       bufferedRow = null;
       return result;
     }

@@ -6,6 +6,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import org.apache.kafka.streams.KeyValue;
 
 import java.io.IOException;
@@ -53,7 +54,7 @@ class QueryRowWriter implements Runnable {
 
   private void write(GenericRow row) throws IOException {
     synchronized (output) {
-      objectMapper.writeValue(output, row);
+      objectMapper.writeValue(output, new StreamedRow(row));
       output.write("\n".getBytes());
       output.flush();
       rowsWritten.set(true);

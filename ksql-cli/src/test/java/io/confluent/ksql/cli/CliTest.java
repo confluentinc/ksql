@@ -1,9 +1,11 @@
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import org.junit.Test;
 
-import javax.json.Json;
+import java.util.Collections;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -46,8 +48,10 @@ public class CliTest {
     final String commandId = "topics/TEST_TOPIC";
 
     KSQLRestClient mockRestClient = mock(KSQLRestClient.class);
-    expect(mockRestClient.makeStatusRequest()).andReturn(Json.createObjectBuilder().build());
-    expect(mockRestClient.makeStatusRequest(commandId)).andReturn(Json.createObjectBuilder().build());
+    expect(mockRestClient.makeStatusRequest())
+        .andReturn(RestResponse.successful(Collections.emptyMap()));
+    expect(mockRestClient.makeStatusRequest(commandId))
+        .andReturn(RestResponse.successful(new CommandStatus(CommandStatus.Status.SUCCESS, "Success")));
     replay(mockRestClient);
 
     getTestCli(mockRestClient).runNonInteractively(String.format("status\nstatus %s", commandId));
@@ -66,7 +70,7 @@ public class CliTest {
     replay(mockQueryStream);
 
     KSQLRestClient mockRestClient = mock(KSQLRestClient.class);
-    expect(mockRestClient.makeQueryRequest(testBareQuery)).andReturn(mockQueryStream);
+    expect(mockRestClient.makeQueryRequest(testBareQuery)).andReturn(RestResponse.successful(mockQueryStream));
     replay(mockRestClient);
 
     getTestCli(mockRestClient).runNonInteractively(testBareQuery);

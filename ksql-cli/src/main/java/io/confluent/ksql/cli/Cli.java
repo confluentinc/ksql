@@ -24,6 +24,8 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.Scanner;
@@ -324,41 +326,39 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handlePrintedTopic(String printTopic) throws InterruptedException, ExecutionException, IOException {
-    RestResponse<Response> topicResponse = restClient.makePrintTopicRequest(printTopic);
+    RestResponse<InputStream> topicResponse = restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
-      Scanner topicStreamScanner = new Scanner((InputStream) topicResponse.getResponse().getEntity());
-      Future<?> topicPrintFuture = queryStreamExecutorService.submit(new Runnable() {
-        @Override
-        public void run() {
-          while (topicStreamScanner.hasNextLine()) {
-            String line = topicStreamScanner.nextLine();
-            if (!line.isEmpty()) {
-              terminal.writer().println(line);
-              terminal.flush();
+      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse())) {
+        Future<?> topicPrintFuture = queryStreamExecutorService.submit(new Runnable() {
+          @Override
+          public void run() {
+            while (topicStreamScanner.hasNextLine()) {
+              String line = topicStreamScanner.nextLine();
+              if (!line.isEmpty()) {
+                terminal.writer().println(line);
+                terminal.flush();
+              }
             }
           }
-        }
-      });
+        });
 
-      terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
-        @Override
-        public void handle(Terminal.Signal signal) {
-          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-          topicPrintFuture.cancel(true);
-        }
-      });
+        terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
+          @Override
+          public void handle(Terminal.Signal signal) {
+            terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+            topicPrintFuture.cancel(true);
+          }
+        });
 
-      try {
-        topicPrintFuture.get();
-      } catch (CancellationException exception) {
-        terminal.writer().println("Topic printing ceased");
-        terminal.flush();
+        try {
+          topicPrintFuture.get();
+        } catch (CancellationException exception) {
+          terminal.writer().println("Topic printing ceased");
+          terminal.flush();
+        }
+        topicResponse.getResponse().close();
       }
-      // TODO: Make these work
-//      topicStreamScanner.close();
-//      topicResponse.getResponse().close();
-//      ((InputStream) topicResponse.getResponse().getEntity()).close();
     } else {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());
       terminal.flush();

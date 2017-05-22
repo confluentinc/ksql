@@ -83,12 +83,12 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     return RestResponse.successful(new QueryStream(makePostRequest("query", jsonRequest)));
   }
 
-  public RestResponse<Response> makePrintTopicRequest(String ksql) {
-    RestResponse<Response> result;
+  public RestResponse<InputStream> makePrintTopicRequest(String ksql) {
+    RestResponse<InputStream> result;
     KSQLRequest jsonRequest = new KSQLRequest(ksql);
     Response response = makePostRequest("query", jsonRequest);
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-      result = RestResponse.successful(response);
+      result = RestResponse.successful((InputStream) response.getEntity());
     } else {
       result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
     }

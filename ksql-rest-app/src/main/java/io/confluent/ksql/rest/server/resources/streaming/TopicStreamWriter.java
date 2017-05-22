@@ -87,6 +87,7 @@ public class TopicStreamWriter implements StreamingOutput {
         if (records.isEmpty()) {
           synchronized (out) {
             out.write("\n".getBytes());
+            out.flush();
           }
         } else {
           synchronized (out) {

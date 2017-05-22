@@ -353,7 +353,6 @@ public class Cli implements Closeable, AutoCloseable {
           @Override
           public void handle(Terminal.Signal signal) {
             terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-            eraseQueryTerminateInstructions();
             queryStreamFuture.cancel(true);
           }
         });
@@ -361,7 +360,7 @@ public class Cli implements Closeable, AutoCloseable {
         try {
           if (streamedQueryTimeoutMs == null) {
             queryStreamFuture.get();
-            Thread.sleep(1000); // God help me I don't know why this is needed but it sure as hell is
+            Thread.sleep(1000); // TODO: Make things work without this
           } else {
             try {
               queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
@@ -372,6 +371,8 @@ public class Cli implements Closeable, AutoCloseable {
         } catch (CancellationException exception) {
           // It's fine
         }
+      } finally {
+        eraseQueryTerminateInstructions();
         terminal.writer().println("Query terminated");
         terminal.writer().flush();
       }

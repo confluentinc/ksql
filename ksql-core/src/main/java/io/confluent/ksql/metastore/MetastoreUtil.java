@@ -44,6 +44,7 @@ public class MetastoreUtil {
 
     String type = node.get("type").asText().toUpperCase();
     String keyFieldName = node.get("key").asText();
+    String timestampFieldName = node.get("timestamp").asText();
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
     for (int i = 0; i < fields.size(); i++) {
@@ -62,6 +63,7 @@ public class MetastoreUtil {
 
     if ("STREAM".equals(type)) {
       return new KSQLStream(name, dataSource, dataSource.field(keyFieldName),
+                            (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
           ksqlTopic);
     } else if ("TABLE".equals(type)) {
       boolean isWindowed = false;
@@ -71,10 +73,12 @@ public class MetastoreUtil {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KSQLTable(name, dataSource, dataSource.field(keyFieldName),
+                             (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
             ksqlTopic, ksqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
       return new KSQLTable(name, dataSource, dataSource.field(keyFieldName),
+                           (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
           ksqlTopic, stateStore, isWindowed);
     }
     throw new KSQLException(String.format("Type not supported: '%s'", type));
@@ -215,6 +219,9 @@ public class MetastoreUtil {
       stringBuilder.append("\t\t\t \"name\": \"" + structuredDataSource.getName() + "\", \n");
       stringBuilder
           .append("\t\t\t \"key\": \"" + structuredDataSource.getKeyField().name() + "\", \n");
+      stringBuilder
+          .append("\t\t\t \"timestamp\": \"null\", "
+                  + "\n");
       stringBuilder
           .append("\t\t\t \"topic\": \"" + structuredDataSource.getKsqlTopic().getName() + "\", \n");
       if (structuredDataSource instanceof KSQLTable) {

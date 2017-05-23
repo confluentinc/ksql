@@ -30,12 +30,13 @@ public class StructuredDataSourceNode
   public StructuredDataSourceNode(@JsonProperty("id") final PlanNodeId id,
                                   @JsonProperty("schema") final Schema schema,
                                   @JsonProperty("keyField") final Field keyField,
+                                  @JsonProperty("timestampField") final Field timestampField,
                                   @JsonProperty("topicName") final String topicName,
                                   @JsonProperty("alias") final String alias,
                                   @JsonProperty("dataSourceType") final StructuredDataSource.DataSourceType
                                       dataSourceType,
                                   @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource) {
-    super(id, dataSourceType);
+    super(id, timestampField, dataSourceType);
 
     this.schema = schema;
     requireNonNull(topicName, "topicName is null");

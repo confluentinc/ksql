@@ -80,27 +80,27 @@ public class SchemaUtil {
   }
 
   public static int getFieldIndexByName(final Schema schema, final String fieldName) {
-
-    if (schema.fields() != null) {
-      for (int i = 0; i < schema.fields().size(); i++) {
-        Field field = schema.fields().get(i);
-        int dotIndex = field.name().indexOf(".");
-        if (dotIndex == -1) {
-          if (field.name().equals(fieldName)) {
+    if (schema.fields() == null) {
+      return -1;
+    }
+    for (int i = 0; i < schema.fields().size(); i++) {
+      Field field = schema.fields().get(i);
+      int dotIndex = field.name().indexOf(".");
+      if (dotIndex == -1) {
+        if (field.name().equals(fieldName)) {
+          return i;
+        }
+      } else {
+        if (dotIndex < fieldName.length()) {
+          String
+              fieldNameWithDot =
+              fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
+          if (field.name().equals(fieldNameWithDot)) {
             return i;
           }
-        } else {
-          if (dotIndex < fieldName.length()) {
-            String
-                fieldNameWithDot =
-                fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
-            if (field.name().equals(fieldNameWithDot)) {
-              return i;
-            }
-          }
         }
-
       }
+
     }
     return -1;
   }

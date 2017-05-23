@@ -132,7 +132,9 @@ public class KSQLEngine implements Closeable {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId, metaStore, logicalPlans);
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId,
+                                                                        metaStore, logicalPlans,
+                                                                        ksqlConfig);
 
     for (QueryMetadata queryMetadata : runningQueries) {
 
@@ -234,7 +236,7 @@ public class KSQLEngine implements Closeable {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
 
-    Map<String, Object> newProperties = queryEngine.getStreamsProperties();
+    Map<String, Object> newProperties = ksqlConfig.getKsqlConfigProps();
     newProperties.put(property, value);
 
     try {
@@ -242,13 +244,12 @@ public class KSQLEngine implements Closeable {
     } catch (ConfigException configException) {
       throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'", property, value));
     }
-
-    queryEngine.setStreamsProperty(property, value);
+    ksqlConfig.put(property, value);
   }
 
   public Map<String, Object> getStreamsProperties() {
     Map<String, Object> result = new HashMap<>();
-    for (Map.Entry<String, Object> propertyEntry : queryEngine.getStreamsProperties().entrySet()) {
+    for (Map.Entry<String, Object> propertyEntry : ksqlConfig.getKsqlConfigProps().entrySet()) {
       if (isValidStreamsProperty(propertyEntry.getKey())) {
         result.put(propertyEntry.getKey(), propertyEntry.getValue());
       }

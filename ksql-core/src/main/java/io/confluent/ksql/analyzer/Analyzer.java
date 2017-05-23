@@ -97,7 +97,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KSQLTopic newIntoKSQLTopic = new KSQLTopic(intoKafkaTopicName,
                                               intoKafkaTopicName, intoTopicSerde);
       KSQLStream intoKSQLStream = new KSQLStream(intoStructuredDataSource.getName(),
-                                              null, null, newIntoKSQLTopic);
+                                              null, null, null, newIntoKSQLTopic);
       analysis.setInto(intoKSQLStream);
     }
 
@@ -179,6 +179,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
                                      leftDataSource.getKeyField(),
+                                     leftDataSource.getTimestampField(),
                                      leftDataSource.getKsqlTopic().getTopicName(),
                                      leftAlias, leftDataSource.getDataSourceType(),
                                      leftDataSource);
@@ -187,6 +188,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
                                      rightDataSource.getSchema(),
                                      rightDataSource.getKeyField(),
+                                     rightDataSource.getTimestampField(),
                                      rightDataSource.getKsqlTopic().getTopicName(),
                                      rightAlias, rightDataSource.getDataSourceType(),
                                      rightDataSource);
@@ -257,10 +259,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSource into;
     if (node.isSTDOut) {
       into =
-          new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null,
+          new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null, null,
                         StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into = new KSQLStream(node.getName().getSuffix(), null, null, null);
+      into = new KSQLStream(node.getName().getSuffix(), null, null, null, null);
 
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();

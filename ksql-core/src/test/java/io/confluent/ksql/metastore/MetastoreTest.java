@@ -48,6 +48,7 @@ public class MetastoreTest {
     StructuredDataSource structuredDataSource2 = new KSQLStream("testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
+                                                               structuredDataSource1.getTimestampField(),
                                                                structuredDataSource1.getKsqlTopic());
     metaStore.putSource(structuredDataSource2);
     StructuredDataSource structuredDataSource3 = metaStore.getSource("testStream");

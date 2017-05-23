@@ -1534,6 +1534,7 @@ public class AstBuilder
     StructuredDataSource
         resultStream =
         new KSQLStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
+            null,
             ksqlTopic
         );
     return resultStream;

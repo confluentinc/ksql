@@ -145,6 +145,7 @@ public class LogicalPlanner {
       KSQLStream fromStream = (KSQLStream) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
+                                          fromDataSource.getTimestampField(),
                                           fromStream.getKsqlTopic().getTopicName(),
                                           alias, fromStream.getDataSourceType(),
                                           fromStream);
@@ -152,6 +153,7 @@ public class LogicalPlanner {
       KSQLTable fromTable = (KSQLTable) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
+                                          fromDataSource.getTimestampField(),
                                           fromTable.getKsqlTopic().getTopicName(),
                                           alias, fromTable.getDataSourceType(),
                                           fromTable);

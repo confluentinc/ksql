@@ -36,6 +36,7 @@ import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import io.confluent.ksql.util.WindowedSerde;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -128,16 +129,14 @@ public class PhysicalPlanBuilder {
                                                                      .getSchemaFilePath());
       }
 
-      KSQLConfig ksqlConfigClone = ksqlConfig.clone();
-
       Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
           .getOutputProperties();
       if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_PARTITIONS)) {
-        ksqlConfigClone.put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, outputProperties.get(KSQLConfig
+        ksqlConfig.put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, outputProperties.get(KSQLConfig
                                                                                            .SINK_NUMBER_OF_PARTITIONS));
       }
       if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS)) {
-        ksqlConfigClone.put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KSQLConfig
+        ksqlConfig.put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KSQLConfig
                                                                                            .SINK_NUMBER_OF_REPLICATIONS));
       }
 
@@ -145,7 +144,7 @@ public class PhysicalPlanBuilder {
                                                                 .getKafkaTopicName(), SerDeUtil
           .getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
                        ksqlStructuredDataOutputNodeNoRowKey.getSchema()), rowkeyIndexes,
-                                                            streamsKafkaClient, ksqlConfigClone);
+                                                            streamsKafkaClient, ksqlConfig);
 
 
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
@@ -290,8 +289,17 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream buildSource(final SourceNode sourceNode) {
+
     if (sourceNode instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
+
+      if (structuredDataSourceNode.getTimestampField() != null) {
+        int timestampColumnIndex = getTimeStampColumnIndex(structuredDataSourceNode
+                                                                      .getSchema(),
+                                                                  structuredDataSourceNode
+                                                                      .getTimestampField());
+        ksqlConfig.put(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+      }
 
       Serde<GenericRow>
           genericRowSerde =
@@ -543,5 +551,37 @@ public class PhysicalPlanBuilder {
         };
       }
     });
+  }
+
+  private int getTimeStampColumnIndex(Schema schema, Field timestampField) {
+    String timestampFieldName = timestampField.name();
+    if (timestampFieldName.contains(".")) {
+      for (int i = 2; i < schema.fields().size(); i++) {
+        Field field = schema.fields().get(i);
+        if (field.name().contains(".")) {
+          if (timestampFieldName.equals(field.name())) {
+            return i - 2;
+          }
+        } else {
+          if (timestampFieldName.substring(timestampFieldName.indexOf(".") + 1).equals(field.name())) {
+            return i - 2;
+          }
+        }
+      }
+    } else {
+      for (int i = 2; i < schema.fields().size(); i++) {
+        Field field = schema.fields().get(i);
+        if (field.name().contains(".")) {
+          if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
+            return i - 2;
+          }
+        } else {
+          if (timestampFieldName.equals(field.name())) {
+            return i - 2;
+          }
+        }
+      }
+    }
+    return -1;
   }
 }

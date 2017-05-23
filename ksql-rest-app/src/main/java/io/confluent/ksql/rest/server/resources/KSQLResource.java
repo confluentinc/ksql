@@ -212,6 +212,8 @@ public class KSQLResource {
     }
     result.add("key", (dataSource.getKeyField() != null) ? dataSource.getKeyField().name() :
                       "null");
+    result.add("timestamp", (dataSource.getTimestampField() != null) ? dataSource.getTimestampField().name() :
+                      "null");
     result.add("type", dataSource.getDataSourceType().toString());
     JsonObjectBuilder fields = Json.createObjectBuilder();
     for (Field schemaField : dataSource.getSchema().fields()) {

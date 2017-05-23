@@ -54,25 +54,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
-//  private final KSQLConfig ksqlConfig;
   private final AtomicLong queryIdCounter;
 
   private StreamsKafkaClient streamsKafkaClient;
 
   public QueryEngine(KSQLConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
-//    this.ksqlConfig = ksqlConfig;
     this.streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
     this.queryIdCounter = new AtomicLong(1);
   }
 
-//  public Map<String, Object> getStreamsProperties() {
-//    return ksqlConfig.getKsqlConfigProps();
-//  }
-
-//  public void setStreamsProperty(String property, Object value) {
-//    ksqlConfig.put(property, value);
-//  }
 
   public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore, List<Pair<String, Query>> queryList) {
 

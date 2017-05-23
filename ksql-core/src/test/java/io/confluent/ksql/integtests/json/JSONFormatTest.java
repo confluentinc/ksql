@@ -178,6 +178,32 @@ public class JSONFormatTest {
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
+  @Test
+  public void testSelectProjectKeyTimestamp() throws Exception {
+    final String streamName = "STARTSTREAM";
+    final String queryString =
+        String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME AS RTIME, ITEMID "
+                      + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';", streamName,
+                      inputStream);
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList("8", inputRecordsMetadata.get("8")
+        .timestamp(), "ITEM_8")));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
 
   @Test
   public void testSelectFilter() throws Exception {

@@ -187,13 +187,6 @@ public class KSQLResource {
     if (dataSource == null) {
       throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
     }
-    JsonObjectBuilder fields = Json.createObjectBuilder();
-    for (Field schemaField : dataSource.getSchema().fields()) {
-      String fieldName = schemaField.name();
-      String type = SchemaUtil.TYPE_MAP.get(schemaField.schema().type().getName().toUpperCase()).toUpperCase();
-      fields.add(fieldName, type);
-
-    }
     return new SourceDescription(statementText, dataSource);
   }
 

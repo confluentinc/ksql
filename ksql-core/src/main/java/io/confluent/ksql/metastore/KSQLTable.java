@@ -13,8 +13,9 @@ public class KSQLTable extends StructuredDataSource {
   final boolean isWinidowed;
 
   public KSQLTable(final String datasourceName, final Schema schema, final Field keyField,
+                   final Field timestampField,
                    final KSQLTopic ksqlTopic, final String stateStoreName, boolean isWinidowed) {
-    super(datasourceName, schema, keyField, DataSourceType.KTABLE, ksqlTopic);
+    super(datasourceName, schema, keyField, timestampField, DataSourceType.KTABLE, ksqlTopic);
     this.stateStoreName = stateStoreName;
     this.isWinidowed = isWinidowed;
   }

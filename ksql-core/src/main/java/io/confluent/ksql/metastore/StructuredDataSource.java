@@ -14,16 +14,19 @@ public abstract class StructuredDataSource implements DataSource {
   final DataSourceType dataSourceType;
   final Schema schema;
   final Field keyField;
+  final Field timestampField;
 
   final KSQLTopic ksqlTopic;
 
 
   public StructuredDataSource(final String datasourceName, final Schema schema,
                               final Field keyField,
+                              final Field timestampField,
                               final DataSourceType dataSourceType, final KSQLTopic ksqlTopic) {
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;
+    this.timestampField = timestampField;
     this.dataSourceType = dataSourceType;
     this.ksqlTopic = ksqlTopic;
   }
@@ -59,5 +62,9 @@ public abstract class StructuredDataSource implements DataSource {
 
   public KSQLTopic getKsqlTopic() {
     return ksqlTopic;
+  }
+
+  public Field getTimestampField() {
+    return timestampField;
   }
 }

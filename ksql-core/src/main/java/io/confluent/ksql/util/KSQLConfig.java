@@ -3,6 +3,7 @@
  **/
 package io.confluent.ksql.util;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
@@ -11,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class KSQLConfig extends AbstractConfig {
+
+  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String DEFAULT_SINK_NUMBER_OF_PARTITIONS = "ksql.sink.partitions.default";
@@ -28,6 +31,10 @@ public class KSQLConfig extends AbstractConfig {
   // TODO: Find out the best default value.
   public long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
+  public String defaultAutoOffsetRestConfig = "latest";
+  public long defaultCommitIntervalMsConfig = 0;
+  public long defaultCacheMaxBytesBufferingConfig = 0;
+
   Map<String, Object> ksqlConfigProps;
 
 
@@ -35,14 +42,20 @@ public class KSQLConfig extends AbstractConfig {
 
   public KSQLConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
+
     ksqlConfigProps = new HashMap<>();
-    for (Object propKey: props.keySet()) {
-      ksqlConfigProps.put(propKey.toString(), props.get(propKey));
-    }
+    ksqlConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
+    ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
+    ksqlConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
     ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
     ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
     ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
                         defaultSinkWindowChangeLogAdditionalRetention);
+
+    for (Object propKey: props.keySet()) {
+      ksqlConfigProps.put(propKey.toString(), props.get(propKey));
+    }
+
   }
 
   protected KSQLConfig(ConfigDef config, Map<?, ?> props) {

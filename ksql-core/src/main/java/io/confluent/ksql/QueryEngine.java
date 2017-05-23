@@ -36,6 +36,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.timestamp.KSQLTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -245,9 +246,14 @@ public class QueryEngine {
   private KafkaStreams buildStreams(KStreamBuilder builder, String applicationId) {
     Map<String, Object> newStreamsProperties = getStreamsProperties();
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    newStreamsProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    newStreamsProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
-    newStreamsProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+    newStreamsProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    newStreamsProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
+    newStreamsProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
+
+    newStreamsProperties.put(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 1);
+    newStreamsProperties.put(StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+                             KSQLTimestampExtractor.class);
+
     return new KafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 

@@ -144,7 +144,7 @@ public class SchemaUtil {
 
   public synchronized static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.FLOAT64_SCHEMA);
+    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (Field field: schema.fields()) {
       schemaBuilder.field(field.name(), field.schema());

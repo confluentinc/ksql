@@ -11,9 +11,10 @@ public class KSQLSTDOUT extends StructuredDataSource {
 
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
-  public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
+  public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField, final
+  Field timestampField,
                     final DataSourceType dataSourceType) {
-    super(datasourceName, schema, keyField, dataSourceType, null);
+    super(datasourceName, schema, keyField, timestampField, dataSourceType, null);
   }
 
   @Override

@@ -22,7 +22,6 @@ import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
 import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
 import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.SchemaUtil;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -105,7 +104,7 @@ public class DDLEngine {
   private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
       throw new KSQLException(propertyName + " value is string and should be enclosed between "
-                             + "\"'\".");
+          + "\"'\".");
     }
     return propertyValue.substring(1, propertyValue.length() - 1);
   }
@@ -219,6 +218,7 @@ public class DDLEngine {
                                 + "implicit "
                                 + "column."
                                 + " You cannot use them as a column name.");
+
       }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }

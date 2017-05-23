@@ -9,8 +9,13 @@ import java.io.IOException;
 
 public class RemoteCli extends Cli {
 
-  public RemoteCli(String serverAddress) throws IOException {
-    super(new KSQLRestClient(serverAddress));
+  public RemoteCli(
+      String serverAddress,
+      Long streamedQueryRowLimit,
+      Long streamedQueryTimeoutMs,
+      OutputFormat outputFormat
+  ) throws IOException {
+    super(new KSQLRestClient(serverAddress), streamedQueryRowLimit, streamedQueryTimeoutMs, outputFormat);
 
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override

@@ -18,6 +18,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.TopicUtil;
 import io.confluent.ksql.util.KSQLException;
@@ -280,7 +281,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
-        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.SUCCESS, successMessage));
+        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.RUNNING, successMessage));
       }
 
     } else {

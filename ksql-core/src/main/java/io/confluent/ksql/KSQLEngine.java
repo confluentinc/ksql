@@ -231,7 +231,8 @@ public class KSQLEngine implements Closeable {
     // TODO: Validate consumer and producer properties as well
   }
 
-  public void setStreamsProperty(String property, Object value) {
+  public Object setStreamsProperty(String property, Object value) {
+    Object oldValue = ksqlConfig.get(property);
     if (!isValidStreamsProperty(property)) {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
@@ -239,12 +240,14 @@ public class KSQLEngine implements Closeable {
     Map<String, Object> newProperties = ksqlConfig.getKsqlConfigProps();
     newProperties.put(property, value);
 
+
     try {
       validateStreamsProperties(newProperties);
     } catch (ConfigException configException) {
       throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'", property, value));
     }
     ksqlConfig.put(property, value);
+    return oldValue;
   }
 
   public Map<String, Object> getStreamsProperties() {

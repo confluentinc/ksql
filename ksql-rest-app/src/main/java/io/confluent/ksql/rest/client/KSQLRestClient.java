@@ -3,22 +3,27 @@
  **/
 package io.confluent.ksql.rest.client;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonStructure;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.entity.KSQLEntityList;
+import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
-
 
 public class KSQLRestClient implements Closeable, AutoCloseable {
 
@@ -27,8 +32,11 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
   private String serverAddress;
 
   public KSQLRestClient(String serverAddress) {
-    this.client = ClientBuilder.newClient();
     this.serverAddress = serverAddress;
+
+    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
   public String getServerAddress() {
@@ -39,22 +47,53 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public JsonStructure makeKSQLRequest(String ksql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
-    return parseJsonResponse(makePostRequest("ksql", requestData));
+  public RestResponse<KSQLEntityList> makeKSQLRequest(String ksql) {
+    KSQLRequest jsonRequest = new KSQLRequest(ksql);
+    Response response = makePostRequest("ksql", jsonRequest);
+    KSQLEntityList result = response.readEntity(KSQLEntityList.class);
+    response.close();
+    return RestResponse.successful(result);
   }
 
-  public JsonStructure makeStatusRequest() {
-    return parseJsonResponse(makeGetRequest("status"));
+  public RestResponse<CommandStatuses> makeStatusRequest() {
+    Response response = makeGetRequest("status");
+    CommandStatuses result = response.readEntity(CommandStatuses.class);
+    response.close();
+    return RestResponse.successful(result);
   }
 
-  public JsonStructure makeStatusRequest(String statementId) {
-    return parseJsonResponse(makeGetRequest(String.format("status/%s", statementId)));
+  public RestResponse<CommandStatus> makeStatusRequest(String commandId) {
+    RestResponse<CommandStatus> result;
+    Response response = makeGetRequest(String.format("status/%s", commandId));
+    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+      result = RestResponse.successful(response.readEntity(CommandStatus.class));
+    } else {
+      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+    }
+    response.close();
+    return result;
   }
 
-  public QueryStream makeQueryRequest(String ksql) {
-    JsonObject requestData = Json.createObjectBuilder().add("ksql", ksql).build();
-    return new QueryStream(makePostRequest("query", requestData));
+  public RestResponse<QueryStream> makeQueryRequest(String ksql) {
+    KSQLRequest jsonRequest = new KSQLRequest(ksql);
+    Response response = makePostRequest("query", jsonRequest);
+    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+      return RestResponse.successful(new QueryStream(response));
+    } else {
+      return RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+    }
+  }
+
+  public RestResponse<InputStream> makePrintTopicRequest(String ksql) {
+    RestResponse<InputStream> result;
+    KSQLRequest jsonRequest = new KSQLRequest(ksql);
+    Response response = makePostRequest("query", jsonRequest);
+    if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+      result = RestResponse.successful((InputStream) response.getEntity());
+    } else {
+      result = RestResponse.erroneous(response.readEntity(ErrorMessage.class));
+    }
+    return result;
   }
 
   @Override
@@ -62,32 +101,31 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     client.close();
   }
 
-  private Response makePostRequest(String path, JsonValue data) {
-    return client.target(serverAddress).path(path)
-            .request(MediaType.APPLICATION_JSON_TYPE)
-            .post(Entity.json(data.toString()));
+  private Response makePostRequest(String path, Object jsonEntity) {
+    return client.target(serverAddress)
+        .path(path)
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .post(Entity.json(jsonEntity));
   }
 
   private Response makeGetRequest(String path) {
     return client.target(serverAddress).path(path)
-            .request(MediaType.APPLICATION_JSON_TYPE)
-            .get();
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .get();
   }
 
-  private JsonStructure parseJsonResponse(Response response) {
-    return Json.createReader((InputStream) response.getEntity()).read();
-  }
-
-  public static class QueryStream implements Closeable, AutoCloseable, Iterator<JsonStructure> {
+  public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
     private final Response response;
+    private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
 
-    private JsonStructure bufferedRow;
+    private StreamedRow bufferedRow;
     private boolean closed;
 
     public QueryStream(Response response) {
       this.response = response;
 
+      this.objectMapper = new ObjectMapper();
       this.responseScanner = new Scanner((InputStream) response.getEntity());
 
       this.bufferedRow = null;
@@ -107,8 +145,12 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
       while (responseScanner.hasNextLine()) {
         String responseLine = responseScanner.nextLine().trim();
         if (!responseLine.isEmpty()) {
-          InputStream responseLineInputStream = new ByteArrayInputStream(responseLine.getBytes());
-          bufferedRow = Json.createReader(responseLineInputStream).read();
+          try {
+            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+          } catch (IOException exception) {
+            // TODO: Should the exception be handled somehow else? Swallowing it silently seems like a bad idea...
+            throw new RuntimeException(exception);
+          }
           return true;
         }
       }
@@ -117,7 +159,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
     }
 
     @Override
-    public JsonStructure next() {
+    public StreamedRow next() {
       if (closed) {
         throw new IllegalStateException("Cannot call next() once closed");
       }
@@ -126,7 +168,7 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
         throw new NoSuchElementException();
       }
 
-      JsonStructure result = bufferedRow;
+      StreamedRow result = bufferedRow;
       bufferedRow = null;
       return result;
     }
@@ -142,5 +184,4 @@ public class KSQLRestClient implements Closeable, AutoCloseable {
       response.close();
     }
   }
-
 }

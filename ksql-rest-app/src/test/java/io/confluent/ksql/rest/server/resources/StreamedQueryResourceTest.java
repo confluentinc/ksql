@@ -1,9 +1,12 @@
 package io.confluent.ksql.rest.server.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -19,6 +22,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,6 +33,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertTrue;
 
 public class StreamedQueryResourceTest {
 
@@ -42,6 +47,8 @@ public class StreamedQueryResourceTest {
 
     final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
 
+    final LinkedList<GenericRow> writtenRows = new LinkedList<>();
+
     final Thread rowQueuePopulatorThread = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -49,13 +56,16 @@ public class StreamedQueryResourceTest {
           for (int i = 0; ; i++) {
             String key = Integer.toString(i);
             GenericRow value = new GenericRow(Collections.singletonList(i));
+            synchronized (writtenRows) {
+              writtenRows.add(value);
+            }
             rowQueue.put(new KeyValue<>(key, value));
           }
         } catch (InterruptedException exception) {
           // This should happen during the test, so it's fine
         }
       }
-    });
+    }, "Row Queue Populator");
     rowQueuePopulatorThread.setUncaughtExceptionHandler(threadExceptionHandler);
     rowQueuePopulatorThread.start();
 
@@ -86,7 +96,7 @@ public class StreamedQueryResourceTest {
 
     StreamedQueryResource testResource = new StreamedQueryResource(mockKSQLEngine, mockStatementParser, 1000);
 
-    Response response = testResource.streamQuery(KSQLResourceTest.createJsonRequest(queryString));
+    Response response = testResource.streamQuery(new KSQLRequest(queryString));
     PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     StreamingOutput responseStream = (StreamingOutput) response.getEntity();
@@ -96,22 +106,32 @@ public class StreamedQueryResourceTest {
       public void run() {
         try {
           responseStream.write(responseOutputStream);
+        } catch (EOFException exception) {
+          // It's fine
         } catch (IOException exception) {
-          exception.printStackTrace();
+          throw new RuntimeException(exception);
         }
       }
-    });
+    }, "Query Writer");
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
     queryWriterThread.start();
 
-    // Here we just scan the response and make sure that there's at least five non-empty lines in it
-    // Could actually verify its contents, but that would involve parsing JSON and would be fragile if the format ever
-    // changed in the future
     Scanner responseScanner = new Scanner(responseInputStream);
+    ObjectMapper objectMapper = new ObjectMapper();
     for (int i = 0; i < 5; i++) {
+      if (!responseScanner.hasNextLine()) {
+        throw new Exception("Response input stream failed to have expected line available");
+      }
       String responseLine = responseScanner.nextLine();
       if (responseLine.trim().isEmpty()) {
         i--;
+      } else {
+        GenericRow expectedRow;
+        synchronized (writtenRows) {
+          expectedRow = writtenRows.poll();
+        }
+        GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
+        assertTrue(expectedRow.hasTheSameContent(testRow));
       }
     }
 
@@ -158,19 +178,37 @@ public class StreamedQueryResourceTest {
     @Override
     public void flush() throws IOException {
       throwIfClosed();
-      super.flush();
+      try {
+        super.flush();
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.flush();
+        throwIfClosed();
+        throw exception;
+      }
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
       throwIfClosed();
-      super.write(b, off, len);
+      try {
+        super.write(b, off, len);
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.write();
+        throwIfClosed();
+        throw exception;
+      }
     }
 
     @Override
     public void write(int b) throws IOException {
       throwIfClosed();
-      super.write(b);
+      try {
+        super.write(b);
+      } catch (IOException exception) {
+        // Might have been closed during the call to super.write();
+        throwIfClosed();
+        throw exception;
+      }
     }
   }
 }

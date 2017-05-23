@@ -211,7 +211,7 @@ public class QueryEngine {
               new KSQLTable(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getTheSourceNode().getTimestampField(),
+                  kafkaTopicOutputNode.getTimestampField(),
                   kafkaTopicOutputNode.getKsqlTopic(), kafkaTopicOutputNode.getId()
                   .toString() + "_statestore",
                   schemaKTable.isWindowed());
@@ -220,7 +220,7 @@ public class QueryEngine {
               new KSQLStream(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getTheSourceNode().getTimestampField(),
+                  kafkaTopicOutputNode.getTimestampField(),
                   kafkaTopicOutputNode.getKsqlTopic());
         }
 

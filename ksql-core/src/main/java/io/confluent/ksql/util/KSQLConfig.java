@@ -14,6 +14,7 @@ import java.util.Map;
 public class KSQLConfig extends AbstractConfig {
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
+  public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String DEFAULT_SINK_NUMBER_OF_PARTITIONS = "ksql.sink.partitions.default";

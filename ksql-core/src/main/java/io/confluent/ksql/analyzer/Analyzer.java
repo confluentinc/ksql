@@ -302,6 +302,20 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
         analysis.getIntoProperties().put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
       }
+
+      if (node.getProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+        String
+            intoTimestampColumnName =
+            node.getProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+        if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
+          throw new KSQLException(
+              intoTimestampColumnName + " value is string and should be enclosed between " + "\"'\".");
+        }
+        intoTimestampColumnName = intoTimestampColumnName.substring(1, intoTimestampColumnName.length() - 1);
+        analysis.getIntoProperties().put(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME,
+                                         intoTimestampColumnName);
+      }
+
       if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
         try {
           int numberOfPartitions = Integer.parseInt(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
@@ -321,6 +335,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
               .getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
         }
       }
+
+
 
     } else {
       throw new KSQLException("INTO clause is not set correctly!");

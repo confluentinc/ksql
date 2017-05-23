@@ -118,6 +118,7 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNode.getId(),
               ksqlStructuredDataOutputNode.getSource(),
               SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
+              ksqlStructuredDataOutputNode.getTimestampField(),
               ksqlStructuredDataOutputNode.getKsqlTopic(),
               ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
@@ -152,6 +153,7 @@ public class PhysicalPlanBuilder {
           ksqlStructuredDataOutputNodeNoRowKey.getId(),
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
           SchemaUtil.addImplicitRowTimeRowKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
+          ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
           ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
           ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
           ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties()
@@ -465,7 +467,7 @@ public class PhysicalPlanBuilder {
 
     KSQLStructuredDataOutputNode newKSQLStructuredDataOutputNode = new KSQLStructuredDataOutputNode(
         ksqlStructuredDataOutputNode.getId(), ksqlStructuredDataOutputNode.getSource(),
-        ksqlStructuredDataOutputNode.getSchema(), newKSQLTopic,
+        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(), newKSQLTopic,
         ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
     return newKSQLStructuredDataOutputNode;
   }

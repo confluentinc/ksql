@@ -81,11 +81,12 @@ public class SourceDescription extends KSQLEntity {
     return Objects.equals(getName(), that.getName()) &&
         Objects.equals(getSchema(), that.getSchema()) &&
         getType() == that.getType() &&
-        Objects.equals(getKey(), that.getKey());
+        Objects.equals(getKey(), that.getKey()) &&
+        Objects.equals(getTimestamp(), that.getTimestamp());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey());
+    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
   }
 }

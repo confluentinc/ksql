@@ -183,16 +183,10 @@ public class KSQLResource {
   }
 
   private SourceDescription describe(String statementText, String name) throws Exception {
-    JsonObjectBuilder result = Json.createObjectBuilder();
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
     }
-    result.add("key", (dataSource.getKeyField() != null) ? dataSource.getKeyField().name() :
-                      "null");
-    result.add("timestamp", (dataSource.getTimestampField() != null) ? dataSource.getTimestampField().name() :
-                      "null");
-    result.add("type", dataSource.getDataSourceType().toString());
     JsonObjectBuilder fields = Json.createObjectBuilder();
     for (Field schemaField : dataSource.getSchema().fields()) {
       String fieldName = schemaField.name();

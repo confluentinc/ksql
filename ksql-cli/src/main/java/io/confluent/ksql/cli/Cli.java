@@ -13,6 +13,7 @@ import io.confluent.ksql.rest.client.KSQLRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandIdEntity;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -642,6 +643,16 @@ public class Cli implements Closeable, AutoCloseable {
       CommandId commandId = ((CommandIdEntity) ksqlEntity).getCommandId();
       columnHeaders = Collections.singletonList("Command ID");
       rowValues = Collections.singletonList(Collections.singletonList(commandId.toString()));
+    } else if (ksqlEntity instanceof CommandStatusEntity) {
+      CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
+      columnHeaders = Arrays.asList("Command ID", "Status", "Message");
+      CommandId commandId = commandStatusEntity.getCommandId();
+      CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
+      rowValues = Collections.singletonList(Arrays.asList(
+          commandId.toString(),
+          commandStatus.getStatus().name(),
+          commandStatus.getMessage().split("\n", 2)[0]
+      ));
     } else if (ksqlEntity instanceof ErrorMessageEntity) {
       ErrorMessage errorMessage = ((ErrorMessageEntity) ksqlEntity).getErrorMessage();
       printErrorMessage(errorMessage);

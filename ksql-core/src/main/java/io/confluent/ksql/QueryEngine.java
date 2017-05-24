@@ -110,16 +110,20 @@ public class QueryEngine {
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KSQLStructuredDataOutputNode) {
         KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode) logicalPlan;
+
         StructuredDataSource
             structuredDataSource =
             new KSQLStream(ksqlStructuredDataOutputNode.getId().toString(),
                           ksqlStructuredDataOutputNode.getSchema(),
                           ksqlStructuredDataOutputNode.getKeyField(),
-                          ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField(),
+                          (ksqlStructuredDataOutputNode.getTimestampField() == null) ?
+                          ksqlStructuredDataOutputNode
+                               .getTheSourceNode().getTimestampField() :
+                           ksqlStructuredDataOutputNode.getTimestampField(),
                           ksqlStructuredDataOutputNode.getKsqlTopic());
 
         tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-        tempMetaStore.putSource(structuredDataSource);
+        tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
       }
 
       logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
@@ -214,7 +218,7 @@ public class QueryEngine {
                   kafkaTopicOutputNode.getKsqlTopic());
         }
 
-        metaStore.putSource(sinkDataSource);
+        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
       } else {
         throw new KSQLException("Sink data source is not correct.");
       }
@@ -226,7 +230,6 @@ public class QueryEngine {
   public StructuredDataSource getResultDatasource(final Select select, final String name) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
-
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
@@ -236,7 +239,7 @@ public class QueryEngine {
     }
 
     KSQLTopic ksqlTopic = new KSQLTopic(name, name, null);
-    return new KSQLStream(name, dataSource.schema(), dataSource.fields().get(0), null, ksqlTopic);
+    return new KSQLStream(name, dataSource.schema(), null, null, ksqlTopic);
   }
 
   private KafkaStreams buildStreams(final KStreamBuilder builder, final String applicationId,

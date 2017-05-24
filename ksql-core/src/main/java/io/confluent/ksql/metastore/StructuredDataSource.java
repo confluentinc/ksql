@@ -67,4 +67,6 @@ public abstract class StructuredDataSource implements DataSource {
   public Field getTimestampField() {
     return timestampField;
   }
+
+  public abstract StructuredDataSource cloneWithTimeKeyColumns();
 }

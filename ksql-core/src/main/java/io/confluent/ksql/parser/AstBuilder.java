@@ -108,6 +108,7 @@ import io.confluent.ksql.parser.tree.With;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KSQLException;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -1517,7 +1518,6 @@ public class AstBuilder
   private StructuredDataSource getResultDatasource(Select select, Table into) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(into.toString());
-
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
@@ -1525,8 +1525,6 @@ public class AstBuilder
         String fieldType = null;
         dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
       }
-
-
     }
 
     KSQLTopic ksqlTopic = new KSQLTopic(into.getName().toString(), into.getName().toString(),

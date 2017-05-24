@@ -34,4 +34,11 @@ public class KSQLSTDOUT extends StructuredDataSource {
   public DataSourceType getDataSourceType() {
     return null;
   }
+
+  @Override
+  public StructuredDataSource cloneWithTimeKeyColumns() {
+    return this;
+  }
+
+
 }

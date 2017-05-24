@@ -91,7 +91,7 @@ public class KSQLEngine implements Closeable {
         tempMetaStore.putSource(queryEngine.getResultDatasource(
             querySpecification.getSelect(),
             createStreamAsSelect.getName().getSuffix()
-        ));
+        ).cloneWithTimeKeyColumns());
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
@@ -107,7 +107,7 @@ public class KSQLEngine implements Closeable {
         tempMetaStore.putSource(queryEngine.getResultDatasource(
             querySpecification.getSelect(),
             createTableAsSelect.getName().getSuffix()
-        ));
+        ).cloneWithTimeKeyColumns());
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTopic) {
         KSQLTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);

@@ -7,6 +7,8 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import io.confluent.ksql.util.SchemaUtil;
+
 public class KSQLTable extends StructuredDataSource {
 
   final String stateStoreName;
@@ -26,5 +28,12 @@ public class KSQLTable extends StructuredDataSource {
 
   public boolean isWinidowed() {
     return isWinidowed;
+  }
+
+  @Override
+  public StructuredDataSource cloneWithTimeKeyColumns() {
+    Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    return new KSQLTable(dataSourceName, newSchema, keyField, timestampField, ksqlTopic,
+                         stateStoreName, isWinidowed);
   }
 }

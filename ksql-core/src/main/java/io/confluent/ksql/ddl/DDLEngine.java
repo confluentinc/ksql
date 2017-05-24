@@ -133,8 +133,6 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
-    streamSchema.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
-    streamSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
           .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
@@ -186,7 +184,7 @@ public class DDLEngine {
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putSource(ksqlStream);
+    ksqlEngine.getMetaStore().putSource(ksqlStream.cloneWithTimeKeyColumns());
     return ksqlStream;
   }
 
@@ -207,8 +205,6 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    tableSchema.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
-    tableSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
           .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
@@ -281,7 +277,7 @@ public class DDLEngine {
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putSource(ksqlTable);
+    ksqlEngine.getMetaStore().putSource(ksqlTable.cloneWithTimeKeyColumns());
     return ksqlTable;
   }
 

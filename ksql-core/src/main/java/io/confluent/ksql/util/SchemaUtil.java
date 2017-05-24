@@ -147,7 +147,10 @@ public class SchemaUtil {
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (Field field: schema.fields()) {
-      schemaBuilder.field(field.name(), field.schema());
+      if (!field.name().equals(SchemaUtil.ROWKEY_NAME) && !field.name().equals(SchemaUtil
+                                                                                   .ROWTIME_NAME)) {
+        schemaBuilder.field(field.name(), field.schema());
+      }
     }
     return schemaBuilder.build();
   }

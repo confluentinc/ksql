@@ -406,7 +406,7 @@ public class StatementExecutor {
         throws InterruptedException, TimeoutException {
       long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
       synchronized (result) {
-        while (result.get() == null) {
+        while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
           result.wait(Math.max(1, endTimeMs - System.currentTimeMillis()));
         }
         if (result.get() == null) {

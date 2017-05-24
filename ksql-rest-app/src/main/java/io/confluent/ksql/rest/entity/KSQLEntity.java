@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     include = JsonTypeInfo.As.WRAPPER_OBJECT
 )
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = CommandIdEntity.class, name = "commandId"),
     @JsonSubTypes.Type(value = CommandStatusEntity.class, name = "currentStatus"),
     @JsonSubTypes.Type(value = ErrorMessageEntity.class, name = "error"),
     @JsonSubTypes.Type(value = PropertiesList.class, name = "properties"),

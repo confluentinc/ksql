@@ -11,7 +11,6 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KSQLRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.CommandIdEntity;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -639,11 +638,7 @@ public class Cli implements Closeable, AutoCloseable {
   private void printAsTable(KSQLEntity ksqlEntity) {
     List<String> columnHeaders;
     List<List<String>> rowValues;
-    if (ksqlEntity instanceof CommandIdEntity) {
-      CommandId commandId = ((CommandIdEntity) ksqlEntity).getCommandId();
-      columnHeaders = Collections.singletonList("Command ID");
-      rowValues = Collections.singletonList(Collections.singletonList(commandId.toString()));
-    } else if (ksqlEntity instanceof CommandStatusEntity) {
+    if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
       columnHeaders = Arrays.asList("Command ID", "Status", "Message");
       CommandId commandId = commandStatusEntity.getCommandId();

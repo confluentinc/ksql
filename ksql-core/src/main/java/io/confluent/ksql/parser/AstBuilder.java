@@ -747,7 +747,12 @@ public class AstBuilder
 
   @Override
   public Node visitTableName(SqlBaseParser.TableNameContext context) {
-    return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+
+    Table table = new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+    if (context.tableProperties() != null) {
+      table.setProperties(processTableProperties(context.tableProperties()));
+    }
+    return table;
   }
 
   @Override

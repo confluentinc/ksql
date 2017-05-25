@@ -36,4 +36,11 @@ public class KSQLTable extends StructuredDataSource {
     return new KSQLTable(dataSourceName, newSchema, keyField, timestampField, ksqlTopic,
                          stateStoreName, isWinidowed);
   }
+
+  @Override
+  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+    Field newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
+    return new KSQLTable(dataSourceName, schema, keyField, newTimestampField, ksqlTopic,
+                         stateStoreName, isWinidowed);
+  }
 }

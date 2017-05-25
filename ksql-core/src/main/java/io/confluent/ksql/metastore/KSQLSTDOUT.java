@@ -40,5 +40,8 @@ public class KSQLSTDOUT extends StructuredDataSource {
     return this;
   }
 
-
+  @Override
+  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+    return this;
+  };
 }

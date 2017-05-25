@@ -22,4 +22,12 @@ public class KSQLStream extends StructuredDataSource {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KSQLStream(dataSourceName, newSchema, keyField, timestampField, ksqlTopic);
   }
+
+  @Override
+  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+    Field newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
+    return new KSQLStream(dataSourceName, schema, keyField, newTimestampField, ksqlTopic);
+  }
+
+
 }

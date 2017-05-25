@@ -170,9 +170,34 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (leftDataSource == null) {
       throw new KSQLException(format("Resource %s does not exist.", leftSideName));
     }
+    if (((Table) left.getRelation()).getProperties() != null) {
+      if (((Table) left.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+        String timestampFieldName = (((Table) left.getRelation())).getProperties().get(DDLConfig
+                                                                                           .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
+          throw new KSQLException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        leftDataSource = leftDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KSQLException(format("Resource %s does not exist.", rightSideName));
+    }
+
+    if (((Table) right.getRelation()).getProperties() != null) {
+      if (((Table) right.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) !=
+          null) {
+        String timestampFieldName = (((Table) right.getRelation())).getProperties().get(DDLConfig
+                                                                                            .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
+          throw new KSQLException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        rightDataSource = rightDataSource.cloneWithTimeField(timestampFieldName);
+      }
     }
 
     StructuredDataSourceNode
@@ -244,10 +269,25 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null) {
       throw new KSQLException(structuredDataSourceName + " does not exist.");
     }
+
+    StructuredDataSource structuredDataSource = metaStore.getSource(structuredDataSourceName);
+
+    if (((Table) node.getRelation()).getProperties() != null) {
+      if (((Table) node.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+        String timestampFieldName = ((Table) node.getRelation()).getProperties().get(DDLConfig
+                                                                                         .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
+          throw new KSQLException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+
     Pair<StructuredDataSource, String>
         fromDataSource =
         new Pair<>(
-            metaStore.getSource(structuredDataSourceName),
+            structuredDataSource,
             node.getAlias());
     analysis.getFromDataSources().add(fromDataSource);
     return node;

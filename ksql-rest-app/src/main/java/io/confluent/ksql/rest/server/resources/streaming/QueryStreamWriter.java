@@ -8,7 +8,6 @@ import io.confluent.ksql.KSQLEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import org.eclipse.jetty.io.EofException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

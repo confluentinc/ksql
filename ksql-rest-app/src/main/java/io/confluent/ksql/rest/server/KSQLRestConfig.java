@@ -35,6 +35,13 @@ public class KSQLRestConfig extends RestConfig {
       + "determine if the connection has been terminated in order to avoid keeping the created streams job alive "
       + "longer than necessary";
 
+  public static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG = "command.response.timeout.ms";
+  public static final ConfigDef.Type DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE = ConfigDef.Type.LONG;
+  public static final Long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 1000L;
+  public static final ConfigDef.Importance DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE = ConfigDef.Importance.LOW;
+  public static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
+      "How long to wait for a distributed command to be executed by the local node before returning a response";
+
   private static final String APPLICATION_ID_CONFIG = StreamsConfig.APPLICATION_ID_CONFIG;
   private static final ConfigDef.Type APPLICATION_ID_TYPE = ConfigDef.Type.STRING;
   private static final String APPLICATION_ID_DEFAULT = "";
@@ -56,6 +63,12 @@ public class KSQLRestConfig extends RestConfig {
         STREAMED_QUERY_DISCONNECT_CHECK_MS_DEFAULT,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_IMPORTANCE,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC
+    ).define(
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
     ).define(
         APPLICATION_ID_CONFIG,
         APPLICATION_ID_TYPE,

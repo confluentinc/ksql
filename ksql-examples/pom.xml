@@ -28,7 +28,7 @@
 
         <dependency>
             <groupId>io.confluent.avro</groupId>
-            <artifactId>random-generator</artifactId>
+            <artifactId>avro-random-generator</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
 

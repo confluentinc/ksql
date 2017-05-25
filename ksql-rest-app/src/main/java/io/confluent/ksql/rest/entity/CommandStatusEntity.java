@@ -48,9 +48,7 @@ public class CommandStatusEntity extends KSQLEntity {
   }
 
   @JsonCreator
-  public CommandStatusEntity(
-      Map<String, Object> properties
-  ) {
+  public CommandStatusEntity(Map<String, Object> properties) {
     this(
         (String) properties.get("statementText"),
         (String) properties.get("commandId"),

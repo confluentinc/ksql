@@ -23,7 +23,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLRequest;
-import io.confluent.ksql.rest.entity.RunningQueries;
+import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -276,13 +276,13 @@ public class KSQLResourceTest {
     );
     final Map<Long, PersistentQueryMetadata> mockQueries = Collections.singletonMap(mockQueryId, mockQuery);
 
-    final RunningQueries.RunningQuery expectedRunningQuery =
-        new RunningQueries.RunningQuery(mockQueryStatement, mockKafkaTopic, mockQueryId);
+    final Queries.RunningQuery expectedRunningQuery =
+        new Queries.RunningQuery(mockQueryStatement, mockKafkaTopic, mockQueryId);
 
     expect(testResource.ksqlEngine.getPersistentQueries()).andReturn(mockQueries);
 
-    RunningQueries runningQueries = makeSingleRequest(testResource, ksqlString, ksqlStatement, RunningQueries.class);
-    List<RunningQueries.RunningQuery> testQueries = runningQueries.getRunningQueries();
+    Queries queries = makeSingleRequest(testResource, ksqlString, ksqlStatement, Queries.class);
+    List<Queries.RunningQuery> testQueries = queries.getQueries();
 
     assertEquals(1, testQueries.size());
     assertEquals(expectedRunningQuery, testQueries.get(0));

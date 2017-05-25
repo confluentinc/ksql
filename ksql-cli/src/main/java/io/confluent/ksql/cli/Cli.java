@@ -19,7 +19,7 @@ import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
-import io.confluent.ksql.rest.entity.RunningQueries;
+import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.SetProperty;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -658,8 +658,8 @@ public class Cli implements Closeable, AutoCloseable {
       rowValues = properties.entrySet().stream()
           .map(propertyEntry -> Arrays.asList(propertyEntry.getKey(), Objects.toString(propertyEntry.getValue())))
           .collect(Collectors.toList());
-    } else if (ksqlEntity instanceof RunningQueries) {
-      List<RunningQueries.RunningQuery> runningQueries = ((RunningQueries) ksqlEntity).getRunningQueries();
+    } else if (ksqlEntity instanceof Queries) {
+      List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
       columnHeaders = Arrays.asList("ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(

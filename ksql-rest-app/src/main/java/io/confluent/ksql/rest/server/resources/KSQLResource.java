@@ -24,7 +24,8 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
-import io.confluent.ksql.rest.entity.CommandIdEntity;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
@@ -52,6 +53,8 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Path("/ksql")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -63,15 +66,18 @@ public class KSQLResource {
   private final KSQLEngine ksqlEngine;
   private final CommandStore commandStore;
   private final StatementExecutor statementExecutor;
+  private final long distributedCommandResponseTimeout;
 
   public KSQLResource(
       KSQLEngine ksqlEngine,
       CommandStore commandStore,
-      StatementExecutor statementExecutor
+      StatementExecutor statementExecutor,
+      long distributedCommandResponseTimeout
   ) {
     this.ksqlEngine = ksqlEngine;
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
+    this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
   }
 
   @POST
@@ -138,8 +144,14 @@ public class KSQLResource {
             || statement instanceof TerminateQuery
     ) {
       CommandId commandId = commandStore.distributeStatement(statementText, statement);
-      statementExecutor.registerQueuedStatement(commandId);
-      return new CommandIdEntity(statementText, commandId);
+      CommandStatus commandStatus;
+      try {
+        commandStatus = statementExecutor.registerQueuedStatement(commandId)
+            .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
+      } catch (TimeoutException exception) {
+        commandStatus = statementExecutor.getStatus(commandId).get();
+      }
+      return new CommandStatusEntity(statementText, commandId, commandStatus);
     } else {
       if (statement != null) {
         throw new Exception(String.format(

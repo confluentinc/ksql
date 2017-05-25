@@ -11,8 +11,8 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KSQLRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.CommandIdEntity;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -638,10 +638,16 @@ public class Cli implements Closeable, AutoCloseable {
   private void printAsTable(KSQLEntity ksqlEntity) {
     List<String> columnHeaders;
     List<List<String>> rowValues;
-    if (ksqlEntity instanceof CommandIdEntity) {
-      CommandId commandId = ((CommandIdEntity) ksqlEntity).getCommandId();
-      columnHeaders = Collections.singletonList("Command ID");
-      rowValues = Collections.singletonList(Collections.singletonList(commandId.toString()));
+    if (ksqlEntity instanceof CommandStatusEntity) {
+      CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
+      columnHeaders = Arrays.asList("Command ID", "Status", "Message");
+      CommandId commandId = commandStatusEntity.getCommandId();
+      CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
+      rowValues = Collections.singletonList(Arrays.asList(
+          commandId.toString(),
+          commandStatus.getStatus().name(),
+          commandStatus.getMessage().split("\n", 2)[0]
+      ));
     } else if (ksqlEntity instanceof ErrorMessageEntity) {
       ErrorMessage errorMessage = ((ErrorMessageEntity) ksqlEntity).getErrorMessage();
       printErrorMessage(errorMessage);
@@ -707,7 +713,7 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void printAsTable(GenericRow row) {
     terminal.writer().println(
-        String.join(" | ", row.columns.stream().map(Object::toString).collect(Collectors.toList()))
+        String.join(" | ", row.columns.stream().map(Objects::toString).collect(Collectors.toList()))
     );
     terminal.writer().flush();
   }

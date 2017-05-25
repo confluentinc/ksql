@@ -174,7 +174,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (((Table) left.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
         String timestampFieldName = (((Table) left.getRelation())).getProperties().get(DDLConfig
                                                                                            .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
+        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
           throw new KSQLException("Property name should be String with single qoute.");
         }
         timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
@@ -192,8 +192,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           null) {
         String timestampFieldName = (((Table) right.getRelation())).getProperties().get(DDLConfig
                                                                                             .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
-          throw new KSQLException("Property name should be String with single qoute.");
+        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
+          throw new KSQLException("Property name should be String with single quote.");
         }
         timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
         rightDataSource = rightDataSource.cloneWithTimeField(timestampFieldName);

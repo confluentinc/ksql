@@ -40,10 +40,15 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.apache.kafka.connect.data.Field;
 import org.slf4j.LoggerFactory;
 
+import javax.json.Json;
+import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -192,7 +197,7 @@ public class KSQLResource {
   private SourceDescription describe(String statementText, String name) throws Exception {
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new Exception(String.format("Could not find '%s' in the metastore", name));
+      throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
     }
     return new SourceDescription(statementText, dataSource);
   }

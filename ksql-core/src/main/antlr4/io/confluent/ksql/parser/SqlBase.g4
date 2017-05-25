@@ -210,7 +210,8 @@ columnAliases
     ;
 
 relationPrimary
-    : qualifiedName                                                   #tableName
+    :
+    qualifiedName (WITH tableProperties)?                             #tableName
     | '(' query ')'                                                   #subqueryRelation
     | UNNEST '(' expression (',' expression)* ')' (WITH ORDINALITY)?  #unnest
     | '(' relation ')'                                                #parenthesizedRelation

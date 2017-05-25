@@ -8,6 +8,7 @@ import io.confluent.ksql.serde.json.KSQLJsonPOJODeserializer;
 import io.confluent.ksql.serde.json.KSQLJsonPOJOSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -36,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -43,9 +45,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * Created by hojjat on 5/3/17.
- */
 public class JSONFormatTest {
 
   MetaStore metaStore;
@@ -108,7 +107,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, inputData.size());
 
     Assert.assertEquals(inputData.size(), results.size());
@@ -131,7 +130,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("ITEM_1", 10.0, new
@@ -181,6 +180,76 @@ public class JSONFormatTest {
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
+  @Test
+  public void testSelectProjectKeyTimestamp() throws Exception {
+    final String streamName = "STARTSTREAM";
+    final String queryString =
+        String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME AS RTIME, ITEMID "
+                      + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';", streamName,
+                      inputStream);
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList("8", inputRecordsMetadata.get("8")
+        .timestamp(), "ITEM_8")));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+  @Test
+  public void testTimestampColumnSelection() throws Exception {
+    final String stream1Name = "ORIGINALSTREAM";
+    final String stream2Name = "TIMESTAMPSTREAM";
+    final String query1String =
+        String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
+                      + "ROWTIME+10000 AS "
+                      + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+                      + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
+                      + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
+                      + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                      + "FROM %s ;", stream1Name,
+                      inputStream, stream2Name, stream1Name);
+
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(true, query1String);
+
+    PersistentQueryMetadata query1Metadata = (PersistentQueryMetadata) queryMetadataList.get(0);
+    PersistentQueryMetadata query2Metadata = (PersistentQueryMetadata) queryMetadataList.get(1);
+
+    query1Metadata.getKafkaStreams().start();
+    query2Metadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(stream2Name).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList("8", inputRecordsMetadata.get("8")
+        .timestamp() + 10000, "8", inputRecordsMetadata.get("8").timestamp() + 10000,
+                                                          inputRecordsMetadata.get("8").timestamp
+                                                              () + 100, "ORDER_6", "ITEM_8")));
+
+    Map<String, GenericRow> results1 = readNormalResults(stream1Name, resultSchema,
+                                                        expectedResults.size());
+
+    Map<String, GenericRow> results = readNormalResults(stream2Name, resultSchema,
+                                                        expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(query1Metadata.getId(), true);
+    ksqlEngine.terminateQuery(query2Metadata.getId(), true);
+  }
 
   @Test
   public void testSelectFilter() throws Exception {
@@ -196,7 +265,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     Map<String, Double> mapField = new HashMap<>();
@@ -239,7 +308,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -273,7 +342,7 @@ public class JSONFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -290,7 +359,7 @@ public class JSONFormatTest {
   public void testAggSelectStar() throws Exception {
 
     Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil
-        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
     final String streamName = "AGGTEST";
     final long windowSizeMilliseconds = 2000;
     final String selectColumns =
@@ -312,7 +381,7 @@ public class JSONFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     queryMetadata.getKafkaStreams().start();
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
 
     long firstItem8Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
     long secondItem8Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;

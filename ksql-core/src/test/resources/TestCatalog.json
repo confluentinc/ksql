@@ -38,6 +38,7 @@
       "type": "STREAM",
       "name": "ORDERS",
       "key": "ORDERTIME",
+      "timestamp": "null",
       "topic": "ORDERS_TOPIC",
       "fields": [
         {"name": "ORDERTIME", "type": "long"} ,
@@ -51,6 +52,7 @@
       "type": "STREAM",
       "name": "PAGEVIEW",
       "key": "VIEWTIME",
+      "timestamp": "null",
       "topic": "PAGEVIEW_TOPIC",
       "fields": [
         {"name": "VIEWTIME", "type": "long"} ,
@@ -63,6 +65,7 @@
       "type": "TABLE",
       "name": "USERS",
       "key": "USERID",
+      "timestamp": "null",
       "topic": "USERS_TOPIC",
       "statestore": "users_statestore",
       "fields": [
@@ -77,6 +80,7 @@
       "type": "STREAM",
       "name": "ORDERS_AVRO",
       "key": "ORDERTIME",
+      "timestamp": "null",
       "topic": "ORDERS_TOPIC_AVRO",
       "fields": [
         {"name": "ORDERTIME", "type": "long"} ,

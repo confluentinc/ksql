@@ -19,6 +19,7 @@ public class SourceDescription extends KSQLEntity {
   private final Schema schema;
   private final DataSource.DataSourceType type;
   private final String key;
+  private final String timestamp;
 
   @JsonCreator
   public SourceDescription(
@@ -26,13 +27,15 @@ public class SourceDescription extends KSQLEntity {
       @JsonProperty("name")          String name,
       @JsonProperty("schema")        Schema schema,
       @JsonProperty("type")          DataSource.DataSourceType type,
-      @JsonProperty("key")           String key
+      @JsonProperty("key")           String key,
+      @JsonProperty("timestamp")           String timestamp
   ) {
     super(statementText);
     this.name = name;
     this.schema = schema;
     this.type = type;
     this.key = key;
+    this.timestamp = timestamp;
   }
 
   public SourceDescription(String statementText, StructuredDataSource dataSource) {
@@ -41,7 +44,8 @@ public class SourceDescription extends KSQLEntity {
         dataSource.getName(),
         dataSource.getSchema(),
         dataSource.getDataSourceType(),
-        dataSource.getKeyField().name()
+        dataSource.getKeyField().name(),
+        (dataSource.getTimestampField() != null)? dataSource.getTimestampField().name() : null
     );
   }
 
@@ -61,6 +65,10 @@ public class SourceDescription extends KSQLEntity {
     return key;
   }
 
+  public String getTimestamp() {
+    return timestamp;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -73,11 +81,12 @@ public class SourceDescription extends KSQLEntity {
     return Objects.equals(getName(), that.getName()) &&
         Objects.equals(getSchema(), that.getSchema()) &&
         getType() == that.getType() &&
-        Objects.equals(getKey(), that.getKey());
+        Objects.equals(getKey(), that.getKey()) &&
+        Objects.equals(getTimestamp(), that.getTimestamp());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey());
+    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
   }
 }

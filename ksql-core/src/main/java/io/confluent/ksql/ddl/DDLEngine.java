@@ -133,11 +133,15 @@ public class DDLEngine {
     }
 
     SchemaBuilder streamSchema = SchemaBuilder.struct();
-    streamSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createStream.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-            + " You cannot use it as a column name.");
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
+          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
+                                + "reserved "
+                                + "token for "
+                                + "implicit "
+                                + "column."
+                                + " You cannot use them as a column name.");
       }
       streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -154,11 +158,18 @@ public class DDLEngine {
     String topicName = createStream.getProperties().get(DDLConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
     topicName = enforceString(DDLConfig.TOPIC_NAME_PROPERTY, topicName);
 
-    String keyName = "";
+    String keyColumnName = "";
     if (createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) != null) {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      keyName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
-      keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
+      keyColumnName = createStream.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      keyColumnName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyColumnName);
+    }
+
+    String timestampColumnName = "";
+    if (createStream.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+      timestampColumnName = createStream.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      timestampColumnName = enforceString(DDLConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
     }
 
     if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -167,12 +178,13 @@ public class DDLEngine {
 
     KSQLStream
         ksqlStream =
-        new KSQLStream(streamName, streamSchema, (keyName.length() == 0) ? null : streamSchema.field(keyName),
-            ksqlEngine.getMetaStore().getTopic(topicName));
+        new KSQLStream(streamName, streamSchema, (keyColumnName.length() == 0) ? null : streamSchema.field(keyColumnName),
+                       (timestampColumnName.length() == 0) ? null : streamSchema.field(timestampColumnName),
+                       ksqlEngine.getMetaStore().getTopic(topicName));
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putSource(ksqlStream);
+    ksqlEngine.getMetaStore().putSource(ksqlStream.cloneWithTimeKeyColumns());
     return ksqlStream;
   }
 
@@ -193,11 +205,16 @@ public class DDLEngine {
     }
 
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    tableSchema.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
     for (TableElement tableElement : createTable.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-            + " You cannot use it as a column name.");
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
+          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KSQLException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
+                                + "reserved "
+                                + "token for "
+                                + "implicit "
+                                + "column."
+                                + " You cannot use them as a column name.");
+
       }
       tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
     }
@@ -223,11 +240,18 @@ public class DDLEngine {
         .toString();
     stateStoreName = enforceString(DDLConfig.STATE_STORE_NAME_PROPERTY, stateStoreName);
 
-    String keyName = "";
+    String keyColumnName = "";
     if (createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY) != null) {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      keyName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
-      keyName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyName);
+      keyColumnName = createTable.getProperties().get(DDLConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      keyColumnName = enforceString(DDLConfig.KEY_NAME_PROPERTY, keyColumnName);
+    }
+
+    String timestampColumnName = "";
+    if (createTable.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
+      timestampColumnName = createTable.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      timestampColumnName = enforceString(DDLConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
     }
 
 
@@ -246,13 +270,14 @@ public class DDLEngine {
       throw new KSQLException("The corresponding topic does not exist.");
     }
 
-    KSQLTable ksqlTable = new KSQLTable(tableName, tableSchema, (keyName.length() == 0) ? null : tableSchema.field(keyName),
-        ksqlEngine.getMetaStore().getTopic(topicName),
-        stateStoreName, isWindowed);
+    KSQLTable ksqlTable = new KSQLTable(tableName, tableSchema, (keyColumnName.length() == 0) ? null : tableSchema.field(keyColumnName),
+                                        (timestampColumnName.length() == 0) ? null : tableSchema
+                                            .field(timestampColumnName), ksqlEngine.getMetaStore().getTopic(topicName),
+                                        stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
-    ksqlEngine.getMetaStore().putSource(ksqlTable);
+    ksqlEngine.getMetaStore().putSource(ksqlTable.cloneWithTimeKeyColumns());
     return ksqlTable;
   }
 

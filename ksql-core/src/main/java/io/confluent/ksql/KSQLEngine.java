@@ -91,7 +91,7 @@ public class KSQLEngine implements Closeable {
         tempMetaStore.putSource(queryEngine.getResultDatasource(
             querySpecification.getSelect(),
             createStreamAsSelect.getName().getSuffix()
-        ));
+        ).cloneWithTimeKeyColumns());
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
@@ -107,7 +107,7 @@ public class KSQLEngine implements Closeable {
         tempMetaStore.putSource(queryEngine.getResultDatasource(
             querySpecification.getSelect(),
             createTableAsSelect.getName().getSuffix()
-        ));
+        ).cloneWithTimeKeyColumns());
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTopic) {
         KSQLTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);
@@ -132,7 +132,9 @@ public class KSQLEngine implements Closeable {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId, metaStore, logicalPlans);
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId,
+                                                                        metaStore, logicalPlans,
+                                                                        ksqlConfig);
 
     for (QueryMetadata queryMetadata : runningQueries) {
 
@@ -230,26 +232,27 @@ public class KSQLEngine implements Closeable {
   }
 
   public Object setStreamsProperty(String property, Object value) {
+    Object oldValue = ksqlConfig.get(property);
     if (!isValidStreamsProperty(property)) {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
 
-    Map<String, Object> newProperties = queryEngine.getStreamsProperties();
-    Object result = newProperties.put(property, value);
+    Map<String, Object> newProperties = ksqlConfig.getKsqlConfigProps();
+    newProperties.put(property, value);
+
 
     try {
       validateStreamsProperties(newProperties);
     } catch (ConfigException configException) {
       throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'", property, value));
     }
-
-    queryEngine.setStreamsProperty(property, value);
-    return result;
+    ksqlConfig.put(property, value);
+    return oldValue;
   }
 
   public Map<String, Object> getStreamsProperties() {
     Map<String, Object> result = new HashMap<>();
-    for (Map.Entry<String, Object> propertyEntry : queryEngine.getStreamsProperties().entrySet()) {
+    for (Map.Entry<String, Object> propertyEntry : ksqlConfig.getKsqlConfigProps().entrySet()) {
       if (isValidStreamsProperty(propertyEntry.getKey())) {
         result.put(propertyEntry.getKey(), propertyEntry.getValue());
       }

@@ -16,6 +16,7 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
   final String kafkaTopicName;
   final KSQLTopic ksqlTopic;
   private final Field keyField;
+  final Field timestampField;
   final Map<String, Object> outputProperties;
 
 
@@ -23,6 +24,7 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
   public KSQLStructuredDataOutputNode(@JsonProperty("id") final PlanNodeId id,
                                       @JsonProperty("source") final PlanNode source,
                                       @JsonProperty("schema") final Schema schema,
+                                      @JsonProperty("timestamp") final Field timestampField,
                                       @JsonProperty("ksqlTopic") final KSQLTopic ksqlTopic,
                                       @JsonProperty("topicName") final String topicName,
                                       @JsonProperty("outputProperties") final Map<String, Object>
@@ -30,6 +32,7 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
     super(id, source, schema);
     this.kafkaTopicName = topicName;
     this.keyField = source.getKeyField();
+    this.timestampField = timestampField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
   }
@@ -43,6 +46,10 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
     return keyField;
   }
 
+  public Field getTimestampField() {
+    return timestampField;
+  }
+
   public KSQLTopic getKsqlTopic() {
     return ksqlTopic;
   }
@@ -50,4 +57,5 @@ public class KSQLStructuredDataOutputNode extends OutputNode {
   public Map<String, Object> getOutputProperties() {
     return outputProperties;
   }
+
 }

@@ -66,12 +66,14 @@ public class KSQLResourceTest {
     Schema schema1 = SchemaBuilder.struct().field("s1_f1", Schema.BOOLEAN_SCHEMA);
     KSQLTopic ksqlTopic1 = new KSQLTopic("ksql_topic_1", "kafka_topic_1", new KSQLJsonTopicSerDe(null));
     mockMetastore.putTopic(ksqlTopic1);
-    mockMetastore.putSource(new KSQLTable("test_table", schema1, schema1.field("s1_f1"), ksqlTopic1, "statestore", false));
+    mockMetastore.putSource(new KSQLTable("test_table", schema1, schema1.field("s1_f1"), null,
+                                          ksqlTopic1, "statestore", false));
 
     Schema schema2 = SchemaBuilder.struct().field("s2_f1", Schema.STRING_SCHEMA).field("s2_f2", Schema.INT32_SCHEMA);
     KSQLTopic ksqlTopic2 = new KSQLTopic("ksql_topic_2", "kafka_topic_2", new KSQLJsonTopicSerDe(null));
     mockMetastore.putTopic(ksqlTopic2);
-    mockMetastore.putSource(new KSQLStream("test_stream", schema2, schema2.field("s2_f2"), ksqlTopic2));
+    mockMetastore.putSource(new KSQLStream("test_stream", schema2, schema2.field("s2_f2"), null,
+                                           ksqlTopic2));
   }
 
   private static class TestKSQLResource extends KSQLResource {

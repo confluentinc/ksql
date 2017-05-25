@@ -11,9 +11,8 @@ public class KSQLSTDOUT extends StructuredDataSource {
 
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
-  public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField,
-                    final DataSourceType dataSourceType) {
-    super(datasourceName, schema, keyField, dataSourceType, null);
+  public KSQLSTDOUT(final String datasourceName, final Schema schema, final Field keyField, final Field timestampField, final DataSourceType dataSourceType) {
+    super(datasourceName, schema, keyField, timestampField, dataSourceType, null);
   }
 
   @Override
@@ -35,4 +34,14 @@ public class KSQLSTDOUT extends StructuredDataSource {
   public DataSourceType getDataSourceType() {
     return null;
   }
+
+  @Override
+  public StructuredDataSource cloneWithTimeKeyColumns() {
+    return this;
+  }
+
+  @Override
+  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
+    return this;
+  };
 }

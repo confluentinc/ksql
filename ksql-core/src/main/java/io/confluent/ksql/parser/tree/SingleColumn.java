@@ -39,15 +39,25 @@ public class SingleColumn
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
 
-    if (alias.isPresent() && alias.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-      String expressionStr = expression.toString();
-      if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
-                                                                                        .ROWKEY_NAME)) {
-        throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
-                                + " You cannot use it as an alias for a column.");
+    if (alias.isPresent()) {
+      if (alias.get().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
+        String expressionStr = expression.toString();
+        if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
+                                                                                          .ROWTIME_NAME)) {
+          throw new KSQLException(SchemaUtil.ROWTIME_NAME + " is a reserved token for implicit column."
+                                  + " You cannot use it as an alias for a column.");
+        }
       }
-
+      if (alias.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        String expressionStr = expression.toString();
+        if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
+                                                                                          .ROWKEY_NAME)) {
+          throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+                                  + " You cannot use it as an alias for a column.");
+        }
+      }
     }
+
 
     this.expression = expression;
     this.alias = alias;

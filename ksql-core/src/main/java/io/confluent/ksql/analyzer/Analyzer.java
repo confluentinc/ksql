@@ -97,7 +97,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KSQLTopic newIntoKSQLTopic = new KSQLTopic(intoKafkaTopicName,
           intoKafkaTopicName, intoTopicSerde);
       KSQLStream intoKSQLStream = new KSQLStream(intoStructuredDataSource.getName(),
-          null, null, newIntoKSQLTopic);
+                                              null, null, null, newIntoKSQLTopic);
       analysis.setInto(intoKSQLStream);
     }
 
@@ -170,26 +170,53 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (leftDataSource == null) {
       throw new KSQLException(format("Resource %s does not exist.", leftSideName));
     }
+    if (((Table) left.getRelation()).getProperties() != null) {
+      if (((Table) left.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+        String timestampFieldName = (((Table) left.getRelation())).getProperties().get(DDLConfig
+                                                                                           .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
+          throw new KSQLException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        leftDataSource = leftDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KSQLException(format("Resource %s does not exist.", rightSideName));
     }
 
+    if (((Table) right.getRelation()).getProperties() != null) {
+      if (((Table) right.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) !=
+          null) {
+        String timestampFieldName = (((Table) right.getRelation())).getProperties().get(DDLConfig
+                                                                                            .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
+          throw new KSQLException("Property name should be String with single quote.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        rightDataSource = rightDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-            leftDataSource.getKeyField(),
-            leftDataSource.getKsqlTopic().getTopicName(),
-            leftAlias, leftDataSource.getDataSourceType(),
-            leftDataSource);
+                                     leftDataSource.getKeyField(),
+                                     leftDataSource.getTimestampField(),
+                                     leftDataSource.getKsqlTopic().getTopicName(),
+                                     leftAlias, leftDataSource.getDataSourceType(),
+                                     leftDataSource);
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-            rightDataSource.getSchema(),
-            rightDataSource.getKeyField(),
-            rightDataSource.getKsqlTopic().getTopicName(),
-            rightAlias, rightDataSource.getDataSourceType(),
-            rightDataSource);
+                                     rightDataSource.getSchema(),
+                                     rightDataSource.getKeyField(),
+                                     rightDataSource.getTimestampField(),
+                                     rightDataSource.getKsqlTopic().getTopicName(),
+                                     rightAlias, rightDataSource.getDataSourceType(),
+                                     rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -242,10 +269,25 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null) {
       throw new KSQLException(structuredDataSourceName + " does not exist.");
     }
+
+    StructuredDataSource structuredDataSource = metaStore.getSource(structuredDataSourceName);
+
+    if (((Table) node.getRelation()).getProperties() != null) {
+      if (((Table) node.getRelation()).getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+        String timestampFieldName = ((Table) node.getRelation()).getProperties().get(DDLConfig
+                                                                                         .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
+          throw new KSQLException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+
     Pair<StructuredDataSource, String>
         fromDataSource =
         new Pair<>(
-            metaStore.getSource(structuredDataSourceName),
+            structuredDataSource,
             node.getAlias());
     analysis.getFromDataSources().add(fromDataSource);
     return node;
@@ -257,10 +299,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     StructuredDataSource into;
     if (node.isSTDOut) {
       into =
-          new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null,
-              StructuredDataSource.DataSourceType.KSTREAM);
+          new KSQLSTDOUT(KSQLSTDOUT.KSQL_STDOUT_NAME, null, null, null,
+                        StructuredDataSource.DataSourceType.KSTREAM);
+
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into = new KSQLStream(node.getName().getSuffix(), null, null, null);
+      into = new KSQLStream(node.getName().getSuffix(), null, null, null, null);
 
       if (node.getProperties().get(DDLConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DDLConfig.FORMAT_PROPERTY).toString();
@@ -300,6 +343,20 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         analysis.setIntoKafkaTopicName(intoKafkaTopicName);
         analysis.getIntoProperties().put(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
       }
+
+      if (node.getProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+        String
+            intoTimestampColumnName =
+            node.getProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+        if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
+          throw new KSQLException(
+              intoTimestampColumnName + " value is string and should be enclosed between " + "\"'\".");
+        }
+        intoTimestampColumnName = intoTimestampColumnName.substring(1, intoTimestampColumnName.length() - 1);
+        analysis.getIntoProperties().put(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME,
+                                         intoTimestampColumnName);
+      }
+
       if (node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
         try {
           int numberOfPartitions = Integer.parseInt(node.getProperties().get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS).toString());
@@ -319,6 +376,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
               .getProperties().get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
         }
       }
+
+
 
     } else {
       throw new KSQLException("INTO clause is not set correctly!");

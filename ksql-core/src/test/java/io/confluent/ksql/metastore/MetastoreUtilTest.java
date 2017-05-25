@@ -90,14 +90,15 @@ public class MetastoreUtilTest {
     Schema tableSchema = SchemaBuilder.struct().field(tableKeyName, Schema.BOOLEAN_SCHEMA).name(tableSourceName).build();
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
-    expectedMetaStore.putSource(new KSQLTable(tableSourceName, tableSchema, tableKey, topic,
-        tableStateStore, false));
+    expectedMetaStore.putSource(new KSQLTable(tableSourceName, tableSchema, tableKey, null, topic,
+                                             tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";
     Schema streamSchema = SchemaBuilder.struct().field(streamKeyName, Schema.INT64_SCHEMA).name(streamSourceName).build();
     Field streamKey = streamSchema.field(streamKeyName);
-    expectedMetaStore.putSource(new KSQLStream(streamSourceName, streamSchema, streamKey, topic));
+    expectedMetaStore.putSource(new KSQLStream(streamSourceName, streamSchema, streamKey,
+                                               null, topic));
 
     metastoreUtil.writeMetastoreToFile(testCatalogFile.getAbsolutePath(), expectedMetaStore);
     MetaStore testMetaStore = metastoreUtil.loadMetaStoreFromJSONFile(testCatalogFile.getAbsolutePath());

@@ -21,6 +21,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KSQLConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -73,9 +74,14 @@ public class LogicalPlanner {
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
 
+      Field timestampField = null;
+      if (analysis.getIntoProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+        timestampField = SchemaUtil.getFieldByName(inputSchema, analysis.getIntoProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME).toString());
+      }
+
       return new KSQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
                                              sourcePlanNode,
-                                             inputSchema, intoStructuredDataSource.getKsqlTopic(),
+                                             inputSchema, timestampField, intoStructuredDataSource.getKsqlTopic(),
                                              intoStructuredDataSource.getKsqlTopic()
                                                  .getTopicName(), analysis.getIntoProperties());
 
@@ -145,6 +151,7 @@ public class LogicalPlanner {
       KSQLStream fromStream = (KSQLStream) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
+                                          fromDataSource.getTimestampField(),
                                           fromStream.getKsqlTopic().getTopicName(),
                                           alias, fromStream.getDataSourceType(),
                                           fromStream);
@@ -152,6 +159,7 @@ public class LogicalPlanner {
       KSQLTable fromTable = (KSQLTable) fromDataSource;
       return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
+                                          fromDataSource.getTimestampField(),
                                           fromTable.getKsqlTopic().getTopicName(),
                                           alias, fromTable.getDataSourceType(),
                                           fromTable);

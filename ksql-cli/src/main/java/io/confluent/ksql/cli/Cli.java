@@ -677,10 +677,10 @@ public class Cli implements Closeable, AutoCloseable {
       ));
     } else if (ksqlEntity instanceof SourceDescription) {
       List<Field> fields = ((SourceDescription) ksqlEntity).getSchema().fields();
-      columnHeaders = fields.stream().map(Field::name).collect(Collectors.toList());
-      rowValues = Collections.singletonList(
-          fields.stream().map(Field::schema).map(Schema::type).map(Schema.Type::toString).collect(Collectors.toList())
-      );
+      columnHeaders = Arrays.asList("Field", "Type");
+      rowValues = fields.stream()
+          .map(field -> Arrays.asList(field.name(), field.schema().type().toString()))
+          .collect(Collectors.toList());
     } else if (ksqlEntity instanceof StreamsList) {
       List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
       columnHeaders = Arrays.asList("Stream Name", "KSQL Topic");

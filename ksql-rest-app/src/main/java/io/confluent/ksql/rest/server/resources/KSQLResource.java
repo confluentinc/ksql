@@ -31,7 +31,7 @@ import io.confluent.ksql.rest.entity.KSQLEntity;
 import io.confluent.ksql.rest.entity.KSQLEntityList;
 import io.confluent.ksql.rest.entity.KSQLRequest;
 import io.confluent.ksql.rest.entity.PropertiesList;
-import io.confluent.ksql.rest.entity.RunningQueries;
+import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -40,15 +40,11 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.connect.data.Field;
 import org.slf4j.LoggerFactory;
 
-import javax.json.Json;
-import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -179,19 +175,19 @@ public class KSQLResource {
   }
 
   // Only shows queries running on the current machine, not across the entire cluster
-  private RunningQueries showQueries(String statementText) {
-    List<RunningQueries.RunningQuery> runningQueries = new ArrayList<>();
+  private Queries showQueries(String statementText) {
+    List<Queries.RunningQuery> runningQueries = new ArrayList<>();
     for (PersistentQueryMetadata persistentQueryMetadata : ksqlEngine.getPersistentQueries().values()) {
       KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KSQLStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
 
-      runningQueries.add(new RunningQueries.RunningQuery(
+      runningQueries.add(new Queries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
           persistentQueryMetadata.getId()
       ));
     }
-    return new RunningQueries(statementText, runningQueries);
+    return new Queries(statementText, runningQueries);
   }
 
   private SourceDescription describe(String statementText, String name) throws Exception {

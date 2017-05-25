@@ -6,28 +6,26 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("runningQueries")
-public class RunningQueries extends KSQLEntity {
-  private final List<RunningQuery> runningQueries;
+@JsonTypeName("queries")
+public class Queries extends KSQLEntity {
+  private final List<RunningQuery> queries;
 
   @JsonCreator
-  public RunningQueries(
-      @JsonProperty("statementText")   String statementText,
-      @JsonProperty("runningQueries") List<RunningQuery> runningQueries
+  public Queries(
+      @JsonProperty("statementText")  String statementText,
+      @JsonProperty("queries")        List<RunningQuery> queries
   ) {
     super(statementText);
-    this.runningQueries = runningQueries;
+    this.queries = queries;
   }
 
-  @JsonUnwrapped
-  public List<RunningQuery> getRunningQueries() {
-    return new ArrayList<>(runningQueries);
+  public List<RunningQuery> getQueries() {
+    return new ArrayList<>(queries);
   }
 
   public static class RunningQuery {
@@ -35,7 +33,12 @@ public class RunningQueries extends KSQLEntity {
     private final String kafkaTopic;
     private final long id;
 
-    public RunningQuery(String queryString, String kafkaTopic, long id) {
+    @JsonCreator
+    public RunningQuery(
+        @JsonProperty("queryString") String queryString,
+        @JsonProperty("kafkaTopic") String kafkaTopic,
+        @JsonProperty("id") long id
+    ) {
       this.queryString = queryString;
       this.kafkaTopic = kafkaTopic;
       this.id = id;
@@ -78,15 +81,15 @@ public class RunningQueries extends KSQLEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof RunningQueries)) {
+    if (!(o instanceof Queries)) {
       return false;
     }
-    RunningQueries that = (RunningQueries) o;
-    return Objects.equals(getRunningQueries(), that.getRunningQueries());
+    Queries that = (Queries) o;
+    return Objects.equals(getQueries(), that.getQueries());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRunningQueries());
+    return Objects.hash(getQueries());
   }
 }

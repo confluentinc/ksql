@@ -707,7 +707,9 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void printAsTable(GenericRow row) {
     terminal.writer().println(
-        String.join(" | ", row.columns.stream().map(Object::toString).collect(Collectors.toList()))
+        String.join(" | ", row.columns.stream().map(x -> (x == null)? "null" : x.toString()).collect
+            (Collectors.toList
+            ()))
     );
     terminal.writer().flush();
   }

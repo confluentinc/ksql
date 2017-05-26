@@ -1,0 +1,89 @@
+package io.confluent.ksql.rest.server.resources;
+
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+public class StatusResourceTest {
+
+  private static final Map<CommandId, CommandStatus> mockCommandStatuses;
+
+  static {
+    mockCommandStatuses = new HashMap<>();
+
+    mockCommandStatuses.put(
+        new CommandId(CommandId.Type.TOPIC, "test_topic"),
+        new CommandStatus(CommandStatus.Status.SUCCESS, "Topic created successfully")
+    );
+
+    mockCommandStatuses.put(
+        new CommandId(CommandId.Type.STREAM, "test_stream"),
+        new CommandStatus(CommandStatus.Status.ERROR, "Hi Ewen!")
+    );
+
+    mockCommandStatuses.put(
+        new CommandId(CommandId.Type.TERMINATE, "5"),
+        new CommandStatus(CommandStatus.Status.QUEUED, "Command written to command topic")
+    );
+  }
+
+  private StatusResource getTestStatusResource() {
+    StatementExecutor mockStatementExecutor = mock(StatementExecutor.class);
+
+    expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
+
+    for (Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
+      expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
+    }
+
+    expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.empty());
+
+    replay(mockStatementExecutor);
+
+    return new StatusResource(mockStatementExecutor);
+  }
+
+  @Test
+  public void testGetAllStatuses() {
+    StatusResource testResource = getTestStatusResource();
+
+    Object statusesEntity = testResource.getAllStatuses().getEntity();
+    assertThat(statusesEntity, instanceOf(CommandStatuses.class));
+    CommandStatuses testCommandStatuses = (CommandStatuses) statusesEntity;
+
+    Map<CommandId, CommandStatus.Status> expectedCommandStatuses =
+        CommandStatuses.fromFullStatuses(mockCommandStatuses);
+
+    assertEquals(expectedCommandStatuses, testCommandStatuses);
+  }
+
+  @Test
+  public void testGetStatus() throws Exception {
+    StatusResource testResource = getTestStatusResource();
+
+    for (Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
+      CommandId commandId = commandEntry.getKey();
+      CommandStatus expectedCommandStatus = commandEntry.getValue();
+
+      Object statusEntity = testResource.getStatus(commandId.getType().name(), commandId.getEntity()).getEntity();
+      assertThat(statusEntity, instanceOf(CommandStatus.class));
+      CommandStatus testCommandStatus = (CommandStatus) statusEntity;
+
+      assertEquals(expectedCommandStatus, testCommandStatus);
+    }
+  }
+}

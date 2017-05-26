@@ -1,0 +1,39 @@
+{
+        "namespace": "ksql",
+        "name": "orders",
+        "type": "record",
+        "fields": [
+                {"name": "ordertime", "type": {
+                    "type": "long",
+                    "arg.properties": {
+                        "range": {
+                            "min": 1487715775521,
+                            "max": 1519273364600
+                        }
+                    }
+                }},
+                {"name": "orderid", "type": {
+                    "type": "int",
+                    "arg.properties": {
+                        "iteration": {
+                            "start": 0
+                        }
+                    }
+                }},
+                {"name": "itemid", "type": {
+                    "type": "string",
+                    "arg.properties": {
+                        "regex": "Item_[1-9][0-9]{0,2}"
+                    }
+                }},
+                {"name": "orderunits", "type": {
+                    "type": "double",
+                    "arg.properties": {
+                        "range": {
+                            "min": 0.1,
+                            "max": 10.0
+                        }
+                    }
+                }}
+        ]
+}

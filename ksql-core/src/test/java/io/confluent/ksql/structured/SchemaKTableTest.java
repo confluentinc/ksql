@@ -67,7 +67,7 @@ public class SchemaKTableTest {
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null, null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
     }

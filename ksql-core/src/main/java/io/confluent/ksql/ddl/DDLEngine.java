@@ -170,6 +170,11 @@ public class DDLEngine {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
       timestampColumnName = createStream.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
       timestampColumnName = enforceString(DDLConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
+      if (SchemaUtil.getFieldByName(streamSchema, timestampColumnName).schema().type() != Schema
+          .Type.INT64) {
+        throw new KSQLException("Timestamp column, " + timestampColumnName + ", should be LONG"
+                                + "(INT64).");
+      }
     }
 
     if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
@@ -252,6 +257,11 @@ public class DDLEngine {
       // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
       timestampColumnName = createTable.getProperties().get(DDLConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
       timestampColumnName = enforceString(DDLConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
+      if (SchemaUtil.getFieldByName(tableSchema, timestampColumnName).schema().type() != Schema
+          .Type.INT64) {
+        throw new KSQLException("Timestamp column, " + timestampColumnName + ", should be LONG"
+                                + "(INT64).");
+      }
     }
 
 

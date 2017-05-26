@@ -15,6 +15,8 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class SQLPredicate {
   boolean isWindowedKey;
 
   GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private static final Logger log = LoggerFactory.getLogger(SQLPredicate.class);
 
   public SQLPredicate(final Expression filterExpression, final Schema schema, boolean isWindowedKey) throws Exception {
     this.filterExpression = filterExpression;
@@ -100,7 +103,8 @@ public class SQLPredicate {
         } catch (Exception e) {
           e.printStackTrace();
         }
-        throw new RuntimeException("Invalid format.");
+        log.error("Invalid format: " + key + " : " + row);
+        return false;
       }
     };
   }
@@ -131,7 +135,8 @@ public class SQLPredicate {
         } catch (Exception e) {
           e.printStackTrace();
         }
-        throw new RuntimeException("Invalid format.");
+        log.error("Invalid format: " + key + " : " + row);
+        return false;
       }
     };
   }

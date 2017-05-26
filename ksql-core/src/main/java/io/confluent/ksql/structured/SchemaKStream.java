@@ -28,6 +28,8 @@ import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.internals.InternalTopicConfig;
 import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -47,6 +49,8 @@ public class SchemaKStream {
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+
+  private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
   public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams) {
@@ -262,7 +266,8 @@ public class SchemaKStream {
         }
         queue.put(new KeyValue<>(keyString, row));
       } catch (InterruptedException exception) {
-        throw new RuntimeException(exception);
+        log.error(" Exception while enqueuing the row: " + key + " : " + row);
+        log.error(" Exception: " + exception.getMessage());
       }
     }
   }

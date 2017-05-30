@@ -29,8 +29,8 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.jline.reader.EndOfFileException;
+import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
@@ -110,6 +110,8 @@ public class Cli implements Closeable, AutoCloseable {
 
     // Otherwise, things like '!=' will cause things to break
     this.lineReader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
+    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
+    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
     this.primaryPrompt = DEFAULT_PRIMARY_PROMPT;
     this.secondaryPrompt = DEFAULT_SECONDARY_PROMPT;
@@ -327,6 +329,33 @@ public class Cli implements Closeable, AutoCloseable {
             terminal.writer().printf("Invalid output format: '%s' (valid formats: %s)%n", newFormat, outputFormats);
           }
         }
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "history";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\thistory: Show previous lines entered during the current CLI session");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        String previousLine = null;
+        for (History.Entry historyEntry : lineReader.getHistory()) {
+          String trimmedLine = historyEntry.line().trim();
+          String[] commandArgs = trimmedLine.split("\\s+", 2);
+          CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(commandArgs[0].toLowerCase());
+          if (cliSpecificCommand == null && !Objects.equals(previousLine, trimmedLine)) {
+            terminal.writer().println(trimmedLine);
+            previousLine = trimmedLine;
+          }
+        }
+        terminal.flush();
       }
     });
 

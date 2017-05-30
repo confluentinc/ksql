@@ -6,6 +6,7 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udaf.count.CountAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
+import io.confluent.ksql.function.udf.json.JSONExtractStringKUDF;
 import io.confluent.ksql.function.udf.math.AbsKUDF;
 import io.confluent.ksql.function.udf.math.CeilKUDF;
 import io.confluent.ksql.function.udf.math.FloorKUDF;
@@ -84,6 +85,14 @@ public class KSQLFunctions {
 
 
 
+    /***************************************
+     * JSON functions                     *
+     ****************************************/
+
+    KSQLFunction getStringFromJson = new KSQLFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
+                                                                                              .STRING_SCHEMA, Schema.STRING_SCHEMA),
+                                          "GETSTREAMFROMJSON", JSONExtractStringKUDF.class);
+
     addFunction(lcase);
     addFunction(ucase);
     addFunction(substring);
@@ -97,6 +106,8 @@ public class KSQLFunctions {
     addFunction(floor);
     addFunction(round);
     addFunction(random);
+
+    addFunction(getStringFromJson);
 
     /***************************************
      * UDAFs                               *

@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -61,6 +62,8 @@ public class JSONFormatTest {
   private static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
+  private static final String messageLogTopic = "log_topic";
+  private static final String messageLogStream = "message_log";
 
   @Before
   public void before() throws Exception {
@@ -73,6 +76,9 @@ public class JSONFormatTest {
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
+
+    SchemaBuilder schemaBuilderMessage = SchemaBuilder.struct()
+        .field("MESSAGE", SchemaBuilder.STRING_SCHEMA);
 
     configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
@@ -90,9 +96,22 @@ public class JSONFormatTest {
                              + "map<varchar, double>) WITH (topicname = '%s' , "
                                            + "key='ordertime');", inputStream, inputTopic);
 
+    String messageTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
+                                           + "kafka_topic='%s');", messageLogTopic,
+                                           messageLogTopic);
+    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (topicname = "
+                                            + "'%s');", messageLogStream, messageLogTopic);
+
     ksqlEngine.buildMultipleQueries(false, ordersTopicStr);
     ksqlEngine.buildMultipleQueries(false, ordersStreamStr);
+
+    ksqlEngine.buildMultipleQueries(false, messageTopicStr);
+    ksqlEngine.buildMultipleQueries(false, messageStreamStr);
+
+    System.out.println("Broker: " + CLUSTER.bootstrapServers());
+
     inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
+    produceMessageData(schemaBuilderMessage.build());
 
   }
 
@@ -430,6 +449,34 @@ public class JSONFormatTest {
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
+
+  @Test
+  public void testJsonStreamExtractor() throws Exception {
+
+    final String streamName = "STARSTREAM";
+    final String queryString = String.format("CREATE STREAM %s AS SELECT GETSTREAMFROMJSON"
+                                             + "(message, '$.log.cloud') "
+                                             + "FROM %s;",
+                                             streamName, messageLogStream);
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("1", new GenericRow(Arrays.asList("aws")));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
   //*********************************************************//
 
 
@@ -454,6 +501,32 @@ public class JSONFormatTest {
 
     return result;
   }
+
+  private Map<String, RecordMetadata> produceMessageData(Schema schema)
+      throws InterruptedException, ExecutionException, TimeoutException {
+    Properties producerConfig = new Properties();
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
+    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+
+    KafkaProducer<String, GenericRow> producer =
+        new KafkaProducer<>(producerConfig, new StringSerializer(), new KSQLJsonPOJOSerializer(schema));
+
+    Map<String, RecordMetadata> result = new HashMap<>();
+
+    GenericRow messageRow = new GenericRow(Arrays.asList
+        ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
+         + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+
+    ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(messageLogTopic, "1",
+                                                                             messageRow);
+    Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
+    result.put("1", recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+    producer.close();
+
+    return result;
+  }
+
 
   private Map<String, GenericRow> readNormalResults(String resultTopic, Schema resultSchema, int expectedNumMessages) {
     return readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());

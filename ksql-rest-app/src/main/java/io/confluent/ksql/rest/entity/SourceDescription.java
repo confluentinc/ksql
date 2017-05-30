@@ -44,7 +44,7 @@ public class SourceDescription extends KSQLEntity {
         dataSource.getName(),
         dataSource.getSchema(),
         dataSource.getDataSourceType(),
-        dataSource.getKeyField().name(),
+        (dataSource.getKeyField() != null)? dataSource.getKeyField().name() : null,
         (dataSource.getTimestampField() != null)? dataSource.getTimestampField().name() : null
     );
   }

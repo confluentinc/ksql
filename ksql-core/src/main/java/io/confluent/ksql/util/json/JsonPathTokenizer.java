@@ -118,8 +118,7 @@ public class JsonPathTokenizer
             throw invalidJsonPath();
         }
         escaped = false;
-      }
-      else {
+      } else {
         switch (peekCharacter()) {
           case BACKSLASH:
             escaped = true;

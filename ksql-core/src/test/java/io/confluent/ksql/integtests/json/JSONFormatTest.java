@@ -108,8 +108,6 @@ public class JSONFormatTest {
     ksqlEngine.buildMultipleQueries(false, messageTopicStr);
     ksqlEngine.buildMultipleQueries(false, messageStreamStr);
 
-    System.out.println("Broker: " + CLUSTER.bootstrapServers());
-
     inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
     produceMessageData(schemaBuilderMessage.build());
 
@@ -453,7 +451,7 @@ public class JSONFormatTest {
   @Test
   public void testJsonStreamExtractor() throws Exception {
 
-    final String streamName = "STARSTREAM";
+    final String streamName = "JSONSTREAM";
     final String queryString = String.format("CREATE STREAM %s AS SELECT GETSTREAMFROMJSON"
                                              + "(message, '$.log.cloud') "
                                              + "FROM %s;",

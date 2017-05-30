@@ -23,6 +23,8 @@ import java.util.Map;
 
 public class KSQLJsonPOJODeserializer implements Deserializer<GenericRow> {
 
+
+  //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
   private ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
@@ -86,7 +88,11 @@ public class KSQLJsonPOJODeserializer implements Deserializer<GenericRow> {
       case FLOAT64:
         return fieldJsonNode.asDouble();
       case STRING:
-        return fieldJsonNode.asText();
+        if (fieldJsonNode.isTextual()) {
+          return fieldJsonNode.asText();
+        } else {
+          return fieldJsonNode.toString();
+        }
       case ARRAY:
         ArrayNode arrayNode = (ArrayNode) fieldJsonNode;
         Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());

@@ -38,7 +38,7 @@ public class AggregateAnalyzerTest {
     System.out.println("Test query:" + queryStr);
     Analysis analysis = analyze(queryStr);
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
     AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null, null));

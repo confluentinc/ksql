@@ -84,7 +84,7 @@ public class QueryEngine {
       analyzer.process(query, new AnalysisContext(null, null));
 
       AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-      AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
+      AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
       AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
       for (Expression expression: analysis.getSelectExpressions()) {
         aggregateAnalyzer.process(expression, new AnalysisContext(null, null));

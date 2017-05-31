@@ -4,8 +4,8 @@
 package io.confluent.ksql.rest.server;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.CreateTopicResults;
-import org.apache.kafka.clients.admin.ListTopicsResults;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class TopicUtil implements Closeable {
       if (!topicExists(topic)) {
         log.info("Creating topic '{}'", topic);
         NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
-        CreateTopicResults createTopicResults = client.createTopics(Collections.singleton(newTopic));
+        CreateTopicsResult createTopicResults = client.createTopics(Collections.singleton(newTopic));
         createTopicResults.all().get();
       }
       return true;
@@ -52,7 +52,7 @@ public class TopicUtil implements Closeable {
    */
   public boolean topicExists(String topic) throws InterruptedException, ExecutionException {
     log.debug("Checking for existence of topic '{}'", topic);
-    ListTopicsResults topics = client.listTopics();
+    ListTopicsResult topics = client.listTopics();
     return topics.names().get().contains(topic);
   }
 

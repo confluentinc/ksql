@@ -8,9 +8,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonTypeName("description")
 public class SourceDescription extends KSQLEntity {
@@ -28,7 +30,7 @@ public class SourceDescription extends KSQLEntity {
       @JsonProperty("schema")        Schema schema,
       @JsonProperty("type")          DataSource.DataSourceType type,
       @JsonProperty("key")           String key,
-      @JsonProperty("timestamp")           String timestamp
+      @JsonProperty("timestamp")     String timestamp
   ) {
     super(statementText);
     this.name = name;
@@ -44,8 +46,8 @@ public class SourceDescription extends KSQLEntity {
         dataSource.getName(),
         dataSource.getSchema(),
         dataSource.getDataSourceType(),
-        (dataSource.getKeyField() != null)? dataSource.getKeyField().name() : null,
-        (dataSource.getTimestampField() != null)? dataSource.getTimestampField().name() : null
+        Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(null),
+        Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(null)
     );
   }
 

@@ -2,10 +2,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>KSQL</groupId>
-    <artifactId>KSQL</artifactId>
+    <parent>
+        <groupId>io.confluent</groupId>
+        <artifactId>common</artifactId>
+        <version>3.5.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.confluent.ksql</groupId>
+    <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
@@ -23,73 +30,22 @@
     </repositories>
 
     <properties>
-        <really.executable.jar.version>1.5.0</really.executable.jar.version>
+        <airline.version>2.2.0</airline.version>
         <java.version>1.8</java.version>
-        <kafka.version>0.11.0.0-SNAPSHOT</kafka.version>
-        <kafka.scala.version>2.11</kafka.scala.version>
-        <airlift.version>0.29</airlift.version>
-        <guava.version>21.0</guava.version>
-        <jsr305.version>3.0.2</jsr305.version>
-        <antlr.version>4.7</antlr.version>
-        <janino.version>3.0.7</janino.version>
-        <avro.version>1.8.1</avro.version>
-        <junit.version>4.12</junit.version>
-        <csv.version>1.4</csv.version>
-        <janino.version>3.0.7</janino.version>
-        <confluent.version>3.3.0-SNAPSHOT</confluent.version>
+        <really.executable.jar.version>1.5.0</really.executable.jar.version>
     </properties>
 
-    <dependencies>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${kafka.scala.version}</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-streams</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>slice</artifactId>
-            <version>${airlift.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>${jsr305.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
-            <version>${antlr.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.7</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.7</version>
-        </dependency>
-
-    </dependencies>
+    <dependencyManagement>
+        <!-- Any dependency (not specified by the Confluent common POM) used by more than one sub-module goes here,
+             to unify version/scope info -->
+        <dependencies>
+            <dependency>
+                <groupId>com.github.rvesse</groupId>
+                <artifactId>airline</artifactId>
+                <version>${airline.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <pluginManagement>

@@ -2,12 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <artifactId>KSQL</artifactId>
-        <groupId>KSQL</groupId>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksql-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ksql-rest-app</artifactId>
 
@@ -27,8 +28,30 @@
 
     <dependencies>
 
+        <!-- Parent-specified dependencies -->
         <dependency>
-            <groupId>KSQL</groupId>
+            <groupId>com.github.rvesse</groupId>
+            <artifactId>airline</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.easymock</groupId>
+            <artifactId>easymock</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+
+        <!-- Module-specific dependencies -->
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
@@ -41,58 +64,9 @@
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>adminclient</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.confluent</groupId>
             <artifactId>rest-utils</artifactId>
             <version>${confluent.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>javax.json</groupId>
-            <artifactId>javax.json-api</artifactId>
-            <version>1.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-            <version>1.0.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.8.8</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.rvesse</groupId>
-            <artifactId>airline</artifactId>
-            <version>2.2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-json</artifactId>
-            <version>0.11.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
-            <version>3.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.dexmaker</groupId>
-            <artifactId>dexmaker</artifactId>
-            <version>1.1</version>
-        </dependency>
-
     </dependencies>
 
     <build>

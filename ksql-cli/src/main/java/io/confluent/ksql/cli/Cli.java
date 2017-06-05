@@ -36,7 +36,6 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -458,7 +457,6 @@ public class Cli implements Closeable, AutoCloseable {
     RestResponse<KSQLRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
 
     if (queryResponse.isSuccessful()) {
-      displayQueryTerminateInstructions();
       try (KSQLRestClient.QueryStream queryStream = queryResponse.getResponse()) {
         Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
           @Override
@@ -496,7 +494,6 @@ public class Cli implements Closeable, AutoCloseable {
           // It's fine
         }
       } finally {
-        eraseQueryTerminateInstructions();
         terminal.writer().println("Query terminated");
         terminal.writer().flush();
       }
@@ -547,44 +544,6 @@ public class Cli implements Closeable, AutoCloseable {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());
       terminal.flush();
     }
-  }
-
-  private void displayQueryTerminateInstructions() throws InterruptedException {
-//    Doesn't work on my Mac
-//    terminal.puts(InfoCmp.Capability.cursor_to_ll);
-    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
-
-    terminal.puts(InfoCmp.Capability.delete_line);
-
-    terminal.puts(InfoCmp.Capability.enter_standout_mode);
-    terminal.writer().print("Use ^C to terminate the query");
-    terminal.puts(InfoCmp.Capability.exit_standout_mode);
-
-    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 2);
-
-    // There's got to be a better way to do this. The idea is to clear the screen and move the cursor to the top-left
-    // corner, but without actually erasing any output that might be on the terminal screen beforehand.
-    terminal.puts(InfoCmp.Capability.cursor_home);
-    for (int i = 0; i < terminal.getHeight(); i++) {
-      terminal.puts(InfoCmp.Capability.scroll_forward);
-    }
-
-    terminal.flush();
-  }
-
-  private void eraseQueryTerminateInstructions() {
-    terminal.puts(InfoCmp.Capability.save_cursor);
-
-    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 1);
-
-    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
-    terminal.puts(InfoCmp.Capability.delete_line);
-
-    terminal.puts(InfoCmp.Capability.restore_cursor);
-
-    terminal.puts(InfoCmp.Capability.scroll_forward);
-
-    terminal.flush();
   }
 
   private void printKSQLResponse(RestResponse<KSQLEntityList> response) throws IOException {

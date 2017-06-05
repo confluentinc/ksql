@@ -44,6 +44,7 @@ public class KSQL {
         name = STREAMED_QUERY_ROW_LIMIT_OPTION_NAME,
         description = "An optional maximum number of rows to read from streamed queries"
     )
+
     @LongRange(
         min = 1
     )

@@ -19,13 +19,6 @@
         <cli.main-class>${main-class}</cli.main-class>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <url>http://packages.confluent.io/maven/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <!-- Parent-specified dependencies -->
         <dependency>

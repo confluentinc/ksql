@@ -23,7 +23,6 @@
     </properties>
 
     <dependencies>
-
         <!-- Parent-specified dependencies -->
         <dependency>
             <groupId>com.github.rvesse</groupId>
@@ -65,6 +64,7 @@
             <version>${jline.version}</version>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>

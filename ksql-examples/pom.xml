@@ -22,7 +22,6 @@
     </properties>
     
     <dependencies>
-
         <!-- Module-specific dependencies -->
         <dependency>
             <groupId>io.confluent.avro</groupId>
@@ -41,7 +40,6 @@
             <artifactId>kafka-connect-avro-converter</artifactId>
             <version>${confluent.version}</version>
         </dependency>
-
     </dependencies>
 
     <build>

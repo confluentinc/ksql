@@ -27,7 +27,6 @@
     </repositories>
 
     <dependencies>
-
         <!-- Parent-specified dependencies -->
         <dependency>
             <groupId>com.github.rvesse</groupId>

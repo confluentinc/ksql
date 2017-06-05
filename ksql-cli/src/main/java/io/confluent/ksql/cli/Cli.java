@@ -5,19 +5,20 @@ package io.confluent.ksql.cli;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.KSQLEngine;
-import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.Ksql;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
-import io.confluent.ksql.rest.entity.KSQLEntity;
-import io.confluent.ksql.rest.entity.KSQLEntityList;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
@@ -82,7 +83,7 @@ public class Cli implements Closeable, AutoCloseable {
   private final Long streamedQueryRowLimit;
   private final Long streamedQueryTimeoutMs;
 
-  protected final KSQLRestClient restClient;
+  protected final KsqlRestClient restClient;
   protected final Terminal terminal;
   protected final LineReader lineReader;
 
@@ -91,7 +92,7 @@ public class Cli implements Closeable, AutoCloseable {
   private OutputFormat outputFormat;
 
   public Cli(
-      KSQLRestClient restClient,
+      KsqlRestClient restClient,
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
       OutputFormat outputFormat
@@ -160,7 +161,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   public void runNonInteractively(String input) throws Exception {
-    // Allow exceptions to halt execution of the KSQL script as soon as the first one is encountered
+    // Allow exceptions to halt execution of the Ksql script as soon as the first one is encountered
     for (String logicalLine : getLogicalLines(input)) {
       try {
         handleLine(logicalLine);
@@ -221,7 +222,7 @@ public class Cli implements Closeable, AutoCloseable {
         terminal.writer().println();
         terminal.writer().println("default behavior:");
         terminal.writer().println();
-        terminal.writer().println("    Lines are read one at a time and are sent to the server as KSQL unless one of "
+        terminal.writer().println("    Lines are read one at a time and are sent to the server as Ksql unless one of "
             + "the following is true:"
         );
         terminal.writer().println();
@@ -229,7 +230,7 @@ public class Cli implements Closeable, AutoCloseable {
         terminal.writer().println();
         terminal.writer().println("    2. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
             + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
-            + "all lines read during this time is sent to the server as KSQL."
+            + "all lines read during this time is sent to the server as Ksql."
         );
         terminal.writer().println();
       }
@@ -429,12 +430,12 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
-    for (SqlBaseParser.SingleStatementContext statementContext : new KSQLParser().getStatements(line)) {
-      String statementText = KSQLEngine.getStatementString(statementContext);
+    for (SqlBaseParser.SingleStatementContext statementContext : new KsqlParser().getStatements(line)) {
+      String statementText = KsqlEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext ||
           statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         if (consecutiveStatements.length() != 0) {
-          printKSQLResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
+          printKSQLResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
           consecutiveStatements = new StringBuilder();
         }
         if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -447,15 +448,15 @@ public class Cli implements Closeable, AutoCloseable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKSQLResponse(restClient.makeKSQLRequest(consecutiveStatements.toString()));
+      printKSQLResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
     }
   }
 
   private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
-    RestResponse<KSQLRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
+    RestResponse<KsqlRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
 
     if (queryResponse.isSuccessful()) {
-      try (KSQLRestClient.QueryStream queryStream = queryResponse.getResponse()) {
+      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
         Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
           @Override
           public void run() {
@@ -544,7 +545,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void printKSQLResponse(RestResponse<KSQLEntityList> response) throws IOException {
+  private void printKSQLResponse(RestResponse<KsqlEntityList> response) throws IOException {
     if (response.isSuccessful()) {
       printKSQLEntityList(response.getResponse());
     } else {
@@ -595,13 +596,13 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void printKSQLEntityList(List<KSQLEntity> entityList) throws IOException {
+  private void printKSQLEntityList(List<KsqlEntity> entityList) throws IOException {
     switch (outputFormat) {
       case JSON:
         printAsJson(entityList);
         break;
       case TABULAR:
-        for (KSQLEntity ksqlEntity : entityList) {
+        for (KsqlEntity ksqlEntity : entityList) {
           terminal.writer().println();
           printAsTable(ksqlEntity);
         }
@@ -621,7 +622,7 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.flush();
   }
 
-  private void printAsTable(KSQLEntity ksqlEntity) {
+  private void printAsTable(KsqlEntity ksqlEntity) {
     List<String> columnHeaders;
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
@@ -669,13 +670,13 @@ public class Cli implements Closeable, AutoCloseable {
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof StreamsList) {
       List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
-      columnHeaders = Arrays.asList("Stream Name", "KSQL Topic");
+      columnHeaders = Arrays.asList("Stream Name", "Ksql Topic");
       rowValues = streamInfos.stream()
           .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic()))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TablesList) {
       List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
-      columnHeaders = Arrays.asList("Table Name", "KSQL Topic", "Statestore", "Windowed");
+      columnHeaders = Arrays.asList("Table Name", "Ksql Topic", "Statestore", "Windowed");
       rowValues = tableInfos.stream()
           .map(tableInfo -> Arrays.asList(
               tableInfo.getName(),
@@ -691,7 +692,7 @@ public class Cli implements Closeable, AutoCloseable {
           .collect(Collectors.toList());
     } else {
       throw new RuntimeException(
-          String.format("Unexpected KSQLEntity class: '%s'", ksqlEntity.getClass().getCanonicalName())
+          String.format("Unexpected KsqlEntity class: '%s'", ksqlEntity.getClass().getCanonicalName())
       );
     }
     printTable(columnHeaders, rowValues);

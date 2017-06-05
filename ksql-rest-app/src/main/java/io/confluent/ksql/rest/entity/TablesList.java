@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KsqlTable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @JsonTypeName("tables")
-public class TablesList extends KSQLEntity {
+public class TablesList extends KsqlEntity {
   private final Collection<TableInfo> tables;
 
   @JsonCreator
@@ -28,7 +28,7 @@ public class TablesList extends KSQLEntity {
     this.tables = tables;
   }
 
-  public static TablesList fromKsqlTables(String statementText, Collection<KSQLTable> ksqlTables) {
+  public static TablesList fromKsqlTables(String statementText, Collection<KsqlTable> ksqlTables) {
     Collection<TableInfo> tableInfos = ksqlTables.stream().map(TableInfo::new).collect(Collectors.toList());
     return new TablesList(statementText, tableInfos);
   }
@@ -74,7 +74,7 @@ public class TablesList extends KSQLEntity {
       this.isWindowed = isWindowed;
     }
 
-    public TableInfo(KSQLTable ksqlTable) {
+    public TableInfo(KsqlTable ksqlTable) {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getName(),

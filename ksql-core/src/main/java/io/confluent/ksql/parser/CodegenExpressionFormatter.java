@@ -4,8 +4,8 @@
 package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
-import io.confluent.ksql.function.KSQLFunction;
-import io.confluent.ksql.function.KSQLFunctionException;
+import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -36,7 +36,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
@@ -136,7 +136,7 @@ public class CodegenExpressionFormatter {
       String fieldName = formatQualifiedName(node.getName());
       Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       if (schemaField == null) {
-        throw new KSQLException("Field not found: " + schemaField.name());
+        throw new KsqlException("Field not found: " + schemaField.name());
       }
       return new Pair<>(fieldName.replace(".", "_"), schemaField.schema());
     }
@@ -147,7 +147,7 @@ public class CodegenExpressionFormatter {
       String fieldName = formatIdentifier(node.getName());
       Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       if (schemaField == null) {
-        throw new KSQLException("Field not found: " + schemaField.name());
+        throw new KsqlException("Field not found: " + schemaField.name());
       }
       return new Pair<>(fieldName, schemaField.schema());
     }
@@ -188,7 +188,7 @@ public class CodegenExpressionFormatter {
                                                           Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder();
       String name = node.getName().getSuffix();
-      KSQLFunction ksqlFunction = KSQLFunctions.getFunction(name);
+      KsqlFunction ksqlFunction = KSQLFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
       boolean addComma = false;
@@ -285,7 +285,7 @@ public class CodegenExpressionFormatter {
 //              exprStr = "(" + expr.getLeft() + ").intValue()";
 //              break;
 //            default:
-//              throw new KSQLFunctionException("Invalid cast operation: Cannot cast "
+//              throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
 //                  + expr.getLeft() + " to " + returnTypeStr);
 //          }
 //          return new Pair<>(exprStr, returnType);
@@ -300,7 +300,7 @@ public class CodegenExpressionFormatter {
           } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
             exprStr = "(" + expr.getLeft() + ").intValue()";
           } else {
-            throw new KSQLFunctionException(
+            throw new KsqlFunctionException(
                 "Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
@@ -319,7 +319,7 @@ public class CodegenExpressionFormatter {
           } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
             exprStr = "(" + expr.getLeft() + ").longValue()";
           } else {
-            throw new KSQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+            throw new KsqlFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
         }
@@ -341,7 +341,7 @@ public class CodegenExpressionFormatter {
 //              exprStr = expr.getLeft();
 //              break;
 //            default:
-//              throw new KSQLFunctionException("Invalid cast operation: Cannot cast "
+//              throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
 //                  + expr.getLeft() + " to " + returnTypeStr);
 //          }
 //          return new Pair<>(exprStr, returnType);
@@ -355,14 +355,14 @@ public class CodegenExpressionFormatter {
           } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
             exprStr = expr.getLeft();
           } else {
-            throw new KSQLFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+            throw new KsqlFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
 
         }
 
         default:
-          throw new KSQLFunctionException("Invalid cast operation: " + returnTypeStr);
+          throw new KsqlFunctionException("Invalid cast operation: " + returnTypeStr);
       }
     }
 

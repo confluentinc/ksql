@@ -36,7 +36,7 @@ public class SchemaUtil {
       case MAP:
         return (new HashMap<>()).getClass();
       default:
-        throw new KSQLException("Type is not supported: " + schema.type());
+        throw new KsqlException("Type is not supported: " + schema.type());
     }
   }
 
@@ -60,7 +60,7 @@ public class SchemaUtil {
         return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(ksqlType.substring(ksqlType
                                                                                            .indexOf(",") + 1, ksqlType.length() - 1).trim()));
       default:
-        throw new KSQLException("Type is not supported: " + ksqlType);
+        throw new KsqlException("Type is not supported: " + ksqlType);
 
     }
   }

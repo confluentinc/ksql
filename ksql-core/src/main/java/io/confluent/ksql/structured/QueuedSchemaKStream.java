@@ -5,8 +5,8 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.KSQLTopicSerDe;
-import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -46,7 +46,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   @Override
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe,
                             Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                                  streamsKafkaClient, KSQLConfig ksqlConfig) {
+                                  streamsKafkaClient, KsqlConfig ksqlConfig) {
     throw new UnsupportedOperationException();
   }
 
@@ -66,7 +66,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey, KSQLTopicSerDe joinSerDe) {
+  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey, KsqlTopicSerDe joinSerDe) {
     throw new UnsupportedOperationException();
   }
 

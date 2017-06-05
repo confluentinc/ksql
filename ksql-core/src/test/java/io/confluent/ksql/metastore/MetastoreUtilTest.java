@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
-import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,35 +27,35 @@ public class MetastoreUtilTest {
     Assert.assertNotNull(metaStore.getTopic("ORDERS_TOPIC_AVRO"));
     Assert.assertNotNull(metaStore.getTopic("PAGEVIEW_TOPIC"));
 
-    KSQLTopic ordersTopic = metaStore.getTopic("ORDERS_TOPIC");
-    Assert.assertTrue(ordersTopic.getKsqlTopicSerDe() instanceof KSQLJsonTopicSerDe);
+    KsqlTopic ordersTopic = metaStore.getTopic("ORDERS_TOPIC");
+    Assert.assertTrue(ordersTopic.getKsqlTopicSerDe() instanceof KsqlJsonTopicSerDe);
     Assert.assertTrue(ordersTopic.getTopicName().equalsIgnoreCase("ORDERS_TOPIC"));
     Assert.assertTrue(ordersTopic.getKafkaTopicName().equals("orders_kafka_topic"));
 
-    KSQLTopic ordersAvroTopic = metaStore.getTopic("ORDERS_TOPIC_AVRO");
-    Assert.assertTrue(ordersAvroTopic.getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe);
+    KsqlTopic ordersAvroTopic = metaStore.getTopic("ORDERS_TOPIC_AVRO");
+    Assert.assertTrue(ordersAvroTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe);
     Assert.assertTrue(ordersAvroTopic.getTopicName().equalsIgnoreCase("ORDERS_TOPIC_AVRO"));
     Assert.assertTrue(ordersAvroTopic.getKafkaTopicName().equals("orders_kafka_topic_avro"));
 
-    KSQLTopic usersTopic = metaStore.getTopic("USERS_TOPIC");
-    Assert.assertTrue(usersTopic.getKsqlTopicSerDe() instanceof KSQLJsonTopicSerDe);
+    KsqlTopic usersTopic = metaStore.getTopic("USERS_TOPIC");
+    Assert.assertTrue(usersTopic.getKsqlTopicSerDe() instanceof KsqlJsonTopicSerDe);
     Assert.assertTrue(usersTopic.getTopicName().equalsIgnoreCase("USERS_TOPIC"));
     Assert.assertTrue(usersTopic.getKafkaTopicName().equals("users_kafka_topic_json"));
 
     StructuredDataSource orders = metaStore.getSource("ORDERS");
-    Assert.assertTrue(orders instanceof KSQLStream);
+    Assert.assertTrue(orders instanceof KsqlStream);
     Assert.assertTrue(orders.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders.getSchema().fields().size() == 4);
     Assert.assertTrue(orders.getKeyField().name().equalsIgnoreCase("ordertime"));
 
     StructuredDataSource orders_avro = metaStore.getSource("ORDERS_AVRO");
-    Assert.assertTrue(orders_avro instanceof KSQLStream);
+    Assert.assertTrue(orders_avro instanceof KsqlStream);
     Assert.assertTrue(orders_avro.dataSourceType == DataSource.DataSourceType.KSTREAM);
     Assert.assertTrue(orders_avro.getSchema().fields().size() == 4);
     Assert.assertTrue(orders_avro.getKeyField().name().equalsIgnoreCase("ordertime"));
 
     StructuredDataSource users = metaStore.getSource("USERS");
-    Assert.assertTrue(users instanceof KSQLTable);
+    Assert.assertTrue(users instanceof KsqlTable);
     Assert.assertTrue(users.dataSourceType == DataSource.DataSourceType.KTABLE);
     Assert.assertTrue(users.getSchema().fields().size() == 4);
     Assert.assertTrue(users.getKeyField().name().equalsIgnoreCase("userid"));
@@ -82,7 +82,7 @@ public class MetastoreUtilTest {
 
     String topicName = "TOPIC_NAME";
     String kafkaTopicName = "KAFKA_TOPIC_NAME";
-    KSQLTopic topic = new KSQLTopic(topicName, kafkaTopicName, new KSQLJsonTopicSerDe(null));
+    KsqlTopic topic = new KsqlTopic(topicName, kafkaTopicName, new KsqlJsonTopicSerDe(null));
     expectedMetaStore.putTopic(topic);
 
     String tableSourceName = "TABLE_SOURCE";
@@ -90,14 +90,14 @@ public class MetastoreUtilTest {
     Schema tableSchema = SchemaBuilder.struct().field(tableKeyName, Schema.BOOLEAN_SCHEMA).name(tableSourceName).build();
     Field tableKey = tableSchema.field(tableKeyName);
     String tableStateStore = "STATE_STORE";
-    expectedMetaStore.putSource(new KSQLTable(tableSourceName, tableSchema, tableKey, null, topic,
+    expectedMetaStore.putSource(new KsqlTable(tableSourceName, tableSchema, tableKey, null, topic,
                                              tableStateStore, false));
 
     String streamSourceName = "STREAM_SOURCE";
     String streamKeyName = "STREAM_KEY";
     Schema streamSchema = SchemaBuilder.struct().field(streamKeyName, Schema.INT64_SCHEMA).name(streamSourceName).build();
     Field streamKey = streamSchema.field(streamKeyName);
-    expectedMetaStore.putSource(new KSQLStream(streamSourceName, streamSchema, streamKey,
+    expectedMetaStore.putSource(new KsqlStream(streamSourceName, streamSchema, streamKey,
                                                null, topic));
 
     metastoreUtil.writeMetastoreToFile(testCatalogFile.getAbsolutePath(), expectedMetaStore);
@@ -107,21 +107,21 @@ public class MetastoreUtilTest {
     Assert.assertNotNull(testMetaStore.getSource(tableSourceName));
     Assert.assertNotNull(testMetaStore.getSource(streamSourceName));
 
-    KSQLTopic testTopic = testMetaStore.getTopic(topicName);
+    KsqlTopic testTopic = testMetaStore.getTopic(topicName);
     Assert.assertEquals(topicName, testTopic.getTopicName());
     Assert.assertEquals(kafkaTopicName, testTopic.getKafkaTopicName());
-    Assert.assertTrue(testTopic.getKsqlTopicSerDe() instanceof KSQLJsonTopicSerDe);
+    Assert.assertTrue(testTopic.getKsqlTopicSerDe() instanceof KsqlJsonTopicSerDe);
 
     StructuredDataSource testTableSource = testMetaStore.getSource(tableSourceName);
-    Assert.assertTrue(testTableSource instanceof KSQLTable);
-    KSQLTable testTable = (KSQLTable) testTableSource;
+    Assert.assertTrue(testTableSource instanceof KsqlTable);
+    KsqlTable testTable = (KsqlTable) testTableSource;
     Assert.assertEquals(tableSchema, testTable.getSchema());
     Assert.assertEquals(tableKey, testTable.getKeyField());
     Assert.assertEquals(tableStateStore, testTable.getStateStoreName());
 
     StructuredDataSource testStreamSource = testMetaStore.getSource(streamSourceName);
-    Assert.assertTrue(testStreamSource instanceof KSQLStream);
-    KSQLStream testStream = (KSQLStream) testStreamSource;
+    Assert.assertTrue(testStreamSource instanceof KsqlStream);
+    KsqlStream testStream = (KsqlStream) testStreamSource;
     Assert.assertEquals(streamSchema, testStream.getSchema());
     Assert.assertEquals(streamKey, testStream.getKeyField());
 

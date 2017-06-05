@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @JsonTypeName("currentStatus")
-public class CommandStatusEntity extends KSQLEntity {
+public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
 

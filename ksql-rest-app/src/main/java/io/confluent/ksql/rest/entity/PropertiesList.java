@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @JsonTypeName("properties")
-public class PropertiesList extends KSQLEntity {
+public class PropertiesList extends KsqlEntity {
   private final Map<String, Object> properties;
 
   @JsonCreator

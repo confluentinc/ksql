@@ -3,9 +3,9 @@
  **/
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.KSQLFunction;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KSQLFunctions;
-import io.confluent.ksql.function.udf.KUDF;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -45,7 +45,7 @@ public class ExpressionUtil {
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
     int[] columnIndexes = new int[parameterMap.size()];
-    KUDF[] kudfObjects = new KUDF[parameterMap.size()];
+    Kudf[] kudfObjects = new Kudf[parameterMap.size()];
 
     int index = 0;
     for (String parameterName : parameterMap.keySet()) {
@@ -53,7 +53,7 @@ public class ExpressionUtil {
       parameterTypes[index] = parameterMap.get(parameterName);
       columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
       if (columnIndexes[index] < 0) {
-        kudfObjects[index] = (KUDF) parameterMap.get(parameterName).newInstance();
+        kudfObjects[index] = (Kudf) parameterMap.get(parameterName).newInstance();
       } else {
         kudfObjects[index] = null;
       }
@@ -98,7 +98,7 @@ public class ExpressionUtil {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KSQLFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
+      KsqlFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
       parameterMap.put(node.getName().getSuffix(),
 //                       SchemaUtil.getJavaType(ksqlFunction.getReturnType()));
                        ksqlFunction.getKudfClass());

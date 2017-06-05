@@ -6,9 +6,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
@@ -16,7 +16,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.util.KSQLTestUtil;
+import io.confluent.ksql.util.KsqlTestUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -32,16 +32,16 @@ import java.util.List;
 public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
-  private static final KSQLParser KSQL_PARSER = new KSQLParser();
+  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   MetaStore metaStore;
   KTable kTable;
-  KSQLTable ksqlTable;
+  KsqlTable ksqlTable;
 
   @Before
   public void init() {
-    metaStore = KSQLTestUtil.getNewMetaStore();
-    ksqlTable = (KSQLTable) metaStore.getSource("TEST2");
+    metaStore = KsqlTestUtil.getNewMetaStore();
+    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     KStreamBuilder builder = new KStreamBuilder();
     kTable = builder
             .table(Serdes.String(), SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe

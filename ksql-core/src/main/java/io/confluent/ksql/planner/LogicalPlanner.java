@@ -5,15 +5,15 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.metastore.KSQLSTDOUT;
-import io.confluent.ksql.metastore.KSQLStream;
-import io.confluent.ksql.metastore.KSQLTable;
+import io.confluent.ksql.metastore.KsqlStdOut;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.KSQLBareOutputNode;
-import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
@@ -21,7 +21,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -68,18 +68,18 @@ public class LogicalPlanner {
   private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
-    if (intoDataSource instanceof KSQLSTDOUT) {
-      return new KSQLBareOutputNode(new PlanNodeId(KSQLSTDOUT.KSQL_STDOUT_NAME), sourcePlanNode,
+    if (intoDataSource instanceof KsqlStdOut) {
+      return new KsqlBareOutputNode(new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema);
     } else if (intoDataSource instanceof StructuredDataSource) {
       StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
 
       Field timestampField = null;
-      if (analysis.getIntoProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-        timestampField = SchemaUtil.getFieldByName(inputSchema, analysis.getIntoProperties().get(KSQLConfig.SINK_TIMESTAMP_COLUMN_NAME).toString());
+      if (analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+        timestampField = SchemaUtil.getFieldByName(inputSchema, analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString());
       }
 
-      return new KSQLStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
+      return new KsqlStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
                                              sourcePlanNode,
                                              inputSchema, timestampField, intoStructuredDataSource.getKsqlTopic(),
                                              intoStructuredDataSource.getKsqlTopic()
@@ -147,17 +147,17 @@ public class LogicalPlanner {
     String alias = analysis.getFromDataSources().get(0).getRight();
     Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
 
-    if (fromDataSource instanceof KSQLStream) {
-      KSQLStream fromStream = (KSQLStream) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
+    if (fromDataSource instanceof KsqlStream) {
+      KsqlStream fromStream = (KsqlStream) fromDataSource;
+      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
                                           fromDataSource.getTimestampField(),
                                           fromStream.getKsqlTopic().getTopicName(),
                                           alias, fromStream.getDataSourceType(),
                                           fromStream);
-    } else if (fromDataSource instanceof KSQLTable) {
-      KSQLTable fromTable = (KSQLTable) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KSQLTopic"), fromSchema,
+    } else if (fromDataSource instanceof KsqlTable) {
+      KsqlTable fromTable = (KsqlTable) fromDataSource;
+      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromSchema,
                                           fromDataSource.getKeyField(),
                                           fromDataSource.getTimestampField(),
                                           fromTable.getKsqlTopic().getTopicName(),

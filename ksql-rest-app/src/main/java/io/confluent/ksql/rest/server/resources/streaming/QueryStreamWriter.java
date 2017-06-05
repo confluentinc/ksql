@@ -4,7 +4,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -26,7 +26,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final AtomicReference<Throwable> streamsException;
 
-  QueryStreamWriter(KSQLEngine ksqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
+  QueryStreamWriter(KsqlEngine ksqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

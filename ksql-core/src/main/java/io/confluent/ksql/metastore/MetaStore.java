@@ -9,9 +9,9 @@ import java.util.Set;
 
 public interface MetaStore {
 
-  public KSQLTopic getTopic(String topicName);
+  public KsqlTopic getTopic(String topicName);
 
-  public void putTopic(KSQLTopic topic);
+  public void putTopic(KsqlTopic topic);
 
   public StructuredDataSource getSource(String sourceName);
 
@@ -23,7 +23,7 @@ public interface MetaStore {
 
   public Set<String> getAllStructuredDataSourceNames();
 
-  public Map<String, KSQLTopic> getAllKSQLTopics();
+  public Map<String, KsqlTopic> getAllKSQLTopics();
 
   public Set<String> getAllTopicNames();
 }

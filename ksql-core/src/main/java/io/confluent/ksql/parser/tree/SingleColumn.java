@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.Objects;
@@ -44,7 +44,7 @@ public class SingleColumn
         String expressionStr = expression.toString();
         if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
                                                                                           .ROWTIME_NAME)) {
-          throw new KSQLException(SchemaUtil.ROWTIME_NAME + " is a reserved token for implicit column."
+          throw new KsqlException(SchemaUtil.ROWTIME_NAME + " is a reserved token for implicit column."
                                   + " You cannot use it as an alias for a column.");
         }
       }
@@ -52,7 +52,7 @@ public class SingleColumn
         String expressionStr = expression.toString();
         if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(SchemaUtil
                                                                                           .ROWKEY_NAME)) {
-          throw new KSQLException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
+          throw new KsqlException(SchemaUtil.ROWKEY_NAME + " is a reserved token for implicit column."
                                   + " You cannot use it as an alias for a column.");
         }
       }

@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.udf.KUDF;
+import io.confluent.ksql.function.udf.Kudf;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -11,10 +11,10 @@ public class ExpressionMetadata {
 
   final IExpressionEvaluator expressionEvaluator;
   final int[] indexes;
-  final KUDF[] udfs;
+  final Kudf[] udfs;
   final Schema expressionType;
 
-  public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, KUDF[] udfs,
+  public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, Kudf[] udfs,
                             Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
     this.indexes = indexes;
@@ -30,7 +30,7 @@ public class ExpressionMetadata {
     return indexes;
   }
 
-  public KUDF[] getUdfs() {
+  public Kudf[] getUdfs() {
     return udfs;
   }
 

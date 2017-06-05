@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClient;
 
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ public class RemoteCli extends Cli {
       Long streamedQueryTimeoutMs,
       OutputFormat outputFormat
   ) throws IOException {
-    super(new KSQLRestClient(serverAddress), streamedQueryRowLimit, streamedQueryTimeoutMs, outputFormat);
+    super(new KsqlRestClient(serverAddress), streamedQueryRowLimit, streamedQueryTimeoutMs, outputFormat);
 
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonTypeName("queries")
-public class Queries extends KSQLEntity {
+public class Queries extends KsqlEntity {
   private final List<RunningQuery> queries;
 
   @JsonCreator

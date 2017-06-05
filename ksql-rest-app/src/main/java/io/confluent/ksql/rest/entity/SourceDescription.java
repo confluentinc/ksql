@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @JsonTypeName("description")
-public class SourceDescription extends KSQLEntity {
+public class SourceDescription extends KsqlEntity {
 
   private final String name;
   private final Schema schema;

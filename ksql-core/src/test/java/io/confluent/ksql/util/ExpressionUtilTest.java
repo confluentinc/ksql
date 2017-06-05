@@ -5,7 +5,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -17,14 +17,14 @@ import java.util.List;
 
 public class ExpressionUtilTest {
 
-    private static final KSQLParser KSQL_PARSER = new KSQLParser();
+    private static final KsqlParser KSQL_PARSER = new KsqlParser();
     private MetaStore metaStore;
     private Schema schema;
     private ExpressionUtil expressionUtil;
 
     @Before
     public void init() {
-        metaStore = KSQLTestUtil.getNewMetaStore();
+        metaStore = KsqlTestUtil.getNewMetaStore();
         schema = SchemaBuilder.struct()
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)

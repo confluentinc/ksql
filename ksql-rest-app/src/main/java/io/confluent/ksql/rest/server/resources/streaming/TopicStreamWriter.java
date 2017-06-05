@@ -5,10 +5,10 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.metastore.KSQLTopic;
-import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
-import io.confluent.ksql.serde.avro.KSQLGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -42,7 +42,7 @@ public class TopicStreamWriter implements StreamingOutput {
 
   public TopicStreamWriter(
       Map<String, Object> consumerProperties,
-      KSQLTopic ksqlTopic,
+      KsqlTopic ksqlTopic,
       long interval,
       long disconnectCheckInterval
   ) {
@@ -57,10 +57,10 @@ public class TopicStreamWriter implements StreamingOutput {
         valueDeserializer = new StringDeserializer();
         break;
       case AVRO:
-        KSQLAvroTopicSerDe avroTopicSerDe = (KSQLAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
+        KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
         Map<String, Object> avroSerdeProps = new HashMap<>();
-        avroSerdeProps.put(KSQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroTopicSerDe.getSchemaString());
-        valueDeserializer = new KSQLGenericRowAvroDeserializer(null);
+        avroSerdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroTopicSerDe.getSchemaString());
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null);
         valueDeserializer.configure(avroSerdeProps, false);
         break;
       default:

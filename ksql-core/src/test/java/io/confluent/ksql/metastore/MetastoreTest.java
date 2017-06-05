@@ -4,8 +4,8 @@
 package io.confluent.ksql.metastore;
 
 
-import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
-import io.confluent.ksql.util.KSQLTestUtil;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,18 +16,18 @@ public class MetastoreTest {
 
   @Before
   public void init() {
-    metaStore = KSQLTestUtil.getNewMetaStore();
+    metaStore = KsqlTestUtil.getNewMetaStore();
   }
 
   @Test
   public void testTopicMap() {
-    KSQLTopic ksqlTopic1 = new KSQLTopic("testTopic", "testTopicKafka", new KSQLJsonTopicSerDe(null));
+    KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe(null));
     metaStore.putTopic(ksqlTopic1);
-    KSQLTopic ksqlTopic2 = metaStore.getTopic("testTopic");
+    KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);
 
     // Check non-existent topic
-    KSQLTopic ksqlTopic3 = metaStore.getTopic("TESTTOPIC_");
+    KsqlTopic ksqlTopic3 = metaStore.getTopic("TESTTOPIC_");
     Assert.assertNull(ksqlTopic3);
   }
 
@@ -45,7 +45,7 @@ public class MetastoreTest {
   @Test
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource structuredDataSource2 = new KSQLStream("testStream",
+    StructuredDataSource structuredDataSource2 = new KsqlStream("testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
                                                                structuredDataSource1.getTimestampField(),

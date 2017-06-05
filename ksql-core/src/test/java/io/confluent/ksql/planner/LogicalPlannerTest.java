@@ -6,7 +6,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -15,7 +15,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.util.KSQLTestUtil;
+import io.confluent.ksql.util.KsqlTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,13 +25,13 @@ import java.util.List;
 
 public class LogicalPlannerTest {
 
-  private static final KSQLParser KSQL_PARSER = new KSQLParser();
+  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = KSQLTestUtil.getNewMetaStore();
+    metaStore = KsqlTestUtil.getNewMetaStore();
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {

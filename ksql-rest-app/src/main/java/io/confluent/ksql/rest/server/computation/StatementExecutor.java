@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.KSQLEngine;
-import io.confluent.ksql.ddl.DDLConfig;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -17,11 +17,11 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.TopicUtil;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -53,12 +53,12 @@ public class StatementExecutor {
       Pattern.compile("\\s*TERMINATE\\s+([0-9]+)\\s*;?\\s*");
 
   private final TopicUtil topicUtil;
-  private final KSQLEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Map<CommandId, CommandStatusFuture> statusFutures;
 
-  public StatementExecutor(TopicUtil topicUtil, KSQLEngine ksqlEngine, StatementParser statementParser) {
+  public StatementExecutor(TopicUtil topicUtil, KsqlEngine ksqlEngine, StatementParser statementParser) {
     this.topicUtil = topicUtil;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
@@ -187,10 +187,10 @@ public class StatementExecutor {
     return result;
   }
 
-  // Copied from io.confluent.ksql.ddl.DDLEngine
+  // Copied from io.confluent.ksql.ddl.DdlEngine
   private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
-      throw new KSQLException(propertyName + " value is string and should be enclosed between " + "\"'\".");
+      throw new KsqlException(propertyName + " value is string and should be enclosed between " + "\"'\".");
     }
     return propertyValue.substring(1, propertyValue.length() - 1);
   }
@@ -234,8 +234,8 @@ public class StatementExecutor {
     if (statement instanceof CreateTopic) {
       CreateTopic createTopic = (CreateTopic) statement;
       String kafkaTopicName =
-          createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
-      kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
+          createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
+      kafkaTopicName = enforceString(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
       ksqlEngine.getDdlEngine().createTopic(createTopic);
       successMessage = "Topic created";
     } else if (statement instanceof CreateStream) {
@@ -359,7 +359,7 @@ public class StatementExecutor {
         throw new Exception(String.format("Unexpected source type for running query: %s", sourceType));
     }
 
-    String queryEntity = ((KSQLStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
+    String queryEntity = ((KsqlStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
 
     CommandId queryStatementId = new CommandId(commandType, queryEntity);
     statusStore.put(queryStatementId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));

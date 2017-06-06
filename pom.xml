@@ -29,19 +29,134 @@
     </repositories>
 
     <properties>
+        <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
+        <antlr.version>4.7</antlr.version>
+        <arg.version>0.1-SNAPSHOT</arg.version>
+        <avro.version>1.8.1</avro.version>
+        <csv.version>1.4</csv.version>
+        <guava.version>21.0</guava.version>
+        <inject.version>1</inject.version>
+        <janino.version>3.0.7</janino.version>
         <java.version>1.8</java.version>
+        <jline.version>3.2.0</jline.version>
+        <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
     </properties>
 
     <dependencyManagement>
-        <!-- Any dependency (not specified by the Confluent common POM) used by more than one sub-module goes here,
-             to unify version/scope info -->
         <dependencies>
+
+            <!-- Cross-submodule dependencies -->
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-cli</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-examples</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-rest-app</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- End cross-submodule dependencies -->
+
+            <!-- Confluent dependencies -->
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-avro-converter</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-json-serializer</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>rest-utils</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.avro</groupId>
+                <artifactId>avro-random-generator</artifactId>
+                <version>${arg.version}</version>
+            </dependency>
+            <!-- End Confluent dependencies -->
+
             <dependency>
                 <groupId>com.github.rvesse</groupId>
                 <artifactId>airline</artifactId>
                 <version>${airline.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${jsr305.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.airlift</groupId>
+                <artifactId>slice</artifactId>
+                <version>${airlift.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.inject</groupId>
+                <artifactId>javax.inject</artifactId>
+                <version>${inject.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>${csv.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>${janino.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline</artifactId>
+                <version>${jline.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -15,7 +16,12 @@ public class RemoteCli extends Cli {
       Long streamedQueryTimeoutMs,
       OutputFormat outputFormat
   ) throws IOException {
-    super(new KsqlRestClient(serverAddress), streamedQueryRowLimit, streamedQueryTimeoutMs, outputFormat);
+    super(
+        new KsqlRestClient(serverAddress),
+        streamedQueryRowLimit,
+        streamedQueryTimeoutMs,
+        outputFormat
+    );
 
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
@@ -27,7 +33,9 @@ public class RemoteCli extends Cli {
       public void printHelp() {
         terminal.writer().println("\tserver:          Show the current server");
         terminal.writer().println("\tserver <server>: Change the current server to <server>");
-        terminal.writer().println("\t                 example: \"server http://my.awesome.server.com:6969\"");
+        terminal.writer().println("\t                 example: "
+            + "\"server http://my.awesome.server.com:6969\""
+        );
       }
 
       @Override

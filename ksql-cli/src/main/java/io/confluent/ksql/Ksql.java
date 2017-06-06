@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql;
 
 import com.github.rvesse.airline.annotations.Arguments;
@@ -25,7 +26,7 @@ import java.util.Properties;
 
 public class Ksql {
 
-  public static abstract class KsqlCommand implements Runnable {
+  public abstract static class KsqlCommand implements Runnable {
     protected abstract Cli getCli() throws Exception;
 
     private static final String NON_INTERACTIVE_TEXT_OPTION_NAME = "--exec";
@@ -62,7 +63,8 @@ public class Ksql {
     @Option(
         name = OUTPUT_FORMAT_OPTION_NAME,
         description = "The output format to use "
-            + "(either 'JSON' or 'TABULAR'; can be changed during REPL as well; defaults to TABULAR)"
+            + "(either 'JSON' or 'TABULAR'; can be changed during REPL as well; "
+            + "defaults to TABULAR)"
     )
     String outputFormat = Cli.OutputFormat.TABULAR.name();
 
@@ -108,35 +110,43 @@ public class Ksql {
     @Port(acceptablePorts = PortType.ANY)
     @Option(
         name = PORT_NUMBER_OPTION_NAME,
-        description = "The portNumber to use for the connection (defaults to " + PORT_NUMBER_OPTION_DEFAULT + ")"
+        description = "The portNumber to use for the connection (defaults to "
+            + PORT_NUMBER_OPTION_DEFAULT
+            + ")"
     )
     int portNumber = PORT_NUMBER_OPTION_DEFAULT;
 
     @Option(
         name = KAFKA_BOOTSTRAP_SERVER_OPTION_NAME,
-        description = "The Kafka server to connect to (defaults to " + KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT + ")"
+        description = "The Kafka server to connect to (defaults to "
+            + KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
+            + ")"
     )
     String bootstrapServer;
 
     @Option(
         name = APPLICATION_ID_OPTION_NAME,
-        description = "The application ID to use for the created Kafka Streams instance(s) (defaults to '"
-            + APPLICATION_ID_OPTION_DEFAULT + "')"
+        description = "The application ID to use for the created Kafka Streams instance(s) "
+            + "(defaults to '"
+            + APPLICATION_ID_OPTION_DEFAULT
+            + "')"
     )
     String applicationId;
 
     @Option(
         name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
-        description = "The suffix to append to the end of the name of the command topic (defaults to '"
-            + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT + "')"
+        description = "The suffix to append to the end of the name of the command topic "
+            + "(defaults to '"
+            + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
+            + "')"
     )
     String commandTopicSuffix;
 
     @Option(
         name = PROPERTIES_FILE_OPTION_NAME,
-        description = "A file specifying properties for Ksql and its underlying Kafka Streams instance(s) "
-            + "(can specify port number, bootstrap server, etc. but these options will be overridden if also given via "
-            + "flags)"
+        description = "A file specifying properties for Ksql and its underlying Kafka Streams "
+            + "instance(s) (can specify port number, bootstrap server, etc. but these options will "
+            + "be overridden if also given via  flags)"
     )
     String propertiesFile;
 
@@ -169,7 +179,10 @@ public class Ksql {
     private void addDefaultProperties(Properties properties) {
       properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-      properties.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT);
+      properties.put(
+          KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG,
+          COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
+      );
     }
 
     private void addFileProperties(Properties properties) throws IOException {
@@ -204,18 +217,24 @@ public class Ksql {
 
     @Override
     public Cli getCli() throws Exception {
-      return new RemoteCli(server, streamedQueryRowLimit, streamedQueryTimeoutMs, parseOutputFormat());
+      return new RemoteCli(
+          server,
+          streamedQueryRowLimit,
+          streamedQueryTimeoutMs,
+          parseOutputFormat()
+      );
     }
   }
 
   public static void main(String[] args) throws IOException {
 
-    com.github.rvesse.airline.Cli<Runnable> cli = com.github.rvesse.airline.Cli.<Runnable>builder("Cli")
-        .withDescription("Kafka Query Language")
-        .withDefaultCommand(Help.class)
-        .withCommand(Local.class)
-        .withCommand(Remote.class)
-        .build();
+    com.github.rvesse.airline.Cli<Runnable> cli =
+        com.github.rvesse.airline.Cli.<Runnable>builder("Cli")
+            .withDescription("Kafka Query Language")
+            .withDefaultCommand(Help.class)
+            .withCommand(Local.class)
+            .withCommand(Remote.class)
+            .build();
 
     try {
       cli.parse(args).run();

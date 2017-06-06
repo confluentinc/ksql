@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.cli;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -105,7 +106,8 @@ public class Cli implements Closeable, AutoCloseable {
     this.restClient = restClient;
 
     this.terminal = TerminalBuilder.builder().system(true).build();
-    this.terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN); // Ignore ^C when not reading a line
+    // Ignore ^C when not reading a line
+    this.terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
 
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
@@ -222,15 +224,18 @@ public class Cli implements Closeable, AutoCloseable {
         terminal.writer().println();
         terminal.writer().println("default behavior:");
         terminal.writer().println();
-        terminal.writer().println("    Lines are read one at a time and are sent to the server as Ksql unless one of "
-            + "the following is true:"
+        terminal.writer().println("    Lines are read one at a time and are sent to the server as"
+            + "Ksql unless one of the following is true:"
         );
         terminal.writer().println();
-        terminal.writer().println("    1. The line is empty or entirely whitespace. In this case, no request is made to the server.");
+        terminal.writer().println("    1. The line is empty or entirely whitespace. In this case, "
+            + "no request is made to the server."
+        );
         terminal.writer().println();
-        terminal.writer().println("    2. The line ends with '\\'. In this case, lines are continuously read and stripped of their "
-            + "trailing newline and '\\' until one is encountered that does not end with '\\'; then, the concatenation of "
-            + "all lines read during this time is sent to the server as Ksql."
+        terminal.writer().println("    2. The line ends with '\\'. In this case, lines are "
+            + "continuously read and stripped of their trailing newline and '\\' until one is "
+            + "encountered that does not end with '\\'; then, the concatenation of all lines read "
+            + "during this time is sent to the server as Ksql."
         );
         terminal.writer().println();
       }
@@ -244,9 +249,15 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void printHelp() {
-        terminal.writer().println("\tstatus:      Get status information on all distributed statements");
-        terminal.writer().println("\tstatus <id>: Get detailed status information on the command with an ID of <id>");
-        terminal.writer().println("\t             example: \"status stream/MY_AWESOME_KSQL_STREAM\"");
+        terminal.writer().println("\tstatus:      Get status information on all distributed "
+            + "statements"
+        );
+        terminal.writer().println("\tstatus <id>: Get detailed status information on the command "
+            + "with an ID of <id>"
+        );
+        terminal.writer().println("\t             example: "
+            + "\"status stream/MY_AWESOME_KSQL_STREAM\""
+        );
       }
 
       @Override
@@ -279,7 +290,9 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println("\tprompt <prompt>: Set the primary prompt to <prompt>");
-        terminal.writer().println("\t                 example: \"prompt my_awesome_prompt>\", or \"prompt 'my ''awesome'' prompt> '\"");
+        terminal.writer().println("\t                 example: \"prompt my_awesome_prompt>\", or "
+            + "\"prompt 'my ''awesome'' prompt> '\""
+        );
       }
 
       @Override
@@ -297,12 +310,17 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println("\tprompt2 <prompt>: Set the secondary prompt to <prompt>");
-        terminal.writer().println("\t                  example: \"prompt2 my_awesome_prompt\", or \"prompt2 'my ''awesome'' prompt> '\"");
+        terminal.writer().println("\t                  example: \"prompt2 my_awesome_prompt\", or "
+            + "\"prompt2 'my ''awesome'' prompt> '\""
+        );
       }
 
       @Override
       public void execute(String commandStrippedLine) throws IOException {
-        lineReader.setVariable(LineReader.SECONDARY_PROMPT_PATTERN, parsePromptString(commandStrippedLine));
+        lineReader.setVariable(
+            LineReader.SECONDARY_PROMPT_PATTERN,
+            parsePromptString(commandStrippedLine)
+        );
       }
     });
 
@@ -311,7 +329,9 @@ public class Cli implements Closeable, AutoCloseable {
           "'%s'",
           String.join(
               "', '",
-              Arrays.stream(OutputFormat.values()).map(Object::toString).collect(Collectors.toList())
+              Arrays.stream(OutputFormat.values())
+                  .map(Object::toString)
+                  .collect(Collectors.toList())
           )
       );
 
@@ -323,7 +343,10 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println("\toutput:          View the current output format");
-        terminal.writer() .printf("\toutput <format>: Set the output format to <format> (valid formats: %s)%n", outputFormats);
+        terminal.writer() .printf(
+            "\toutput <format>: Set the output format to <format> (valid formats: %s)%n",
+            outputFormats
+        );
         terminal.writer().println("\t                 example: \"output JSON\"");
       }
 
@@ -337,7 +360,11 @@ public class Cli implements Closeable, AutoCloseable {
             outputFormat = OutputFormat.valueOf(newFormat);
             terminal.writer().printf("Output format set to %s%n", outputFormat.name());
           } catch (IllegalArgumentException exception) {
-            terminal.writer().printf("Invalid output format: '%s' (valid formats: %s)%n", newFormat, outputFormats);
+            terminal.writer().printf(
+                "Invalid output format: '%s' (valid formats: %s)%n",
+                newFormat,
+                outputFormats
+            );
           }
         }
       }
@@ -351,7 +378,9 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void printHelp() {
-        terminal.writer().println("\thistory: Show previous lines entered during the current CLI session");
+        terminal.writer().println(
+            "\thistory: Show previous lines entered during the current CLI session"
+        );
       }
 
       @Override
@@ -428,14 +457,17 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void handleStatements(String line) throws IOException, InterruptedException, ExecutionException {
+  private void handleStatements(String line)
+      throws IOException, InterruptedException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
-    for (SqlBaseParser.SingleStatementContext statementContext : new KsqlParser().getStatements(line)) {
+    for (SqlBaseParser.SingleStatementContext statementContext :
+        new KsqlParser().getStatements(line)
+    ) {
       String statementText = KsqlEngine.getStatementString(statementContext);
-      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext ||
-          statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
+      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
+          || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         if (consecutiveStatements.length() != 0) {
-          printKSQLResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+          printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
           consecutiveStatements = new StringBuilder();
         }
         if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -448,11 +480,12 @@ public class Cli implements Closeable, AutoCloseable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKSQLResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
     }
   }
 
-  private void handleStreamedQuery(String query) throws IOException, InterruptedException, ExecutionException {
+  private void handleStreamedQuery(String query)
+      throws IOException, InterruptedException, ExecutionException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
 
     if (queryResponse.isSuccessful()) {
@@ -505,7 +538,8 @@ public class Cli implements Closeable, AutoCloseable {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
-  private void handlePrintedTopic(String printTopic) throws InterruptedException, ExecutionException, IOException {
+  private void handlePrintedTopic(String printTopic)
+      throws InterruptedException, ExecutionException, IOException {
     RestResponse<InputStream> topicResponse = restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
@@ -545,9 +579,9 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void printKSQLResponse(RestResponse<KsqlEntityList> response) throws IOException {
+  private void printKsqlResponse(RestResponse<KsqlEntityList> response) throws IOException {
     if (response.isSuccessful()) {
-      printKSQLEntityList(response.getResponse());
+      printKsqlEntityList(response.getResponse());
     } else {
       printErrorMessage(response.getErrorMessage());
     }
@@ -565,7 +599,10 @@ public class Cli implements Closeable, AutoCloseable {
           printAsTable(row.getRow());
           break;
         default:
-          throw new RuntimeException(String.format("Unexpected output format: '%s'", outputFormat.name()));
+          throw new RuntimeException(String.format(
+              "Unexpected output format: '%s'",
+              outputFormat.name()
+          ));
       }
     }
   }
@@ -579,7 +616,10 @@ public class Cli implements Closeable, AutoCloseable {
         printAsTable(status);
         break;
       default:
-        throw new RuntimeException(String.format("Unexpected output format: '%s'", outputFormat.name()));
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'",
+            outputFormat.name()
+        ));
     }
   }
 
@@ -592,11 +632,13 @@ public class Cli implements Closeable, AutoCloseable {
         printAsTable(statuses);
         break;
       default:
-        throw new RuntimeException(String.format("Unexpected output format: '%s'", outputFormat.name()));
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'", outputFormat.name()
+        ));
     }
   }
 
-  private void printKSQLEntityList(List<KsqlEntity> entityList) throws IOException {
+  private void printKsqlEntityList(List<KsqlEntity> entityList) throws IOException {
     switch (outputFormat) {
       case JSON:
         printAsJson(entityList);
@@ -608,7 +650,10 @@ public class Cli implements Closeable, AutoCloseable {
         }
         break;
       default:
-        throw new RuntimeException(String.format("Unexpected output format: '%s'", outputFormat.name()));
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'",
+            outputFormat.name()
+        ));
     }
   }
 
@@ -643,8 +688,10 @@ public class Cli implements Closeable, AutoCloseable {
       Map<String, Object> properties = ((PropertiesList) ksqlEntity).getProperties();
       columnHeaders = Arrays.asList("Property", "Value");
       rowValues = properties.entrySet().stream()
-          .map(propertyEntry -> Arrays.asList(propertyEntry.getKey(), Objects.toString(propertyEntry.getValue())))
-          .collect(Collectors.toList());
+          .map(propertyEntry -> Arrays.asList(
+              propertyEntry.getKey(),
+              Objects.toString(propertyEntry.getValue())
+          )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
       columnHeaders = Arrays.asList("ID", "Kafka Topic", "Query String");
@@ -652,8 +699,8 @@ public class Cli implements Closeable, AutoCloseable {
           .map(runningQuery -> Arrays.asList(
               Long.toString(runningQuery.getId()),
               runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString())
-          ).collect(Collectors.toList());
+              runningQuery.getQueryString()
+          )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SetProperty) {
       SetProperty setProperty = (SetProperty) ksqlEntity;
       columnHeaders = Arrays.asList("Property", "Prior Value", "New Value");
@@ -688,12 +735,16 @@ public class Cli implements Closeable, AutoCloseable {
       List<TopicsList.TopicInfo> topicInfos = ((TopicsList) ksqlEntity).getTopics();
       columnHeaders = Arrays.asList("Topic Name", "Kafka Topic", "Format");
       rowValues = topicInfos.stream()
-          .map(topicInfo -> Arrays.asList(topicInfo.getName(), topicInfo.getKafkaTopic(), topicInfo.getFormat().name()))
-          .collect(Collectors.toList());
+          .map(topicInfo -> Arrays.asList(
+              topicInfo.getName(),
+              topicInfo.getKafkaTopic(),
+              topicInfo.getFormat().name()
+          )).collect(Collectors.toList());
     } else {
-      throw new RuntimeException(
-          String.format("Unexpected KsqlEntity class: '%s'", ksqlEntity.getClass().getCanonicalName())
-      );
+      throw new RuntimeException(String.format(
+          "Unexpected KsqlEntity class: '%s'",
+          ksqlEntity.getClass().getCanonicalName()
+      ));
     }
     printTable(columnHeaders, rowValues);
   }
@@ -708,8 +759,10 @@ public class Cli implements Closeable, AutoCloseable {
   private void printAsTable(CommandStatuses statuses) {
     List<String> columnHeaders = Arrays.asList("Command ID", "Status");
     List<List<String>> rowValues = statuses.entrySet().stream()
-        .map(statusEntry -> Arrays.asList(statusEntry.getKey().toString(), statusEntry.getValue().name()))
-        .collect(Collectors.toList());
+        .map(statusEntry -> Arrays.asList(
+            statusEntry.getKey().toString(),
+            statusEntry.getValue().name()
+        )).collect(Collectors.toList());
     printTable(columnHeaders, rowValues);
   }
 
@@ -753,8 +806,9 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private static String constructRowFormatString(Integer... lengths) {
-    List<String> columnFormatStrings =
-        Arrays.stream(lengths).map(Cli::constructSingleColumnFormatString).collect(Collectors.toList());
+    List<String> columnFormatStrings = Arrays.stream(lengths)
+        .map(Cli::constructSingleColumnFormatString)
+        .collect(Collectors.toList());
     return String.format(" %s %n", String.join(" | ", columnFormatStrings));
   }
 
@@ -764,12 +818,14 @@ public class Cli implements Closeable, AutoCloseable {
 
   protected interface CliSpecificCommand {
     String getName();
+
     void printHelp();
+
     void execute(String commandStrippedLine) throws IOException;
   }
 
-  // Have to enable event expansion or multi-line parsing won't work, so a quick 'n dirty workaround will have to do to
-  // prevent strings like !! from being expanded by the line reader
+  // Have to enable event expansion or multi-line parsing won't work, so a quick 'n dirty workaround
+  // will have to do to prevent strings like !! from being expanded by the line reader
   private static class NoOpExpander extends DefaultExpander {
     @Override
     public String expandHistory(History history, String line) {

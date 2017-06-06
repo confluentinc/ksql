@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -47,11 +48,11 @@ public class LocalCli extends Cli {
 
             1. A user makes a request for a streamed query.
             2. The user terminates the request for the streamed query.
-            3. Before the thread(s) responsible for streaming the query have terminated, serverApplication.stop() is
-               called.
+            3. Before the thread(s) responsible for streaming the query have terminated,
+               serverApplication.stop() is called.
 
-          Even if the threads then manage to terminate within the graceful shutdown window for the server, the
-          TimeoutException is still thrown.
+          Even if the threads then manage to terminate within the graceful shutdown window for the
+          server, the TimeoutException is still thrown.
 
           TODO: Prevent the TimeoutException from being thrown when this happens.
        */

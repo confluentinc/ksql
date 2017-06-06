@@ -46,13 +46,14 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
           Expression baseExpression = new QualifiedNameReference(QualifiedName.of(analysis
                                                                                       .getJoin()
                                                                                       .getLeftAlias()));
-          argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWKEY_NAME);
+          argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         } else {
           Expression baseExpression = new QualifiedNameReference(QualifiedName.of(analysis
                                                                                       .getFromDataSources().get(0).getRight()));
-          argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWKEY_NAME);
+          argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         }
         aggregateAnalysis.aggregateFunctionArguments.add(argExpression);
+        node.getArguments().add(argExpression);
       } else {
         aggregateAnalysis.aggregateFunctionArguments.add(node.getArguments().get(0));
       }

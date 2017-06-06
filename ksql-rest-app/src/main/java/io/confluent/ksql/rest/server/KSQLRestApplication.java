@@ -160,8 +160,7 @@ public class KSQLRestApplication extends Application<KSQLRestConfig> {
     KSQLRestConfig config = new KSQLRestConfig(props);
 
     @SuppressWarnings("unchecked")
-    AdminClient client = AdminClient.create((Map) props);
-    TopicUtil topicUtil = new TopicUtil(client);
+    TopicUtil topicUtil = new TopicUtil(config);
 
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();

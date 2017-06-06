@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -50,9 +51,9 @@ public class SetProperty extends KsqlEntity {
       return false;
     }
     SetProperty that = (SetProperty) o;
-    return Objects.equals(getProperty(), that.getProperty()) &&
-        Objects.equals(getOldValue(), that.getOldValue()) &&
-        Objects.equals(getNewValue(), that.getNewValue());
+    return Objects.equals(getProperty(), that.getProperty())
+        && Objects.equals(getOldValue(), that.getOldValue())
+        && Objects.equals(getNewValue(), that.getNewValue());
   }
 
   @Override

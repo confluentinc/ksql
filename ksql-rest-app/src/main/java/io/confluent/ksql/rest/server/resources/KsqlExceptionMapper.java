@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.ErrorMessage;
@@ -21,5 +22,4 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
         .entity(new ErrorMessage(exception))
         .build();
   }
-
 }

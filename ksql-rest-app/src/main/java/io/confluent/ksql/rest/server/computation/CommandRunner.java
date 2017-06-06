@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.computation;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,9 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Handles the logic of reading distributed commands, including pre-existing commands that were issued before being
- * initialized, and then delegating their execution to a {@link StatementExecutor}. Also responsible for taking care of
- * any exceptions that occur in the process.
+ * Handles the logic of reading distributed commands, including pre-existing commands that were
+ * issued before being initialized, and then delegating their execution to a
+ * {@link StatementExecutor}. Also responsible for taking care of any exceptions that occur in the
+ * process.
  */
 public class CommandRunner implements Runnable, Closeable {
 
@@ -39,8 +41,8 @@ public class CommandRunner implements Runnable, Closeable {
   }
 
   /**
-   * Begin a continuous poll-execute loop for the command topic, stopping only if either a {@link WakeupException} is
-   * thrown or the {@link #close()} method is called.
+   * Begin a continuous poll-execute loop for the command topic, stopping only if either a
+   * {@link WakeupException} is thrown or the {@link #close()} method is called.
    */
   @Override
   public void run() {
@@ -97,5 +99,4 @@ public class CommandRunner implements Runnable, Closeable {
       log.error("Exception encountered during poll-parse-execute loop: " + stringWriter.toString());
     }
   }
-
 }

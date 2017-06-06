@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -156,7 +157,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     log.info("Server shutting down");
   }
 
-  public static KsqlRestApplication buildApplication(Properties props, boolean quickstart) throws Exception {
+  public static KsqlRestApplication buildApplication(Properties props, boolean quickstart)
+      throws Exception {
     KsqlRestConfig config = new KsqlRestConfig(props);
 
     @SuppressWarnings("unchecked")
@@ -170,7 +172,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     String commandTopic = config.getCommandTopic();
     if (!topicUtil.ensureTopicExists(commandTopic)) {
-      throw new Exception(String.format("Failed to guarantee existence of command topic '%s'", commandTopic));
+      throw new Exception(
+          String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
+      );
     }
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();

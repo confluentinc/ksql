@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.ksql.KsqlEngine;
@@ -57,9 +58,13 @@ public class StreamedQueryResource {
     } else if (statement instanceof PrintTopic) {
       PrintTopic printTopic = (PrintTopic) statement;
       String topicName = printTopic.getTopic().toString();
-      Long interval = Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
+      Long interval =
+          Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
       KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(printTopic.getTopic().toString());
-      Objects.requireNonNull(ksqlTopic, String.format("Could not find topic '%s' in the metastore", topicName));
+      Objects.requireNonNull(
+          ksqlTopic,
+          String.format("Could not find topic '%s' in the metastore", topicName)
+      );
       Map<String, Object> consumerProperties =
           new StreamsConfig(ksqlEngine.getStreamsProperties()).getRestoreConsumerConfigs(null);
       TopicStreamWriter topicStreamWriter =
@@ -67,9 +72,10 @@ public class StreamedQueryResource {
       log.info("Printing topic '{}'", topicName);
       return Response.ok().entity(topicStreamWriter).build();
     } else {
-      throw new Exception(
-          String.format("Statement type `%s' not supported for this resource", statement.getClass().getName())
-      );
+      throw new Exception(String.format(
+          "Statement type `%s' not supported for this resource",
+          statement.getClass().getName()
+      ));
     }
   }
 }

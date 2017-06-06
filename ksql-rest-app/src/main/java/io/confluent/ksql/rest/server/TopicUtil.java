@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import org.apache.kafka.common.requests.MetadataResponse;
@@ -19,20 +20,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 
 public class TopicUtil implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(TopicUtil.class);
 
   private final StreamsKafkaClient streamsKafkaClient;
 
-  public TopicUtil(KSQLRestConfig config) {
-    this.streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(config.getKsqlStreamsProperties()));
+  public TopicUtil(KsqlRestConfig config) {
+    this.streamsKafkaClient =
+        new StreamsKafkaClient(new StreamsConfig(config.getKsqlStreamsProperties()));
   }
 
   /**
-   * Synchronously check for the existence of a topic and, in the event that it does not exist, create it with a single
-   * partition and a replication factor of 1.
+   * Synchronously check for the existence of a topic and, in the event that it does not exist,
+   * create it with a single partition and a replication factor of 1.
    * TODO: Think about num partitions / replication factor to use here
    * @param topic The name of the topic to create
    * @return Whether or not the operation succeeded.
@@ -40,15 +42,17 @@ public class TopicUtil implements Closeable {
   public boolean ensureTopicExists(String topic) {
     try {
       if (!topicExists(topic)) {
-        InternalTopicConfig internalTopicConfig = new InternalTopicConfig(topic, Utils.mkSet(InternalTopicConfig.CleanupPolicy.compact, InternalTopicConfig.CleanupPolicy.delete), Collections.<String, String>emptyMap());
+        log.info("Creating topic '{}'", topic);
+        InternalTopicConfig internalTopicConfig = new InternalTopicConfig(
+            topic,
+            Utils.mkSet(
+                InternalTopicConfig.CleanupPolicy.compact,
+                InternalTopicConfig.CleanupPolicy.delete),
+            Collections.emptyMap()
+        );
         Map<InternalTopicConfig, Integer> topics = new HashMap<>();
-        int numberOfPartitions = 1;
-        short numberOfReplications = 1;
-        long windowChangeLogAdditionalRetention = 1000000;
-        topics.put(internalTopicConfig, numberOfPartitions);
-        streamsKafkaClient.createTopics(topics, numberOfReplications, +
-            windowChangeLogAdditionalRetention, streamsKafkaClient
-                                            .fetchMetadata());
+        topics.put(internalTopicConfig, 1);
+        streamsKafkaClient.createTopics(topics, 1, 1000000L, streamsKafkaClient.fetchMetadata());
       }
       return true;
     } catch (Exception exception) {
@@ -82,7 +86,7 @@ public class TopicUtil implements Closeable {
     try {
       streamsKafkaClient.close();
     } catch (IOException e) {
-      throw new KSQLException("Exception encountered while closing StreamsKafkaClient.", e);
+      throw new KsqlException("Exception encountered while closing StreamsKafkaClient.", e);
     }
   }
 }

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -28,8 +29,12 @@ public class StreamsList extends KsqlEntity {
     this.streams = streams;
   }
 
-  public static StreamsList fromKsqlStreams(String statementText, Collection<KsqlStream> ksqlStreams) {
-    Collection<StreamInfo> streamInfos = ksqlStreams.stream().map(StreamInfo::new).collect(Collectors.toList());
+  public static StreamsList fromKsqlStreams(
+      String statementText,
+      Collection<KsqlStream> ksqlStreams
+  ) {
+    Collection<StreamInfo> streamInfos =
+        ksqlStreams.stream().map(StreamInfo::new).collect(Collectors.toList());
     return new StreamsList(statementText, streamInfos);
   }
 
@@ -92,8 +97,8 @@ public class StreamsList extends KsqlEntity {
         return false;
       }
       StreamInfo that = (StreamInfo) o;
-      return Objects.equals(getName(), that.getName()) &&
-          Objects.equals(getTopic(), that.getTopic());
+      return Objects.equals(getName(), that.getName())
+          && Objects.equals(getTopic(), that.getTopic());
     }
 
     @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -32,7 +33,9 @@ public class ErrorMessage {
   }
 
   public static List<String> getStackTraceStrings(Throwable exception) {
-    return Arrays.stream(exception.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.toList());
+    return Arrays.stream(exception.getStackTrace())
+        .map(StackTraceElement::toString)
+        .collect(Collectors.toList());
   }
 
   public String getMessage() {
@@ -52,8 +55,8 @@ public class ErrorMessage {
       return false;
     }
     ErrorMessage that = (ErrorMessage) o;
-    return Objects.equals(getMessage(), that.getMessage()) &&
-        Objects.equals(getStackTrace(), that.getStackTrace());
+    return Objects.equals(getMessage(), that.getMessage())
+        && Objects.equals(getStackTrace(), that.getStackTrace());
   }
 
   @Override

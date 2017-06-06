@@ -118,7 +118,7 @@ public class KsqlResourceTest {
 
     testResource.replayAll();
 
-    Object responseEntity = testResource.handleKSQLStatements(new KsqlRequest(ksqlString)).getEntity();
+    Object responseEntity = testResource.handleKsqlStatements(new KsqlRequest(ksqlString)).getEntity();
     assertThat(responseEntity, instanceOf(List.class));
 
     List responseList = (List) responseEntity;

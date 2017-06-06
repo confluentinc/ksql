@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.KsqlEngine;
@@ -82,7 +83,7 @@ public class KsqlResource {
   }
 
   @POST
-  public Response handleKSQLStatements(KsqlRequest request) throws Exception {
+  public Response handleKsqlStatements(KsqlRequest request) throws Exception {
     List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
     List<String> statementStrings = getStatementStrings(request.getKsql());
     if (parsedStatements.size() != statementStrings.size()) {
@@ -105,7 +106,8 @@ public class KsqlResource {
   }
 
   public List<String> getStatementStrings(String ksqlString) {
-    List<SqlBaseParser.SingleStatementContext> statementContexts = new KsqlParser().getStatements(ksqlString);
+    List<SqlBaseParser.SingleStatementContext> statementContexts =
+        new KsqlParser().getStatements(ksqlString);
     List<String> result = new ArrayList<>(statementContexts.size());
     for (SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
       // Taken from http://stackoverflow.com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
@@ -171,13 +173,18 @@ public class KsqlResource {
   }
 
   private TopicsList listTopics(String statementText) {
-    return TopicsList.fromKsqlTopics(statementText, ksqlEngine.getMetaStore().getAllKSQLTopics().values());
+    return TopicsList.fromKsqlTopics(
+        statementText,
+        ksqlEngine.getMetaStore().getAllKSQLTopics().values()
+    );
   }
 
   // Only shows queries running on the current machine, not across the entire cluster
   private Queries showQueries(String statementText) {
     List<Queries.RunningQuery> runningQueries = new ArrayList<>();
-    for (PersistentQueryMetadata persistentQueryMetadata : ksqlEngine.getPersistentQueries().values()) {
+    for (PersistentQueryMetadata persistentQueryMetadata :
+        ksqlEngine.getPersistentQueries().values()
+    ) {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) persistentQueryMetadata.getOutputNode();
 
@@ -199,11 +206,15 @@ public class KsqlResource {
   }
 
   // TODO: Right now properties can only be set for a single node. Do we want to distribute this?
-  private io.confluent.ksql.rest.entity.SetProperty setProperty(String statementText, SetProperty setProperty) {
+  private io.confluent.ksql.rest.entity.SetProperty setProperty(
+      String statementText,
+      SetProperty setProperty
+  ) {
     String property = setProperty.getPropertyName();
     Object newValue = setProperty.getPropertyValue();
     Object oldValue = ksqlEngine.setStreamsProperty(property, newValue);
-    return new io.confluent.ksql.rest.entity.SetProperty(statementText, property, oldValue, newValue);
+    return new
+        io.confluent.ksql.rest.entity.SetProperty(statementText, property, oldValue, newValue);
   }
 
   private PropertiesList listProperties(String statementText) {

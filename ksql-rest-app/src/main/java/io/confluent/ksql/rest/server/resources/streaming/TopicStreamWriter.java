@@ -1,8 +1,8 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.ksql.rest.server.resources.streaming;
 
+package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -59,17 +59,24 @@ public class TopicStreamWriter implements StreamingOutput {
       case AVRO:
         KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
         Map<String, Object> avroSerdeProps = new HashMap<>();
-        avroSerdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroTopicSerDe.getSchemaString());
+        avroSerdeProps.put(
+            KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG,
+            avroTopicSerDe.getSchemaString()
+        );
         valueDeserializer = new KsqlGenericRowAvroDeserializer(null);
         valueDeserializer.configure(avroSerdeProps, false);
         break;
       default:
-        throw new RuntimeException(String.format("Unexpected SerDe type: %s", ksqlTopic.getDataSourceType().name()));
+        throw new RuntimeException(String.format(
+            "Unexpected SerDe type: %s",
+            ksqlTopic.getDataSourceType().name()
+        ));
     }
 
     this.disconnectCheckInterval = disconnectCheckInterval;
 
-    this.topicConsumer = new KafkaConsumer<>(consumerProperties, new StringDeserializer(), valueDeserializer);
+    this.topicConsumer =
+        new KafkaConsumer<>(consumerProperties, new StringDeserializer(), valueDeserializer);
     List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(kafkaTopic)
         .stream()
         .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))

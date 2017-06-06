@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -50,8 +51,8 @@ public class StreamedRow {
       return false;
     }
     StreamedRow that = (StreamedRow) o;
-    return Objects.equals(getRow(), that.getRow()) &&
-        Objects.equals(getErrorMessage(), that.getErrorMessage());
+    return Objects.equals(getRow(), that.getRow())
+        && Objects.equals(getErrorMessage(), that.getErrorMessage());
   }
 
   @Override

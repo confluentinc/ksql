@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import com.github.rvesse.airline.HelpOption;
@@ -29,18 +30,22 @@ public class CliOptions {
   @Required
   @Arguments(
       title = "properties-file",
-      description = "A file specifying properties for the KSQL Server, KSQL, and its underlying Kafka Streams instance(s)"
+      description = "A file specifying properties for the KSQL Server, KSQL, "
+          + "and its underlying Kafka Streams instance(s)"
   )
   private String propertiesFile;
+
   public String getPropertiesFile() {
     return propertiesFile;
   }
 
   @Option(
       name = QUICKSTART_OPTION_NAME,
-      description = "Whether to serve a quickstart file (located in the resources directory) at /quickstart.html"
+      description = "Whether to serve a quickstart file (located in the resources directory) "
+          + "at /quickstart.html"
   )
   private boolean quickstart;
+
   public boolean getQuickstart() {
     return quickstart;
   }
@@ -49,7 +54,8 @@ public class CliOptions {
 
     SingleCommand<CliOptions> optionsParser = SingleCommand.singleCommand(CliOptions.class);
 
-    // If just a help flag is given, an exception will be thrown due to missing required options; hence, this workaround
+    // If just a help flag is given, an exception will be thrown due to missing required options;
+    // hence, this workaround
     for (String arg : args) {
       if ("--help".equals(arg) || "-h".equals(arg)) {
         Help.help(optionsParser.getCommandMetadata());

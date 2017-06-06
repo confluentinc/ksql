@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -65,9 +66,9 @@ public class Queries extends KsqlEntity {
         return false;
       }
       RunningQuery that = (RunningQuery) o;
-      return getId() == that.getId() &&
-          Objects.equals(getQueryString(), that.getQueryString()) &&
-          Objects.equals(getKafkaTopic(), that.getKafkaTopic());
+      return getId() == that.getId()
+          && Objects.equals(getQueryString(), that.getQueryString())
+          && Objects.equals(getKafkaTopic(), that.getKafkaTopic());
     }
 
     @Override

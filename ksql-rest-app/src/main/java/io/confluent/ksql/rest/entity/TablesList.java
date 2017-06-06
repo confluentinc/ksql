@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -29,7 +30,8 @@ public class TablesList extends KsqlEntity {
   }
 
   public static TablesList fromKsqlTables(String statementText, Collection<KsqlTable> ksqlTables) {
-    Collection<TableInfo> tableInfos = ksqlTables.stream().map(TableInfo::new).collect(Collectors.toList());
+    Collection<TableInfo> tableInfos =
+        ksqlTables.stream().map(TableInfo::new).collect(Collectors.toList());
     return new TablesList(statementText, tableInfos);
   }
 
@@ -108,10 +110,10 @@ public class TablesList extends KsqlEntity {
         return false;
       }
       TableInfo tableInfo = (TableInfo) o;
-      return getIsWindowed() == tableInfo.getIsWindowed() &&
-          Objects.equals(getName(), tableInfo.getName()) &&
-          Objects.equals(getTopic(), tableInfo.getTopic()) &&
-          Objects.equals(getStateStoreName(), tableInfo.getStateStoreName());
+      return getIsWindowed() == tableInfo.getIsWindowed()
+          && Objects.equals(getName(), tableInfo.getName())
+          && Objects.equals(getTopic(), tableInfo.getTopic())
+          && Objects.equals(getStateStoreName(), tableInfo.getStateStoreName());
     }
 
     @Override

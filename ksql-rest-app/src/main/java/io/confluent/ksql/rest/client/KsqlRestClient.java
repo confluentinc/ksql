@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +48,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.serverAddress = serverAddress;
   }
 
-  public RestResponse<KsqlEntityList> makeKSQLRequest(String ksql) {
+  public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
     KsqlRequest jsonRequest = new KsqlRequest(ksql);
     Response response = makePostRequest("ksql", jsonRequest);
     KsqlEntityList result = response.readEntity(KsqlEntityList.class);
@@ -148,7 +149,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
           try {
             bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
           } catch (IOException exception) {
-            // TODO: Should the exception be handled somehow else? Swallowing it silently seems like a bad idea...
+            // TODO: Should the exception be handled somehow else?
+            // Swallowing it silently seems like a bad idea...
             throw new RuntimeException(exception);
           }
           return true;

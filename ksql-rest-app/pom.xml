@@ -2,12 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <artifactId>KSQL</artifactId>
-        <groupId>KSQL</groupId>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksql-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ksql-rest-app</artifactId>
 
@@ -18,81 +19,41 @@
         <cli.main-class>${main-class}</cli.main-class>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <url>http://packages.confluent.io/maven/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
-
         <dependency>
-            <groupId>KSQL</groupId>
+            <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-core</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-json-serializer</artifactId>
-            <version>${confluent.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>adminclient</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>rest-utils</artifactId>
-            <version>${confluent.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>javax.json</groupId>
-            <artifactId>javax.json-api</artifactId>
-            <version>1.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-            <version>1.0.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.8.8</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
-            <version>2.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
-            <version>0.11.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
-            <version>3.4</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.google.dexmaker</groupId>
-            <artifactId>dexmaker</artifactId>
-            <version>1.1</version>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -102,13 +63,10 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>executable</shadedClassifierName>
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -117,16 +75,6 @@
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
                         </configuration>
                     </execution>
                 </executions>
@@ -141,5 +89,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

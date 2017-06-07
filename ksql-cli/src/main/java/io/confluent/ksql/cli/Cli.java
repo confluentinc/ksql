@@ -355,15 +355,8 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void execute(String commandStrippedLine) throws IOException {
-        String previousLine = null;
         for (History.Entry historyEntry : lineReader.getHistory()) {
-          String trimmedLine = historyEntry.line().trim();
-          String[] commandArgs = trimmedLine.split("\\s+", 2);
-          CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(commandArgs[0].toLowerCase());
-          if (cliSpecificCommand == null && !Objects.equals(previousLine, trimmedLine)) {
-            terminal.writer().println(trimmedLine);
-            previousLine = trimmedLine;
-          }
+          terminal.writer().printf("%4d: %s%n", historyEntry.index(), historyEntry.line());
         }
         terminal.flush();
       }

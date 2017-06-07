@@ -20,8 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import io.confluent.ksql.util.KsqlException;
-
 public class TopicUtil implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(TopicUtil.class);
 
@@ -85,8 +83,8 @@ public class TopicUtil implements Closeable {
   public void close() {
     try {
       streamsKafkaClient.close();
-    } catch (IOException e) {
-      throw new KsqlException("Exception encountered while closing StreamsKafkaClient.", e);
+    } catch (IOException exception) {
+      log.warn("IOException encountered while trying to close topic client", exception);
     }
   }
 }

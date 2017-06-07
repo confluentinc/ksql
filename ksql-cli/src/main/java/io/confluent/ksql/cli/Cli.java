@@ -30,12 +30,15 @@ import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import org.apache.kafka.connect.data.Field;
 import org.jline.reader.EndOfFileException;
+import org.jline.reader.Expander;
+import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
+import org.jline.reader.impl.DefaultExpander;
+import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -67,7 +70,7 @@ public class Cli implements Closeable, AutoCloseable {
     TABULAR
   }
 
-  private static final String DEFAULT_PRIMARY_PROMPT = "ksql> ";
+  private static final String DEFAULT_PRIMARY_PROMPT   = "ksql> ";
   private static final String DEFAULT_SECONDARY_PROMPT = "      ";
 
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
@@ -84,7 +87,6 @@ public class Cli implements Closeable, AutoCloseable {
   protected final LineReader lineReader;
 
   private String primaryPrompt;
-  private String secondaryPrompt;
 
   private OutputFormat outputFormat;
 
@@ -104,14 +106,26 @@ public class Cli implements Closeable, AutoCloseable {
     this.terminal = TerminalBuilder.builder().system(true).build();
     this.terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN); // Ignore ^C when not reading a line
 
-    // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
-    this.lineReader = LineReaderBuilder.builder().appName("KSQL").terminal(terminal).build();
+    DefaultParser parser = new DefaultParser();
+    parser.setEofOnEscapedNewLine(true);
+    parser.setQuoteChars(new char[0]);
+    parser.setEscapeChars(new char[] {'\\'});
 
-    // Otherwise, things like '!=' will cause things to break
-    this.lineReader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
+    Expander expander = new NoOpExpander();
+
+    // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
+    this.lineReader = LineReaderBuilder.builder()
+        .appName("KSQL")
+        .expander(expander)
+        .parser(parser)
+        .terminal(terminal)
+        .build();
+
+    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
+    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
+    this.lineReader.setVariable(LineReader.SECONDARY_PROMPT_PATTERN, DEFAULT_SECONDARY_PROMPT);
 
     this.primaryPrompt = DEFAULT_PRIMARY_PROMPT;
-    this.secondaryPrompt = DEFAULT_SECONDARY_PROMPT;
 
     this.outputFormat = outputFormat;
 
@@ -120,8 +134,7 @@ public class Cli implements Closeable, AutoCloseable {
     this.cliSpecificCommands = new LinkedHashMap<>();
     registerDefaultCliSpecificCommands();
 
-    this.objectMapper = new ObjectMapper()
-        .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
 
     new SchemaMapper().registerToObjectMapper(objectMapper);
   }
@@ -288,7 +301,7 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void execute(String commandStrippedLine) throws IOException {
-        secondaryPrompt = parsePromptString(commandStrippedLine);
+        lineReader.setVariable(LineReader.SECONDARY_PROMPT_PATTERN, parsePromptString(commandStrippedLine));
       }
     });
 
@@ -332,6 +345,26 @@ public class Cli implements Closeable, AutoCloseable {
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
       public String getName() {
+        return "history";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\thistory: Show previous lines entered during the current CLI session");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        for (History.Entry historyEntry : lineReader.getHistory()) {
+          terminal.writer().printf("%4d: %s%n", historyEntry.index(), historyEntry.line());
+        }
+        terminal.flush();
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
         return "exit";
       }
 
@@ -352,7 +385,7 @@ public class Cli implements Closeable, AutoCloseable {
       throw new RuntimeException("Prompt command must be followed by a new prompt to use");
     }
 
-    String trimmedLine = commandStrippedLine.trim();
+    String trimmedLine = commandStrippedLine.trim().replace("%", "%%");
     if (trimmedLine.contains("'")) {
       Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(trimmedLine);
       if (quotedPromptMatcher.matches()) {
@@ -384,15 +417,9 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private String readLine() throws IOException {
-    StringBuilder result = new StringBuilder();
     while (true) {
       try {
-        String line = Optional.ofNullable(lineReader.readLine(primaryPrompt)).orElse("").trim();
-        while (line.endsWith("\\")) {
-          result.append(line.substring(0, line.length() - 1));
-          line = Optional.ofNullable(lineReader.readLine(secondaryPrompt)).orElse("").trim();
-        }
-        return result.append(line).toString().trim();
+        return Optional.ofNullable(lineReader.readLine(primaryPrompt)).map(String::trim).orElse("");
       } catch (UserInterruptException exception) {
         terminal.writer().println("^C");
         terminal.flush();
@@ -428,7 +455,6 @@ public class Cli implements Closeable, AutoCloseable {
     RestResponse<KSQLRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
 
     if (queryResponse.isSuccessful()) {
-      displayQueryTerminateInstructions();
       try (KSQLRestClient.QueryStream queryStream = queryResponse.getResponse()) {
         Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
           @Override
@@ -466,7 +492,6 @@ public class Cli implements Closeable, AutoCloseable {
           // It's fine
         }
       } finally {
-        eraseQueryTerminateInstructions();
         terminal.writer().println("Query terminated");
         terminal.writer().flush();
       }
@@ -517,44 +542,6 @@ public class Cli implements Closeable, AutoCloseable {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());
       terminal.flush();
     }
-  }
-
-  private void displayQueryTerminateInstructions() throws InterruptedException {
-//    Doesn't work on my Mac
-//    terminal.puts(InfoCmp.Capability.cursor_to_ll);
-    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
-
-    terminal.puts(InfoCmp.Capability.delete_line);
-
-    terminal.puts(InfoCmp.Capability.enter_standout_mode);
-    terminal.writer().print("Use ^C to terminate the query");
-    terminal.puts(InfoCmp.Capability.exit_standout_mode);
-
-    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 2);
-
-    // There's got to be a better way to do this. The idea is to clear the screen and move the cursor to the top-left
-    // corner, but without actually erasing any output that might be on the terminal screen beforehand.
-    terminal.puts(InfoCmp.Capability.cursor_home);
-    for (int i = 0; i < terminal.getHeight(); i++) {
-      terminal.puts(InfoCmp.Capability.scroll_forward);
-    }
-
-    terminal.flush();
-  }
-
-  private void eraseQueryTerminateInstructions() {
-    terminal.puts(InfoCmp.Capability.save_cursor);
-
-    terminal.puts(InfoCmp.Capability.change_scroll_region, 0, terminal.getHeight() - 1);
-
-    terminal.puts(InfoCmp.Capability.cursor_address, terminal.getHeight() - 1, 0);
-    terminal.puts(InfoCmp.Capability.delete_line);
-
-    terminal.puts(InfoCmp.Capability.restore_cursor);
-
-    terminal.puts(InfoCmp.Capability.scroll_forward);
-
-    terminal.flush();
   }
 
   private void printKSQLResponse(RestResponse<KSQLEntityList> response) throws IOException {
@@ -778,5 +765,14 @@ public class Cli implements Closeable, AutoCloseable {
     String getName();
     void printHelp();
     void execute(String commandStrippedLine) throws IOException;
+  }
+
+  // Have to enable event expansion or multi-line parsing won't work, so a quick 'n dirty workaround will have to do to
+  // prevent strings like !! from being expanded by the line reader
+  private static class NoOpExpander extends DefaultExpander {
+    @Override
+    public String expandHistory(History history, String line) {
+      return line;
+    }
   }
 }

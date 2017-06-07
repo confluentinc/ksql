@@ -3,13 +3,13 @@
  **/
 package io.confluent.ksql.physical;
 
-import io.confluent.ksql.function.KSQLAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KSQLFunctions;
-import io.confluent.ksql.function.udaf.KUDAFAggregator;
-import io.confluent.ksql.function.udaf.KUDAFInitializer;
-import io.confluent.ksql.metastore.KSQLStream;
-import io.confluent.ksql.metastore.KSQLTable;
-import io.confluent.ksql.metastore.KSQLTopic;
+import io.confluent.ksql.function.udaf.KudafAggregator;
+import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
@@ -18,21 +18,21 @@ import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.planner.plan.KSQLBareOutputNode;
-import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.serde.KSQLTopicSerDe;
-import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
-import io.confluent.ksql.serde.avro.KSQLGenericRowAvroSerializer;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KSQLConfig;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import io.confluent.ksql.util.WindowedSerde;
@@ -67,10 +67,10 @@ public class PhysicalPlanBuilder {
   OutputNode planSink = null;
   StreamsKafkaClient streamsKafkaClient = null;
 
-  KSQLConfig ksqlConfig = null;
+  KsqlConfig ksqlConfig = null;
 
   public PhysicalPlanBuilder(final KStreamBuilder builder, final StreamsKafkaClient
-      streamsKafkaClient, final KSQLConfig ksqlConfig) {
+      streamsKafkaClient, final KsqlConfig ksqlConfig) {
     this.builder = builder;
     this.streamsKafkaClient = streamsKafkaClient;
     this.ksqlConfig = ksqlConfig;
@@ -102,7 +102,7 @@ public class PhysicalPlanBuilder {
       SchemaKStream outputSchemaStream = buildOutput(outputNode);
       return outputSchemaStream;
     }
-    throw new KSQLException(
+    throw new KsqlException(
         "Unsupported logical plan node: " + planNode.getId() + " , Type: " + planNode.getClass()
             .getName());
   }
@@ -110,11 +110,11 @@ public class PhysicalPlanBuilder {
   private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {
     SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
     Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
-    if (outputNode instanceof KSQLStructuredDataOutputNode) {
-      KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode)
+    if (outputNode instanceof KsqlStructuredDataOutputNode) {
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
           outputNode;
-      KSQLStructuredDataOutputNode ksqlStructuredDataOutputNodeNoRowKey = new
-          KSQLStructuredDataOutputNode(
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeNoRowKey = new
+          KsqlStructuredDataOutputNode(
               ksqlStructuredDataOutputNode.getId(),
               ksqlStructuredDataOutputNode.getSource(),
               SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
@@ -122,8 +122,8 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNode.getKsqlTopic(),
               ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
-          .getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe) {
-        KSQLAvroTopicSerDe ksqlAvroTopicSerDe = (KSQLAvroTopicSerDe) ksqlStructuredDataOutputNodeNoRowKey
+          .getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
+        KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlStructuredDataOutputNodeNoRowKey
             .getKsqlTopic().getKsqlTopicSerDe();
         ksqlStructuredDataOutputNodeNoRowKey = addAvroSchemaToResultTopic(ksqlStructuredDataOutputNodeNoRowKey,
             ksqlAvroTopicSerDe
@@ -132,12 +132,12 @@ public class PhysicalPlanBuilder {
 
       Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
           .getOutputProperties();
-      if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_PARTITIONS)) {
-        ksqlConfig.put(KSQLConfig.SINK_NUMBER_OF_PARTITIONS, outputProperties.get(KSQLConfig
+      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)) {
+        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS, outputProperties.get(KsqlConfig
                                                                                            .SINK_NUMBER_OF_PARTITIONS));
       }
-      if (outputProperties.containsKey(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS)) {
-        ksqlConfig.put(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KSQLConfig
+      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)) {
+        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KsqlConfig
                                                                                            .SINK_NUMBER_OF_REPLICATIONS));
       }
 
@@ -148,8 +148,8 @@ public class PhysicalPlanBuilder {
                                                             streamsKafkaClient, ksqlConfig);
 
 
-      KSQLStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
-          KSQLStructuredDataOutputNode(
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
+          KsqlStructuredDataOutputNode(
           ksqlStructuredDataOutputNodeNoRowKey.getId(),
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
           SchemaUtil.addImplicitRowTimeRowKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
@@ -160,13 +160,13 @@ public class PhysicalPlanBuilder {
       );
       this.planSink = ksqlStructuredDataOutputNodeWithRowkey;
       return resultSchemaStream;
-    } else if (outputNode instanceof KSQLBareOutputNode) {
+    } else if (outputNode instanceof KsqlBareOutputNode) {
       SchemaKStream resultSchemaStream = schemaKStream.toQueue();
-      KSQLBareOutputNode ksqlBareOutputNode = (KSQLBareOutputNode) outputNode;
+      KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
       this.planSink = ksqlBareOutputNode;
       return resultSchemaStream;
     }
-    throw new KSQLException("Unsupported output logical node: " + outputNode.getClass().getName());
+    throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
   }
 
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
@@ -202,7 +202,7 @@ public class PhysicalPlanBuilder {
     SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
 
     // Aggregate computations
-    Map<Integer, KSQLAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
+    Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
     Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
 
@@ -219,13 +219,13 @@ public class PhysicalPlanBuilder {
     }
     int udafIndexInAggSchema = resultColumns.size();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
-      KSQLAggregateFunction aggregateFunctionInfo = KSQLFunctions.getAggregateFunction(functionCall
+      KsqlAggregateFunction aggregateFunctionInfo = KSQLFunctions.getAggregateFunction(functionCall
               .getName()
               .toString(),
           functionCall
               .getArguments(), aggregateArgExpanded.getSchema());
       int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
-      KSQLAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
+      KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
           .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
       aggValToAggFunctionMap.put(udafIndexInAggSchema, aggregateFunction);
       resultColumns.add(aggregateFunction.getIntialValue());
@@ -241,8 +241,8 @@ public class PhysicalPlanBuilder {
         aggregateSchema);
 
     SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
-        new KUDAFInitializer(resultColumns),
-        new KUDAFAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
+        new KudafInitializer(resultColumns),
+        new KudafAggregator(aggValToAggFunctionMap, aggValToValColumnMap), aggregateNode.getWindowExpression(), aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
 
     // Post aggregate computations
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -254,7 +254,7 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KSQLAggregateFunction aggregateFunction = KSQLFunctions.getAggregateFunction(udafName,
+      KsqlAggregateFunction aggregateFunction = KSQLFunctions.getAggregateFunction(udafName,
           aggregateNode
               .getFunctionList().get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
       fieldSchema = aggregateFunction.getReturnType();
@@ -300,7 +300,7 @@ public class PhysicalPlanBuilder {
                                                                       .getSchema(),
                                                                   structuredDataSourceNode
                                                                       .getTimestampField());
-        ksqlConfig.put(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+        ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
       }
 
       Serde<GenericRow>
@@ -317,7 +317,7 @@ public class PhysicalPlanBuilder {
       if (structuredDataSourceNode.getDataSourceType()
           == StructuredDataSource.DataSourceType.KTABLE) {
 
-        KSQLTable ksqlTable = (KSQLTable) structuredDataSourceNode.getStructuredDataSource();
+        KsqlTable ksqlTable = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
         KTable kTable;
         if (ksqlTable.isWinidowed()) {
           KStream
@@ -371,7 +371,7 @@ public class PhysicalPlanBuilder {
         return new SchemaKTable(sourceNode.getSchema(), kTable,
             sourceNode.getKeyField(), new ArrayList<>(), ksqlTable.isWinidowed());
       }
-      KSQLStream ksqlStream = (KSQLStream) structuredDataSourceNode.getStructuredDataSource();
+      KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
           kStream =
           builder
@@ -391,7 +391,7 @@ public class PhysicalPlanBuilder {
       return new SchemaKStream(sourceNode.getSchema(), kStream,
           sourceNode.getKeyField(), new ArrayList<>());
     }
-    throw new KSQLException("Unsupported source logical node: " + sourceNode.getClass().getName());
+    throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
 
   private SchemaKStream buildJoin(final JoinNode joinNode) throws Exception {
@@ -407,7 +407,7 @@ public class PhysicalPlanBuilder {
       SchemaKStream joinSchemaKStream;
       switch (joinNode.getType()) {
         case LEFT:
-          KSQLTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
+          KsqlTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
           String joinKeyFieldName = (joinNode.getLeftAlias() + "." + leftSchemaKStream
               .getKeyField().name());
           joinSchemaKStream =
@@ -415,22 +415,22 @@ public class PhysicalPlanBuilder {
                   joinNode.getSchema().field(joinKeyFieldName), joinSerDe);
           break;
         default:
-          throw new KSQLException("Join type is not supportd yet: " + joinNode.getType());
+          throw new KsqlException("Join type is not supportd yet: " + joinNode.getType());
       }
       return joinSchemaKStream;
     }
 
-    throw new KSQLException("Unsupported join logical node: Left: " + joinNode.getLeft() + " , Right: " + joinNode.getRight());
+    throw new KsqlException("Unsupported join logical node: Left: " + joinNode.getLeft() + " , Right: " + joinNode.getRight());
   }
 
-  private KSQLTopicSerDe getResultTopicSerde(final PlanNode node) {
+  private KsqlTopicSerDe getResultTopicSerde(final PlanNode node) {
     if (node instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) node;
       return structuredDataSourceNode.getStructuredDataSource().getKsqlTopic().getKsqlTopicSerDe();
     } else if (node instanceof JoinNode) {
       JoinNode joinNode = (JoinNode) node;
 
-      KSQLTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());
+      KsqlTopicSerDe leftTopicSerDe = getResultTopicSerde(joinNode.getLeft());
       return leftTopicSerDe;
     } else {
       return getResultTopicSerde(node.getSources().get(0));
@@ -446,13 +446,13 @@ public class PhysicalPlanBuilder {
     return planSink;
   }
 
-  private KSQLStructuredDataOutputNode addAvroSchemaToResultTopic(final KSQLStructuredDataOutputNode
+  private KsqlStructuredDataOutputNode addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode
                                                                       ksqlStructuredDataOutputNode,
                                                                   final String avroSchemaFilePath) {
     String avroSchemaFilePathVal = avroSchemaFilePath;
     if (avroSchemaFilePath == null) {
       avroSchemaFilePathVal =
-          KSQLGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT + ksqlStructuredDataOutputNode
+          KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT + ksqlStructuredDataOutputNode
               .getKsqlTopic().getName() + ".avro";
     }
     MetastoreUtil metastoreUtil = new MetastoreUtil();
@@ -461,16 +461,16 @@ public class PhysicalPlanBuilder {
         metastoreUtil.buildAvroSchema(ksqlStructuredDataOutputNode.getSchema(),
             ksqlStructuredDataOutputNode.getKsqlTopic().getName());
     metastoreUtil.writeAvroSchemaFile(avroSchema, avroSchemaFilePathVal);
-    KSQLAvroTopicSerDe ksqlAvroTopicSerDe = new KSQLAvroTopicSerDe(avroSchemaFilePathVal, avroSchema);
-    KSQLTopic newKSQLTopic = new KSQLTopic(ksqlStructuredDataOutputNode.getKsqlTopic()
+    KsqlAvroTopicSerDe ksqlAvroTopicSerDe = new KsqlAvroTopicSerDe(avroSchemaFilePathVal, avroSchema);
+    KsqlTopic newKsqlTopic = new KsqlTopic(ksqlStructuredDataOutputNode.getKsqlTopic()
         .getName(), ksqlStructuredDataOutputNode
         .getKsqlTopic().getKafkaTopicName(), ksqlAvroTopicSerDe);
 
-    KSQLStructuredDataOutputNode newKSQLStructuredDataOutputNode = new KSQLStructuredDataOutputNode(
+    KsqlStructuredDataOutputNode newKsqlStructuredDataOutputNode = new KsqlStructuredDataOutputNode(
         ksqlStructuredDataOutputNode.getId(), ksqlStructuredDataOutputNode.getSource(),
-        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(), newKSQLTopic,
+        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(), newKsqlTopic,
         ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
-    return newKSQLStructuredDataOutputNode;
+    return newKsqlStructuredDataOutputNode;
   }
 
   private SchemaKStream aggregateReKey(final AggregateNode aggregateNode,

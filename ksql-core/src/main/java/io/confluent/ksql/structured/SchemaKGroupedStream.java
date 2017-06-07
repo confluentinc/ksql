@@ -8,7 +8,7 @@ import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -62,7 +62,7 @@ public class SchemaKGroupedStream {
                                                                                hoppingWindowExpression.getAdvanceByUnit())),
                                      topicValueSerDe, storeName);
       } else {
-        throw new KSQLException("Could not set the window expression for aggregate.");
+        throw new KsqlException("Could not set the window expression for aggregate.");
       }
     } else {
       aggKtable =

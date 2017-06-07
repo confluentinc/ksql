@@ -1,11 +1,11 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.entity.KSQLRequest;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
@@ -85,18 +85,18 @@ public class StreamedQueryResourceTest {
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, rowQueue);
 
-    KSQLEngine mockKSQLEngine = mock(KSQLEngine.class);
-    expect(mockKSQLEngine.buildMultipleQueries(true, queryString))
+    KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    expect(mockKsqlEngine.buildMultipleQueries(true, queryString))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 
     StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
 
-    replay(mockKSQLEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
+    replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(mockKSQLEngine, mockStatementParser, 1000);
+    StreamedQueryResource testResource = new StreamedQueryResource(mockKsqlEngine, mockStatementParser, 1000);
 
-    Response response = testResource.streamQuery(new KSQLRequest(queryString));
+    Response response = testResource.streamQuery(new KsqlRequest(queryString));
     PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     StreamingOutput responseStream = (StreamingOutput) response.getEntity();

@@ -1,20 +1,24 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.client;
 
 import io.confluent.ksql.rest.entity.ErrorMessage;
 
 import java.util.Objects;
 
-// Don't tell anybody, but this is basically Haskell's Either datatype... I swear it seemed like the best way to do things
+// Don't tell anybody, but this is basically Haskell's Either datatype...
+// I swear it seemed like the best way to do things
 public abstract class RestResponse<R> {
   private RestResponse() { }
 
   public abstract boolean isSuccessful();
+
   public abstract boolean isErroneous();
 
   public abstract ErrorMessage getErrorMessage();
+
   public abstract R getResponse();
 
   public static <R> RestResponse<R> erroneous(ErrorMessage errorMessage) {

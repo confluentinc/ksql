@@ -8,9 +8,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.metastore.KSQLStream;
-import io.confluent.ksql.metastore.KSQLTable;
-import io.confluent.ksql.metastore.KSQLTopic;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -23,20 +23,20 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
-import io.confluent.ksql.planner.plan.KSQLBareOutputNode;
-import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KSQLConfig;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.timestamp.KSQLTimestampExtractor;
+import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -58,7 +58,7 @@ public class QueryEngine {
 
   private StreamsKafkaClient streamsKafkaClient;
 
-  public QueryEngine(KSQLConfig ksqlConfig) {
+  public QueryEngine(KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
     this.streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
     this.queryIdCounter = new AtomicLong(1);
@@ -108,12 +108,12 @@ public class QueryEngine {
 
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-      if (logicalPlan instanceof KSQLStructuredDataOutputNode) {
-        KSQLStructuredDataOutputNode ksqlStructuredDataOutputNode = (KSQLStructuredDataOutputNode) logicalPlan;
+      if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
+        KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode) logicalPlan;
 
         StructuredDataSource
             structuredDataSource =
-            new KSQLStream(ksqlStructuredDataOutputNode.getId().toString(),
+            new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
                           ksqlStructuredDataOutputNode.getSchema(),
                           ksqlStructuredDataOutputNode.getKeyField(),
                           (ksqlStructuredDataOutputNode.getTimestampField() == null) ?
@@ -135,7 +135,7 @@ public class QueryEngine {
       boolean addUniqueTimeSuffix,
       MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
-      final KSQLConfig ksqlConfig
+      final KsqlConfig ksqlConfig
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
@@ -145,7 +145,7 @@ public class QueryEngine {
       PlanNode logicalPlan = statementPlanPair.getRight();
       KStreamBuilder builder = new KStreamBuilder();
 
-      KSQLConfig ksqlConfigClone = ksqlConfig.clone();
+      KsqlConfig ksqlConfigClone = ksqlConfig.clone();
 
       //Build a physical plan, in this case a Kafka Streams DSL
       PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
@@ -153,14 +153,14 @@ public class QueryEngine {
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
-      boolean isBareQuery = outputNode instanceof KSQLBareOutputNode;
+      boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
       // Check to make sure the logical and physical plans match up; important to do this BEFORE actually starting up
       // the corresponding Kafka Streams job
       if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
         throw new Exception(String.format(
             "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
-                + "KSQLBareOutputNode, found a %s instead",
+                + "KsqlBareOutputNode, found a %s instead",
             schemaKStream.getClass().getCanonicalName()
         ));
       }
@@ -174,7 +174,7 @@ public class QueryEngine {
         KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone);
 
         QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-        KSQLBareOutputNode ksqlBareOutputNode = (KSQLBareOutputNode) outputNode;
+        KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
         physicalPlans.add(new QueuedQueryMetadata(
             statementPlanPair.getLeft(),
             streams,
@@ -182,7 +182,7 @@ public class QueryEngine {
             queuedSchemaKStream.getQueue()
         ));
 
-      } else if (outputNode instanceof KSQLStructuredDataOutputNode) {
+      } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
         long queryId = getNextQueryId();
         String applicationId = String.format("ksql_query_%d", queryId);
         if (addUniqueTimeSuffix) {
@@ -191,7 +191,7 @@ public class QueryEngine {
 
         KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone);
 
-        KSQLStructuredDataOutputNode kafkaTopicOutputNode = (KSQLStructuredDataOutputNode) outputNode;
+        KsqlStructuredDataOutputNode kafkaTopicOutputNode = (KsqlStructuredDataOutputNode) outputNode;
         physicalPlans.add(
             new PersistentQueryMetadata(statementPlanPair.getLeft(), streams, kafkaTopicOutputNode, queryId)
         );
@@ -202,7 +202,7 @@ public class QueryEngine {
         if (schemaKStream instanceof SchemaKTable) {
           SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
           sinkDataSource =
-              new KSQLTable(kafkaTopicOutputNode.getId().toString(),
+              new KsqlTable(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
                   kafkaTopicOutputNode.getTimestampField(),
@@ -211,7 +211,7 @@ public class QueryEngine {
                   schemaKTable.isWindowed());
         } else {
           sinkDataSource =
-              new KSQLStream(kafkaTopicOutputNode.getId().toString(),
+              new KsqlStream(kafkaTopicOutputNode.getId().toString(),
                   kafkaTopicOutputNode.getSchema(),
                   schemaKStream.getKeyField(),
                   kafkaTopicOutputNode.getTimestampField(),
@@ -220,7 +220,7 @@ public class QueryEngine {
 
         metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
       } else {
-        throw new KSQLException("Sink data source is not correct.");
+        throw new KsqlException("Sink data source is not correct.");
       }
 
     }
@@ -238,20 +238,20 @@ public class QueryEngine {
       }
     }
 
-    KSQLTopic ksqlTopic = new KSQLTopic(name, name, null);
-    return new KSQLStream(name, dataSource.schema(), null, null, ksqlTopic);
+    KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
+    return new KsqlStream(name, dataSource.schema(), null, null, ksqlTopic);
   }
 
   private KafkaStreams buildStreams(final KStreamBuilder builder, final String applicationId,
-                                    final KSQLConfig ksqlConfig) {
+                                    final KsqlConfig ksqlConfig) {
     Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlConfigProps();
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
     newStreamsProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     newStreamsProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
-    if (ksqlConfig.get(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX, ksqlConfig.get(KSQLConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
-      newStreamsProperties.put(StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KSQLTimestampExtractor.class);
+    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
+      newStreamsProperties.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
+      newStreamsProperties.put(StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
 
 

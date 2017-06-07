@@ -1,13 +1,14 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.confluent.ksql.metastore.KSQLStream;
+import io.confluent.ksql.metastore.KsqlStream;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +17,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @JsonTypeName("streams")
-public class StreamsList extends KSQLEntity {
+public class StreamsList extends KsqlEntity {
   private final Collection<StreamInfo> streams;
 
   @JsonCreator
@@ -28,8 +29,12 @@ public class StreamsList extends KSQLEntity {
     this.streams = streams;
   }
 
-  public static StreamsList fromKsqlStreams(String statementText, Collection<KSQLStream> ksqlStreams) {
-    Collection<StreamInfo> streamInfos = ksqlStreams.stream().map(StreamInfo::new).collect(Collectors.toList());
+  public static StreamsList fromKsqlStreams(
+      String statementText,
+      Collection<KsqlStream> ksqlStreams
+  ) {
+    Collection<StreamInfo> streamInfos =
+        ksqlStreams.stream().map(StreamInfo::new).collect(Collectors.toList());
     return new StreamsList(statementText, streamInfos);
   }
 
@@ -68,7 +73,7 @@ public class StreamsList extends KSQLEntity {
       this.topic = topic;
     }
 
-    public StreamInfo(KSQLStream ksqlStream) {
+    public StreamInfo(KsqlStream ksqlStream) {
       this(
           ksqlStream.getName(),
           ksqlStream.getKsqlTopic().getName()
@@ -92,8 +97,8 @@ public class StreamsList extends KSQLEntity {
         return false;
       }
       StreamInfo that = (StreamInfo) o;
-      return Objects.equals(getName(), that.getName()) &&
-          Objects.equals(getTopic(), that.getTopic());
+      return Objects.equals(getName(), that.getName())
+          && Objects.equals(getTopic(), that.getTopic());
     }
 
     @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
@@ -26,8 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Wrapper class for the command topic. Used for reading from the topic (either all messages from the beginning until
- * now, or any new messages since then), and writing to it.
+ * Wrapper class for the command topic. Used for reading from the topic (either all messages from
+ * the beginning until now, or any new messages since then), and writing to it.
  */
 public class CommandStore implements Closeable {
 
@@ -67,14 +68,15 @@ public class CommandStore implements Closeable {
   }
 
   /**
-   * Write the given statement to the command topic, to be read by all nodes in the current cluster. Does not return
-   * until the statement has been successfully written, or an exception is thrown.
+   * Write the given statement to the command topic, to be read by all nodes in the current cluster.
+   * Does not return until the statement has been successfully written, or an exception is thrown.
    * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
    * @return The ID assigned to the statement
    * @throws Exception TODO: Refine this
    */
-  public CommandId distributeStatement(String statementString, Statement statement) throws Exception {
+  public CommandId distributeStatement(String statementString, Statement statement)
+      throws Exception {
     CommandId commandId = commandIdAssigner.getCommandId(statement);
     commandProducer.send(new ProducerRecord<>(commandTopic, commandId, statementString)).get();
     return commandId;
@@ -89,8 +91,8 @@ public class CommandStore implements Closeable {
   }
 
   /**
-   * Collect all commands that have been written to the command topic, starting at the earliest offset and proceeding
-   * until it appears that all have been returned.
+   * Collect all commands that have been written to the command topic, starting at the earliest
+   * offset and proceeding until it appears that all have been returned.
    * @return The commands that have been read from the command topic
    */
   public LinkedHashMap<CommandId, String> getPriorCommands() {
@@ -112,7 +114,8 @@ public class CommandStore implements Closeable {
   private List<ConsumerRecord<CommandId, String>> getAllPriorCommandRecords() {
     Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
-    commandConsumer.poll(0); // Have to poll to make sure subscription has taken effect (subscribe() is lazy)
+    // Have to poll to make sure subscription has taken effect (subscribe() is lazy)
+    commandConsumer.poll(0);
     commandConsumer.seekToBeginning(commandTopicPartitions);
 
     Map<TopicPartition, Long> currentOffsets = new HashMap<>();
@@ -120,12 +123,12 @@ public class CommandStore implements Closeable {
     List<ConsumerRecord<CommandId, String>> result = new ArrayList<>();
     log.debug("Polling end offset(s) for command topic");
     Map<TopicPartition, Long> endOffsets = commandConsumer.endOffsets(commandTopicPartitions);
-    // Only want to poll for end offsets at the very beginning, and when we think we may be caught up.
-    // So, this outer loop tries to catch up (via the inner loop), then when it believes it has (signalled by having
-    // exited the inner loop), end offsets are polled again and another check is performed to see if anything new has
-    // been written (which would be signalled by the end offsets having changed). If something new has been written,
-    // the outer loop is repeated; if not, we're caught up to the end offsets we just polled and can
-    // continue.
+    // Only want to poll for end offsets at the very beginning, and when we think we may be caught
+    // up. So, this outer loop tries to catch up (via the inner loop), then when it believes it has
+    // (signalled by having exited the inner loop), end offsets are polled again and another check
+    // is performed to see if anything new has been written (which would be signalled by the end
+    // offsets having changed). If something new has been written, the outer loop is repeated; if
+    // not, we're caught up to the end offsets we just polled and can continue.
     do {
       while (!offsetsCaughtUp(currentOffsets, endOffsets)) {
         log.debug("Polling for prior command records");
@@ -136,7 +139,8 @@ public class CommandStore implements Closeable {
           log.debug("Received {} records from poll", records.count());
           for (ConsumerRecord<CommandId, String> record : records) {
             result.add(record);
-            TopicPartition recordTopicPartition = new TopicPartition(record.topic(), record.partition());
+            TopicPartition recordTopicPartition =
+                new TopicPartition(record.topic(), record.partition());
             Long currentOffset = currentOffsets.get(recordTopicPartition);
             if (currentOffset == null || currentOffset < record.offset()) {
               currentOffsets.put(recordTopicPartition, record.offset());
@@ -162,7 +166,10 @@ public class CommandStore implements Closeable {
     return result;
   }
 
-  private boolean offsetsCaughtUp(Map<TopicPartition, Long> offsets, Map<TopicPartition, Long> endOffsets) {
+  private boolean offsetsCaughtUp(
+      Map<TopicPartition, Long> offsets,
+      Map<TopicPartition, Long> endOffsets
+  ) {
     log.debug("Checking to see if consumed command records are caught up with end offset(s)");
     for (Map.Entry<TopicPartition, Long> endOffset : endOffsets.entrySet()) {
       long offset = offsets.getOrDefault(endOffset.getKey(), 0L);
@@ -174,8 +181,8 @@ public class CommandStore implements Closeable {
        */
       if (offset + 1 < endOffset.getValue()) {
         log.debug(
-            "Consumed command records are not yet caught up with offset for partition {}; end offset is {}, but last "
-                + "consumed offset is {}",
+            "Consumed command records are not yet caught up with offset for partition {}; "
+                + "end offset is {}, but last consumed offset is {}",
             endOffset.getKey().partition(),
             endOffset.getValue(),
             offset

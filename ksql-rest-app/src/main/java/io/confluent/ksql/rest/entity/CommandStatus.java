@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -46,8 +47,8 @@ public class CommandStatus {
       return false;
     }
     CommandStatus that = (CommandStatus) o;
-    return getStatus() == that.getStatus() &&
-        Objects.equals(getMessage(), that.getMessage());
+    return getStatus() == that.getStatus()
+        && Objects.equals(getMessage(), that.getMessage());
   }
 
   @Override

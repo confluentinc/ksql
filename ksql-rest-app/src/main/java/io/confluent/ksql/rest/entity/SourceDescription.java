@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -15,7 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @JsonTypeName("description")
-public class SourceDescription extends KSQLEntity {
+public class SourceDescription extends KsqlEntity {
 
   private final String name;
   private final Schema schema;
@@ -80,11 +81,11 @@ public class SourceDescription extends KSQLEntity {
       return false;
     }
     SourceDescription that = (SourceDescription) o;
-    return Objects.equals(getName(), that.getName()) &&
-        Objects.equals(getSchema(), that.getSchema()) &&
-        getType() == that.getType() &&
-        Objects.equals(getKey(), that.getKey()) &&
-        Objects.equals(getTimestamp(), that.getTimestamp());
+    return Objects.equals(getName(), that.getName())
+        && Objects.equals(getSchema(), that.getSchema())
+        && getType() == that.getType()
+        && Objects.equals(getKey(), that.getKey())
+        && Objects.equals(getTimestamp(), that.getTimestamp());
   }
 
   @Override

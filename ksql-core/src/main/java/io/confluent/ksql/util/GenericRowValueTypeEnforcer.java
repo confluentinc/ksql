@@ -39,7 +39,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (schema.type() == Schema.Type.MAP) {
       return value;
     } else {
-      throw new KSQLException("Type is not supported: " + schema);
+      throw new KsqlException("Type is not supported: " + schema);
     }
   }
 
@@ -61,7 +61,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value == null) {
       return null;
     } else {
-      throw new KSQLException("Invalif field type. Value must be Double.");
+      throw new KsqlException("Invalif field type. Value must be Double.");
     }
   }
 
@@ -83,7 +83,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value == null) {
       return null;
     } else {
-      throw new KSQLException("Invalif field type. Value must be Long.");
+      throw new KsqlException("Invalif field type. Value must be Long.");
     }
   }
 
@@ -104,7 +104,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value == null) {
       return null;
     } else {
-      throw new KSQLException("Invalif field type. Value must be Integer.");
+      throw new KsqlException("Invalif field type. Value must be Integer.");
     }
   }
 
@@ -114,7 +114,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value == null) {
       return null;
     } else {
-      throw new KSQLException("Invalif field type. Value must be String.");
+      throw new KsqlException("Invalif field type. Value must be String.");
     }
   }
 
@@ -126,7 +126,7 @@ public class GenericRowValueTypeEnforcer {
     } else if (value == null) {
       return null;
     } else {
-      throw new KSQLException("Invalif field type. Value must be Boolean.");
+      throw new KsqlException("Invalif field type. Value must be Boolean.");
     }
   }
 }

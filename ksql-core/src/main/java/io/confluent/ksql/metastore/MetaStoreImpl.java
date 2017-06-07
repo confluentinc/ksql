@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,21 +12,21 @@ import java.util.Set;
 
 public class MetaStoreImpl implements MetaStore {
 
-  Map<String, KSQLTopic> topicMap = new HashMap<>();
+  Map<String, KsqlTopic> topicMap = new HashMap<>();
 
   Map<String, StructuredDataSource> dataSourceMap = new HashMap<>();
 
   @Override
-  public KSQLTopic getTopic(String topicName) {
+  public KsqlTopic getTopic(String topicName) {
     return topicMap.get(topicName);
   }
 
   @Override
-  public void putTopic(final KSQLTopic topic) {
+  public void putTopic(final KsqlTopic topic) {
     if (topicMap.get(topic.getName()) == null) {
       topicMap.put(topic.getName(), topic);
     } else {
-      throw new KSQLException(
+      throw new KsqlException(
           "Cannot add the new topic. Another topic with the same name already exists: "
           + topic.getName());
     }
@@ -42,7 +42,7 @@ public class MetaStoreImpl implements MetaStore {
     if (getSource(dataSource.getName()) == null) {
       dataSourceMap.put(dataSource.getName(), dataSource);
     } else {
-      throw new KSQLException(
+      throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
           + dataSource.getName());
     }
@@ -64,7 +64,7 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public Map<String, KSQLTopic> getAllKSQLTopics() {
+  public Map<String, KsqlTopic> getAllKSQLTopics() {
     return topicMap;
   }
 

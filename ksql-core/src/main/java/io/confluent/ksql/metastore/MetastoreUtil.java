@@ -6,11 +6,11 @@ package io.confluent.ksql.metastore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.confluent.ksql.serde.KSQLTopicSerDe;
-import io.confluent.ksql.serde.avro.KSQLAvroTopicSerDe;
-import io.confluent.ksql.serde.csv.KSQLCsvTopicSerDe;
-import io.confluent.ksql.serde.json.KSQLJsonTopicSerDe;
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.csv.KsqlCsvTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -31,14 +31,14 @@ public class MetastoreUtil {
       throws
       IOException {
 
-    KSQLTopicSerDe topicSerDe;
+    KsqlTopicSerDe topicSerDe;
 
     String name = node.get("name").asText();
     String topicname = node.get("topic").asText();
 
-    KSQLTopic ksqlTopic = (KSQLTopic) metaStore.getTopic(topicname);
+    KsqlTopic ksqlTopic = (KsqlTopic) metaStore.getTopic(topicname);
     if (ksqlTopic == null) {
-      throw new KSQLException("Unable to add the structured data source. The corresponding topic "
+      throw new KsqlException("Unable to add the structured data source. The corresponding topic "
           + "does not exist: " + topicname);
     }
 
@@ -62,7 +62,7 @@ public class MetastoreUtil {
     Schema dataSource = dataSourceBuilder.build();
 
     if ("STREAM".equals(type)) {
-      return new KSQLStream(name, dataSource, dataSource.field(keyFieldName),
+      return new KsqlStream(name, dataSource, dataSource.field(keyFieldName),
                             (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
           ksqlTopic);
     } else if ("TABLE".equals(type)) {
@@ -72,41 +72,41 @@ public class MetastoreUtil {
       }
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
-        return new KSQLTable(name, dataSource, dataSource.field(keyFieldName),
+        return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
                              (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
             ksqlTopic, ksqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
-      return new KSQLTable(name, dataSource, dataSource.field(keyFieldName),
+      return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
                            (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
           ksqlTopic, stateStore, isWindowed);
     }
-    throw new KSQLException(String.format("Type not supported: '%s'", type));
+    throw new KsqlException(String.format("Type not supported: '%s'", type));
   }
 
-  private KSQLTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {
+  private KsqlTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {
 
-    KSQLTopicSerDe topicSerDe;
+    KsqlTopicSerDe topicSerDe;
     String topicname = node.get("topicname").asText();
     String kafkaTopicName = node.get("kafkatopicname").asText();
     String serde = node.get("serde").asText().toUpperCase();
     if ("AVRO".equals(serde)) {
       if (node.get("avroschemafile") == null) {
-        throw new KSQLException("For avro SerDe avro schema file path (avroschemafile) should be "
+        throw new KsqlException("For avro SerDe avro schema file path (avroschemafile) should be "
             + "set in the schema.");
       }
       String schemaPath = node.get("avroschemafile").asText();
       String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KSQLAvroTopicSerDe(schemaPath, avroSchema);
+      topicSerDe = new KsqlAvroTopicSerDe(schemaPath, avroSchema);
     } else if ("JSON".equals(serde)) {
-      topicSerDe = new KSQLJsonTopicSerDe(null);
+      topicSerDe = new KsqlJsonTopicSerDe(null);
     } else if ("CSV".equals(serde)) {
-      topicSerDe = new KSQLCsvTopicSerDe();
+      topicSerDe = new KsqlCsvTopicSerDe();
     } else {
-      throw new KSQLException("Topic serde is not supported.");
+      throw new KsqlException("Topic serde is not supported.");
     }
 
-    return new KSQLTopic(topicname, kafkaTopicName, topicSerDe);
+    return new KsqlTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
   private Schema getKSQLType(final String sqlType) {
@@ -122,7 +122,7 @@ public class MetastoreUtil {
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
       default:
-        throw new KSQLException("Unsupported type: " + sqlType);
+        throw new KsqlException("Unsupported type: " + sqlType);
     }
   }
 
@@ -138,11 +138,11 @@ public class MetastoreUtil {
     } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
       return "BOOL";
     }
-    throw new KSQLException("Unsupported type: " + schemaType);
+    throw new KsqlException("Unsupported type: " + schemaType);
   }
 
   public MetaStore loadMetaStoreFromJSONFile(final String metaStoreJsonFilePath)
-      throws KSQLException {
+      throws KsqlException {
 
     try {
       MetaStoreImpl metaStore = new MetaStoreImpl();
@@ -153,7 +153,7 @@ public class MetastoreUtil {
 
       ArrayNode topicNodes = (ArrayNode) root.get("topics");
       for (JsonNode schemaNode : topicNodes) {
-        KSQLTopic ksqlTopic = createKafkaTopicDataSource(schemaNode);
+        KsqlTopic ksqlTopic = createKafkaTopicDataSource(schemaNode);
         metaStore.putTopic(ksqlTopic);
       }
 
@@ -164,16 +164,16 @@ public class MetastoreUtil {
       }
       return metaStore;
     } catch (FileNotFoundException fnf) {
-      throw new KSQLException("Could not load the schema file from " + metaStoreJsonFilePath, fnf);
+      throw new KsqlException("Could not load the schema file from " + metaStoreJsonFilePath, fnf);
     } catch (IOException ioex) {
-      throw new KSQLException("Could not read schema from " + metaStoreJsonFilePath, ioex);
+      throw new KsqlException("Could not read schema from " + metaStoreJsonFilePath, ioex);
     }
   }
 
-  private void addTopics(final StringBuilder stringBuilder, final Map<String, KSQLTopic> topicMap) {
+  private void addTopics(final StringBuilder stringBuilder, final Map<String, KsqlTopic> topicMap) {
     stringBuilder.append("\"topics\" :[ \n");
     boolean isFist = true;
-    for (KSQLTopic ksqlTopic : topicMap.values()) {
+    for (KsqlTopic ksqlTopic : topicMap.values()) {
       if (!isFist) {
         stringBuilder.append("\t\t, \n");
       } else {
@@ -185,8 +185,8 @@ public class MetastoreUtil {
       stringBuilder
           .append("\t\t\t \"kafkatopicname\": \"" + ksqlTopic.getKafkaTopicName() + "\", \n");
       stringBuilder.append("\t\t\t \"serde\": \"" + ksqlTopic.getKsqlTopicSerDe().getSerDe() + "\"");
-      if (ksqlTopic.getKsqlTopicSerDe() instanceof KSQLAvroTopicSerDe) {
-        KSQLAvroTopicSerDe ksqlAvroTopicSerDe = (KSQLAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
+      if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
+        KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
         stringBuilder
             .append(",\n\t\t\t \"avroschemafile\": \"" + ksqlAvroTopicSerDe.getSchemaFilePath() + "\"");
       }
@@ -213,7 +213,7 @@ public class MetastoreUtil {
       } else if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KTABLE) {
         stringBuilder.append("\t\t\t \"type\": \"TABLE\", \n");
       } else {
-        throw new KSQLException("Incorrect data source type:" + structuredDataSource.dataSourceType);
+        throw new KsqlException("Incorrect data source type:" + structuredDataSource.dataSourceType);
       }
 
       stringBuilder.append("\t\t\t \"name\": \"" + structuredDataSource.getName() + "\", \n");
@@ -224,8 +224,8 @@ public class MetastoreUtil {
                   + "\n");
       stringBuilder
           .append("\t\t\t \"topic\": \"" + structuredDataSource.getKsqlTopic().getName() + "\", \n");
-      if (structuredDataSource instanceof KSQLTable) {
-        KSQLTable ksqlTable = (KSQLTable) structuredDataSource;
+      if (structuredDataSource instanceof KsqlTable) {
+        KsqlTable ksqlTable = (KsqlTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"" + ksqlTable.getStateStoreName() + "\", \n");
         stringBuilder.append("\t\t\t \"iswindowed\": \"" + ksqlTable.isWinidowed() + "\", \n");
       }
@@ -259,7 +259,7 @@ public class MetastoreUtil {
       raf.writeBytes(stringBuilder.toString());
       raf.close();
     } catch (IOException e) {
-      throw new KSQLException(" Could not write the schema into the file.");
+      throw new KsqlException(" Could not write the schema into the file.");
     }
   }
 
@@ -284,7 +284,7 @@ public class MetastoreUtil {
       randomAccessFile.writeBytes(avroSchema);
       randomAccessFile.close();
     } catch (IOException e) {
-      throw new KSQLException("Could not write result avro schema file: " + filePath);
+      throw new KsqlException("Could not write result avro schema file: " + filePath);
     }
   }
 
@@ -337,7 +337,7 @@ public class MetastoreUtil {
           return "{\"type\": \"map\", \"values\": "
               + getAvroTypeName(schema.valueSchema()) + "}";
         }
-        throw new KSQLException("Unsupported AVRO type: " + schema.type().name());
+        throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
     }
   }
 }

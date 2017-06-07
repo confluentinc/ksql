@@ -1,6 +1,6 @@
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.client.KSQLRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -18,12 +18,12 @@ import static org.easymock.EasyMock.verify;
 // allows the terminal object to be injectable?
 public class CliTest {
 
-  private static Cli getTestCli(KSQLRestClient restClient) throws Exception {
+  private static Cli getTestCli(KsqlRestClient restClient) throws Exception {
     return new Cli(restClient, null, null, Cli.OutputFormat.JSON);
   }
 
   private static Cli getTestCli() throws Exception {
-    return getTestCli(mock(KSQLRestClient.class));
+    return getTestCli(mock(KsqlRestClient.class));
   }
 
   @Test
@@ -48,7 +48,7 @@ public class CliTest {
   public void testStatusInput() throws Exception {
     final String commandId = "topics/TEST_TOPIC";
 
-    KSQLRestClient mockRestClient = mock(KSQLRestClient.class);
+    KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
     expect(mockRestClient.makeStatusRequest())
         .andReturn(RestResponse.successful(new CommandStatuses(Collections.emptyMap())));
     expect(mockRestClient.makeStatusRequest(commandId))
@@ -63,14 +63,14 @@ public class CliTest {
   public void testQueryInput() throws Exception {
     final String testBareQuery = "SELECT * FROM test_topic WHERE foo > bar;";
 
-    KSQLRestClient.QueryStream mockQueryStream = mock(KSQLRestClient.QueryStream.class);
+    KsqlRestClient.QueryStream mockQueryStream = mock(KsqlRestClient.QueryStream.class);
     // Not worth testing actual query rows being returned from the stream until output verification is possible
     expect(mockQueryStream.hasNext()).andReturn(false);
     mockQueryStream.close();
     expectLastCall();
     replay(mockQueryStream);
 
-    KSQLRestClient mockRestClient = mock(KSQLRestClient.class);
+    KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
     expect(mockRestClient.makeQueryRequest(testBareQuery)).andReturn(RestResponse.successful(mockQueryStream));
     replay(mockRestClient);
 

@@ -1,10 +1,10 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.KSQLEngine;
-import io.confluent.ksql.ddl.DDLConfig;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -17,11 +17,10 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.planner.plan.KSQLStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.TopicUtil;
-import io.confluent.ksql.util.KSQLException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -42,8 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well as tracking
- * their statuses as things move along.
+ * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
+ * as tracking their statuses as things move along.
  */
 public class StatementExecutor {
 
@@ -53,12 +52,16 @@ public class StatementExecutor {
       Pattern.compile("\\s*TERMINATE\\s+([0-9]+)\\s*;?\\s*");
 
   private final TopicUtil topicUtil;
-  private final KSQLEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Map<CommandId, CommandStatusFuture> statusFutures;
 
-  public StatementExecutor(TopicUtil topicUtil, KSQLEngine ksqlEngine, StatementParser statementParser) {
+  public StatementExecutor(
+      TopicUtil topicUtil,
+      KsqlEngine ksqlEngine,
+      StatementParser statementParser
+  ) {
     this.topicUtil = topicUtil;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
@@ -68,12 +71,12 @@ public class StatementExecutor {
   }
 
   /**
-   * Execute a series of statements. The only difference between this and multiple consecutive calls to
-   * {@link #handleStatement(String, CommandId)} is that terminated queries will not be instantiated at all
-   * (as long as the statements responsible for both their creation and termination are both present in
-   * {@code priorCommands}.
-   * @param priorCommands A map of statements to execute, where keys are statement IDs and values are the actual strings
-   *                      of the statements.
+   * Execute a series of statements. The only difference between this and multiple consecutive calls
+   * to {@link #handleStatement(String, CommandId)} is that terminated queries will not be
+   * instantiated at all (as long as the statements responsible for both their creation and
+   * termination are both present in {@code priorCommands}.
+   * @param priorCommands A map of statements to execute, where keys are statement IDs and values
+   *                      are the actual strings of the statements.
    * @throws Exception TODO: Refine this.
    */
   public void handleStatements(LinkedHashMap<CommandId, String> priorCommands) throws Exception {
@@ -85,7 +88,11 @@ public class StatementExecutor {
       if (!(statement instanceof TerminateQuery)) {
         log.info("Executing prior statement: '{}'", commandEntry.getValue());
         try {
-          handleStatement(commandEntry.getValue(), commandEntry.getKey(), terminatedQueries);
+          handleStatementWithTerminatedQueries(
+              commandEntry.getValue(),
+              commandEntry.getKey(),
+              terminatedQueries
+          );
         } catch (Exception exception) {
           log.warn("Failed to execute statement due to exception", exception);
         }
@@ -97,7 +104,10 @@ public class StatementExecutor {
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         new Exception("Query not found").printStackTrace(printWriter);
-        statusStore.put(terminateCommand, new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString()));
+        statusStore.put(
+            terminateCommand,
+            new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString())
+        );
       }
     }
   }
@@ -112,13 +122,13 @@ public class StatementExecutor {
       String statementString,
       CommandId commandId
   ) throws Exception {
-    handleStatement(statementString, commandId, null);
+    handleStatementWithTerminatedQueries(statementString, commandId, null);
   }
 
   /**
    * Get details on the statuses of all the statements handled thus far.
-   * @return A map detailing the current statuses of all statements that the handler has executed (or attempted to
-   * execute).
+   * @return A map detailing the current statuses of all statements that the handler has executed
+   *         (or attempted to execute).
    */
   public Map<CommandId, CommandStatus> getStatuses() {
     return new HashMap<>(statusStore);
@@ -133,10 +143,11 @@ public class StatementExecutor {
   }
 
   /**
-   * Register the existence of a new statement that has been written to the command topic. All other statement status
-   * information is updated exclusively by the current {@link StatementExecutor} instance, but in the
-   * (unlikely but possible) event that a statement is written to the command topic but never picked up by this
-   * instance, it should be possible to know that it was at least written to the topic in the first place.
+   * Register the existence of a new statement that has been written to the command topic. All other
+   * statement status information is updated exclusively by the current {@link StatementExecutor}
+   * instance, but in the (unlikely but possible) event that a statement is written to the command
+   * topic but never picked up by this instance, it should be possible to know that it was at least
+   * written to the topic in the first place.
    * @param commandId The ID of the statement that has been written to the command topic.
    */
   public Future<CommandStatus> registerQueuedStatement(CommandId commandId) {
@@ -187,44 +198,44 @@ public class StatementExecutor {
     return result;
   }
 
-  // Copied from io.confluent.ksql.ddl.DDLEngine
-  private String enforceString(final String propertyName, final String propertyValue) {
-    if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
-      throw new KSQLException(propertyName + " value is string and should be enclosed between " + "\"'\".");
-    }
-    return propertyValue.substring(1, propertyValue.length() - 1);
-  }
-
   /**
    * Attempt to execute a single statement.
    * @param statementString The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
-   * @param terminatedQueries An optional map from terminated query IDs to the commands that requested their termination
+   * @param terminatedQueries An optional map from terminated query IDs to the commands that
+   *                          requested their termination
    * @throws Exception TODO: Refine this.
    */
-  private void handleStatement(
+  private void handleStatementWithTerminatedQueries(
       String statementString,
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries
   ) throws Exception {
     try {
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
+      statusStore.put(
+          commandId,
+          new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement")
+      );
       Statement statement = statementParser.parseSingleStatement(statementString);
-      statusStore.put(commandId, new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement"));
-      handleStatement(statement, statementString, commandId, terminatedQueries);
+      statusStore.put(
+          commandId,
+          new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
+      );
+      executeStatement(statement, statementString, commandId, terminatedQueries);
     } catch (WakeupException exception) {
       throw exception;
     } catch (Exception exception) {
       StringWriter stringWriter = new StringWriter();
       PrintWriter printWriter = new PrintWriter(stringWriter);
       exception.printStackTrace(printWriter);
-      CommandStatus errorStatus = new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString());
+      CommandStatus errorStatus =
+          new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString());
       statusStore.put(commandId, errorStatus);
       completeStatusFuture(commandId, errorStatus);
     }
   }
 
-  private void handleStatement(
+  private void executeStatement(
       Statement statement,
       String statementStr,
       CommandId commandId,
@@ -233,24 +244,20 @@ public class StatementExecutor {
     String successMessage;
     if (statement instanceof CreateTopic) {
       CreateTopic createTopic = (CreateTopic) statement;
-      String kafkaTopicName =
-          createTopic.getProperties().get(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
-      kafkaTopicName = enforceString(DDLConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
       ksqlEngine.getDdlEngine().createTopic(createTopic);
       successMessage = "Topic created";
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
-      String streamName = createStream.getName().getSuffix();
       ksqlEngine.getDdlEngine().createStream(createStream);
       successMessage = "Stream created";
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
-      String tableName = createTable.getName().getSuffix();
       ksqlEngine.getDdlEngine().createTable(createTable);
       successMessage = "Table created";
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+      QuerySpecification querySpecification =
+          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
       Query query = ksqlEngine.addInto(
           createStreamAsSelect.getQuery(),
           querySpecification,
@@ -266,14 +273,14 @@ public class StatementExecutor {
       }
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
+      QuerySpecification querySpecification =
+          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
       Query query = ksqlEngine.addInto(
           createTableAsSelect.getQuery(),
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
           createTableAsSelect.getProperties()
       );
-      String tableName = createTableAsSelect.getName().getSuffix();
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Table created and running";
       } else {
@@ -321,8 +328,14 @@ public class StatementExecutor {
 
       if (terminatedQueries != null && terminatedQueries.containsKey(queryId)) {
         CommandId terminateId = terminatedQueries.get(queryId);
-        statusStore.put(terminateId, new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted"));
-        statusStore.put(commandId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));
+        statusStore.put(
+            terminateId,
+            new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted")
+        );
+        statusStore.put(
+            commandId,
+            new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
+        );
         ksqlEngine.terminateQuery(queryId, false);
         return false;
       } else {
@@ -347,7 +360,8 @@ public class StatementExecutor {
     }
 
     CommandId.Type commandType;
-    DataSource.DataSourceType sourceType = queryMetadata.getOutputNode().getTheSourceNode().getDataSourceType();
+    DataSource.DataSourceType sourceType =
+        queryMetadata.getOutputNode().getTheSourceNode().getDataSourceType();
     switch (sourceType) {
       case KTABLE:
         commandType = CommandId.Type.TABLE;
@@ -356,13 +370,18 @@ public class StatementExecutor {
         commandType = CommandId.Type.STREAM;
         break;
       default:
-        throw new Exception(String.format("Unexpected source type for running query: %s", sourceType));
+        throw new
+            Exception(String.format("Unexpected source type for running query: %s", sourceType));
     }
 
-    String queryEntity = ((KSQLStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
+    String queryEntity =
+        ((KsqlStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
 
     CommandId queryStatementId = new CommandId(commandType, queryEntity);
-    statusStore.put(queryStatementId, new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated"));
+    statusStore.put(
+        queryStatementId,
+        new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
+    );
   }
 
   private class CommandStatusFuture implements Future<CommandStatus> {

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -11,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.util.Objects;
 
 @JsonTypeName("error")
-public class ErrorMessageEntity extends KSQLEntity {
+public class ErrorMessageEntity extends KsqlEntity {
 
   private final ErrorMessage errorMessage;
 

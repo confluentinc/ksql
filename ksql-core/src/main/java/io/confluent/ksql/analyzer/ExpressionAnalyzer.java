@@ -3,7 +3,7 @@
  **/
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.KSQLFunction;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -53,7 +53,7 @@ public class ExpressionAnalyzer {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KSQLFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
+      KsqlFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }

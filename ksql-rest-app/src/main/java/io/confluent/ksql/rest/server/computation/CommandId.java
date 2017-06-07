@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -60,8 +61,8 @@ public class CommandId {
       return false;
     }
     CommandId commandId = (CommandId) o;
-    return getType() == commandId.getType() &&
-        Objects.equals(getEntity(), commandId.getEntity());
+    return getType() == commandId.getType()
+        && Objects.equals(getEntity(), commandId.getEntity());
   }
 
   @Override

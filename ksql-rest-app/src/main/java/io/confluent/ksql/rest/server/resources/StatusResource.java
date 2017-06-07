@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -33,7 +34,8 @@ public class StatusResource {
 
   @GET
   @Path("/{type}/{entity}")
-  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity) throws Exception {
+  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity)
+      throws Exception {
     CommandId commandId = new CommandId(type, entity);
 
     Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);

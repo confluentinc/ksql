@@ -3,14 +3,14 @@
  **/
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.udf.KUDF;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.KSQLTopicSerDe;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serde;
@@ -69,7 +69,7 @@ public class SchemaKStream {
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
                             final Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                            streamsKafkaClient, KSQLConfig ksqlConfig) {
+                            streamsKafkaClient, KsqlConfig ksqlConfig) {
 
     createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
@@ -90,7 +90,7 @@ public class SchemaKStream {
   }
 
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
-    SQLPredicate predicate = new SQLPredicate(filterExpression, schema, false);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false);
     KStream filteredKStream = kStream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this));
   }
@@ -138,7 +138,7 @@ public class SchemaKStream {
             for (int i = 0; i < expressions.size(); i++) {
               Expression expression = expressions.get(i);
               int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-              KUDF[] kudfs = expressionEvaluators.get(i).getUdfs();
+              Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
               Object[] parameterObjects = new Object[parameterIndexes.length];
               for (int j = 0; j < parameterIndexes.length; j++) {
                 if (parameterIndexes[j] < 0) {
@@ -166,7 +166,7 @@ public class SchemaKStream {
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
                                 final Field joinKey,
-                                KSQLTopicSerDe joinSerDe) {
+                                KsqlTopicSerDe joinSerDe) {
 
     KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
       @Override
@@ -272,15 +272,15 @@ public class SchemaKStream {
     }
   }
 
-  protected void createSinkTopic(final String kafkaTopicName, final StreamsKafkaClient streamsKafkaClient, KSQLConfig ksqlConfig) {
+  protected void createSinkTopic(final String kafkaTopicName, final StreamsKafkaClient streamsKafkaClient, KsqlConfig ksqlConfig) {
     InternalTopicConfig internalTopicConfig = new InternalTopicConfig(kafkaTopicName,
                                                                       Utils
                                                                           .mkSet(InternalTopicConfig.CleanupPolicy.compact,
                                                                                  InternalTopicConfig.CleanupPolicy.delete), Collections.<String, String>emptyMap());
     Map<InternalTopicConfig, Integer> topics = new HashMap<>();
-    int numberOfPartitions = (Integer) ksqlConfig.get(KSQLConfig.SINK_NUMBER_OF_PARTITIONS);
-    short numberOfReplications = (Short) ksqlConfig.get(KSQLConfig.SINK_NUMBER_OF_REPLICATIONS);
-    long windowChangeLogAdditionalRetention = (Long) ksqlConfig.get(KSQLConfig
+    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS);
+    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS);
+    long windowChangeLogAdditionalRetention = (Long) ksqlConfig.get(KsqlConfig
                                                                         .SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION);
     topics.put(internalTopicConfig, numberOfPartitions);
     streamsKafkaClient.createTopics(topics, numberOfReplications,

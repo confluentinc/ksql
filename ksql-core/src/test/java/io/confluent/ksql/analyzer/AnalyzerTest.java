@@ -1,10 +1,10 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KSQLParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KSQLTestUtil;
+import io.confluent.ksql.util.KsqlTestUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,13 +13,13 @@ import java.util.List;
 
 public class AnalyzerTest {
 
-  private static final KSQLParser KSQL_PARSER = new KSQLParser();
+  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = KSQLTestUtil.getNewMetaStore();
+    metaStore = KsqlTestUtil.getNewMetaStore();
   }
 
   private Analysis analyze(String queryStr) {

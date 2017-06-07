@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -12,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @JsonTypeName("properties")
-public class PropertiesList extends KSQLEntity {
+public class PropertiesList extends KsqlEntity {
   private final Map<String, Object> properties;
 
   @JsonCreator

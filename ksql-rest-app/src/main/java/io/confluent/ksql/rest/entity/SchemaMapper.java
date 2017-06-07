@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -54,8 +55,11 @@ public class SchemaMapper {
     }
 
     @Override
-    public void serialize(Schema schema, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-        throws IOException {
+    public void serialize(
+        Schema schema,
+        JsonGenerator jsonGenerator,
+        SerializerProvider serializerProvider
+    ) throws IOException {
       jsonGenerator.writeTree(jsonConverter.asJsonSchema(schema));
     }
   }

@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+        "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+        "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+
+<suppressions>
+
+    <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
+    <suppress
+            checks="IndentationCheck"
+            files="(KsqlEntity|Cli|Ksql).java"
+    />
+
+    <!-- Checkstyle 6.19 also doesn't like properly-formatted do-while loops -->
+    <!-- TODO: Remove this if https://github.com/confluentinc/common/pull/57 is ever merged-->
+    <suppress
+            checks="RightCurly"
+            files="CommandStore.java"
+    />
+
+    <!-- TODO -->
+    <suppress
+            checks="ClassDataAbstractionCouplingCheck"
+            files="(KsqlRestApplication|KsqlResource|Cli).java"
+    />
+
+    <!-- TODO -->
+    <suppress
+            checks="CyclomaticComplexityCheck"
+            files="KsqlResource.java"
+    />
+
+    <!-- TODO -->
+    <suppress
+            checks="BooleanExpressionComplexityCheck"
+            files="KsqlResource.java"
+    />
+
+    <!-- TODO -->
+    <suppress
+            checks="MethodLengthCheck"
+            files="Cli.java"
+    />
+
+    <!-- TODO -->
+    <suppress
+            checks="JavaNCSSCheck"
+            files="Cli.java"
+    />
+
+</suppressions>

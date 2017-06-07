@@ -6,7 +6,7 @@ package io.confluent.ksql.util.json;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.AbstractIterator;
 
-import io.confluent.ksql.util.KSQLException;
+import io.confluent.ksql.util.KsqlException;
 
 import static com.google.common.base.Verify.verify;
 import static java.lang.Character.isLetterOrDigit;
@@ -167,8 +167,8 @@ public class JsonPathTokenizer
     return path.charAt(index);
   }
 
-  private KSQLException invalidJsonPath() {
-    return new KSQLException(format("Invalid JSON path: '%s'", path));
+  private KsqlException invalidJsonPath() {
+    return new KsqlException(format("Invalid JSON path: '%s'", path));
   }
 
   @Override

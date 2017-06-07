@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -8,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.metastore.KSQLTopic;
+import io.confluent.ksql.metastore.KsqlTopic;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @JsonTypeName("topics")
-public class TopicsList extends KSQLEntity {
+public class TopicsList extends KsqlEntity {
   private final Collection<TopicInfo> topics;
 
   @JsonCreator
@@ -29,8 +30,9 @@ public class TopicsList extends KSQLEntity {
     this.topics = topics;
   }
 
-  public static TopicsList fromKsqlTopics(String statementText, Collection<KSQLTopic> ksqlTopics) {
-    Collection<TopicInfo> topicInfos = ksqlTopics.stream().map(TopicInfo::new).collect(Collectors.toList());
+  public static TopicsList fromKsqlTopics(String statementText, Collection<KsqlTopic> ksqlTopics) {
+    Collection<TopicInfo> topicInfos =
+        ksqlTopics.stream().map(TopicInfo::new).collect(Collectors.toList());
     return new TopicsList(statementText, topicInfos);
   }
 
@@ -72,8 +74,12 @@ public class TopicsList extends KSQLEntity {
       this.format = format;
     }
 
-    public TopicInfo(KSQLTopic ksqlTopic) {
-      this(ksqlTopic.getTopicName(), ksqlTopic.getKafkaTopicName(), ksqlTopic.getKsqlTopicSerDe().getSerDe());
+    public TopicInfo(KsqlTopic ksqlTopic) {
+      this(
+          ksqlTopic.getTopicName(),
+          ksqlTopic.getKafkaTopicName(),
+          ksqlTopic.getKsqlTopicSerDe().getSerDe()
+      );
     }
 
     public String getName() {
@@ -97,9 +103,9 @@ public class TopicsList extends KSQLEntity {
         return false;
       }
       TopicInfo topicInfo = (TopicInfo) o;
-      return Objects.equals(getName(), topicInfo.getName()) &&
-          Objects.equals(getKafkaTopic(), topicInfo.getKafkaTopic()) &&
-          getFormat() == topicInfo.getFormat();
+      return Objects.equals(getName(), topicInfo.getName())
+          && Objects.equals(getKafkaTopic(), topicInfo.getKafkaTopic())
+          && getFormat() == topicInfo.getFormat();
     }
 
     @Override

@@ -1,10 +1,11 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.KSQLEngine;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -26,7 +27,8 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final AtomicReference<Throwable> streamsException;
 
-  QueryStreamWriter(KSQLEngine ksqlEngine, long disconnectCheckInterval, String queryString) throws Exception {
+  QueryStreamWriter(KsqlEngine ksqlEngine, long disconnectCheckInterval, String queryString)
+      throws Exception {
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(true, queryString).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
@@ -63,8 +65,8 @@ class QueryStreamWriter implements StreamingOutput {
           if (exception != null) {
             throw exception;
           }
-          // If no new rows have been written, the user may have terminated the connection without us knowing.
-          // Check by trying to write a single newline.
+          // If no new rows have been written, the user may have terminated the connection without
+          // us knowing. Check by trying to write a single newline.
           if (!rowsWritten.getAndSet(false)) {
             synchronized (out) {
               out.write("\n".getBytes());
@@ -75,8 +77,8 @@ class QueryStreamWriter implements StreamingOutput {
       } catch (EOFException exception) {
         // The user has terminated the connection; we can stop writing
       } catch (InterruptedException exception) {
-        // The most likely cause of this is the server shutting down. Should just try to close gracefully, without
-        // writing any more to the connection stream.
+        // The most likely cause of this is the server shutting down. Should just try to close
+        // gracefully, without writing any more to the connection stream.
         log.warn("Interrupted while writing to connection stream");
       } catch (Throwable exception) {
         log.error("Exception occurred while writing to connection stream: ", exception);
@@ -93,7 +95,9 @@ class QueryStreamWriter implements StreamingOutput {
           rowWriterThread.interrupt();
           rowWriterThread.join();
         } catch (InterruptedException exception) {
-          log.warn("Failed to join row writer thread; setting to daemon to avoid hanging on shutdown");
+          log.warn(
+              "Failed to join row writer thread; setting to daemon to avoid hanging on shutdown"
+          );
           rowWriterThread.setDaemon(true);
         }
       }

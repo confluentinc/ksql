@@ -3,12 +3,12 @@
  **/
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.udf.KUDF;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
-import io.confluent.ksql.util.KSQLConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -44,7 +44,7 @@ public class SchemaKTable extends SchemaKStream {
   @Override
   public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
                            Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                                 streamsKafkaClient, KSQLConfig ksqlConfig) {
+                                 streamsKafkaClient, KsqlConfig ksqlConfig) {
 
     createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
@@ -94,7 +94,7 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SQLPredicate predicate = new SQLPredicate(filterExpression, schema, isWindowed);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
     KTable filteredKTable = kTable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed);
   }
@@ -122,7 +122,7 @@ public class SchemaKTable extends SchemaKStream {
         for (int i = 0; i < expressions.size(); i++) {
           Expression expression = expressions.get(i);
           int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-          KUDF[] kudfs = expressionEvaluators.get(i).getUdfs();
+          Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
           Object[] parameterObjects = new Object[parameterIndexes.length];
           for (int j = 0; j < parameterIndexes.length; j++) {
             if (parameterIndexes[j] < 0) {

@@ -2,7 +2,7 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2
           http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-    <!-- Assembles a package that can run ksql-cli given dependency packages. This is used to
+    <!-- Assembles a package that can run the ksql cli given dependency packages. This is used to
          construct packages OS packages where underlying libraries, like rest-utils, can be shared
          -->
     <id>package</id>
@@ -25,9 +25,6 @@
             <includes>
                 <include>bin/*</include>
             </includes>
-            <excludes>
-                <exclude>bin/*rebalancer*</exclude>
-            </excludes>
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>

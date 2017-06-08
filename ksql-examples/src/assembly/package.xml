@@ -2,7 +2,7 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2
           http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-    <!-- Assembles a package that can run the ksql server given dependency packages. This is used to
+    <!-- Assembles a package that can run the ksql examples tool given dependency packages. This is used to
          construct packages OS packages where underlying libraries, like rest-utils, can be shared
          -->
     <id>package</id>
@@ -13,7 +13,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
-            <outputDirectory>share/doc/ksql-rest-app/</outputDirectory>
+            <outputDirectory>share/doc/ksql-examples/</outputDirectory>
             <includes>
                 <include>version.txt</include>
                 <include>COPYRIGHT*</include>
@@ -28,7 +28,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>etc/ksql-rest-app</outputDirectory>
+            <outputDirectory>etc/ksql-examples</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -36,7 +36,7 @@
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql-rest-app</outputDirectory>
+            <outputDirectory>share/java/ksql-examples</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <!-- Warning: Enabling useTransitiveFiltering is potentially unsafe,
                  cf. https://github.com/miguno/maven-assembly-transitive-deps-woes
@@ -45,8 +45,6 @@
                  disable transitive filtering. -->
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>io.confluent:rest-utils</exclude>
-                <exclude>io.confluent:common-*</exclude>
                 <exclude>com.google.guava:guava</exclude>
             </excludes>
         </dependencySet>

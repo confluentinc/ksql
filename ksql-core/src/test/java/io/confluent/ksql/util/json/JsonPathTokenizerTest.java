@@ -2,9 +2,9 @@ package io.confluent.ksql.util.json;
 
 
 import com.google.common.collect.ImmutableList;
-
 import org.junit.Assert;
 import org.junit.Test;
+
 import java.io.IOException;
 import java.util.List;
 

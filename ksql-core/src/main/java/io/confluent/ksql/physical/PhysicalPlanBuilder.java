@@ -4,8 +4,8 @@
 package io.confluent.ksql.physical;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -37,7 +37,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import io.confluent.ksql.util.WindowedSerde;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;

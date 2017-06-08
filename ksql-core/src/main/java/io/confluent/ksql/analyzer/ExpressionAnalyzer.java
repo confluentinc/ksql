@@ -3,8 +3,8 @@
  **/
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;

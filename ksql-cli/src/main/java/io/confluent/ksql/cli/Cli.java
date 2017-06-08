@@ -6,7 +6,6 @@ package io.confluent.ksql.cli;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.Ksql;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -44,8 +43,8 @@ import org.jline.terminal.TerminalBuilder;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;

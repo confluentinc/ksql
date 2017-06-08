@@ -4,9 +4,9 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;

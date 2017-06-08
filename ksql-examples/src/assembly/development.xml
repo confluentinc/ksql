@@ -36,6 +36,16 @@
     <dependencySets>
         <dependencySet>
             <outputDirectory>share/java/ksql-examples</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <!-- Warning: Enabling useTransitiveFiltering is potentially unsafe,
+                 cf. https://github.com/miguno/maven-assembly-transitive-deps-woes
+                 and https://issues.apache.org/jira/browse/MASSEMBLY-504.  If
+                 dependencies happen to be missing in the assembly you may want to
+                 disable transitive filtering. -->
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+                <exclude>org.slf4j:slf4j-log4j12</exclude> <!-- Already included by rest-app-->
+            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>

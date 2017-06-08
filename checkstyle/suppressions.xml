@@ -12,13 +12,6 @@
             files="(KsqlEntity|Cli|Ksql).java"
     />
 
-    <!-- Checkstyle 6.19 also doesn't like properly-formatted do-while loops -->
-    <!-- TODO: Remove this if https://github.com/confluentinc/common/pull/57 is ever merged-->
-    <suppress
-            checks="RightCurly"
-            files="CommandStore.java"
-    />
-
     <!-- TODO -->
     <suppress
             checks="ClassDataAbstractionCouplingCheck"

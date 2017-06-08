@@ -21,9 +21,8 @@ tokens {
 }
 
 statements
-    : singleStatement (singleStatement)* EOF
+    : (singleStatement)* EOF
     ;
-
 
 singleStatement
     : statement ';'

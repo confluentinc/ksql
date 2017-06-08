@@ -3,6 +3,7 @@
  **/
 package io.confluent.ksql;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.DdlEngine;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -86,7 +87,8 @@ public class KsqlEngine implements Closeable {
             createStreamAsSelect.getQuery(),
             querySpecification,
             createStreamAsSelect.getName().getSuffix(),
-            createStreamAsSelect.getProperties()
+            createStreamAsSelect.getProperties(),
+            createStreamAsSelect.getPartitionByColumn()
         );
         tempMetaStore.putSource(queryEngine.getResultDatasource(
             querySpecification.getSelect(),
@@ -101,7 +103,8 @@ public class KsqlEngine implements Closeable {
             createTableAsSelect.getQuery(),
             querySpecification,
             createTableAsSelect.getName().getSuffix(),
-            createTableAsSelect.getProperties()
+            createTableAsSelect.getProperties(),
+            Optional.empty()
         );
 
         tempMetaStore.putSource(queryEngine.getResultDatasource(
@@ -165,9 +168,18 @@ public class KsqlEngine implements Closeable {
   public Query addInto(final Query query, final QuerySpecification querySpecification,
                        final String intoName,
                        final Map<String,
-                           Expression> intoProperties) {
+                           Expression> intoProperties,
+                       Optional<Expression> partitionByExpression) {
     Table intoTable = new Table(QualifiedName.of(intoName));
-    intoTable.setProperties(intoProperties);
+    if (partitionByExpression.isPresent()) {
+      Map<String, Expression> newIntoProperties = new HashMap<>();
+      newIntoProperties.putAll(intoProperties);
+      newIntoProperties.put(DdlConfig.PARTITION_BY_PROPERTY, partitionByExpression.get());
+      intoTable.setProperties(newIntoProperties);
+    } else {
+      intoTable.setProperties(intoProperties);
+    }
+
     QuerySpecification newQuerySpecification = new QuerySpecification(
         querySpecification.getSelect(),
         Optional.of(intoTable),

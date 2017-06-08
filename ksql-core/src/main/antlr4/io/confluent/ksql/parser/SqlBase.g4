@@ -51,7 +51,8 @@ statement
                 '(' tableElement (',' tableElement)* ')'
                 (WITH tableProperties)?                                #createStream
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
-            (WITH tableProperties)? AS query                           #createStreamAs
+            (WITH tableProperties)? AS query
+                                       (PARTITION BY identifier)?      #createStreamAs
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
                     '(' tableElement (',' tableElement)* ')'
                     (WITH tableProperties)?                            #createTable

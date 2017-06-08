@@ -81,7 +81,9 @@ public class LogicalPlanner {
 
       return new KsqlStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),
                                              sourcePlanNode,
-                                             inputSchema, timestampField, intoStructuredDataSource.getKsqlTopic(),
+                                             inputSchema, timestampField, sourcePlanNode
+                                                  .getKeyField(),
+                                              intoStructuredDataSource.getKsqlTopic(),
                                              intoStructuredDataSource.getKsqlTopic()
                                                  .getTopicName(), analysis.getIntoProperties());
 

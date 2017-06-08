@@ -25,13 +25,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                                       @JsonProperty("source") final PlanNode source,
                                       @JsonProperty("schema") final Schema schema,
                                       @JsonProperty("timestamp") final Field timestampField,
+                                      @JsonProperty("key") final Field keyField,
                                       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
                                       @JsonProperty("topicName") final String topicName,
                                       @JsonProperty("outputProperties") final Map<String, Object>
                                             outputProperties) {
     super(id, source, schema);
     this.kafkaTopicName = topicName;
-    this.keyField = source.getKeyField();
+    this.keyField = keyField;
     this.timestampField = timestampField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;

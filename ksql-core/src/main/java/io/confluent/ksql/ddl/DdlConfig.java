@@ -15,5 +15,5 @@ public class DdlConfig {
   public static final String KEY_NAME_PROPERTY = "KEY";
   public static final String IS_WINDOWED_PROPERTY = "WINDOWED";
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
-
+  public static final String PARTITION_BY_PROPERTY = "PARTITION_BY";
 }

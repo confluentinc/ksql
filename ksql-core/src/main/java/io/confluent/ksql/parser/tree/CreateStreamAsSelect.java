@@ -19,25 +19,27 @@ public class CreateStreamAsSelect extends Statement {
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
+  private final Optional<Expression> partitionByColumn;
 
   public CreateStreamAsSelect(QualifiedName name, Query query, boolean notExists,
-                      Map<String, Expression> properties) {
-    this(Optional.empty(), name, query, notExists, properties);
+                      Map<String, Expression> properties, Optional<Expression> partitionByColumn) {
+    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
   }
 
   public CreateStreamAsSelect(NodeLocation location, QualifiedName name, Query query,
-                      boolean notExists, Map<String, Expression> properties) {
-    this(Optional.of(location), name, query, notExists, properties);
+                      boolean notExists, Map<String, Expression> properties, Optional<Expression> partitionByColumn) {
+    this(Optional.of(location), name, query, notExists, properties, partitionByColumn);
   }
 
   private CreateStreamAsSelect(Optional<NodeLocation> location, QualifiedName name,
                                Query query, boolean notExists,
-                       Map<String, Expression> properties) {
+                       Map<String, Expression> properties, Optional<Expression> partitionByColumn) {
     super(location);
     this.name = requireNonNull(name, "stream is null");
     this.query = query;
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    this.partitionByColumn = partitionByColumn;
   }
 
   public QualifiedName getName() {
@@ -54,6 +56,10 @@ public class CreateStreamAsSelect extends Statement {
 
   public Map<String, Expression> getProperties() {
     return properties;
+  }
+
+  public Optional<Expression> getPartitionByColumn() {
+    return partitionByColumn;
   }
 
   @Override

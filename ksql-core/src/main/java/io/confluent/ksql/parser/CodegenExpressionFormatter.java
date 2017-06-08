@@ -4,9 +4,9 @@
 package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
+import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;

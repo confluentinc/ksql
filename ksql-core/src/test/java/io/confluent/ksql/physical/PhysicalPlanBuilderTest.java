@@ -17,7 +17,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlTestUtil;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.KStreamBuilder;

@@ -136,7 +136,7 @@ OPTIONS+=($KSQL_OPTS)
 
 # Launch mode
 if [ "x$DAEMON_MODE" = "xtrue" ]; then
-  DAEMON_STDOUT_FILE="${LOG_DIR:-/tmp}/ksql.out"
+  DAEMON_STDOUT_FILE="$LOG_DIR/ksql.out"
   echo "Writing console output to $DAEMON_STDOUT_FILE"
   nohup "$JAVA" -cp "$KSQL_CLASSPATH" "${OPTIONS[@]}" "$MAIN" "$@" 2>&1 < /dev/null > "$DAEMON_STDOUT_FILE" &
 else

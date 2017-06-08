@@ -344,6 +344,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         analysis.getIntoProperties().put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
       }
 
+      if (node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY) != null) {
+        String intoPartitionByColumnName = node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
+        analysis.getIntoProperties().put(DdlConfig.PARTITION_BY_PROPERTY,
+                                         intoPartitionByColumnName);
+      }
+
       if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
         String
             intoTimestampColumnName =

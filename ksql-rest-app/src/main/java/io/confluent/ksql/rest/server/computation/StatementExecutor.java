@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.server.TopicUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.zookeeper.Op;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -262,7 +263,8 @@ public class StatementExecutor {
           createStreamAsSelect.getQuery(),
           querySpecification,
           createStreamAsSelect.getName().getSuffix(),
-          createStreamAsSelect.getProperties()
+          createStreamAsSelect.getProperties(),
+          createStreamAsSelect.getPartitionByColumn()
       );
       String streamName = createStreamAsSelect.getName().getSuffix();
       topicUtil.ensureTopicExists(streamName);
@@ -279,7 +281,8 @@ public class StatementExecutor {
           createTableAsSelect.getQuery(),
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
-          createTableAsSelect.getProperties()
+          createTableAsSelect.getProperties(),
+          Optional.empty()
       );
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Table created and running";

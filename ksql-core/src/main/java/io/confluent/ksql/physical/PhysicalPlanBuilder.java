@@ -3,6 +3,7 @@
  **/
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KSQLFunctions;
 import io.confluent.ksql.function.udaf.KudafAggregator;
@@ -119,6 +120,7 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNode.getSource(),
               SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(ksqlStructuredDataOutputNode.getSchema()),
               ksqlStructuredDataOutputNode.getTimestampField(),
+              ksqlStructuredDataOutputNode.getKeyField(),
               ksqlStructuredDataOutputNode.getKsqlTopic(),
               ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
@@ -140,12 +142,46 @@ public class PhysicalPlanBuilder {
         ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, outputProperties.get(KsqlConfig
                                                                                            .SINK_NUMBER_OF_REPLICATIONS));
       }
+      SchemaKStream resultSchemaStream = schemaKStream;
+      if (!(resultSchemaStream instanceof SchemaKTable)) {
+        resultSchemaStream = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
+                                               schemaKStream.getkStream(),
+                                               ksqlStructuredDataOutputNode
+                                                   .getKeyField(),
+                                               Arrays.asList(schemaKStream)
+        );
 
-      SchemaKStream resultSchemaStream = schemaKStream.into(ksqlStructuredDataOutputNodeNoRowKey
-          .getKafkaTopicName(), SerDeUtil
-          .getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()), rowkeyIndexes,
-                                                            streamsKafkaClient, ksqlConfig);
+        if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
+          String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
+          Field keyField = SchemaUtil.getFieldByName(resultSchemaStream.getSchema
+              (), keyFieldName);
+          if (keyField == null) {
+            throw new KsqlException(String.format("Column %s does not exist in the result schema."
+                                                  + " Error in Partition By clause.", keyField
+                .name()));
+          }
+          resultSchemaStream = resultSchemaStream.selectKey(keyField);
+
+          ksqlStructuredDataOutputNodeNoRowKey = new
+              KsqlStructuredDataOutputNode(
+              ksqlStructuredDataOutputNodeNoRowKey.getId(),
+              ksqlStructuredDataOutputNodeNoRowKey.getSource(),
+              ksqlStructuredDataOutputNodeNoRowKey.getSchema(),
+              ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
+              keyField,
+              ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
+              ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
+              ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties());
+        }
+      }
+
+      resultSchemaStream = resultSchemaStream.into(
+          ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
+          SerDeUtil.getRowSerDe(ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
+                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
+          rowkeyIndexes,
+          streamsKafkaClient,
+          ksqlConfig);
 
 
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
@@ -154,6 +190,7 @@ public class PhysicalPlanBuilder {
           ksqlStructuredDataOutputNodeNoRowKey.getSource(),
           SchemaUtil.addImplicitRowTimeRowKeyToSchema(ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
           ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
+          ksqlStructuredDataOutputNodeNoRowKey.getKeyField(),
           ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
           ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
           ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties()
@@ -468,7 +505,8 @@ public class PhysicalPlanBuilder {
 
     KsqlStructuredDataOutputNode newKsqlStructuredDataOutputNode = new KsqlStructuredDataOutputNode(
         ksqlStructuredDataOutputNode.getId(), ksqlStructuredDataOutputNode.getSource(),
-        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(), newKsqlTopic,
+        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField
+        (), ksqlStructuredDataOutputNode.getKeyField(), newKsqlTopic,
         ksqlStructuredDataOutputNode.getKafkaTopicName(), ksqlStructuredDataOutputNode.getOutputProperties());
     return newKsqlStructuredDataOutputNode;
   }

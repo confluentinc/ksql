@@ -210,10 +210,17 @@ public class AstBuilder
 
   @Override
   public Node visitCreateStreamAs(SqlBaseParser.CreateStreamAsContext context) {
+    Optional<Expression> partitionByColumn = Optional.empty();
+    if (context.identifier() != null) {
+      partitionByColumn = Optional.of(new QualifiedNameReference(QualifiedName.of(getIdentifierText
+                                                                                   (context.identifier()))));
+    }
+
     return new CreateStreamAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
                                     (Query) visitQuery(context.query()),
                                     context.EXISTS() != null,
-                                    processTableProperties(context.tableProperties()));
+                                    processTableProperties(context.tableProperties()),
+                                    partitionByColumn);
   }
 
   @Override
@@ -545,7 +552,6 @@ public class AstBuilder
   public Node visitQualifiedName(SqlBaseParser.QualifiedNameContext context) {
     return visitChildren(context);
   }
-
 
   @Override
   public Node visitTable(SqlBaseParser.TableContext context) {

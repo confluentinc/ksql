@@ -53,7 +53,6 @@
             <excludes>
                 <exclude>io.confluent:rest-utils</exclude>
                 <exclude>io.confluent:common-*</exclude>
-                <exclude>io.confluent:confluent-serializers</exclude>
                 <exclude>com.google.guava:guava</exclude>
             </excludes>
         </dependencySet>

@@ -267,7 +267,6 @@ public class StatementExecutor {
           createStreamAsSelect.getPartitionByColumn()
       );
       String streamName = createStreamAsSelect.getName().getSuffix();
-      topicUtil.ensureTopicExists(streamName);
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Stream created and running";
       } else {

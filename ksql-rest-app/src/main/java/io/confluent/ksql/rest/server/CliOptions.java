@@ -17,6 +17,9 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import javax.inject.Inject;
 import java.io.IOException;
 
+// TODO: Enable specification of properties here so that useful defaults for bootstrap server, port,
+// etc. can be established in the ksql-server-start script
+
 @Command(name = "KSQL-Server", description = "KSQL Cluster")
 public class CliOptions {
 

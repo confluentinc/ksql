@@ -52,24 +52,48 @@
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-cli</artifactId>
                 <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-core</artifactId>
                 <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-examples</artifactId>
                 <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-rest-app</artifactId>
                 <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <!-- End cross-submodule dependencies -->
 
@@ -178,50 +202,14 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>shade</goal>
-                            </goals>
-                            <configuration>
-                                <shadedArtifactAttached>true</shadedArtifactAttached>
-                                <shadedClassifierName>executable</shadedClassifierName>
-                                <filters>
-                                    <filter>
-                                        <artifact>*:*</artifact>
-                                        <excludes>
-                                            <exclude>META-INF/*.SF</exclude>
-                                            <exclude>META-INF/*.DSA</exclude>
-                                            <exclude>META-INF/*.RSA</exclude>
-                                        </excludes>
-                                    </filter>
-                                </filters>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.skife.maven</groupId>
-                    <artifactId>really-executable-jar-maven-plugin</artifactId>
-                    <version>${really.executable.jar.version}</version>
+                    <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
-                        <flags>-Xmx1G</flags>
-                        <classifier>executable</classifier>
+                        <descriptors>
+                            <descriptor>src/assembly/package.xml</descriptor>
+                        </descriptors>
                     </configuration>
-                    <executions>
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>really-executable-jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
-
+                
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>

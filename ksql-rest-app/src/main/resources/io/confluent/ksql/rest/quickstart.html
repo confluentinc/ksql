@@ -4,23 +4,29 @@
     <meta charset="UTF-8">
     <title>KS?QL Quickstart</title>
     <script>
+        var rawResponseBody = '';
         var xhr = new XMLHttpRequest();
-        function sendRequest(resource, printResponse) {
+
+        var renderFunction = renderTabular;
+        var streamedResponse = false;
+
+        function sendRequest(resource) {
             xhr.abort();
 
             var ksql = document.getElementById('ksql').value;
 
             xhr.onreadystatechange = function() {
-                if (xhr.response.trim() !== '' && (xhr.readyState === 3 || xhr.readyState === 4)) {
-                    printResponse(xhr.response);
+                if (xhr.response !== '' && (xhr.readyState === 3 || xhr.readyState === 4)) {
+                    rawResponseBody = xhr.response;
+                    renderResponse();
                 }
                 if (xhr.readyState === 4 || xhr.readyState === 0) {
                     document.getElementById("request_loading").hidden = true;
                     document.getElementById("cancel_request").hidden = true;
                 }
-            }
+            };
 
-            var data = JSON.stringify({'ksql': ksql})
+            var data = JSON.stringify({'ksql': ksql});
 
             document.getElementById("cancel_request").hidden = false;
             document.getElementById("request_loading").hidden = false;
@@ -36,21 +42,61 @@
             responseElement.innerHTML = response;
         }
 
-        function printQueryRow(response) {
-            if (response.trim() !== '') {
-                document.getElementById('response').innerHTML = xhr.response.replace(/\n{2,}/g, '\n');
+        function renderResponse() {
+            var renderedBody = '';
+            if (streamedResponse) {
+                var parsingError = false;
+                var splitBody = rawResponseBody.split('\n');
+                // Have to leave the last line off, as it may be an incomplete
+                // JSON blob, which would just cause parsing errors
+                for (var i = 0; i < splitBody.length - 1; i++) {
+                    var line = splitBody[i].trim();
+                    if (line !== '') {
+                        try {
+                            var parsedJson = JSON.parse(line);
+                            renderedBody += renderFunction(parsedJson);
+                        } catch (SyntaxError) {
+                          // Only want to alert them the first time an error
+                          // is encountered, since there could be a lot
+                          if (!parsingError) {
+                            alert('Error parsing response JSON');
+                          }
+                          parsingError = true;
+                          renderedBody += line;
+                        }
+                        renderedBody += '\n';
+                    }
+                }
+                if (rawResponseBody.endsWith('\n')) {
+                  // We can safely try to render the last line
+                  var lastLine = splitBody[splitBody.length - 1].trim();
+                  if (lastLine !== '') {
+                    renderedBody += renderFunction(lastLine) + '\n';
+                  }
+                }
+            } else {
+                renderedBody = renderFunction(rawResponseBody);
             }
+            document.getElementById('response').innerHTML = renderedBody;
         }
 
-        function printKSQLResponse(response) {
-            if (response.trim() !== '') {
-                try {
-                    var jsonResponse = JSON.parse(response);
-                    document.getElementById('response').innerHTML = JSON.stringify(jsonResponse, null, 2);
-                } catch (SyntaxError) {
-                    document.getElementById('response').innerHTML = response.trim();
-                }
-            }
+        function renderTabular(parsedBody) {
+           return 'TODO';
+        }
+
+        function renderPrettyJson(parsedBody) {
+            return JSON.stringify(parsedBody, null, 2);
+        }
+
+        function renderCompactJson(parsedBody) {
+            return JSON.stringify(parsedJson);
+        }
+
+        function updateFormat(newRenderFunction) {
+          renderFunction = newRenderFunction;
+          if (rawResponseBody !== '') {
+            renderResponse();
+          }
         }
     </script>
     <style>
@@ -97,12 +143,12 @@
     <br />
     <br />
     <br />
-    <button onclick="sendRequest('/ksql', printKSQLResponse);">Send Request!</button>
+    <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
         &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
     <br />
     <br />
-    <button onclick="sendRequest('/query', printQueryRow);">Stream a query!</button>
-        &nbsp;&nbsp;(example: "SELECT * FROM foo;")
+    <button onclick="streamedResponse = true; sendRequest('/query');">Stream a query!</button>
+        &nbsp;&nbsp;(example: "SELECT * FROM foo;", "PRINT topic_foo;")
     <br />
     <br />
     <span class="loading" id="request_loading" hidden>Request loading...</span>
@@ -111,6 +157,19 @@
     <br />
     <br />
     Server response:
+    <br />
+    <br />
+    Output format:
+        <label>
+            <input checked type="radio" name="output" value="tabular" onchange="updateFormat(renderTabular);"> Tabular
+        </label>
+        <label>
+            <input type="radio" name="output" value="prettyjson" onchange="updateFormat(renderPrettyJson);"> JSON (pretty)
+        </label>
+        <label>
+            <input type="radio" name="output" value="compactjson" onchange="updateFormat(renderCompactJson);"> JSON (compact)
+        </label>
+    <br />
     <br />
     <pre id="response" class="response"></pre>
 </body>

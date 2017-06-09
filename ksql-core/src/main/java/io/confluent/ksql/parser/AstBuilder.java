@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import com.google.common.collect.ImmutableList;
@@ -211,8 +212,8 @@ public class AstBuilder
   public Node visitCreateStreamAs(SqlBaseParser.CreateStreamAsContext context) {
     Optional<Expression> partitionByColumn = Optional.empty();
     if (context.identifier() != null) {
-      partitionByColumn = Optional.of(new QualifiedNameReference(QualifiedName.of(getIdentifierText
-                                                                                   (context.identifier()))));
+      partitionByColumn = Optional.of(new QualifiedNameReference(
+          QualifiedName.of(getIdentifierText(context.identifier()))));
     }
 
     return new CreateStreamAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
@@ -320,7 +321,8 @@ public class AstBuilder
         select =
         new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()),
                    visit(context.selectItem(), SelectItem.class));
-    select = new Select(getLocation(context.SELECT()), select.isDistinct(), extractSelectItems(select, from));
+    select = new Select(getLocation(context.SELECT()), select.isDistinct(),
+                        extractSelectItems(select, from));
     this.resultDataSource = getResultDatasource(select, into);
 
     return new QuerySpecification(
@@ -350,14 +352,15 @@ public class AstBuilder
               leftDataSource =
               dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
           if (leftDataSource == null) {
-            throw new InvalidColumnReferenceException(left.getRelation().toString() + " does not exist.");
+            throw new InvalidColumnReferenceException(left.getRelation().toString()
+                                                      + " does not exist.");
           }
           AliasedRelation right = (AliasedRelation) join.getRight();
-          StructuredDataSource
-              rightDataSource =
+          StructuredDataSource rightDataSource =
               dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
           if (rightDataSource == null) {
-            throw new InvalidColumnReferenceException(right.getRelation().toString() + " does not exist.");
+            throw new InvalidColumnReferenceException(right.getRelation().toString()
+                                                      + " does not exist.");
           }
           for (Field field : leftDataSource.getSchema().fields()) {
             QualifiedNameReference
@@ -500,9 +503,10 @@ public class AstBuilder
                              distinct);
       case SqlBaseLexer.EXCEPT:
         return new Except(getLocation(context.EXCEPT()), left, right, distinct);
+      default:
+        throw new IllegalArgumentException("Unsupported set operation: "
+                                           + context.operator.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
   }
 
   @Override
@@ -517,7 +521,8 @@ public class AstBuilder
   @Override
   public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
     Expression selectItemExpression = (Expression) visit(context.expression());
-    Optional<String> alias = Optional.ofNullable(context.identifier()).map(AstBuilder::getIdentifierText);
+    Optional<String> alias = Optional.ofNullable(
+        context.identifier()).map(AstBuilder::getIdentifierText);
     if (!alias.isPresent()) {
       if (selectItemExpression instanceof QualifiedNameReference) {
         QualifiedNameReference
@@ -591,7 +596,8 @@ public class AstBuilder
 
   @Override
   public Node visitTerminateQuery(SqlBaseParser.TerminateQueryContext context) {
-    return new TerminateQuery(getLocation(context), Long.parseLong(context.INTEGER_VALUE().getText()));
+    return new TerminateQuery(getLocation(context),
+                              Long.parseLong(context.INTEGER_VALUE().getText()));
   }
 
   @Override
@@ -616,7 +622,8 @@ public class AstBuilder
   @Override
   public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
     if (context.number() == null) {
-      return new PrintTopic(getLocation(context), getQualifiedName(context.qualifiedName()), null);
+      return new PrintTopic(getLocation(context),
+                            getQualifiedName(context.qualifiedName()), null);
     } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
       SqlBaseParser.IntegerLiteralContext
           integerLiteralContext =
@@ -651,9 +658,10 @@ public class AstBuilder
         return new ExplainFormat(getLocation(context), ExplainFormat.Type.GRAPHVIZ);
       case SqlBaseLexer.TEXT:
         return new ExplainFormat(getLocation(context), ExplainFormat.Type.TEXT);
+      default:
+        throw new IllegalArgumentException("Unsupported EXPLAIN format: "
+                                           + context.value.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported EXPLAIN format: " + context.value.getText());
   }
 
   @Override
@@ -663,9 +671,9 @@ public class AstBuilder
         return new ExplainType(getLocation(context), ExplainType.Type.LOGICAL);
       case SqlBaseLexer.DISTRIBUTED:
         return new ExplainType(getLocation(context), ExplainType.Type.DISTRIBUTED);
+      default:
+        throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
   }
 
   // ***************** boolean expressions ******************
@@ -979,7 +987,8 @@ public class AstBuilder
     Expression str = (Expression) visit(context.valueExpression());
     String
         normalForm =
-        Optional.ofNullable(context.normalForm()).map(ParserRuleContext::getText).orElse("NFC");
+        Optional.ofNullable(
+            context.normalForm()).map(ParserRuleContext::getText).orElse("NFC");
     return new FunctionCall(getLocation(context), QualifiedName.of("NORMALIZE"), ImmutableList
         .of(str, new StringLiteral(getLocation(context), normalForm)));
   }
@@ -1004,8 +1013,10 @@ public class AstBuilder
     try {
       baseExpression = (Expression) visit(context.primaryExpression());
     } catch (InvalidColumnReferenceException exception) {
-      QualifiedName tableName = QualifiedName.of(context.primaryExpression().getText().toUpperCase());
-      baseExpression = new QualifiedNameReference(getLocation(context.primaryExpression()), tableName);
+      QualifiedName tableName = QualifiedName.of(
+          context.primaryExpression().getText().toUpperCase());
+      baseExpression = new QualifiedNameReference(
+          getLocation(context.primaryExpression()), tableName);
     }
     DereferenceExpression
         dereferenceExpression =
@@ -1076,7 +1087,8 @@ public class AstBuilder
     boolean distinct = isDistinct(context.setQuantifier());
 
     if (name.toString().equals("NULLIF")) {
-      check(context.expression().size() == 2, "Invalid number of arguments for 'nullif' function",
+      check(context.expression().size() == 2,
+            "Invalid number of arguments for 'nullif' function",
             context);
       check(!window.isPresent(), "OVER clause not valid for 'nullif' function", context);
       check(!distinct, "DISTINCT not valid for 'nullif' function", context);
@@ -1307,9 +1319,9 @@ public class AstBuilder
         return ArithmeticBinaryExpression.Type.DIVIDE;
       case SqlBaseLexer.PERCENT:
         return ArithmeticBinaryExpression.Type.MODULUS;
+      default:
+        throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
     }
-
-    throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
   }
 
   private static ComparisonExpression.Type getComparisonOperator(Token symbol) {
@@ -1326,9 +1338,9 @@ public class AstBuilder
         return ComparisonExpression.Type.GREATER_THAN;
       case SqlBaseLexer.GTE:
         return ComparisonExpression.Type.GREATER_THAN_OR_EQUAL;
+      default:
+        throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
   }
 
   private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
@@ -1345,9 +1357,9 @@ public class AstBuilder
         return IntervalLiteral.IntervalField.MINUTE;
       case SqlBaseLexer.SECOND:
         return IntervalLiteral.IntervalField.SECOND;
+      default:
+        throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
   }
 
   private static IntervalLiteral.Sign getIntervalSign(Token token) {
@@ -1356,9 +1368,9 @@ public class AstBuilder
         return IntervalLiteral.Sign.NEGATIVE;
       case SqlBaseLexer.PLUS:
         return IntervalLiteral.Sign.POSITIVE;
+      default:
+        throw new IllegalArgumentException("Unsupported sign: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported sign: " + token.getText());
   }
 
   private static WindowFrame.Type getFrameType(Token type) {
@@ -1367,9 +1379,9 @@ public class AstBuilder
         return WindowFrame.Type.RANGE;
       case SqlBaseLexer.ROWS:
         return WindowFrame.Type.ROWS;
+      default:
+        throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
   }
 
   private static FrameBound.Type getBoundedFrameBoundType(Token token) {
@@ -1378,9 +1390,9 @@ public class AstBuilder
         return FrameBound.Type.PRECEDING;
       case SqlBaseLexer.FOLLOWING:
         return FrameBound.Type.FOLLOWING;
+      default:
+        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
   }
 
   private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
@@ -1389,9 +1401,9 @@ public class AstBuilder
         return FrameBound.Type.UNBOUNDED_PRECEDING;
       case SqlBaseLexer.FOLLOWING:
         return FrameBound.Type.UNBOUNDED_FOLLOWING;
+      default:
+        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
   }
 
   private static SampledRelation.Type getSamplingMethod(Token token) {
@@ -1402,9 +1414,9 @@ public class AstBuilder
         return SampledRelation.Type.SYSTEM;
       case SqlBaseLexer.POISSONIZED:
         return SampledRelation.Type.POISSONIZED;
+      default:
+        throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
   }
 
   private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
@@ -1413,9 +1425,9 @@ public class AstBuilder
         return LogicalBinaryExpression.Type.AND;
       case SqlBaseLexer.OR:
         return LogicalBinaryExpression.Type.OR;
+      default:
+        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported operator: " + token.getText());
   }
 
   private static SortItem.NullOrdering getNullOrderingType(Token token) {
@@ -1424,9 +1436,9 @@ public class AstBuilder
         return SortItem.NullOrdering.FIRST;
       case SqlBaseLexer.LAST:
         return SortItem.NullOrdering.LAST;
+      default:
+        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
   }
 
   private static SortItem.Ordering getOrderingType(Token token) {
@@ -1435,9 +1447,9 @@ public class AstBuilder
         return SortItem.Ordering.ASCENDING;
       case SqlBaseLexer.DESC:
         return SortItem.Ordering.DESCENDING;
+      default:
+        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
-
-    throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
   }
 
   private static String getType(SqlBaseParser.TypeContext type) {
@@ -1498,7 +1510,8 @@ public class AstBuilder
       return baseType.TIMESTAMP_WITH_TIME_ZONE().getText().toUpperCase();
     } else {
       throw new KsqlException(
-          "Base type must contain either identifier, time with time zone, or timestamp with time zone"
+          "Base type must contain either identifier, "
+          + "time with time zone, or timestamp with time zone"
       );
     }
   }

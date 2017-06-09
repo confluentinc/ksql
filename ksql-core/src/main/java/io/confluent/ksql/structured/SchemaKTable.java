@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.function.udf.Kudf;
@@ -49,7 +50,9 @@ public class SchemaKTable extends SchemaKStream {
     createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
     if (isWindowed) {
-      kTable.toStream().map(new KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>() {
+      kTable.toStream()
+          .map(new KeyValueMapper<Windowed<String>, GenericRow,
+              KeyValue<Windowed<String>, GenericRow>>() {
         @Override
         public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
           if (row == null) {
@@ -103,7 +106,8 @@ public class SchemaKTable extends SchemaKStream {
   public SchemaKTable select(final List<Expression> expressions)
       throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
-    // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
+    // TODO: Optimize to remove the code gen for constants and single
+    // TODO: columns references and use them directly.
     // TODO: Only use code get when we have real expression.
     List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -128,12 +132,16 @@ public class SchemaKTable extends SchemaKStream {
             if (parameterIndexes[j] < 0) {
               parameterObjects[j] = kudfs[j];
             } else {
-              parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j], row.getColumns().get(parameterIndexes[j]));
+              parameterObjects[j] =
+                  genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
+                                                               row.getColumns()
+                                                                   .get(parameterIndexes[j]));
             }
           }
           Object columnValue = null;
           try {
-            columnValue = expressionEvaluators.get(i).getExpressionEvaluator().evaluate(parameterObjects);
+            columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
+                .evaluate(parameterObjects);
           } catch (InvocationTargetException e) {
             e.printStackTrace();
           }
@@ -144,7 +152,8 @@ public class SchemaKTable extends SchemaKStream {
       }
     });
 
-    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField, Arrays.asList(this), isWindowed);
+    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
+                            Arrays.asList(this), isWindowed);
   }
 
   public SchemaKStream toStream() {

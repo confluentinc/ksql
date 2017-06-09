@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -51,8 +52,8 @@ public final class TableElement
       return false;
     }
     TableElement o = (TableElement) obj;
-    return Objects.equals(this.name, o.name) &&
-           Objects.equals(this.type, o.type);
+    return Objects.equals(this.name, o.name)
+           && Objects.equals(this.type, o.type);
   }
 
   @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -62,9 +63,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitQuerySpecification(final QuerySpecification node,
                                          final AnalysisContext context) {
 
-    process(node.getFrom().get(), new AnalysisContext(null, AnalysisContext.ParentType.FROM));
+    process(node.getFrom().get(),
+            new AnalysisContext(null, AnalysisContext.ParentType.FROM));
 
-    process(node.getInto().get(), new AnalysisContext(null, AnalysisContext.ParentType.INTO));
+    process(node.getInto().get(), new AnalysisContext(null,
+                                                      AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
       List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
@@ -79,7 +82,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KsqlAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(), null);
+            intoTopicSerde = new KsqlAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(),
+                                                    null);
             break;
           case DataSource.JSON_SERDE_NAME:
             intoTopicSerde = new KsqlJsonTopicSerDe(null);
@@ -87,6 +91,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           case DataSource.CSV_SERDE_NAME:
             intoTopicSerde = new KsqlCsvTopicSerDe();
             break;
+          default:
+            throw new KsqlException(
+                String.format("Unsupported format: %s", analysis.getIntoFormat()));
         }
       } else {
         if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
@@ -97,11 +104,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       KsqlTopic newIntoKsqlTopic = new KsqlTopic(intoKafkaTopicName,
           intoKafkaTopicName, intoTopicSerde);
       KsqlStream intoKsqlStream = new KsqlStream(intoStructuredDataSource.getName(),
-                                              null, null, null, newIntoKsqlTopic);
+                                              null, null, null,
+                                                 newIntoKsqlTopic);
       analysis.setInto(intoKsqlStream);
     }
 
-    process(node.getSelect(), new AnalysisContext(null, AnalysisContext.ParentType.SELECT));
+    process(node.getSelect(), new AnalysisContext(null,
+                                                  AnalysisContext.ParentType.SELECT));
     if (node.getWhere().isPresent()) {
       analyzeWhere(node.getWhere().get(), context);
     }
@@ -151,15 +160,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitJoin(final Join node, final AnalysisContext context) {
     AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
     AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
-    JoinOn joinOn = (JoinOn) (node.getCriteria().get());
-    ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
-
-    String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
-    String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
-
-    if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
-      throw new KsqlException("Join criteria is not supported.");
-    }
 
     String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
     String leftAlias = left.getAlias();
@@ -171,9 +171,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
     }
     if (((Table) left.getRelation()).getProperties() != null) {
-      if (((Table) left.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-        String timestampFieldName = (((Table) left.getRelation())).getProperties().get(DdlConfig
-                                                                                           .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      if (((Table) left.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+          != null) {
+        String timestampFieldName = (((Table) left.getRelation()))
+            .getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
         if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
           throw new KsqlException("Property name should be String with single qoute.");
         }
@@ -188,10 +189,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
 
     if (((Table) right.getRelation()).getProperties() != null) {
-      if (((Table) right.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY) !=
-          null) {
-        String timestampFieldName = (((Table) right.getRelation())).getProperties().get(DdlConfig
-                                                                                            .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      if (((Table) right.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+          != null) {
+        String timestampFieldName = (((Table) right.getRelation())).getProperties()
+            .get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
         if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
           throw new KsqlException("Property name should be String with single quote.");
         }
@@ -238,6 +239,17 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       default:
         throw new KsqlException("Join type is not supported: " + node.getType().name());
     }
+
+    JoinOn joinOn = (JoinOn) (node.getCriteria().get());
+    ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
+
+    String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
+    String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
+
+    if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
+      throw new KsqlException("Join criteria is not supported.");
+    }
+
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
             rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
@@ -265,17 +277,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-    if (metaStore.getSource(structuredDataSourceName) ==
-        null) {
+    if (metaStore.getSource(structuredDataSourceName)
+        == null) {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 
     StructuredDataSource structuredDataSource = metaStore.getSource(structuredDataSourceName);
 
     if (((Table) node.getRelation()).getProperties() != null) {
-      if (((Table) node.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-        String timestampFieldName = ((Table) node.getRelation()).getProperties().get(DdlConfig
-                                                                                         .TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      if (((Table) node.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+          != null) {
+        String timestampFieldName = ((Table) node.getRelation()).getProperties()
+            .get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
         if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
           throw new KsqlException("Property name should be String with single qoute.");
         }
@@ -297,13 +310,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitTable(final Table node, final AnalysisContext context) {
 
     StructuredDataSource into;
-    if (node.isSTDOut) {
+    if (node.isStdOut) {
       into =
-          new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null, null,
-                        StructuredDataSource.DataSourceType.KSTREAM);
+          new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
+                         null, StructuredDataSource.DataSourceType.KSTREAM);
 
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into = new KsqlStream(node.getName().getSuffix(), null, null, null, null);
+      into = new KsqlStream(node.getName().getSuffix(), null, null,
+                            null, null);
 
       if (node.getProperties().get(DdlConfig.FORMAT_PROPERTY) != null) {
         String serde = node.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
@@ -345,38 +359,50 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
 
       if (node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY) != null) {
-        String intoPartitionByColumnName = node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
+        String intoPartitionByColumnName = node.getProperties()
+            .get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
         analysis.getIntoProperties().put(DdlConfig.PARTITION_BY_PROPERTY,
                                          intoPartitionByColumnName);
       }
 
       if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
         String
-            intoTimestampColumnName =
-            node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+            intoTimestampColumnName = node.getProperties()
+            .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
         if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
           throw new KsqlException(
-              intoTimestampColumnName + " value is string and should be enclosed between " + "\"'\".");
+              intoTimestampColumnName + " value is string and should be enclosed between "
+              + "\"'\".");
         }
-        intoTimestampColumnName = intoTimestampColumnName.substring(1, intoTimestampColumnName.length() - 1);
+        intoTimestampColumnName = intoTimestampColumnName.substring(1,
+                                                                    intoTimestampColumnName
+                                                                            .length() - 1);
         analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
                                          intoTimestampColumnName);
       }
 
       if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
         try {
-          int numberOfPartitions = Integer.parseInt(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS).toString());
-          analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS, numberOfPartitions);
+          int numberOfPartitions = Integer.parseInt(node.getProperties()
+                                                        .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                                        .toString());
+          analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS,
+                                           numberOfPartitions);
 
         } catch (NumberFormatException e) {
-          throw new KsqlException("Invalid number of partitions in WITH clause: " + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS).toString());
+          throw new KsqlException("Invalid number of partitions in WITH clause: "
+                                  + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                      .toString());
         }
       }
 
       if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
         try {
-          short numberOfReplications = Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
-          analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
+          short numberOfReplications =
+              Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
+                                   .toString());
+          analysis.getIntoProperties()
+              .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
         } catch (NumberFormatException e) {
           throw new KsqlException("Invalid number of replications in WITH clause: " + node
               .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
@@ -454,10 +480,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   @Override
   protected Node visitGroupBy(final GroupBy node, final AnalysisContext context) {
-    for (GroupingElement groupingElement : node.getGroupingElements()) {
-//          process(groupingElement, context);
-//          analysis.getGroupByExpressions().add(groupingElement.)
-    }
     return null;
   }
 
@@ -477,7 +499,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
   }
 
-  private void analyzeWindowExpression(final WindowExpression windowExpression, final AnalysisContext context) {
+  private void analyzeWindowExpression(final WindowExpression windowExpression,
+                                       final AnalysisContext context) {
     analysis.setWindowExpression(windowExpression);
   }
 

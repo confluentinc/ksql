@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import com.google.common.collect.ImmutableList;
@@ -100,11 +101,6 @@ public final class QueryUtil {
   public static Relation aliased(Relation relation, String alias, List<String> columnAliases) {
     return new AliasedRelation(relation, alias, columnAliases);
   }
-
-//    public static SelectItem aliasedNullToEmpty(String column, String alias)
-//    {
-//        return new SingleColumn(new CoalesceExpression(nameReference(column), new StringLiteral("")), alias);
-//    }
 
   public static List<SortItem> ordering(SortItem... items) {
     return ImmutableList.copyOf(items);

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.parser.tree.NodeLocation;
@@ -14,7 +15,8 @@ public class ParsingException
   private final int line;
   private final int charPositionInLine;
 
-  public ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
+  public ParsingException(String message, RecognitionException cause, int line,
+                          int charPositionInLine) {
     super(message, cause);
 
     this.line = line;

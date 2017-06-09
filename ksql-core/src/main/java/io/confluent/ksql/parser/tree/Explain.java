@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -71,9 +72,9 @@ public class Explain
       return false;
     }
     Explain o = (Explain) obj;
-    return Objects.equals(statement, o.statement) &&
-           Objects.equals(options, o.options) &&
-           Objects.equals(analyze, o.analyze);
+    return Objects.equals(statement, o.statement)
+           && Objects.equals(options, o.options)
+           && Objects.equals(analyze, o.analyze);
   }
 
   @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -58,8 +59,8 @@ public class Union
       return false;
     }
     Union o = (Union) obj;
-    return Objects.equals(relations, o.relations) &&
-           Objects.equals(isDistinct(), o.isDistinct());
+    return Objects.equals(relations, o.relations)
+           && Objects.equals(isDistinct(), o.isDistinct());
   }
 
   @Override

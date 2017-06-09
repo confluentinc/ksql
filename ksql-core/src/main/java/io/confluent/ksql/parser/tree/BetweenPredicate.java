@@ -64,9 +64,9 @@ public class BetweenPredicate
     }
 
     BetweenPredicate that = (BetweenPredicate) o;
-    return Objects.equals(value, that.value) &&
-           Objects.equals(min, that.min) &&
-           Objects.equals(max, that.max);
+    return Objects.equals(value, that.value)
+           && Objects.equals(min, that.min)
+           && Objects.equals(max, that.max);
   }
 
   @Override

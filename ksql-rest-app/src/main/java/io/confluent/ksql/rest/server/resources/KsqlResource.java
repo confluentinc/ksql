@@ -174,7 +174,7 @@ public class KsqlResource {
   private TopicsList listTopics(String statementText) {
     return TopicsList.fromKsqlTopics(
         statementText,
-        ksqlEngine.getMetaStore().getAllKSQLTopics().values()
+        ksqlEngine.getMetaStore().getAllKsqlTopics().values()
     );
   }
 

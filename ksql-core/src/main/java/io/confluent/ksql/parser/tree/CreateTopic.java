@@ -2,6 +2,7 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
@@ -71,9 +72,9 @@ public class CreateTopic
       return false;
     }
     CreateTopic o = (CreateTopic) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(notExists, o.notExists) &&
-           Objects.equals(properties, o.properties);
+    return Objects.equals(name, o.name)
+           && Objects.equals(notExists, o.notExists)
+           && Objects.equals(properties, o.properties);
   }
 
   @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -18,7 +19,8 @@ public abstract class SourceNode extends PlanNode {
 
   public SourceNode(@JsonProperty("id") final PlanNodeId id,
                     @JsonProperty("timestampField") final Field timestampField,
-                    @JsonProperty("dataSourceType") final StructuredDataSource.DataSourceType dataSourceType) {
+                    @JsonProperty("dataSourceType")
+                    final StructuredDataSource.DataSourceType dataSourceType) {
     super(id);
     this.dataSourceType = dataSourceType;
     this.timestampField = timestampField;

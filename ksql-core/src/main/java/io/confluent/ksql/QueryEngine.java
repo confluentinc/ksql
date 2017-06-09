@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
@@ -59,17 +60,20 @@ public class QueryEngine {
   private StreamsKafkaClient streamsKafkaClient;
 
   public QueryEngine(KsqlConfig ksqlConfig) {
-    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
-    this.streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
+    Objects.requireNonNull(
+        ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+    this.streamsKafkaClient =
+        new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
     this.queryIdCounter = new AtomicLong(1);
   }
 
 
-  public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore, List<Pair<String, Query>> queryList) {
+  public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore,
+                                                        List<Pair<String, Query>> queryList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName : metaStore.getAllKSQLTopics().keySet()) {
+    for (String topicName : metaStore.getAllKsqlTopics().keySet()) {
       tempMetaStore.putTopic(metaStore.getTopic(topicName));
     }
     for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
@@ -84,24 +88,29 @@ public class QueryEngine {
       analyzer.process(query, new AnalysisContext(null, null));
 
       AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-      AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
+      AggregateAnalyzer aggregateAnalyzer = new
+          AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
       AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
       for (Expression expression: analysis.getSelectExpressions()) {
-        aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+        aggregateAnalyzer
+            .process(expression, new AnalysisContext(null, null));
         if (!aggregateAnalyzer.isHasAggregateFunction()) {
           aggregateAnalysis.getNonAggResultColumns().add(expression);
         }
-        aggregateAnalysis.getFinalSelectExpressions().add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+        aggregateAnalysis.getFinalSelectExpressions()
+            .add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
 
       // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
       if (analysis.getHavingExpression() != null) {
-        aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null, null));
+        aggregateAnalyzer.process(analysis.getHavingExpression(),
+                                  new AnalysisContext(null, null));
         if (!aggregateAnalyzer.isHasAggregateFunction()) {
           aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
         }
-        aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
+        aggregateAnalysis
+            .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
                                                               analysis.getHavingExpression()));
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
@@ -109,7 +118,8 @@ public class QueryEngine {
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
       if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
-        KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode) logicalPlan;
+        KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
+            (KsqlStructuredDataOutputNode) logicalPlan;
 
         StructuredDataSource
             structuredDataSource =
@@ -148,18 +158,20 @@ public class QueryEngine {
       KsqlConfig ksqlConfigClone = ksqlConfig.clone();
 
       //Build a physical plan, in this case a Kafka Streams DSL
-      PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
-                                                                        streamsKafkaClient, ksqlConfigClone);
+      PhysicalPlanBuilder physicalPlanBuilder =
+          new PhysicalPlanBuilder(builder, streamsKafkaClient, ksqlConfigClone);
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();
       boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
-      // Check to make sure the logical and physical plans match up; important to do this BEFORE actually starting up
+      // Check to make sure the logical and physical plans match up;
+      // important to do this BEFORE actually starting up
       // the corresponding Kafka Streams job
       if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
         throw new Exception(String.format(
-            "Mismatch between logical and physical output; expected a QueuedSchemaKStream based on logical "
+            "Mismatch between logical and physical output; "
+            + "expected a QueuedSchemaKStream based on logical "
                 + "KsqlBareOutputNode, found a %s instead",
             schemaKStream.getClass().getCanonicalName()
         ));
@@ -191,9 +203,11 @@ public class QueryEngine {
 
         KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone);
 
-        KsqlStructuredDataOutputNode kafkaTopicOutputNode = (KsqlStructuredDataOutputNode) outputNode;
+        KsqlStructuredDataOutputNode kafkaTopicOutputNode =
+            (KsqlStructuredDataOutputNode) outputNode;
         physicalPlans.add(
-            new PersistentQueryMetadata(statementPlanPair.getLeft(), streams, kafkaTopicOutputNode, queryId)
+            new PersistentQueryMetadata(statementPlanPair.getLeft(),
+                                        streams, kafkaTopicOutputNode, queryId)
         );
         if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
@@ -246,12 +260,21 @@ public class QueryEngine {
                                     final KsqlConfig ksqlConfig) {
     Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlConfigProps();
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    newStreamsProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
-    newStreamsProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
-    newStreamsProperties.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
+    newStreamsProperties.put(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+        ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    newStreamsProperties.put(
+        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
+    newStreamsProperties.put(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+        ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
     if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
-      newStreamsProperties.put(StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+      newStreamsProperties.put(
+          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
+      newStreamsProperties.put(
+          StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
 
 

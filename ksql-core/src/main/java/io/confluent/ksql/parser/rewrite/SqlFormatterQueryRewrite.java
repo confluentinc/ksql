@@ -105,7 +105,8 @@ public final class SqlFormatterQueryRewrite {
 
     @Override
     protected Void visitExpression(Expression node, Integer indent) {
-      checkArgument(indent == 0, "visitExpression should only be called at root");
+      checkArgument(indent == 0,
+                    "visitExpression should only be called at root");
       builder.append(ExpressionFormatterQueryRewrite.formatExpression(node, unmangledNames));
       return null;
     }
@@ -137,7 +138,8 @@ public final class SqlFormatterQueryRewrite {
 
       if (!node.getOrderBy().isEmpty()) {
         append(indent,
-               "ORDER BY " + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
+               "ORDER BY "
+               + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
             .append('\n');
       }
 
@@ -171,12 +173,14 @@ public final class SqlFormatterQueryRewrite {
 
       if (node.getWhere().isPresent()) {
         append(indent,
-               "WHERE " + ExpressionFormatterQueryRewrite.formatExpression(node.getWhere().get()))
+               "WHERE "
+               + ExpressionFormatterQueryRewrite.formatExpression(node.getWhere().get()))
             .append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
-        append(indent, "GROUP BY " + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
+        append(indent, "GROUP BY "
+                       + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
                        + ExpressionFormatterQueryRewrite
                            .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
@@ -184,13 +188,15 @@ public final class SqlFormatterQueryRewrite {
 
       if (node.getHaving().isPresent()) {
         append(indent,
-               "HAVING " + ExpressionFormatterQueryRewrite.formatExpression(node.getHaving().get()))
+               "HAVING "
+               + ExpressionFormatterQueryRewrite.formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
       if (!node.getOrderBy().isEmpty()) {
         append(indent,
-               "ORDER BY " + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
+               "ORDER BY "
+               + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
             .append('\n');
       }
 
@@ -262,9 +268,6 @@ public final class SqlFormatterQueryRewrite {
         type = "NATURAL " + type;
       }
 
-//            if (node.getType() != Join.Type.IMPLICIT) {
-//                builder.append('(');
-//            }
       process(node.getLeft(), indent);
 
       builder.append('\n');
@@ -291,10 +294,6 @@ public final class SqlFormatterQueryRewrite {
           throw new UnsupportedOperationException("unknown join criteria: " + criteria);
         }
       }
-
-//            if (node.getType() != Join.Type.IMPLICIT) {
-//                builder.append(")");
-//            }
 
       return null;
     }
@@ -579,7 +578,11 @@ public final class SqlFormatterQueryRewrite {
 
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
-        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(), entry -> entry.getKey() + " = " + ExpressionFormatterQueryRewrite.formatExpression(entry.getValue())));
+        Joiner.on(", ")
+            .appendTo(builder, transform(node.getProperties().entrySet(),
+                                         entry -> entry.getKey() + " = "
+                                                  + ExpressionFormatterQueryRewrite
+                                                      .formatExpression(entry.getValue())));
         builder.append(")");
       }
 

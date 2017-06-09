@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.metastore;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,15 +57,15 @@ public class MetastoreUtil {
         fieldType = fields.get(i).get("type").textValue();
       }
 
-      dataSourceBuilder.field(fieldName, getKSQLType(fieldType));
+      dataSourceBuilder.field(fieldName, getKsqlType(fieldType));
     }
 
     Schema dataSource = dataSourceBuilder.build();
 
     if ("STREAM".equals(type)) {
       return new KsqlStream(name, dataSource, dataSource.field(keyFieldName),
-                            (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
-          ksqlTopic);
+                            (dataSource.field(timestampFieldName) != null)
+                            ? dataSource.field(timestampFieldName) : null, ksqlTopic);
     } else if ("TABLE".equals(type)) {
       boolean isWindowed = false;
       if (node.get("iswindowed") != null) {
@@ -73,12 +74,14 @@ public class MetastoreUtil {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
-                             (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
-            ksqlTopic, ksqlTopic.getName(), isWindowed);
+                             (dataSource.field(timestampFieldName) != null)
+                             ? dataSource.field(timestampFieldName) : null,
+                             ksqlTopic, ksqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
       return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
-                           (dataSource.field(timestampFieldName) != null) ? dataSource.field(timestampFieldName) : null,
+                           (dataSource.field(timestampFieldName) != null)
+                           ? dataSource.field(timestampFieldName) : null,
           ksqlTopic, stateStore, isWindowed);
     }
     throw new KsqlException(String.format("Type not supported: '%s'", type));
@@ -109,7 +112,7 @@ public class MetastoreUtil {
     return new KsqlTopic(topicname, kafkaTopicName, topicSerDe);
   }
 
-  private Schema getKSQLType(final String sqlType) {
+  private Schema getKsqlType(final String sqlType) {
     switch (sqlType.toUpperCase()) {
       case "STRING":
         return Schema.STRING_SCHEMA;
@@ -126,7 +129,7 @@ public class MetastoreUtil {
     }
   }
 
-  private String getKSQLTypeInJson(final Schema schemaType) {
+  private String getKsqlTypeInJson(final Schema schemaType) {
     if (schemaType == Schema.INT64_SCHEMA) {
       return "LONG";
     } else if (schemaType == Schema.STRING_SCHEMA) {
@@ -141,7 +144,7 @@ public class MetastoreUtil {
     throw new KsqlException("Unsupported type: " + schemaType);
   }
 
-  public MetaStore loadMetaStoreFromJSONFile(final String metaStoreJsonFilePath)
+  public MetaStore loadMetaStoreFromJsonFile(final String metaStoreJsonFilePath)
       throws KsqlException {
 
     try {
@@ -184,14 +187,15 @@ public class MetastoreUtil {
       stringBuilder.append("\t\t\t \"topicname\": \"" + ksqlTopic.getTopicName() + "\", \n");
       stringBuilder
           .append("\t\t\t \"kafkatopicname\": \"" + ksqlTopic.getKafkaTopicName() + "\", \n");
-      stringBuilder.append("\t\t\t \"serde\": \"" + ksqlTopic.getKsqlTopicSerDe().getSerDe() + "\"");
+      stringBuilder.append("\t\t\t \"serde\": \"" + ksqlTopic.getKsqlTopicSerDe().getSerDe()
+                           + "\"");
       if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
         KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
         stringBuilder
-            .append(",\n\t\t\t \"avroschemafile\": \"" + ksqlAvroTopicSerDe.getSchemaFilePath() + "\"");
+            .append(",\n\t\t\t \"avroschemafile\": \""
+                    + ksqlAvroTopicSerDe.getSchemaFilePath() + "\"");
       }
       stringBuilder.append("\n\t\t}\n");
-
     }
     stringBuilder.append("\t\t]\n");
   }
@@ -213,7 +217,8 @@ public class MetastoreUtil {
       } else if (structuredDataSource.dataSourceType == DataSource.DataSourceType.KTABLE) {
         stringBuilder.append("\t\t\t \"type\": \"TABLE\", \n");
       } else {
-        throw new KsqlException("Incorrect data source type:" + structuredDataSource.dataSourceType);
+        throw new KsqlException("Incorrect data source type:"
+                                + structuredDataSource.dataSourceType);
       }
 
       stringBuilder.append("\t\t\t \"name\": \"" + structuredDataSource.getName() + "\", \n");
@@ -223,10 +228,12 @@ public class MetastoreUtil {
           .append("\t\t\t \"timestamp\": \"null\", "
                   + "\n");
       stringBuilder
-          .append("\t\t\t \"topic\": \"" + structuredDataSource.getKsqlTopic().getName() + "\", \n");
+          .append("\t\t\t \"topic\": \"" + structuredDataSource.getKsqlTopic().getName()
+                  + "\", \n");
       if (structuredDataSource instanceof KsqlTable) {
         KsqlTable ksqlTable = (KsqlTable) structuredDataSource;
-        stringBuilder.append("\t\t\t \"statestore\": \"" + ksqlTable.getStateStoreName() + "\", \n");
+        stringBuilder.append("\t\t\t \"statestore\": \"" + ksqlTable.getStateStoreName()
+                             + "\", \n");
         stringBuilder.append("\t\t\t \"iswindowed\": \"" + ksqlTable.isWinidowed() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
@@ -238,7 +245,7 @@ public class MetastoreUtil {
           stringBuilder.append(", \n");
         }
         stringBuilder.append("\t\t\t     {\"name\": \"" + field.name() + "\", \"type\": "
-            + "\"" + getKSQLTypeInJson(field.schema()) + "\"} ");
+                             + "\"" + getKsqlTypeInJson(field.schema()) + "\"} ");
       }
       stringBuilder.append("\t\t\t ]\n");
       stringBuilder.append("\t\t}\n");
@@ -249,7 +256,7 @@ public class MetastoreUtil {
   public void writeMetastoreToFile(String filePath, MetaStore metaStore) {
     StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"ksql_catalog\",\n ");
 
-    addTopics(stringBuilder, metaStore.getAllKSQLTopics());
+    addTopics(stringBuilder, metaStore.getAllKsqlTopics());
     stringBuilder.append("\n\t, \n");
     addSchemas(stringBuilder, metaStore.getAllStructuredDataSources());
     stringBuilder.append("}");
@@ -307,10 +314,8 @@ public class MetastoreUtil {
       }
       fieldNameSet.add(fieldName);
       stringBuilder
-          .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": " +
-              getAvroTypeName(field
-                  .schema())
-              + "}");
+          .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": "
+                  + getAvroTypeName(field.schema()) + "}");
     }
     stringBuilder.append("\n\t]\n");
     stringBuilder.append("}");

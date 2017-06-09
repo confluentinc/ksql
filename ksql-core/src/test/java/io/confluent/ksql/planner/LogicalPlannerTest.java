@@ -35,7 +35,7 @@ public class LogicalPlannerTest {
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);

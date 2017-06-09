@@ -85,10 +85,10 @@ public final class Cast
       return false;
     }
     Cast o = (Cast) obj;
-    return Objects.equals(this.expression, o.expression) &&
-           Objects.equals(this.type, o.type) &&
-           Objects.equals(this.safe, o.safe) &&
-           Objects.equals(this.typeOnly, o.typeOnly);
+    return Objects.equals(this.expression, o.expression)
+           && Objects.equals(this.type, o.type)
+           && Objects.equals(this.safe, o.safe)
+           && Objects.equals(this.typeOnly, o.typeOnly);
   }
 
   @Override

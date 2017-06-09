@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -56,8 +57,8 @@ public final class RenameTable
       return false;
     }
     RenameTable o = (RenameTable) obj;
-    return Objects.equals(source, o.source) &&
-           Objects.equals(target, o.target);
+    return Objects.equals(source, o.source)
+           && Objects.equals(target, o.target);
   }
 
   @Override

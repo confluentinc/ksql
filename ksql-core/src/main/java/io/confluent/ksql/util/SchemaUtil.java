@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
@@ -54,11 +55,13 @@ public class SchemaUtil {
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
       case "ARRAY":
-        return SchemaBuilder.array(getTypeSchema(ksqlType.substring("ARRAY".length() + 1, ksqlType
-                                                                                             .length() - 1).trim()));
+        return SchemaBuilder.array(
+            getTypeSchema(ksqlType.substring("ARRAY".length() + 1, ksqlType.length() - 1).trim()));
       case "MAP":
-        return SchemaBuilder.map(Schema.STRING_SCHEMA, getTypeSchema(ksqlType.substring(ksqlType
-                                                                                           .indexOf(",") + 1, ksqlType.length() - 1).trim()));
+        return SchemaBuilder.map(
+            Schema.STRING_SCHEMA,
+            getTypeSchema(ksqlType.substring(ksqlType.indexOf(",") + 1,
+                                             ksqlType.length() - 1).trim()));
       default:
         throw new KsqlException("Type is not supported: " + ksqlType);
 
@@ -160,8 +163,8 @@ public class SchemaUtil {
     for (Field field: schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
-      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) && !fieldName.equalsIgnoreCase(SchemaUtil
-                                                                                       .ROWKEY_NAME)) {
+      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) &&
+          !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         schemaBuilder.field(fieldName, field.schema());
       }
     }
@@ -172,8 +175,8 @@ public class SchemaUtil {
     Set indexSet = new HashSet();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
-      if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || field.name().equalsIgnoreCase(SchemaUtil
-                                                                                           .ROWKEY_NAME)) {
+      if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
+          || field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         indexSet.add(i);
       }
     }

@@ -2,6 +2,7 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -57,8 +58,8 @@ public class Delete
       return false;
     }
     Delete o = (Delete) obj;
-    return Objects.equals(table, o.table) &&
-           Objects.equals(where, o.where);
+    return Objects.equals(table, o.table)
+           && Objects.equals(where, o.where);
   }
 
   @Override

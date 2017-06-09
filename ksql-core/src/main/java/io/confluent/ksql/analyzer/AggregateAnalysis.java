@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.parser.tree.Expression;

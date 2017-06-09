@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -58,9 +59,9 @@ public class RenameColumn
       return false;
     }
     RenameColumn that = (RenameColumn) o;
-    return Objects.equals(table, that.table) &&
-           Objects.equals(source, that.source) &&
-           Objects.equals(target, that.target);
+    return Objects.equals(table, that.table)
+           && Objects.equals(source, that.source)
+           && Objects.equals(target, that.target);
   }
 
   @Override

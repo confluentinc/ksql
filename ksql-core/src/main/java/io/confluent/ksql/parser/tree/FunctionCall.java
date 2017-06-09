@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.List;
@@ -87,10 +88,10 @@ public class FunctionCall
       return false;
     }
     FunctionCall o = (FunctionCall) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(window, o.window) &&
-           Objects.equals(distinct, o.distinct) &&
-           Objects.equals(arguments, o.arguments);
+    return Objects.equals(name, o.name)
+           && Objects.equals(window, o.window)
+           && Objects.equals(distinct, o.distinct)
+           && Objects.equals(arguments, o.arguments);
   }
 
   @Override

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -49,8 +50,8 @@ public class WhenClause
     }
 
     WhenClause that = (WhenClause) o;
-    return Objects.equals(operand, that.operand) &&
-           Objects.equals(result, that.result);
+    return Objects.equals(operand, that.operand)
+           && Objects.equals(result, that.result);
   }
 
   @Override

@@ -4,8 +4,8 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonPojoDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonPojoSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -185,11 +185,11 @@ public class JsonConsumer {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new KsqlJsonPojoSerializer(null);
+      final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(null);
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonPojoDeserializer(null);
+      final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(null);
       serdeProps.put("JsonPOJOClass", GenericRow.class);
       genericRowDeserializer.configure(serdeProps, false);
 

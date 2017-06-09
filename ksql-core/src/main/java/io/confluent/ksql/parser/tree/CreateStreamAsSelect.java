@@ -1,7 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
@@ -27,7 +27,8 @@ public class CreateStreamAsSelect extends Statement {
   }
 
   public CreateStreamAsSelect(NodeLocation location, QualifiedName name, Query query,
-                      boolean notExists, Map<String, Expression> properties, Optional<Expression> partitionByColumn) {
+                      boolean notExists, Map<String, Expression> properties,
+                              Optional<Expression> partitionByColumn) {
     this(Optional.of(location), name, query, notExists, properties, partitionByColumn);
   }
 
@@ -38,7 +39,8 @@ public class CreateStreamAsSelect extends Statement {
     this.name = requireNonNull(name, "stream is null");
     this.query = query;
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap.copyOf(
+        requireNonNull(properties, "properties is null"));
     this.partitionByColumn = partitionByColumn;
   }
 
@@ -81,10 +83,10 @@ public class CreateStreamAsSelect extends Statement {
       return false;
     }
     CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(query, o.query) &&
-           Objects.equals(notExists, o.notExists) &&
-           Objects.equals(properties, o.properties);
+    return Objects.equals(name, o.name)
+           && Objects.equals(query, o.query)
+           && Objects.equals(notExists, o.notExists)
+           && Objects.equals(properties, o.properties);
   }
 
   @Override

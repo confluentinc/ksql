@@ -64,12 +64,12 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public Map<String, KsqlTopic> getAllKSQLTopics() {
+  public Map<String, KsqlTopic> getAllKsqlTopics() {
     return topicMap;
   }
 
   @Override
   public Set<String> getAllTopicNames() {
-    return getAllKSQLTopics().keySet();
+    return getAllKsqlTopics().keySet();
   }
 }

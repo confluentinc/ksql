@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
@@ -25,8 +26,9 @@ public abstract class KsqlAggregateFunction<V, A> {
     this.kudafClass = null;
   };
 
-  public KsqlAggregateFunction(int argIndexInValue, A intialValue, Schema returnType, List<Schema> arguments, String functionName,
-                               Class kudafClass) {
+  public KsqlAggregateFunction(int argIndexInValue,
+                               A intialValue, Schema returnType, List<Schema> arguments,
+                               String functionName, Class kudafClass) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = intialValue;
     this.returnType = returnType;

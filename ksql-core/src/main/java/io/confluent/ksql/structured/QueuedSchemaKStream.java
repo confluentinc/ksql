@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.parser.tree.Expression;
@@ -29,7 +30,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
     this.rowQueue = rowQueue;
   }
 
-  public QueuedSchemaKStream(SchemaKStream schemaKStream, SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
+  public QueuedSchemaKStream(SchemaKStream schemaKStream,
+                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
     this(
         schemaKStream.schema,
         schemaKStream.kStream,
@@ -66,7 +68,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema, Field joinKey, KsqlTopicSerDe joinSerDe) {
+  public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema,
+                                Field joinKey, KsqlTopicSerDe joinSerDe) {
     throw new UnsupportedOperationException();
   }
 

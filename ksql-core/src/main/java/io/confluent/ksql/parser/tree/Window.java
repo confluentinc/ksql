@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -22,7 +23,8 @@ public class Window
     this(Optional.of(location), windowName, windowExpression);
   }
 
-  private Window(Optional<NodeLocation> location, String windowName, WindowExpression windowExpression) {
+  private Window(Optional<NodeLocation> location, String windowName,
+                 WindowExpression windowExpression) {
     super(location);
     this.windowExpression = requireNonNull(windowExpression, "windowExpression is null");
   }

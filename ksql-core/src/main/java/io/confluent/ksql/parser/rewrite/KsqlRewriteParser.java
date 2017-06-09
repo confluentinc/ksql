@@ -29,7 +29,7 @@ public class KsqlRewriteParser {
 
   StringBuilder rewrittenQuery = new StringBuilder();
 
-  public List<Pair<Statement, DataSourceExtractor>> buildAST(String sql, MetaStore metaStore) {
+  public List<Pair<Statement, DataSourceExtractor>> buildAst(String sql, MetaStore metaStore) {
 
     SqlBaseLexer
         sqlBaseLexer =
@@ -66,7 +66,6 @@ public class KsqlRewriteParser {
         tempMetaStore.putSource(astBuilder.resultDataSource);
 
         String sqlStr = SqlFormatterQueryRewrite.formatSql(root);
-//        System.out.println(sqlStr);
 
         rewrittenQuery.append(sqlStr).append(";\n");
 

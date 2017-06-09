@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -52,8 +53,8 @@ public class NullIfExpression
     }
 
     NullIfExpression that = (NullIfExpression) o;
-    return Objects.equals(first, that.first) &&
-           Objects.equals(second, that.second);
+    return Objects.equals(first, that.first)
+           && Objects.equals(second, that.second);
   }
 
   @Override

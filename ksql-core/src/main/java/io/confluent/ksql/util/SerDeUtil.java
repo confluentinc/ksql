@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -12,8 +13,8 @@ import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.serde.csv.KsqlCsvDeserializer;
 import io.confluent.ksql.serde.csv.KsqlCsvSerializer;
 import io.confluent.ksql.serde.csv.KsqlCsvTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonPojoDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonPojoSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -31,10 +32,10 @@ public class SerDeUtil {
     Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlJsonPojoSerializer(schema);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonPojoDeserializer(schema);
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(schema);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -61,7 +62,8 @@ public class SerDeUtil {
     final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(schema);
+    final Deserializer<GenericRow> genericRowDeserializer =
+        new KsqlGenericRowAvroDeserializer(schema);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

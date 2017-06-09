@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -340,9 +341,9 @@ public final class ExpressionTreeRewriter<C> {
       Optional<Expression> defaultValue = node.getDefaultValue()
           .map(value -> rewrite(value, context.get()));
 
-      if (operand != node.getOperand() ||
-          !sameElements(node.getDefaultValue(), defaultValue) ||
-          !sameElements(node.getWhenClauses(), builder.build())) {
+      if (operand != node.getOperand()
+          || !sameElements(node.getDefaultValue(), defaultValue)
+          || !sameElements(node.getWhenClauses(), builder.build())) {
         return new SimpleCaseExpression(operand, builder.build(), defaultValue);
       }
 

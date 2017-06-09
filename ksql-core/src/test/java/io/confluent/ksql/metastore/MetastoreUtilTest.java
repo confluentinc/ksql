@@ -20,7 +20,7 @@ public class MetastoreUtilTest {
   @Test
   public void testMetastoreLoadingFromFile() throws Exception {
 
-    MetaStore metaStore = new MetastoreUtil().loadMetaStoreFromJSONFile
+    MetaStore metaStore = new MetastoreUtil().loadMetaStoreFromJsonFile
         (TEST_RESOURCES_DIRECTORY + "TestCatalog.json");
     Assert.assertNotNull(metaStore.getTopic("ORDERS_TOPIC"));
     Assert.assertNotNull(metaStore.getTopic("USERS_TOPIC"));
@@ -101,7 +101,7 @@ public class MetastoreUtilTest {
                                                null, topic));
 
     metastoreUtil.writeMetastoreToFile(testCatalogFile.getAbsolutePath(), expectedMetaStore);
-    MetaStore testMetaStore = metastoreUtil.loadMetaStoreFromJSONFile(testCatalogFile.getAbsolutePath());
+    MetaStore testMetaStore = metastoreUtil.loadMetaStoreFromJsonFile(testCatalogFile.getAbsolutePath());
 
     Assert.assertNotNull(testMetaStore.getTopic(topicName));
     Assert.assertNotNull(testMetaStore.getSource(tableSourceName));

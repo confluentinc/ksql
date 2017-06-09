@@ -2,6 +2,7 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -123,9 +124,9 @@ public class ComparisonExpression
     }
 
     ComparisonExpression that = (ComparisonExpression) o;
-    return (type == that.type) &&
-           Objects.equals(left, that.left) &&
-           Objects.equals(right, that.right);
+    return (type == that.type)
+           && Objects.equals(left, that.left)
+           && Objects.equals(right, that.right);
   }
 
   @Override

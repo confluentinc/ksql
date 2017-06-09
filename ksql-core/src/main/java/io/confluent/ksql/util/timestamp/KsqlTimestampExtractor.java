@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.physical.GenericRow;

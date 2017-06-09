@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -58,8 +59,8 @@ public class SearchedCaseExpression
     }
 
     SearchedCaseExpression that = (SearchedCaseExpression) o;
-    return Objects.equals(whenClauses, that.whenClauses) &&
-           Objects.equals(defaultValue, that.defaultValue);
+    return Objects.equals(whenClauses, that.whenClauses)
+           && Objects.equals(defaultValue, that.defaultValue);
   }
 
   @Override

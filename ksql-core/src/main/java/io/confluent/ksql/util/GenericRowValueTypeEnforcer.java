@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import org.apache.kafka.connect.data.Field;

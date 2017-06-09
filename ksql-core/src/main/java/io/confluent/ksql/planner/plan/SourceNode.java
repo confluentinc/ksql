@@ -5,10 +5,8 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.apache.kafka.connect.data.Field;
-
 import io.confluent.ksql.metastore.StructuredDataSource;
+import org.apache.kafka.connect.data.Field;
 
 import javax.annotation.concurrent.Immutable;
 

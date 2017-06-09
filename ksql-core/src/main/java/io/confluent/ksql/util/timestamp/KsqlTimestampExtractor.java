@@ -4,6 +4,8 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.processor.TimestampExtractor;
@@ -11,9 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-
-import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 
 public class KsqlTimestampExtractor implements TimestampExtractor, Configurable {
 

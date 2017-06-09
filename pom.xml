@@ -178,50 +178,14 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>shade</goal>
-                            </goals>
-                            <configuration>
-                                <shadedArtifactAttached>true</shadedArtifactAttached>
-                                <shadedClassifierName>executable</shadedClassifierName>
-                                <filters>
-                                    <filter>
-                                        <artifact>*:*</artifact>
-                                        <excludes>
-                                            <exclude>META-INF/*.SF</exclude>
-                                            <exclude>META-INF/*.DSA</exclude>
-                                            <exclude>META-INF/*.RSA</exclude>
-                                        </excludes>
-                                    </filter>
-                                </filters>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.skife.maven</groupId>
-                    <artifactId>really-executable-jar-maven-plugin</artifactId>
-                    <version>${really.executable.jar.version}</version>
+                    <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
-                        <flags>-Xmx1G</flags>
-                        <classifier>executable</classifier>
+                        <descriptors>
+                            <descriptor>src/assembly/package.xml</descriptor>
+                        </descriptors>
                     </configuration>
-                    <executions>
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>really-executable-jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
-
+                
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>

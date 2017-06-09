@@ -109,7 +109,6 @@ import io.confluent.ksql.parser.tree.With;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;

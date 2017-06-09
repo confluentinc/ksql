@@ -76,9 +76,9 @@ public class AliasedRelation
     }
 
     AliasedRelation that = (AliasedRelation) o;
-    return Objects.equals(relation, that.relation) &&
-           Objects.equals(alias, that.alias) &&
-           Objects.equals(columnNames, that.columnNames);
+    return Objects.equals(relation, that.relation)
+           && Objects.equals(alias, that.alias)
+           && Objects.equals(columnNames, that.columnNames);
   }
 
   @Override

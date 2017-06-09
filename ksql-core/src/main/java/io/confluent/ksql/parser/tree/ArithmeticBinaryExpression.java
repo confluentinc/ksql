@@ -76,9 +76,9 @@ public class ArithmeticBinaryExpression
     }
 
     ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
-    return (type == that.type) &&
-           Objects.equals(left, that.left) &&
-           Objects.equals(right, that.right);
+    return (type == that.type)
+           && Objects.equals(left, that.left)
+           && Objects.equals(right, that.right);
   }
 
   @Override

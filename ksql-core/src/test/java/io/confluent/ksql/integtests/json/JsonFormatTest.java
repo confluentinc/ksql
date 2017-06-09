@@ -4,8 +4,8 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonPojoDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonPojoSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -485,7 +485,7 @@ public class JsonFormatTest {
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
 
     KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonPojoSerializer(schema));
+        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
@@ -507,7 +507,7 @@ public class JsonFormatTest {
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
 
     KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonPojoSerializer(schema));
+        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
     Map<String, RecordMetadata> result = new HashMap<>();
 
@@ -552,7 +552,7 @@ public class JsonFormatTest {
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
     try (KafkaConsumer<K, GenericRow> consumer =
-             new KafkaConsumer<>(consumerConfig, keyDeserializer, new KsqlJsonPojoDeserializer(resultSchema))
+             new KafkaConsumer<>(consumerConfig, keyDeserializer, new KsqlJsonDeserializer(resultSchema))
     ) {
       consumer.subscribe(Collections.singleton(resultTopic));
       long pollStart = System.currentTimeMillis();

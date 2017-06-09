@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -71,8 +72,8 @@ public class FrameBound
       return false;
     }
     FrameBound o = (FrameBound) obj;
-    return Objects.equals(type, o.type) &&
-           Objects.equals(value, o.value);
+    return Objects.equals(type, o.type)
+           && Objects.equals(value, o.value);
   }
 
   @Override

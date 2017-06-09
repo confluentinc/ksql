@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -75,10 +76,10 @@ public class ShowPartitions
       return false;
     }
     ShowPartitions o = (ShowPartitions) obj;
-    return Objects.equals(table, o.table) &&
-           Objects.equals(where, o.where) &&
-           Objects.equals(orderBy, o.orderBy) &&
-           Objects.equals(limit, o.limit);
+    return Objects.equals(table, o.table)
+           && Objects.equals(where, o.where)
+           && Objects.equals(orderBy, o.orderBy)
+           && Objects.equals(limit, o.limit);
   }
 
   @Override

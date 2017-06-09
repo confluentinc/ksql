@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -64,8 +65,8 @@ public class Select
     }
 
     Select select = (Select) o;
-    return (distinct == select.distinct) &&
-           Objects.equals(selectItems, select.selectItems);
+    return (distinct == select.distinct)
+           && Objects.equals(selectItems, select.selectItems);
   }
 
   @Override

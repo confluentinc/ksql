@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
@@ -14,7 +15,7 @@ import java.util.List;
 public class SumAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
 
   public SumAggFunctionDeterminer() {
-    super("SUM", Arrays.asList(new DoubleSumKUDAF(-1), new LongSumKUDAF(-1)));
+    super("SUM", Arrays.asList(new DoubleSumKudaf(-1), new LongSumKudaf(-1)));
   }
 
   @Override

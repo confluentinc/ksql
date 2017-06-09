@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
@@ -339,8 +340,8 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitCast(Cast node, Boolean unmangleNames) {
-      return (node.isSafe() ? "TRY_CAST" : "CAST") +
-             "(" + process(node.getExpression(), unmangleNames) + " AS " + node.getType() + ")";
+      return (node.isSafe() ? "TRY_CAST" : "CAST")
+             + "(" + process(node.getExpression(), unmangleNames) + " AS " + node.getType() + ")";
     }
 
     @Override
@@ -387,8 +388,9 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitBetweenPredicate(BetweenPredicate node, Boolean unmangleNames) {
-      return "(" + process(node.getValue(), unmangleNames) + " BETWEEN " +
-             process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(), unmangleNames)
+      return "(" + process(node.getValue(), unmangleNames) + " BETWEEN "
+             + process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(),
+                                                                         unmangleNames)
              + ")";
     }
 
@@ -440,8 +442,9 @@ public final class ExpressionFormatter {
           return process(node.getValue().get(), unmangleNames) + " FOLLOWING";
         case UNBOUNDED_FOLLOWING:
           return "UNBOUNDED FOLLOWING";
+        default:
+          throw new IllegalArgumentException("unhandled type: " + node.getType());
       }
-      throw new IllegalArgumentException("unhandled type: " + node.getType());
     }
 
     private String formatBinaryExpression(String operator, Expression left, Expression right,
@@ -459,7 +462,6 @@ public final class ExpressionFormatter {
 
     private static String formatIdentifier(String s) {
       // TODO: handle escaping properly
-//            return '"' + s + '"';
       return s;
     }
   }

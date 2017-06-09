@@ -1,10 +1,11 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -53,7 +54,7 @@ public class ExpressionAnalyzer {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KSQLFunctions.getFunction(functionName);
+      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(functionName);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
@@ -116,7 +117,6 @@ public class ExpressionAnalyzer {
     @Override
     protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
       String columnName = node.getName().getSuffix();
-//      columnName = columnName.substring(columnName.indexOf(".") + 1);
       Field schemaField = SchemaUtil.getFieldByName(schema, columnName);
       if (schemaField == null) {
         throw new RuntimeException(

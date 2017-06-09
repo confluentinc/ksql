@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Map;
@@ -10,7 +11,7 @@ import java.util.Optional;
 public class Table
     extends QueryBody {
 
-  public final boolean isSTDOut;
+  public final boolean isStdOut;
   Map<String, Expression> properties;
   private final QualifiedName name;
 
@@ -18,30 +19,30 @@ public class Table
     this(Optional.empty(), name, false);
   }
 
-  public Table(QualifiedName name, boolean isSTDOut) {
-    this(Optional.empty(), name, isSTDOut);
+  public Table(QualifiedName name, boolean isStdOut) {
+    this(Optional.empty(), name, isStdOut);
   }
 
   public Table(NodeLocation location, QualifiedName name) {
     this(Optional.of(location), name, false);
   }
 
-  public Table(NodeLocation location, QualifiedName name, boolean isSTDOut) {
-    this(Optional.of(location), name, isSTDOut);
+  public Table(NodeLocation location, QualifiedName name, boolean isStdOut) {
+    this(Optional.of(location), name, isStdOut);
   }
 
-  private Table(Optional<NodeLocation> location, QualifiedName name, boolean isSTDOut) {
+  private Table(Optional<NodeLocation> location, QualifiedName name, boolean isStdOut) {
     super(location);
     this.name = name;
-    this.isSTDOut = isSTDOut;
+    this.isStdOut = isStdOut;
   }
 
   public QualifiedName getName() {
     return name;
   }
 
-  public boolean isSTDOut() {
-    return isSTDOut;
+  public boolean isStdOut() {
+    return isStdOut;
   }
 
   public Map<String, Expression> getProperties() {

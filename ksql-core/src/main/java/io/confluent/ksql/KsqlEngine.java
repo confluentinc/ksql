@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -62,7 +63,8 @@ public class KsqlEngine implements Closeable {
    * @return
    * @throws Exception
    */
-  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString) throws Exception {
+  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
+      throws Exception {
 
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
@@ -82,7 +84,8 @@ public class KsqlEngine implements Closeable {
         queryList.add(new Pair<>(getStatementString(singleStatementContext), (Query) statement));
       } else if (statement instanceof CreateStreamAsSelect) {
         CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+        QuerySpecification querySpecification =
+            (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
         Query query = addInto(
             createStreamAsSelect.getQuery(),
             querySpecification,
@@ -97,7 +100,8 @@ public class KsqlEngine implements Closeable {
         queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
       } else if (statement instanceof CreateTableAsSelect) {
         CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-        QuerySpecification querySpecification = (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
+        QuerySpecification querySpecification =
+            (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
 
         Query query = addInto(
             createTableAsSelect.getQuery(),
@@ -152,7 +156,8 @@ public class KsqlEngine implements Closeable {
     return runningQueries;
   }
 
-  public static String getStatementString(SqlBaseParser.SingleStatementContext singleStatementContext) {
+  public static String getStatementString(
+      SqlBaseParser.SingleStatementContext singleStatementContext) {
     CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(new Interval(
         singleStatementContext.start.getStartIndex(),
@@ -161,7 +166,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public List<Statement> getStatements(final String sqlString) {
-    return new KsqlParser().buildAST(sqlString, metaStore);
+    return new KsqlParser().buildAst(sqlString, metaStore);
   }
 
 
@@ -236,7 +241,8 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  // May want to flesh this out a little more in the future and improve error messages, but right now this does what it
+  // May want to flesh this out a little more in the future and improve error messages,
+  // but right now this does what it
   // needs to--makes sure the given properties would create a valid StreamsConfig object
   public void validateStreamsProperties(Map<String, Object> streamsProperties) {
     new StreamsConfig(streamsProperties);
@@ -256,7 +262,8 @@ public class KsqlEngine implements Closeable {
     try {
       validateStreamsProperties(newProperties);
     } catch (ConfigException configException) {
-      throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'", property, value));
+      throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'",
+                                                       property, value));
     }
     ksqlConfig.put(property, value);
     return oldValue;

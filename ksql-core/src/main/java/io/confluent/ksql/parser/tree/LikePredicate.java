@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -62,9 +63,9 @@ public class LikePredicate
     }
 
     LikePredicate that = (LikePredicate) o;
-    return Objects.equals(value, that.value) &&
-           Objects.equals(pattern, that.pattern) &&
-           Objects.equals(escape, that.escape);
+    return Objects.equals(value, that.value)
+           && Objects.equals(pattern, that.pattern)
+           && Objects.equals(escape, that.escape);
   }
 
   @Override

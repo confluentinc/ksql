@@ -1,17 +1,18 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.DefaultASTVisitor;
+import io.confluent.ksql.parser.tree.DefaultAstVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
@@ -28,7 +29,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class ExpressionTypeManager
-    extends DefaultASTVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
+    extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
   final Schema schema;
   ImmutableMap<String, Schema> schemaImmutableMap;
@@ -84,23 +85,23 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitComparisonExpression(final ComparisonExpression node,
-                                                 final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitComparisonExpression(
+      final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitQualifiedNameReference(final QualifiedNameReference node,
-                                                   final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitQualifiedNameReference(
+      final QualifiedNameReference node, final ExpressionTypeContext expressionTypeContext) {
     Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
     expressionTypeContext.setSchema(schemaField.schema());
     return null;
   }
 
   @Override
-  protected Expression visitDereferenceExpression(final DereferenceExpression node,
-                                                  final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitDereferenceExpression(
+      final DereferenceExpression node, final ExpressionTypeContext expressionTypeContext) {
     Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
     expressionTypeContext.setSchema(schemaField.schema());
     return null;
@@ -130,22 +131,26 @@ public class ExpressionTypeManager
     return null;
   }
 
-  protected Expression visitLikePredicate(LikePredicate node, ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitLikePredicate(LikePredicate node,
+                                          ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
-  protected Expression visitIsNotNullPredicate(IsNotNullPredicate node, ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitIsNotNullPredicate(IsNotNullPredicate node,
+                                               ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
-  protected Expression visitIsNullPredicate(IsNullPredicate node, ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitIsNullPredicate(IsNullPredicate node,
+                                            ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.BOOLEAN_SCHEMA);
     return null;
   }
 
-  protected Expression visitSubscriptExpression(final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitSubscriptExpression(
+      final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
     String arrayBaseName = node.getBase().toString();
     Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
     expressionTypeContext.setSchema(schemaField.schema().valueSchema());
@@ -155,11 +160,13 @@ public class ExpressionTypeManager
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
 
-    KsqlFunction ksqlFunction = KSQLFunctions.getFunction(node.getName().getSuffix());
+    KsqlFunction ksqlFunction = KsqlFunctions.getFunction(node.getName().getSuffix());
     if (ksqlFunction != null) {
       expressionTypeContext.setSchema(ksqlFunction.getReturnType());
-    } else if (KSQLFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
-      KsqlAggregateFunction ksqlAggregateFunction = KSQLFunctions.getAggregateFunction(node.getName().getSuffix(), node.getArguments(), schema);
+    } else if (KsqlFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
+      KsqlAggregateFunction ksqlAggregateFunction =
+          KsqlFunctions.getAggregateFunction(
+              node.getName().getSuffix(), node.getArguments(), schema);
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
       throw new KsqlException("Unknown function: " + node.getName().toString());

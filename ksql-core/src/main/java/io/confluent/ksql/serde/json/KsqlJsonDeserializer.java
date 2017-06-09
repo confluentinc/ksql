@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,7 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class KsqlJsonPojoDeserializer implements Deserializer<GenericRow> {
+public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
 
   //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
@@ -33,7 +34,7 @@ public class KsqlJsonPojoDeserializer implements Deserializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KsqlJsonPojoDeserializer(Schema schema) {
+  public KsqlJsonDeserializer(Schema schema) {
     this.schema = schema;
   }
 
@@ -58,8 +59,8 @@ public class KsqlJsonPojoDeserializer implements Deserializer<GenericRow> {
     return data;
   }
 
-  private GenericRow getGenericRow(byte[] rowJSONBytes) throws IOException {
-    JsonNode jsonNode = objectMapper.readTree(rowJSONBytes);
+  private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
+    JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
@@ -107,7 +108,8 @@ public class KsqlJsonPojoDeserializer implements Deserializer<GenericRow> {
         Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
         while (iterator.hasNext()) {
           Map.Entry<String, JsonNode> entry = iterator.next();
-          mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(), entry.getValue()));
+          mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(),
+                                                        entry.getValue()));
         }
         return mapField;
       default:

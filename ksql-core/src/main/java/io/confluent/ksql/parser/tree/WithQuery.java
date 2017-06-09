@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.List;
@@ -75,8 +76,8 @@ public class WithQuery
       return false;
     }
     WithQuery o = (WithQuery) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(query, o.query) &&
-           Objects.equals(columnNames, o.columnNames);
+    return Objects.equals(name, o.name)
+           && Objects.equals(query, o.query)
+           && Objects.equals(columnNames, o.columnNames);
   }
 }

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 
@@ -51,10 +52,12 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
   }
 
   protected void reportInputMismatch(Parser recognizer, InputMismatchException e) {
-//        String msg = "mismatched input " + this.getTokenErrorDisplay(e.getOffendingToken()) + " expecting " + e.getExpectedTokens().toString(recognizer.getVocabulary());
+//        String msg = "mismatched input " + this.getTokenErrorDisplay(e.getOffendingToken()) +
+// " expecting " + e.getExpectedTokens().toString(recognizer.getVocabulary());
     String
         msg =
-        "Syntax error. There is a mismatch between the expected term and te term in the query. Please check the line and column in the query.";
+        "Syntax error. There is a mismatch between the expected term and te term in the query. "
+        + "Please check the line and column in the query.";
     recognizer.notifyErrorListeners(e.getOffendingToken(), msg, e);
   }
 

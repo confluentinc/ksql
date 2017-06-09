@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.metastore.MetaStore;
@@ -29,7 +30,7 @@ public class KsqlParser {
   /**
    * Builds an AST from the given query string.
    */
-  public List<Statement> buildAST(String sql, MetaStore metaStore) {
+  public List<Statement> buildAst(String sql, MetaStore metaStore) {
 
     try {
       ParserRuleContext tree = getParseTree(sql);
@@ -66,7 +67,6 @@ public class KsqlParser {
     AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
     Node root = astBuilder.visit(statementContext);
     Statement statement = (Statement) root;
-//    metaStore.putSource(astBuilder.resultDataSource);
     return new Pair<>(statement, dataSourceExtractor);
   }
 
@@ -85,7 +85,6 @@ public class KsqlParser {
     sqlBaseParser.removeErrorListeners();
     sqlBaseParser.addErrorListener(ERROR_LISTENER);
 
-//    sqlBaseParser.setErrorHandler(new KsqlParserErrorStrategy());
     Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
     ParserRuleContext tree;
     try {
@@ -106,7 +105,8 @@ public class KsqlParser {
 
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
-    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String message, RecognitionException e) {
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
+                            int charPositionInLine, String message, RecognitionException e) {
       throw new ParsingException(message, e, line, charPositionInLine);
     }
   };

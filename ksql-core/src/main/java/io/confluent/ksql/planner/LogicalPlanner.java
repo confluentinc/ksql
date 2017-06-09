@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
@@ -76,7 +77,11 @@ public class LogicalPlanner {
 
       Field timestampField = null;
       if (analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-        timestampField = SchemaUtil.getFieldByName(inputSchema, analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString());
+        timestampField =
+            SchemaUtil.getFieldByName(inputSchema,
+                                      analysis.getIntoProperties()
+                                          .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME)
+                                          .toString());
       }
 
       return new KsqlStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),

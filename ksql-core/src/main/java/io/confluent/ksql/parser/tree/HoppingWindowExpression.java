@@ -1,12 +1,13 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
 
-public class HoppingWindowExpression extends KSQLWindowExpression {
+public class HoppingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
   private final WindowExpression.WindowUnit sizeUnit;
@@ -18,7 +19,8 @@ public class HoppingWindowExpression extends KSQLWindowExpression {
     this(Optional.empty(), "", size, sizeUnit, advanceBy, advanceByUnit);
   }
 
-  public HoppingWindowExpression(NodeLocation location, String windowName, long size, WindowExpression.WindowUnit
+  public HoppingWindowExpression(NodeLocation location, String windowName, long size,
+                                 WindowExpression.WindowUnit
       sizeUnit,
                                    long advanceBy, WindowExpression.WindowUnit advanceByUnit) {
     this(Optional.of(location), windowName, size, sizeUnit, advanceBy, advanceByUnit);

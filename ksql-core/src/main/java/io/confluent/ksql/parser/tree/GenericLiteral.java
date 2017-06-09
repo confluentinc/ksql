@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.ParsingException;
@@ -68,7 +69,7 @@ public final class GenericLiteral
     }
 
     GenericLiteral other = (GenericLiteral) obj;
-    return Objects.equals(this.value, other.value) &&
-           Objects.equals(this.type, other.type);
+    return Objects.equals(this.value, other.value)
+           && Objects.equals(this.type, other.type);
   }
 }

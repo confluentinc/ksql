@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
@@ -101,7 +102,8 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitExpression(Expression node, Integer indent) {
-      checkArgument(indent == 0, "visitExpression should only be called at root");
+      checkArgument(indent == 0,
+                    "visitExpression should only be called at root");
       builder.append(ExpressionFormatter.formatExpression(node, unmangledNames));
       return null;
     }
@@ -163,14 +165,16 @@ public final class SqlFormatter {
       }
 
       if (node.getGroupBy().isPresent()) {
-        append(indent, "GROUP BY " + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
+        append(indent, "GROUP BY "
+                       + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
                        + ExpressionFormatter
                            .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
       }
 
       if (node.getHaving().isPresent()) {
-        append(indent, "HAVING " + ExpressionFormatter.formatExpression(node.getHaving().get()))
+        append(indent, "HAVING "
+                       + ExpressionFormatter.formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
@@ -564,7 +568,11 @@ public final class SqlFormatter {
 
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
-        Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(), entry -> entry.getKey() + " = " + ExpressionFormatter.formatExpression(entry.getValue())));
+        Joiner.on(", ")
+            .appendTo(builder, transform(
+                node.getProperties().entrySet(), entry -> entry.getKey() + " = "
+                                                          + ExpressionFormatter
+                                                              .formatExpression(entry.getValue())));
         builder.append(")");
       }
 

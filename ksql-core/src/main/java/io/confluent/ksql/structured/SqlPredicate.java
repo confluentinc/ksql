@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.function.udf.Kudf;
@@ -32,7 +33,8 @@ public class SqlPredicate {
   GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
 
-  public SqlPredicate(final Expression filterExpression, final Schema schema, boolean isWindowedKey) throws Exception {
+  public SqlPredicate(final Expression filterExpression, final Schema schema,
+                      boolean isWindowedKey) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);

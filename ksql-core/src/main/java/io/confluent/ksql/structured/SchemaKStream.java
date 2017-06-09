@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.function.udf.Kudf;
@@ -118,7 +119,8 @@ public class SchemaKStream {
   public SchemaKStream select(final List<Expression> expressions)
       throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
-    // TODO: Optimize to remove the code gen for constants and single columns references and use them directly.
+    // TODO: Optimize to remove the code gen for constants and single columns references
+    // TODO: and use them directly.
     // TODO: Only use code get when we have real expression.
     List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -144,12 +146,15 @@ public class SchemaKStream {
                 if (parameterIndexes[j] < 0) {
                   parameterObjects[j] = kudfs[j];
                 } else {
-                  parameterObjects[j] = genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j], row.getColumns().get(parameterIndexes[j]));
+                  parameterObjects[j] = genericRowValueTypeEnforcer
+                      .enforceFieldType(parameterIndexes[j],
+                                        row.getColumns().get(parameterIndexes[j]));
                 }
               }
               Object columnValue = null;
               try {
-                columnValue = expressionEvaluators.get(i).getExpressionEvaluator().evaluate(parameterObjects);
+                columnValue = expressionEvaluators
+                    .get(i).getExpressionEvaluator().evaluate(parameterObjects);
               } catch (InvocationTargetException e) {
                 e.printStackTrace();
               }
@@ -161,14 +166,17 @@ public class SchemaKStream {
           }
         });
 
-    return new SchemaKStream(schemaBuilder.build(), projectedKStream, keyField, Arrays.asList(this));
+    return new SchemaKStream(schemaBuilder.build(),
+                             projectedKStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
                                 final Field joinKey,
                                 KsqlTopicSerDe joinSerDe) {
 
-    KStream joinedKStream = kStream.leftJoin(schemaKTable.getkTable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
+    KStream joinedKStream =
+        kStream.leftJoin(schemaKTable.getkTable(),
+                         new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
       @Override
       public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
         List<Object> columns = new ArrayList<>();
@@ -187,7 +195,8 @@ public class SchemaKStream {
       }
     }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
-    return new SchemaKStream(joinSchema, joinedKStream, joinKey, Arrays.asList(this, schemaKTable));
+    return new SchemaKStream(joinSchema, joinedKStream, joinKey,
+                             Arrays.asList(this, schemaKTable));
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
@@ -272,18 +281,24 @@ public class SchemaKStream {
     }
   }
 
-  protected void createSinkTopic(final String kafkaTopicName, final StreamsKafkaClient streamsKafkaClient, KsqlConfig ksqlConfig) {
-    InternalTopicConfig internalTopicConfig = new InternalTopicConfig(kafkaTopicName,
-                                                                      Utils
-                                                                          .mkSet(InternalTopicConfig.CleanupPolicy.compact,
-                                                                                 InternalTopicConfig.CleanupPolicy.delete), Collections.<String, String>emptyMap());
+  protected void createSinkTopic(
+      final String kafkaTopicName,
+      final StreamsKafkaClient streamsKafkaClient, KsqlConfig ksqlConfig) {
+    InternalTopicConfig internalTopicConfig =
+        new InternalTopicConfig(kafkaTopicName,
+                                Utils.mkSet(InternalTopicConfig.CleanupPolicy
+                                                                 .compact,
+                                                             InternalTopicConfig.CleanupPolicy
+                                                                 .delete),
+                                Collections.<String, String>emptyMap());
     Map<InternalTopicConfig, Integer> topics = new HashMap<>();
     int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS);
     short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS);
-    long windowChangeLogAdditionalRetention = (Long) ksqlConfig.get(KsqlConfig
-                                                                        .SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION);
+    long windowChangeLogAdditionalRetention =
+        (Long) ksqlConfig.get(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION);
     topics.put(internalTopicConfig, numberOfPartitions);
     streamsKafkaClient.createTopics(topics, numberOfReplications,
-                                    windowChangeLogAdditionalRetention, streamsKafkaClient.fetchMetadata());
+                                    windowChangeLogAdditionalRetention,
+                                    streamsKafkaClient.fetchMetadata());
   }
 }

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.planner.plan;
 
 
@@ -25,7 +26,8 @@ public class StructuredDataSourceNode
   private final String alias;
   StructuredDataSource structuredDataSource;
 
-  // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
+  // TODO: pass in the "assignments" and the "outputs" separately
+  // TODO: (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
   public StructuredDataSourceNode(@JsonProperty("id") final PlanNodeId id,
                                   @JsonProperty("schema") final Schema schema,
@@ -33,9 +35,11 @@ public class StructuredDataSourceNode
                                   @JsonProperty("timestampField") final Field timestampField,
                                   @JsonProperty("topicName") final String topicName,
                                   @JsonProperty("alias") final String alias,
-                                  @JsonProperty("dataSourceType") final StructuredDataSource.DataSourceType
+                                  @JsonProperty("dataSourceType")
+                                    final StructuredDataSource.DataSourceType
                                       dataSourceType,
-                                  @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource) {
+                                  @JsonProperty("structuredDataSource")
+                                    final StructuredDataSource structuredDataSource) {
     super(id, timestampField, dataSourceType);
 
     this.schema = schema;

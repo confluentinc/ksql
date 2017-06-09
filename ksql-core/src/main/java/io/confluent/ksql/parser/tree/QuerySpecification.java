@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.List;
@@ -33,7 +34,8 @@ public class QuerySpecification
       Optional<Expression> having,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.empty(), select, into, from, windowExpression, where, groupBy, having, orderBy, limit);
+    this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
+         having, orderBy, limit);
   }
 
   public QuerySpecification(
@@ -47,7 +49,8 @@ public class QuerySpecification
       Optional<Expression> having,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.of(location), select, into, from, windowExpression, where, groupBy, having, orderBy, limit);
+    this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
+         having, orderBy, limit);
   }
 
   private QuerySpecification(
@@ -147,13 +150,13 @@ public class QuerySpecification
       return false;
     }
     QuerySpecification o = (QuerySpecification) obj;
-    return Objects.equals(select, o.select) &&
-           Objects.equals(from, o.from) &&
-           Objects.equals(where, o.where) &&
-           Objects.equals(groupBy, o.groupBy) &&
-           Objects.equals(having, o.having) &&
-           Objects.equals(orderBy, o.orderBy) &&
-           Objects.equals(limit, o.limit);
+    return Objects.equals(select, o.select)
+           && Objects.equals(from, o.from)
+           && Objects.equals(where, o.where)
+           && Objects.equals(groupBy, o.groupBy)
+           && Objects.equals(having, o.having)
+           && Objects.equals(orderBy, o.orderBy)
+           && Objects.equals(limit, o.limit);
   }
 
   @Override

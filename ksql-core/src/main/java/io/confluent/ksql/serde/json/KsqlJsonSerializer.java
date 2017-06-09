@@ -1,8 +1,8 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
-package io.confluent.ksql.serde.json;
 
+package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.physical.GenericRow;
@@ -13,7 +13,7 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KsqlJsonPojoSerializer implements Serializer<GenericRow> {
+public class KsqlJsonSerializer implements Serializer<GenericRow> {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Schema schema;
@@ -21,7 +21,7 @@ public class KsqlJsonPojoSerializer implements Serializer<GenericRow> {
   /**
    * Default constructor needed by Kafka
    */
-  public KsqlJsonPojoSerializer(Schema schema) {
+  public KsqlJsonSerializer(Schema schema) {
     this.schema = schema;
   }
 

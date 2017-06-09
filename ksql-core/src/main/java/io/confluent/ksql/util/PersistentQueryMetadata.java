@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -12,7 +13,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final long id;
 
-  public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode, long id) {
+  public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams,
+                                 OutputNode outputNode, long id) {
     super(statementString, kafkaStreams, outputNode);
     this.id = id;
   }

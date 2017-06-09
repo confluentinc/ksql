@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.physical.GenericRow;

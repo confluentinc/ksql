@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -62,9 +63,9 @@ public class WindowFrame
       return false;
     }
     WindowFrame o = (WindowFrame) obj;
-    return Objects.equals(type, o.type) &&
-           Objects.equals(start, o.start) &&
-           Objects.equals(end, o.end);
+    return Objects.equals(type, o.type)
+           && Objects.equals(start, o.start)
+           && Objects.equals(end, o.end);
   }
 
   @Override

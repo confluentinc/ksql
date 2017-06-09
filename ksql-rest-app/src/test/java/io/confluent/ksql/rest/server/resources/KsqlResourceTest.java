@@ -235,7 +235,7 @@ public class KsqlResourceTest {
 
     Collection<TopicsList.TopicInfo> testTopics = topicsList.getTopics();
     Collection<TopicsList.TopicInfo> expectedTopics = testResource.ksqlEngine.getMetaStore()
-        .getAllKSQLTopics().values().stream()
+        .getAllKsqlTopics().values().stream()
         .map(TopicsList.TopicInfo::new)
         .collect(Collectors.toList());
 

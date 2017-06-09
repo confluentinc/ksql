@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.physical.GenericRow;
@@ -78,8 +79,8 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       case ARRAY:
         GenericData.Array genericArray = (GenericData.Array) value;
         Class elementClass = getJavaTypeForAvroType(fieldSchema.getElementType());
-        Object[] arrayField = (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray
-            .size());
+        Object[] arrayField =
+            (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
         for (int i = 0; i < genericArray.size(); i++) {
           Object obj = enforceFieldType(fieldSchema.getElementType(), genericArray.get(i));
           arrayField[i] = obj;

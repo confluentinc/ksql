@@ -1,12 +1,13 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
 
-public class TumblingWindowExpression extends KSQLWindowExpression {
+public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
   private final WindowExpression.WindowUnit sizeUnit;
@@ -15,7 +16,8 @@ public class TumblingWindowExpression extends KSQLWindowExpression {
     this(Optional.empty(), "", size, sizeUnit);
   }
 
-  public TumblingWindowExpression(NodeLocation location, String windowName, long size, WindowExpression.WindowUnit sizeUnit) {
+  public TumblingWindowExpression(NodeLocation location, String windowName,
+                                  long size, WindowExpression.WindowUnit sizeUnit) {
     this(Optional.of(location), windowName, size, sizeUnit);
   }
 

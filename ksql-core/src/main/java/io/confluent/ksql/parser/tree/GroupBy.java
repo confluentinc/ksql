@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -56,8 +57,8 @@ public class GroupBy
       return false;
     }
     GroupBy groupBy = (GroupBy) o;
-    return isDistinct == groupBy.isDistinct &&
-           Objects.equals(groupingElements, groupBy.groupingElements);
+    return isDistinct == groupBy.isDistinct
+           && Objects.equals(groupingElements, groupBy.groupingElements);
   }
 
   @Override

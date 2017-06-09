@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -58,8 +59,8 @@ public class With
       return false;
     }
     With o = (With) obj;
-    return Objects.equals(recursive, o.recursive) &&
-           Objects.equals(queries, o.queries);
+    return Objects.equals(recursive, o.recursive)
+           && Objects.equals(queries, o.queries);
   }
 
   @Override

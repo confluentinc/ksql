@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.planner.plan;
 
 
@@ -25,12 +26,14 @@ public class ProjectNode
   private final Field keyField;
   private final List<Expression> projectExpressions;
 
-  // TODO: pass in the "assignments" and the "outputs" separately (i.e., get rid if the symbol := symbol idiom)
+  // TODO: pass in the "assignments" and the "outputs"
+  // TODO: separately (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
   public ProjectNode(@JsonProperty("id") final PlanNodeId id,
                      @JsonProperty("source") final PlanNode source,
                      @JsonProperty("schema") final Schema schema,
-                     @JsonProperty("projectExpressions") final List<Expression> projectExpressions) {
+                     @JsonProperty("projectExpressions")
+                       final List<Expression> projectExpressions) {
     super(id);
 
     requireNonNull(source, "source is null");

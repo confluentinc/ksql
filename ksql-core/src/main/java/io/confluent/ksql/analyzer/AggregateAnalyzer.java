@@ -4,7 +4,7 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlFunctions;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -41,7 +41,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   @Override
   protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
     String functionName = node.getName().getSuffix();
-    if (KSQLFunctions.isAnAggregateFunction(functionName)) {
+    if (KsqlFunctions.isAnAggregateFunction(functionName)) {
       if (node.getArguments().isEmpty()) {
         Expression argExpression;
         if (analysis.getJoin() != null) {

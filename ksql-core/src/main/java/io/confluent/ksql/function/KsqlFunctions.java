@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KSQLFunctions {
+public class KsqlFunctions {
 
   public static Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
   public static Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
@@ -72,16 +72,18 @@ public class KSQLFunctions {
 
     KsqlFunction abs = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                                       "ABS", AbsKudf.class);
-    KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
+    KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA,
+                                         Arrays.asList(Schema.FLOAT64_SCHEMA),
                                        "CEIL", CeilKudf.class);
-    KsqlFunction floor = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
+    KsqlFunction floor = new KsqlFunction(Schema.FLOAT64_SCHEMA,
+                                          Arrays.asList(Schema.FLOAT64_SCHEMA),
                                         "FLOOR", FloorKudf.class);
     KsqlFunction
         round =
-        new KsqlFunction(Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA), "ROUND",
-                        RoundKudf.class);
-    KsqlFunction random = new KsqlFunction(Schema.FLOAT64_SCHEMA, new ArrayList<>(), "RANDOM",
-                                         RandomKudf.class);
+        new KsqlFunction(Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
+                         "ROUND", RoundKudf.class);
+    KsqlFunction random = new KsqlFunction(Schema.FLOAT64_SCHEMA, new ArrayList<>(),
+                                           "RANDOM", RandomKudf.class);
 
 
 
@@ -89,9 +91,9 @@ public class KSQLFunctions {
      * JSON functions                     *
      ****************************************/
 
-    KsqlFunction getStringFromJson = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
-                                                                                              .STRING_SCHEMA, Schema.STRING_SCHEMA),
-                                          "GETSTREAMFROMJSON", JsonExtractStringKudf.class);
+    KsqlFunction getStringFromJson = new KsqlFunction(
+        Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
+        "GETSTREAMFROMJSON", JsonExtractStringKudf.class);
 
     addFunction(lcase);
     addFunction(ucase);
@@ -135,17 +137,20 @@ public class KSQLFunctions {
 
   public static KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
       functionArgs, Schema schema) {
-    KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap.get(functionName);
+    KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap.
+        get(functionName);
     if (ksqlAggFunctionDeterminer == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    KsqlAggregateFunction aggregateFunction = ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
+    KsqlAggregateFunction aggregateFunction =
+        ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
     return aggregateFunction;
   }
 
-  public static void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer) {
+  public static void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer
+                                                        ksqlAggFunctionDeterminer) {
     ksqlAggregateFunctionMap.put(ksqlAggFunctionDeterminer.functionName, ksqlAggFunctionDeterminer);
   }
 

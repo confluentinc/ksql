@@ -1,12 +1,13 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.KSQLFunctions;
+import io.confluent.ksql.function.KsqlFunctions;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -77,7 +78,8 @@ public class CodegenExpressionFormatter {
     }
 
     @Override
-    protected Pair<String, Schema> visitExpression(final Expression node, final Boolean unmangleNames) {
+    protected Pair<String, Schema> visitExpression(final Expression node,
+                                                   final Boolean unmangleNames) {
       throw new UnsupportedOperationException(
           format("not yet implemented: %s.visit%s", getClass().getName(),
                  node.getClass().getSimpleName()));
@@ -99,7 +101,6 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema> visitBinaryLiteral(BinaryLiteral node,
                                                            Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            return new Pair<>("X'" + node.toHexString() + "'", StringType.STRING);
     }
 
 
@@ -113,22 +114,18 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema> visitDecimalLiteral(DecimalLiteral node,
                                                             Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            return "DECIMAL '" + node.getValue() + "'";
     }
 
     @Override
     protected Pair<String, Schema> visitGenericLiteral(GenericLiteral node,
                                                             Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            return node.getType() + " " + node.getValue();
     }
 
     @Override
     protected Pair<String, Schema> visitNullLiteral(NullLiteral node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            return new Pair<>("null", StringType.STRING);
     }
-
 
     @Override
     protected Pair<String, Schema> visitQualifiedNameReference(QualifiedNameReference node,
@@ -158,8 +155,6 @@ public class CodegenExpressionFormatter {
       String fieldName = node.toString();
       Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
       return new Pair<>(fieldName.replace(".", "_"), schemaField.schema());
-//            String baseString = process(node.getBase(), unmangleNames);
-//            return baseString + "." + formatIdentifier(node.getFieldName());
     }
 
     private static String formatQualifiedName(QualifiedName name) {
@@ -174,8 +169,6 @@ public class CodegenExpressionFormatter {
     public Pair<String, Schema> visitFieldReference(FieldReference node,
                                                          Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-      // add colon so this won't parse
-//            return ":input(" + node.getFieldIndex() + ")";
     }
 
     protected Pair<String, Schema> visitLongLiteral(LongLiteral node, Boolean unmangleNames) {
@@ -188,7 +181,7 @@ public class CodegenExpressionFormatter {
                                                           Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder();
       String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KSQLFunctions.getFunction(name);
+      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
       boolean addComma = false;
@@ -226,8 +219,6 @@ public class CodegenExpressionFormatter {
     @Override
     protected Pair<String, Schema> visitNotExpression(NotExpression node,
                                                            Boolean unmangleNames) {
-//            throw new UnsupportedOperationException();
-//            return "(! " + process(node.getValue(), unmangleNames) + ")";
       String exprString = process(node.getValue(), unmangleNames).getLeft();
       return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
     }
@@ -271,25 +262,6 @@ public class CodegenExpressionFormatter {
 
         case "INTEGER": {
           String exprStr;
-//          switch (expr.getRight()) {
-//            case STRING:
-//              exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
-//              break;
-//            case INT32:
-//              exprStr = expr.getLeft();
-//              break;
-//            case INT64:
-//              exprStr = "((Long)(" + expr.getLeft() + "))";
-//              break;
-//            case FLOAT64:
-//              exprStr = "(" + expr.getLeft() + ").intValue()";
-//              break;
-//            default:
-//              throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
-//                  + expr.getLeft() + " to " + returnTypeStr);
-//          }
-//          return new Pair<>(exprStr, returnType);
-
           Schema rightSchema = expr.getRight();
           if (rightSchema == Schema.STRING_SCHEMA) {
             exprStr = "Integer.parseInt(" + expr.getLeft() + ")";
@@ -319,32 +291,14 @@ public class CodegenExpressionFormatter {
           } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
             exprStr = "(" + expr.getLeft() + ").longValue()";
           } else {
-            throw new KsqlFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+            throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
+                                            + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
         }
 
         case "DOUBLE": {
           String exprStr;
-
-//          switch (expr.getRight()) {
-//            case STRING:
-//              exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
-//              break;
-//            case INT32:
-//              exprStr = "((Double)(" + expr.getLeft() + "))";
-//              break;
-//            case INT64:
-//              exprStr = "((Long)(" + expr.getLeft() + "))";
-//              break;
-//            case FLOAT64:
-//              exprStr = expr.getLeft();
-//              break;
-//            default:
-//              throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
-//                  + expr.getLeft() + " to " + returnTypeStr);
-//          }
-//          return new Pair<>(exprStr, returnType);
           Schema rightSchema = expr.getRight();
           if (rightSchema == Schema.STRING_SCHEMA) {
             exprStr = "Double.parseDouble(" + expr.getLeft() + ")";
@@ -355,12 +309,11 @@ public class CodegenExpressionFormatter {
           } else if (rightSchema == Schema.FLOAT64_SCHEMA) {
             exprStr = expr.getLeft();
           } else {
-            throw new KsqlFunctionException("Invalid cast operation: Cannot cast " + expr.getLeft() + " to " + returnTypeStr);
+            throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
+                                            + expr.getLeft() + " to " + returnTypeStr);
           }
           return new Pair<>(exprStr, returnType);
-
         }
-
         default:
           throw new KsqlFunctionException("Invalid cast operation: " + returnTypeStr);
       }
@@ -418,23 +371,20 @@ public class CodegenExpressionFormatter {
 
       if (paternString.startsWith("%")) {
         if (paternString.endsWith("%")) {
-          return new Pair<>("(" + valueString + ").contains(\"" + paternString.substring(1,
-                                                                                  paternString
-                                                                                      .length() - 1)
+          return new Pair<>("(" + valueString + ").contains(\""
+                            + paternString.substring(1, paternString.length() - 1)
                             + "\")",
                             Schema
               .STRING_SCHEMA);
         } else {
-          return new Pair<>("(" + valueString + ").endsWith(\"" + paternString.substring(1) +
-                            "\")", Schema
-              .STRING_SCHEMA);
+          return new Pair<>("(" + valueString + ").endsWith(\"" + paternString.substring(1)
+                            + "\")", Schema.STRING_SCHEMA);
         }
       }
 
       if (paternString.endsWith("%")) {
-        return new Pair<>("(" + valueString + ").startsWith(\"" + paternString.substring(0,
-                                                                                         paternString
-            .length() - 1) + "\")",
+        return new Pair<>("(" + valueString + ").startsWith(\"" +
+                          paternString.substring(0, paternString.length() - 1) + "\")",
                           Schema
             .STRING_SCHEMA);
       }
@@ -445,24 +395,19 @@ public class CodegenExpressionFormatter {
     @Override
     protected Pair<String, Schema> visitAllColumns(AllColumns node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            if (node.getPrefix().isPresent()) {
-//                return node.getPrefix().get() + ".*";
-//            }
-//
-//            return "*";
     }
 
     @Override
-    protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node, Boolean unmangleNames) {
+    protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node,
+                                                            Boolean unmangleNames) {
       String arrayBaseName = node.getBase().toString();
       Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
       if (schemaField.schema().type() == Schema.Type.ARRAY) {
-        return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)(" + process(node
-                                                                                                     .getIndex(),
-                                                                                                 unmangleNames).getLeft() + ""
-                          + ")]", schema);
+        return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)("
+                          + process(node.getIndex(), unmangleNames).getLeft() + ")]", schema);
       } else if (schemaField.schema().type() == Schema.Type.MAP) {
-        return new Pair<>("(" + SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
+        return new Pair<>("(" +
+                          SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
                           + process(node.getBase(), unmangleNames).getLeft() + ".get"
                           + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))", schema);
       }
@@ -473,27 +418,22 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema> visitBetweenPredicate(BetweenPredicate node,
                                                               Boolean unmangleNames) {
       throw new UnsupportedOperationException();
-//            return "(" + process(node.getValue(), unmangleNames) + " BETWEEN " +
-//                    process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(), unmangleNames) + ")";
     }
 
     private String formatBinaryExpression(String operator, Expression left, Expression right,
                                           boolean unmangleNames) {
-      return "(" + process(left, unmangleNames).getLeft() + " " + operator + " " + process(right,
-                                                                                           unmangleNames)
-          .getLeft() + ")";
+      return "(" + process(left, unmangleNames).getLeft() + " " + operator + " "
+             + process(right, unmangleNames).getLeft() + ")";
     }
 
     private static String formatIdentifier(String s) {
       // TODO: handle escaping properly
-//            return '"' + s + '"';
       return s;
     }
 
     private String joinExpressions(List<Expression> expressions, boolean unmangleNames) {
       return Joiner.on(", ").join(expressions.stream()
-                                      .map((e) -> process(e, unmangleNames))
-                                      .iterator());
+                                      .map((e) -> process(e, unmangleNames)).iterator());
     }
   }
 

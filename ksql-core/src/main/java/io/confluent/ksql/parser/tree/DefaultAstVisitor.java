@@ -2,11 +2,12 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import javax.annotation.Nullable;
 
-public abstract class DefaultASTVisitor<R, C>
+public abstract class DefaultAstVisitor<R, C>
     extends AstVisitor<R, C> {
 
   public R process(Node node, @Nullable C context) {

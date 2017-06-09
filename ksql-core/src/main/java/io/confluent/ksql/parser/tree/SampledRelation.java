@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -99,10 +100,10 @@ public class SampledRelation
       return false;
     }
     SampledRelation that = (SampledRelation) o;
-    return Objects.equals(relation, that.relation) &&
-           Objects.equals(type, that.type) &&
-           Objects.equals(samplePercentage, that.samplePercentage) &&
-           Objects.equals(columnsToStratifyOn, that.columnsToStratifyOn);
+    return Objects.equals(relation, that.relation)
+           && Objects.equals(type, that.type)
+           && Objects.equals(samplePercentage, that.samplePercentage)
+           && Objects.equals(columnsToStratifyOn, that.columnsToStratifyOn);
   }
 
   @Override

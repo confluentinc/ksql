@@ -51,7 +51,7 @@ public class SchemaKTableTest {
   }
 
   private Analysis analyze(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
@@ -61,7 +61,7 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAST(queryStr, metaStore);
+    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);

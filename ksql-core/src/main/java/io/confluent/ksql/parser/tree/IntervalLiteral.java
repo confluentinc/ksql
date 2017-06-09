@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -104,9 +105,9 @@ public class IntervalLiteral
       return false;
     }
     IntervalLiteral other = (IntervalLiteral) obj;
-    return Objects.equals(this.value, other.value) &&
-           Objects.equals(this.sign, other.sign) &&
-           Objects.equals(this.startField, other.startField) &&
-           Objects.equals(this.endField, other.endField);
+    return Objects.equals(this.value, other.value)
+           && Objects.equals(this.sign, other.sign)
+           && Objects.equals(this.startField, other.startField)
+           && Objects.equals(this.endField, other.endField);
   }
 }

@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.util;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -22,10 +23,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String DEFAULT_SINK_NUMBER_OF_REPLICATIONS = "ksql.sink.replications.default";
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
-  public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION = "ksql.sink"
-                                                                                  + ".window.change.log"
-                                                                   + ".additional.retention"
-                                                                   + ".default";
+  public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
+      "ksql.sink.window.change.log.additional.retention.default";
 
   public int defaultSinkNumberOfPartitions = 10;
   public short defaultSinkNumberOfReplications = 1;
@@ -47,7 +46,8 @@ public class KsqlConfig extends AbstractConfig {
     ksqlConfigProps = new HashMap<>();
     ksqlConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
     ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
-    ksqlConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
+    ksqlConfigProps.put(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
     ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
     ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
     ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,

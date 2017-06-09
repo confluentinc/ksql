@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.List;
@@ -52,8 +53,8 @@ public class LambdaExpression
       return false;
     }
     LambdaExpression that = (LambdaExpression) obj;
-    return Objects.equals(arguments, that.arguments) &&
-           Objects.equals(body, that.body);
+    return Objects.equals(arguments, that.arguments)
+           && Objects.equals(body, that.body);
   }
 
   @Override

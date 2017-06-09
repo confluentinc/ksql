@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -49,8 +50,8 @@ public class InPredicate
     }
 
     InPredicate that = (InPredicate) o;
-    return Objects.equals(value, that.value) &&
-           Objects.equals(valueList, that.valueList);
+    return Objects.equals(value, that.value)
+           && Objects.equals(valueList, that.valueList);
   }
 
   @Override

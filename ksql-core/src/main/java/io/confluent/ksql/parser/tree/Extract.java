@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import javax.annotation.concurrent.Immutable;
@@ -76,8 +77,8 @@ public class Extract
     }
 
     Extract that = (Extract) o;
-    return Objects.equals(expression, that.expression) &&
-           (field == that.field);
+    return Objects.equals(expression, that.expression)
+           && (field == that.field);
   }
 
   @Override

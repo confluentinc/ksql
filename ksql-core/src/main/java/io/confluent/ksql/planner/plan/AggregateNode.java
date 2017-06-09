@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -37,10 +38,12 @@ public class AggregateNode extends PlanNode {
   public AggregateNode(@JsonProperty("id") final PlanNodeId id,
                        @JsonProperty("source") final PlanNode source,
                        @JsonProperty("schema") final Schema schema,
-                       @JsonProperty("projectExpressions") final List<Expression> projectExpressions,
+                       @JsonProperty("projectExpressions")
+                         final List<Expression> projectExpressions,
                        @JsonProperty("groupby") final List<Expression> groupByExpressions,
                        @JsonProperty("window") final WindowExpression windowExpression,
-                       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
+                       @JsonProperty("aggregateFunctionArguments")
+                         final List<Expression> aggregateFunctionArguments,
                        @JsonProperty("functionList") final List<FunctionCall> functionList,
                        @JsonProperty("requiredColumnList") final List<Expression>
                              requiredColumnList,

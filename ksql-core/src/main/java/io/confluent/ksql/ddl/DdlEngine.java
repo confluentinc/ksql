@@ -68,14 +68,15 @@ public class DdlEngine {
     kafkaTopicName = enforceString(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KsqlTopicSerDe topicSerDe;
 
-    // TODO: Find a way to avoid calling toUpperCase() here; if the property can be an unquoted identifier, then
-    // capitalization will have already happened
+    // TODO: Find a way to avoid calling toUpperCase() here;
+    // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
         if (createTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) == null) {
           throw new KsqlException("Avro schema file path should be set for avro topics.");
         }
-        String avroSchemaFile = createTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString();
+        String avroSchemaFile = createTopic.getProperties()
+            .get(DdlConfig.AVRO_SCHEMA_FILE).toString();
         avroSchemaFile = enforceString(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
         try {
           String avroSchema = getAvroSchema(avroSchemaFile);
@@ -143,7 +144,8 @@ public class DdlEngine {
                                 + "column."
                                 + " You cannot use them as a column name.");
       }
-      streamSchema = streamSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
+      streamSchema = streamSchema.field(tableElement.getName(),
+                                        getKsqlType(tableElement.getType()));
     }
 
     if (createStream.getProperties().size() == 0) {
@@ -154,21 +156,27 @@ public class DdlEngine {
       throw new KsqlException("Topic for the stream should be set in WITH clause.");
     }
 
-    // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes) can be case-sensitive
-    String topicName = createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
+    // TODO: Get rid of call to toUpperCase(),
+    // TODO: since topic names (if put in quotes) can be case-sensitive
+    String topicName = createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY)
+        .toString().toUpperCase();
     topicName = enforceString(DdlConfig.TOPIC_NAME_PROPERTY, topicName);
 
     String keyColumnName = "";
     if (createStream.getProperties().get(DdlConfig.KEY_NAME_PROPERTY) != null) {
-      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      keyColumnName = createStream.getProperties().get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes)
+      // TODO: can be case-sensitive
+      keyColumnName = createStream.getProperties().get(DdlConfig.KEY_NAME_PROPERTY)
+          .toString().toUpperCase();
       keyColumnName = enforceString(DdlConfig.KEY_NAME_PROPERTY, keyColumnName);
     }
 
     String timestampColumnName = "";
     if (createStream.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      timestampColumnName = createStream.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes)
+      // TODO: can be case-sensitive
+      timestampColumnName = createStream.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+          .toString().toUpperCase();
       timestampColumnName = enforceString(DdlConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
       if (SchemaUtil.getFieldByName(streamSchema, timestampColumnName).schema().type() != Schema
           .Type.INT64) {
@@ -178,13 +186,16 @@ public class DdlEngine {
     }
 
     if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new KsqlException(String.format("The corresponding topic, %s, does not exist.", topicName));
+      throw new
+          KsqlException(String.format("The corresponding topic, %s, does not exist.", topicName));
     }
 
     KsqlStream
         ksqlStream =
-        new KsqlStream(streamName, streamSchema, (keyColumnName.length() == 0) ? null : streamSchema.field(keyColumnName),
-                       (timestampColumnName.length() == 0) ? null : streamSchema.field(timestampColumnName),
+        new KsqlStream(streamName, streamSchema,
+                       (keyColumnName.length() == 0) ? null : streamSchema.field(keyColumnName),
+                       (timestampColumnName.length() == 0) ? null :
+                       streamSchema.field(timestampColumnName),
                        ksqlEngine.getMetaStore().getTopic(topicName));
 
     // TODO: Need to check if the topic exists.
@@ -221,7 +232,7 @@ public class DdlEngine {
                                 + " You cannot use them as a column name.");
 
       }
-      tableSchema = tableSchema.field(tableElement.getName(), getKSQLType(tableElement.getType()));
+      tableSchema = tableSchema.field(tableElement.getName(), getKsqlType(tableElement.getType()));
     }
 
     if (createTable.getProperties().size() == 0) {
@@ -232,8 +243,10 @@ public class DdlEngine {
       throw new KsqlException("Topic for the table should be set in WITH clause.");
     }
 
-    // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes) can be case-sensitive
-    String topicName = createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase();
+    // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes)
+    // TODO: can be case-sensitive
+    String topicName = createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY)
+        .toString().toUpperCase();
     topicName = enforceString(DdlConfig.TOPIC_NAME_PROPERTY, topicName);
 
     if (createTable.getProperties().get(DdlConfig.STATE_STORE_NAME_PROPERTY) == null) {
@@ -247,15 +260,19 @@ public class DdlEngine {
 
     String keyColumnName = "";
     if (createTable.getProperties().get(DdlConfig.KEY_NAME_PROPERTY) != null) {
-      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      keyColumnName = createTable.getProperties().get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes)
+      // TODO: can be case-sensitive
+      keyColumnName = createTable.getProperties().get(DdlConfig.KEY_NAME_PROPERTY)
+          .toString().toUpperCase();
       keyColumnName = enforceString(DdlConfig.KEY_NAME_PROPERTY, keyColumnName);
     }
 
     String timestampColumnName = "";
     if (createTable.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes) can be case-sensitive
-      timestampColumnName = createTable.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+      // TODO: Get rid of call to toUpperCase(), since field names (if put in quotes)
+      // TODO: can be case-sensitive
+      timestampColumnName = createTable.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+          .toString().toUpperCase();
       timestampColumnName = enforceString(DdlConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
       if (SchemaUtil.getFieldByName(tableSchema, timestampColumnName).schema().type() != Schema
           .Type.INT64) {
@@ -267,7 +284,8 @@ public class DdlEngine {
 
     boolean isWindowed = false;
     if (createTable.getProperties().get(DdlConfig.IS_WINDOWED_PROPERTY) != null) {
-      String isWindowedProp = createTable.getProperties().get(DdlConfig.IS_WINDOWED_PROPERTY).toString().toUpperCase();
+      String isWindowedProp = createTable.getProperties().get(DdlConfig.IS_WINDOWED_PROPERTY)
+          .toString().toUpperCase();
       try {
         isWindowed = Boolean.parseBoolean(isWindowedProp);
       } catch (Exception e) {
@@ -280,9 +298,12 @@ public class DdlEngine {
       throw new KsqlException("The corresponding topic does not exist.");
     }
 
-    KsqlTable ksqlTable = new KsqlTable(tableName, tableSchema, (keyColumnName.length() == 0) ? null : tableSchema.field(keyColumnName),
-                                        (timestampColumnName.length() == 0) ? null : tableSchema
-                                            .field(timestampColumnName), ksqlEngine.getMetaStore().getTopic(topicName),
+    KsqlTable ksqlTable = new KsqlTable(tableName, tableSchema,
+                                        (keyColumnName.length() == 0) ? null :
+                                        tableSchema.field(keyColumnName),
+                                        (timestampColumnName.length() == 0) ? null :
+                                        tableSchema.field(timestampColumnName),
+                                        ksqlEngine.getMetaStore().getTopic(topicName),
                                         stateStoreName, isWindowed);
 
     // TODO: Need to check if the topic exists.
@@ -292,7 +313,7 @@ public class DdlEngine {
   }
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
-  private Schema getKSQLType(final String sqlType) {
+  private Schema getKsqlType(final String sqlType) {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
@@ -312,7 +333,7 @@ public class DdlEngine {
       default:
         if (sqlType.startsWith("ARRAY")) {
           return SchemaBuilder
-              .array(getKSQLType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
+              .array(getKsqlType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
         } else if (sqlType.startsWith("MAP")) {
           //TODO: For now only primitive data types for map are supported. Will have to add
           // nested types.
@@ -323,7 +344,7 @@ public class DdlEngine {
           }
           String keyType = mapTypesStrs[0].trim();
           String valueType = mapTypesStrs[1].trim();
-          return SchemaBuilder.map(getKSQLType(keyType), getKSQLType(valueType));
+          return SchemaBuilder.map(getKsqlType(keyType), getKsqlType(valueType));
         }
         throw new KsqlException("Unsupported type: " + sqlType);
     }

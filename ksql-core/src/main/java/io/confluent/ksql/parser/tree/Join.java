@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -89,10 +90,10 @@ public class Join
       return false;
     }
     Join join = (Join) o;
-    return (type == join.type) &&
-           Objects.equals(left, join.left) &&
-           Objects.equals(right, join.right) &&
-           Objects.equals(criteria, join.criteria);
+    return (type == join.type)
+           && Objects.equals(left, join.left)
+           && Objects.equals(right, join.right)
+           && Objects.equals(criteria, join.criteria);
   }
 
   @Override

@@ -2,6 +2,7 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -78,10 +79,10 @@ public class CreateTable
       return false;
     }
     CreateTable o = (CreateTable) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(elements, o.elements) &&
-           Objects.equals(notExists, o.notExists) &&
-           Objects.equals(properties, o.properties);
+    return Objects.equals(name, o.name)
+           && Objects.equals(elements, o.elements)
+           && Objects.equals(notExists, o.notExists)
+           && Objects.equals(properties, o.properties);
   }
 
   @Override

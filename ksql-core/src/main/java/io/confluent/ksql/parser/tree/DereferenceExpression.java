@@ -2,6 +2,7 @@
  * Copyright 2017 Confluent Inc.
  *
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.ArrayList;
@@ -81,8 +82,8 @@ public class DereferenceExpression
       return false;
     }
     DereferenceExpression that = (DereferenceExpression) o;
-    return Objects.equals(base, that.base) &&
-           Objects.equals(fieldName, that.fieldName);
+    return Objects.equals(base, that.base)
+           && Objects.equals(fieldName, that.fieldName);
   }
 
   @Override

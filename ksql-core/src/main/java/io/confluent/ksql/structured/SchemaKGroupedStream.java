@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
@@ -47,19 +48,30 @@ public class SchemaKGroupedStream {
     KTable<Windowed<String>, GenericRow> aggKtable;
     if (windowExpression != null) {
       if (windowExpression.getKsqlWindowExpression() instanceof TumblingWindowExpression) {
-        TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression)
-            windowExpression.getKsqlWindowExpression();
+        TumblingWindowExpression tumblingWindowExpression =
+            (TumblingWindowExpression) windowExpression.getKsqlWindowExpression();
         aggKtable =
-            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(tumblingWindowExpression
-                                                                         .getSize(),
-                                                                     tumblingWindowExpression.getSizeUnit())), topicValueSerDe, storeName);
+            kGroupedStream
+                .aggregate(initializer, aggregator,
+                                     TimeWindows.of(
+                                         getWindowUnitInMillisecond(
+                                             tumblingWindowExpression.getSize(),
+                                                                     tumblingWindowExpression
+                                                                         .getSizeUnit())),
+                           topicValueSerDe,
+                           storeName);
       } else if (windowExpression.getKsqlWindowExpression() instanceof HoppingWindowExpression) {
-        HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) windowExpression.getKsqlWindowExpression();
+        HoppingWindowExpression hoppingWindowExpression =
+            (HoppingWindowExpression) windowExpression.getKsqlWindowExpression();
         aggKtable =
-            kGroupedStream.aggregate(initializer, aggregator, TimeWindows.of(getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
-                                                                                                        hoppingWindowExpression.getSizeUnit()))
-                                         .advanceBy(getWindowUnitInMillisecond(hoppingWindowExpression.getAdvanceBy(),
-                                                                               hoppingWindowExpression.getAdvanceByUnit())),
+            kGroupedStream
+                .aggregate(initializer, aggregator,
+                           TimeWindows.of(
+                               getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
+                                                          hoppingWindowExpression.getSizeUnit()))
+                                         .advanceBy(getWindowUnitInMillisecond(
+                                             hoppingWindowExpression.getAdvanceBy(),
+                                             hoppingWindowExpression.getAdvanceByUnit())),
                                      topicValueSerDe, storeName);
       } else {
         throw new KsqlException("Could not set the window expression for aggregate.");

@@ -77,8 +77,8 @@ public class ArithmeticUnaryExpression
     }
 
     ArithmeticUnaryExpression that = (ArithmeticUnaryExpression) o;
-    return Objects.equals(value, that.value) &&
-           (sign == that.sign);
+    return Objects.equals(value, that.value)
+           && (sign == that.sign);
   }
 
   @Override

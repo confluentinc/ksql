@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -76,9 +77,9 @@ public class SortItem
     }
 
     SortItem sortItem = (SortItem) o;
-    return Objects.equals(sortKey, sortItem.sortKey) &&
-           (ordering == sortItem.ordering) &&
-           (nullOrdering == sortItem.nullOrdering);
+    return Objects.equals(sortKey, sortItem.sortKey)
+           && (ordering == sortItem.ordering)
+           && (nullOrdering == sortItem.nullOrdering);
   }
 
   @Override

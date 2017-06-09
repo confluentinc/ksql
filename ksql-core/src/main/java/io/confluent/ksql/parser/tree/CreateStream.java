@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -76,10 +77,10 @@ public class CreateStream extends Statement {
       return false;
     }
     CreateStream o = (CreateStream) obj;
-    return Objects.equals(name, o.name) &&
-           Objects.equals(elements, o.elements) &&
-           Objects.equals(notExists, o.notExists) &&
-           Objects.equals(properties, o.properties);
+    return Objects.equals(name, o.name)
+           && Objects.equals(elements, o.elements)
+           && Objects.equals(notExists, o.notExists)
+           && Objects.equals(properties, o.properties);
   }
 
   @Override

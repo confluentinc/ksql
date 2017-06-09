@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.function.udaf.count;
 
 import io.confluent.ksql.function.KsqlAggFunctionDeterminer;

@@ -51,7 +51,7 @@ public class PhysicalPlanBuilderTest {
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
-        List<Statement> statements = ksqlParser.buildAST(queryStr, metaStore);
+        List<Statement> statements = ksqlParser.buildAst(queryStr, metaStore);
         // Analyze the query to resolve the references and extract oeprations
 //        Analysis analysis = new Analysis();
 //        Analyzer analyzer = new Analyzer(analysis, metaStore);

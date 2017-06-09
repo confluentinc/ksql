@@ -1,6 +1,7 @@
 /**
  * Copyright 2017 Confluent Inc.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -9,13 +10,14 @@ import java.util.Optional;
 public class WindowExpression extends Node {
 
   private final String windowName;
-  private  final KSQLWindowExpression ksqlWindowExpression;
+  private  final KsqlWindowExpression ksqlWindowExpression;
 
-  public WindowExpression(String windowName, KSQLWindowExpression ksqlWindowExpression) {
+  public WindowExpression(String windowName, KsqlWindowExpression ksqlWindowExpression) {
     this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
-  protected WindowExpression(Optional<NodeLocation> location, String windowName, KSQLWindowExpression ksqlWindowExpression) {
+  protected WindowExpression(Optional<NodeLocation> location, String windowName,
+                             KsqlWindowExpression ksqlWindowExpression) {
     super(location);
     this.windowName = windowName;
     this.ksqlWindowExpression = ksqlWindowExpression;
@@ -25,7 +27,7 @@ public class WindowExpression extends Node {
     return windowName;
   }
 
-  public KSQLWindowExpression getKsqlWindowExpression() {
+  public KsqlWindowExpression getKsqlWindowExpression() {
     return ksqlWindowExpression;
   }
 

@@ -57,7 +57,9 @@ statement
                     (WITH tableProperties)?                            #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                           #createTableAs
-    | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTable
+    | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTopic
+    | DROP STREAM (IF EXISTS)? qualifiedName                           #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
     | EXPORT CATALOG TO STRING                                         #exportCatalog
     ;
 

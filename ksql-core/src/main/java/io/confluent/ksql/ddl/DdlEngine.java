@@ -14,7 +14,9 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -110,11 +112,19 @@ public class DdlEngine {
     return propertyValue.substring(1, propertyValue.length() - 1);
   }
 
-  public void dropTopic(final DropTable dropTable) {
+  public void dropTopic(final DropTopic dropTopic) {
+    String topicName = dropTopic.getTopicName().getSuffix();
+    ksqlEngine.getMetaStore().deleteTopic(topicName);
+  }
 
-    String topicName = dropTable.getTableName().getSuffix();
-    new DdlUtil().deleteTopic(topicName);
-    ksqlEngine.getMetaStore().deleteSource(topicName);
+  public void dropTable(final DropTable dropTable) {
+    String tableName = dropTable.getTableName().getSuffix();
+    ksqlEngine.getMetaStore().deleteSource(tableName);
+  }
+
+  public void dropStream(final DropStream dropTable) {
+    String streamName = dropTable.getStreamName().getSuffix();
+    ksqlEngine.getMetaStore().deleteSource(streamName);
   }
 
   public KsqlStream createStream(final CreateStream createStream) {

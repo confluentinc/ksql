@@ -15,6 +15,9 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
@@ -144,6 +147,9 @@ public class KsqlResource {
             || statement instanceof CreateStreamAsSelect
             || statement instanceof CreateTableAsSelect
             || statement instanceof TerminateQuery
+            || statement instanceof DropTopic
+            || statement instanceof DropStream
+            || statement instanceof DropTable
     ) {
       CommandId commandId = commandStore.distributeStatement(statementText, statement);
       CommandStatus commandStatus;

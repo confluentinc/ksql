@@ -10,6 +10,9 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 
@@ -34,6 +37,12 @@ public class CommandIdAssigner {
       return getSelectTableCommandId((CreateTableAsSelect) command);
     } else if (command instanceof TerminateQuery) {
       return getTerminateCommandId((TerminateQuery) command);
+    } else if (command instanceof DropTopic) {
+      return getDropTopicCommandId((DropTopic) command);
+    } else if (command instanceof DropStream) {
+      return getDropStreamCommandId((DropStream) command);
+    } else if (command instanceof DropTable) {
+      return getDropTableCommandId((DropTable) command);
     } else {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",
@@ -69,7 +78,20 @@ public class CommandIdAssigner {
   public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
     return new CommandId(CommandId.Type.TERMINATE, Long.toString(terminateQuery.getQueryId()));
   }
+  public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
+    return new CommandId(CommandId.Type.TOPIC,
+                         dropTopicQuery.getTopicName().getSuffix() + "_DROP");
+  }
 
+  public CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
+    return new CommandId(CommandId.Type.STREAM,
+                         dropStreamQuery.getStreamName().getSuffix() + "_DROP");
+  }
+
+  public CommandId getDropTableCommandId(DropTable dropTableQuery) {
+    return new CommandId(CommandId.Type.TABLE,
+                         dropTableQuery.getTableName().getSuffix() + "_DROP");
+  }
 
   private CommandId getStreamCommandId(String streamName) {
     return getSourceCommandId(CommandId.Type.STREAM, streamName);

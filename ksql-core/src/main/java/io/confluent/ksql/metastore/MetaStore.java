@@ -17,6 +17,8 @@ public interface MetaStore {
 
   public void putSource(StructuredDataSource dataSource);
 
+  public void deleteTopic(String topicName);
+
   public void deleteSource(String sourceName);
 
   public Map<String, StructuredDataSource> getAllStructuredDataSources();

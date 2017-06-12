@@ -29,7 +29,9 @@ import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
+import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.parser.tree.ExistsPredicate;
 import io.confluent.ksql.parser.tree.ExplainFormat;
@@ -232,8 +234,20 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitDropTopic(SqlBaseParser.DropTopicContext context) {
+    return new DropTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
+                         context.EXISTS() != null);
+  }
+
+  @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
     return new DropTable(getLocation(context), getQualifiedName(context.qualifiedName()),
+                         context.EXISTS() != null);
+  }
+
+  @Override
+  public Node visitDropStream(SqlBaseParser.DropStreamContext context) {
+    return new DropStream(getLocation(context), getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);
   }
 

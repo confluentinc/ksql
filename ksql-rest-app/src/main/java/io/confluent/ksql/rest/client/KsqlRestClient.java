@@ -11,6 +11,7 @@ import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
@@ -46,6 +47,13 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   public void setServerAddress(String serverAddress) {
     this.serverAddress = serverAddress;
+  }
+
+  public RestResponse<ServerInfo> makeRootRequest() {
+    Response response = makeGetRequest("/");
+    ServerInfo result = response.readEntity(ServerInfo.class);
+    response.close();
+    return RestResponse.successful(result);
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {

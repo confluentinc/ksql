@@ -6,6 +6,7 @@ package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 
+import javax.ws.rs.ProcessingException;
 import java.io.IOException;
 
 public class RemoteCli extends Cli {
@@ -22,6 +23,8 @@ public class RemoteCli extends Cli {
         streamedQueryTimeoutMs,
         outputFormat
     );
+
+    validateClient();
 
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
@@ -45,8 +48,19 @@ public class RemoteCli extends Cli {
         } else {
           String serverAddress = commandStrippedLine.trim();
           restClient.setServerAddress(serverAddress);
+          validateClient();
         }
       }
     });
+  }
+
+  private void validateClient() {
+    try {
+      restClient.makeRootRequest();
+    } catch (IllegalArgumentException exception) {
+      terminal.writer().println("Server URL must begin with protocol (e.g., http:// or https://)");
+    } catch (ProcessingException exception) {
+      terminal.writer().println("Warning: remote server address may not be valid");
+    }
   }
 }

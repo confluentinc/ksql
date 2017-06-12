@@ -49,6 +49,11 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   @Override
+  public void deleteTopic(String topicName) {
+    topicMap.remove(topicName);
+  }
+
+  @Override
   public void deleteSource(final String sourceName) {
     dataSourceMap.remove(sourceName);
   }

@@ -11,6 +11,9 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -290,6 +293,18 @@ public class StatementExecutor {
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Termination request granted";
+    } else if (statement instanceof DropTopic) {
+      DropTopic dropTopic = (DropTopic) statement;
+      ksqlEngine.getDdlEngine().dropTopic(dropTopic);
+      successMessage = "Topic was dropped";
+    } else if (statement instanceof DropStream) {
+      DropStream dropStream = (DropStream) statement;
+      ksqlEngine.getDdlEngine().dropStream(dropStream);
+      successMessage = "Stream was dropped";
+    } else if (statement instanceof DropTable) {
+      DropTable dropTable = (DropTable) statement;
+      ksqlEngine.getDdlEngine().dropTable(dropTable);
+      successMessage = "Table was dropped";
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

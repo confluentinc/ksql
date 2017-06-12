@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SetProperty;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -394,6 +395,25 @@ public class Cli implements Closeable, AutoCloseable {
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
       public String getName() {
+        return "version";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tversion: Get the current KSQL version");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        ServerInfo serverInfo = restClient.makeRootRequest().getResponse();
+        terminal.writer().printf("Version: %s%n", serverInfo.getVersion());
+        terminal.flush();
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
         return "exit";
       }
 
@@ -526,7 +546,7 @@ public class Cli implements Closeable, AutoCloseable {
         }
       } finally {
         terminal.writer().println("Query terminated");
-        terminal.writer().flush();
+        terminal.flush();
       }
     } else {
       printErrorMessage(queryResponse.getErrorMessage());
@@ -752,7 +772,7 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.writer().println(
         String.join(" | ", row.columns.stream().map(Objects::toString).collect(Collectors.toList()))
     );
-    terminal.writer().flush();
+    terminal.flush();
   }
 
   private void printAsTable(CommandStatuses statuses) {

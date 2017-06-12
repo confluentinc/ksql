@@ -13,6 +13,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -21,7 +22,9 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -50,6 +53,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
+  private final ServerInfoResource serverInfoResource;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
@@ -62,6 +66,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       KsqlEngine ksqlEngine,
       KsqlRestConfig config,
       CommandRunner commandRunner,
+      ServerInfoResource serverInfoResource,
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
@@ -71,6 +76,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     super(config);
     this.ksqlEngine = ksqlEngine;
     this.commandRunner = commandRunner;
+    this.serverInfoResource = serverInfoResource;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
@@ -82,6 +88,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
+    config.register(serverInfoResource);
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -206,6 +213,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         commandStore
     );
 
+    ServerInfoResource serverInfoResource =
+        new ServerInfoResource(new ServerInfo(Version.getVersion()));
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -225,6 +234,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         ksqlEngine,
         config,
         commandRunner,
+        serverInfoResource,
         statusResource,
         streamedQueryResource,
         ksqlResource,

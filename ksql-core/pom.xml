@@ -154,5 +154,23 @@
                 </executions>
             </plugin>
         </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>ksql-version.properties</include>
+                </includes>
+            </resource>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>ksql-version.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
     </build>
 </project>

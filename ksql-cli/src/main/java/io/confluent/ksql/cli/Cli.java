@@ -143,6 +143,22 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   public void runInteractively() throws IOException {
+    /*
+                                _  __ _____  ____  _
+                               | |/ // ____|/ __ \| |
+                               | ' /| (___ | |  | | |
+                               |  <  \___ \| |  | | |
+                               | . \ ____) | |__| | |____
+                               |_|\_\_____/ \___\_\______|
+
+     */
+    terminal.writer().println(" _  __ _____  ____  _");
+    terminal.writer().println("| |/ // ____|/ __ \\| |");
+    terminal.writer().println("| ' /| (___ | |  | | |");
+    terminal.writer().println("|  <  \\___ \\| |  | | |");
+    terminal.writer().println("| . \\ ____) | |__| | |____");
+    terminal.writer().println("|_|\\_\\_____/ \\___\\_\\______|");
+    terminal.writer().println();
     terminal.flush();
     while (true) {
       try {

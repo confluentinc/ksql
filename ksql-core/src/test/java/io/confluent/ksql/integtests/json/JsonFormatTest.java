@@ -372,6 +372,40 @@ public class JsonFormatTest {
   }
 
   @Test
+  public void testSelectUDFLogicalExpression() throws Exception {
+    final String streamName = "UDFSTREAM";
+
+    final String selectColumns =
+        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
+    final String whereClause = "UCASE(ITEMID) = 'ITEM_8' AND ORDERUNITS > 20";
+
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
+        streamName,
+        selectColumns,
+        inputStream,
+        whereClause
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+  @Test
   public void testAggSelectStar() throws Exception {
 
     Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil

@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -212,8 +213,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         commandStore
     );
 
-    // TODO: Programmatically determine version info
-    ServerInfoResource serverInfoResource = new ServerInfoResource(new ServerInfo("0.0.1-SNAPSHOT"));
+    ServerInfoResource serverInfoResource =
+        new ServerInfoResource(new ServerInfo(Version.getVersion()));
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,

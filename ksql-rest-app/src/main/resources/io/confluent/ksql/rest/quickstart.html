@@ -67,24 +67,14 @@
                         renderedBody += '\n';
                     }
                 }
-                if (rawResponseBody.endsWith('\n')) {
-                  // We can safely try to render the last line
-                  var lastLine = splitBody[splitBody.length - 1].trim();
-                  if (lastLine !== '') {
-                      try {
-                          var parsedJson = JSON.parse(lastLine);
-                          renderedBody += renderFunction(parsedJson);
-                      } catch (SyntaxError) {
-                        // Only want to alert them the first time an error
-                        // is encountered, since there could be a lot
-                        if (!parsingError) {
-                            alert('Error parsing response JSON');
-                        }
-                        parsingError = true;
-                        renderedBody += lastLine;
-                      }
-                      renderedBody += '\n';
-                  }
+                var lastLine = splitBody[splitBody.length - 1].trim();
+                if (lastLine !== '') {
+                    try {
+                        var parsedJson = JSON.parse(lastLine);
+                        renderedBody += renderFunction(parsedJson) + '\n';
+                    } catch (SyntaxError) {
+                        // It's probably fine
+                    }
                 }
             } else {
                 try {
@@ -103,7 +93,7 @@
                 // The response is a list of statement responses
                 var result = [];
                 for (var i = 0; i < parsedBody.length; i++) {
-                  result.push(renderTabularStatement(parsedBody[i]));
+                    result.push(renderTabularStatement(parsedBody[i]));
                 }
                 return result.join('\n\n');
             } else if (parsedBody instanceof Object) {

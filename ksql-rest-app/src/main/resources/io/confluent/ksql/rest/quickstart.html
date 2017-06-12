@@ -4,26 +4,32 @@
     <meta charset="UTF-8">
     <title>KS?QL Quickstart</title>
     <script>
+        var rawResponseBody = '';
         var xhr = new XMLHttpRequest();
-        function sendRequest(resource, printResponse) {
+
+        var renderFunction = renderTabular;
+        var streamedResponse = false;
+
+        function sendRequest(resource) {
             xhr.abort();
 
             var ksql = document.getElementById('ksql').value;
 
             xhr.onreadystatechange = function() {
-                if (xhr.response.trim() !== '' && (xhr.readyState === 3 || xhr.readyState === 4)) {
-                    printResponse(xhr.response);
+                if (xhr.response !== '' && ((xhr.readyState === 3 && streamedResponse) || xhr.readyState === 4)) {
+                    rawResponseBody = xhr.response;
+                    renderResponse();
                 }
                 if (xhr.readyState === 4 || xhr.readyState === 0) {
-                    document.getElementById("request_loading").hidden = true;
-                    document.getElementById("cancel_request").hidden = true;
+                    document.getElementById('request_loading').hidden = true;
+                    document.getElementById('cancel_request').hidden = true;
                 }
-            }
+            };
 
-            var data = JSON.stringify({'ksql': ksql})
+            var data = JSON.stringify({'ksql': ksql});
 
-            document.getElementById("cancel_request").hidden = false;
-            document.getElementById("request_loading").hidden = false;
+            document.getElementById('cancel_request').hidden = false;
+            document.getElementById('request_loading').hidden = false;
             xhr.open('POST', resource);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.send(data);
@@ -36,20 +42,228 @@
             responseElement.innerHTML = response;
         }
 
-        function printQueryRow(response) {
-            if (response.trim() !== '') {
-                document.getElementById('response').innerHTML = xhr.response.replace(/\n{2,}/g, '\n');
+        function renderResponse() {
+            var renderedBody = '';
+            if (streamedResponse) {
+                var parsingError = false;
+                var splitBody = rawResponseBody.split('\n');
+                // Have to leave the last line off, as it may be an incomplete
+                // JSON blob, which would just cause parsing errors
+                for (var i = 0; i < splitBody.length - 1; i++) {
+                    var line = splitBody[i].trim();
+                    if (line !== '') {
+                        try {
+                            var parsedJson = JSON.parse(line);
+                            renderedBody += renderFunction(parsedJson);
+                        } catch (SyntaxError) {
+                          // Only want to alert them the first time an error
+                          // is encountered, since there could be a lot
+                          if (!parsingError) {
+                              alert('Error parsing response JSON');
+                          }
+                          parsingError = true;
+                          renderedBody += line;
+                        }
+                        renderedBody += '\n';
+                    }
+                }
+                if (rawResponseBody.endsWith('\n')) {
+                  // We can safely try to render the last line
+                  var lastLine = splitBody[splitBody.length - 1].trim();
+                  if (lastLine !== '') {
+                      try {
+                          var parsedJson = JSON.parse(lastLine);
+                          renderedBody += renderFunction(parsedJson);
+                      } catch (SyntaxError) {
+                        // Only want to alert them the first time an error
+                        // is encountered, since there could be a lot
+                        if (!parsingError) {
+                            alert('Error parsing response JSON');
+                        }
+                        parsingError = true;
+                        renderedBody += lastLine;
+                      }
+                      renderedBody += '\n';
+                  }
+                }
+            } else {
+                try {
+                    var parsedJson = JSON.parse(rawResponseBody);
+                    renderedBody = renderFunction(parsedJson);
+                } catch (SyntaxError) {
+                    alert('Error parsing response JSON');
+                    renderedBody = rawResponseBody;
+                }
+            }
+            document.getElementById('response').innerHTML = renderedBody;
+        }
+
+        function renderTabular(parsedBody) {
+            if (Array.isArray(parsedBody)) {
+                // The response is a list of statement responses
+                var result = [];
+                for (var i = 0; i < parsedBody.length; i++) {
+                  result.push(renderTabularStatement(parsedBody[i]));
+                }
+                return result.join('\n\n');
+            } else if (parsedBody instanceof Object) {
+                // The response is either an error or a streamed row
+                var errorMessage = parsedBody.message || parsedBody.errorMessage;
+                if (errorMessage) {
+                    return parsedBody.message;
+                } else if (parsedBody.row) {
+                    var result = [];
+                    var columns = parsedBody.row.columns;
+                    for (var i = 0; i < columns.length; i++) {
+                        // TODO: Figure out how to handle arrays/maps here...
+                        result.push(columns[i].toString());
+                    }
+                    return ' ' + result.join(' | ') + ' ';
+                } else {
+                    throw SyntaxError;
+                }
+            } else {
+                throw SyntaxError;
             }
         }
 
-        function printKSQLResponse(response) {
-            if (response.trim() !== '') {
-                try {
-                    var jsonResponse = JSON.parse(response);
-                    document.getElementById('response').innerHTML = JSON.stringify(jsonResponse, null, 2);
-                } catch (SyntaxError) {
-                    document.getElementById('response').innerHTML = response.trim();
+        function renderTabularStatement(statementResponse) {
+            var columnHeaders, rowValues;
+            if (statementResponse.currentStatus) {
+                var innerBody = statementResponse.currentStatus;
+                columnHeaders = ['Command ID', 'Status', 'Message'];
+                rowValues = [[innerBody.commandId, innerBody.status, innerBody.message]];
+            } else if (statementResponse.error) {
+                var innerBody = statementResponse.error;
+                return innerBody.message;
+            } else if (statementResponse.properties) {
+                var innerBody = statementResponse.properties;
+                columnHeaders = ['Property', 'Value'];
+                rowValues = [];
+                var properties = innerBody.properties;
+                for (var property in properties) {
+                   if (!properties.hasOwnProperty(property)) {
+                       continue;
+                   }
+                   rowValues.push([property, properties[property].toString()]);
                 }
+            } else if (statementResponse.queries) {
+                var innerBody = statementResponse.queries;
+                columnHeaders = ['ID', 'Kafka Topic', 'Query String'];
+                rowValues = [];
+                var queries = innerBody.queries;
+                for (var i = 0; i < queries.length; i++) {
+                    var query = queries[i];
+                    rowValues.push([query.id.toString(), query.kafkaTopic, query.queryString]);
+                }
+            } else if (statementResponse.setProperty) {
+                var innerBody = statementResponse.setProperty;
+                columnHeaders = ['Property', 'Prior Value', 'New Value'];
+                rowValues = [[innerBody.property, innerBody.oldValue, innerBody.newValue]];
+            } else if (statementResponse.description) {
+                var innerBody = statementResponse.description;
+                columnHeaders = ['Field', 'Type'];
+                rowValues = [];
+                var fields = innerBody.schema.fields;
+                for (var i = 0; i < fields.length; i++) {
+                    var field = fields[i];
+                    rowValues.push([field.field, field.type]);
+                }
+            } else if (statementResponse.streams) {
+                var innerBody = statementResponse.streams;
+                columnHeaders = ['Stream Name', 'Ksql Topic'];
+                rowValues = [];
+                var streams = innerBody.streams;
+                for (var i = 0; i < streams.length; i++) {
+                    var stream = streams[i];
+                    rowValues.push([stream.name, stream.topic]);
+                }
+            } else if (statementResponse.tables) {
+                var innerBody = statementResponse.tables;
+                columnHeaders = ['Table Name', 'Ksql Topic', 'Statestore', 'Windowed'];
+                rowValues = [];
+                var tables = innerBody.tables;
+                for (var i = 0; i < tables.length; i++) {
+                    var table = tables[i];
+                    rowValues.push([table.name, table.topic, table.stateStoreName, table.isWindowed.toString()]);
+                }
+            } else if (statementResponse.topics) {
+                var innerBody = statementResponse.topics;
+                columnHeaders = ['Topic Name', 'Kafka Topic', 'Format'];
+                rowValues = [];
+                var topics = innerBody.topics;
+                for (var i = 0; i < topics.length; i++) {
+                    var topic = topics[i];
+                    rowValues.push([topic.name, topic.kafkaTopic, topic.format]);
+                }
+            } else {
+                throw SyntaxError;
+            }
+            return renderTable(columnHeaders, rowValues);
+        }
+
+        function renderTable(columnHeaders, rowValues) {
+            var lengths = [];
+
+            for (var i = 0; i < columnHeaders.length; i++) {
+                lengths.push(columnHeaders[i].length);
+            }
+
+            if (!rowValues || rowValues.length === 0) {
+                return renderTableRow(columnHeaders, lengths);
+            }
+
+            for (var i = 0; i < rowValues.length; i++) {
+                var row = rowValues[i];
+                for (var j = 0; j < row.length; j++) {
+                    lengths[j] = Math.max(lengths[j], row[j].length);
+                }
+            }
+
+            var lengthsSum = lengths[0] + 2;
+            for (var i = 1; i < lengths.length; i++) {
+                lengthsSum += lengths[i] + 3;
+            }
+
+            var result = [
+                renderTableRow(columnHeaders, lengths),
+                Array(lengthsSum + 1).join('-')
+            ];
+            for (var i = 0; i < rowValues.length; i++) {
+                result.push(renderTableRow(rowValues[i], lengths));
+            }
+
+            return result.join('\n');
+        }
+
+        function renderTableRow(values, lengths) {
+            var result = [];
+            for (var i = 0; i < values.length; i++) {
+                result.push(pad(values[i], lengths[i] || 0));
+            }
+            return ' ' + result.join(' | ') + ' ';
+        }
+
+        function pad(str, len) {
+            if (str.length >= len) {
+                return str;
+            }
+            var pad = Array(len - str.length + 1).join(' ');
+            return str + pad;
+        }
+
+        function renderPrettyJson(parsedBody) {
+            return JSON.stringify(parsedBody, null, 2);
+        }
+
+        function renderCompactJson(parsedBody) {
+            return JSON.stringify(parsedBody);
+        }
+
+        function updateFormat(newRenderFunction) {
+            renderFunction = newRenderFunction;
+            if (rawResponseBody !== '') {
+                renderResponse();
             }
         }
     </script>
@@ -97,12 +311,12 @@
     <br />
     <br />
     <br />
-    <button onclick="sendRequest('/ksql', printKSQLResponse);">Send Request!</button>
+    <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
         &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
     <br />
     <br />
-    <button onclick="sendRequest('/query', printQueryRow);">Stream a query!</button>
-        &nbsp;&nbsp;(example: "SELECT * FROM foo;")
+    <button onclick="streamedResponse = true; sendRequest('/query');">Stream a query!</button>
+        &nbsp;&nbsp;(example: "SELECT * FROM foo;", "PRINT topic_foo;")
     <br />
     <br />
     <span class="loading" id="request_loading" hidden>Request loading...</span>
@@ -111,6 +325,19 @@
     <br />
     <br />
     Server response:
+    <br />
+    <br />
+    Output format:
+        <label>
+            <input checked type="radio" name="output" value="tabular" onchange="updateFormat(renderTabular);"> Tabular
+        </label>
+        <label>
+            <input type="radio" name="output" value="prettyjson" onchange="updateFormat(renderPrettyJson);"> JSON (pretty)
+        </label>
+        <label>
+            <input type="radio" name="output" value="compactjson" onchange="updateFormat(renderCompactJson);"> JSON (compact)
+        </label>
+    <br />
     <br />
     <pre id="response" class="response"></pre>
 </body>

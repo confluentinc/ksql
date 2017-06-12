@@ -179,7 +179,7 @@ public class CodegenExpressionFormatter {
     @Override
     protected Pair<String, Schema> visitFunctionCall(FunctionCall node,
                                                           Boolean unmangleNames) {
-      StringBuilder builder = new StringBuilder();
+      StringBuilder builder = new StringBuilder("(");
       String name = node.getName().getSuffix();
       KsqlFunction ksqlFunction = KsqlFunctions.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
@@ -195,7 +195,7 @@ public class CodegenExpressionFormatter {
         builder.append(processedArg.getLeft());
       }
       builder.append(")");
-
+      builder.append(")");
       return new Pair<>(builder.toString(), ksqlFunction.getReturnType());
     }
 

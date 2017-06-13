@@ -59,9 +59,10 @@ public class KsqlEngine implements Closeable {
   /**
    * Runs the set of queries in the given query string.
    *
-   * @param queriesString
-   * @return
-   * @throws Exception
+   * @param createNewAppId If a new application id should be generated.
+   * @param queriesString The ksql query string.
+   * @return List of query metadata.
+   * @throws Exception Any exception thrown here!
    */
   public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
       throws Exception {
@@ -250,7 +251,6 @@ public class KsqlEngine implements Closeable {
   }
 
   public Object setStreamsProperty(String property, Object value) {
-    Object oldValue = ksqlConfig.get(property);
     if (!isValidStreamsProperty(property)) {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
@@ -265,6 +265,7 @@ public class KsqlEngine implements Closeable {
       throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'",
                                                        property, value));
     }
+    Object oldValue = ksqlConfig.get(property);
     ksqlConfig.put(property, value);
     return oldValue;
   }

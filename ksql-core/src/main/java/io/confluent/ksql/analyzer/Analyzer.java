@@ -162,10 +162,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
 
     String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
-    String leftAlias = left.getAlias();
-    String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
-    String rightAlias = right.getAlias();
-
     StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
     if (leftDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
@@ -183,6 +179,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
     }
 
+    String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
@@ -201,6 +198,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
     }
 
+    String leftAlias = left.getAlias();
+    String rightAlias = right.getAlias();
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),

@@ -32,13 +32,13 @@ import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKTable extends SchemaKStream {
 
-  final KTable kTable;
+  final KTable ktable;
   final boolean isWindowed;
 
-  public SchemaKTable(final Schema schema, final KTable kTable, final Field keyField,
+  public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
                       final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed) {
     super(schema, null, keyField, sourceSchemaKStreams);
-    this.kTable = kTable;
+    this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
 
@@ -50,38 +50,41 @@ public class SchemaKTable extends SchemaKStream {
     createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
     if (isWindowed) {
-      kTable.toStream()
+      ktable.toStream()
           .map(new KeyValueMapper<Windowed<String>, GenericRow,
               KeyValue<Windowed<String>, GenericRow>>() {
-        @Override
-        public KeyValue<Windowed<String>, GenericRow> apply(Windowed<String> key, GenericRow row) {
-          if (row == null) {
-            return new KeyValue<>(key, null);
-          }
-          List columns = new ArrayList();
-          for (int i = 0; i < row.columns.size(); i++) {
-            if (!rowkeyIndexes.contains(i)) {
-              columns.add(row.columns.get(i));
+            @Override
+            public KeyValue<Windowed<String>,
+                GenericRow> apply(Windowed<String> key, GenericRow row) {
+              if (row == null) {
+                return new KeyValue<>(key, null);
+              }
+              List columns = new ArrayList();
+              for (int i = 0; i < row.columns.size(); i++) {
+                if (!rowkeyIndexes.contains(i)) {
+                  columns.add(row.columns.get(i));
+                }
+              }
+              return new KeyValue<>(key, new GenericRow(columns));
             }
-          }
-          return new KeyValue<>(key, new GenericRow(columns));
-        }
+
       }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
     } else {
-      kTable.toStream().map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-        @Override
-        public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-          if (row == null) {
-            return new KeyValue<>(key, null);
-          }
-          List columns = new ArrayList();
-          for (int i = 0; i < row.columns.size(); i++) {
-            if (!rowkeyIndexes.contains(i)) {
-              columns.add(row.columns.get(i));
+      ktable.toStream()
+          .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+            @Override
+            public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
+              if (row == null) {
+                return new KeyValue<>(key, null);
+              }
+              List columns = new ArrayList();
+              for (int i = 0; i < row.columns.size(); i++) {
+                if (!rowkeyIndexes.contains(i)) {
+                  columns.add(row.columns.get(i));
+                }
+              }
+              return new KeyValue<>(key, new GenericRow(columns));
             }
-          }
-          return new KeyValue<>(key, new GenericRow(columns));
-        }
       }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     }
 
@@ -91,14 +94,14 @@ public class SchemaKTable extends SchemaKStream {
   @Override
   public QueuedSchemaKStream toQueue() {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
-    kTable.toStream().foreach(new QueuePopulator(rowQueue));
+    ktable.toStream().foreach(new QueuePopulator(rowQueue));
     return new QueuedSchemaKStream(this, rowQueue);
   }
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
-    KTable filteredKTable = kTable.filter(predicate.getPredicate());
+    KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed);
   }
 
@@ -119,7 +122,7 @@ public class SchemaKTable extends SchemaKStream {
       expressionEvaluators.add(expressionEvaluator);
     }
 
-    KTable projectedKTable = kTable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
+    KTable projectedKTable = ktable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
       @Override
       public GenericRow apply(GenericRow row) {
         List<Object> newColumns = new ArrayList();
@@ -157,11 +160,11 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   public SchemaKStream toStream() {
-    return new SchemaKStream(schema, kTable.toStream(), keyField, sourceSchemaKStreams);
+    return new SchemaKStream(schema, ktable.toStream(), keyField, sourceSchemaKStreams);
   }
 
-  public KTable getkTable() {
-    return kTable;
+  public KTable getKtable() {
+    return ktable;
   }
 
   public boolean isWindowed() {

@@ -16,8 +16,8 @@ import java.util.Set;
 public class SchemaUtil {
 
 
-  public final static String ROWKEY_NAME = "ROWKEY";
-  public final static String ROWTIME_NAME = "ROWTIME";
+  public static final String ROWKEY_NAME = "ROWKEY";
+  public static final String ROWTIME_NAME = "ROWTIME";
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -145,7 +145,7 @@ public class SchemaUtil {
     }
   }
 
-  public synchronized static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
+  public static synchronized Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
@@ -158,20 +158,20 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public synchronized static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
+  public static synchronized Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
-      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) &&
-          !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
+          && !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         schemaBuilder.field(fieldName, field.schema());
       }
     }
     return schemaBuilder.build();
   }
 
-  public synchronized static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
+  public static synchronized Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
     Set indexSet = new HashSet();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);

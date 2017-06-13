@@ -383,8 +383,9 @@ public class CodegenExpressionFormatter {
       }
 
       if (paternString.endsWith("%")) {
-        return new Pair<>("(" + valueString + ").startsWith(\"" +
-                          paternString.substring(0, paternString.length() - 1) + "\")",
+        return new Pair<>("(" + valueString + ")"
+                          + ".startsWith(\""
+                          + paternString.substring(0, paternString.length() - 1) + "\")",
                           Schema
             .STRING_SCHEMA);
       }
@@ -406,8 +407,8 @@ public class CodegenExpressionFormatter {
         return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)("
                           + process(node.getIndex(), unmangleNames).getLeft() + ")]", schema);
       } else if (schemaField.schema().type() == Schema.Type.MAP) {
-        return new Pair<>("(" +
-                          SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
+        return new Pair<>("("
+                          + SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
                           + process(node.getBase(), unmangleNames).getLeft() + ".get"
                           + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))", schema);
       }

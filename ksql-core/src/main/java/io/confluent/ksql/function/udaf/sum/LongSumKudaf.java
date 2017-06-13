@@ -15,6 +15,7 @@ public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
     super(argIndexInValue, 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.INT64_SCHEMA), "SUM",
           LongSumKudaf.class);
   }
+
   @Override
   public Long aggregate(Long currentVal, Long currentAggVal) {
     return currentVal + currentAggVal;

@@ -101,7 +101,6 @@ public class ExpressionUtil {
       String functionName = node.getName().getSuffix();
       KsqlFunction ksqlFunction = KsqlFunctions.getFunction(functionName);
       parameterMap.put(node.getName().getSuffix(),
-//                       SchemaUtil.getJavaType(ksqlFunction.getReturnType()));
                        ksqlFunction.getKudfClass());
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);

@@ -437,7 +437,7 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println(
-            "\texit: Exit the CLI; EOF (i.e., ^D on Unix and ^Z on Windows) works as well"
+            "\texit: Exit the CLI; EOF (i.e., ^D) works as well"
         );
       }
 

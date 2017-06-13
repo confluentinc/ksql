@@ -436,7 +436,9 @@ public class Cli implements Closeable, AutoCloseable {
 
       @Override
       public void printHelp() {
-        terminal.writer().println("\texit: Exit the CLI (^D works as well)");
+        terminal.writer().println(
+            "\texit: Exit the CLI; EOF (i.e., ^D on Unix and ^Z on Windows) works as well"
+        );
       }
 
       @Override
@@ -485,7 +487,12 @@ public class Cli implements Closeable, AutoCloseable {
   private String readLine() throws IOException {
     while (true) {
       try {
-        return Optional.ofNullable(lineReader.readLine(primaryPrompt)).map(String::trim).orElse("");
+        String result = lineReader.readLine(primaryPrompt);
+        if (result == null) {
+          throw new EndOfFileException();
+        } else {
+          return result.trim();
+        }
       } catch (UserInterruptException exception) {
         terminal.writer().println("^C");
         terminal.flush();

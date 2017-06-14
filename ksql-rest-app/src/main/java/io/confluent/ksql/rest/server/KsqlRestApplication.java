@@ -10,8 +10,13 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
@@ -44,6 +49,7 @@ import javax.ws.rs.core.Configurable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -167,7 +173,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       throws Exception {
     KsqlRestConfig config = new KsqlRestConfig(props);
 
-    @SuppressWarnings("unchecked")
     TopicUtil topicUtil = new TopicUtil(config);
 
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
@@ -182,6 +187,21 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
           String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
       );
     }
+
+    Map<String, Expression> commandTopicProperties = new HashMap<>();
+    commandTopicProperties.put(
+        DdlConfig.FORMAT_PROPERTY,
+        new StringLiteral("csv")
+    );
+    commandTopicProperties.put(
+        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
+        new StringLiteral(commandTopic)
+    );
+    ksqlEngine.getDdlEngine().createTopic(new CreateTopic(
+        QualifiedName.of("__COMMANDS"),
+        false,
+        commandTopicProperties
+    ));
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
     KafkaConsumer<CommandId, String> commandConsumer = new KafkaConsumer<>(

@@ -17,8 +17,8 @@ import java.util.Map;
 
 public class WindowedSerde implements Serde<Windowed<String>> {
 
-  final private Serializer<Windowed<String>> serializer;
-  final private Deserializer<Windowed<String>> deserializer;
+  private final Serializer<Windowed<String>> serializer;
+  private final Deserializer<Windowed<String>> deserializer;
 
   public WindowedSerde() {
     serializer = new WindowedSerializer<>(new StringSerializer());

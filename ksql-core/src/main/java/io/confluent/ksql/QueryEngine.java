@@ -126,8 +126,8 @@ public class QueryEngine {
             new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
                           ksqlStructuredDataOutputNode.getSchema(),
                           ksqlStructuredDataOutputNode.getKeyField(),
-                          (ksqlStructuredDataOutputNode.getTimestampField() == null) ?
-                          ksqlStructuredDataOutputNode
+                          (ksqlStructuredDataOutputNode.getTimestampField() == null)
+                          ? ksqlStructuredDataOutputNode
                                .getTheSourceNode().getTimestampField() :
                            ksqlStructuredDataOutputNode.getTimestampField(),
                           ksqlStructuredDataOutputNode.getKsqlTopic());

@@ -43,8 +43,12 @@ public class KsqlFunctions {
 
     KsqlFunction lcase = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                         "LCASE", LCaseKudf.class);
+    addFunction(lcase);
+
     KsqlFunction ucase = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                         "UCASE", UCaseKudf.class);
+    addFunction(ucase);
+
     KsqlFunction substring = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
                                                                                   .STRING_SCHEMA,
                                                                               Schema
@@ -53,18 +57,25 @@ public class KsqlFunctions {
                                                                                   .INT32_SCHEMA),
                                             "SUBSTRING", SubstringKudf
                                                 .class);
+    addFunction(substring);
+
     KsqlFunction concat = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
                                                                            Schema.STRING_SCHEMA),
                                          "CONCAT", ConcatKudf.class);
+    addFunction(concat);
 
     KsqlFunction trim = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                        "TRIM", TrimKudf.class);
+    addFunction(trim);
 
     KsqlFunction ifNull = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA,
                                                                            Schema.STRING_SCHEMA),
                                          "IFNULL", IfNullKudf.class);
+    addFunction(ifNull);
+
     KsqlFunction len = new KsqlFunction(Schema.INT32_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA),
                                       "LEN", LenKudf.class);
+    addFunction(len);
 
     /***************************************
      * Math functions                      *
@@ -72,20 +83,27 @@ public class KsqlFunctions {
 
     KsqlFunction abs = new KsqlFunction(Schema.FLOAT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                                       "ABS", AbsKudf.class);
+    addFunction(abs);
+
     KsqlFunction ceil = new KsqlFunction(Schema.FLOAT64_SCHEMA,
                                          Arrays.asList(Schema.FLOAT64_SCHEMA),
                                        "CEIL", CeilKudf.class);
+    addFunction(ceil);
+
     KsqlFunction floor = new KsqlFunction(Schema.FLOAT64_SCHEMA,
                                           Arrays.asList(Schema.FLOAT64_SCHEMA),
                                         "FLOOR", FloorKudf.class);
+    addFunction(floor);
+
     KsqlFunction
         round =
         new KsqlFunction(Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
                          "ROUND", RoundKudf.class);
+    addFunction(round);
+
     KsqlFunction random = new KsqlFunction(Schema.FLOAT64_SCHEMA, new ArrayList<>(),
                                            "RANDOM", RandomKudf.class);
-
-
+    addFunction(random);
 
     /***************************************
      * JSON functions                     *
@@ -94,22 +112,8 @@ public class KsqlFunctions {
     KsqlFunction getStringFromJson = new KsqlFunction(
         Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
         "GETSTREAMFROMJSON", JsonExtractStringKudf.class);
-
-    addFunction(lcase);
-    addFunction(ucase);
-    addFunction(substring);
-    addFunction(concat);
-    addFunction(len);
-    addFunction(trim);
-    addFunction(ifNull);
-
-    addFunction(abs);
-    addFunction(ceil);
-    addFunction(floor);
-    addFunction(round);
-    addFunction(random);
-
     addFunction(getStringFromJson);
+
 
     /***************************************
      * UDAFs                               *
@@ -137,8 +141,8 @@ public class KsqlFunctions {
 
   public static KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
       functionArgs, Schema schema) {
-    KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap.
-        get(functionName);
+    KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap
+        .get(functionName);
     if (ksqlAggFunctionDeterminer == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }

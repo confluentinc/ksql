@@ -46,17 +46,17 @@ import java.util.concurrent.SynchronousQueue;
 public class SchemaKStream {
 
   final Schema schema;
-  final KStream kStream;
+  final KStream kstream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
-  public SchemaKStream(final Schema schema, final KStream kStream, final Field keyField,
+  public SchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
-    this.kStream = kStream;
+    this.kstream = kstream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -64,7 +64,7 @@ public class SchemaKStream {
 
   public QueuedSchemaKStream toQueue() {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
-    kStream.foreach(new QueuePopulator(rowQueue));
+    kstream.foreach(new QueuePopulator(rowQueue));
     return new QueuedSchemaKStream(this, rowQueue);
   }
 
@@ -74,7 +74,7 @@ public class SchemaKStream {
 
     createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
 
-    kStream
+    kstream
         .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
           @Override
           public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
@@ -92,7 +92,7 @@ public class SchemaKStream {
 
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false);
-    KStream filteredKStream = kStream.filter(predicate.getPredicate());
+    KStream filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this));
   }
 
@@ -100,7 +100,7 @@ public class SchemaKStream {
 
     KStream
         projectedKStream =
-        kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+        kstream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
           @Override
           public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
             List<Object> newColumns = new ArrayList();
@@ -133,7 +133,7 @@ public class SchemaKStream {
     }
     KStream
         projectedKStream =
-        kStream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
+        kstream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
           @Override
           public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
             List<Object> newColumns = new ArrayList();
@@ -175,24 +175,24 @@ public class SchemaKStream {
                                 KsqlTopicSerDe joinSerDe) {
 
     KStream joinedKStream =
-        kStream.leftJoin(schemaKTable.getkTable(),
-                         new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
-      @Override
-      public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
-        List<Object> columns = new ArrayList<>();
-        columns.addAll(leftGenericRow.getColumns());
-        if (rightGenericRow == null) {
-          for (int i = leftGenericRow.getColumns().size();
-               i < joinSchema.fields().size(); i++) {
-            columns.add(null);
-          }
-        } else {
-          columns.addAll(rightGenericRow.getColumns());
-        }
+        kstream.leftJoin(
+            schemaKTable.getKtable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
+              @Override
+              public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
+                List<Object> columns = new ArrayList<>();
+                columns.addAll(leftGenericRow.getColumns());
+                if (rightGenericRow == null) {
+                  for (int i = leftGenericRow.getColumns().size();
+                       i < joinSchema.fields().size(); i++) {
+                    columns.add(null);
+                  }
+                } else {
+                  columns.addAll(rightGenericRow.getColumns());
+                }
 
-        GenericRow joinGenericRow = new GenericRow(columns);
-        return joinGenericRow;
-      }
+                GenericRow joinGenericRow = new GenericRow(columns);
+                return joinGenericRow;
+              }
     }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
@@ -204,7 +204,7 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kStream.selectKey(new KeyValueMapper<String, GenericRow, String>() {
+    KStream keyedKStream = kstream.selectKey(new KeyValueMapper<String, GenericRow, String>() {
       @Override
       public String apply(String key, GenericRow value) {
 
@@ -227,14 +227,14 @@ public class SchemaKStream {
   }
 
   public SchemaKGroupedStream groupByKey() {
-    KGroupedStream kGroupedStream = kStream.groupByKey();
-    return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+    KGroupedStream kgroupedStream = kstream.groupByKey();
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
                                          final Serde valSerde) {
-    KGroupedStream kGroupedStream = kStream.groupByKey(keySerde, valSerde);
-    return new SchemaKGroupedStream(schema, kGroupedStream, keyField, Arrays.asList(this));
+    KGroupedStream kgroupedStream = kstream.groupByKey(keySerde, valSerde);
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
   }
 
   public Field getKeyField() {
@@ -245,8 +245,8 @@ public class SchemaKStream {
     return schema;
   }
 
-  public KStream getkStream() {
-    return kStream;
+  public KStream getKstream() {
+    return kstream;
   }
 
   public List<SchemaKStream> getSourceSchemaKStreams() {

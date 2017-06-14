@@ -55,7 +55,6 @@ public class SqlPredicate {
       index++;
     }
 
-    String expressionStr = filterExpression.getCodegenString(schema);
     ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
     // The expression will have two "int" parameters: "a" and "b".
@@ -63,6 +62,8 @@ public class SqlPredicate {
 
     // And the expression (i.e. "result") type is also "int".
     ee.setExpressionType(boolean.class);
+
+    String expressionStr = filterExpression.getCodegenString(schema);
 
     // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(expressionStr);

@@ -25,16 +25,16 @@ import java.util.List;
 public class SchemaKGroupedStream {
 
   final Schema schema;
-  final KGroupedStream kGroupedStream;
+  final KGroupedStream kgroupedStream;
   final Field keyField;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   final List<SchemaKStream> sourceSchemaKStreams;
 
-  public SchemaKGroupedStream(final Schema schema, final KGroupedStream kGroupedStream,
+  public SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
                               final Field keyField,
                               final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
-    this.kGroupedStream = kGroupedStream;
+    this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.sourceSchemaKStreams = sourceSchemaKStreams;
@@ -51,7 +51,7 @@ public class SchemaKGroupedStream {
         TumblingWindowExpression tumblingWindowExpression =
             (TumblingWindowExpression) windowExpression.getKsqlWindowExpression();
         aggKtable =
-            kGroupedStream
+            kgroupedStream
                 .aggregate(initializer, aggregator,
                                      TimeWindows.of(
                                          getWindowUnitInMillisecond(
@@ -64,7 +64,7 @@ public class SchemaKGroupedStream {
         HoppingWindowExpression hoppingWindowExpression =
             (HoppingWindowExpression) windowExpression.getKsqlWindowExpression();
         aggKtable =
-            kGroupedStream
+            kgroupedStream
                 .aggregate(initializer, aggregator,
                            TimeWindows.of(
                                getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
@@ -78,7 +78,7 @@ public class SchemaKGroupedStream {
       }
     } else {
       aggKtable =
-          kGroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
+          kgroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
     }
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, true);
   }
@@ -96,8 +96,9 @@ public class SchemaKGroupedStream {
         return value * 1000;
       case MILLISECOND:
         return value;
+      default:
+        return -1;
     }
-    return -1;
   }
 
 }

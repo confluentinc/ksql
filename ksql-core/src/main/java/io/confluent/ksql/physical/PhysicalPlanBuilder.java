@@ -149,7 +149,7 @@ public class PhysicalPlanBuilder {
       SchemaKStream resultSchemaStream = schemaKStream;
       if (!(resultSchemaStream instanceof SchemaKTable)) {
         resultSchemaStream = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
-                                               schemaKStream.getkStream(),
+                                               schemaKStream.getKstream(),
                                                ksqlStructuredDataOutputNode
                                                    .getKeyField(),
                                                Arrays.asList(schemaKStream)
@@ -314,7 +314,7 @@ public class PhysicalPlanBuilder {
 
     Schema aggStageSchema = schemaBuilder.build();
 
-    SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getkTable(),
+    SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(), true);
 
@@ -370,10 +370,10 @@ public class PhysicalPlanBuilder {
           == StructuredDataSource.DataSourceType.KTABLE) {
 
         KsqlTable ksqlTable = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
-        KTable kTable;
+        KTable ktable;
         if (ksqlTable.isWinidowed()) {
           KStream
-              kStream =
+              kstream =
               builder
                   .stream(new WindowedSerde(), genericRowSerde,
                       ksqlTable.getKsqlTopic().getKafkaTopicName())
@@ -385,22 +385,23 @@ public class PhysicalPlanBuilder {
                       if (row != null) {
                         row.getColumns().add(0,
                                              String.format("%s : Window{start=%d, end=%d}", key
-                            .key(), key.window().start(), key.window().end()));
+                                                 .key(), key.window().start(), key.window().end()));
                       }
                       return new KeyValue<>(key, row);
                     }
                   });
-          kStream = addTimestampColumn(kStream);
-          kTable = kStream.groupByKey(new WindowedSerde(),
-                                      genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
-            @Override
-            public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
-              return newValue;
-            }
-          }, ksqlTable.getStateStoreName());
+          kstream = addTimestampColumn(kstream);
+          ktable = kstream
+              .groupByKey(new WindowedSerde(), genericRowSerdeAfterRead)
+              .reduce(new Reducer<GenericRow>() {
+                @Override
+                public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
+                  return newValue;
+                }
+              }, ksqlTable.getStateStoreName());
         } else {
           KStream
-              kStream =
+              kstream =
               builder
                   .stream(Serdes.String(), genericRowSerde,
                       ksqlTable.getKsqlTopic().getKafkaTopicName())
@@ -414,22 +415,22 @@ public class PhysicalPlanBuilder {
                       return new KeyValue<>(key, row);
                     }
                   });
-          kStream = addTimestampColumn(kStream);
-          kTable = kStream.groupByKey(Serdes.String(),
-                                      genericRowSerdeAfterRead).reduce(new Reducer<GenericRow>() {
-            @Override
-            public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
-              return newValue;
-            }
+          kstream = addTimestampColumn(kstream);
+          ktable = kstream.groupByKey(Serdes.String(), genericRowSerdeAfterRead)
+                          .reduce(new Reducer<GenericRow>() {
+                            @Override
+                            public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
+                              return newValue;
+                            }
           }, ksqlTable.getStateStoreName());
         }
 
-        return new SchemaKTable(sourceNode.getSchema(), kTable,
+        return new SchemaKTable(sourceNode.getSchema(), ktable,
             sourceNode.getKeyField(), new ArrayList<>(), ksqlTable.isWinidowed());
       }
       KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
-          kStream =
+          kstream =
           builder
               .stream(Serdes.String(), genericRowSerde,
                   ksqlStream.getKsqlTopic().getKafkaTopicName())
@@ -443,8 +444,8 @@ public class PhysicalPlanBuilder {
                   return new KeyValue<>(key, row);
                 }
               });
-      kStream = addTimestampColumn(kStream);
-      return new SchemaKStream(sourceNode.getSchema(), kStream,
+      kstream = addTimestampColumn(kstream);
+      return new SchemaKStream(sourceNode.getSchema(), kstream,
           sourceNode.getKeyField(), new ArrayList<>());
     }
     throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
@@ -549,7 +550,7 @@ public class PhysicalPlanBuilder {
       newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
     }
 
-    KStream rekeyedKStream = sourceSchemaKStream.getkStream().selectKey(new KeyValueMapper<String,
+    KStream rekeyedKStream = sourceSchemaKStream.getKstream().selectKey(new KeyValueMapper<String,
         GenericRow, String>() {
 
       @Override
@@ -585,8 +586,8 @@ public class PhysicalPlanBuilder {
     return -1;
   }
 
-  private KStream addTimestampColumn(KStream kStream) {
-    return kStream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
+  private KStream addTimestampColumn(KStream kstream) {
+    return kstream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
       @Override
       public ValueTransformer<GenericRow, GenericRow> get() {
         return new ValueTransformer<GenericRow, GenericRow>() {

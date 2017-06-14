@@ -52,10 +52,7 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
   }
 
   protected void reportInputMismatch(Parser recognizer, InputMismatchException e) {
-//        String msg = "mismatched input " + this.getTokenErrorDisplay(e.getOffendingToken()) +
-// " expecting " + e.getExpectedTokens().toString(recognizer.getVocabulary());
-    String
-        msg =
+    String msg =
         "Syntax error. There is a mismatch between the expected term and te term in the query. "
         + "Please check the line and column in the query.";
     recognizer.notifyErrorListeners(e.getOffendingToken(), msg, e);
@@ -67,10 +64,9 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
       Token t = recognizer.getCurrentToken();
       String tokenName = this.getTokenErrorDisplay(t);
       IntervalSet expecting = this.getExpectedTokens(recognizer);
-      String
-          msg =
-          "extraneous input " + tokenName + " expecting " + expecting
-              .toString(recognizer.getVocabulary());
+      String msg =
+          "extraneous input " + tokenName + " expecting "
+          + expecting.toString(recognizer.getVocabulary());
       recognizer.notifyErrorListeners(t, msg, (RecognitionException) null);
     }
   }
@@ -80,8 +76,7 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
       this.beginErrorCondition(recognizer);
       Token t = recognizer.getCurrentToken();
       IntervalSet expecting = this.getExpectedTokens(recognizer);
-      String
-          msg =
+      String msg =
           "missing " + expecting.toString(recognizer.getVocabulary()) + " at " + this
               .getTokenErrorDisplay(t);
       recognizer.notifyErrorListeners(t, msg, (RecognitionException) null);

@@ -154,7 +154,6 @@ public final class SqlFormatter {
         append(indent, "FROM");
         builder.append('\n');
         append(indent, "  ");
-//                process(node.getFrom().get(), indent);
       }
 
       builder.append('\n');

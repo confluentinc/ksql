@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class SerDeUtil {
 
-  public static Serde<GenericRow> getGenericRowJSONSerde(Schema schema) {
+  public static Serde<GenericRow> getGenericRowJsonSerde(Schema schema) {
     Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
@@ -74,7 +74,7 @@ public class SerDeUtil {
       KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) topicSerDe;
       return SerDeUtil.getGenericRowAvroSerde(schema);
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
-      return SerDeUtil.getGenericRowJSONSerde(schema);
+      return SerDeUtil.getGenericRowJsonSerde(schema);
     } else if (topicSerDe instanceof KsqlCsvTopicSerDe) {
       return SerDeUtil.getGenericRowCsvSerde();
     } else {

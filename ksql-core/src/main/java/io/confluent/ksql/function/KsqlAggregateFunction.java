@@ -24,7 +24,7 @@ public abstract class KsqlAggregateFunction<V, A> {
     this.arguments = null;
     this.functionName = null;
     this.kudafClass = null;
-  };
+  }
 
   public KsqlAggregateFunction(int argIndexInValue,
                                A intialValue, Schema returnType, List<Schema> arguments,

@@ -13,10 +13,12 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
@@ -55,6 +57,9 @@ import java.util.Properties;
 public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
+
+  private static final String COMMANDS_KSQL_TOPIC_NAME = "__COMMANDS_TOPIC";
+  private static final String COMMANDS_STREAM_NAME = "COMMANDS";
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -196,9 +201,19 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         new StringLiteral(commandTopic)
     );
     ksqlEngine.getDdlEngine().createTopic(new CreateTopic(
-        QualifiedName.of("__COMMANDS"),
+        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
+    ));
+
+    ksqlEngine.getDdlEngine().createStream(new CreateStream(
+        QualifiedName.of(COMMANDS_STREAM_NAME),
+        Collections.singletonList(new TableElement("STATEMENT", "STRING")),
+        false,
+        Collections.singletonMap(
+            DdlConfig.TOPIC_NAME_PROPERTY,
+            new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
+        )
     ));
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();

@@ -126,16 +126,16 @@
             } else if (statementResponse.error) {
                 var innerBody = statementResponse.error;
                 return innerBody.message;
-            } else if (statementResponse.properties) {
-                var innerBody = statementResponse.properties;
+            } else if (statementResponse.streamsProperties) {
+                var innerBody = statementResponse.streamsProperties;
                 columnHeaders = ['Property', 'Value'];
                 rowValues = [];
-                var properties = innerBody.properties;
-                for (var property in properties) {
-                   if (!properties.hasOwnProperty(property)) {
+                var streamsProperties = innerBody.streamsProperties;
+                for (var property in streamsProperties) {
+                   if (!streamsProperties.hasOwnProperty(property)) {
                        continue;
                    }
-                   rowValues.push([property, properties[property].toString()]);
+                   rowValues.push([property, streamsProperties[property].toString()]);
                 }
             } else if (statementResponse.queries) {
                 var innerBody = statementResponse.queries;

@@ -5,7 +5,7 @@
         "fields": [
                 {"name": "ordertime", "type": {
                     "type": "long",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "range": {
                             "min": 1487715775521,
                             "max": 1519273364600
@@ -14,7 +14,7 @@
                 }},
                 {"name": "orderid", "type": {
                     "type": "int",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "iteration": {
                             "start": 0
                         }
@@ -22,13 +22,13 @@
                 }},
                 {"name": "itemid", "type": {
                     "type": "string",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "regex": "Item_[1-9][0-9]{0,2}"
                     }
                 }},
                 {"name": "orderunits", "type": {
                     "type": "double",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "range": {
                             "min": 0.1,
                             "max": 10.0

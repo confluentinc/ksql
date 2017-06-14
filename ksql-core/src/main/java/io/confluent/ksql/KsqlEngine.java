@@ -39,6 +39,7 @@ import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +57,11 @@ public class KsqlEngine implements Closeable {
 
   private KsqlConfig ksqlConfig;
 
+  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
+      throws Exception {
+    return buildMultipleQueries(createNewAppId, queriesString, Collections.emptyMap());
+  }
+
   /**
    * Runs the set of queries in the given query string.
    *
@@ -64,8 +70,11 @@ public class KsqlEngine implements Closeable {
    * @return List of query metadata.
    * @throws Exception Any exception thrown here!
    */
-  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
-      throws Exception {
+  public List<QueryMetadata> buildMultipleQueries(
+      boolean createNewAppId,
+      String queriesString,
+      Map<String, Object> overriddenProperties
+  ) throws Exception {
 
     // Build query AST from the query string
     List<Pair<String, Query>> queryList = buildQueryAstList(queriesString);
@@ -74,9 +83,13 @@ public class KsqlEngine implements Closeable {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId,
-                                                                        metaStore, logicalPlans,
-                                                                        ksqlConfig);
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+        createNewAppId,
+        metaStore,
+        logicalPlans,
+        ksqlConfig,
+        overriddenProperties
+    );
 
     for (QueryMetadata queryMetadata : runningQueries) {
 

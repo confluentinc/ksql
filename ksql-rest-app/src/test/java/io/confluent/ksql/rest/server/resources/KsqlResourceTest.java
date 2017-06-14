@@ -111,6 +111,7 @@ public class KsqlResourceTest {
       TestKsqlResource testResource,
       String ksqlString,
       Statement ksqlStatement,
+      Map<String, Object> streamsProperties,
       Class<R> responseClass
   ) throws Exception{
     expect(testResource.ksqlEngine.getStatements(ksqlString)).andReturn(Collections.singletonList(ksqlStatement));
@@ -118,7 +119,9 @@ public class KsqlResourceTest {
 
     testResource.replayAll();
 
-    Object responseEntity = testResource.handleKsqlStatements(new KsqlRequest(ksqlString)).getEntity();
+    Object responseEntity = testResource.handleKsqlStatements(
+        new KsqlRequest(ksqlString, streamsProperties)
+    ).getEntity();
     assertThat(responseEntity, instanceOf(List.class));
 
     List responseList = (List) responseEntity;
@@ -159,17 +162,34 @@ public class KsqlResourceTest {
     final CommandStatusEntity expectedCommandStatusEntity =
         new CommandStatusEntity(ksqlString, commandId, commandStatus);
 
+    final Map<String, Object> streamsProperties = Collections.emptyMap();
+
     @SuppressWarnings("unchecked")
     final Future<CommandStatus> mockCommandStatusFuture = mock(Future.class);
-    expect(mockCommandStatusFuture.get(TestKsqlResource.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS))
-        .andReturn(commandStatus);
+    expect(
+        mockCommandStatusFuture.get(
+            TestKsqlResource.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+            TimeUnit.MILLISECONDS
+        )
+    ).andReturn(commandStatus);
     replay(mockCommandStatusFuture);
 
-    expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
-    expect(testResource.statementExecutor.registerQueuedStatement(commandId)).andReturn(mockCommandStatusFuture);
+    expect(testResource.commandStore.distributeStatement(
+        ksqlString,
+        ksqlStatement,
+        streamsProperties)
+    ).andReturn(commandId);
+    expect(
+        testResource.statementExecutor.registerQueuedStatement(commandId)
+    ).andReturn(mockCommandStatusFuture);
 
-    KsqlEntity testKsqlEntity =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, KsqlEntity.class);
+    KsqlEntity testKsqlEntity = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        streamsProperties,
+        KsqlEntity.class
+    );
 
     assertEquals(expectedCommandStatusEntity, testKsqlEntity);
   }
@@ -200,18 +220,31 @@ public class KsqlResourceTest {
     final CommandStatusEntity expectedCommandStatusEntity =
         new CommandStatusEntity(ksqlString, commandId, commandStatus);
 
+    final Map<String, Object> streamsProperties = Collections.emptyMap();
+
     @SuppressWarnings("unchecked")
     final Future<CommandStatus> mockCommandStatusFuture = mock(Future.class);
     expect(mockCommandStatusFuture.get(TestKsqlResource.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS))
         .andThrow(new TimeoutException());
     replay(mockCommandStatusFuture);
 
-    expect(testResource.commandStore.distributeStatement(ksqlString, ksqlStatement)).andReturn(commandId);
-    expect(testResource.statementExecutor.registerQueuedStatement(commandId)).andReturn(mockCommandStatusFuture);
-    expect(testResource.statementExecutor.getStatus(commandId)).andReturn(Optional.of(commandStatus));
+    expect(
+        testResource.commandStore.distributeStatement(ksqlString, ksqlStatement, streamsProperties)
+    ).andReturn(commandId);
+    expect(
+        testResource.statementExecutor.registerQueuedStatement(commandId)
+    ).andReturn(mockCommandStatusFuture);
+    expect(
+        testResource.statementExecutor.getStatus(commandId)).andReturn(Optional.of(commandStatus)
+    );
 
-    KsqlEntity testKsqlEntity =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, KsqlEntity.class);
+    KsqlEntity testKsqlEntity = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        streamsProperties,
+        KsqlEntity.class
+    );
 
     assertEquals(expectedCommandStatusEntity, testKsqlEntity);
   }
@@ -222,7 +255,13 @@ public class KsqlResourceTest {
     final String ksqlString = "DESCRIBE nonexistent_table;";
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
 
-    makeSingleRequest(testResource, ksqlString, ksqlStatement, ErrorMessageEntity.class);
+    makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        ErrorMessageEntity.class
+    );
   }
 
   @Test
@@ -231,7 +270,13 @@ public class KsqlResourceTest {
     final String ksqlString = "LIST TOPICS;";
     final ListTopics ksqlStatement = new ListTopics(Optional.empty());
 
-    TopicsList topicsList = makeSingleRequest(testResource, ksqlString, ksqlStatement, TopicsList.class);
+    TopicsList topicsList = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        TopicsList.class
+    );
 
     Collection<TopicsList.TopicInfo> testTopics = topicsList.getTopics();
     Collection<TopicsList.TopicInfo> expectedTopics = testResource.ksqlEngine.getMetaStore()
@@ -281,7 +326,13 @@ public class KsqlResourceTest {
 
     expect(testResource.ksqlEngine.getPersistentQueries()).andReturn(mockQueries);
 
-    Queries queries = makeSingleRequest(testResource, ksqlString, ksqlStatement, Queries.class);
+    Queries queries = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        Queries.class
+    );
     List<Queries.RunningQuery> testQueries = queries.getQueries();
 
     assertEquals(1, testQueries.size());
@@ -295,8 +346,13 @@ public class KsqlResourceTest {
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName));
 
-    SourceDescription testDescription =
-        makeSingleRequest(testResource, ksqlString, ksqlStatement, SourceDescription.class);
+    SourceDescription testDescription = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        SourceDescription.class
+    );
 
     SourceDescription expectedDescription =
         new SourceDescription(ksqlString, testResource.ksqlEngine.getMetaStore().getSource(tableName));
@@ -310,7 +366,13 @@ public class KsqlResourceTest {
     final String ksqlString = "LIST STREAMS;";
     final ListStreams ksqlStatement = new ListStreams(Optional.empty());
 
-    StreamsList streamsList = makeSingleRequest(testResource, ksqlString, ksqlStatement, StreamsList.class);
+    StreamsList streamsList = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        StreamsList.class
+    );
 
     List<StreamsList.StreamInfo> testStreams = streamsList.getStreams();
     assertEquals(1, testStreams.size());
@@ -327,7 +389,13 @@ public class KsqlResourceTest {
     final String ksqlString = "LIST TABLES;";
     final ListTables ksqlStatement = new ListTables(Optional.empty());
 
-    TablesList tablesList = makeSingleRequest(testResource, ksqlString, ksqlStatement, TablesList.class);
+    TablesList tablesList = makeSingleRequest(
+        testResource,
+        ksqlString,
+        ksqlStatement,
+        Collections.emptyMap(),
+        TablesList.class
+    );
 
     List<TablesList.TableInfo> testTables = tablesList.getTables();
     assertEquals(1, testTables.size());

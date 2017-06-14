@@ -7,6 +7,7 @@ package io.confluent.ksql.cli;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.physical.GenericRow;
@@ -23,7 +24,6 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.SetProperty;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -31,7 +31,12 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.streams.StreamsConfig;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
@@ -50,6 +55,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,9 +85,13 @@ public class Cli implements Closeable, AutoCloseable {
 
   private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
 
+  private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
+  private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
+
   private final ExecutorService queryStreamExecutorService;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
   private final ObjectMapper objectMapper;
+  private final Map<String, Object> localProperties;
 
   private final Long streamedQueryRowLimit;
   private final Long streamedQueryTimeoutMs;
@@ -141,8 +151,9 @@ public class Cli implements Closeable, AutoCloseable {
     registerDefaultCliSpecificCommands();
 
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-
     new SchemaMapper().registerToObjectMapper(objectMapper);
+
+    this.localProperties = new HashMap<>();
   }
 
   public void runInteractively() throws IOException {
@@ -597,7 +608,9 @@ public class Cli implements Closeable, AutoCloseable {
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         if (consecutiveStatements.length() != 0) {
-          printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+          printKsqlResponse(
+              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+          );
           consecutiveStatements = new StringBuilder();
         }
         if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -605,18 +618,33 @@ public class Cli implements Closeable, AutoCloseable {
         } else {
           handlePrintedTopic(statementText);
         }
+      } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
+        if (consecutiveStatements.length() != 0) {
+          printKsqlResponse(
+              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+          );
+          consecutiveStatements = new StringBuilder();
+        }
+        SqlBaseParser.SetPropertyContext setPropertyContext =
+            (SqlBaseParser.SetPropertyContext) statementContext.statement();
+        String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
+        String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
+        setProperty(property, value);
       } else {
         consecutiveStatements.append(statementText);
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      printKsqlResponse(
+          restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+      );
     }
   }
 
   private void handleStreamedQuery(String query)
       throws IOException, InterruptedException, ExecutionException {
-    RestResponse<KsqlRestClient.QueryStream> queryResponse = restClient.makeQueryRequest(query);
+    RestResponse<KsqlRestClient.QueryStream> queryResponse =
+        restClient.makeQueryRequest(query, localProperties);
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
@@ -670,7 +698,8 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void handlePrintedTopic(String printTopic)
       throws InterruptedException, ExecutionException, IOException {
-    RestResponse<InputStream> topicResponse = restClient.makePrintTopicRequest(printTopic);
+    RestResponse<InputStream> topicResponse =
+        restClient.makePrintTopicRequest(printTopic, localProperties);
 
     if (topicResponse.isSuccessful()) {
       try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse())) {
@@ -791,7 +820,30 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.writer().println(errorMessage.getMessage());
   }
 
+  private PropertiesList propertiesListWithOverrides(PropertiesList propertiesList) {
+    Map<String, Object> properties = propertiesList.getProperties();
+    for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
+      properties.put(
+          "(LOCAL OVERRIDE) " + localPropertyEntry.getKey(),
+          localPropertyEntry.getValue()
+      );
+    }
+    return new PropertiesList(propertiesList.getStatementText(), properties);
+  }
+
   private void printAsJson(Object o) throws IOException {
+    if (o instanceof PropertiesList) {
+      o = propertiesListWithOverrides((PropertiesList) o);
+    } else if (o instanceof KsqlEntityList) {
+      List<KsqlEntity> newEntities = new ArrayList<>();
+      for (KsqlEntity ksqlEntity : (KsqlEntityList) o) {
+        if (ksqlEntity instanceof PropertiesList) {
+          ksqlEntity = propertiesListWithOverrides((PropertiesList) ksqlEntity);
+        }
+        newEntities.add(ksqlEntity);
+      }
+      o = newEntities;
+    }
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(terminal.writer(), o);
     terminal.writer().println();
     terminal.flush();
@@ -815,7 +867,8 @@ public class Cli implements Closeable, AutoCloseable {
       printErrorMessage(errorMessage);
       return;
     } else if (ksqlEntity instanceof PropertiesList) {
-      Map<String, Object> properties = ((PropertiesList) ksqlEntity).getProperties();
+      PropertiesList propertiesList = propertiesListWithOverrides((PropertiesList) ksqlEntity);
+      Map<String, Object> properties = propertiesList.getProperties();
       columnHeaders = Arrays.asList("Property", "Value");
       rowValues = properties.entrySet().stream()
           .map(propertyEntry -> Arrays.asList(
@@ -831,14 +884,6 @@ public class Cli implements Closeable, AutoCloseable {
               runningQuery.getKafkaTopic(),
               runningQuery.getQueryString()
           )).collect(Collectors.toList());
-    } else if (ksqlEntity instanceof SetProperty) {
-      SetProperty setProperty = (SetProperty) ksqlEntity;
-      columnHeaders = Arrays.asList("Property", "Prior Value", "New Value");
-      rowValues = Collections.singletonList(Arrays.asList(
-          setProperty.getProperty(),
-          Objects.toString(setProperty.getOldValue()),
-          Objects.toString(setProperty.getNewValue())
-      ));
     } else if (ksqlEntity instanceof SourceDescription) {
       List<Field> fields = ((SourceDescription) ksqlEntity).getSchema().fields();
       columnHeaders = Arrays.asList("Field", "Type");
@@ -935,6 +980,59 @@ public class Cli implements Closeable, AutoCloseable {
     terminal.flush();
   }
 
+  private void setProperty(String property, String value) {
+    String parsedProperty;
+    ConfigDef.Type type;
+    if (StreamsConfig.configDef().configKeys().containsKey(property)) {
+      type = StreamsConfig.configDef().configKeys().get(property).type;
+      parsedProperty = property;
+    } else if (CONSUMER_CONFIG_DEF.configKeys().containsKey(property)) {
+      type = CONSUMER_CONFIG_DEF.configKeys().get(property).type;
+      parsedProperty = property;
+    } else if (PRODUCER_CONFIG_DEF.configKeys().containsKey(property)) {
+      type = PRODUCER_CONFIG_DEF.configKeys().get(property).type;
+      parsedProperty = property;
+    } else if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
+      parsedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
+      ConfigDef.ConfigKey configKey =
+          CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
+      if (configKey == null) {
+        throw new IllegalArgumentException(String.format(
+            "Invalid consumer property: '%s'",
+            parsedProperty
+        ));
+      }
+      type = configKey.type;
+    } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
+      parsedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
+      ConfigDef.ConfigKey configKey =
+          PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
+      if (configKey == null) {
+        throw new IllegalArgumentException(String.format(
+            "Invalid producer property: '%s'",
+            parsedProperty
+        ));
+      }
+      type = configKey.type;
+    } else {
+      throw new IllegalArgumentException(String.format(
+          "Not recognizable as streams, consumer, or producer property: '%s'",
+          property
+      ));
+    }
+
+    Object parsedValue = ConfigDef.parseType(parsedProperty, value, type);
+    Object priorValue = localProperties.put(property, parsedValue);
+
+    terminal.writer().printf(
+        "Successfully changed local property '%s' from '%s' to '%s'%n",
+        property,
+        priorValue,
+        parsedValue
+    );
+    terminal.flush();
+  }
+
   private static String constructRowFormatString(Integer... lengths) {
     List<String> columnFormatStrings = Arrays.stream(lengths)
         .map(Cli::constructSingleColumnFormatString)
@@ -960,6 +1058,19 @@ public class Cli implements Closeable, AutoCloseable {
     @Override
     public String expandHistory(History history, String line) {
       return line;
+    }
+  }
+
+  // It seemed like a good idea at the time
+  private static ConfigDef getConfigDef(Class<? extends AbstractConfig> classs) {
+    try {
+      java.lang.reflect.Field field = classs.getDeclaredField("CONFIG");
+      field.setAccessible(true);
+      return (ConfigDef) field.get(null);
+    } catch (Exception exception) {
+      // uhhh...
+      // TODO
+      return null;
     }
   }
 }

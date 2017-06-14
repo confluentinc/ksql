@@ -1294,7 +1294,7 @@ public class AstBuilder
     }
   }
 
-  private static String unquote(String value, String quote) {
+  public static String unquote(String value, String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
   }

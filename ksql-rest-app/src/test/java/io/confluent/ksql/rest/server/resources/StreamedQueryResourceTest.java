@@ -23,6 +23,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -85,8 +86,10 @@ public class StreamedQueryResourceTest {
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, rowQueue);
 
+    final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
+
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    expect(mockKsqlEngine.buildMultipleQueries(true, queryString))
+    expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 
     StatementParser mockStatementParser = mock(StatementParser.class);
@@ -96,7 +99,8 @@ public class StreamedQueryResourceTest {
 
     StreamedQueryResource testResource = new StreamedQueryResource(mockKsqlEngine, mockStatementParser, 1000);
 
-    Response response = testResource.streamQuery(new KsqlRequest(queryString));
+    Response response =
+        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));
     PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     StreamingOutput responseStream = (StreamingOutput) response.getEntity();

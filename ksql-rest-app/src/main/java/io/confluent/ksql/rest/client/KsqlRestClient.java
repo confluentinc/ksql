@@ -24,6 +24,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -56,8 +57,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return RestResponse.successful(result);
   }
 
-  public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
-    KsqlRequest jsonRequest = new KsqlRequest(ksql);
+  public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql, Map<String, Object> properties) {
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
     Response response = makePostRequest("ksql", jsonRequest);
     KsqlEntityList result = response.readEntity(KsqlEntityList.class);
     response.close();
@@ -83,8 +84,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return result;
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(String ksql) {
-    KsqlRequest jsonRequest = new KsqlRequest(ksql);
+  public RestResponse<QueryStream> makeQueryRequest(String ksql, Map<String, Object> properties) {
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
     Response response = makePostRequest("query", jsonRequest);
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       return RestResponse.successful(new QueryStream(response));
@@ -93,9 +94,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     }
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(String ksql) {
+  public RestResponse<InputStream> makePrintTopicRequest(
+      String ksql,
+      Map<String, Object> properties
+  ) {
     RestResponse<InputStream> result;
-    KsqlRequest jsonRequest = new KsqlRequest(ksql);
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
     Response response = makePostRequest("query", jsonRequest);
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       result = RestResponse.successful((InputStream) response.getEntity());

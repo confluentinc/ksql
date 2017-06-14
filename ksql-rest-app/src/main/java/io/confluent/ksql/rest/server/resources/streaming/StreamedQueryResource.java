@@ -21,7 +21,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,18 +32,15 @@ public class StreamedQueryResource {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
-  private final Map<String, Object> properties;
 
   public StreamedQueryResource(
       KsqlEngine ksqlEngine,
       StatementParser statementParser,
-      long disconnectCheckInterval,
-      Map<String, Object> properties
+      long disconnectCheckInterval
   ) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
-    this.properties = properties;
   }
 
   @POST
@@ -68,7 +64,7 @@ public class StreamedQueryResource {
           String.format("Could not find topic '%s' in the metastore", topicName)
       );
       TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-          properties,
+          ksqlEngine.getStreamsProperties(),
           ksqlTopic,
           interval,
           disconnectCheckInterval,

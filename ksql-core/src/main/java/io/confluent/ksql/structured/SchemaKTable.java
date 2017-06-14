@@ -67,8 +67,7 @@ public class SchemaKTable extends SchemaKStream {
               }
               return new KeyValue<>(key, new GenericRow(columns));
             }
-
-      }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+          }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
     } else {
       ktable.toStream()
           .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
@@ -85,7 +84,7 @@ public class SchemaKTable extends SchemaKStream {
               }
               return new KeyValue<>(key, new GenericRow(columns));
             }
-      }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+          }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     }
 
     return this;

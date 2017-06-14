@@ -67,8 +67,13 @@ public class StreamedQueryResource {
           ksqlTopic,
           String.format("Could not find topic '%s' in the metastore", topicName)
       );
-      TopicStreamWriter topicStreamWriter =
-          new TopicStreamWriter(properties, ksqlTopic, interval, disconnectCheckInterval);
+      TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+          properties,
+          ksqlTopic,
+          interval,
+          disconnectCheckInterval,
+          printTopic.getFromBeginning()
+      );
       log.info("Printing topic '{}'", topicName);
       return Response.ok().entity(topicStreamWriter).build();
     } else {

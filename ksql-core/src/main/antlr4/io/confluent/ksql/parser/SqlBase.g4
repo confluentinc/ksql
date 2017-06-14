@@ -33,34 +33,34 @@ singleExpression
     ;
 
 statement
-    : query                                                            #querystatement
-    | (LIST | SHOW) PROPERTIES                                         #listProperties
-    | (LIST | SHOW) TOPICS                                             #listTopics
-    | (LIST | SHOW) STREAMS                                            #listStreams
-    | (LIST | SHOW) TABLES                                             #listTables
-    | DESCRIBE qualifiedName                                           #showColumns
-    | PRINT qualifiedName ((INTERVAL | SAMPLE) number)?                #printTopic
-    | (LIST | SHOW) QUERIES                                            #listQueries
-    | TERMINATE INTEGER_VALUE                                          #terminateQuery
-    | SET STRING EQ STRING                                             #setProperty
-    | LOAD expression                                                  #loadProperties
+    : query                                                                 #querystatement
+    | (LIST | SHOW) PROPERTIES                                              #listProperties
+    | (LIST | SHOW) TOPICS                                                  #listTopics
+    | (LIST | SHOW) STREAMS                                                 #listStreams
+    | (LIST | SHOW) TABLES                                                  #listTables
+    | DESCRIBE qualifiedName                                                #showColumns
+    | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
+    | (LIST | SHOW) QUERIES                                                 #listQueries
+    | TERMINATE INTEGER_VALUE                                               #terminateQuery
+    | SET STRING EQ STRING                                                  #setProperty
+    | LOAD expression                                                       #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
-            (WITH tableProperties)?                                    #createTopic
+            (WITH tableProperties)?                                         #createTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
                 '(' tableElement (',' tableElement)* ')'
-                (WITH tableProperties)?                                #createStream
+                (WITH tableProperties)?                                     #createStream
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query
-                                       (PARTITION BY identifier)?      #createStreamAs
+                                       (PARTITION BY identifier)?           #createStreamAs
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
                     '(' tableElement (',' tableElement)* ')'
-                    (WITH tableProperties)?                            #createTable
+                    (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-            (WITH tableProperties)? AS query                           #createTableAs
-    | DROP TOPIC (IF EXISTS)? qualifiedName                            #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName                           #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
-    | EXPORT CATALOG TO STRING                                         #exportCatalog
+            (WITH tableProperties)? AS query                                #createTableAs
+    | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
+    | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
+    | EXPORT CATALOG TO STRING                                              #exportCatalog
     ;
 
 query
@@ -614,6 +614,7 @@ SAMPLE: 'SAMPLE';
 EXPORT: 'EXPORT';
 CATALOG: 'CATALOG';
 PROPERTIES: 'PROPERTIES';
+BEGINNING: 'BEGINNING';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

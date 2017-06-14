@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -36,8 +37,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.glassfish.jersey.server.ServerProperties;
@@ -191,7 +190,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
         DdlConfig.FORMAT_PROPERTY,
-        new StringLiteral("csv")
+        new StringLiteral("json")
     );
     commandTopicProperties.put(
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
@@ -204,15 +203,16 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ));
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
-    KafkaConsumer<CommandId, String> commandConsumer = new KafkaConsumer<>(
+    KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
         commandConsumerProperties,
-        getCommandIdDeserializer(),
-        new StringDeserializer()
+        getJsonDeserializer(CommandId.class, true),
+        getJsonDeserializer(Command.class, false)
     );
-    KafkaProducer<CommandId, String> commandProducer = new KafkaProducer<>(
+
+    KafkaProducer<CommandId, Command> commandProducer = new KafkaProducer<>(
         config.getCommandProducerProperties(),
-        getCommandIdSerializer(),
-        new StringSerializer()
+        getJsonSerializer(true),
+        getJsonSerializer(false)
     );
 
     CommandStore commandStore = new CommandStore(
@@ -263,19 +263,23 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
   }
 
-  private static Serializer<CommandId> getCommandIdSerializer() {
-    Serializer<CommandId> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), true);
+  private static <T> Serializer<T> getJsonSerializer(boolean isKey) {
+    Serializer<T> result = new KafkaJsonSerializer<>();
+    result.configure(Collections.emptyMap(), isKey);
     return result;
   }
 
-  private static Deserializer<CommandId> getCommandIdDeserializer() {
-    Deserializer<CommandId> result = new KafkaJsonDeserializer<>();
+  private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
+    Deserializer<T> result = new KafkaJsonDeserializer<>();
+    String typeConfigProperty = isKey
+        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+
     Map<String, ?> props = Collections.singletonMap(
-        KafkaJsonDeserializerConfig.JSON_KEY_TYPE,
-        CommandId.class
+        typeConfigProperty,
+        classs
     );
-    result.configure(props, true);
+    result.configure(props, isKey);
     return result;
   }
 }

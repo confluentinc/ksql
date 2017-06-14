@@ -174,18 +174,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     TopicUtil topicUtil = new TopicUtil(config);
 
-    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
-    MetaStore metaStore = new MetaStoreImpl();
-
-    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, config.getKsqlStreamsProperties());
-    StatementParser statementParser = new StatementParser(ksqlEngine);
-
     String commandTopic = config.getCommandTopic();
     if (!topicUtil.ensureTopicExists(commandTopic)) {
       throw new Exception(
           String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
       );
     }
+
+    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
+    MetaStore metaStore = new MetaStoreImpl();
+
+    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, config.getKsqlStreamsProperties());
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -222,8 +221,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         new CommandIdAssigner(metaStore)
     );
 
+    StatementParser statementParser = new StatementParser(ksqlEngine);
+
     StatementExecutor statementExecutor = new StatementExecutor(
-        topicUtil,
         ksqlEngine,
         statementParser
     );

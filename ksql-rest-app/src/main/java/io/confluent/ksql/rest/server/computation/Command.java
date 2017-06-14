@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
+
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;

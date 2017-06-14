@@ -78,6 +78,7 @@ public class CommandIdAssigner {
   public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
     return new CommandId(CommandId.Type.TERMINATE, Long.toString(terminateQuery.getQueryId()));
   }
+
   public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
     return new CommandId(CommandId.Type.TOPIC,
                          dropTopicQuery.getTopicName().getSuffix() + "_DROP");

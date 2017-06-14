@@ -239,7 +239,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         statementParser,
-        config.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
+        config.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG),
+        config.getOriginals()
     );
     KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,

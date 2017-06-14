@@ -94,7 +94,7 @@ public class StreamedQueryResourceTest {
 
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
-    StreamedQueryResource testResource = new StreamedQueryResource(mockKsqlEngine, mockStatementParser, 1000);
+    StreamedQueryResource testResource = new StreamedQueryResource(mockKsqlEngine, mockStatementParser, 1000, null);
 
     Response response = testResource.streamQuery(new KsqlRequest(queryString));
     PipedOutputStream responseOutputStream = new EOFPipedOutputStream();

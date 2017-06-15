@@ -32,8 +32,9 @@ public class KsqlConfig extends AbstractConfig {
   public long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
   public String defaultAutoOffsetRestConfig = "latest";
-  public long defaultCommitIntervalMsConfig = 0;
+  public long defaultCommitIntervalMsConfig = 2000;
   public long defaultCacheMaxBytesBufferingConfig = 0;
+  public int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
 
@@ -48,11 +49,12 @@ public class KsqlConfig extends AbstractConfig {
     ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
     ksqlConfigProps.put(
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
+    ksqlConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
+
     ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
     ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
     ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
                         defaultSinkWindowChangeLogAdditionalRetention);
-
     for (Object propKey: props.keySet()) {
       ksqlConfigProps.put(propKey.toString(), props.get(propKey));
     }
@@ -71,12 +73,15 @@ public class KsqlConfig extends AbstractConfig {
     );
     result.put(
         StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        0
+        defaultCommitIntervalMsConfig
     );
     result.put(
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        0
+        defaultCacheMaxBytesBufferingConfig
     );
+    result.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
+
+
     return result;
   }
 

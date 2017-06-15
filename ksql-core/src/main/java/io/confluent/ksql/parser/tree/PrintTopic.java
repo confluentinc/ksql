@@ -13,21 +13,31 @@ import static java.util.Objects.requireNonNull;
 public class PrintTopic extends Statement {
 
   private final QualifiedName topic;
-
+  private final boolean fromBeginning;
   private final LongLiteral intervalValue;
 
-  public PrintTopic(QualifiedName topic, LongLiteral intervalValue) {
-    this(Optional.empty(), topic, intervalValue);
+  public PrintTopic(QualifiedName topic, boolean fromBeginning, LongLiteral intervalValue) {
+    this(Optional.empty(), topic, fromBeginning, intervalValue);
   }
 
-  public PrintTopic(NodeLocation location, QualifiedName topic, LongLiteral intervalValue) {
-    this(Optional.of(location), topic, intervalValue);
+  public PrintTopic(
+      NodeLocation location,
+      QualifiedName topic,
+      boolean fromBeginning,
+      LongLiteral intervalValue
+  ) {
+    this(Optional.of(location), topic, fromBeginning, intervalValue);
   }
 
-  private PrintTopic(Optional<NodeLocation> location, QualifiedName topic,
-                     LongLiteral intervalValue) {
+  private PrintTopic(
+      Optional<NodeLocation> location,
+      QualifiedName topic,
+      boolean fromBeginning,
+      LongLiteral intervalValue
+  ) {
     super(location);
     this.topic = requireNonNull(topic, "table is null");
+    this.fromBeginning = fromBeginning;
     this.intervalValue = intervalValue;
   }
 
@@ -35,25 +45,31 @@ public class PrintTopic extends Statement {
     return topic;
   }
 
+  public boolean getFromBeginning() {
+    return fromBeginning;
+  }
+
   public LongLiteral getIntervalValue() {
     return intervalValue;
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(topic);
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof PrintTopic)) {
+      return false;
+    }
+    PrintTopic that = (PrintTopic) o;
+    return getFromBeginning() == that.getFromBeginning()
+        && Objects.equals(getTopic(), that.getTopic())
+        && Objects.equals(getIntervalValue(), that.getIntervalValue());
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if ((obj == null) || (getClass() != obj.getClass())) {
-      return false;
-    }
-    PrintTopic o = (PrintTopic) obj;
-    return Objects.equals(topic, o.topic);
+  public int hashCode() {
+    return Objects.hash(getTopic(), getFromBeginning(), getIntervalValue());
   }
 
   @Override

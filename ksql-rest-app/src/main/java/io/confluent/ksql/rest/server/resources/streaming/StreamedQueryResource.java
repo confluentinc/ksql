@@ -12,7 +12,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
-import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +21,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -65,10 +63,13 @@ public class StreamedQueryResource {
           ksqlTopic,
           String.format("Could not find topic '%s' in the metastore", topicName)
       );
-      Map<String, Object> consumerProperties =
-          new StreamsConfig(ksqlEngine.getStreamsProperties()).getRestoreConsumerConfigs(null);
-      TopicStreamWriter topicStreamWriter =
-          new TopicStreamWriter(consumerProperties, ksqlTopic, interval, disconnectCheckInterval);
+      TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+          ksqlEngine.getStreamsProperties(),
+          ksqlTopic,
+          interval,
+          disconnectCheckInterval,
+          printTopic.getFromBeginning()
+      );
       log.info("Printing topic '{}'", topicName);
       return Response.ok().entity(topicStreamWriter).build();
     } else {

@@ -21,7 +21,7 @@
     <!-- TODO -->
     <suppress
             checks="CyclomaticComplexityCheck"
-            files="KsqlResource.java"
+            files="(KsqlResource|StatementExecutor).java"
     />
 
     <!-- TODO -->
@@ -39,7 +39,7 @@
     <!-- TODO -->
     <suppress
             checks="JavaNCSSCheck"
-            files="Cli.java"
+            files="(Cli|StatementExecutor).java"
     />
 
 </suppressions>

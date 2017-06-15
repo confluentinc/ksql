@@ -54,18 +54,15 @@ public class StatementExecutor {
   private static final Pattern TERMINATE_PATTERN =
       Pattern.compile("\\s*TERMINATE\\s+([0-9]+)\\s*;?\\s*");
 
-  private final TopicUtil topicUtil;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Map<CommandId, CommandStatusFuture> statusFutures;
 
   public StatementExecutor(
-      TopicUtil topicUtil,
       KsqlEngine ksqlEngine,
       StatementParser statementParser
   ) {
-    this.topicUtil = topicUtil;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
 
@@ -268,7 +265,6 @@ public class StatementExecutor {
           createStreamAsSelect.getProperties(),
           createStreamAsSelect.getPartitionByColumn()
       );
-      String streamName = createStreamAsSelect.getName().getSuffix();
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Stream created and running";
       } else {

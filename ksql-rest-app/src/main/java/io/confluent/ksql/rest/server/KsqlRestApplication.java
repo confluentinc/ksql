@@ -10,10 +10,18 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -31,8 +39,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.glassfish.jersey.server.ServerProperties;
@@ -44,12 +50,16 @@ import javax.ws.rs.core.Configurable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
+
+  private static final String COMMANDS_KSQL_TOPIC_NAME = "__COMMANDS_TOPIC";
+  private static final String COMMANDS_STREAM_NAME = "COMMANDS";
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -167,14 +177,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       throws Exception {
     KsqlRestConfig config = new KsqlRestConfig(props);
 
-    @SuppressWarnings("unchecked")
     TopicUtil topicUtil = new TopicUtil(config);
-
-    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
-    MetaStore metaStore = new MetaStoreImpl();
-
-    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, config.getKsqlStreamsProperties());
-    StatementParser statementParser = new StatementParser(ksqlEngine);
 
     String commandTopic = config.getCommandTopic();
     if (!topicUtil.ensureTopicExists(commandTopic)) {
@@ -183,16 +186,47 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       );
     }
 
-    Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
-    KafkaConsumer<CommandId, String> commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        getCommandIdDeserializer(),
-        new StringDeserializer()
+    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
+    MetaStore metaStore = new MetaStoreImpl();
+
+    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, config.getKsqlStreamsProperties());
+
+    Map<String, Expression> commandTopicProperties = new HashMap<>();
+    commandTopicProperties.put(
+        DdlConfig.FORMAT_PROPERTY,
+        new StringLiteral("json")
     );
-    KafkaProducer<CommandId, String> commandProducer = new KafkaProducer<>(
+    commandTopicProperties.put(
+        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
+        new StringLiteral(commandTopic)
+    );
+    ksqlEngine.getDdlEngine().createTopic(new CreateTopic(
+        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
+        false,
+        commandTopicProperties
+    ));
+
+    ksqlEngine.getDdlEngine().createStream(new CreateStream(
+        QualifiedName.of(COMMANDS_STREAM_NAME),
+        Collections.singletonList(new TableElement("STATEMENT", "STRING")),
+        false,
+        Collections.singletonMap(
+            DdlConfig.TOPIC_NAME_PROPERTY,
+            new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
+        )
+    ));
+
+    Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
+    KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
+        commandConsumerProperties,
+        getJsonDeserializer(CommandId.class, true),
+        getJsonDeserializer(Command.class, false)
+    );
+
+    KafkaProducer<CommandId, Command> commandProducer = new KafkaProducer<>(
         config.getCommandProducerProperties(),
-        getCommandIdSerializer(),
-        new StringSerializer()
+        getJsonSerializer(true),
+        getJsonSerializer(false)
     );
 
     CommandStore commandStore = new CommandStore(
@@ -202,8 +236,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         new CommandIdAssigner(metaStore)
     );
 
+    StatementParser statementParser = new StatementParser(ksqlEngine);
+
     StatementExecutor statementExecutor = new StatementExecutor(
-        topicUtil,
         ksqlEngine,
         statementParser
     );
@@ -243,19 +278,23 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
   }
 
-  private static Serializer<CommandId> getCommandIdSerializer() {
-    Serializer<CommandId> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), true);
+  private static <T> Serializer<T> getJsonSerializer(boolean isKey) {
+    Serializer<T> result = new KafkaJsonSerializer<>();
+    result.configure(Collections.emptyMap(), isKey);
     return result;
   }
 
-  private static Deserializer<CommandId> getCommandIdDeserializer() {
-    Deserializer<CommandId> result = new KafkaJsonDeserializer<>();
+  private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
+    Deserializer<T> result = new KafkaJsonDeserializer<>();
+    String typeConfigProperty = isKey
+        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+
     Map<String, ?> props = Collections.singletonMap(
-        KafkaJsonDeserializerConfig.JSON_KEY_TYPE,
-        CommandId.class
+        typeConfigProperty,
+        classs
     );
-    result.configure(props, true);
+    result.configure(props, isKey);
     return result;
   }
 }

@@ -14,6 +14,7 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -49,11 +50,11 @@ public class CommandRunner implements Runnable, Closeable {
     try {
       while (!closed.get()) {
         log.debug("Polling for new writes to command topic");
-        ConsumerRecords<CommandId, String> records = commandStore.getNewCommands();
+        ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
         log.debug("Found {} new writes to command topic", records.count());
-        for (ConsumerRecord<CommandId, String> record : records) {
+        for (ConsumerRecord<CommandId, Command> record : records) {
           CommandId commandId = record.key();
-          String statementStr = record.value();
+          String statementStr = record.value().getStatement();
           if (statementStr != null) {
             executeStatement(statementStr, commandId);
           } else {
@@ -82,8 +83,12 @@ public class CommandRunner implements Runnable, Closeable {
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() throws Exception {
-    LinkedHashMap<CommandId, String> priorCommands = commandStore.getPriorCommands();
-    statementExecutor.handleStatements(priorCommands);
+    LinkedHashMap<CommandId, Command> priorCommands = commandStore.getPriorCommands();
+    LinkedHashMap<CommandId, String> priorStatements = new LinkedHashMap<>();
+    for (Map.Entry<CommandId, Command> priorCommand : priorCommands.entrySet()) {
+      priorStatements.put(priorCommand.getKey(), priorCommand.getValue().getStatement());
+    }
+    statementExecutor.handleStatements(priorStatements);
   }
 
   private void executeStatement(String statementStr, CommandId commandId) {

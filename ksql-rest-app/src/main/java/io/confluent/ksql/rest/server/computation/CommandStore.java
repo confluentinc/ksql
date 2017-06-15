@@ -35,15 +35,15 @@ public class CommandStore implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
   private final String commandTopic;
-  private final Consumer<CommandId, String> commandConsumer;
-  private final Producer<CommandId, String> commandProducer;
+  private final Consumer<CommandId, Command> commandConsumer;
+  private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final AtomicBoolean closed;
 
   public CommandStore(
       String commandTopic,
-      Consumer<CommandId, String> commandConsumer,
-      Producer<CommandId, String> commandProducer,
+      Consumer<CommandId, Command> commandConsumer,
+      Producer<CommandId, Command> commandProducer,
       CommandIdAssigner commandIdAssigner
   ) {
     this.commandTopic = commandTopic;
@@ -78,7 +78,8 @@ public class CommandStore implements Closeable {
   public CommandId distributeStatement(String statementString, Statement statement)
       throws Exception {
     CommandId commandId = commandIdAssigner.getCommandId(statement);
-    commandProducer.send(new ProducerRecord<>(commandTopic, commandId, statementString)).get();
+    Command command = new Command(statementString);
+    commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     return commandId;
   }
 
@@ -86,7 +87,7 @@ public class CommandStore implements Closeable {
    * Poll for new commands, blocking until at least one is available.
    * @return The commands that have been polled from the command topic
    */
-  public ConsumerRecords<CommandId, String> getNewCommands() {
+  public ConsumerRecords<CommandId, Command> getNewCommands() {
     return commandConsumer.poll(Long.MAX_VALUE);
   }
 
@@ -95,11 +96,11 @@ public class CommandStore implements Closeable {
    * offset and proceeding until it appears that all have been returned.
    * @return The commands that have been read from the command topic
    */
-  public LinkedHashMap<CommandId, String> getPriorCommands() {
-    LinkedHashMap<CommandId, String> result = new LinkedHashMap<>();
-    for (ConsumerRecord<CommandId, String> commandRecord : getAllPriorCommandRecords()) {
+  public LinkedHashMap<CommandId, Command> getPriorCommands() {
+    LinkedHashMap<CommandId, Command> result = new LinkedHashMap<>();
+    for (ConsumerRecord<CommandId, Command> commandRecord : getAllPriorCommandRecords()) {
       CommandId commandId = commandRecord.key();
-      String command = commandRecord.value();
+      Command command = commandRecord.value();
       if (command != null) {
         result.put(commandId, command);
       } else {
@@ -111,7 +112,7 @@ public class CommandStore implements Closeable {
     return result;
   }
 
-  private List<ConsumerRecord<CommandId, String>> getAllPriorCommandRecords() {
+  private List<ConsumerRecord<CommandId, Command>> getAllPriorCommandRecords() {
     Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
     // Have to poll to make sure subscription has taken effect (subscribe() is lazy)
@@ -120,7 +121,7 @@ public class CommandStore implements Closeable {
 
     Map<TopicPartition, Long> currentOffsets = new HashMap<>();
 
-    List<ConsumerRecord<CommandId, String>> result = new ArrayList<>();
+    List<ConsumerRecord<CommandId, Command>> result = new ArrayList<>();
     log.debug("Polling end offset(s) for command topic");
     Map<TopicPartition, Long> endOffsets = commandConsumer.endOffsets(commandTopicPartitions);
     // Only want to poll for end offsets at the very beginning, and when we think we may be caught
@@ -132,12 +133,12 @@ public class CommandStore implements Closeable {
     do {
       while (!offsetsCaughtUp(currentOffsets, endOffsets)) {
         log.debug("Polling for prior command records");
-        ConsumerRecords<CommandId, String> records = commandConsumer.poll(30000);
+        ConsumerRecords<CommandId, Command> records = commandConsumer.poll(30000);
         if (records.isEmpty()) {
           log.warn("No records received after 30 seconds of polling; something may be wrong");
         } else {
           log.debug("Received {} records from poll", records.count());
-          for (ConsumerRecord<CommandId, String> record : records) {
+          for (ConsumerRecord<CommandId, Command> record : records) {
             result.add(record);
             TopicPartition recordTopicPartition =
                 new TopicPartition(record.topic(), record.partition());

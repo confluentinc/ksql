@@ -44,7 +44,8 @@ public class TopicStreamWriter implements StreamingOutput {
       Map<String, Object> consumerProperties,
       KsqlTopic ksqlTopic,
       long interval,
-      long disconnectCheckInterval
+      long disconnectCheckInterval,
+      boolean fromBeginning
   ) {
     this.kafkaTopic = ksqlTopic.getKafkaTopicName();
     this.messagesWritten = 0;
@@ -82,6 +83,10 @@ public class TopicStreamWriter implements StreamingOutput {
         .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
         .collect(Collectors.toList());
     topicConsumer.assign(topicPartitions);
+
+    if (fromBeginning) {
+      topicConsumer.seekToBeginning(topicPartitions);
+    }
 
     this.interval = interval;
   }

@@ -41,6 +41,7 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -258,6 +259,24 @@ public class Cli implements Closeable, AutoCloseable {
             + "during this time is sent to the server as Ksql."
         );
         terminal.writer().println();
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "clear";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tclear: Clear the current terminal");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.flush();
       }
     });
 

@@ -109,6 +109,7 @@ public class Cli implements Closeable, AutoCloseable {
     // Ignore ^C when not reading a line
     this.terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
 
+    // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
@@ -192,6 +193,8 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private List<String> getLogicalLines(String input) {
+    // TODO: Convert the input string into an InputStream, then feed it to the terminal via
+    // TerminalBuilder.streams(InputStream, OutputStream)
     List<String> result = new ArrayList<>();
     StringBuilder logicalLine = new StringBuilder();
     for (String physicalLine : input.split("\n")) {
@@ -484,16 +487,28 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
+  /**
+   * Attempt to read a logical line of input from the user. Can span multiple physical lines, as
+   * long as all but the last end with '\\'.
+   * @return The parsed, logical line.
+   * @throws EndOfFileException If there is no more input available from the user.
+   * @throws IOException If any other I/O error occurs.
+   */
   private String readLine() throws IOException {
     while (true) {
       try {
         String result = lineReader.readLine(primaryPrompt);
+        // A 'dumb' terminal (the kind used at runtime if a 'system' terminal isn't available) will
+        // return null on EOF and user interrupt, instead of throwing the more fine-grained
+        // exceptions. This null-check helps ensure that, upon encountering EOF, even a 'dumb'
+        // terminal will be able to exit intelligently.
         if (result == null) {
           throw new EndOfFileException();
         } else {
           return result.trim();
         }
       } catch (UserInterruptException exception) {
+        // User hit ctrl-C, just clear the current line and try again.
         terminal.writer().println("^C");
         terminal.flush();
       }

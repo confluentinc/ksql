@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.util.Version;
 import org.apache.kafka.connect.data.Field;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Expander;
@@ -145,24 +146,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   public void runInteractively() throws IOException {
-    /*
-        Should look like:
-                                _  __ _____  ____  _
-                               | |/ // ____|/ __ \| |
-                               | ' /| (___ | |  | | |
-                               |  <  \___ \| |  | | |
-                               | . \ ____) | |__| | |____
-                               |_|\_\_____/ \___\_\______|
-        Generated via http://www.network-science.de/ascii/, with the "big" font
-     */
-    terminal.writer().println(" _  __ _____  ____  _");
-    terminal.writer().println("| |/ // ____|/ __ \\| |");
-    terminal.writer().println("| ' /| (___ | |  | | |");
-    terminal.writer().println("|  <  \\___ \\| |  | | |");
-    terminal.writer().println("| . \\ ____) | |__| | |____");
-    terminal.writer().println("|_|\\_\\_____/ \\___\\_\\______|");
-    terminal.writer().println();
-    terminal.flush();
+    displayWelcomeMessage();
     while (true) {
       try {
         handleLine(readLine());
@@ -179,6 +163,57 @@ public class Cli implements Closeable, AutoCloseable {
       }
       terminal.flush();
     }
+  }
+
+  private void displayWelcomeMessage() {
+    String serverVersion;
+    try {
+      serverVersion = restClient.makeRootRequest().getResponse().getVersion();
+    } catch (Exception exception) {
+      serverVersion = "<unknown>";
+    }
+    String cliVersion = Version.getVersion();
+
+    /*
+        Should look like:
+                            =================================
+                            =   _  __ _____  ____  _        =
+                            =  | |/ // ____|/ __ \| |       =
+                            =  | ' /| (___ | |  | | |       =
+                            =  |  <  \___ \| |  | | |       =
+                            =  | . \ ____) | |__| | |____   =
+                            =  |_|\_\_____/ \___\_\______|  =
+                            =================================
+                            Copyright Confluent Inc. 2017
+
+                            CLI 1.0.1-SNAPSHOT, Server v1.0.0-SNAPSHOT located at http://localhost:8080
+        Text generated via http://www.network-science.de/ascii/, with the "big" font
+     */
+    terminal.writer().println("=================================");
+    terminal.writer().println("=   _  __ _____  ____  _        =");
+    terminal.writer().println("=  | |/ // ____|/ __ \\| |       =");
+    terminal.writer().println("=  | ' /| (___ | |  | | |       =");
+    terminal.writer().println("=  |  <  \\___ \\| |  | | |       =");
+    terminal.writer().println("=  | . \\ ____) | |__| | |____   =");
+    terminal.writer().println("=  |_|\\_\\_____/ \\___\\_\\______|  =");
+    terminal.writer().println("=================================");
+    terminal.writer().println("Copyright 2017 Confluent Inc.");
+    terminal.writer().println();
+    terminal.writer().printf(
+        "CLI v%s, Server v%s located at %s%n",
+        cliVersion,
+        serverVersion,
+        restClient.getServerAddress()
+    );
+    terminal.writer().println();
+    terminal.writer().println(
+        "Having trouble? "
+            + "Need quick refresher? "
+            + "Wanna RTFM but perturbed by our lack of man pages? "
+            + "Type 'help' (case-insensitive) for a rundown of how things work!"
+    );
+    terminal.flush();
+
   }
 
   public void runNonInteractively(String input) throws Exception {

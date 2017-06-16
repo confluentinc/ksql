@@ -68,10 +68,10 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
     String alias = null;
     if (context.children.size() == 1) {
-      alias = table.getName().getSuffix();
+      alias = table.getName().getSuffix().toUpperCase();
 
     } else if (context.children.size() == 2) {
-      alias = context.children.get(1).getText();
+      alias = context.children.get(1).getText().toUpperCase();
     }
 
     if (!isJoin) {

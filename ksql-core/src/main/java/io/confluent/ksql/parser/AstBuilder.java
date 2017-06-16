@@ -1031,16 +1031,10 @@ public class AstBuilder
   public Node visitDereference(SqlBaseParser.DereferenceContext context) {
     String fieldName = getIdentifierText(context.identifier());
     Expression baseExpression;
-    // TODO: Base names for dereference expressions shouldn't be validated/resolved as columns;
-    // this try/catch is just a temporary workaround
-    try {
-      baseExpression = (Expression) visit(context.primaryExpression());
-    } catch (InvalidColumnReferenceException exception) {
-      QualifiedName tableName = QualifiedName.of(
-          context.primaryExpression().getText().toUpperCase());
-      baseExpression = new QualifiedNameReference(
-          getLocation(context.primaryExpression()), tableName);
-    }
+    QualifiedName tableName = QualifiedName.of(
+        context.primaryExpression().getText().toUpperCase());
+    baseExpression = new QualifiedNameReference(
+        getLocation(context.primaryExpression()), tableName);
     DereferenceExpression
         dereferenceExpression =
         new DereferenceExpression(getLocation(context), baseExpression, fieldName);

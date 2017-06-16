@@ -255,16 +255,17 @@ public class KsqlEngine implements Closeable {
       throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
     }
 
-    Map<String, Object> newProperties = ksqlConfig.getKsqlConfigProps();
+    Map<String, Object> newProperties = new HashMap<>(ksqlConfig.getKsqlConfigProps());
     newProperties.put(property, value);
-
 
     try {
       validateStreamsProperties(newProperties);
     } catch (ConfigException configException) {
-      throw new IllegalArgumentException(String.format("Invalid value for '%s' property: '%s'",
-                                                       property, value));
+      throw new IllegalArgumentException(
+          String.format("Invalid value for '%s' property: '%s'", property, value)
+      );
     }
+    
     Object oldValue = ksqlConfig.get(property);
     ksqlConfig.put(property, value);
     return oldValue;

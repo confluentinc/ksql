@@ -184,20 +184,42 @@ public class Cli implements Closeable, AutoCloseable {
                             =  | . \ ____) | |__| | |____   =
                             =  |_|\_\_____/ \___\_\______|  =
                             =================================
-                            Copyright Confluent Inc. 2017
+                              Copyright 2017 Confluent Inc.
 
-                            CLI 1.0.1-SNAPSHOT, Server v1.0.0-SNAPSHOT located at http://localhost:8080
+        CLI v1.0.0, Server v1.0.0 located at http://localhost:6969
+
+        <help message reminder>
+
         Text generated via http://www.network-science.de/ascii/, with the "big" font
      */
-    terminal.writer().println("=================================");
-    terminal.writer().println("=   _  __ _____  ____  _        =");
-    terminal.writer().println("=  | |/ // ____|/ __ \\| |       =");
-    terminal.writer().println("=  | ' /| (___ | |  | | |       =");
-    terminal.writer().println("=  |  <  \\___ \\| |  | | |       =");
-    terminal.writer().println("=  | . \\ ____) | |__| | |____   =");
-    terminal.writer().println("=  |_|\\_\\_____/ \\___\\_\\______|  =");
-    terminal.writer().println("=================================");
-    terminal.writer().println("Copyright 2017 Confluent Inc.");
+    int logoWidth = 33;
+    String copyrightMessage = "Copyright 2017 Confluent Inc.";
+    String helpReminderMessage = "Having trouble? "
+        + "Need quick refresher? "
+        + "Wanna RTFM but perturbed by our lack of man pages? "
+        + "Type 'help' (case-insensitive) for a rundown of how things work!";
+    // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
+    if (terminal.getWidth() >= logoWidth) {
+      // Want to center the logo, but in the case of something like a fullscreen terminal, just
+      // centering around the help message (longest single line of text in the welcome message)
+      // should be enough; looks a little weird if you try to center the logo on a wide enough
+      // screen and it just kind of ends up out in the middle of nowhere; hence, the call to
+      // Math.min(terminal.getWidth(), helpReminderMessage.length())
+      int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
+      int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
+      String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
+      terminal.writer().printf("%s=================================%n", leftPadding);
+      terminal.writer().printf("%s=   _  __ _____  ____  _        =%n", leftPadding);
+      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |       =%n", leftPadding);
+      terminal.writer().printf("%s=  | ' /| (___ | |  | | |       =%n", leftPadding);
+      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |       =%n", leftPadding);
+      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____   =%n", leftPadding);
+      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|  =%n", leftPadding);
+      terminal.writer().printf("%s=================================%n", leftPadding);
+      terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
+    } else {
+      terminal.writer().printf("KSQL, %s%n", copyrightMessage);
+    }
     terminal.writer().println();
     terminal.writer().printf(
         "CLI v%s, Server v%s located at %s%n",
@@ -206,12 +228,8 @@ public class Cli implements Closeable, AutoCloseable {
         restClient.getServerAddress()
     );
     terminal.writer().println();
-    terminal.writer().println(
-        "Having trouble? "
-            + "Need quick refresher? "
-            + "Wanna RTFM but perturbed by our lack of man pages? "
-            + "Type 'help' (case-insensitive) for a rundown of how things work!"
-    );
+    terminal.writer().println(helpReminderMessage);
+    terminal.writer().println();
     terminal.flush();
 
   }

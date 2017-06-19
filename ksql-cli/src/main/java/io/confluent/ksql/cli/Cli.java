@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.util.Version;
 import org.apache.kafka.connect.data.Field;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Expander;
@@ -41,6 +42,7 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -144,24 +146,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   public void runInteractively() throws IOException {
-    /*
-        Should look like:
-                                _  __ _____  ____  _
-                               | |/ // ____|/ __ \| |
-                               | ' /| (___ | |  | | |
-                               |  <  \___ \| |  | | |
-                               | . \ ____) | |__| | |____
-                               |_|\_\_____/ \___\_\______|
-        Generated via http://www.network-science.de/ascii/, with the "big" font
-     */
-    terminal.writer().println(" _  __ _____  ____  _");
-    terminal.writer().println("| |/ // ____|/ __ \\| |");
-    terminal.writer().println("| ' /| (___ | |  | | |");
-    terminal.writer().println("|  <  \\___ \\| |  | | |");
-    terminal.writer().println("| . \\ ____) | |__| | |____");
-    terminal.writer().println("|_|\\_\\_____/ \\___\\_\\______|");
-    terminal.writer().println();
-    terminal.flush();
+    displayWelcomeMessage();
     while (true) {
       try {
         handleLine(readLine());
@@ -178,6 +163,75 @@ public class Cli implements Closeable, AutoCloseable {
       }
       terminal.flush();
     }
+  }
+
+  private void displayWelcomeMessage() {
+    String serverVersion;
+    try {
+      serverVersion = restClient.makeRootRequest().getResponse().getVersion();
+    } catch (Exception exception) {
+      serverVersion = "<unknown>";
+    }
+    String cliVersion = Version.getVersion();
+
+    /*
+        Should look like:
+                            =================================
+                            =   _  __ _____  ____  _        =
+                            =  | |/ // ____|/ __ \| |       =
+                            =  | ' /| (___ | |  | | |       =
+                            =  |  <  \___ \| |  | | |       =
+                            =  | . \ ____) | |__| | |____   =
+                            =  |_|\_\_____/ \___\_\______|  =
+                            =================================
+                              Copyright 2017 Confluent Inc.
+
+        CLI v1.0.0, Server v1.0.0 located at http://localhost:6969
+
+        <help message reminder>
+
+        Text generated via http://www.network-science.de/ascii/, with the "big" font
+     */
+    int logoWidth = 33;
+    String copyrightMessage = "Copyright 2017 Confluent Inc.";
+    String helpReminderMessage = "Having trouble? "
+        + "Need quick refresher? "
+        + "Wanna RTFM but perturbed by our lack of man pages? "
+        + "Type 'help' (case-insensitive) for a rundown of how things work!";
+    // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
+    if (terminal.getWidth() >= logoWidth) {
+      // Want to center the logo, but in the case of something like a fullscreen terminal, just
+      // centering around the help message (longest single line of text in the welcome message)
+      // should be enough; looks a little weird if you try to center the logo on a wide enough
+      // screen and it just kind of ends up out in the middle of nowhere; hence, the call to
+      // Math.min(terminal.getWidth(), helpReminderMessage.length())
+      int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
+      int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
+      String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
+      terminal.writer().printf("%s=================================%n", leftPadding);
+      terminal.writer().printf("%s=   _  __ _____  ____  _        =%n", leftPadding);
+      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |       =%n", leftPadding);
+      terminal.writer().printf("%s=  | ' /| (___ | |  | | |       =%n", leftPadding);
+      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |       =%n", leftPadding);
+      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____   =%n", leftPadding);
+      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|  =%n", leftPadding);
+      terminal.writer().printf("%s=================================%n", leftPadding);
+      terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
+    } else {
+      terminal.writer().printf("KSQL, %s%n", copyrightMessage);
+    }
+    terminal.writer().println();
+    terminal.writer().printf(
+        "CLI v%s, Server v%s located at %s%n",
+        cliVersion,
+        serverVersion,
+        restClient.getServerAddress()
+    );
+    terminal.writer().println();
+    terminal.writer().println(helpReminderMessage);
+    terminal.writer().println();
+    terminal.flush();
+
   }
 
   public void runNonInteractively(String input) throws Exception {
@@ -258,6 +312,24 @@ public class Cli implements Closeable, AutoCloseable {
             + "during this time is sent to the server as Ksql."
         );
         terminal.writer().println();
+      }
+    });
+
+    registerCliSpecificCommand(new CliSpecificCommand() {
+      @Override
+      public String getName() {
+        return "clear";
+      }
+
+      @Override
+      public void printHelp() {
+        terminal.writer().println("\tclear: Clear the current terminal");
+      }
+
+      @Override
+      public void execute(String commandStrippedLine) throws IOException {
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.flush();
       }
     });
 

@@ -1032,6 +1032,13 @@ public class Cli implements Closeable, AutoCloseable {
       ));
     }
 
+    if (KsqlEngine.getImmutableProperties().contains(parsedProperty)) {
+      throw new IllegalArgumentException(String.format(
+          "Cannot override property '%s'",
+          property
+      ));
+    }
+
     Object parsedValue = ConfigDef.parseType(parsedProperty, value, type);
     Object priorValue = localProperties.put(property, parsedValue);
 

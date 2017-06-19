@@ -17,14 +17,12 @@ import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.TopicUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -302,17 +300,6 @@ public class StatementExecutor {
       DropTable dropTable = (DropTable) statement;
       ksqlEngine.getDdlEngine().dropTable(dropTable);
       successMessage = "Table was dropped";
-    } else if (statement instanceof SetProperty) {
-      SetProperty setProperty = (SetProperty) statement;
-      String property = setProperty.getPropertyName();
-      Object newValue = setProperty.getPropertyValue();
-      Object oldValue = ksqlEngine.setStreamsProperty(property, newValue);
-      successMessage = String.format(
-          "Property '%s' successfully changed from '%s' to '%s'",
-          property,
-          oldValue,
-          newValue
-      );
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

@@ -630,6 +630,17 @@ public class Cli implements Closeable, AutoCloseable {
         String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
         String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
         setProperty(property, value);
+      } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
+        if (consecutiveStatements.length() != 0) {
+          printKsqlResponse(
+              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+          );
+          consecutiveStatements = new StringBuilder();
+        }
+        SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
+            (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
+        String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
+        unsetProperty(property);
       } else {
         consecutiveStatements.append(statementText);
       }
@@ -1031,6 +1042,22 @@ public class Cli implements Closeable, AutoCloseable {
         parsedValue
     );
     terminal.flush();
+  }
+
+  private void unsetProperty(String property) {
+    if (localProperties.containsKey(property)) {
+      Object value = localProperties.remove(property);
+      terminal.writer().printf(
+          "Successfully unset local property '%s' (value was '%s')%n",
+          property,
+          value
+      );
+    } else {
+      throw new IllegalArgumentException(String.format(
+          "Cannot unset local property '%s' which was never set in the first place",
+          property
+      ));
+    }
   }
 
   private static String constructRowFormatString(Integer... lengths) {

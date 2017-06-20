@@ -368,8 +368,7 @@ public class AstBuilder
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final
-  Relation from) {
+  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final Relation from) {
     List<SelectItem> selectItems = new ArrayList<>();
     AllColumns allColumns = (AllColumns) selectItem;
 

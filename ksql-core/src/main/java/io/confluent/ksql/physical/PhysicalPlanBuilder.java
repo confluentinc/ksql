@@ -78,10 +78,10 @@ public class PhysicalPlanBuilder {
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
-    return kafkaStreamsDSL(logicalPlanRoot);
+    return kafkaStreamsDsl(logicalPlanRoot);
   }
 
-  private SchemaKStream kafkaStreamsDSL(final PlanNode planNode) throws Exception {
+  private SchemaKStream kafkaStreamsDsl(final PlanNode planNode) throws Exception {
     if (planNode instanceof SourceNode) {
       return buildSource((SourceNode) planNode);
     } else if (planNode instanceof JoinNode) {
@@ -109,7 +109,7 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {
-    SchemaKStream schemaKStream = kafkaStreamsDSL(outputNode.getSource());
+    SchemaKStream schemaKStream = kafkaStreamsDsl(outputNode.getSource());
     Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
     if (outputNode instanceof KsqlStructuredDataOutputNode) {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
@@ -216,7 +216,7 @@ public class PhysicalPlanBuilder {
 
     StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
 
-    SchemaKStream sourceSchemaKStream = kafkaStreamsDSL(aggregateNode.getSource());
+    SchemaKStream sourceSchemaKStream = kafkaStreamsDsl(aggregateNode.getSource());
 
     SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
 
@@ -329,7 +329,7 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {
     SchemaKStream projectedSchemaStream =
-        kafkaStreamsDSL(projectNode.getSource()).select(projectNode.getProjectExpressions());
+        kafkaStreamsDsl(projectNode.getSource()).select(projectNode.getProjectExpressions());
     return projectedSchemaStream;
   }
 
@@ -337,7 +337,7 @@ public class PhysicalPlanBuilder {
   private SchemaKStream buildFilter(final FilterNode filterNode) throws Exception {
     SchemaKStream
         filteredSchemaKStream =
-        kafkaStreamsDSL(filterNode.getSource()).filter(filterNode.getPredicate());
+        kafkaStreamsDsl(filterNode.getSource()).filter(filterNode.getPredicate());
     return filteredSchemaKStream;
   }
 
@@ -452,8 +452,8 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream buildJoin(final JoinNode joinNode) throws Exception {
-    SchemaKStream leftSchemaKStream = kafkaStreamsDSL(joinNode.getLeft());
-    SchemaKStream rightSchemaKStream = kafkaStreamsDSL(joinNode.getRight());
+    SchemaKStream leftSchemaKStream = kafkaStreamsDsl(joinNode.getLeft());
+    SchemaKStream rightSchemaKStream = kafkaStreamsDsl(joinNode.getRight());
     if (rightSchemaKStream instanceof SchemaKTable) {
       SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
       if (!leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {

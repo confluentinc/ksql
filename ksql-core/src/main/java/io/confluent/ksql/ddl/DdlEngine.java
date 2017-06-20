@@ -212,7 +212,6 @@ public class DdlEngine {
   public KsqlTable createTable(final CreateTable createTable) {
 
     enforceTableProperties(createTable);
-    String tableName = createTable.getName().getSuffix();
 
     SchemaBuilder tableSchema = getStreamTableSchema(createTable.getElements());
 
@@ -261,6 +260,8 @@ public class DdlEngine {
         throw new KsqlException("isWindowed property is not set correctly: " + isWindowedProp);
       }
     }
+
+    String tableName = createTable.getName().getSuffix();
 
     KsqlTable ksqlTable = new KsqlTable(tableName, tableSchema,
                                         (keyColumnName.length() == 0) ? null :

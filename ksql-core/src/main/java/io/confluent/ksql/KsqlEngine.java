@@ -68,7 +68,7 @@ public class KsqlEngine implements Closeable {
       throws Exception {
 
     // Build query AST from the query string
-    List<Pair<String, Query>> queryList = buildQueryASTList(queriesString);
+    List<Pair<String, Query>> queryList = buildQueryAstList(queriesString);
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
@@ -92,7 +92,7 @@ public class KsqlEngine implements Closeable {
   }
 
 
-  private List<Pair<String, Query>> buildQueryASTList(final String queriesString) {
+  private List<Pair<String, Query>> buildQueryAstList(final String queriesString) {
 
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
@@ -109,7 +109,7 @@ public class KsqlEngine implements Closeable {
           ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
       Statement statement = statementInfo.getLeft();
       Pair<String, Query> queryPair =
-          buildSingleQueryAST(statement, getStatementString(singleStatementContext),
+          buildSingleQueryAst(statement, getStatementString(singleStatementContext),
                                                           tempMetaStore);
       if (queryPair != null) {
         queryList.add(queryPair);
@@ -118,7 +118,7 @@ public class KsqlEngine implements Closeable {
     return queryList;
   }
 
-  private Pair<String, Query> buildSingleQueryAST(Statement statement, String
+  private Pair<String, Query> buildSingleQueryAst(Statement statement, String
       statementString, MetaStore tempMetaStore) {
     if (statement instanceof Query) {
       return  new Pair<>(statementString, (Query) statement);

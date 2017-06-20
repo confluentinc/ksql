@@ -21,7 +21,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -44,10 +43,9 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                           Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                                 streamsKafkaClient, KsqlConfig ksqlConfig) {
+                           Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig) {
 
-    createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
+    createSinkTopic(kafkaTopicName, ksqlConfig);
 
     if (isWindowed) {
       ktable.toStream()

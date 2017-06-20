@@ -46,21 +46,12 @@ public class PhysicalPlanBuilderTest {
         configMap.put("commit.interval.ms", 0);
         configMap.put("cache.max.bytes.buffering", 0);
         configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, null, new KsqlConfig(configMap));
+        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap));
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
         List<Statement> statements = ksqlParser.buildAst(queryStr, metaStore);
         // Analyze the query to resolve the references and extract oeprations
-//        Analysis analysis = new Analysis();
-//        Analyzer analyzer = new Analyzer(analysis, metaStore);
-//        analyzer.process(statements.get(0), new AnalysisContext(null, null));
-//        AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-//        AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore);
-//        for (Expression expression: analysis.getSelectExpressions()) {
-//            aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
-//        }
-
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis, metaStore);
         analyzer.process(statements.get(0), new AnalysisContext(null, null));

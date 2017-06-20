@@ -47,8 +47,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   @Override
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe,
-                            Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                                  streamsKafkaClient, KsqlConfig ksqlConfig) {
+                            Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig) {
     throw new UnsupportedOperationException();
   }
 

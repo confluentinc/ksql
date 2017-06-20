@@ -30,6 +30,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class DdlEngine {
 
@@ -51,19 +52,10 @@ public class DdlEngine {
       return null;
     }
 
-    if (createTopic.getProperties().size() == 0) {
-      throw new KsqlException("Create topic statement needs WITH clause.");
-    }
-
-    if (createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY) == null) {
-      throw new KsqlException("Topic format(format) should be set in WITH clause.");
-    }
+    enforceTopicProperties(createTopic);
     String serde = createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
     serde = enforceString(DdlConfig.FORMAT_PROPERTY, serde);
 
-    if (createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {
-      throw new KsqlException("Corresponding kafka topic should be set in WITH clause.");
-    }
     String
         kafkaTopicName =
         createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
@@ -104,6 +96,20 @@ public class DdlEngine {
     return ksqlTopic;
   }
 
+  private void enforceTopicProperties(final CreateTopic createTopic) {
+    if (createTopic.getProperties().size() == 0) {
+      throw new KsqlException("Create topic statement needs WITH clause.");
+    }
+
+    if (createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY) == null) {
+      throw new KsqlException("Topic format(format) should be set in WITH clause.");
+    }
+
+    if (createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Corresponding kafka topic should be set in WITH clause.");
+    }
+  }
+
   private String enforceString(final String propertyName, final String propertyValue) {
     if (!propertyValue.startsWith("'") && !propertyValue.endsWith("'")) {
       throw new KsqlException(propertyName + " value is string and should be enclosed between "
@@ -129,42 +135,13 @@ public class DdlEngine {
 
   public KsqlStream createStream(final CreateStream createStream) {
 
+    enforceStreamProperties(createStream);
     String streamName = createStream.getName().getSuffix();
     if (ksqlEngine.getMetaStore().getSource(streamName) != null) {
-      if (createStream.isNotExists()) {
-        System.out.println("Stream already exists.");
-      } else {
-        throw new KsqlException("Stream already exists.");
-      }
-      return null;
+      throw new KsqlException("Stream already exists.");
     }
 
-    if (createStream.getElements().size() == 0) {
-      throw new KsqlException("No column was specified.");
-    }
-
-    SchemaBuilder streamSchema = SchemaBuilder.struct();
-    for (TableElement tableElement : createStream.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
-          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KsqlException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
-                                + "reserved "
-                                + "token for "
-                                + "implicit "
-                                + "column."
-                                + " You cannot use them as a column name.");
-      }
-      streamSchema = streamSchema.field(tableElement.getName(),
-                                        getKsqlType(tableElement.getType()));
-    }
-
-    if (createStream.getProperties().size() == 0) {
-      throw new KsqlException("Create stream statement needs WITH clause.");
-    }
-
-    if (createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
-      throw new KsqlException("Topic for the stream should be set in WITH clause.");
-    }
+    SchemaBuilder streamSchema = getStreamTableSchema(createStream.getElements());
 
     // TODO: Get rid of call to toUpperCase(),
     // TODO: since topic names (if put in quotes) can be case-sensitive
@@ -195,11 +172,6 @@ public class DdlEngine {
       }
     }
 
-    if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new
-          KsqlException(String.format("The corresponding topic, %s, does not exist.", topicName));
-    }
-
     KsqlStream
         ksqlStream =
         new KsqlStream(streamName, streamSchema,
@@ -214,44 +186,34 @@ public class DdlEngine {
     return ksqlStream;
   }
 
-  public KsqlTable createTable(final CreateTable createTable) {
+  private void enforceStreamProperties(final CreateStream createStream) {
+    String topicName = createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY)
+        .toString().toUpperCase();
+    topicName = enforceString(DdlConfig.TOPIC_NAME_PROPERTY, topicName);
 
-    String tableName = createTable.getName().getSuffix();
-    if (ksqlEngine.getMetaStore().getSource(tableName) != null) {
-      if (createTable.isNotExists()) {
-        System.out.println("Table already exists.");
-      } else {
-        throw new KsqlException("Table already exists.");
-      }
-      return null;
-    }
-
-    if (createTable.getElements().size() == 0) {
+    if (createStream.getElements().size() == 0) {
       throw new KsqlException("No column was specified.");
     }
 
-    SchemaBuilder tableSchema = SchemaBuilder.struct();
-    for (TableElement tableElement : createTable.getElements()) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
-          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KsqlException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
-                                + "reserved "
-                                + "token for "
-                                + "implicit "
-                                + "column."
-                                + " You cannot use them as a column name.");
-
-      }
-      tableSchema = tableSchema.field(tableElement.getName(), getKsqlType(tableElement.getType()));
+    if (createStream.getProperties().size() == 0) {
+      throw new KsqlException("Create stream statement needs WITH clause.");
     }
 
-    if (createTable.getProperties().size() == 0) {
-      throw new KsqlException("Create table statement needs WITH clause.");
+    if (createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Topic for the stream should be set in WITH clause.");
     }
 
-    if (createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
-      throw new KsqlException("Topic for the table should be set in WITH clause.");
+    if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
+      throw new
+          KsqlException(String.format("The corresponding topic, %s, does not exist.", topicName));
     }
+  }
+
+  public KsqlTable createTable(final CreateTable createTable) {
+
+    enforceTableProperties(createTable);
+
+    SchemaBuilder tableSchema = getStreamTableSchema(createTable.getElements());
 
     // TODO: Get rid of call to toUpperCase(), since topic names (if put in quotes)
     // TODO: can be case-sensitive
@@ -259,10 +221,6 @@ public class DdlEngine {
         .toString().toUpperCase();
     topicName = enforceString(DdlConfig.TOPIC_NAME_PROPERTY, topicName);
 
-    if (createTable.getProperties().get(DdlConfig.STATE_STORE_NAME_PROPERTY) == null) {
-      throw new KsqlException(
-          "State store name for the table should be set in WITH clause.");
-    }
 
     String stateStoreName = createTable.getProperties().get(DdlConfig.STATE_STORE_NAME_PROPERTY)
         .toString();
@@ -303,10 +261,7 @@ public class DdlEngine {
       }
     }
 
-
-    if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
-      throw new KsqlException("The corresponding topic does not exist.");
-    }
+    String tableName = createTable.getName().getSuffix();
 
     KsqlTable ksqlTable = new KsqlTable(tableName, tableSchema,
                                         (keyColumnName.length() == 0) ? null :
@@ -320,6 +275,56 @@ public class DdlEngine {
     // Add the topic to the metastore
     ksqlEngine.getMetaStore().putSource(ksqlTable.cloneWithTimeKeyColumns());
     return ksqlTable;
+  }
+
+  private SchemaBuilder getStreamTableSchema(List<TableElement> tableElementList) {
+    SchemaBuilder tableSchema = SchemaBuilder.struct();
+    for (TableElement tableElement : tableElementList) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
+          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        throw new KsqlException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
+                                + "reserved "
+                                + "token for "
+                                + "implicit "
+                                + "column."
+                                + " You cannot use them as a column name.");
+
+      }
+      tableSchema = tableSchema.field(tableElement.getName(), getKsqlType(tableElement.getType()));
+    }
+
+    return tableSchema;
+  }
+
+  private void enforceTableProperties(final CreateTable createTable) {
+    String tableName = createTable.getName().getSuffix();
+    String topicName = createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY)
+        .toString().toUpperCase();
+    topicName = enforceString(DdlConfig.TOPIC_NAME_PROPERTY, topicName);
+    if (ksqlEngine.getMetaStore().getSource(tableName) != null) {
+      throw new KsqlException("Table already exists.");
+    }
+
+    if (createTable.getElements().size() == 0) {
+      throw new KsqlException("No column was specified.");
+    }
+
+    if (createTable.getProperties().size() == 0) {
+      throw new KsqlException("Create table statement needs WITH clause.");
+    }
+
+    if (createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
+      throw new KsqlException("Topic for the table should be set in WITH clause.");
+    }
+
+    if (createTable.getProperties().get(DdlConfig.STATE_STORE_NAME_PROPERTY) == null) {
+      throw new KsqlException(
+          "State store name for the table should be set in WITH clause.");
+    }
+
+    if (ksqlEngine.getMetaStore().getTopic(topicName) == null) {
+      throw new KsqlException("The corresponding topic does not exist.");
+    }
   }
 
   //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
@@ -339,25 +344,28 @@ public class DdlEngine {
         return Schema.INT64_SCHEMA;
       case "DOUBLE":
         return Schema.FLOAT64_SCHEMA;
-
       default:
-        if (sqlType.startsWith("ARRAY")) {
-          return SchemaBuilder
-              .array(getKsqlType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
-        } else if (sqlType.startsWith("MAP")) {
-          //TODO: For now only primitive data types for map are supported. Will have to add
-          // nested types.
-          String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
-              .trim().split(",");
-          if (mapTypesStrs.length != 2) {
-            throw new KsqlException("Map type is not defined correctly.: " + sqlType);
-          }
-          String keyType = mapTypesStrs[0].trim();
-          String valueType = mapTypesStrs[1].trim();
-          return SchemaBuilder.map(getKsqlType(keyType), getKsqlType(valueType));
-        }
-        throw new KsqlException("Unsupported type: " + sqlType);
+        return getKsqlComplexType(sqlType);
     }
+  }
+
+  private Schema getKsqlComplexType(final String sqlType) {
+    if (sqlType.startsWith("ARRAY")) {
+      return SchemaBuilder
+          .array(getKsqlType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
+    } else if (sqlType.startsWith("MAP")) {
+      //TODO: For now only primitive data types for map are supported. Will have to add
+      // nested types.
+      String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
+          .trim().split(",");
+      if (mapTypesStrs.length != 2) {
+        throw new KsqlException("Map type is not defined correctly.: " + sqlType);
+      }
+      String keyType = mapTypesStrs[0].trim();
+      String valueType = mapTypesStrs[1].trim();
+      return SchemaBuilder.map(getKsqlType(keyType), getKsqlType(valueType));
+    }
+    throw new KsqlException("Unsupported type: " + sqlType);
   }
 
   private String getAvroSchema(final String schemaFilePath) throws IOException {

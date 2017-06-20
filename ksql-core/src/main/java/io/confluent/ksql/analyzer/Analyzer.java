@@ -69,44 +69,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     process(node.getInto().get(), new AnalysisContext(null,
                                                       AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
-      List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
-
-      StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
-      String intoKafkaTopicName = analysis.getIntoKafkaTopicName();
-      if (intoKafkaTopicName == null) {
-        intoKafkaTopicName = intoStructuredDataSource.getName();
-      }
-
-      KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
-          .getKsqlTopicSerDe();
-      if (analysis.getIntoFormat() != null) {
-        switch (analysis.getIntoFormat().toUpperCase()) {
-          case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KsqlAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(),
-                                                    null);
-            break;
-          case DataSource.JSON_SERDE_NAME:
-            intoTopicSerde = new KsqlJsonTopicSerDe(null);
-            break;
-          case DataSource.CSV_SERDE_NAME:
-            intoTopicSerde = new KsqlCsvTopicSerDe();
-            break;
-          default:
-            throw new KsqlException(
-                String.format("Unsupported format: %s", analysis.getIntoFormat()));
-        }
-      } else {
-        if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-          intoTopicSerde = new KsqlAvroTopicSerDe(null, null);
-        }
-      }
-
-      KsqlTopic newIntoKsqlTopic = new KsqlTopic(intoKafkaTopicName,
-          intoKafkaTopicName, intoTopicSerde);
-      KsqlStream intoKsqlStream = new KsqlStream(intoStructuredDataSource.getName(),
-                                              null, null, null,
-                                                 newIntoKsqlTopic);
-      analysis.setInto(intoKsqlStream);
+      analyzeNonStdOutSink();
     }
 
     process(node.getSelect(), new AnalysisContext(null,
@@ -129,6 +92,47 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     analyzeExpressions();
 
     return null;
+  }
+
+  private void analyzeNonStdOutSink() {
+    List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
+
+    StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
+    String intoKafkaTopicName = analysis.getIntoKafkaTopicName();
+    if (intoKafkaTopicName == null) {
+      intoKafkaTopicName = intoStructuredDataSource.getName();
+    }
+
+    KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
+        .getKsqlTopicSerDe();
+    if (analysis.getIntoFormat() != null) {
+      switch (analysis.getIntoFormat().toUpperCase()) {
+        case DataSource.AVRO_SERDE_NAME:
+          intoTopicSerde = new KsqlAvroTopicSerDe(analysis.getIntoAvroSchemaFilePath(),
+                                                  null);
+          break;
+        case DataSource.JSON_SERDE_NAME:
+          intoTopicSerde = new KsqlJsonTopicSerDe(null);
+          break;
+        case DataSource.CSV_SERDE_NAME:
+          intoTopicSerde = new KsqlCsvTopicSerDe();
+          break;
+        default:
+          throw new KsqlException(
+              String.format("Unsupported format: %s", analysis.getIntoFormat()));
+      }
+    } else {
+      if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
+        intoTopicSerde = new KsqlAvroTopicSerDe(null, null);
+      }
+    }
+
+    KsqlTopic newIntoKsqlTopic = new KsqlTopic(intoKafkaTopicName,
+                                               intoKafkaTopicName, intoTopicSerde);
+    KsqlStream intoKsqlStream = new KsqlStream(intoStructuredDataSource.getName(),
+                                               null, null, null,
+                                               newIntoKsqlTopic);
+    analysis.setInto(intoKsqlStream);
   }
 
   private void analyzeExpressions() {
@@ -166,18 +170,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (leftDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
     }
-    if (((Table) left.getRelation()).getProperties() != null) {
-      if (((Table) left.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
-          != null) {
-        String timestampFieldName = (((Table) left.getRelation()))
-            .getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
-          throw new KsqlException("Property name should be String with single qoute.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        leftDataSource = leftDataSource.cloneWithTimeField(timestampFieldName);
-      }
-    }
+    leftDataSource = timestampColumn(left, leftDataSource);
 
     String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
@@ -185,18 +178,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
     }
 
-    if (((Table) right.getRelation()).getProperties() != null) {
-      if (((Table) right.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
-          != null) {
-        String timestampFieldName = (((Table) right.getRelation())).getProperties()
-            .get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
-          throw new KsqlException("Property name should be String with single quote.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        rightDataSource = rightDataSource.cloneWithTimeField(timestampFieldName);
-      }
-    }
+    rightDataSource = timestampColumn(right, rightDataSource);
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
@@ -273,6 +255,24 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
   }
 
+  private StructuredDataSource timestampColumn(AliasedRelation aliasedRelation,
+                                               StructuredDataSource
+                                               structuredDataSource) {
+    if (((Table) aliasedRelation.getRelation()).getProperties() != null) {
+      if (((Table) aliasedRelation.getRelation()).getProperties()
+              .get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+        String timestampFieldName = (((Table) aliasedRelation.getRelation()))
+            .getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
+        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
+          throw new KsqlException("Property name should be String with single qoute.");
+        }
+        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
+        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
+      }
+    }
+    return structuredDataSource;
+  }
+
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
@@ -315,101 +315,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                          null, StructuredDataSource.DataSourceType.KSTREAM);
 
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
-      into = new KsqlStream(node.getName().getSuffix(), null, null,
-                            null, null);
-
-      if (node.getProperties().get(DdlConfig.FORMAT_PROPERTY) != null) {
-        String serde = node.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
-        if (!serde.startsWith("'") && !serde.endsWith("'")) {
-          throw new KsqlException(
-              serde + " value is string and should be enclosed between " + "\"'\".");
-        }
-        serde = serde.substring(1, serde.length() - 1);
-        analysis.setIntoFormat(serde);
-        analysis.getIntoProperties().put(DdlConfig.FORMAT_PROPERTY, serde);
-        if ("AVRO".equals(serde)) {
-          String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
-          if (node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) != null) {
-            avroSchemaFilePath = node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString();
-            if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
-              throw new KsqlException(
-                  avroSchemaFilePath + " value is string and should be enclosed between "
-                      + "\"'\".");
-            }
-            avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
-          }
-          analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
-          analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
-
-        }
-      }
-
-      if (node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
-        String
-            intoKafkaTopicName =
-            node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
-        if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
-          throw new KsqlException(
-              intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
-        }
-        intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
-        analysis.setIntoKafkaTopicName(intoKafkaTopicName);
-        analysis.getIntoProperties().put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
-      }
-
-      if (node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY) != null) {
-        String intoPartitionByColumnName = node.getProperties()
-            .get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
-        analysis.getIntoProperties().put(DdlConfig.PARTITION_BY_PROPERTY,
-                                         intoPartitionByColumnName);
-      }
-
-      if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-        String
-            intoTimestampColumnName = node.getProperties()
-            .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
-        if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
-          throw new KsqlException(
-              intoTimestampColumnName + " value is string and should be enclosed between "
-              + "\"'\".");
-        }
-        intoTimestampColumnName = intoTimestampColumnName.substring(1,
-                                                                    intoTimestampColumnName
-                                                                            .length() - 1);
-        analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
-                                         intoTimestampColumnName);
-      }
-
-      if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
-        try {
-          int numberOfPartitions = Integer.parseInt(node.getProperties()
-                                                        .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
-                                                        .toString());
-          analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS,
-                                           numberOfPartitions);
-
-        } catch (NumberFormatException e) {
-          throw new KsqlException("Invalid number of partitions in WITH clause: "
-                                  + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
-                                      .toString());
-        }
-      }
-
-      if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
-        try {
-          short numberOfReplications =
-              Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
-                                   .toString());
-          analysis.getIntoProperties()
-              .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
-        } catch (NumberFormatException e) {
-          throw new KsqlException("Invalid number of replications in WITH clause: " + node
-              .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
-        }
-      }
-
-
-
+      into = analyzeNonStdOutTable(node);
     } else {
       throw new KsqlException("INTO clause is not set correctly!");
     }
@@ -417,6 +323,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     analysis.setInto(into);
     return null;
   }
+
+
 
   @Override
   protected Node visitCast(final Cast node, final AnalysisContext context) {
@@ -505,5 +413,116 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   private void analyzeHaving(final Node node, final AnalysisContext context) {
     analysis.setHavingExpression((Expression) node);
+  }
+
+  private StructuredDataSource analyzeNonStdOutTable(final Table node) {
+    StructuredDataSource into = new KsqlStream(node.getName().getSuffix(), null,
+                                               null, null, null);
+
+    setIntoProperties(into, node);
+    return into;
+  }
+
+  private void setIntoProperties(final StructuredDataSource into, final Table node) {
+    if (node.getProperties().get(DdlConfig.FORMAT_PROPERTY) != null) {
+      setIntoTopicFormat(into, node);
+    }
+
+    if (node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
+      setIntoTopicName(node);
+    }
+
+    if (node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY) != null) {
+      String intoPartitionByColumnName = node.getProperties()
+          .get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
+      analysis.getIntoProperties().put(DdlConfig.PARTITION_BY_PROPERTY,
+                                       intoPartitionByColumnName);
+    }
+
+    if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+      setIntoTimestampColumn(node);
+    }
+
+    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
+      try {
+        int numberOfPartitions = Integer.parseInt(node.getProperties()
+                                                      .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                                      .toString());
+        analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS,
+                                         numberOfPartitions);
+
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Invalid number of partitions in WITH clause: "
+                                + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                    .toString());
+      }
+    }
+
+    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
+      try {
+        short numberOfReplications =
+            Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
+                                 .toString());
+        analysis.getIntoProperties()
+            .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Invalid number of replications in WITH clause: " + node
+            .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+      }
+    }
+  }
+
+  private void setIntoTopicName(final Table node) {
+    String
+        intoKafkaTopicName =
+        node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
+    if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
+      throw new KsqlException(
+          intoKafkaTopicName + " value is string and should be enclosed between " + "\"'\".");
+    }
+    intoKafkaTopicName = intoKafkaTopicName.substring(1, intoKafkaTopicName.length() - 1);
+    analysis.setIntoKafkaTopicName(intoKafkaTopicName);
+    analysis.getIntoProperties().put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, intoKafkaTopicName);
+  }
+
+  private void setIntoTopicFormat(final StructuredDataSource into, final Table node) {
+    String serde = node.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
+    if (!serde.startsWith("'") && !serde.endsWith("'")) {
+      throw new KsqlException(
+          serde + " value is string and should be enclosed between " + "\"'\".");
+    }
+    serde = serde.substring(1, serde.length() - 1);
+    analysis.setIntoFormat(serde);
+    analysis.getIntoProperties().put(DdlConfig.FORMAT_PROPERTY, serde);
+    if ("AVRO".equals(serde)) {
+      String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
+      if (node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) != null) {
+        avroSchemaFilePath = node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString();
+        if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
+          throw new KsqlException(
+              avroSchemaFilePath + " value is string and should be enclosed between "
+              + "\"'\".");
+        }
+        avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
+      }
+      analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
+      analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
+    }
+  }
+
+  private void setIntoTimestampColumn(final Table node) {
+    String
+        intoTimestampColumnName = node.getProperties()
+        .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+    if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
+      throw new KsqlException(
+          intoTimestampColumnName + " value is string and should be enclosed between "
+          + "\"'\".");
+    }
+    intoTimestampColumnName = intoTimestampColumnName.substring(1,
+                                                                intoTimestampColumnName
+                                                                    .length() - 1);
+    analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
+                                     intoTimestampColumnName);
   }
 }

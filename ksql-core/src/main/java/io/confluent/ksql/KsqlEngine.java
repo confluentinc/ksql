@@ -67,74 +67,8 @@ public class KsqlEngine implements Closeable {
   public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
       throws Exception {
 
-    // Parse and AST creation
-    KsqlParser ksqlParser = new KsqlParser();
-    List<SqlBaseParser.SingleStatementContext>
-        parsedStatements =
-        ksqlParser.getStatements(queriesString);
-    List<Pair<String, Query>> queryList = new ArrayList<>();
-    MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
-      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
-    }
-    for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-      Pair<Statement, DataSourceExtractor> statementInfo =
-          ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
-      Statement statement = statementInfo.getLeft();
-      if (statement instanceof Query) {
-        queryList.add(new Pair<>(getStatementString(singleStatementContext), (Query) statement));
-      } else if (statement instanceof CreateStreamAsSelect) {
-        CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-        QuerySpecification querySpecification =
-            (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-        Query query = addInto(
-            createStreamAsSelect.getQuery(),
-            querySpecification,
-            createStreamAsSelect.getName().getSuffix(),
-            createStreamAsSelect.getProperties(),
-            createStreamAsSelect.getPartitionByColumn()
-        );
-        tempMetaStore.putSource(queryEngine.getResultDatasource(
-            querySpecification.getSelect(),
-            createStreamAsSelect.getName().getSuffix()
-        ).cloneWithTimeKeyColumns());
-        queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
-      } else if (statement instanceof CreateTableAsSelect) {
-        CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-        QuerySpecification querySpecification =
-            (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-
-        Query query = addInto(
-            createTableAsSelect.getQuery(),
-            querySpecification,
-            createTableAsSelect.getName().getSuffix(),
-            createTableAsSelect.getProperties(),
-            Optional.empty()
-        );
-
-        tempMetaStore.putSource(queryEngine.getResultDatasource(
-            querySpecification.getSelect(),
-            createTableAsSelect.getName().getSuffix()
-        ).cloneWithTimeKeyColumns());
-        queryList.add(new Pair<>(getStatementString(singleStatementContext), query));
-      } else if (statement instanceof CreateTopic) {
-        KsqlTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);
-        if (ksqlTopic != null) {
-          tempMetaStore.putTopic(ksqlTopic);
-        }
-
-      } else if (statement instanceof CreateStream) {
-        KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
-        if (ksqlStream != null) {
-          tempMetaStore.putSource(ksqlStream);
-        }
-      } else if (statement instanceof CreateTable) {
-        KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
-        if (ksqlTable != null) {
-          tempMetaStore.putSource(ksqlTable);
-        }
-      }
-    }
+    // Build query AST from the query string
+    List<Pair<String, Query>> queryList = buildQueryAstList(queriesString);
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
@@ -155,6 +89,90 @@ public class KsqlEngine implements Closeable {
     }
 
     return runningQueries;
+  }
+
+
+  private List<Pair<String, Query>> buildQueryAstList(final String queriesString) {
+
+    // Parse and AST creation
+    KsqlParser ksqlParser = new KsqlParser();
+    List<SqlBaseParser.SingleStatementContext>
+        parsedStatements =
+        ksqlParser.getStatements(queriesString);
+    List<Pair<String, Query>> queryList = new ArrayList<>();
+    MetaStore tempMetaStore = new MetaStoreImpl();
+    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
+      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
+    }
+    for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
+      Pair<Statement, DataSourceExtractor> statementInfo =
+          ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
+      Statement statement = statementInfo.getLeft();
+      Pair<String, Query> queryPair =
+          buildSingleQueryAst(statement, getStatementString(singleStatementContext),
+                                                          tempMetaStore);
+      if (queryPair != null) {
+        queryList.add(queryPair);
+      }
+    }
+    return queryList;
+  }
+
+  private Pair<String, Query> buildSingleQueryAst(Statement statement, String
+      statementString, MetaStore tempMetaStore) {
+    if (statement instanceof Query) {
+      return  new Pair<>(statementString, (Query) statement);
+    } else if (statement instanceof CreateStreamAsSelect) {
+      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+      QuerySpecification querySpecification =
+          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+      Query query = addInto(
+          createStreamAsSelect.getQuery(),
+          querySpecification,
+          createStreamAsSelect.getName().getSuffix(),
+          createStreamAsSelect.getProperties(),
+          createStreamAsSelect.getPartitionByColumn()
+      );
+      tempMetaStore.putSource(queryEngine.getResultDatasource(
+          querySpecification.getSelect(),
+          createStreamAsSelect.getName().getSuffix()
+      ).cloneWithTimeKeyColumns());
+      return new Pair<>(statementString, query);
+    } else if (statement instanceof CreateTableAsSelect) {
+      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
+      QuerySpecification querySpecification =
+          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
+
+      Query query = addInto(
+          createTableAsSelect.getQuery(),
+          querySpecification,
+          createTableAsSelect.getName().getSuffix(),
+          createTableAsSelect.getProperties(),
+          Optional.empty()
+      );
+
+      tempMetaStore.putSource(queryEngine.getResultDatasource(
+          querySpecification.getSelect(),
+          createTableAsSelect.getName().getSuffix()
+      ).cloneWithTimeKeyColumns());
+      return new Pair<>(statementString, query);
+    } else if (statement instanceof CreateTopic) {
+      KsqlTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);
+      if (ksqlTopic != null) {
+        tempMetaStore.putTopic(ksqlTopic);
+      }
+    } else if (statement instanceof CreateStream) {
+      KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
+      if (ksqlStream != null) {
+        tempMetaStore.putSource(ksqlStream);
+      }
+    } else if (statement instanceof CreateTable) {
+      KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
+      if (ksqlTable != null) {
+        tempMetaStore.putSource(ksqlTable);
+      }
+    }
+    return null;
   }
 
   public static String getStatementString(

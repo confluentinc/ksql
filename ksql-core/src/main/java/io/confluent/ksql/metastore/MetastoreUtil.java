@@ -46,21 +46,8 @@ public class MetastoreUtil {
     String type = node.get("type").asText().toUpperCase();
     String keyFieldName = node.get("key").asText();
     String timestampFieldName = node.get("timestamp").asText();
-    SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
     ArrayNode fields = (ArrayNode) node.get("fields");
-    for (int i = 0; i < fields.size(); i++) {
-      String fieldName = fields.get(i).get("name").textValue();
-      String fieldType;
-      if (fields.get(i).get("type").isArray()) {
-        fieldType = fields.get(i).get("type").get(0).textValue();
-      } else {
-        fieldType = fields.get(i).get("type").textValue();
-      }
-
-      dataSourceBuilder.field(fieldName, getKsqlType(fieldType));
-    }
-
-    Schema dataSource = dataSourceBuilder.build();
+    Schema dataSource = buildDatasourceSchema(name, fields);
 
     if ("STREAM".equals(type)) {
       return new KsqlStream(name, dataSource, dataSource.field(keyFieldName),
@@ -85,6 +72,23 @@ public class MetastoreUtil {
           ksqlTopic, stateStore, isWindowed);
     }
     throw new KsqlException(String.format("Type not supported: '%s'", type));
+  }
+
+  private Schema buildDatasourceSchema(String name, ArrayNode fields) {
+    SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
+    for (int i = 0; i < fields.size(); i++) {
+      String fieldName = fields.get(i).get("name").textValue();
+      String fieldType;
+      if (fields.get(i).get("type").isArray()) {
+        fieldType = fields.get(i).get("type").get(0).textValue();
+      } else {
+        fieldType = fields.get(i).get("type").textValue();
+      }
+
+      dataSourceBuilder.field(fieldName, getKsqlType(fieldType));
+    }
+
+    return dataSourceBuilder.build();
   }
 
   private KsqlTopic createKafkaTopicDataSource(final JsonNode node) throws IOException {

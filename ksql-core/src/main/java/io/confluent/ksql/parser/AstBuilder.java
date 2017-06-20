@@ -356,76 +356,82 @@ public class AstBuilder
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        // expand * and T.*
-        AllColumns allColumns = (AllColumns) selectItem;
-
-        if (from instanceof Join) {
-          Join join = (Join) from;
-          AliasedRelation left = (AliasedRelation) join.getLeft();
-          StructuredDataSource
-              leftDataSource =
-              dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
-          if (leftDataSource == null) {
-            throw new InvalidColumnReferenceException(left.getRelation().toString()
-                                                      + " does not exist.");
-          }
-          AliasedRelation right = (AliasedRelation) join.getRight();
-          StructuredDataSource rightDataSource =
-              dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
-          if (rightDataSource == null) {
-            throw new InvalidColumnReferenceException(right.getRelation().toString()
-                                                      + " does not exist.");
-          }
-          for (Field field : leftDataSource.getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(),
-                                           QualifiedName.of(left.getAlias() + "." + field.name()));
-            SingleColumn
-                newSelectItem =
-                new SingleColumn(qualifiedNameReference,
-                                 left.getAlias() + "_" + field.name());
-            selectItems.add(newSelectItem);
-          }
-          for (Field field : rightDataSource.getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(),
-                                           QualifiedName.of(right.getAlias() + "." + field.name()));
-            SingleColumn
-                newSelectItem =
-                new SingleColumn(qualifiedNameReference,
-                                 right.getAlias() + "_" + field.name());
-            selectItems.add(newSelectItem);
-          }
-        } else {
-          AliasedRelation fromRel = (AliasedRelation) from;
-          StructuredDataSource
-              fromDataSource =
-              dataSourceExtractor.getMetaStore()
-                  .getSource(((Table) fromRel.getRelation()).getName().getSuffix());
-          if (fromDataSource == null) {
-            throw new InvalidColumnReferenceException(
-                ((Table) fromRel.getRelation()).getName().getSuffix() + " does not exist."
-            );
-          }
-          for (Field field : fromDataSource.getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
-                    .of(fromDataSource.getName() + "." + field.name()));
-            SingleColumn
-                newSelectItem =
-                new SingleColumn(qualifiedNameReference, field.name());
-            selectItems.add(newSelectItem);
-          }
-        }
+        return getSelectStartItems(selectItem, from);
 
       } else if (selectItem instanceof SingleColumn) {
         selectItems.add((SingleColumn) selectItem);
       } else {
         throw new IllegalArgumentException(
             "Unsupported SelectItem type: " + selectItem.getClass().getName());
+      }
+    }
+    return selectItems;
+  }
+
+  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final
+  Relation from) {
+    List<SelectItem> selectItems = new ArrayList<>();
+    AllColumns allColumns = (AllColumns) selectItem;
+
+    if (from instanceof Join) {
+      Join join = (Join) from;
+      AliasedRelation left = (AliasedRelation) join.getLeft();
+      StructuredDataSource
+          leftDataSource =
+          dataSourceExtractor.getMetaStore().getSource(left.getRelation().toString());
+      if (leftDataSource == null) {
+        throw new InvalidColumnReferenceException(left.getRelation().toString()
+                                                  + " does not exist.");
+      }
+      AliasedRelation right = (AliasedRelation) join.getRight();
+      StructuredDataSource rightDataSource =
+          dataSourceExtractor.getMetaStore().getSource(right.getRelation().toString());
+      if (rightDataSource == null) {
+        throw new InvalidColumnReferenceException(right.getRelation().toString()
+                                                  + " does not exist.");
+      }
+      for (Field field : leftDataSource.getSchema().fields()) {
+        QualifiedNameReference
+            qualifiedNameReference =
+            new QualifiedNameReference(allColumns.getLocation().get(),
+                                       QualifiedName.of(left.getAlias() + "." + field.name()));
+        SingleColumn
+            newSelectItem =
+            new SingleColumn(qualifiedNameReference,
+                             left.getAlias() + "_" + field.name());
+        selectItems.add(newSelectItem);
+      }
+      for (Field field : rightDataSource.getSchema().fields()) {
+        QualifiedNameReference
+            qualifiedNameReference =
+            new QualifiedNameReference(allColumns.getLocation().get(),
+                                       QualifiedName.of(right.getAlias() + "." + field.name()));
+        SingleColumn
+            newSelectItem =
+            new SingleColumn(qualifiedNameReference,
+                             right.getAlias() + "_" + field.name());
+        selectItems.add(newSelectItem);
+      }
+    } else {
+      AliasedRelation fromRel = (AliasedRelation) from;
+      StructuredDataSource
+          fromDataSource =
+          dataSourceExtractor.getMetaStore()
+              .getSource(((Table) fromRel.getRelation()).getName().getSuffix());
+      if (fromDataSource == null) {
+        throw new InvalidColumnReferenceException(
+            ((Table) fromRel.getRelation()).getName().getSuffix() + " does not exist."
+        );
+      }
+      for (Field field : fromDataSource.getSchema().fields()) {
+        QualifiedNameReference
+            qualifiedNameReference =
+            new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+                .of(fromDataSource.getName() + "." + field.name()));
+        SingleColumn
+            newSelectItem =
+            new SingleColumn(qualifiedNameReference, field.name());
+        selectItems.add(newSelectItem);
       }
     }
     return selectItems;

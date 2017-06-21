@@ -51,8 +51,6 @@
                 // have to assume that any parsing error is for that reason and
                 // we can just stick with the raw message body for the output
                 var splitBody = rawResponseBody.split('\n');
-                // Have to leave the last line off, as it may be an incomplete
-                // JSON blob, which would just cause parsing errors
                 for (var i = 0; i < splitBody.length; i++) {
                     var line = splitBody[i].trim();
                     if (line !== '') {
@@ -60,7 +58,7 @@
                             var parsedJson = JSON.parse(line);
                             renderedBody += renderFunction(parsedJson);
                         } catch (SyntaxError) {
-                          renderedBody += line;
+                            renderedBody += line;
                         }
                         renderedBody += '\n';
                     }
@@ -121,10 +119,10 @@
                 rowValues = [];
                 var streamsProperties = innerBody.streamsProperties;
                 for (var property in streamsProperties) {
-                   if (!streamsProperties.hasOwnProperty(property)) {
-                       continue;
-                   }
-                   rowValues.push([property, streamsProperties[property].toString()]);
+                    if (!streamsProperties.hasOwnProperty(property)) {
+                        continue;
+                    }
+                    rowValues.push([property, streamsProperties[property].toString()]);
                 }
             } else if (statementResponse.queries) {
                 var innerBody = statementResponse.queries;
@@ -247,38 +245,35 @@
         }
 
         function addNewProperty() {
-            var key = document.createElement("input");
-            key.type = "text";
-            key.classList.add("property-key");
+            var key = document.createElement('input');
+            key.type = 'text';
+            key.classList.add('property-key');
 
-            var value = document.createElement("input");
-            value.type = "text";
-            value.classList.add("property-value");
+            var value = document.createElement('input');
+            value.type = 'text';
+            value.classList.add('property-value');
 
-            var deleteButton = document.createElement("button");
-            deleteButton.appendChild(document.createTextNode("X"));
+            var deleteButton = document.createElement('button');
+            deleteButton.appendChild(document.createTextNode('X'));
 
-            var propertySpan = document.createElement("span");
-            propertySpan.classList.add("property");
+            var propertySpan = document.createElement('span');
+            propertySpan.classList.add('property');
 
             propertySpan.appendChild(key);
-            propertySpan.appendChild(document.createTextNode(" "));
-            propertySpan.appendChild(document.createTextNode("="));
-            propertySpan.appendChild(document.createTextNode(" "));
+            propertySpan.appendChild(document.createTextNode(' '));
+            propertySpan.appendChild(document.createTextNode('='));
+            propertySpan.appendChild(document.createTextNode(' '));
             propertySpan.appendChild(value);
-            propertySpan.appendChild(document.createTextNode(" "));
+            propertySpan.appendChild(document.createTextNode(' '));
             propertySpan.appendChild(deleteButton);
 
-            var propertyDiv = document.createElement("div");
-            propertyDiv.classList.add("property");
+            var propertyDiv = document.createElement('div');
+            propertyDiv.classList.add('property');
 
             propertyDiv.appendChild(propertySpan);
-            // propertyDiv.appendChild(deleteButton);
 
-            var propertiesElement = document.getElementById("properties");
-            // propertiesElement.appendChild(propertyDiv);
-            var newPropertyElement = document.getElementById("newProperty");
-            propertiesElement.insertBefore(propertyDiv, newPropertyElement);
+            var propertiesElement = document.getElementById('properties');
+            propertiesElement.appendChild(propertyDiv);
 
             deleteButton.onclick = function() {
                 propertiesElement.removeChild(propertyDiv);
@@ -288,29 +283,29 @@
         function getProperties() {
             var properties = {};
             var key, value;
-            var propertyElements = document.getElementById("properties").children;
+            var propertyElements = document.getElementById('properties').children;
             for (var i = 0; i < propertyElements.length; i++) {
-                var propertyElement = propertyElements[i];
-                if (!propertyElement.classList.contains("property")) {
+                var propertyDiv = propertyElements[i];
+                if (!propertyDiv.classList.contains('property')) {
                     continue;
                 }
-                var propertyElementChildren = propertyElement.children;
-                for (var j = 0; j < propertyElementChildren.length; j++) {
-                    var propertyChild = propertyElementChildren[j];
-                    if (!propertyChild.classList.contains("property")) {
+                var propertyDivChildren = propertyDiv.children;
+                for (var j = 0; j < propertyDivChildren.length; j++) {
+                    var propertySpan = propertyDivChildren[j];
+                    if (!propertySpan.classList.contains('property')) {
                         continue;
                     }
-                    var propertyChildChildren = propertyChild.children;
-                    for (var k = 0; k < propertyChildChildren.length; k++) {
-                        var actualPropertyElement = propertyChildChildren[k];
-                        if (actualPropertyElement.classList.contains("property-key")) {
-                            key = actualPropertyElement.value;
-                        } else if (actualPropertyElement.classList.contains("property-value")) {
-                            value = actualPropertyElement.value;
+                    var propertySpanChildren = propertySpan.children;
+                    for (var k = 0; k < propertySpanChildren.length; k++) {
+                        var propertyInput = propertySpanChildren[k];
+                        if (propertyInput.classList.contains('property-key')) {
+                            key = propertyInput.value;
+                        } else if (propertyInput.classList.contains('property-value')) {
+                            value = propertyInput.value;
                         }
                     }
                 }
-                if (key === "") {
+                if (key === '') {
                     continue;
                 }
                 properties[key] = value;
@@ -326,67 +321,73 @@
         }
 
         .request {
-            width:100%;
-            height:200px;
+            width: 100%;
+            height: 200px;
 
-            font-size:20px;
-            font-family:monospace;
+            font-size: 20px;
+            font-family: monospace;
         }
 
         textarea.request {
             resize: none;
         }
 
-        .loading {
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0% {
-            opacity: 0.1;
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0.1;
-          }
-        }
-
-        .response {
-            width:100%;
-            height:1000px;
-
-            overflow-y:scroll;
-
-            border:2px solid gray;
-
-            font-size:20px;
-        }
-
-        span.property {
-            background-color: rgba(0, 0, 0, 0.05);
-            padding: 5px;
-            margin: 5px;
-        }
-
-        #properties {
+        .properties-wrapper {
             height: 200px;
             width: 45%;
             position: absolute;
             right: 10px;
             top: 10px;
+        }
+
+        .newProperty {
+            margin: 10px 0;
+        }
+
+        #properties {
+            height: 100%;
+            width: 100%;
+
+            margin-top: 5px;
 
             overflow-y: scroll;
         }
 
         .property {
-            padding: 5px;
-            margin: 5px;
+            padding: 5px 0;
+            margin: 5px 0;
         }
 
-        .newProperty {
-            margin: 10px;
+        span.property {
+            padding: 5px;
+            margin: 5px 0;
+        }
+
+        .loading {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.1;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.1;
+            }
+        }
+
+        .response {
+            width: 100%;
+            height: 1000px;
+
+            overflow-y: scroll;
+
+            border: 2px solid gray;
+
+            font-size: 20px;
         }
     </style>
 </head>
@@ -396,12 +397,12 @@
         <br />
         <textarea class="request" id="ksql"></textarea>
     </div>
-    <div class="properties" id="properties">
-        Streams Properties:
-        <div class="newProperty" id="newProperty">
-            <button onclick="addNewProperty();">Add a new property</button>
+    <div class="properties-wrapper">
+        Streams Properties: <button onclick="addNewProperty();">Add a new property</button>
+        <div class="properties" id="properties">
         </div>
     </div>
+    <br />
     <div>
         <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
             &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")

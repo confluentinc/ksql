@@ -46,35 +46,23 @@
         function renderResponse() {
             var renderedBody = '';
             if (streamedResponse) {
-                var parsingError = false;
+                // Used to try to report JSON parsing errors to the user, but
+                // since printed topics don't have a consistent format, just
+                // have to assume that any parsing error is for that reason and
+                // we can just stick with the raw message body for the output
                 var splitBody = rawResponseBody.split('\n');
                 // Have to leave the last line off, as it may be an incomplete
                 // JSON blob, which would just cause parsing errors
-                for (var i = 0; i < splitBody.length - 1; i++) {
+                for (var i = 0; i < splitBody.length; i++) {
                     var line = splitBody[i].trim();
                     if (line !== '') {
                         try {
                             var parsedJson = JSON.parse(line);
                             renderedBody += renderFunction(parsedJson);
                         } catch (SyntaxError) {
-                          // Only want to alert them the first time an error
-                          // is encountered, since there could be a lot
-                          if (!parsingError) {
-                              alert('Error parsing response JSON');
-                          }
-                          parsingError = true;
                           renderedBody += line;
                         }
                         renderedBody += '\n';
-                    }
-                }
-                var lastLine = splitBody[splitBody.length - 1].trim();
-                if (lastLine !== '') {
-                    try {
-                        var parsedJson = JSON.parse(lastLine);
-                        renderedBody += renderFunction(parsedJson) + '\n';
-                    } catch (SyntaxError) {
-                        // It's probably fine
                     }
                 }
             } else {
@@ -431,7 +419,7 @@
         Server response:
         <br />
         <br />
-        Output format:
+        Output format (not supported with topic printing):
             <label>
                 <input checked type="radio" name="output" value="tabular" onchange="updateFormat(renderTabular);"> Tabular
             </label>

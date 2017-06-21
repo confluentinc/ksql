@@ -316,7 +316,7 @@ public class PhysicalPlanBuilder {
 
     SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
-        schemaKTable.getSourceSchemaKStreams(), true);
+        schemaKTable.getSourceSchemaKStreams(), schemaKTable.isWindowed());
 
     if (aggregateNode.getHavingExpressions() != null) {
       finalSchemaKTable = finalSchemaKTable.filter(aggregateNode.getHavingExpressions());

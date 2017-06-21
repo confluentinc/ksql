@@ -45,8 +45,10 @@ public class SchemaKGroupedStream {
                                 final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
+    boolean isWindowed = false;
     KTable<Windowed<String>, GenericRow> aggKtable;
     if (windowExpression != null) {
+      isWindowed = true;
       if (windowExpression.getKsqlWindowExpression() instanceof TumblingWindowExpression) {
         TumblingWindowExpression tumblingWindowExpression =
             (TumblingWindowExpression) windowExpression.getKsqlWindowExpression();
@@ -80,7 +82,7 @@ public class SchemaKGroupedStream {
       aggKtable =
           kgroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
     }
-    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, true);
+    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, isWindowed);
   }
 
   private long getWindowUnitInMillisecond(long value, WindowExpression.WindowUnit windowUnit) {

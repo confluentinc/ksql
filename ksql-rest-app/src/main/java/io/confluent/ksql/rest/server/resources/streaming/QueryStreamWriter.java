@@ -16,6 +16,7 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -27,9 +28,15 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final AtomicReference<Throwable> streamsException;
 
-  QueryStreamWriter(KsqlEngine ksqlEngine, long disconnectCheckInterval, String queryString)
+  QueryStreamWriter(
+      KsqlEngine ksqlEngine,
+      long disconnectCheckInterval,
+      String queryString,
+      Map<String, Object> overriddenProperties
+  )
       throws Exception {
-    QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+    QueryMetadata queryMetadata =
+        ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
           "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",

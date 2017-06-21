@@ -65,24 +65,8 @@ public class KsqlConfig extends AbstractConfig {
     super(config, props);
   }
 
-  public Map<String, Object> getResetStreamsProperties(String applicationId) {
-    Map<String, Object> result = originals();
-    result.put(
-        StreamsConfig.APPLICATION_ID_CONFIG,
-        applicationId
-    );
-    result.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        defaultCommitIntervalMsConfig
-    );
-    result.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        defaultCacheMaxBytesBufferingConfig
-    );
-    result.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
-
-
-    return result;
+  public Map<String, Object> getStreamsProperties() {
+    return (Map<String, Object>) new StreamsConfig(originals()).values();
   }
 
   public Map<String, Object> getKsqlConfigProps() {

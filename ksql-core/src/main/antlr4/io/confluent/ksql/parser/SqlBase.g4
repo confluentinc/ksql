@@ -43,6 +43,7 @@ statement
     | (LIST | SHOW) QUERIES                                                 #listQueries
     | TERMINATE INTEGER_VALUE                                               #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
+    | UNSET STRING                                                          #unsetProperty
     | LOAD expression                                                       #loadProperties
     | CREATE TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                         #createTopic
@@ -615,6 +616,7 @@ EXPORT: 'EXPORT';
 CATALOG: 'CATALOG';
 PROPERTIES: 'PROPERTIES';
 BEGINNING: 'BEGINNING';
+UNSET: 'UNSET';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

@@ -5,7 +5,7 @@
         "fields": [
                 {"name": "registertime", "type": {
                     "type": "long",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "range": {
                             "min": 1487715775521,
                             "max": 1519273364600
@@ -14,7 +14,7 @@
                 }},
                 {"name": "userid", "type": {
                     "type": "int",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "iteration": {
                             "start": 0
                         }
@@ -22,13 +22,13 @@
                 }},
                 {"name": "regionid", "type": {
                     "type": "string",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "regex": "Region_[1-9][0-9]?"
                     }
                 }},
                 {"name": "gender", "type": {
                     "type": "string",
-                    "arg.properties": {
+                    "arg.streamsProperties": {
                         "options": [
                             "MALE",
                             "FEMALE",

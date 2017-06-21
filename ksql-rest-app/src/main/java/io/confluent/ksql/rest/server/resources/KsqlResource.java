@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -56,6 +55,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -88,6 +88,7 @@ public class KsqlResource {
   public Response handleKsqlStatements(KsqlRequest request) throws Exception {
     List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
     List<String> statementStrings = getStatementStrings(request.getKsql());
+    Map<String, Object> streamsProperties = request.getStreamsProperties();
     if (parsedStatements.size() != statementStrings.size()) {
       throw new Exception(String.format(
           "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
@@ -99,7 +100,7 @@ public class KsqlResource {
     for (int i = 0; i < parsedStatements.size(); i++) {
       String statementText = statementStrings.get(i);
       try {
-        result.add(executeStatement(statementText, parsedStatements.get(i)));
+        result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       } catch (Exception exception) {
         result.add(new ErrorMessageEntity(statementText, exception));
       }
@@ -126,7 +127,11 @@ public class KsqlResource {
     return result;
   }
 
-  private KsqlEntity executeStatement(String statementText, Statement statement) throws Exception {
+  private KsqlEntity executeStatement(
+      String statementText,
+      Statement statement,
+      Map<String, Object> streamsProperties
+  ) throws Exception {
     if (statement instanceof ListTopics) {
       return listTopics(statementText);
     } else if (statement instanceof ListStreams) {
@@ -137,8 +142,6 @@ public class KsqlResource {
       return showQueries(statementText);
     } else if (statement instanceof ShowColumns) {
       return describe(statementText, ((ShowColumns) statement).getTable().getSuffix());
-    } else if (statement instanceof SetProperty) {
-      return setProperty(statementText, (SetProperty) statement);
     } else if (statement instanceof ListProperties) {
       return listProperties(statementText);
     } else if (statement instanceof CreateTopic
@@ -151,15 +154,7 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
-      CommandId commandId = commandStore.distributeStatement(statementText, statement);
-      CommandStatus commandStatus;
-      try {
-        commandStatus = statementExecutor.registerQueuedStatement(commandId)
-            .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
-      } catch (TimeoutException exception) {
-        commandStatus = statementExecutor.getStatus(commandId).get();
-      }
-      return new CommandStatusEntity(statementText, commandId, commandStatus);
+      return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
         throw new Exception(String.format(
@@ -175,6 +170,23 @@ public class KsqlResource {
         throw new Exception("Unable to execute statement");
       }
     }
+  }
+
+  private CommandStatusEntity distributeStatement(
+      String statementText,
+      Statement statement,
+      Map<String, Object> streamsProperties
+  ) throws Exception {
+    CommandId commandId =
+        commandStore.distributeStatement(statementText, statement, streamsProperties);
+    CommandStatus commandStatus;
+    try {
+      commandStatus = statementExecutor.registerQueuedStatement(commandId)
+          .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException exception) {
+      commandStatus = statementExecutor.getStatus(commandId).get();
+    }
+    return new CommandStatusEntity(statementText, commandId, commandStatus);
   }
 
   private TopicsList listTopics(String statementText) {
@@ -208,18 +220,6 @@ public class KsqlResource {
       throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
     }
     return new SourceDescription(statementText, dataSource);
-  }
-
-  // TODO: Right now properties can only be set for a single node. Do we want to distribute this?
-  private io.confluent.ksql.rest.entity.SetProperty setProperty(
-      String statementText,
-      SetProperty setProperty
-  ) {
-    String property = setProperty.getPropertyName();
-    Object newValue = setProperty.getPropertyValue();
-    Object oldValue = ksqlEngine.setStreamsProperty(property, newValue);
-    return new
-        io.confluent.ksql.rest.entity.SetProperty(statementText, property, oldValue, newValue);
   }
 
   private PropertiesList listProperties(String statementText) {

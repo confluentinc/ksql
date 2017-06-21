@@ -71,7 +71,8 @@ public class CliTest {
     replay(mockQueryStream);
 
     KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
-    expect(mockRestClient.makeQueryRequest(testBareQuery)).andReturn(RestResponse.successful(mockQueryStream));
+    expect(mockRestClient.makeQueryRequest(testBareQuery, Collections.emptyMap()))
+        .andReturn(RestResponse.successful(mockQueryStream));
     replay(mockRestClient);
 
     getTestCli(mockRestClient).runNonInteractively(testBareQuery);

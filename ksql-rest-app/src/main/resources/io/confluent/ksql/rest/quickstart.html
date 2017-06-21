@@ -277,8 +277,7 @@
 
             var propertiesElement = document.getElementById("properties");
             // propertiesElement.appendChild(propertyDiv);
-            var newPropertyElement = document.getElementById("newProperty");
-            propertiesElement.insertBefore(propertyDiv, newPropertyElement);
+            propertiesElement.appendChild(propertyDiv);
 
             deleteButton.onclick = function() {
                 propertiesElement.removeChild(propertyDiv);
@@ -367,26 +366,33 @@
         span.property {
             background-color: rgba(0, 0, 0, 0.05);
             padding: 5px;
-            margin: 5px;
+            margin: 5px 0;
         }
 
-        #properties {
+        .properties-wrapper {
             height: 200px;
             width: 45%;
             position: absolute;
             right: 10px;
             top: 10px;
+        }
+
+        #properties {
+            height: 100%;
+            width: 100%;
+
+            margin-top: 5px;
 
             overflow-y: scroll;
         }
 
         .property {
-            padding: 5px;
-            margin: 5px;
+            padding: 5px 0;
+            margin: 5px 0;
         }
 
         .newProperty {
-            margin: 10px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -396,12 +402,12 @@
         <br />
         <textarea class="request" id="ksql"></textarea>
     </div>
-    <div class="properties" id="properties">
-        Streams Properties:
-        <div class="newProperty" id="newProperty">
-            <button onclick="addNewProperty();">Add a new property</button>
+    <div class="properties-wrapper">
+        Streams Properties: <button onclick="addNewProperty();">Add a new property</button>
+        <div class="properties" id="properties">
         </div>
     </div>
+    <br />
     <div>
         <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
             &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")

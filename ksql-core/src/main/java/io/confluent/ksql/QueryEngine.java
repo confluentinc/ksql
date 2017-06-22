@@ -122,10 +122,9 @@ public class QueryEngine {
             new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
                           ksqlStructuredDataOutputNode.getSchema(),
                           ksqlStructuredDataOutputNode.getKeyField(),
-                          (ksqlStructuredDataOutputNode.getTimestampField() == null)
-                          ? ksqlStructuredDataOutputNode
-                               .getTheSourceNode().getTimestampField() :
-                           ksqlStructuredDataOutputNode.getTimestampField(),
+                          ksqlStructuredDataOutputNode.getTimestampField() == null
+                              ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
+                              : ksqlStructuredDataOutputNode.getTimestampField(),
                           ksqlStructuredDataOutputNode.getKsqlTopic());
 
         tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
@@ -141,7 +140,8 @@ public class QueryEngine {
       boolean addUniqueTimeSuffix,
       MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
-      final KsqlConfig ksqlConfig
+      KsqlConfig ksqlConfig,
+      Map<String, Object> overriddenStreamsProperties
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
@@ -153,7 +153,7 @@ public class QueryEngine {
 
       KsqlConfig ksqlConfigClone = ksqlConfig.clone();
 
-      //Build a physical plan, in this case a Kafka Streams DSL
+      // Build a physical plan, in this case a Kafka Streams DSL
       PhysicalPlanBuilder physicalPlanBuilder =
           new PhysicalPlanBuilder(builder, ksqlConfigClone);
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
@@ -179,7 +179,8 @@ public class QueryEngine {
           applicationId = addTimeSuffix(applicationId);
         }
 
-        KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone);
+        KafkaStreams streams =
+            buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
 
         QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
         KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
@@ -197,7 +198,8 @@ public class QueryEngine {
           applicationId = addTimeSuffix(applicationId);
         }
 
-        KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone);
+        KafkaStreams streams =
+            buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
 
         KsqlStructuredDataOutputNode kafkaTopicOutputNode =
             (KsqlStructuredDataOutputNode) outputNode;
@@ -252,9 +254,14 @@ public class QueryEngine {
     return new KsqlStream(name, dataSource.schema(), null, null, ksqlTopic);
   }
 
-  private KafkaStreams buildStreams(final KStreamBuilder builder, final String applicationId,
-                                    final KsqlConfig ksqlConfig) {
+  private KafkaStreams buildStreams(
+      final KStreamBuilder builder,
+      final String applicationId,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
     Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlConfigProps();
+    newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,

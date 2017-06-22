@@ -72,13 +72,17 @@ public class CommandStore implements Closeable {
    * Does not return until the statement has been successfully written, or an exception is thrown.
    * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
+   * @param streamsProperties Any command-specific Streams properties to use.
    * @return The ID assigned to the statement
    * @throws Exception TODO: Refine this
    */
-  public CommandId distributeStatement(String statementString, Statement statement)
-      throws Exception {
+  public CommandId distributeStatement(
+      String statementString,
+      Statement statement,
+      Map<String, Object> streamsProperties
+  ) throws Exception {
     CommandId commandId = commandIdAssigner.getCommandId(statement);
-    Command command = new Command(statementString);
+    Command command = new Command(statementString, streamsProperties);
     commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
     return commandId;
   }

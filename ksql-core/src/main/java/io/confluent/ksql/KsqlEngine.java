@@ -32,13 +32,12 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +47,11 @@ import java.util.Set;
 
 public class KsqlEngine implements Closeable {
 
+  // TODO: Decide if any other properties belong in here
+  private static final Set<String> IMMUTABLE_PROPERTIES = new HashSet<>(Arrays.asList(
+      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
+  ));
+
   private final QueryEngine queryEngine;
   private final DdlEngine ddlEngine;
   private final MetaStore metaStore;
@@ -55,6 +59,11 @@ public class KsqlEngine implements Closeable {
   private final Set<QueryMetadata> liveQueries;
 
   private KsqlConfig ksqlConfig;
+
+  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
+      throws Exception {
+    return buildMultipleQueries(createNewAppId, queriesString, Collections.emptyMap());
+  }
 
   /**
    * Runs the set of queries in the given query string.
@@ -64,8 +73,18 @@ public class KsqlEngine implements Closeable {
    * @return List of query metadata.
    * @throws Exception Any exception thrown here!
    */
-  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
-      throws Exception {
+  public List<QueryMetadata> buildMultipleQueries(
+      boolean createNewAppId,
+      String queriesString,
+      Map<String, Object> overriddenProperties
+  ) throws Exception {
+    for (String property : overriddenProperties.keySet()) {
+      if (IMMUTABLE_PROPERTIES.contains(property)) {
+        throw new IllegalArgumentException(
+            String.format("Cannot override property '%s'", property)
+        );
+      }
+    }
 
     // Build query AST from the query string
     List<Pair<String, Query>> queryList = buildQueryAstList(queriesString);
@@ -74,9 +93,13 @@ public class KsqlEngine implements Closeable {
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
     // Physical plan creation from logical plans.
-    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(createNewAppId,
-                                                                        metaStore, logicalPlans,
-                                                                        ksqlConfig);
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+        createNewAppId,
+        metaStore,
+        logicalPlans,
+        ksqlConfig,
+        overriddenProperties
+    );
 
     for (QueryMetadata queryMetadata : runningQueries) {
 
@@ -246,57 +269,12 @@ public class KsqlEngine implements Closeable {
     return new HashSet<>(liveQueries);
   }
 
-  public static boolean isValidStreamsProperty(String property) {
-    if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
-      String strippedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      return ConsumerConfig.configNames().contains(strippedProperty);
-    } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
-      String strippedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      return ProducerConfig.configNames().contains(strippedProperty);
-    } else {
-      return StreamsConfig.configDef().names().contains(property)
-          || ConsumerConfig.configNames().contains(property)
-          || ProducerConfig.configNames().contains(property);
-    }
-  }
-
-  // May want to flesh this out a little more in the future and improve error messages,
-  // but right now this does what it
-  // needs to--makes sure the given properties would create a valid StreamsConfig object
-  public void validateStreamsProperties(Map<String, Object> streamsProperties) {
-    new StreamsConfig(streamsProperties);
-    // TODO: Validate consumer and producer properties as well
-  }
-
-  public Object setStreamsProperty(String property, Object value) {
-    if (!isValidStreamsProperty(property)) {
-      throw new IllegalArgumentException(String.format("'%s' is not a valid property", property));
-    }
-
-    Map<String, Object> newProperties = new HashMap<>(ksqlConfig.getKsqlConfigProps());
-    newProperties.put(property, value);
-
-    try {
-      validateStreamsProperties(newProperties);
-    } catch (ConfigException configException) {
-      throw new IllegalArgumentException(
-          String.format("Invalid value for '%s' property: '%s'", property, value)
-      );
-    }
-    
-    Object oldValue = ksqlConfig.get(property);
-    ksqlConfig.put(property, value);
-    return oldValue;
+  public static List<String> getImmutableProperties() {
+    return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }
 
   public Map<String, Object> getStreamsProperties() {
-    Map<String, Object> result = new HashMap<>();
-    for (Map.Entry<String, Object> propertyEntry : ksqlConfig.getKsqlConfigProps().entrySet()) {
-      if (isValidStreamsProperty(propertyEntry.getKey())) {
-        result.put(propertyEntry.getKey(), propertyEntry.getValue());
-      }
-    }
-    return result;
+    return ksqlConfig.getStreamsProperties();
   }
 
   @Override
@@ -307,8 +285,6 @@ public class KsqlEngine implements Closeable {
   }
 
   public KsqlEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
-    validateStreamsProperties(streamsProperties);
-
     this.ksqlConfig = new KsqlConfig(streamsProperties);
     this.metaStore = metaStore;
     this.queryEngine = new QueryEngine(ksqlConfig);

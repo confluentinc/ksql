@@ -15,6 +15,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlTestUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -137,5 +138,21 @@ public class PhysicalPlanBuilderTest {
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+    }
+
+    @Test
+    public void testSimpleAggregateNoWindow() throws Exception {
+        String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
+                             + "WHERE col0 > 100 GROUP BY col0;";
+        SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
+        Assert.assertNotNull(schemaKStream);
+        Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0) instanceof SchemaKTable);
+        Assert.assertTrue(((SchemaKTable) schemaKStream.getSourceSchemaKStreams().get(0))
+                              .isWindowed() == false);
     }
 }

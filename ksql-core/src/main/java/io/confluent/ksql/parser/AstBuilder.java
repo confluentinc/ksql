@@ -102,6 +102,7 @@ import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.Union;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
@@ -597,13 +598,11 @@ public class AstBuilder
 
   @Override
   public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
-
     return new ListStreams(Optional.ofNullable(getLocation(context)));
   }
 
   @Override
   public Node visitListTables(SqlBaseParser.ListTablesContext context) {
-
     return new ListTables(Optional.ofNullable(getLocation(context)));
   }
 
@@ -631,11 +630,15 @@ public class AstBuilder
 
   @Override
   public Node visitSetProperty(SqlBaseParser.SetPropertyContext context) {
-    String propertyName = context.STRING(0).getText();
-    propertyName = propertyName.substring(1, propertyName.length() - 1);
-    String propertyValue = context.STRING(1).getText();
-    propertyValue = propertyValue.substring(1, propertyValue.length() - 1);
+    String propertyName = unquote(context.STRING(0).getText(), "'");
+    String propertyValue = unquote(context.STRING(1).getText(), "'");
     return new SetProperty(Optional.ofNullable(getLocation(context)), propertyName, propertyValue);
+  }
+
+  @Override
+  public Node visitUnsetProperty(SqlBaseParser.UnsetPropertyContext context) {
+    String propertyName = unquote(context.STRING().getText(), "'");
+    return new UnsetProperty(Optional.ofNullable(getLocation(context)), propertyName);
   }
 
   @Override
@@ -1294,7 +1297,7 @@ public class AstBuilder
     }
   }
 
-  private static String unquote(String value, String quote) {
+  public static String unquote(String value, String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
   }

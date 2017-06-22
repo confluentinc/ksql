@@ -14,6 +14,7 @@
             xhr.abort();
 
             var ksql = document.getElementById('ksql').value;
+            var properties = getProperties();
 
             xhr.onreadystatechange = function() {
                 if (xhr.response !== '' && ((xhr.readyState === 3 && streamedResponse) || xhr.readyState === 4)) {
@@ -26,7 +27,7 @@
                 }
             };
 
-            var data = JSON.stringify({'ksql': ksql});
+            var data = JSON.stringify({'ksql': ksql, 'streamsProperties': properties});
 
             document.getElementById('cancel_request').hidden = false;
             document.getElementById('request_loading').hidden = false;
@@ -45,35 +46,21 @@
         function renderResponse() {
             var renderedBody = '';
             if (streamedResponse) {
-                var parsingError = false;
+                // Used to try to report JSON parsing errors to the user, but
+                // since printed topics don't have a consistent format, just
+                // have to assume that any parsing error is for that reason and
+                // we can just stick with the raw message body for the output
                 var splitBody = rawResponseBody.split('\n');
-                // Have to leave the last line off, as it may be an incomplete
-                // JSON blob, which would just cause parsing errors
-                for (var i = 0; i < splitBody.length - 1; i++) {
+                for (var i = 0; i < splitBody.length; i++) {
                     var line = splitBody[i].trim();
                     if (line !== '') {
                         try {
                             var parsedJson = JSON.parse(line);
                             renderedBody += renderFunction(parsedJson);
                         } catch (SyntaxError) {
-                          // Only want to alert them the first time an error
-                          // is encountered, since there could be a lot
-                          if (!parsingError) {
-                              alert('Error parsing response JSON');
-                          }
-                          parsingError = true;
-                          renderedBody += line;
+                            renderedBody += line;
                         }
                         renderedBody += '\n';
-                    }
-                }
-                var lastLine = splitBody[splitBody.length - 1].trim();
-                if (lastLine !== '') {
-                    try {
-                        var parsedJson = JSON.parse(lastLine);
-                        renderedBody += renderFunction(parsedJson) + '\n';
-                    } catch (SyntaxError) {
-                        // It's probably fine
                     }
                 }
             } else {
@@ -126,16 +113,16 @@
             } else if (statementResponse.error) {
                 var innerBody = statementResponse.error;
                 return innerBody.message;
-            } else if (statementResponse.properties) {
-                var innerBody = statementResponse.properties;
+            } else if (statementResponse.streamsProperties) {
+                var innerBody = statementResponse.streamsProperties;
                 columnHeaders = ['Property', 'Value'];
                 rowValues = [];
-                var properties = innerBody.properties;
-                for (var property in properties) {
-                   if (!properties.hasOwnProperty(property)) {
-                       continue;
-                   }
-                   rowValues.push([property, properties[property].toString()]);
+                var streamsProperties = innerBody.streamsProperties;
+                for (var property in streamsProperties) {
+                    if (!streamsProperties.hasOwnProperty(property)) {
+                        continue;
+                    }
+                    rowValues.push([property, streamsProperties[property].toString()]);
                 }
             } else if (statementResponse.queries) {
                 var innerBody = statementResponse.queries;
@@ -256,79 +243,196 @@
                 renderResponse();
             }
         }
+
+        function addNewProperty() {
+            var key = document.createElement('input');
+            key.type = 'text';
+            key.classList.add('property-key');
+
+            var value = document.createElement('input');
+            value.type = 'text';
+            value.classList.add('property-value');
+
+            var deleteButton = document.createElement('button');
+            deleteButton.appendChild(document.createTextNode('X'));
+
+            var propertySpan = document.createElement('span');
+            propertySpan.classList.add('property');
+
+            propertySpan.appendChild(key);
+            propertySpan.appendChild(document.createTextNode(' '));
+            propertySpan.appendChild(document.createTextNode('='));
+            propertySpan.appendChild(document.createTextNode(' '));
+            propertySpan.appendChild(value);
+            propertySpan.appendChild(document.createTextNode(' '));
+            propertySpan.appendChild(deleteButton);
+
+            var propertyDiv = document.createElement('div');
+            propertyDiv.classList.add('property');
+
+            propertyDiv.appendChild(propertySpan);
+
+            var propertiesElement = document.getElementById('properties');
+            propertiesElement.appendChild(propertyDiv);
+
+            deleteButton.onclick = function() {
+                propertiesElement.removeChild(propertyDiv);
+            }
+        }
+
+        function getProperties() {
+            var properties = {};
+            var key, value;
+            var propertyElements = document.getElementById('properties').children;
+            for (var i = 0; i < propertyElements.length; i++) {
+                var propertyDiv = propertyElements[i];
+                if (!propertyDiv.classList.contains('property')) {
+                    continue;
+                }
+                var propertyDivChildren = propertyDiv.children;
+                for (var j = 0; j < propertyDivChildren.length; j++) {
+                    var propertySpan = propertyDivChildren[j];
+                    if (!propertySpan.classList.contains('property')) {
+                        continue;
+                    }
+                    var propertySpanChildren = propertySpan.children;
+                    for (var k = 0; k < propertySpanChildren.length; k++) {
+                        var propertyInput = propertySpanChildren[k];
+                        if (propertyInput.classList.contains('property-key')) {
+                            key = propertyInput.value;
+                        } else if (propertyInput.classList.contains('property-value')) {
+                            value = propertyInput.value;
+                        }
+                    }
+                }
+                if (key === '') {
+                    continue;
+                }
+                properties[key] = value;
+            }
+            return properties;
+        }
+
+        window.onload = addNewProperty;
     </script>
     <style>
-        .request {
-            width:100%;
-            height:100px;
+        #ksql-wrapper {
+            width: 45%;
+        }
 
-            font-size:20px;
-            font-family:monospace;
+        .request {
+            width: 100%;
+            height: 200px;
+
+            font-size: 20px;
+            font-family: monospace;
+        }
+
+        textarea.request {
+            resize: none;
+        }
+
+        .properties-wrapper {
+            height: 200px;
+            width: 45%;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        .newProperty {
+            margin: 10px 0;
+        }
+
+        #properties {
+            height: 100%;
+            width: 100%;
+
+            margin-top: 5px;
+
+            overflow-y: scroll;
+        }
+
+        .property {
+            padding: 5px 0;
+            margin: 5px 0;
+        }
+
+        span.property {
+            padding: 5px;
+            margin: 5px 0;
         }
 
         .loading {
-          animation: pulse 2s infinite;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-          0% {
-            opacity: 0.1;
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0.1;
-          }
+            0% {
+                opacity: 0.1;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.1;
+            }
         }
 
         .response {
-            width:100%;
-            height:1000px;
+            width: 100%;
+            height: 1000px;
 
-            overflow-y:scroll;
+            overflow-y: scroll;
 
-            border:2px solid gray;
+            border: 2px solid gray;
 
-            font-size:20px;
+            font-size: 20px;
         }
     </style>
 </head>
 <body>
-    KSQL:
+    <div id="ksql-wrapper">
+        KSQL:
+        <br />
+        <textarea class="request" id="ksql"></textarea>
+    </div>
+    <div class="properties-wrapper">
+        Streams Properties: <button onclick="addNewProperty();">Add a new property</button>
+        <div class="properties" id="properties">
+        </div>
+    </div>
     <br />
-    <textarea class="request" id="ksql"></textarea>
-    <br />
-    <br />
-    <br />
-    <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
-        &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
-    <br />
-    <br />
-    <button onclick="streamedResponse = true; sendRequest('/query');">Stream a query!</button>
-        &nbsp;&nbsp;(example: "SELECT * FROM foo;", "PRINT topic_foo;")
-    <br />
-    <br />
-    <span class="loading" id="request_loading" hidden>Request loading...</span>
-    <button hidden id="cancel_request" onclick="xhr.abort();">Cancel request...</button>
-    <br />
-    <br />
-    <br />
-    Server response:
-    <br />
-    <br />
-    Output format:
-        <label>
-            <input checked type="radio" name="output" value="tabular" onchange="updateFormat(renderTabular);"> Tabular
-        </label>
-        <label>
-            <input type="radio" name="output" value="prettyjson" onchange="updateFormat(renderPrettyJson);"> JSON (pretty)
-        </label>
-        <label>
-            <input type="radio" name="output" value="compactjson" onchange="updateFormat(renderCompactJson);"> JSON (compact)
-        </label>
-    <br />
-    <br />
-    <pre id="response" class="response"></pre>
+    <div>
+        <button onclick="streamedResponse = false; sendRequest('/ksql');">Send Request!</button>
+            &nbsp;&nbsp;(examples: "LIST STREAMS;", "SHOW QUERIES;", "CREATE STREAM foo AS SELECT baz FROM bar;")
+        <br />
+        <br />
+        <button onclick="streamedResponse = true; sendRequest('/query');">Stream a query!</button>
+            &nbsp;&nbsp;(example: "SELECT * FROM foo;", "PRINT topic_foo;")
+        <br />
+        <br />
+        <span class="loading" id="request_loading" hidden>Request loading...</span>
+        <button hidden id="cancel_request" onclick="xhr.abort();">Cancel request...</button>
+        <br />
+        <br />
+        <br />
+        Server response:
+        <br />
+        <br />
+        Output format (not supported with topic printing):
+            <label>
+                <input checked type="radio" name="output" value="tabular" onchange="updateFormat(renderTabular);"> Tabular
+            </label>
+            <label>
+                <input type="radio" name="output" value="prettyjson" onchange="updateFormat(renderPrettyJson);"> JSON (pretty)
+            </label>
+            <label>
+                <input type="radio" name="output" value="compactjson" onchange="updateFormat(renderCompactJson);"> JSON (compact)
+            </label>
+        <br />
+        <br />
+        <pre id="response" class="response"></pre>
+    </div>
 </body>
 </html>

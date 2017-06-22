@@ -160,7 +160,7 @@
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>ksql-version.properties</include>
+                    <include>ksql-version.streamsProperties</include>
                 </includes>
             </resource>
 
@@ -168,7 +168,7 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>ksql-version.properties</exclude>
+                    <exclude>ksql-version.streamsProperties</exclude>
                 </excludes>
             </resource>
         </resources>

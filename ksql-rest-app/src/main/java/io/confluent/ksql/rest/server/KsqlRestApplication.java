@@ -32,9 +32,12 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.TopicUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -177,10 +180,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       throws Exception {
     KsqlRestConfig config = new KsqlRestConfig(props);
 
-    TopicUtil topicUtil = new TopicUtil(config);
+    AdminClient client = AdminClient.create((Map) props);
+    TopicUtil topicUtil = new TopicUtil(client);
 
     String commandTopic = config.getCommandTopic();
-    if (!topicUtil.ensureTopicExists(commandTopic)) {
+    if (!topicUtil.ensureTopicExists(commandTopic, 1, (short) 1)) {
       throw new Exception(
           String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
       );

@@ -44,7 +44,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,13 +56,10 @@ public class QueryEngine {
 
   private final AtomicLong queryIdCounter;
 
-  private StreamsKafkaClient streamsKafkaClient;
 
   public QueryEngine(KsqlConfig ksqlConfig) {
     Objects.requireNonNull(
         ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
-    this.streamsKafkaClient =
-        new StreamsKafkaClient(new StreamsConfig(ksqlConfig.getKsqlConfigProps()));
     this.queryIdCounter = new AtomicLong(1);
   }
 
@@ -159,7 +155,7 @@ public class QueryEngine {
 
       // Build a physical plan, in this case a Kafka Streams DSL
       PhysicalPlanBuilder physicalPlanBuilder =
-          new PhysicalPlanBuilder(builder, streamsKafkaClient, ksqlConfigClone);
+          new PhysicalPlanBuilder(builder, ksqlConfigClone);
       SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
       OutputNode outputNode = physicalPlanBuilder.getPlanSink();

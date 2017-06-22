@@ -14,9 +14,11 @@ import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
+import io.confluent.ksql.util.TopicUtil;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,18 +29,13 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.internals.InternalTopicConfig;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
@@ -69,10 +66,9 @@ public class SchemaKStream {
   }
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                            final Set<Integer> rowkeyIndexes, final StreamsKafkaClient
-                            streamsKafkaClient, KsqlConfig ksqlConfig) {
+                            final Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig) {
 
-    createSinkTopic(kafkaTopicName, streamsKafkaClient, ksqlConfig);
+    createSinkTopic(kafkaTopicName, ksqlConfig);
 
     kstream
         .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
@@ -282,23 +278,11 @@ public class SchemaKStream {
   }
 
   protected void createSinkTopic(
-      final String kafkaTopicName,
-      final StreamsKafkaClient streamsKafkaClient, KsqlConfig ksqlConfig) {
-    InternalTopicConfig internalTopicConfig =
-        new InternalTopicConfig(kafkaTopicName,
-                                Utils.mkSet(InternalTopicConfig.CleanupPolicy
-                                                                 .compact,
-                                                             InternalTopicConfig.CleanupPolicy
-                                                                 .delete),
-                                Collections.<String, String>emptyMap());
-    Map<InternalTopicConfig, Integer> topics = new HashMap<>();
+      final String kafkaTopicName, KsqlConfig ksqlConfig) {
     int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS);
     short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS);
-    long windowChangeLogAdditionalRetention =
-        (Long) ksqlConfig.get(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION);
-    topics.put(internalTopicConfig, numberOfPartitions);
-    streamsKafkaClient.createTopics(topics, numberOfReplications,
-                                    windowChangeLogAdditionalRetention,
-                                    streamsKafkaClient.fetchMetadata());
+    TopicUtil topicUtil = new TopicUtil(AdminClient.create(ksqlConfig.getKsqlConfigProps()));
+    topicUtil.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+
   }
 }

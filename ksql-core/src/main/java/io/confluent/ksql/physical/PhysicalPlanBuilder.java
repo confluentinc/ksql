@@ -53,7 +53,6 @@ import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,14 +65,11 @@ public class PhysicalPlanBuilder {
 
   KStreamBuilder builder;
   OutputNode planSink = null;
-  StreamsKafkaClient streamsKafkaClient = null;
 
   KsqlConfig ksqlConfig = null;
 
-  public PhysicalPlanBuilder(final KStreamBuilder builder, final StreamsKafkaClient
-      streamsKafkaClient, final KsqlConfig ksqlConfig) {
+  public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig) {
     this.builder = builder;
-    this.streamsKafkaClient = streamsKafkaClient;
     this.ksqlConfig = ksqlConfig;
   }
 
@@ -185,7 +181,6 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
                        ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
           rowkeyIndexes,
-          streamsKafkaClient,
           ksqlConfig);
 
 

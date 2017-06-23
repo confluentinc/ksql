@@ -253,7 +253,7 @@ public class KsqlResourceTest {
   public void testErroneousStatement() throws Exception {
     TestKsqlResource testResource = new TestKsqlResource();
     final String ksqlString = "DESCRIBE nonexistent_table;";
-    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"));
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"), false);
 
     makeSingleRequest(
         testResource,
@@ -344,7 +344,7 @@ public class KsqlResourceTest {
     TestKsqlResource testResource = new TestKsqlResource();
     final String tableName = "test_table";
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
-    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName));
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false);
 
     SourceDescription testDescription = makeSingleRequest(
         testResource,

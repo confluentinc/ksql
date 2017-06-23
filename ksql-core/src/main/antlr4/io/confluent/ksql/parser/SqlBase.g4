@@ -38,7 +38,7 @@ statement
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) STREAMS                                                 #listStreams
     | (LIST | SHOW) TABLES                                                  #listTables
-    | DESCRIBE qualifiedName                                                #showColumns
+    | DESCRIBE (qualifiedName | TOPIC qualifiedName)                        #showColumns
     | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES                                                 #listQueries
     | TERMINATE INTEGER_VALUE                                               #terminateQuery

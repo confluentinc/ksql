@@ -189,7 +189,7 @@ public class SchemaKStream {
                 GenericRow joinGenericRow = new GenericRow(columns);
                 return joinGenericRow;
               }
-    }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
+            }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
                              Arrays.asList(this, schemaKTable));

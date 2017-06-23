@@ -54,9 +54,9 @@ public class CommandRunner implements Runnable, Closeable {
         log.debug("Found {} new writes to command topic", records.count());
         for (ConsumerRecord<CommandId, Command> record : records) {
           CommandId commandId = record.key();
-          String statementStr = record.value().getStatement();
-          if (statementStr != null) {
-            executeStatement(statementStr, commandId);
+          Command command = record.value();
+          if (command.getStatement() != null) {
+            executeStatement(command, commandId);
           } else {
             log.debug("Skipping null statement for ID {}", commandId);
           }
@@ -88,13 +88,13 @@ public class CommandRunner implements Runnable, Closeable {
     for (Map.Entry<CommandId, Command> priorCommand : priorCommands.entrySet()) {
       priorStatements.put(priorCommand.getKey(), priorCommand.getValue().getStatement());
     }
-    statementExecutor.handleStatements(priorStatements);
+    statementExecutor.handleStatements(priorCommands);
   }
 
-  private void executeStatement(String statementStr, CommandId commandId) {
-    log.info("Executing statement: " + statementStr);
+  private void executeStatement(Command command, CommandId commandId) {
+    log.info("Executing statement: " + command.getStatement());
     try {
-      statementExecutor.handleStatement(statementStr, commandId);
+      statementExecutor.handleStatement(command, commandId);
     } catch (WakeupException wue) {
       throw wue;
     } catch (Exception exception) {

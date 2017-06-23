@@ -9,6 +9,7 @@ public class DdlConfig {
 
   public static final String FORMAT_PROPERTY = "FORMAT";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
+  public static final String AVRO_SCHEMA = "AVROSCHEMA";
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
   public static final String TOPIC_NAME_PROPERTY = "TOPICNAME";
   public static final String STATE_STORE_NAME_PROPERTY = "STATESTORE";

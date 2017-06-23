@@ -7,6 +7,8 @@ package io.confluent.ksql.cli;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.cli.util.CliUtils;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -28,6 +30,7 @@ import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
@@ -641,6 +644,14 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
+      } else if (statementContext.statement() instanceof SqlBaseParser.CreateTopicContext) {
+        CliUtils cliUtils = new CliUtils();
+        Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
+            (SqlBaseParser.CreateTopicContext) statementContext.statement());
+        if (avroSchema.isPresent()) {
+          setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
+        }
+        consecutiveStatements.append(statementText);
       } else {
         consecutiveStatements.append(statementText);
       }
@@ -901,6 +912,21 @@ public class Cli implements Closeable, AutoCloseable {
       rowValues = fields.stream()
           .map(field -> Arrays.asList(field.name(), field.schema().type().toString()))
           .collect(Collectors.toList());
+    } else if (ksqlEntity instanceof TopicDescription) {
+      TopicDescription topicDescription = (TopicDescription) ksqlEntity;
+      columnHeaders = new ArrayList<>();
+      columnHeaders.add("Topic Name");
+      columnHeaders.add("Kafka Topic");
+      columnHeaders.add("Type");
+      List<String> topicInfo = new ArrayList<>();
+      topicInfo.add(topicDescription.getName());
+      topicInfo.add(topicDescription.getKafkaTopic());
+      topicInfo.add(topicDescription.getFormat());
+      if (topicDescription.getFormat().equalsIgnoreCase("AVRO")) {
+        columnHeaders.add("AvroSchema");
+        topicInfo.add(topicDescription.getSchemaString());
+      }
+      rowValues = Arrays.asList(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
       List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
       columnHeaders = Arrays.asList("Stream Name", "Ksql Topic");
@@ -1025,6 +1051,9 @@ public class Cli implements Closeable, AutoCloseable {
         ));
       }
       type = configKey.type;
+    } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
+      localProperties.put(property, value);
+      return;
     } else {
       throw new IllegalArgumentException(String.format(
           "Not recognizable as streams, consumer, or producer property: '%s'",

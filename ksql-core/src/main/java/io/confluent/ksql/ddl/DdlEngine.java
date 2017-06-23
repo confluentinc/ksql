@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
 public class DdlEngine {
 
@@ -40,7 +41,7 @@ public class DdlEngine {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public KsqlTopic createTopic(final CreateTopic createTopic) {
+  public KsqlTopic createTopic(final CreateTopic createTopic, final Map topicProperties) {
 
     String topicName = createTopic.getName().getSuffix();
     if (ksqlEngine.getMetaStore().getTopic(topicName) != null) {
@@ -66,18 +67,11 @@ public class DdlEngine {
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        if (createTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) == null) {
+        if (!topicProperties.containsKey(DdlConfig.AVRO_SCHEMA)) {
           throw new KsqlException("Avro schema file path should be set for avro topics.");
         }
-        String avroSchemaFile = createTopic.getProperties()
-            .get(DdlConfig.AVRO_SCHEMA_FILE).toString();
-        avroSchemaFile = enforceString(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFile);
-        try {
-          String avroSchema = getAvroSchema(avroSchemaFile);
-          topicSerDe = new KsqlAvroTopicSerDe(avroSchemaFile, avroSchema);
-        } catch (IOException e) {
-          throw new KsqlException("Could not read avro schema from file: " + avroSchemaFile);
-        }
+        String avroSchema = topicProperties.get(DdlConfig.AVRO_SCHEMA).toString();
+        topicSerDe = new KsqlAvroTopicSerDe(avroSchema);
         break;
       case DataSource.JSON_SERDE_NAME:
         topicSerDe = new KsqlJsonTopicSerDe(null);

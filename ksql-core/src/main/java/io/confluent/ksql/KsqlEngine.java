@@ -87,7 +87,7 @@ public class KsqlEngine implements Closeable {
     }
 
     // Build query AST from the query string
-    List<Pair<String, Query>> queryList = buildQueryAstList(queriesString);
+    List<Pair<String, Query>> queryList = buildQueryAstList(queriesString, overriddenProperties);
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
@@ -115,7 +115,8 @@ public class KsqlEngine implements Closeable {
   }
 
 
-  private List<Pair<String, Query>> buildQueryAstList(final String queriesString) {
+  private List<Pair<String, Query>> buildQueryAstList(final String queriesString,
+                                                      Map<String, Object> overriddenProperties) {
 
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
@@ -133,7 +134,7 @@ public class KsqlEngine implements Closeable {
       Statement statement = statementInfo.getLeft();
       Pair<String, Query> queryPair =
           buildSingleQueryAst(statement, getStatementString(singleStatementContext),
-                                                          tempMetaStore);
+                                                          tempMetaStore, overriddenProperties);
       if (queryPair != null) {
         queryList.add(queryPair);
       }
@@ -142,7 +143,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private Pair<String, Query> buildSingleQueryAst(Statement statement, String
-      statementString, MetaStore tempMetaStore) {
+      statementString, MetaStore tempMetaStore, Map<String, Object> overriddenProperties) {
     if (statement instanceof Query) {
       return  new Pair<>(statementString, (Query) statement);
     } else if (statement instanceof CreateStreamAsSelect) {
@@ -180,7 +181,7 @@ public class KsqlEngine implements Closeable {
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof CreateTopic) {
-      KsqlTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement);
+      KsqlTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement, overriddenProperties);
       if (ksqlTopic != null) {
         tempMetaStore.putTopic(ksqlTopic);
       }

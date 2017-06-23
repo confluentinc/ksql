@@ -14,22 +14,28 @@ public class ShowColumns
     extends Statement {
 
   private final QualifiedName table;
+  private final boolean isTopic;
 
-  public ShowColumns(QualifiedName table) {
-    this(Optional.empty(), table);
+  public ShowColumns(QualifiedName table, boolean isTopic) {
+    this(Optional.empty(), table, isTopic);
   }
 
-  public ShowColumns(NodeLocation location, QualifiedName table) {
-    this(Optional.of(location), table);
+  public ShowColumns(NodeLocation location, QualifiedName table, boolean isTopic) {
+    this(Optional.of(location), table, isTopic);
   }
 
-  private ShowColumns(Optional<NodeLocation> location, QualifiedName table) {
+  private ShowColumns(Optional<NodeLocation> location, QualifiedName table, boolean isTopic) {
     super(location);
     this.table = requireNonNull(table, "table is null");
+    this.isTopic = isTopic;
   }
 
   public QualifiedName getTable() {
     return table;
+  }
+
+  public boolean isTopic() {
+    return isTopic;
   }
 
   @Override

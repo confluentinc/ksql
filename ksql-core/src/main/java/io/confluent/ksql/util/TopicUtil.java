@@ -25,7 +25,8 @@ public class TopicUtil implements Closeable {
   }
 
   /**
-   * Synchronously check for the existence of a topic and, in the event that it does not exist, create it with a single
+   * Synchronously check for the existence of a topic and, in the event that it does not exist,
+   * create it with a single
    * partition and a replication factor of 1.
    * TODO: Think about num partitions / replication factor to use here
    * @param topic The name of the topic to create

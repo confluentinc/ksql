@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = PropertiesList.class, name = "properties"),
     @JsonSubTypes.Type(value = Queries.class, name = "queries"),
     @JsonSubTypes.Type(value = SourceDescription.class, name = "description"),
+    @JsonSubTypes.Type(value = TopicDescription.class, name = "topic_description"),
     @JsonSubTypes.Type(value = StreamsList.class, name = "streams"),
     @JsonSubTypes.Type(value = TablesList.class, name = "tables"),
     @JsonSubTypes.Type(value = TopicsList.class, name = "topics")

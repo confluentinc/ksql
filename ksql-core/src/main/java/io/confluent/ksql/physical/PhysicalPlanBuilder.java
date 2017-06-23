@@ -127,9 +127,7 @@ public class PhysicalPlanBuilder {
             (KsqlAvroTopicSerDe) ksqlStructuredDataOutputNodeNoRowKey
             .getKsqlTopic().getKsqlTopicSerDe();
         ksqlStructuredDataOutputNodeNoRowKey =
-            addAvroSchemaToResultTopic(ksqlStructuredDataOutputNodeNoRowKey,
-            ksqlAvroTopicSerDe
-                .getSchemaFilePath());
+            addAvroSchemaToResultTopic(ksqlStructuredDataOutputNodeNoRowKey);
       }
 
       Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
@@ -500,23 +498,14 @@ public class PhysicalPlanBuilder {
   }
 
   private KsqlStructuredDataOutputNode addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode
-                                                                      ksqlStructuredDataOutputNode,
-                                                                  final String avroSchemaFilePath) {
-    String avroSchemaFilePathVal = avroSchemaFilePath;
-    if (avroSchemaFilePath == null) {
-      avroSchemaFilePathVal =
-          KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_DIRECTORY_DEFAULT
-          + ksqlStructuredDataOutputNode
-              .getKsqlTopic().getName() + ".avro";
-    }
+                                                                      ksqlStructuredDataOutputNode) {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     String
         avroSchema =
         metastoreUtil.buildAvroSchema(ksqlStructuredDataOutputNode.getSchema(),
             ksqlStructuredDataOutputNode.getKsqlTopic().getName());
-    metastoreUtil.writeAvroSchemaFile(avroSchema, avroSchemaFilePathVal);
     KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(avroSchemaFilePathVal, avroSchema);
+        new KsqlAvroTopicSerDe(avroSchema);
     KsqlTopic newKsqlTopic = new KsqlTopic(ksqlStructuredDataOutputNode.getKsqlTopic()
         .getName(), ksqlStructuredDataOutputNode
         .getKsqlTopic().getKafkaTopicName(), ksqlAvroTopicSerDe);

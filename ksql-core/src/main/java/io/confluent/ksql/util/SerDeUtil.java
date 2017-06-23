@@ -4,6 +4,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -56,7 +57,7 @@ public class SerDeUtil {
 
   public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema) {
     Map<String, Object> serdeProps = new HashMap<>();
-    String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, "AvroSchema");
+    String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, DdlConfig.AVRO_SCHEMA);
     serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema);

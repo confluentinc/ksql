@@ -71,18 +71,18 @@ public class StatementExecutor {
 
   /**
    * Execute a series of statements. The only difference between this and multiple consecutive calls
-   * to {@link #handleStatement(String, CommandId)} is that terminated queries will not be
+   * to {@link #handleStatement(Command, CommandId)} is that terminated queries will not be
    * instantiated at all (as long as the statements responsible for both their creation and
    * termination are both present in {@code priorCommands}.
    * @param priorCommands A map of statements to execute, where keys are statement IDs and values
    *                      are the actual strings of the statements.
    * @throws Exception TODO: Refine this.
    */
-  public void handleStatements(LinkedHashMap<CommandId, String> priorCommands) throws Exception {
+  public void handleStatements(LinkedHashMap<CommandId, Command> priorCommands) throws Exception {
     Map<Long, CommandId> terminatedQueries = getTerminatedQueries(priorCommands);
 
-    for (Map.Entry<CommandId, String> commandEntry : priorCommands.entrySet()) {
-      String statementString = commandEntry.getValue();
+    for (Map.Entry<CommandId, Command> commandEntry : priorCommands.entrySet()) {
+      String statementString = commandEntry.getValue().getStatement();
       Statement statement = statementParser.parseSingleStatement(statementString);
       if (!(statement instanceof TerminateQuery)) {
         log.info("Executing prior statement: '{}'", commandEntry.getValue());
@@ -113,15 +113,15 @@ public class StatementExecutor {
 
   /**
    * Attempt to execute a single statement.
-   * @param statementString The string containing the statement to be executed
+   * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
    * @throws Exception TODO: Refine this.
    */
   public void handleStatement(
-      String statementString,
+      Command command,
       CommandId commandId
   ) throws Exception {
-    handleStatementWithTerminatedQueries(statementString, commandId, null);
+    handleStatementWithTerminatedQueries(command, commandId, null);
   }
 
   /**
@@ -181,12 +181,12 @@ public class StatementExecutor {
     }
   }
 
-  private Map<Long, CommandId> getTerminatedQueries(Map<CommandId, String> commands) {
+  private Map<Long, CommandId> getTerminatedQueries(Map<CommandId, Command> commands) {
     Map<Long, CommandId> result = new HashMap<>();
 
-    for (Map.Entry<CommandId, String> commandEntry : commands.entrySet()) {
+    for (Map.Entry<CommandId, Command> commandEntry : commands.entrySet()) {
       CommandId commandId = commandEntry.getKey();
-      String command = commandEntry.getValue();
+      String command = commandEntry.getValue().getStatement();
       Matcher terminateMatcher = TERMINATE_PATTERN.matcher(command);
       if (terminateMatcher.matches()) {
         Long queryId = Long.parseLong(terminateMatcher.group(1));
@@ -199,18 +199,21 @@ public class StatementExecutor {
 
   /**
    * Attempt to execute a single statement.
-   * @param statementString The string containing the statement to be executed
+//   * @param statementString The string containing the statement to be executed
+   * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
    * @param terminatedQueries An optional map from terminated query IDs to the commands that
    *                          requested their termination
    * @throws Exception TODO: Refine this.
    */
   private void handleStatementWithTerminatedQueries(
-      String statementString,
+//      String statementString,
+      Command command,
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries
   ) throws Exception {
     try {
+      String statementString = command.getStatement();
       statusStore.put(
           commandId,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement")
@@ -220,7 +223,8 @@ public class StatementExecutor {
           commandId,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
-      executeStatement(statement, statementString, commandId, terminatedQueries);
+//      executeStatement(statement, statementString, commandId, terminatedQueries);
+      executeStatement(statement, command, commandId, terminatedQueries);
     } catch (WakeupException exception) {
       throw exception;
     } catch (Exception exception) {
@@ -236,14 +240,16 @@ public class StatementExecutor {
 
   private void executeStatement(
       Statement statement,
-      String statementStr,
+//      String statementStr,
+      Command command,
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries
   ) throws Exception {
+    String statementStr = command.getStatement();
     String successMessage;
     if (statement instanceof CreateTopic) {
       CreateTopic createTopic = (CreateTopic) statement;
-      ksqlEngine.getDdlEngine().createTopic(createTopic);
+      ksqlEngine.getDdlEngine().createTopic(createTopic, command.getStreamsProperties());
       successMessage = "Topic created";
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;

@@ -7,6 +7,8 @@ package io.confluent.ksql.metastore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.csv.KsqlCsvTopicSerDe;
@@ -98,13 +100,13 @@ public class MetastoreUtil {
     String kafkaTopicName = node.get("kafkatopicname").asText();
     String serde = node.get("serde").asText().toUpperCase();
     if ("AVRO".equals(serde)) {
-      if (node.get("avroschemafile") == null) {
+      if (node.get(DdlConfig.AVRO_SCHEMA_FILE.toLowerCase()) == null) {
         throw new KsqlException("For avro SerDe avro schema file path (avroschemafile) should be "
             + "set in the schema.");
       }
-      String schemaPath = node.get("avroschemafile").asText();
+      String schemaPath = node.get(DdlConfig.AVRO_SCHEMA_FILE.toLowerCase()).asText();
       String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KsqlAvroTopicSerDe(schemaPath, avroSchema);
+      topicSerDe = new KsqlAvroTopicSerDe(avroSchema);
     } else if ("JSON".equals(serde)) {
       topicSerDe = new KsqlJsonTopicSerDe(null);
     } else if ("CSV".equals(serde)) {
@@ -195,9 +197,6 @@ public class MetastoreUtil {
                            + "\"");
       if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
         KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        stringBuilder
-            .append(",\n\t\t\t \"avroschemafile\": \""
-                    + ksqlAvroTopicSerDe.getSchemaFilePath() + "\"");
       }
       stringBuilder.append("\n\t\t}\n");
     }

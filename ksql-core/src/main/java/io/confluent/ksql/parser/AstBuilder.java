@@ -620,7 +620,8 @@ public class AstBuilder
 
   @Override
   public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
-    return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
+    return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()),
+                           context.TOPIC() != null);
   }
 
   @Override

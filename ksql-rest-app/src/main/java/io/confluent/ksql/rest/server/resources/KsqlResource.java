@@ -7,6 +7,7 @@ package io.confluent.ksql.rest.server.resources;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -38,10 +39,12 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -141,7 +144,11 @@ public class KsqlResource {
     } else if (statement instanceof ListQueries) {
       return showQueries(statementText);
     } else if (statement instanceof ShowColumns) {
-      return describe(statementText, ((ShowColumns) statement).getTable().getSuffix());
+      ShowColumns showColumns = (ShowColumns) statement;
+      if (showColumns.isTopic()) {
+        return describeTopic(statementText, showColumns.getTable().getSuffix());
+      }
+      return describe(statementText, showColumns.getTable().getSuffix());
     } else if (statement instanceof ListProperties) {
       return listProperties(statementText);
     } else if (statement instanceof CreateTopic
@@ -214,10 +221,32 @@ public class KsqlResource {
     return new Queries(statementText, runningQueries);
   }
 
+  private TopicDescription describeTopic(String statementText, String name) throws
+                                                                                   Exception {
+    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
+    if (ksqlTopic == null) {
+      throw new Exception(String.format("Could not find topic '%s' in the metastore",
+                                        name));
+    }
+    String schemaString = null;
+    if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
+      KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
+      schemaString = ksqlAvroTopicSerDe.getSchemaString();
+    }
+    TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic
+        .getKafkaTopicName(),
+                                ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(),
+                                schemaString
+    );
+    return topicDescription;
+  }
+
   private SourceDescription describe(String statementText, String name) throws Exception {
+
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new Exception(String.format("Could not find topic '%s' in the metastore", name));
+      throw new Exception(String.format("Could not find data stream/table '%s' in the metastore",
+                                        name));
     }
     return new SourceDescription(statementText, dataSource);
   }

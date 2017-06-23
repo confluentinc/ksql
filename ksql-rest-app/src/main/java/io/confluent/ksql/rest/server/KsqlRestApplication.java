@@ -208,7 +208,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
-    ));
+    ), Collections.<String, Expression>emptyMap());
 
     ksqlEngine.getDdlEngine().createStream(new CreateStream(
         QualifiedName.of(COMMANDS_STREAM_NAME),

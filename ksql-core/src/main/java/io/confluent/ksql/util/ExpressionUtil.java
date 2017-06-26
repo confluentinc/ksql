@@ -28,6 +28,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ExpressionUtil {
 
@@ -142,13 +143,13 @@ public class ExpressionUtil {
 
     @Override
     protected Object visitDereferenceExpression(DereferenceExpression node, Object context) {
-      Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-      if (schemaField == null) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+      if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema()));
+      parameterMap.put(schemaField.get().name().replace(".", "_"),
+                       SchemaUtil.getJavaType(schemaField.get().schema()));
       return null;
     }
 
@@ -162,26 +163,26 @@ public class ExpressionUtil {
     @Override
     protected Object visitSubscriptExpression(SubscriptExpression node, Object context) {
       String arrayBaseName = node.getBase().toString();
-      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (schemaField == null) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema()));
+      parameterMap.put(schemaField.get().name().replace(".", "_"),
+                       SchemaUtil.getJavaType(schemaField.get().schema()));
       process(node.getIndex(), context);
       return null;
     }
 
     @Override
     protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
-      Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-      if (schemaField == null) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+      if (!schemaField.isPresent()) {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(schemaField.name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.schema()));
+      parameterMap.put(schemaField.get().name().replace(".", "_"),
+                       SchemaUtil.getJavaType(schemaField.get().schema()));
       return null;
     }
   }

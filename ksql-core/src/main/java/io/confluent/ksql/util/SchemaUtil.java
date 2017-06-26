@@ -11,6 +11,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 public class SchemaUtil {
@@ -69,17 +70,17 @@ public class SchemaUtil {
   }
 
 
-  public static Field getFieldByName(final Schema schema, final String fieldName) {
+  public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
     if (schema.fields() != null) {
       for (Field field : schema.fields()) {
         if (field.name().equals(fieldName)) {
-          return field;
+          return Optional.of(field);
         } else if (field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1))) {
-          return field;
+          return Optional.of(field);
         }
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   public static int getFieldIndexByName(final Schema schema, final String fieldName) {

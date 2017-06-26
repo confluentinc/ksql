@@ -9,6 +9,8 @@ import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Optional;
+
 public class KsqlStream extends StructuredDataSource {
 
   public KsqlStream(final String datasourceName, final Schema schema, final Field keyField,
@@ -25,12 +27,12 @@ public class KsqlStream extends StructuredDataSource {
 
   @Override
   public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
-    Field newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
-    if (newTimestampField.schema().type() != Schema.Type.INT64) {
+    Optional<Field> newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
+    if (newTimestampField.get().schema().type() != Schema.Type.INT64) {
       throw new KsqlException("Timestamp column, " + timestampfieldName + ", should be LONG"
                               + "(INT64).");
     }
-    return new KsqlStream(dataSourceName, schema, keyField, newTimestampField, ksqlTopic);
+    return new KsqlStream(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic);
   }
 
 

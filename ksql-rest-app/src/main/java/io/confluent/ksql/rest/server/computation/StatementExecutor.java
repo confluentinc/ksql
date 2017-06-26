@@ -79,6 +79,7 @@ public class StatementExecutor {
    * @throws Exception TODO: Refine this.
    */
   public void handleStatements(LinkedHashMap<CommandId, Command> priorCommands) throws Exception {
+
     Map<Long, CommandId> terminatedQueries = getTerminatedQueries(priorCommands);
 
     for (Map.Entry<CommandId, Command> commandEntry : priorCommands.entrySet()) {
@@ -187,7 +188,7 @@ public class StatementExecutor {
     for (Map.Entry<CommandId, Command> commandEntry : commands.entrySet()) {
       CommandId commandId = commandEntry.getKey();
       String command = commandEntry.getValue().getStatement();
-      Matcher terminateMatcher = TERMINATE_PATTERN.matcher(command);
+      Matcher terminateMatcher = TERMINATE_PATTERN.matcher(command.toUpperCase());
       if (terminateMatcher.matches()) {
         Long queryId = Long.parseLong(terminateMatcher.group(1));
         result.put(queryId, commandId);
@@ -207,7 +208,6 @@ public class StatementExecutor {
    * @throws Exception TODO: Refine this.
    */
   private void handleStatementWithTerminatedQueries(
-//      String statementString,
       Command command,
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries
@@ -223,7 +223,6 @@ public class StatementExecutor {
           commandId,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
-//      executeStatement(statement, statementString, commandId, terminatedQueries);
       executeStatement(statement, command, commandId, terminatedQueries);
     } catch (WakeupException exception) {
       throw exception;
@@ -240,7 +239,6 @@ public class StatementExecutor {
 
   private void executeStatement(
       Statement statement,
-//      String statementStr,
       Command command,
       CommandId commandId,
       Map<Long, CommandId> terminatedQueries

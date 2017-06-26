@@ -485,7 +485,8 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println(
-            "\thistory: Show previous lines entered during the current CLI session"
+            "\thistory: Show previous lines entered during the current CLI session. You can use "
+            + "up and down arrow keys to navigate to the previous lines too."
         );
       }
 
@@ -913,12 +914,12 @@ public class Cli implements Closeable, AutoCloseable {
           .map(field -> Arrays.asList(field.name(), field.schema().type().toString()))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TopicDescription) {
-      TopicDescription topicDescription = (TopicDescription) ksqlEntity;
       columnHeaders = new ArrayList<>();
       columnHeaders.add("Topic Name");
       columnHeaders.add("Kafka Topic");
       columnHeaders.add("Type");
       List<String> topicInfo = new ArrayList<>();
+      TopicDescription topicDescription = (TopicDescription) ksqlEntity;
       topicInfo.add(topicDescription.getName());
       topicInfo.add(topicDescription.getKafkaTopic());
       topicInfo.add(topicDescription.getFormat());

@@ -485,7 +485,8 @@ public class Cli implements Closeable, AutoCloseable {
       @Override
       public void printHelp() {
         terminal.writer().println(
-            "\thistory: Show previous lines entered during the current CLI session"
+            "\thistory: Show previous lines entered during the current CLI session. You can use "
+            + "up and down arrow keys to navigate to the previous lines too."
         );
       }
 

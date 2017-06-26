@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -110,6 +111,9 @@ public class QueryEngine {
                                                               analysis.getHavingExpression()));
         aggregateAnalyzer.setHasAggregateFunction(false);
       }
+
+      enforceAggregateRules(query, aggregateAnalysis);
+
 
       // Build a logical plan
       PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
@@ -295,6 +299,18 @@ public class QueryEngine {
 
   private String addTimeSuffix(String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
+  }
+
+  private void enforceAggregateRules(Query query, AggregateAnalysis aggregateAnalysis) {
+    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
+      return;
+    }
+    int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
+    int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
+        .getGroupingElements().size();
+    if (numberOfNonAggProjections != groupBySize) {
+      throw new KsqlException("Group by elements should match the SELECT expressions.");
+    }
   }
 
 }

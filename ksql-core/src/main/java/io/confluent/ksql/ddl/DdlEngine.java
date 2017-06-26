@@ -159,7 +159,8 @@ public class DdlEngine {
       timestampColumnName = createStream.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
           .toString().toUpperCase();
       timestampColumnName = enforceString(DdlConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
-      if (SchemaUtil.getFieldByName(streamSchema, timestampColumnName).schema().type() != Schema
+      if (SchemaUtil.getFieldByName(streamSchema, timestampColumnName)
+              .get().schema().type() != Schema
           .Type.INT64) {
         throw new KsqlException("Timestamp column, " + timestampColumnName + ", should be LONG"
                                 + "(INT64).");
@@ -236,7 +237,8 @@ public class DdlEngine {
       timestampColumnName = createTable.getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
           .toString().toUpperCase();
       timestampColumnName = enforceString(DdlConfig.TIMESTAMP_NAME_PROPERTY, timestampColumnName);
-      if (SchemaUtil.getFieldByName(tableSchema, timestampColumnName).schema().type() != Schema
+      if (SchemaUtil.getFieldByName(tableSchema, timestampColumnName)
+              .get().schema().type() != Schema
           .Type.INT64) {
         throw new KsqlException("Timestamp column, " + timestampColumnName + ", should be LONG"
                                 + "(INT64).");

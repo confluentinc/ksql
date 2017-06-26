@@ -45,6 +45,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static java.lang.String.format;
 
@@ -131,30 +132,33 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema> visitQualifiedNameReference(QualifiedNameReference node,
                                                                     Boolean unmangleNames) {
       String fieldName = formatQualifiedName(node.getName());
-      Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (schemaField == null) {
-        throw new KsqlException("Field not found: " + schemaField.name());
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      if (!schemaField.isPresent()) {
+        throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema());
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
     }
 
     @Override
     protected Pair<String, Schema> visitSymbolReference(SymbolReference node,
                                                              Boolean context) {
       String fieldName = formatIdentifier(node.getName());
-      Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (schemaField == null) {
-        throw new KsqlException("Field not found: " + schemaField.name());
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      if (!schemaField.isPresent()) {
+        throw new KsqlException("Field not found: " + fieldName);
       }
-      return new Pair<>(fieldName, schemaField.schema());
+      return new Pair<>(fieldName, schemaField.get().schema());
     }
 
     @Override
     protected Pair<String, Schema> visitDereferenceExpression(DereferenceExpression node,
                                                                    Boolean unmangleNames) {
       String fieldName = node.toString();
-      Field schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      return new Pair<>(fieldName.replace(".", "_"), schemaField.schema());
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
+      if (!schemaField.isPresent()) {
+        throw new KsqlException("Field not found: " + fieldName);
+      }
+      return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
     }
 
     private static String formatQualifiedName(QualifiedName name) {
@@ -366,13 +370,16 @@ public class CodegenExpressionFormatter {
     protected Pair<String, Schema> visitSubscriptExpression(SubscriptExpression node,
                                                             Boolean unmangleNames) {
       String arrayBaseName = node.getBase().toString();
-      Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-      if (schemaField.schema().type() == Schema.Type.ARRAY) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+      if (!schemaField.isPresent()) {
+        throw new KsqlException("Field not found: " + arrayBaseName);
+      }
+      if (schemaField.get().schema().type() == Schema.Type.ARRAY) {
         return new Pair<>(process(node.getBase(), unmangleNames).getLeft() + "[(int)("
                           + process(node.getIndex(), unmangleNames).getLeft() + ")]", schema);
-      } else if (schemaField.schema().type() == Schema.Type.MAP) {
+      } else if (schemaField.get().schema().type() == Schema.Type.MAP) {
         return new Pair<>("("
-                          + SchemaUtil.getJavaCastString(schemaField.schema().valueSchema())
+                          + SchemaUtil.getJavaCastString(schemaField.get().schema().valueSchema())
                           + process(node.getBase(), unmangleNames).getLeft() + ".get"
                           + "(" + process(node.getIndex(), unmangleNames).getLeft() + "))", schema);
       }

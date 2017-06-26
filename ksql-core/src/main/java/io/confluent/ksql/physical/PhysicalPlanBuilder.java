@@ -58,6 +58,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class PhysicalPlanBuilder {
@@ -150,14 +151,14 @@ public class PhysicalPlanBuilder {
 
         if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
           String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
-          Field keyField = SchemaUtil.getFieldByName(
+          Optional<Field> keyField = SchemaUtil.getFieldByName(
               resultSchemaStream.getSchema(), keyFieldName);
-          if (keyField == null) {
+          if (!keyField.isPresent()) {
             throw new KsqlException(String.format("Column %s does not exist in the result schema."
-                                                  + " Error in Partition By clause.", keyField
-                .name()));
+                                                  + " Error in Partition By clause.",
+                                                  keyFieldName));
           }
-          resultSchemaStream = resultSchemaStream.selectKey(keyField);
+          resultSchemaStream = resultSchemaStream.selectKey(keyField.get());
 
           ksqlStructuredDataOutputNodeNoRowKey = new
               KsqlStructuredDataOutputNode(
@@ -165,7 +166,7 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNodeNoRowKey.getSource(),
               ksqlStructuredDataOutputNodeNoRowKey.getSchema(),
               ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
-              keyField,
+              keyField.get(),
               ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
               ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
               ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties());
@@ -451,7 +452,7 @@ public class PhysicalPlanBuilder {
       if (!leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {
         leftSchemaKStream =
             leftSchemaKStream.selectKey(SchemaUtil.getFieldByName(leftSchemaKStream.getSchema(),
-                joinNode.getLeftKeyFieldName()));
+                joinNode.getLeftKeyFieldName()).get());
       }
       SchemaKStream joinSchemaKStream;
       switch (joinNode.getType()) {

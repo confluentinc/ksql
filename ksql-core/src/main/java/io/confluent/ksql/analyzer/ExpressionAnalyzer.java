@@ -23,6 +23,8 @@ import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Optional;
+
 
 public class ExpressionAnalyzer {
   final Schema schema;
@@ -99,8 +101,8 @@ public class ExpressionAnalyzer {
       if (isJoinSchema) {
         columnName = node.toString();
       }
-      Field schemaField = SchemaUtil.getFieldByName(schema, columnName);
-      if (schemaField == null) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+      if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
       }
@@ -117,8 +119,8 @@ public class ExpressionAnalyzer {
     @Override
     protected Object visitQualifiedNameReference(QualifiedNameReference node, Object context) {
       String columnName = node.getName().getSuffix();
-      Field schemaField = SchemaUtil.getFieldByName(schema, columnName);
-      if (schemaField == null) {
+      Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+      if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
       }

@@ -81,7 +81,7 @@ public class LogicalPlanner {
             SchemaUtil.getFieldByName(inputSchema,
                                       analysis.getIntoProperties()
                                           .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME)
-                                          .toString());
+                                          .toString()).get();
       }
 
       return new KsqlStructuredDataOutputNode(new PlanNodeId(intoDataSource.getName()),

@@ -28,6 +28,8 @@ import io.confluent.ksql.planner.PlanException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Optional;
+
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
@@ -94,16 +96,22 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitQualifiedNameReference(
       final QualifiedNameReference node, final ExpressionTypeContext expressionTypeContext) {
-    Field schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-    expressionTypeContext.setSchema(schemaField.schema());
+    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
+    if (!schemaField.isPresent()) {
+      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
+    }
+    expressionTypeContext.setSchema(schemaField.get().schema());
     return null;
   }
 
   @Override
   protected Expression visitDereferenceExpression(
       final DereferenceExpression node, final ExpressionTypeContext expressionTypeContext) {
-    Field schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-    expressionTypeContext.setSchema(schemaField.schema());
+    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
+    if (!schemaField.isPresent()) {
+      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
+    }
+    expressionTypeContext.setSchema(schemaField.get().schema());
     return null;
   }
 
@@ -152,8 +160,11 @@ public class ExpressionTypeManager
   protected Expression visitSubscriptExpression(
       final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext) {
     String arrayBaseName = node.getBase().toString();
-    Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
-    expressionTypeContext.setSchema(schemaField.schema().valueSchema());
+    Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName);
+    if (!schemaField.isPresent()) {
+      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
+    }
+    expressionTypeContext.setSchema(schemaField.get().schema().valueSchema());
     return null;
   }
 

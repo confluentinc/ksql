@@ -496,8 +496,8 @@ public class PhysicalPlanBuilder {
     return planSink;
   }
 
-  private KsqlStructuredDataOutputNode addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode
-                                                                      ksqlStructuredDataOutputNode) {
+  private KsqlStructuredDataOutputNode addAvroSchemaToResultTopic(
+      final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode) {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     String
         avroSchema =

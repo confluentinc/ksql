@@ -23,11 +23,12 @@ public class CliUtils {
                                                       createTopicContext) {
     AstBuilder astBuilder = new AstBuilder(null);
     CreateTopic createTopic = (CreateTopic) astBuilder.visitCreateTopic(createTopicContext);
-    System.out.println("===>"+createTopic.getProperties().get("FORMAT").toString());
-    if (createTopic.getProperties().get("FORMAT").toString().equalsIgnoreCase("'AVRO'")) {
+    if (createTopic.getProperties().get("FORMAT").toString()
+        .equalsIgnoreCase("'AVRO'")) {
       if (createTopic.getProperties().containsKey("AVROSCHEMAFILE")) {
-        String avroSchema = getAvroSchema(AstBuilder.unquote(createTopic.getProperties().get
-            ("AVROSCHEMAFILE").toString(), "'"));
+        String avroSchema = getAvroSchema(AstBuilder.unquote(createTopic.getProperties()
+                                                                 .get("AVROSCHEMAFILE")
+                                                                 .toString(), "'"));
         return Optional.of(avroSchema);
       } else {
         throw new KsqlException("You need to provide avro schema file path for topics in avro "

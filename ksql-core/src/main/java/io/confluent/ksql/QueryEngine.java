@@ -45,6 +45,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
+  private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final AtomicLong queryIdCounter;
 
 
@@ -136,6 +139,7 @@ public class QueryEngine {
       }
 
       logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
+      log.info("Build logical plan for {}.", statementQueryPair.getLeft());
     }
     return logicalPlansList;
   }
@@ -238,7 +242,9 @@ public class QueryEngine {
       } else {
         throw new KsqlException("Sink data source is not correct.");
       }
-
+      log.info("Build physical plan for {}.", statementPlanPair.getLeft());
+      log.info(" Execution plan: \n");
+      log.info(schemaKStream.getExecutionPlan(""));
     }
     return physicalPlans;
   }

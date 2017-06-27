@@ -33,6 +33,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -46,6 +48,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public class KsqlEngine implements Closeable {
+
+  private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
   // TODO: Decide if any other properties belong in here
   private static final Set<String> IMMUTABLE_PROPERTIES = new HashSet<>(Arrays.asList(
@@ -144,6 +148,9 @@ public class KsqlEngine implements Closeable {
 
   private Pair<String, Query> buildSingleQueryAst(Statement statement, String
       statementString, MetaStore tempMetaStore, Map<String, Object> overriddenProperties) {
+
+    log.info("Building AST for {}.", statementString);
+
     if (statement instanceof Query) {
       return  new Pair<>(statementString, (Query) statement);
     } else if (statement instanceof CreateStreamAsSelect) {

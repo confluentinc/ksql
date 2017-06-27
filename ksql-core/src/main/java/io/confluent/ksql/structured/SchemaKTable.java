@@ -36,8 +36,9 @@ public class SchemaKTable extends SchemaKStream {
   final boolean isWindowed;
 
   public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
-                      final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed) {
-    super(schema, null, keyField, sourceSchemaKStreams);
+                      final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
+                      TYPE type) {
+    super(schema, null, keyField, sourceSchemaKStreams, type);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
@@ -93,14 +94,15 @@ public class SchemaKTable extends SchemaKStream {
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
     ktable.toStream().foreach(new QueuePopulator(rowQueue, limit));
-    return new QueuedSchemaKStream(this, rowQueue);
+    return new QueuedSchemaKStream(this, rowQueue, TYPE.SINK);
   }
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
-    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed);
+    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
+                            TYPE.FILTER);
   }
 
   @Override
@@ -154,11 +156,12 @@ public class SchemaKTable extends SchemaKStream {
     });
 
     return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed);
+                            Arrays.asList(this), isWindowed, TYPE.PROJECT);
   }
 
   public SchemaKStream toStream() {
-    return new SchemaKStream(schema, ktable.toStream(), keyField, sourceSchemaKStreams);
+    return new SchemaKStream(schema, ktable.toStream(), keyField, sourceSchemaKStreams,
+                             TYPE.TOSTREAM);
   }
 
   public KTable getKtable() {

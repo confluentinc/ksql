@@ -82,7 +82,8 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.TYPE.SOURCE);
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -107,7 +108,8 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.TYPE.SOURCE);
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -134,7 +136,8 @@ public class SchemaKStreamTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.TYPE.SOURCE);
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
@@ -163,7 +166,8 @@ public class SchemaKStreamTest {
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>());
+                                             ksqlStream.getKeyField(), new ArrayList<>(),
+                                             SchemaKStream.TYPE.SOURCE);
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
                                                                             .get(1));

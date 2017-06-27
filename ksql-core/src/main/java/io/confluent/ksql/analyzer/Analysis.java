@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class Analysis {
 
@@ -33,6 +34,8 @@ public class Analysis {
   WindowExpression windowExpression = null;
 
   Expression havingExpression = null;
+
+  Optional<Integer> limitClause = Optional.empty();
 
 
   public void addSelectItem(final Expression expression, final String alias) {
@@ -139,6 +142,14 @@ public class Analysis {
 
   public Map<String, Object> getIntoProperties() {
     return intoProperties;
+  }
+
+  public Optional<Integer> getLimitClause() {
+    return limitClause;
+  }
+
+  public void setLimitClause(Optional<Integer> limitClause) {
+    this.limitClause = limitClause;
   }
 }
 

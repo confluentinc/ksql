@@ -11,6 +11,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -20,11 +21,13 @@ public abstract class OutputNode
 
   private final PlanNode source;
   private final Schema schema;
+  private final Optional<Integer> limit;
 
   @JsonCreator
   protected OutputNode(@JsonProperty("id") final PlanNodeId id,
                        @JsonProperty("source") final PlanNode source,
-                       @JsonProperty("schema") final Schema schema) {
+                       @JsonProperty("schema") final Schema schema,
+                       @JsonProperty("limit") final Optional<Integer> limit) {
     super(id);
 
     requireNonNull(source, "source is null");
@@ -32,6 +35,7 @@ public abstract class OutputNode
 
     this.source = source;
     this.schema = schema;
+    this.limit = limit;
   }
 
   @Override
@@ -42,6 +46,10 @@ public abstract class OutputNode
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of(source);
+  }
+
+  public Optional<Integer> getLimit() {
+    return limit;
   }
 
   @JsonProperty

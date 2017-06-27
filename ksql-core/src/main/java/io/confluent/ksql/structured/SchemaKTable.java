@@ -26,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
@@ -89,9 +90,9 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public QueuedSchemaKStream toQueue() {
+  public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
-    ktable.toStream().foreach(new QueuePopulator(rowQueue));
+    ktable.toStream().foreach(new QueuePopulator(rowQueue, limit));
     return new QueuedSchemaKStream(this, rowQueue);
   }
 

@@ -45,6 +45,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
@@ -89,6 +90,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       analyzeHaving(node.getHaving().get(), context);
     }
 
+    if (node.getLimit().isPresent()) {
+      String limitStr = node.getLimit().get();
+      Integer limitInt = Integer.parseInt(limitStr);
+      analysis.setLimitClause(Optional.of(limitInt));
+    }
     analyzeExpressions();
 
     return null;

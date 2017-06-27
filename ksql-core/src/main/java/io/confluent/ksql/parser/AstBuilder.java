@@ -281,6 +281,7 @@ public class AstBuilder
 
   @Override
   public Node visitQueryNoWith(SqlBaseParser.QueryNoWithContext context) {
+
     QueryBody term = (QueryBody) visit(context.queryTerm());
 
     if (term instanceof QuerySpecification) {
@@ -290,7 +291,6 @@ public class AstBuilder
       // expects this structure to resolve references with respect
       // to columns defined in the query specification)
       QuerySpecification query = (QuerySpecification) term;
-
       return new Query(
           getLocation(context),
           Optional.<With>empty(),
@@ -316,6 +316,7 @@ public class AstBuilder
         visit(context.sortItem(), SortItem.class),
         getTextIfPresent(context.limit));
   }
+
 
   @Override
   public Node visitQuerySpecification(SqlBaseParser.QuerySpecificationContext context) {

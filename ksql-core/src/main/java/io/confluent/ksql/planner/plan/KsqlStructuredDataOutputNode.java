@@ -11,6 +11,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -30,8 +31,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                                       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
                                       @JsonProperty("topicName") final String topicName,
                                       @JsonProperty("outputProperties") final Map<String, Object>
-                                            outputProperties) {
-    super(id, source, schema);
+                                            outputProperties,
+                                      @JsonProperty("limit") final Optional<Integer> limit) {
+    super(id, source, schema, limit);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
     this.timestampField = timestampField;

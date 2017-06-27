@@ -120,7 +120,8 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNode.getKeyField(),
               ksqlStructuredDataOutputNode.getKsqlTopic(),
               ksqlStructuredDataOutputNode.getKafkaTopicName(),
-              ksqlStructuredDataOutputNode.getOutputProperties());
+              ksqlStructuredDataOutputNode.getOutputProperties(),
+              ksqlStructuredDataOutputNode.getLimit());
       if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
           .getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
         KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
@@ -169,7 +170,8 @@ public class PhysicalPlanBuilder {
               keyField.get(),
               ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
               ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
-              ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties());
+              ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties(),
+              ksqlStructuredDataOutputNodeNoRowKey.getLimit());
         }
       }
 
@@ -192,12 +194,13 @@ public class PhysicalPlanBuilder {
           ksqlStructuredDataOutputNodeNoRowKey.getKeyField(),
           ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
           ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
-          ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties()
+          ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties(),
+          ksqlStructuredDataOutputNodeNoRowKey.getLimit()
       );
       this.planSink = ksqlStructuredDataOutputNodeWithRowkey;
       return resultSchemaStream;
     } else if (outputNode instanceof KsqlBareOutputNode) {
-      SchemaKStream resultSchemaStream = schemaKStream.toQueue();
+      SchemaKStream resultSchemaStream = schemaKStream.toQueue(outputNode.getLimit());
       KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
       this.planSink = ksqlBareOutputNode;
       return resultSchemaStream;
@@ -515,7 +518,8 @@ public class PhysicalPlanBuilder {
         ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(),
         ksqlStructuredDataOutputNode.getKeyField(), newKsqlTopic,
         ksqlStructuredDataOutputNode.getKafkaTopicName(),
-        ksqlStructuredDataOutputNode.getOutputProperties());
+        ksqlStructuredDataOutputNode.getOutputProperties(),
+        ksqlStructuredDataOutputNode.getLimit());
     return newKsqlStructuredDataOutputNode;
   }
 

@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -197,7 +198,8 @@ public class Cli implements Closeable, AutoCloseable {
                             =  |  <  \___ \| |  | | |       =
                             =  | . \ ____) | |__| | |____   =
                             =  |_|\_\_____/ \___\_\______|  =
-                            =================================
+                            =                               =
+                            == Kafka Streams Query Language =
                               Copyright 2017 Confluent Inc.
 
         CLI v1.0.0, Server v1.0.0 located at http://localhost:6969
@@ -229,7 +231,8 @@ public class Cli implements Closeable, AutoCloseable {
       terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |       =%n", leftPadding);
       terminal.writer().printf("%s=  | . \\ ____) | |__| | |____   =%n", leftPadding);
       terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|  =%n", leftPadding);
-      terminal.writer().printf("%s=================================%n", leftPadding);
+      terminal.writer().printf("%s=                               =%n", leftPadding);
+      terminal.writer().printf("%s=  Kafka Streams Query Language =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);
@@ -953,6 +956,12 @@ public class Cli implements Closeable, AutoCloseable {
               topicInfo.getKafkaTopic(),
               topicInfo.getFormat().name()
           )).collect(Collectors.toList());
+    } else if (ksqlEntity instanceof ExecutionPlan) {
+      ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
+      columnHeaders = Arrays.asList("Execution Plan");
+      rowValues = Collections.singletonList(Arrays.asList(
+          executionPlan.getExecutionPlan()
+      ));
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",

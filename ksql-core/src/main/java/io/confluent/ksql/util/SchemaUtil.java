@@ -184,4 +184,19 @@ public class SchemaUtil {
     return indexSet;
   }
 
+  public static synchronized String getSchemaDefinitionString(Schema schema) {
+    StringBuilder stringBuilder = new StringBuilder("[");
+    boolean addComma = false;
+    for (Field field : schema.fields()) {
+      if (addComma) {
+        stringBuilder.append(" , ");
+      } else {
+        addComma = true;
+      }
+      stringBuilder.append(field.name() + " : " + field.schema().type());
+    }
+    stringBuilder.append("]");
+    return stringBuilder.toString();
+  }
+
 }

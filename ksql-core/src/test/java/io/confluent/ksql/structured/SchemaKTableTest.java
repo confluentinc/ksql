@@ -52,7 +52,8 @@ public class SchemaKTableTest {
 
   private Analysis analyze(String queryStr) {
     List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
+    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0))
+                           .replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
@@ -67,7 +68,8 @@ public class SchemaKTableTest {
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null, null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
+    AggregateAnalyzer aggregateAnalyzer =
+        new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
     }
@@ -81,10 +83,13 @@ public class SchemaKTableTest {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                             ksqlTable.getKeyField(), new ArrayList<>(), false);
-    SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions
-        ());
+    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+                                           kTable,
+                                           ksqlTable.getKeyField(), new ArrayList<>(),
+                                           false,
+                                           SchemaKStream.TYPE.SOURCE);
+    SchemaKTable projectedSchemaKStream = initialSchemaKTable
+        .select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
@@ -93,9 +98,12 @@ public class SchemaKTableTest {
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL3") ==
                       projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
 
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);
@@ -107,18 +115,25 @@ public class SchemaKTableTest {
     String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           ksqlTable.getKeyField(), new ArrayList<>(), false);
-    SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(projectNode.getProjectExpressions());
+    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+                                           kTable,
+                                           ksqlTable.getKeyField(),
+                                           new ArrayList<>(), false,
+                                           SchemaKStream.TYPE.SOURCE);
+    SchemaKTable projectedSchemaKStream = initialSchemaKTable
+        .select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("LEN(UCASE(TEST1.COL2))") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("LEN(UCASE(TEST1.COL2))") ==
                       projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("((TEST1.COL3 * 3) + 5)") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("((TEST1.COL3 * 3) + 5)") ==
                       projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema()
+                          .field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema() == Schema
         .INT32_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema() == Schema
@@ -134,8 +149,11 @@ public class SchemaKTableTest {
     PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(), kTable,
-                                           ksqlTable.getKeyField(), new ArrayList<>(), false);
+    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+                                           kTable,
+                                           ksqlTable.getKeyField(), new ArrayList<>(),
+                                           false,
+                                           SchemaKStream.TYPE.SOURCE);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
@@ -148,10 +166,14 @@ public class SchemaKTableTest {
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
                       filteredSchemaKStream.getSchema().fields().get(3));
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
+    Assert.assertTrue(filteredSchemaKStream.getSchema()
+                          .field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
+    Assert.assertTrue(filteredSchemaKStream.getSchema()
+                          .field("TEST1.COL1").schema() == Schema.STRING_SCHEMA);
+    Assert.assertTrue(filteredSchemaKStream.getSchema()
+                          .field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
+    Assert.assertTrue(filteredSchemaKStream.getSchema()
+                          .field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
 
     Assert.assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);

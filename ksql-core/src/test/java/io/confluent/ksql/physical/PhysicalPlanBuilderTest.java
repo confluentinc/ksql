@@ -155,4 +155,19 @@ public class PhysicalPlanBuilderTest {
         Assert.assertTrue(((SchemaKTable) schemaKStream.getSourceSchemaKStreams().get(0))
                               .isWindowed() == false);
     }
+
+    @Test
+    public void testExecutionPlan() throws Exception {
+        String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
+                             + "WHERE col0 > 100 GROUP BY col0;";
+        SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
+        String planText = schemaKStream.getExecutionPlan("");
+        String[] lines = planText.split("\n");
+        Assert.assertEquals(lines[0], " > [ SINK ] Schema: [TEST1.COL0 : INT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].");
+        Assert.assertEquals(lines[1], "\t\t > [ AGGREGATE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : FLOAT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].");
+        Assert.assertEquals(lines[2], "\t\t\t\t > [ PROJECT ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : FLOAT64].");
+        Assert.assertEquals(lines[3], "\t\t\t\t\t\t > [ REKEY ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
+        Assert.assertEquals(lines[4], "\t\t\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
+        Assert.assertEquals(lines[5], "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
+    }
 }

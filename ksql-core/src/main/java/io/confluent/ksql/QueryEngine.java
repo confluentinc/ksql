@@ -45,6 +45,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryEngine {
 
+  private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final AtomicLong queryIdCounter;
 
 
@@ -136,6 +139,7 @@ public class QueryEngine {
       }
 
       logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
+      log.info("Build logical plan for {}.", statementQueryPair.getLeft());
     }
     return logicalPlansList;
   }
@@ -145,7 +149,8 @@ public class QueryEngine {
       MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
       KsqlConfig ksqlConfig,
-      Map<String, Object> overriddenStreamsProperties
+      Map<String, Object> overriddenStreamsProperties,
+      boolean updateMetastore
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
@@ -192,6 +197,7 @@ public class QueryEngine {
             statementPlanPair.getLeft(),
             streams,
             ksqlBareOutputNode,
+            schemaKStream.getExecutionPlan(""),
             queuedSchemaKStream.getQueue()
         ));
 
@@ -209,7 +215,8 @@ public class QueryEngine {
             (KsqlStructuredDataOutputNode) outputNode;
         physicalPlans.add(
             new PersistentQueryMetadata(statementPlanPair.getLeft(),
-                                        streams, kafkaTopicOutputNode, queryId)
+                                        streams, kafkaTopicOutputNode, schemaKStream
+                                            .getExecutionPlan(""), queryId)
         );
         if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
@@ -234,11 +241,15 @@ public class QueryEngine {
                   kafkaTopicOutputNode.getKsqlTopic());
         }
 
-        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+        if (updateMetastore) {
+          metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+        }
       } else {
         throw new KsqlException("Sink data source is not correct.");
       }
-
+      log.info("Build physical plan for {}.", statementPlanPair.getLeft());
+      log.info(" Execution plan: \n");
+      log.info(schemaKStream.getExecutionPlan(""));
     }
     return physicalPlans;
   }

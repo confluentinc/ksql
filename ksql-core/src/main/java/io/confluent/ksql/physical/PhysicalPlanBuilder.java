@@ -52,6 +52,8 @@ import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +64,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public class PhysicalPlanBuilder {
+
+  private static final Logger log = LoggerFactory.getLogger(PhysicalPlanBuilder.class);
 
   KStreamBuilder builder;
   OutputNode planSink = null;
@@ -147,7 +151,8 @@ public class PhysicalPlanBuilder {
                                                schemaKStream.getKstream(),
                                                ksqlStructuredDataOutputNode
                                                    .getKeyField(),
-                                               Arrays.asList(schemaKStream)
+                                               Arrays.asList(schemaKStream),
+                                               SchemaKStream.TYPE.SINK
         );
 
         if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -311,8 +316,10 @@ public class PhysicalPlanBuilder {
     Schema aggStageSchema = schemaBuilder.build();
 
     SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
-        schemaKTable.getKeyField(),
-        schemaKTable.getSourceSchemaKStreams(), schemaKTable.isWindowed());
+                                                      schemaKTable.getKeyField(),
+                                                      schemaKTable.getSourceSchemaKStreams(),
+                                                      schemaKTable.isWindowed(),
+                                                      SchemaKStream.TYPE.AGGREGATE);
 
     if (aggregateNode.getHavingExpressions() != null) {
       finalSchemaKTable = finalSchemaKTable.filter(aggregateNode.getHavingExpressions());
@@ -422,7 +429,9 @@ public class PhysicalPlanBuilder {
         }
 
         return new SchemaKTable(sourceNode.getSchema(), ktable,
-            sourceNode.getKeyField(), new ArrayList<>(), ksqlTable.isWinidowed());
+                                sourceNode.getKeyField(), new ArrayList<>(),
+                                ksqlTable.isWinidowed(),
+                                SchemaKStream.TYPE.SOURCE);
       }
       KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
@@ -442,7 +451,8 @@ public class PhysicalPlanBuilder {
               });
       kstream = addTimestampColumn(kstream);
       return new SchemaKStream(sourceNode.getSchema(), kstream,
-          sourceNode.getKeyField(), new ArrayList<>());
+                               sourceNode.getKeyField(), new ArrayList<>(),
+                               SchemaKStream.TYPE.SOURCE);
     }
     throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
@@ -560,7 +570,7 @@ public class PhysicalPlanBuilder {
     Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
-        Arrays.asList(sourceSchemaKStream));
+                             Arrays.asList(sourceSchemaKStream), SchemaKStream.TYPE.REKEY);
   }
 
   private int getIndexInSchema(final String fieldName, final Schema schema) {

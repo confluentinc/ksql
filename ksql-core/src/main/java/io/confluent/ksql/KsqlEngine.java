@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -33,6 +34,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -46,6 +49,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public class KsqlEngine implements Closeable {
+
+  private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
   // TODO: Decide if any other properties belong in here
   private static final Set<String> IMMUTABLE_PROPERTIES = new HashSet<>(Arrays.asList(
@@ -98,7 +103,8 @@ public class KsqlEngine implements Closeable {
         metaStore,
         logicalPlans,
         ksqlConfig,
-        overriddenProperties
+        overriddenProperties,
+        true
     );
 
     for (QueryMetadata queryMetadata : runningQueries) {
@@ -112,6 +118,24 @@ public class KsqlEngine implements Closeable {
     }
 
     return runningQueries;
+  }
+
+  public String getQueryExecutionPlan(Query query) throws Exception {
+
+    // Logical plan creation from the ASTs
+    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays
+        .asList(new Pair<>("", query)));
+
+    // Physical plan creation from logical plans.
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+        false,
+        metaStore,
+        logicalPlans,
+        ksqlConfig,
+        Collections.emptyMap(),
+        false
+    );
+    return runningQueries.get(0).getExecutionPlan();
   }
 
 
@@ -144,6 +168,9 @@ public class KsqlEngine implements Closeable {
 
   private Pair<String, Query> buildSingleQueryAst(Statement statement, String
       statementString, MetaStore tempMetaStore, Map<String, Object> overriddenProperties) {
+
+    log.info("Building AST for {}.", statementString);
+
     if (statement instanceof Query) {
       return  new Pair<>(statementString, (Query) statement);
     } else if (statement instanceof CreateStreamAsSelect) {

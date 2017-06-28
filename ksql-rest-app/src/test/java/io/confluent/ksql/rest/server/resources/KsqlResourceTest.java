@@ -317,6 +317,7 @@ public class KsqlResourceTest {
         mockQueryStatement,
         null,
         mockQueryOutputNode,
+        "",
         mockQueryId
     );
     final Map<Long, PersistentQueryMetadata> mockQueries = Collections.singletonMap(mockQueryId, mockQuery);

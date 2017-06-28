@@ -25,19 +25,22 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   public QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                              final List<SchemaKStream> sourceSchemaKStreams,
-                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
-    super(schema, kstream, keyField, sourceSchemaKStreams);
+                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
+                             TYPE type) {
+    super(schema, kstream, keyField, sourceSchemaKStreams, type);
     this.rowQueue = rowQueue;
   }
 
   public QueuedSchemaKStream(SchemaKStream schemaKStream,
-                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue) {
+                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
+                             TYPE type) {
     this(
         schemaKStream.schema,
         schemaKStream.kstream,
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
-        rowQueue
+        rowQueue,
+        type
     );
   }
 

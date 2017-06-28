@@ -13,11 +13,14 @@ public class QueryMetadata {
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
+  private final String executionPlan;
 
-  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode) {
+  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
+                       String executionPlan) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
+    this.executionPlan = executionPlan;
   }
 
   public String getStatementString() {
@@ -30,6 +33,10 @@ public class QueryMetadata {
 
   public OutputNode getOutputNode() {
     return outputNode;
+  }
+
+  public String getExecutionPlan() {
+    return executionPlan;
   }
 
   @Override

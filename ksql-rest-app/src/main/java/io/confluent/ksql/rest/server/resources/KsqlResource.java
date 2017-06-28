@@ -11,6 +11,8 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -19,11 +21,13 @@ import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -31,6 +35,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -45,7 +50,10 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.slf4j.LoggerFactory;
@@ -151,6 +159,9 @@ public class KsqlResource {
       return describe(statementText, showColumns.getTable().getSuffix());
     } else if (statement instanceof ListProperties) {
       return listProperties(statementText);
+    } else if (statement instanceof Explain) {
+      Explain explain = (Explain) statement;
+      return getStatementExecutionPlan(explain, statementText);
     } else if (statement instanceof CreateTopic
             || statement instanceof CreateStream
             || statement instanceof CreateTable
@@ -261,6 +272,23 @@ public class KsqlResource {
 
   private TablesList listTables(String statementText) {
     return TablesList.fromKsqlTables(statementText, getSpecificSources(KsqlTable.class));
+  }
+
+  private ExecutionPlan getStatementExecutionPlan(Explain explain, String statementText)
+      throws Exception {
+    String executionPlan;
+    if (explain.getStatement() instanceof Query) {
+      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) explain.getStatement());
+    } else if (explain.getStatement() instanceof CreateStreamAsSelect) {
+      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) explain.getStatement();
+      executionPlan = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect.getQuery());
+    } else if (explain.getStatement() instanceof CreateTableAsSelect) {
+      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) explain.getStatement();
+      executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());
+    } else {
+      throw new KsqlException("Cannot build execution plan for this statement.");
+    }
+    return new ExecutionPlan(executionPlan);
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {

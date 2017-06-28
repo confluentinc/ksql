@@ -20,9 +20,10 @@ public class QueuedQueryMetadata extends QueryMetadata {
       String statementString,
       KafkaStreams kafkaStreams,
       OutputNode outputNode,
+      String executionPlan,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue
   ) {
-    super(statementString, kafkaStreams, outputNode);
+    super(statementString, kafkaStreams, outputNode, executionPlan);
     this.rowQueue = rowQueue;
   }
 

@@ -300,10 +300,10 @@ public class SchemaKStream {
 
   public String getExecutionPlan(String indent) {
     StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(indent + "SchemaKStream [ " + type + " ] Schema: " +SchemaUtil
-        .getSchemaDefinitionString(schema)+ ".\n");
+    stringBuilder.append(indent + " > [ " + type + " ] Schema: " + SchemaUtil
+        .getSchemaDefinitionString(schema) + ".\n");
     for (SchemaKStream schemaKStream: sourceSchemaKStreams) {
-      stringBuilder.append("\t" +indent+ schemaKStream.getExecutionPlan(indent + "\t"));
+      stringBuilder.append("\t" + indent + schemaKStream.getExecutionPlan(indent + "\t"));
     }
     return stringBuilder.toString();
   }

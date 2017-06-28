@@ -81,10 +81,12 @@ public class StreamedQueryResourceTest {
     expectLastCall();
 
     final OutputNode mockOutputNode = mock(OutputNode.class);
-    expect(mockOutputNode.getSchema()).andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
+    expect(mockOutputNode.getSchema())
+        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
 
     final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, rowQueue);
+        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
+                                rowQueue);
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 

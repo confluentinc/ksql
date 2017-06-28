@@ -149,7 +149,8 @@ public class QueryEngine {
       MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
       KsqlConfig ksqlConfig,
-      Map<String, Object> overriddenStreamsProperties
+      Map<String, Object> overriddenStreamsProperties,
+      boolean updateMetastore
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
@@ -196,6 +197,7 @@ public class QueryEngine {
             statementPlanPair.getLeft(),
             streams,
             ksqlBareOutputNode,
+            schemaKStream.getExecutionPlan(""),
             queuedSchemaKStream.getQueue()
         ));
 
@@ -213,7 +215,8 @@ public class QueryEngine {
             (KsqlStructuredDataOutputNode) outputNode;
         physicalPlans.add(
             new PersistentQueryMetadata(statementPlanPair.getLeft(),
-                                        streams, kafkaTopicOutputNode, queryId)
+                                        streams, kafkaTopicOutputNode, schemaKStream
+                                            .getExecutionPlan(""), queryId)
         );
         if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
           metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
@@ -238,7 +241,9 @@ public class QueryEngine {
                   kafkaTopicOutputNode.getKsqlTopic());
         }
 
-        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+        if (updateMetastore) {
+          metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+        }
       } else {
         throw new KsqlException("Sink data source is not correct.");
       }

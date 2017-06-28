@@ -14,8 +14,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final long id;
 
   public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams,
-                                 OutputNode outputNode, long id) {
-    super(statementString, kafkaStreams, outputNode);
+                                 OutputNode outputNode, String executionPlan, long id) {
+    super(statementString, kafkaStreams, outputNode, executionPlan);
     this.id = id;
   }
 

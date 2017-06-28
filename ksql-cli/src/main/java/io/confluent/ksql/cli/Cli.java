@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -955,6 +956,12 @@ public class Cli implements Closeable, AutoCloseable {
               topicInfo.getKafkaTopic(),
               topicInfo.getFormat().name()
           )).collect(Collectors.toList());
+    } else if (ksqlEntity instanceof ExecutionPlan) {
+      ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
+      columnHeaders = Arrays.asList("Execution Plan");
+      rowValues = Collections.singletonList(Arrays.asList(
+          executionPlan.getExecutionPlan()
+      ));
     } else {
       throw new RuntimeException(String.format(
           "Unexpected KsqlEntity class: '%s'",

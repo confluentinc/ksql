@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.parser.tree.ExistsPredicate;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.ExportCatalog;
@@ -120,6 +121,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1254,6 +1256,17 @@ public class AstBuilder
             .map((x) -> x.getChild(0).getPayload())
             .map(Token.class::cast)
             .map(AstBuilder::getIntervalFieldType));
+  }
+
+
+  @Override
+  public Node visitExplain(SqlBaseParser.ExplainContext ctx) {
+    Statement statement = (Statement) visit(ctx.statement());
+    // Only simple explain is supported for now.
+    //TODO: Expand to support other parts of EXPLAIN
+
+    Explain explain = new Explain(statement, false, Arrays.asList());
+    return explain;
   }
 
   // ***************** helpers *****************

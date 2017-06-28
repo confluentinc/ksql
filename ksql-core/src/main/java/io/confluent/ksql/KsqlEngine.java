@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -102,7 +103,8 @@ public class KsqlEngine implements Closeable {
         metaStore,
         logicalPlans,
         ksqlConfig,
-        overriddenProperties
+        overriddenProperties,
+        true
     );
 
     for (QueryMetadata queryMetadata : runningQueries) {
@@ -116,6 +118,24 @@ public class KsqlEngine implements Closeable {
     }
 
     return runningQueries;
+  }
+
+  public String getQueryExecutionPlan(Query query) throws Exception {
+
+    // Logical plan creation from the ASTs
+    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays
+        .asList(new Pair<>("", query)));
+
+    // Physical plan creation from logical plans.
+    List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
+        false,
+        metaStore,
+        logicalPlans,
+        ksqlConfig,
+        Collections.emptyMap(),
+        false
+    );
+    return runningQueries.get(0).getExecutionPlan();
   }
 
 

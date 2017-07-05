@@ -95,7 +95,7 @@ public class KsqlEngine implements Closeable {
   public List<QueryMetadata> buildMultipleQueriesFromAsts(boolean createNewAppId,
                                                           List<Pair<String, Query>> queryList,
                                                           Map<String, Object> overriddenProperties)
-  throws Exception {
+      throws Exception {
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);

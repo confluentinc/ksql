@@ -42,10 +42,8 @@ import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {
-
-
-  public enum TYPE {SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM};
-
+  
+  public enum TYPE { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM };
 
   final Schema schema;
   final KStream kstream;

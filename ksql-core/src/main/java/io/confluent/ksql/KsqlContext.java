@@ -5,6 +5,8 @@
 package io.confluent.ksql;
 
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,6 +20,7 @@ import io.confluent.ksql.util.QueryMetadata;
 
 public class KsqlContext {
 
+  private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
   final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
@@ -51,6 +54,11 @@ public class KsqlContext {
         persistentQueryMetadata.getKafkaStreams().start();
         ksqlEngine.getPersistentQueries()
             .put(persistentQueryMetadata.getId(), persistentQueryMetadata);
+      } else {
+        System.err.println("Ignoring statemenst: " + sql);
+        System.err.println("Only CREATE statements can run in KSQL embedded mode.");
+        log.warn("Ignoring statemenst: {}", sql);
+        log.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
   }

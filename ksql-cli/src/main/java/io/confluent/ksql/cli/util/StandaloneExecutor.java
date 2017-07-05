@@ -5,6 +5,9 @@
 package io.confluent.ksql.cli.util;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +21,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 public class StandaloneExecutor {
+
+  private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
   KsqlEngine ksqlEngine;
 
@@ -35,6 +40,11 @@ public class StandaloneExecutor {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.getKafkaStreams().start();
+      } else {
+        System.err.println("Ignoring statemenst: " + queryMetadata.getStatementString());
+        System.err.println("Only CREATE statements can run in KSQL embedded mode.");
+        log.warn("Ignoring statemenst: {}", queryMetadata.getStatementString());
+        log.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
   }

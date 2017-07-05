@@ -19,6 +19,7 @@ public class EmbeddedKsql {
                     + "orderunits double, arraycol array<double>, mapcol map<varchar, double>) "
                     + "WITH (topicname = 'orders_topic' , key='orderid');\n");
     ksqlContext.sql("CREATE STREAM BIGORDERS AS SELECT * FROM ORDERS WHERE ORDERUNITS > 5;");
+    ksqlContext.sql("SELECT * FROM ORDERS;");
     ksqlContext.sql("CREATE TABLE ORDERSUMS AS select itemid, sum(orderunits) from orders window "
                     + "TUMBLING ( size 30 second) group by itemid;");
 

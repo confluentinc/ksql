@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -335,7 +336,8 @@ public class StatementExecutor {
       }
     }
 
-    QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(false, queryString).get(0);
+    QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
+        false, queryString, Collections.emptyMap()).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

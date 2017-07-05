@@ -64,11 +64,6 @@ public class KsqlEngine implements Closeable {
 
   private KsqlConfig ksqlConfig;
 
-  public List<QueryMetadata> buildMultipleQueries(boolean createNewAppId, String queriesString)
-      throws Exception {
-    return buildMultipleQueries(createNewAppId, queriesString, Collections.emptyMap());
-  }
-
   /**
    * Runs the set of queries in the given query string.
    *

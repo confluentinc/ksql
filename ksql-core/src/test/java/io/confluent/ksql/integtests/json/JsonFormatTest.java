@@ -101,11 +101,11 @@ public class JsonFormatTest {
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (topicname = "
                                             + "'%s');", messageLogStream, messageLogTopic);
 
-    ksqlEngine.buildMultipleQueries(false, ordersTopicStr);
-    ksqlEngine.buildMultipleQueries(false, ordersStreamStr);
+    ksqlEngine.buildMultipleQueries(false, ordersTopicStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(false, ordersStreamStr, Collections.emptyMap());
 
-    ksqlEngine.buildMultipleQueries(false, messageTopicStr);
-    ksqlEngine.buildMultipleQueries(false, messageStreamStr);
+    ksqlEngine.buildMultipleQueries(false, messageTopicStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(false, messageStreamStr, Collections.emptyMap());
 
     inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
     produceMessageData(schemaBuilderMessage.build());
@@ -119,7 +119,7 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -142,7 +142,7 @@ public class JsonFormatTest {
         String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -205,7 +205,7 @@ public class JsonFormatTest {
                       inputStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -237,7 +237,7 @@ public class JsonFormatTest {
                       + "FROM %s ;", stream1Name,
                       inputStream, stream2Name, stream1Name);
 
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(true, query1String);
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(true, query1String, Collections.emptyMap());
 
     PersistentQueryMetadata query1Metadata = (PersistentQueryMetadata) queryMetadataList.get(0);
     PersistentQueryMetadata query2Metadata = (PersistentQueryMetadata) queryMetadataList.get(1);
@@ -277,7 +277,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -320,7 +320,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -354,7 +354,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -388,7 +388,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -428,7 +428,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
@@ -462,7 +462,7 @@ public class JsonFormatTest {
                                              streamName, resultPartitionCount, inputStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     StreamsKafkaClient streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(configMap));
@@ -491,7 +491,7 @@ public class JsonFormatTest {
                                              streamName, messageLogStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil

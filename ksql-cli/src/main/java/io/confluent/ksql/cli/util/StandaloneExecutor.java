@@ -18,17 +18,19 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 public class StandaloneExecutor {
+
   KsqlEngine ksqlEngine;
-  public StandaloneExecutor(Map StreamProperties) {
+
+  public StandaloneExecutor(Map streamProperties) {
     MetaStore metaStore = new MetaStoreImpl();
-    ksqlEngine = new KsqlEngine(metaStore, StreamProperties);
+    ksqlEngine = new KsqlEngine(metaStore, streamProperties);
   }
 
   public void executeStatements(String queries) throws Exception {
     List<Pair<String, Query>> queryList = ksqlEngine.buildQueryAstList(queries,
                                                                        Collections.emptyMap());
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueriesFromAsts(false, queryList,
-                                                                        Collections.emptyMap());
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueriesFromAsts(
+        false, queryList, Collections.emptyMap());
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

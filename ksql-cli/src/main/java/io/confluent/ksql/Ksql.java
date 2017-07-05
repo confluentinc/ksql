@@ -19,14 +19,11 @@ import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.RemoteCli;
 import io.confluent.ksql.cli.util.CliUtils;
 import io.confluent.ksql.cli.util.StandaloneExecutor;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
 public class Ksql {
@@ -245,7 +242,8 @@ public class Ksql {
     @Option(
         name = PROPERTIES_FILE_OPTION_NAME,
         description = "A file specifying properties for Ksql and its underlying Kafka Streams "
-                      + "instance(s) (can specify port number, bootstrap server, etc. but these options will "
+                      + "instance(s) (can specify port number, bootstrap server, etc. "
+                      + "but these options will "
                       + "be overridden if also given via  flags)"
     )
     String propertiesFile;
@@ -253,7 +251,7 @@ public class Ksql {
     @Once
     @Required
     @Arguments(
-        title = "query_file",
+        title = "query-file",
         description = "Path to the query file in the local machine.)"
     )
     String queryFile;

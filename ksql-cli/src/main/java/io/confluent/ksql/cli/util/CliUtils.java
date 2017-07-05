@@ -7,6 +7,8 @@ package io.confluent.ksql.cli.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -49,4 +51,24 @@ public class CliUtils {
     }
   }
 
+  public String readQueryFile(final String queryFilePath) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    BufferedReader br = null;
+    try {
+      br = new BufferedReader(new FileReader(queryFilePath));
+      String line = br.readLine();
+      while (line != null) {
+        sb.append(line);
+        sb.append(System.lineSeparator());
+        line = br.readLine();
+      }
+    } catch (IOException e) {
+      throw new KsqlException("Could not read the query file.");
+    } finally {
+      if (br != null) {
+        br.close();
+      }
+    }
+    return sb.toString();
+  }
 }

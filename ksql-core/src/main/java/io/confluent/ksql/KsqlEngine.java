@@ -19,7 +19,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateTopic;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -94,6 +93,15 @@ public class KsqlEngine implements Closeable {
     // Build query AST from the query string
     List<Pair<String, Query>> queryList = buildQueryAstList(queriesString, overriddenProperties);
 
+    return buildMultipleQueriesFromAsts(createNewAppId, queryList, overriddenProperties);
+
+  }
+
+  public List<QueryMetadata> buildMultipleQueriesFromAsts(boolean createNewAppId,
+                                                          List<Pair<String, Query>> queryList,
+                                                          Map<String, Object> overriddenProperties)
+  throws Exception {
+
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
 
@@ -139,7 +147,7 @@ public class KsqlEngine implements Closeable {
   }
 
 
-  private List<Pair<String, Query>> buildQueryAstList(final String queriesString,
+  public List<Pair<String, Query>> buildQueryAstList(final String queriesString,
                                                       Map<String, Object> overriddenProperties) {
 
     // Parse and AST creation

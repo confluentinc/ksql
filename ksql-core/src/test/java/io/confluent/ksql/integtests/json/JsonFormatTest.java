@@ -508,6 +508,61 @@ public class JsonFormatTest {
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
+
+  @Test
+  public void testSessionWindow() throws Exception {
+
+    Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(inputStream).getSchema()));
+    final String streamName = "SESSIONAGGTEST";
+    final long windowSizeMilliseconds = 2000;
+    final String selectColumns =
+        "ITEMID, COUNT(ITEMID) ";
+    final String window = String.format("SESSION ( %d MILLISECOND)", windowSizeMilliseconds);
+
+    final String queryString = String.format(
+        "CREATE TABLE %s AS SELECT %s FROM %s WINDOW %s WHERE ORDERUNITS > 60 GROUP BY ITEMID;",
+        streamName,
+        selectColumns,
+        inputStream,
+        window
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
+    queryMetadata.getKafkaStreams().start();
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
+
+    long firstItem7Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
+    long secondItem7Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
+
+    Map<Windowed<String>, GenericRow> expectedResults = new HashMap<>();
+    if (firstItem7Window == secondItem7Window) {
+      expectedResults.put(
+          new Windowed<>("ITEM_7",new TimeWindow(0, 1)),
+          new GenericRow(Arrays.asList("ITEM_7", 2))
+      );
+    }
+
+    long firstItem8Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
+    long secondItem8Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
+
+    if (firstItem8Window == secondItem8Window) {
+      expectedResults.put(
+          new Windowed<>("ITEM_8",new TimeWindow(0, 1)),
+          new GenericRow(Arrays.asList("ITEM_8", 2))
+      );
+    }
+
+    Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedWindowedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
   //*********************************************************//
 
 

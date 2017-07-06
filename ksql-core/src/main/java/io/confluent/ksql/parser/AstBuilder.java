@@ -84,6 +84,7 @@ import io.confluent.ksql.parser.tree.SampledRelation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
@@ -456,6 +457,10 @@ public class AstBuilder
           visitHoppingWindowExpression(ctx.hoppingWindowExpression());
 
       return new WindowExpression(windowName, hoppingWindowExpression);
+    } else if (ctx.sessionWindowExpression() != null) {
+      SessionWindowExpression sessionWindowExpression = (SessionWindowExpression)
+          visitSessionWindowExpression(ctx.sessionWindowExpression());
+      return new WindowExpression(windowName, sessionWindowExpression);
     }
     throw new KsqlException("Window description is not correct.");
   }
@@ -483,6 +488,16 @@ public class AstBuilder
     String sizeStr = ctx.number().getText();
     String sizeUnit = ctx.windowUnit().getText();
     return new TumblingWindowExpression(
+        Long.parseLong(sizeStr),
+        WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+    );
+  }
+
+  @Override
+  public Node visitSessionWindowExpression(SqlBaseParser.SessionWindowExpressionContext ctx) {
+    String sizeStr = ctx.number().getText();
+    String sizeUnit = ctx.windowUnit().getText();
+    return new SessionWindowExpression(
         Long.parseLong(sizeStr),
         WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
     );

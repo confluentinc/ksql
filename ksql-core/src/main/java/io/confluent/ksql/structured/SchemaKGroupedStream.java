@@ -4,7 +4,9 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
+import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.GenericRow;
@@ -17,8 +19,10 @@ import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 
 import java.util.List;
 
@@ -41,7 +45,7 @@ public class SchemaKGroupedStream {
   }
 
   public SchemaKTable aggregate(final Initializer initializer,
-                                final Aggregator aggregator,
+                                final KudafAggregator aggregator,
                                 final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
@@ -75,6 +79,20 @@ public class SchemaKGroupedStream {
                                              hoppingWindowExpression.getAdvanceBy(),
                                              hoppingWindowExpression.getAdvanceByUnit())),
                                      topicValueSerDe, storeName);
+      } else if (windowExpression.getKsqlWindowExpression() instanceof SessionWindowExpression) {
+        SessionWindowExpression sessionWindowExpression =
+            (SessionWindowExpression) windowExpression.getKsqlWindowExpression();
+        aggKtable =
+            kgroupedStream
+                .aggregate(initializer, aggregator,
+                           aggregator.getMerger(),
+                           SessionWindows.with(
+                               getWindowUnitInMillisecond(
+                                   sessionWindowExpression.getGap(),
+                                   sessionWindowExpression
+                                       .getSizeUnit())),
+                           topicValueSerDe,
+                           storeName);
       } else {
         throw new KsqlException("Could not set the window expression for aggregate.");
       }

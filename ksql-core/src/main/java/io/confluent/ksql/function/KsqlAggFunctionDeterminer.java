@@ -5,6 +5,7 @@
 package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
 

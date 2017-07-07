@@ -12,9 +12,26 @@ import java.util.Set;
 
 public class MetaStoreImpl implements MetaStore {
 
-  Map<String, KsqlTopic> topicMap = new HashMap<>();
+  private final Map<String, KsqlTopic> topicMap;
 
-  Map<String, StructuredDataSource> dataSourceMap = new HashMap<>();
+  private final Map<String, StructuredDataSource> dataSourceMap;
+
+  public MetaStoreImpl() {
+    this(null, null);
+  }
+
+  /**
+   * Create a copy of the provided metaStore
+   * @param metaStore
+   */
+  public MetaStoreImpl(MetaStore metaStore) {
+    this(metaStore.getAllKsqlTopics(), metaStore.getAllStructuredDataSources());
+  }
+
+  public MetaStoreImpl(Map<String, KsqlTopic> topicMap, Map<String, StructuredDataSource> dataSourceMap) {
+    this.topicMap = (topicMap != null)? new HashMap<>(topicMap): new HashMap<>();
+    this.dataSourceMap = (dataSourceMap != null)? new HashMap<>(dataSourceMap): new HashMap<>();
+  }
 
   @Override
   public KsqlTopic getTopic(String topicName) {
@@ -76,5 +93,13 @@ public class MetaStoreImpl implements MetaStore {
   @Override
   public Set<String> getAllTopicNames() {
     return getAllKsqlTopics().keySet();
+  }
+
+  @Override
+  public void update(MetaStore metaStore) {
+    topicMap.clear();
+    topicMap.putAll(metaStore.getAllKsqlTopics());
+    dataSourceMap.clear();
+    dataSourceMap.putAll(metaStore.getAllStructuredDataSources());
   }
 }

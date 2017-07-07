@@ -11,6 +11,8 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -204,21 +206,21 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
         new StringLiteral(commandTopic)
     );
-    ksqlEngine.getDdlEngine().registerTopic(new RegisterTopic(
-        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
-        false,
-        commandTopicProperties
-    ), Collections.<String, Expression>emptyMap());
 
-    ksqlEngine.getDdlEngine().createStream(new CreateStream(
-        QualifiedName.of(COMMANDS_STREAM_NAME),
-        Collections.singletonList(new TableElement("STATEMENT", "STRING")),
-        false,
-        Collections.singletonMap(
-            DdlConfig.TOPIC_NAME_PROPERTY,
-            new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-        )
-    ));
+
+    ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+            QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
+            false,
+            commandTopicProperties)));
+
+    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(new CreateStream(
+            QualifiedName.of(COMMANDS_STREAM_NAME),
+            Collections.singletonList(new TableElement("STATEMENT", "STRING")),
+            false,
+            Collections.singletonMap(
+                    DdlConfig.TOPIC_NAME_PROPERTY,
+                    new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
+            ))));
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

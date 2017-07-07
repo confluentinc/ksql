@@ -122,7 +122,7 @@ querySpecification
 
 windowExpression
     : (IDENTIFIER)?
-     ( tumblingWindowExpression | hoppingWindowExpression)
+     ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression)
     ;
 
 tumblingWindowExpression
@@ -131,6 +131,10 @@ tumblingWindowExpression
 
 hoppingWindowExpression
     : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit ')'
+    ;
+
+sessionWindowExpression
+    : SESSION '(' number windowUnit ')'
     ;
 
 windowUnit

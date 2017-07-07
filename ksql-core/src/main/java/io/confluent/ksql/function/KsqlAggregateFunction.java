@@ -5,6 +5,7 @@
 package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
 
@@ -62,4 +63,6 @@ public abstract class KsqlAggregateFunction<V, A> {
   public Class getKudafClass() {
     return kudafClass;
   }
+
+  public abstract Merger getMerger();
 }

@@ -89,10 +89,10 @@ public class JsonFormatTest {
     inputData = getInputData();
 
     String ordersTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
-                          + "kafka_topic='%s');", inputTopic, inputTopic);
+                                          + "kafka_topic='%s');", inputTopic, inputTopic);
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
-                                    + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-                             + "map<varchar, double>) WITH (topicname = '%s' , "
+                                           + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+                                           + "map<varchar, double>) WITH (topicname = '%s' , "
                                            + "key='ordertime');", inputStream, inputTopic);
 
     String messageTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
@@ -250,12 +250,12 @@ public class JsonFormatTest {
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList("8", inputRecordsMetadata.get("8")
-        .timestamp() + 10000, "8", inputRecordsMetadata.get("8").timestamp() + 10000,
+                                                                   .timestamp() + 10000, "8", inputRecordsMetadata.get("8").timestamp() + 10000,
                                                           inputRecordsMetadata.get("8").timestamp
                                                               () + 100, "ORDER_6", "ITEM_8")));
 
     Map<String, GenericRow> results1 = readNormalResults(stream1Name, resultSchema,
-                                                        expectedResults.size());
+                                                         expectedResults.size());
 
     Map<String, GenericRow> results = readNormalResults(stream2Name, resultSchema,
                                                         expectedResults.size());
@@ -451,7 +451,6 @@ public class JsonFormatTest {
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
-
 
   @Test
   public void testSinkProperties() throws Exception {

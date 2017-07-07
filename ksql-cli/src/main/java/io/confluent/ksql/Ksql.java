@@ -98,7 +98,7 @@ public class Ksql {
     private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
     private static final String PORT_NUMBER_OPTION_NAME = "--port-number";
-    private static final int PORT_NUMBER_OPTION_DEFAULT = 6969;
+    private static final int PORT_NUMBER_OPTION_DEFAULT = 9098;
 
     private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
     private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
@@ -213,7 +213,7 @@ public class Ksql {
     @Required
     @Arguments(
         title = "server",
-        description = "The address of the Ksql server to connect to (ex: http://confluent.io:6969)"
+        description = "The address of the Ksql server to connect to (ex: http://confluent.io:9098)"
     )
     String server;
 

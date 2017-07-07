@@ -50,8 +50,8 @@ public class KudafAggregator implements Aggregator<String, GenericRow, GenericRo
       @Override
       public GenericRow apply(String key, GenericRow aggRowOne, GenericRow aggRowTwo) {
 
-        List columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size()).collect
-            (Collectors.toList());
+        List columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
+            .collect(Collectors.toList());
         GenericRow mergedRow = new GenericRow(columns);
 
         for (int aggValColIndex: aggValToValColumnMap.keySet()) {
@@ -67,11 +67,12 @@ public class KudafAggregator implements Aggregator<String, GenericRow, GenericRo
         }
 
         for (int aggFunctionIndex: aggValToAggFunctionMap.keySet()) {
-          KsqlAggregateFunction ksqlAggregateFunction = aggValToAggFunctionMap.get(aggFunctionIndex);
+          KsqlAggregateFunction ksqlAggregateFunction = aggValToAggFunctionMap
+              .get(aggFunctionIndex);
           mergedRow.getColumns().set(aggFunctionIndex, ksqlAggregateFunction.getMerger()
-              .apply( key,
-                      aggRowOne.getColumns().get(aggFunctionIndex),
-                      aggRowTwo.getColumns().get(aggFunctionIndex))
+              .apply(key,
+                     aggRowOne.getColumns().get(aggFunctionIndex),
+                     aggRowTwo.getColumns().get(aggFunctionIndex))
           );
         }
         return mergedRow;

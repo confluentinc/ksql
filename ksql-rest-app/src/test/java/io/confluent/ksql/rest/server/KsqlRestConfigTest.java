@@ -29,7 +29,7 @@ public class KsqlRestConfigTest {
     final long BASE_COMMIT_INTERVAL_MS = 1000;
     final long OVERRIDE_COMMIT_INTERVAL_MS = 100;
 
-    final String OVERRIDE_BOOTSTRAP_SERVERS = "ksql.io.confluent:6969";
+    final String OVERRIDE_BOOTSTRAP_SERVERS = "ksql.io.confluent:9098";
 
     assertNotEquals(BASE_COMMIT_INTERVAL_MS, OVERRIDE_COMMIT_INTERVAL_MS);
 

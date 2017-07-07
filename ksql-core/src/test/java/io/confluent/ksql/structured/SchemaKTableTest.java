@@ -87,7 +87,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.TYPE.SOURCE);
+                                           SchemaKStream.Type.SOURCE);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -119,7 +119,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(),
                                            new ArrayList<>(), false,
-                                           SchemaKStream.TYPE.SOURCE);
+                                           SchemaKStream.Type.SOURCE);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -153,7 +153,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.TYPE.SOURCE);
+                                           SchemaKStream.Type.SOURCE);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);

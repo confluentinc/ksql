@@ -152,7 +152,7 @@ public class PhysicalPlanBuilder {
                                                ksqlStructuredDataOutputNode
                                                    .getKeyField(),
                                                Arrays.asList(schemaKStream),
-                                               SchemaKStream.TYPE.SINK
+                                               SchemaKStream.Type.SINK
         );
 
         if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -319,7 +319,7 @@ public class PhysicalPlanBuilder {
                                                       schemaKTable.getKeyField(),
                                                       schemaKTable.getSourceSchemaKStreams(),
                                                       schemaKTable.isWindowed(),
-                                                      SchemaKStream.TYPE.AGGREGATE);
+                                                      SchemaKStream.Type.AGGREGATE);
 
     if (aggregateNode.getHavingExpressions() != null) {
       finalSchemaKTable = finalSchemaKTable.filter(aggregateNode.getHavingExpressions());
@@ -431,7 +431,7 @@ public class PhysicalPlanBuilder {
         return new SchemaKTable(sourceNode.getSchema(), ktable,
                                 sourceNode.getKeyField(), new ArrayList<>(),
                                 ksqlTable.isWinidowed(),
-                                SchemaKStream.TYPE.SOURCE);
+                                SchemaKStream.Type.SOURCE);
       }
       KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();
       KStream
@@ -452,7 +452,7 @@ public class PhysicalPlanBuilder {
       kstream = addTimestampColumn(kstream);
       return new SchemaKStream(sourceNode.getSchema(), kstream,
                                sourceNode.getKeyField(), new ArrayList<>(),
-                               SchemaKStream.TYPE.SOURCE);
+                               SchemaKStream.Type.SOURCE);
     }
     throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
@@ -570,7 +570,7 @@ public class PhysicalPlanBuilder {
     Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
-                             Arrays.asList(sourceSchemaKStream), SchemaKStream.TYPE.REKEY);
+                             Arrays.asList(sourceSchemaKStream), SchemaKStream.Type.REKEY);
   }
 
   private int getIndexInSchema(final String fieldName, final Schema schema) {

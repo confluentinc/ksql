@@ -37,7 +37,7 @@ public class SchemaKTable extends SchemaKStream {
 
   public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
                       final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
-                      TYPE type) {
+                      Type type) {
     super(schema, null, keyField, sourceSchemaKStreams, type);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
@@ -94,7 +94,7 @@ public class SchemaKTable extends SchemaKStream {
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
     ktable.toStream().foreach(new QueuePopulator(rowQueue, limit));
-    return new QueuedSchemaKStream(this, rowQueue, TYPE.SINK);
+    return new QueuedSchemaKStream(this, rowQueue, Type.SINK);
   }
 
   @Override
@@ -102,7 +102,7 @@ public class SchemaKTable extends SchemaKStream {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            TYPE.FILTER);
+                            Type.FILTER);
   }
 
   @Override
@@ -156,12 +156,12 @@ public class SchemaKTable extends SchemaKStream {
     });
 
     return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed, TYPE.PROJECT);
+                            Arrays.asList(this), isWindowed, Type.PROJECT);
   }
 
   public SchemaKStream toStream() {
     return new SchemaKStream(schema, ktable.toStream(), keyField, sourceSchemaKStreams,
-                             TYPE.TOSTREAM);
+                             Type.TOSTREAM);
   }
 
   public KTable getKtable() {

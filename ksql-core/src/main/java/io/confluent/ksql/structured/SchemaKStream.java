@@ -43,19 +43,19 @@ import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKStream {
   
-  public enum TYPE { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM };
+  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
   final Schema schema;
   final KStream kstream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  final TYPE type;
+  final Type type;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
   public SchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
-                       final List<SchemaKStream> sourceSchemaKStreams, TYPE type) {
+                       final List<SchemaKStream> sourceSchemaKStreams, Type type) {
     this.schema = schema;
     this.kstream = kstream;
     this.keyField = keyField;
@@ -67,7 +67,7 @@ public class SchemaKStream {
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
     SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
     kstream.foreach(new QueuePopulator(rowQueue, limit));
-    return new QueuedSchemaKStream(this, rowQueue, TYPE.SINK);
+    return new QueuedSchemaKStream(this, rowQueue, Type.SINK);
   }
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
@@ -95,7 +95,7 @@ public class SchemaKStream {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false);
     KStream filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
-                             TYPE.FILTER);
+                             Type.FILTER);
   }
 
   public SchemaKStream select(final Schema selectSchema) {
@@ -116,7 +116,7 @@ public class SchemaKStream {
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this),
-                             TYPE.PROJECT);
+                             Type.PROJECT);
   }
 
   public SchemaKStream select(final List<Expression> expressions)
@@ -171,7 +171,7 @@ public class SchemaKStream {
 
     return new SchemaKStream(schemaBuilder.build(),
                              projectedKStream, keyField, Arrays.asList(this),
-                             TYPE.PROJECT);
+                             Type.PROJECT);
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
@@ -200,7 +200,7 @@ public class SchemaKStream {
             }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
-                             Arrays.asList(this, schemaKTable), TYPE.JOIN);
+                             Arrays.asList(this, schemaKTable), Type.JOIN);
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
@@ -228,7 +228,7 @@ public class SchemaKStream {
     });
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this),
-                             TYPE.REKEY);
+                             Type.REKEY);
   }
 
   public SchemaKGroupedStream groupByKey() {

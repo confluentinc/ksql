@@ -202,7 +202,7 @@ public class Cli implements Closeable, AutoCloseable {
                             == Kafka Streams Query Language =
                               Copyright 2017 Confluent Inc.
 
-        CLI v1.0.0, Server v1.0.0 located at http://localhost:6969
+        CLI v1.0.0, Server v1.0.0 located at http://localhost:9098
 
         <help message reminder>
 

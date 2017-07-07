@@ -640,7 +640,7 @@ public final class SqlFormatterQueryRewrite {
       if (node.isExists()) {
         builder.append("IF EXISTS ");
       }
-      builder.append(node.getTableName());
+      builder.append(node.getName());
 
       return null;
     }

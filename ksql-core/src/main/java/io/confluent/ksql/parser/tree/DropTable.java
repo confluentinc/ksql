@@ -9,8 +9,7 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-public class DropTable
-    extends Statement {
+public class DropTable extends AbstractStreamDropStatement {
 
   private final QualifiedName tableName;
   private final boolean exists;
@@ -29,7 +28,7 @@ public class DropTable
     this.exists = exists;
   }
 
-  public QualifiedName getTableName() {
+  public QualifiedName getName() {
     return tableName;
   }
 

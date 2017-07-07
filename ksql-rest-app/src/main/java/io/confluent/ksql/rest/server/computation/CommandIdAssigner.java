@@ -86,12 +86,12 @@ public class CommandIdAssigner {
 
   public CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
     return new CommandId(CommandId.Type.STREAM,
-                         dropStreamQuery.getStreamName().getSuffix() + "_DROP");
+                         dropStreamQuery.getName().getSuffix() + "_DROP");
   }
 
   public CommandId getDropTableCommandId(DropTable dropTableQuery) {
     return new CommandId(CommandId.Type.TABLE,
-                         dropTableQuery.getTableName().getSuffix() + "_DROP");
+                         dropTableQuery.getName().getSuffix() + "_DROP");
   }
 
   private CommandId getStreamCommandId(String streamName) {

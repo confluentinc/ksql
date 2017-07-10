@@ -269,7 +269,7 @@ public class KsqlResourceTest {
   @Test
   public void testListTopics() throws Exception {
     TestKsqlResource testResource = new TestKsqlResource();
-    final String ksqlString = "LIST TOPICS;";
+    final String ksqlString = "LIST REGISTERED TOPICS;";
     final ListTopics ksqlStatement = new ListTopics(Optional.empty());
 
     TopicsList topicsList = makeSingleRequest(

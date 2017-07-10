@@ -14,7 +14,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -204,7 +204,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
         new StringLiteral(commandTopic)
     );
-    ksqlEngine.getDdlEngine().createTopic(new CreateTopic(
+    ksqlEngine.getDdlEngine().registerTopic(new RegisterTopic(
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties

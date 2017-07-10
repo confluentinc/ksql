@@ -9,7 +9,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -25,8 +25,8 @@ public class CommandIdAssigner {
   }
 
   public CommandId getCommandId(Statement command) {
-    if (command instanceof CreateTopic) {
-      return getTopicCommandId((CreateTopic) command);
+    if (command instanceof RegisterTopic) {
+      return getTopicCommandId((RegisterTopic) command);
     } else if (command instanceof CreateStream) {
       return getTopicStreamCommandId((CreateStream) command);
     } else if (command instanceof CreateTable) {
@@ -51,8 +51,8 @@ public class CommandIdAssigner {
     }
   }
 
-  public CommandId getTopicCommandId(CreateTopic createTopic) {
-    String topicName = createTopic.getName().toString();
+  public CommandId getTopicCommandId(RegisterTopic registerTopic) {
+    String topicName = registerTopic.getName().toString();
     if (metaStore.getAllTopicNames().contains(topicName)) {
       throw new RuntimeException(String.format("Topic %s already exists", topicName));
     }

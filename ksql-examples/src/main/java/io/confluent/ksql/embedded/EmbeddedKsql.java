@@ -12,7 +12,7 @@ public class EmbeddedKsql {
 
     KsqlContext ksqlContext = new KsqlContext();
 
-    ksqlContext.sql("CREATE TOPIC orders_topic WITH (format = 'json', "
+    ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");
 
     ksqlContext.sql("CREATE STREAM orders (ordertime bigint, orderid bigint, itemid varchar, "

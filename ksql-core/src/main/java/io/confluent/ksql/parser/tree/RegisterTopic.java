@@ -14,26 +14,26 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateTopic
+public class RegisterTopic
     extends Statement {
 
   private final QualifiedName name;
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public CreateTopic(QualifiedName name, boolean notExists,
-                     Map<String, Expression> properties) {
+  public RegisterTopic(QualifiedName name, boolean notExists,
+                       Map<String, Expression> properties) {
     this(Optional.empty(), name, notExists, properties);
   }
 
-  public CreateTopic(NodeLocation location, QualifiedName name,
-                     boolean notExists, Map<String, Expression> properties) {
+  public RegisterTopic(NodeLocation location, QualifiedName name,
+                       boolean notExists, Map<String, Expression> properties) {
     this(Optional.of(location), name, notExists, properties);
   }
 
-  private CreateTopic(Optional<NodeLocation> location, QualifiedName name,
-                      boolean notExists,
-                      Map<String, Expression> properties) {
+  private RegisterTopic(Optional<NodeLocation> location, QualifiedName name,
+                        boolean notExists,
+                        Map<String, Expression> properties) {
     super(location);
     this.name = requireNonNull(name, "topic is null");
     this.notExists = notExists;
@@ -71,7 +71,7 @@ public class CreateTopic
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateTopic o = (CreateTopic) obj;
+    RegisterTopic o = (RegisterTopic) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(notExists, o.notExists)
            && Objects.equals(properties, o.properties);

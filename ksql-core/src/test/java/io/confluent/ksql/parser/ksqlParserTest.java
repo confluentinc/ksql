@@ -9,7 +9,7 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -287,16 +287,18 @@ public class ksqlParserTest {
   }
 
   @Test
-  public void testCreateTopic() throws Exception {
+  public void testRegisterTopic() throws Exception {
     String
         queryStr =
-        "CREATE TOPIC orders_topic WITH (format = 'avro', avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "REGISTER TOPIC orders_topic WITH (format = 'avro', "
+        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
-    Assert.assertTrue("testCreateTopic failed.", statement instanceof CreateTopic);
-    CreateTopic createTopic = (CreateTopic)statement;
-    Assert.assertTrue("testCreateTopic failed.", createTopic.getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue("testCreateTopic failed.", createTopic.getProperties().size() == 3);
-    Assert.assertTrue("testCreateTopic failed.", createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
+    Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
+    RegisterTopic registerTopic = (RegisterTopic)statement;
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic
+        .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 3);
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
   }
 
   @Test
@@ -319,7 +321,7 @@ public class ksqlParserTest {
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (topicname = 'users_topic', key='userid', statestore='user_statestore');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
-    Assert.assertTrue("testCreateTopic failed.", statement instanceof CreateTable);
+    Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
@@ -356,18 +358,19 @@ public class ksqlParserTest {
     String kafkaTopic = "case_insensitive_kafka_topic";
 
     String queryStr = String.format(
-        "CREATE TOPIC %s WITH (format = %s, kafka_topic = %s);",
+        "REGISTER TOPIC %s WITH (format = %s, kafka_topic = %s);",
         ksqlTopic,
         format,
         kafkaTopic
     );
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
-    Assert.assertTrue(statement instanceof CreateTopic);
-    CreateTopic createTopic = (CreateTopic) statement;
-    Assert.assertTrue(createTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
-    Assert.assertTrue(createTopic.getProperties().size() == 2);
-    Assert.assertTrue(createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
-    Assert.assertTrue(createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
+    Assert.assertTrue(statement instanceof RegisterTopic);
+    RegisterTopic registerTopic = (RegisterTopic) statement;
+    Assert.assertTrue(registerTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
+    Assert.assertTrue(registerTopic.getProperties().size() == 2);
+    Assert.assertTrue(registerTopic
+                          .getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
+    Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
 
   @Test

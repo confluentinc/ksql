@@ -648,10 +648,10 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
-      } else if (statementContext.statement() instanceof SqlBaseParser.CreateTopicContext) {
+      } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
         CliUtils cliUtils = new CliUtils();
         Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
-            (SqlBaseParser.CreateTopicContext) statementContext.statement());
+            (SqlBaseParser.RegisterTopicContext) statementContext.statement());
         if (avroSchema.isPresent()) {
           setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
         }

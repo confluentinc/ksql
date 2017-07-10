@@ -2,7 +2,7 @@
  * Copyright 2017 Confluent Inc.
  **/
 
-package io.confluent.ksql.serde.csv;
+package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.KsqlException;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class KsqlCsvDeserializer implements Deserializer<GenericRow> {
+public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
@@ -34,7 +34,7 @@ public class KsqlCsvDeserializer implements Deserializer<GenericRow> {
       }
       return new GenericRow(columns);
     } catch (IOException e) {
-      throw new KsqlException("Could not parse the CSV record: " + recordCsvString);
+      throw new KsqlException("Could not parse the DELIMITED record: " + recordCsvString);
     }
   }
 

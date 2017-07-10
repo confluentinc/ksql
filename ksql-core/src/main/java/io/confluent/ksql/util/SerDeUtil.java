@@ -11,9 +11,9 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
-import io.confluent.ksql.serde.csv.KsqlCsvDeserializer;
-import io.confluent.ksql.serde.csv.KsqlCsvSerializer;
-import io.confluent.ksql.serde.csv.KsqlCsvTopicSerDe;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -43,13 +43,13 @@ public class SerDeUtil {
 
   }
 
-  private static Serde<GenericRow> getGenericRowCsvSerde() {
+  private static Serde<GenericRow> getGenericRowDelimitedSerde() {
     Map<String, Object> serdeProps = new HashMap<>();
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlCsvSerializer();
+    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer();
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlCsvDeserializer();
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer();
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -76,8 +76,8 @@ public class SerDeUtil {
       return SerDeUtil.getGenericRowAvroSerde(schema);
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJsonSerde(schema);
-    } else if (topicSerDe instanceof KsqlCsvTopicSerDe) {
-      return SerDeUtil.getGenericRowCsvSerde();
+    } else if (topicSerDe instanceof KsqlDelimitedTopicSerDe) {
+      return SerDeUtil.getGenericRowDelimitedSerde();
     } else {
       throw new KsqlException("Unknown topic serde.");
     }

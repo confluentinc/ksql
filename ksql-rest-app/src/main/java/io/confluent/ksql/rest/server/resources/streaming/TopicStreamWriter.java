@@ -4,11 +4,16 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -106,7 +111,13 @@ public class TopicStreamWriter implements StreamingOutput {
             for (ConsumerRecord<?, ?> record : records.records(kafkaTopic)) {
               if (record.value() != null) {
                 if (messagesWritten++ % interval == 0) {
-                  objectMapper.writeValue(out, record.value());
+                  JsonNode jsonNode = objectMapper.readTree(record.value().toString());
+                  ObjectNode objectNode = objectMapper.createObjectNode();
+                  objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
+                  objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key()
+                      .toString(): "null");
+                  objectNode.setAll((ObjectNode) jsonNode);
+                  objectMapper.writeValue(out, objectNode);
                   out.write("\n".getBytes());
                   out.flush();
                 }

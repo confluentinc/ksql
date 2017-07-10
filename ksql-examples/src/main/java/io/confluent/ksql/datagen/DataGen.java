@@ -50,11 +50,11 @@ public class DataGen {
       case JSON:
         dataProducer = new JsonProducer();
         break;
-      case CSV:
-        dataProducer = new CsvProducer();
+      case DELIMITED:
+        dataProducer = new DelimitedProducer();
         break;
       default:
-        System.err.printf("Invalid format in '%s'; was expecting one of AVRO, JSON, or CSV%n", arguments.format);
+        System.err.printf("Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n", arguments.format);
         usage(1);
         return;
     }
@@ -73,7 +73,7 @@ public class DataGen {
             + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
             + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or 'pageview')] "
             + "schema=<avro schema file> "
-            + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'csv') "
+            + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
             + "topic=<kafka topic name> "
             + "key=<name of key column> "
             + "[iterations=<number of rows> (defaults to 1000)]"
@@ -86,7 +86,7 @@ public class DataGen {
   }
 
   private static class Arguments {
-    public enum Format { AVRO, JSON, CSV }
+    public enum Format { AVRO, JSON, DELIMITED }
 
     public final boolean help;
     public final String bootstrapServer;
@@ -281,7 +281,7 @@ public class DataGen {
           return Format.valueOf(formatString.toUpperCase());
         } catch (IllegalArgumentException exception) {
           throw new ArgumentParseException(String.format(
-              "Invalid format in '%s'; was expecting one of AVRO, JSON, or CSV (case-insensitive)",
+              "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED (case-insensitive)",
               formatString
           ));
         }

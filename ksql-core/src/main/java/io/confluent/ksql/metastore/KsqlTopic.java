@@ -38,6 +38,8 @@ public class KsqlTopic implements DataSource {
         return DataSourceSerDe.JSON;
       case "AVRO":
         return DataSourceSerDe.AVRO;
+      case "DELIMITED":
+        return DataSourceSerDe.DELIMITED;
       default:
         throw new KsqlException("DataSource Type is not supported: " + dataSourceSerdeName);
     }

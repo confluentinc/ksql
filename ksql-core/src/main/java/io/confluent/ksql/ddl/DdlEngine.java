@@ -20,7 +20,7 @@ import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.csv.KsqlCsvTopicSerDe;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -76,8 +76,8 @@ public class DdlEngine {
       case DataSource.JSON_SERDE_NAME:
         topicSerDe = new KsqlJsonTopicSerDe(null);
         break;
-      case DataSource.CSV_SERDE_NAME:
-        topicSerDe = new KsqlCsvTopicSerDe();
+      case DataSource.DELIMITED_SERDE_NAME:
+        topicSerDe = new KsqlDelimitedTopicSerDe();
         break;
       default:
         throw new KsqlException("The specified topic serde is not supported.");

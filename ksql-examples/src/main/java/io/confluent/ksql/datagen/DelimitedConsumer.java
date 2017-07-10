@@ -4,8 +4,8 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.physical.GenericRow;
-import io.confluent.ksql.serde.csv.KsqlCsvDeserializer;
-import io.confluent.ksql.serde.csv.KsqlCsvSerializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -23,7 +23,7 @@ import java.util.Properties;
 /**
  * Created by hojjat on 1/3/17.
  */
-public class CsvConsumer {
+public class DelimitedConsumer {
 
   static Serde<GenericRow> genericRowSerde = null;
 
@@ -31,10 +31,10 @@ public class CsvConsumer {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
 
-      final Serializer<GenericRow> genericRowSerializer = new KsqlCsvSerializer();
+      final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer();
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KsqlCsvDeserializer();
+      final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer();
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -77,6 +77,6 @@ public class CsvConsumer {
 
   public static void main(String[] args) {
 //    new CsvConsumer().printGenericRowTopic("Order-csv-GenericRow");
-    new CsvConsumer().printGenericRowTopic("ENRICHEDFEMALE_CSV");
+    new DelimitedConsumer().printGenericRowTopic("ENRICHEDFEMALE_CSV");
   }
 }

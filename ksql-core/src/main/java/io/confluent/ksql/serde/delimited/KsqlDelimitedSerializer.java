@@ -2,7 +2,7 @@
  * Copyright 2017 Confluent Inc.
  **/
 
-package io.confluent.ksql.serde.csv;
+package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.physical.GenericRow;
 import org.apache.kafka.common.serialization.Serializer;
@@ -10,7 +10,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import java.util.Map;
 
 
-public class KsqlCsvSerializer implements Serializer<GenericRow> {
+public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
 
   @Override

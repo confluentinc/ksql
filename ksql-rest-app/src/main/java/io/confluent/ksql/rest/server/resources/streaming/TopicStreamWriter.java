@@ -59,7 +59,7 @@ public class TopicStreamWriter implements StreamingOutput {
     Deserializer<?> valueDeserializer;
     switch (ksqlTopic.getKsqlTopicSerDe().getSerDe()) {
       case JSON:
-      case CSV:
+      case DELIMITED:
         valueDeserializer = new StringDeserializer();
         break;
       case AVRO:

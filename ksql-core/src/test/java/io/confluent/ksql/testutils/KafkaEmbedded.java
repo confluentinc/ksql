@@ -146,7 +146,7 @@ public class KafkaEmbedded {
     log.debug("Creating topic { name: {}, partitions: {}, replication: {}, config: {} }",
         topic, partitions, replication, topicConfig);
     // Note: You must initialize the ZkClient with ZKStringSerializer.  If you don't, then
-    // createTopic() will only seem to work (it will return without error).  The topic will exist in
+    // registerTopic() will only seem to work (it will return without error).  The topic will exist in
     // only ZooKeeper and will be returned when listing topics, but Kafka itself does not create the
     // topic.
     ZkClient zkClient = new ZkClient(

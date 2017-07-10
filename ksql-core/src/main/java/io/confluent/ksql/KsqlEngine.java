@@ -17,7 +17,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -210,8 +210,8 @@ public class KsqlEngine implements Closeable {
           createTableAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
-    } else if (statement instanceof CreateTopic) {
-      KsqlTopic ksqlTopic = ddlEngine.createTopic((CreateTopic) statement, overriddenProperties);
+    } else if (statement instanceof RegisterTopic) {
+      KsqlTopic ksqlTopic = ddlEngine.registerTopic((RegisterTopic) statement, overriddenProperties);
       if (ksqlTopic != null) {
         tempMetaStore.putTopic(ksqlTopic);
       }

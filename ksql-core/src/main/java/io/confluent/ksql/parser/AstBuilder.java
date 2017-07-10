@@ -25,7 +25,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -200,10 +200,10 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitCreateTopic(SqlBaseParser.CreateTopicContext context) {
-    return new CreateTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
+  public Node visitRegisterTopic(SqlBaseParser.RegisterTopicContext context) {
+    return new RegisterTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
                            context.EXISTS() != null,
-                           processTableProperties(context.tableProperties()));
+                             processTableProperties(context.tableProperties()));
   }
 
   @Override

@@ -11,13 +11,11 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -52,7 +50,6 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -162,7 +159,7 @@ public class KsqlResource {
     } else if (statement instanceof Explain) {
       Explain explain = (Explain) statement;
       return getStatementExecutionPlan(explain, statementText);
-    } else if (statement instanceof CreateTopic
+    } else if (statement instanceof RegisterTopic
             || statement instanceof CreateStream
             || statement instanceof CreateTable
             || statement instanceof CreateStreamAsSelect

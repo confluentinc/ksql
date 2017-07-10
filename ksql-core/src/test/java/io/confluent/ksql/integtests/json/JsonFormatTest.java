@@ -88,14 +88,14 @@ public class JsonFormatTest {
     ksqlEngine = new KsqlEngine(metaStore, configMap);
     inputData = getInputData();
 
-    String ordersTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
+    String ordersTopicStr = String.format("REGISTER TOPIC %s WITH (format = 'json', "
                                           + "kafka_topic='%s');", inputTopic, inputTopic);
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
                                            + "map<varchar, double>) WITH (topicname = '%s' , "
                                            + "key='ordertime');", inputStream, inputTopic);
 
-    String messageTopicStr = String.format("CREATE TOPIC %s WITH (format = 'json', "
+    String messageTopicStr = String.format("REGISTER TOPIC %s WITH (format = 'json', "
                                            + "kafka_topic='%s');", messageLogTopic,
                                            messageLogTopic);
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (topicname = "

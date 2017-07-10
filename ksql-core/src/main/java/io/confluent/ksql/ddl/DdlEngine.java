@@ -13,7 +13,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -41,11 +41,11 @@ public class DdlEngine {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public KsqlTopic createTopic(final CreateTopic createTopic, final Map topicProperties) {
+  public KsqlTopic registerTopic(final RegisterTopic registerTopic, final Map topicProperties) {
 
-    String topicName = createTopic.getName().getSuffix();
+    String topicName = registerTopic.getName().getSuffix();
     if (ksqlEngine.getMetaStore().getTopic(topicName) != null) {
-      if (createTopic.isNotExists()) {
+      if (registerTopic.isNotExists()) {
         System.out.println("Topic already exists.");
       } else {
         throw new KsqlException("Topic already exists.");
@@ -53,13 +53,13 @@ public class DdlEngine {
       return null;
     }
 
-    enforceTopicProperties(createTopic);
-    String serde = createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
+    enforceTopicProperties(registerTopic);
+    String serde = registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
     serde = enforceString(DdlConfig.FORMAT_PROPERTY, serde);
 
     String
         kafkaTopicName =
-        createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
+        registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     kafkaTopicName = enforceString(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, kafkaTopicName);
     KsqlTopicSerDe topicSerDe;
 
@@ -90,16 +90,16 @@ public class DdlEngine {
     return ksqlTopic;
   }
 
-  private void enforceTopicProperties(final CreateTopic createTopic) {
-    if (createTopic.getProperties().size() == 0) {
-      throw new KsqlException("Create topic statement needs WITH clause.");
+  private void enforceTopicProperties(final RegisterTopic registerTopic) {
+    if (registerTopic.getProperties().size() == 0) {
+      throw new KsqlException("Register topic statement needs WITH clause.");
     }
 
-    if (createTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY) == null) {
+    if (registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY) == null) {
       throw new KsqlException("Topic format(format) should be set in WITH clause.");
     }
 
-    if (createTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {
+    if (registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {
       throw new KsqlException("Corresponding kafka topic should be set in WITH clause.");
     }
   }

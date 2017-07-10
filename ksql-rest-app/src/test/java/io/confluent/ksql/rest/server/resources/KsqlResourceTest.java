@@ -7,7 +7,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
@@ -134,7 +134,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testInstantCreateTopic() throws Exception {
+  public void testInstantRegisterTopic() throws Exception {
     TestKsqlResource testResource = new TestKsqlResource();
 
     final String ksqlTopic = "foo";
@@ -142,13 +142,14 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("CREATE TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic, kafkaTopic, format);
+        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic,
+                      kafkaTopic, format);
 
     final Map<String, Expression> createTopicProperties = new HashMap<>();
     createTopicProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
     createTopicProperties.put(DdlConfig.FORMAT_PROPERTY, new StringLiteral(format));
 
-    final CreateTopic ksqlStatement = new CreateTopic(
+    final RegisterTopic ksqlStatement = new RegisterTopic(
         QualifiedName.of(ksqlTopic),
         false,
         createTopicProperties
@@ -157,7 +158,7 @@ public class KsqlResourceTest {
     final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.SUCCESS,
-        "Topic created successfully"
+        "Topic registered successfully"
     );
     final CommandStatusEntity expectedCommandStatusEntity =
         new CommandStatusEntity(ksqlString, commandId, commandStatus);
@@ -195,7 +196,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void testTimeoutCreateTopic() throws Exception {
+  public void testTimeoutRegisterTopic() throws Exception {
     TestKsqlResource testResource = new TestKsqlResource();
 
     final String ksqlTopic = "foo";
@@ -203,13 +204,14 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("CREATE TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic, kafkaTopic, format);
+        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic,
+                      kafkaTopic, format);
 
     final Map<String, Expression> createTopicProperties = new HashMap<>();
     createTopicProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
     createTopicProperties.put(DdlConfig.FORMAT_PROPERTY, new StringLiteral(format));
 
-    final CreateTopic ksqlStatement = new CreateTopic(
+    final RegisterTopic ksqlStatement = new RegisterTopic(
         QualifiedName.of(ksqlTopic),
         false,
         createTopicProperties

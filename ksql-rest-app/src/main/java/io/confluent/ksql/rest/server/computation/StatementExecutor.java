@@ -10,7 +10,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -246,10 +246,10 @@ public class StatementExecutor {
   ) throws Exception {
     String statementStr = command.getStatement();
     String successMessage;
-    if (statement instanceof CreateTopic) {
-      CreateTopic createTopic = (CreateTopic) statement;
-      ksqlEngine.getDdlEngine().createTopic(createTopic, command.getStreamsProperties());
-      successMessage = "Topic created";
+    if (statement instanceof RegisterTopic) {
+      RegisterTopic registerTopic = (RegisterTopic) statement;
+      ksqlEngine.getDdlEngine().registerTopic(registerTopic, command.getStreamsProperties());
+      successMessage = "Topic registered";
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
       ksqlEngine.getDdlEngine().createStream(createStream);

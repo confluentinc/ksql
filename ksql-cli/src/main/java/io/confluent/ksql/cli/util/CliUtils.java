@@ -16,19 +16,19 @@ import java.util.Optional;
 
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.CreateTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.util.KsqlException;
 
 public class CliUtils {
 
-  public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.CreateTopicContext
-                                                      createTopicContext) {
+  public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
+                                                      registerTopicContext) {
     AstBuilder astBuilder = new AstBuilder(null);
-    CreateTopic createTopic = (CreateTopic) astBuilder.visitCreateTopic(createTopicContext);
-    if (createTopic.getProperties().get("FORMAT").toString()
+    RegisterTopic registerTopic = (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
+    if (registerTopic.getProperties().get("FORMAT").toString()
         .equalsIgnoreCase("'AVRO'")) {
-      if (createTopic.getProperties().containsKey("AVROSCHEMAFILE")) {
-        String avroSchema = getAvroSchema(AstBuilder.unquote(createTopic.getProperties()
+      if (registerTopic.getProperties().containsKey("AVROSCHEMAFILE")) {
+        String avroSchema = getAvroSchema(AstBuilder.unquote(registerTopic.getProperties()
                                                                  .get("AVROSCHEMAFILE")
                                                                  .toString(), "'"));
         return Optional.of(avroSchema);

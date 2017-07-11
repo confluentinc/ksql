@@ -29,5 +29,4 @@ public interface MetaStore {
 
   public Set<String> getAllTopicNames();
 
-  public void update(MetaStore metaStore);
 }

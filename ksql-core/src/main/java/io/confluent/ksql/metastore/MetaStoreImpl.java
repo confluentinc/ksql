@@ -95,11 +95,4 @@ public class MetaStoreImpl implements MetaStore {
     return getAllKsqlTopics().keySet();
   }
 
-  @Override
-  public void update(MetaStore metaStore) {
-    topicMap.clear();
-    topicMap.putAll(metaStore.getAllKsqlTopics());
-    dataSourceMap.clear();
-    dataSourceMap.putAll(metaStore.getAllStructuredDataSources());
-  }
 }

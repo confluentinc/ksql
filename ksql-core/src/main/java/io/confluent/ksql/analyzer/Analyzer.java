@@ -429,7 +429,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoProperties(final StructuredDataSource into, final Table node) {
-    if (node.getProperties().get(DdlConfig.FORMAT_PROPERTY) != null) {
+    if (node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) != null) {
       setIntoTopicFormat(into, node);
     }
 
@@ -491,14 +491,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoTopicFormat(final StructuredDataSource into, final Table node) {
-    String serde = node.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
+    String serde = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
     if (!serde.startsWith("'") && !serde.endsWith("'")) {
       throw new KsqlException(
           serde + " value is string and should be enclosed between " + "\"'\".");
     }
     serde = serde.substring(1, serde.length() - 1);
     analysis.setIntoFormat(serde);
-    analysis.getIntoProperties().put(DdlConfig.FORMAT_PROPERTY, serde);
+    analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
     if ("AVRO".equals(serde)) {
       String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
       if (node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) != null) {

@@ -142,12 +142,13 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic,
+        String.format("REGISTER TOPIC %s WITH (kafka_topicname='%s', value_format='%s');",
+                      ksqlTopic,
                       kafkaTopic, format);
 
     final Map<String, Expression> createTopicProperties = new HashMap<>();
     createTopicProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
-    createTopicProperties.put(DdlConfig.FORMAT_PROPERTY, new StringLiteral(format));
+    createTopicProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral(format));
 
     final RegisterTopic ksqlStatement = new RegisterTopic(
         QualifiedName.of(ksqlTopic),
@@ -204,12 +205,13 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', format='%s');", ksqlTopic,
+        String.format("REGISTER TOPIC %s WITH (kafka_topicname='%s', value_format='%s');",
+                      ksqlTopic,
                       kafkaTopic, format);
 
     final Map<String, Expression> createTopicProperties = new HashMap<>();
     createTopicProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(kafkaTopic));
-    createTopicProperties.put(DdlConfig.FORMAT_PROPERTY, new StringLiteral(format));
+    createTopicProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral(format));
 
     final RegisterTopic ksqlStatement = new RegisterTopic(
         QualifiedName.of(ksqlTopic),

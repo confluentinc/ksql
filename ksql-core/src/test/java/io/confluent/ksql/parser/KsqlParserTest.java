@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class ksqlParserTest {
+public class KsqlParserTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
@@ -290,22 +290,23 @@ public class ksqlParserTest {
   public void testRegisterTopic() throws Exception {
     String
         queryStr =
-        "REGISTER TOPIC orders_topic WITH (format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "REGISTER TOPIC orders_topic WITH (value_format = 'avro', "
+        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topicname='orders_topic');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
     RegisterTopic registerTopic = (RegisterTopic)statement;
     Assert.assertTrue("testRegisterTopic failed.", registerTopic
         .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
     Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 3);
-    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
   }
 
   @Test
   public void testCreateStream() throws Exception {
     String
         queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits double) WITH (topicname = 'orders_topic' , key='ordertime');";
+        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
+        + "double) WITH (registered_topicname = 'orders_topic' , key='ordertime');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     CreateStream createStream = (CreateStream)statement;
@@ -319,7 +320,7 @@ public class ksqlParserTest {
   public void testCreateTable() throws Exception {
     String
         queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (topicname = 'users_topic', key='userid', statestore='user_statestore');";
+        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topicname = 'users_topic', key='userid', statestore='user_statestore');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     CreateTable createTable = (CreateTable)statement;
@@ -334,7 +335,8 @@ public class ksqlParserTest {
 
     String
         queryStr =
-        "CREATE STREAM bigorders_json WITH (format = 'json', kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
+        "CREATE STREAM bigorders_json WITH (value_format = 'json', "
+        + "kafka_topicname='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStreamAsSelect failed.", statement instanceof CreateStreamAsSelect);
     CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
@@ -358,7 +360,7 @@ public class ksqlParserTest {
     String kafkaTopic = "case_insensitive_kafka_topic";
 
     String queryStr = String.format(
-        "REGISTER TOPIC %s WITH (format = %s, kafka_topic = %s);",
+        "REGISTER TOPIC %s WITH (value_format = %s, kafka_topicname = %s);",
         ksqlTopic,
         format,
         kafkaTopic
@@ -369,7 +371,7 @@ public class ksqlParserTest {
     Assert.assertTrue(registerTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
     Assert.assertTrue(registerTopic.getProperties().size() == 2);
     Assert.assertTrue(registerTopic
-                          .getProperties().get(DdlConfig.FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
+                          .getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
     Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
 

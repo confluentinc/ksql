@@ -54,8 +54,8 @@ public class DdlEngine {
     }
 
     enforceTopicProperties(registerTopic);
-    String serde = registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString();
-    serde = enforceString(DdlConfig.FORMAT_PROPERTY, serde);
+    String serde = registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
+    serde = enforceString(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
 
     String
         kafkaTopicName =
@@ -95,8 +95,8 @@ public class DdlEngine {
       throw new KsqlException("Register topic statement needs WITH clause.");
     }
 
-    if (registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY) == null) {
-      throw new KsqlException("Topic format(format) should be set in WITH clause.");
+    if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) == null) {
+      throw new KsqlException("Topic format(value-format) should be set in WITH clause.");
     }
 
     if (registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) == null) {

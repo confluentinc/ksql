@@ -5,12 +5,8 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.DdlEngine;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -25,11 +21,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;
@@ -57,12 +49,21 @@ public class KsqlEngine implements Closeable {
   ));
 
   private final QueryEngine queryEngine;
-  private final DdlEngine ddlEngine;
+  private final DDLCommandExec ddlCommandExec;
   private final MetaStore metaStore;
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
   private KsqlConfig ksqlConfig;
+
+  public KsqlEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
+    this.ksqlConfig = new KsqlConfig(streamsProperties);
+    this.metaStore = metaStore;
+    this.queryEngine = new QueryEngine(ksqlConfig);
+    this.ddlCommandExec = new DDLCommandExec(metaStore);
+    this.persistentQueries = new HashMap<>();
+    this.liveQueries = new HashSet<>();
+  }
 
   /**
    * Runs the set of queries in the given query string.
@@ -85,16 +86,21 @@ public class KsqlEngine implements Closeable {
       }
     }
 
-    // Build query AST from the query string
-    List<Pair<String, Query>> queryList = buildQueryAstList(queriesString, overriddenProperties);
+    // Multiple queries submitted as the same time should success or fail as a whole,
+    // Thus we use tempMetaStore to store newly created tables, streams or topics.
+    // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
 
-    return buildMultipleQueriesFromAsts(createNewAppId, queryList, overriddenProperties);
+    // Build query AST from the query string
+    List<Pair<String, Query>> queries = parseQueries(queriesString, overriddenProperties); //, tempMetaStore);
+
+    return planQueries(createNewAppId, queries, overriddenProperties); //, tempMetaStore);
 
   }
 
-  public List<QueryMetadata> buildMultipleQueriesFromAsts(boolean createNewAppId,
-                                                          List<Pair<String, Query>> queryList,
-                                                          Map<String, Object> overriddenProperties)
+  public List<QueryMetadata> planQueries(boolean createNewAppId,
+                                         List<Pair<String, Query>> queryList,
+                                         Map<String, Object> overriddenProperties
+                                         /*, MetaStore tempMetaStore*/)
       throws Exception {
 
     // Logical plan creation from the ASTs
@@ -142,9 +148,9 @@ public class KsqlEngine implements Closeable {
   }
 
 
-  public List<Pair<String, Query>> buildQueryAstList(final String queriesString,
-                                                      Map<String, Object> overriddenProperties) {
-
+  public List<Pair<String, Query>> parseQueries(final String queriesString,
+                                Map<String, Object> overriddenProperties
+                                /* , MetaStore tempMetaStore */) {
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
     List<SqlBaseParser.SingleStatementContext>
@@ -211,20 +217,25 @@ public class KsqlEngine implements Closeable {
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
-      KsqlTopic ksqlTopic = ddlEngine.registerTopic((RegisterTopic) statement, overriddenProperties);
-      if (ksqlTopic != null) {
-        tempMetaStore.putTopic(ksqlTopic);
-      }
+      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties));
+      // TODO: correct way to handle tempMetaStore
+      //if (ksqlTopic != null) {
+      //  tempMetaStore.putTopic(ksqlTopic);
+      //}
     } else if (statement instanceof CreateStream) {
-      KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
-      if (ksqlStream != null) {
-        tempMetaStore.putSource(ksqlStream);
-      }
+      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
+      // TODO: correct way to handle tempMetaStore
+      // KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
+      //if (ksqlStream != null) {
+      //  tempMetaStore.putSource(ksqlStream);
+      //}
     } else if (statement instanceof CreateTable) {
-      KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
-      if (ksqlTable != null) {
-        tempMetaStore.putSource(ksqlTable);
-      }
+      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
+      // TODO: correct way to handle tempMetaStore
+      // KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
+      //if (ksqlTable != null) {
+      //  tempMetaStore.putSource(ksqlTable);
+      //}
     }
     return null;
   }
@@ -276,8 +287,8 @@ public class KsqlEngine implements Closeable {
     return metaStore;
   }
 
-  public DdlEngine getDdlEngine() {
-    return ddlEngine;
+  public DDLCommandExec getDDLCommandExec() {
+    return ddlCommandExec;
   }
 
   public boolean terminateQuery(long queryId, boolean closeStreams) {
@@ -313,15 +324,6 @@ public class KsqlEngine implements Closeable {
     for (QueryMetadata queryMetadata : liveQueries) {
       queryMetadata.getKafkaStreams().close();
     }
-  }
-
-  public KsqlEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
-    this.ksqlConfig = new KsqlConfig(streamsProperties);
-    this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(ksqlConfig);
-    this.ddlEngine = new DdlEngine(this);
-    this.persistentQueries = new HashMap<>();
-    this.liveQueries = new HashSet<>();
   }
 
   public QueryEngine getQueryEngine() {

@@ -5,6 +5,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.commands.*;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -246,17 +247,17 @@ public class StatementExecutor {
   ) throws Exception {
     String statementStr = command.getStatement();
     String successMessage;
+
+    DDLCommandExec ddlCommandExec = ksqlEngine.getDDLCommandExec();
+
     if (statement instanceof RegisterTopic) {
-      RegisterTopic registerTopic = (RegisterTopic) statement;
-      ksqlEngine.getDdlEngine().registerTopic(registerTopic, command.getStreamsProperties());
-      successMessage = "Topic registered";
+      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()));
+      successMessage = "Topic created";
     } else if (statement instanceof CreateStream) {
-      CreateStream createStream = (CreateStream) statement;
-      ksqlEngine.getDdlEngine().createStream(createStream);
+      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
       successMessage = "Stream created";
     } else if (statement instanceof CreateTable) {
-      CreateTable createTable = (CreateTable) statement;
-      ksqlEngine.getDdlEngine().createTable(createTable);
+      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
       successMessage = "Table created";
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
@@ -294,16 +295,13 @@ public class StatementExecutor {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Termination request granted";
     } else if (statement instanceof DropTopic) {
-      DropTopic dropTopic = (DropTopic) statement;
-      ksqlEngine.getDdlEngine().dropTopic(dropTopic);
+      ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
       successMessage = "Topic was dropped";
     } else if (statement instanceof DropStream) {
-      DropStream dropStream = (DropStream) statement;
-      ksqlEngine.getDdlEngine().dropStream(dropStream);
+      ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
       successMessage = "Stream was dropped";
     } else if (statement instanceof DropTable) {
-      DropTable dropTable = (DropTable) statement;
-      ksqlEngine.getDdlEngine().dropTable(dropTable);
+      ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
       successMessage = "Table was dropped";
     } else {
       throw new Exception(String.format(

@@ -118,12 +118,12 @@ public class DdlEngine {
   }
 
   public void dropTable(final DropTable dropTable) {
-    String tableName = dropTable.getTableName().getSuffix();
+    String tableName = dropTable.getName().getSuffix();
     ksqlEngine.getMetaStore().deleteSource(tableName);
   }
 
   public void dropStream(final DropStream dropTable) {
-    String streamName = dropTable.getStreamName().getSuffix();
+    String streamName = dropTable.getName().getSuffix();
     ksqlEngine.getMetaStore().deleteSource(streamName);
   }
 

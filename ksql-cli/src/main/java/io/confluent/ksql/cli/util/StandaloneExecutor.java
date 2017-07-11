@@ -32,9 +32,9 @@ public class StandaloneExecutor {
   }
 
   public void executeStatements(String queries) throws Exception {
-    List<Pair<String, Query>> queryList = ksqlEngine.buildQueryAstList(queries,
+    List<Pair<String, Query>> queryList = ksqlEngine.parseQueries(queries,
                                                                        Collections.emptyMap());
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueriesFromAsts(
+    List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
         false, queryList, Collections.emptyMap());
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

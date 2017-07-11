@@ -10,7 +10,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropStream
-    extends Statement {
+    extends AbstractStreamDropStatement {
 
   private final QualifiedName streamName;
   private final boolean exists;
@@ -29,7 +29,7 @@ public class DropStream
     this.exists = exists;
   }
 
-  public QualifiedName getStreamName() {
+  public QualifiedName getName() {
     return streamName;
   }
 

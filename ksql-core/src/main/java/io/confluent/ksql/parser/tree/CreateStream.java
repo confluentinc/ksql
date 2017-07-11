@@ -15,7 +15,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateStream extends Statement {
+public class CreateStream extends AbstractStreamCreateStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;

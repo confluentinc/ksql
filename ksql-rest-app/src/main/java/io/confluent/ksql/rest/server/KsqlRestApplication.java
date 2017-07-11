@@ -197,7 +197,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
-        DdlConfig.FORMAT_PROPERTY,
+        DdlConfig.VALUE_FORMAT_PROPERTY,
         new StringLiteral("json")
     );
     commandTopicProperties.put(

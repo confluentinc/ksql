@@ -37,7 +37,7 @@ public class RegisterTopicCommand implements DDLCommand {
         // TODO: find a way to merge overriddenProperties
         enforceTopicProperties(registerTopic.getProperties());
 
-        final String serde = StringUtil.cleanQuotes(registerTopic.getProperties().get(DdlConfig.FORMAT_PROPERTY).toString());
+        final String serde = StringUtil.cleanQuotes(registerTopic.getProperties().get("FORMAT").toString());
         this.topicSerDe = extractTopicSerDe(overriddenProperties, serde);
 
         this.topicName = registerTopic.getName().getSuffix();

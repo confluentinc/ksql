@@ -69,7 +69,7 @@ public class RegisterTopicCommand implements DDLCommand {
             throw new KsqlException("Create topic statement needs WITH clause.");
         }
 
-        if (properties.get(DdlConfig.FORMAT_PROPERTY) == null) {
+        if (properties.get("FORMAT") == null) {
             throw new KsqlException("Topic format(format) should be set in WITH clause.");
         }
 

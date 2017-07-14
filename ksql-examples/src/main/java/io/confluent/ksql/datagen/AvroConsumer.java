@@ -85,6 +85,7 @@ public class AvroConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   public void processGenericRow() {
@@ -118,6 +119,7 @@ public class AvroConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   class KSQLPrintKeyValueMapper

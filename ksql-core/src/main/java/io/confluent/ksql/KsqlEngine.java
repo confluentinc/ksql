@@ -288,6 +288,7 @@ public class KsqlEngine implements Closeable {
     liveQueries.remove(queryMetadata);
     if (closeStreams) {
       queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().cleanUp();
     }
     return true;
   }
@@ -312,6 +313,7 @@ public class KsqlEngine implements Closeable {
   public void close() {
     for (QueryMetadata queryMetadata : liveQueries) {
       queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().cleanUp();
     }
   }
 

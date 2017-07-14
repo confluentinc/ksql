@@ -73,6 +73,7 @@ public class DelimitedConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   public static void main(String[] args) {

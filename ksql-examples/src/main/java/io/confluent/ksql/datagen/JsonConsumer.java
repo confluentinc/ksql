@@ -73,6 +73,7 @@ public class JsonConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   public void processGenericRow() {
@@ -110,6 +111,7 @@ public class JsonConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   private KStream<String, GenericRow> orderFilter(KStream<String, GenericRow> orderStream) {
@@ -238,6 +240,7 @@ public class JsonConsumer {
     }
 
     streams.close();
+    streams.cleanUp();
   }
 
   public static void main(String[] args) {

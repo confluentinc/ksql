@@ -5,6 +5,8 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udaf.count.CountAggFunctionDeterminer;
+import io.confluent.ksql.function.udaf.max.MaxAggFunctionDeterminer;
+import io.confluent.ksql.function.udaf.min.MinAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
@@ -121,6 +123,9 @@ public class KsqlFunctions {
 
     addAggregateFunctionDeterminer(new CountAggFunctionDeterminer());
     addAggregateFunctionDeterminer(new SumAggFunctionDeterminer());
+
+    addAggregateFunctionDeterminer(new MaxAggFunctionDeterminer());
+    addAggregateFunctionDeterminer(new MinAggFunctionDeterminer());
 
   }
 

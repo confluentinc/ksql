@@ -44,7 +44,13 @@ public class JsonExtractStringKudf implements Kudf {
     }
     JsonNode currentNode = jsonNode;
     for (String token: tokens) {
+      if (currentNode == null) {
+        return null;
+      }
       currentNode = currentNode.get(token);
+    }
+    if (currentNode == null) {
+      return null;
     }
     if (currentNode.isTextual()) {
       return currentNode.asText();

@@ -28,4 +28,5 @@ public interface MetaStore {
   public Map<String, KsqlTopic> getAllKsqlTopics();
 
   public Set<String> getAllTopicNames();
+
 }

@@ -72,6 +72,7 @@ public class QueryEngine {
                                                         List<Pair<String, Query>> queryList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
+    // TODO: the purpose of tempMetaStore here
     MetaStore tempMetaStore = new MetaStoreImpl();
     for (String topicName : metaStore.getAllKsqlTopics().keySet()) {
       tempMetaStore.putTopic(metaStore.getTopic(topicName));

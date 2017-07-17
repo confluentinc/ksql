@@ -10,7 +10,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -18,9 +17,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class RegisterTopicCommand implements DDLCommand {
@@ -82,7 +79,7 @@ public class RegisterTopicCommand implements DDLCommand {
   }
 
   @Override
-  public List<GenericRow> run(MetaStore metaStore) {
+  public DDLCommandResult run(MetaStore metaStore) {
     if (metaStore.getTopic(topicName) != null) {
       if (notExists) {
         System.out.println("Topic already exists."); // TODO: remove syso
@@ -98,6 +95,6 @@ public class RegisterTopicCommand implements DDLCommand {
     // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
-    return new ArrayList<>();
+    return new DDLCommandResult(true, "Topic created");
   }
 }

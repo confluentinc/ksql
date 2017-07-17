@@ -5,9 +5,6 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.physical.GenericRow;
-
-import java.util.List;
 
 /**
  * Execute DDL Commands
@@ -19,7 +16,7 @@ public class DDLCommandExec {
     this.metaStore = metaStore;
   }
 
-  public List<GenericRow> execute(DDLCommand ddlCommand) {
+  public DDLCommandResult execute(DDLCommand ddlCommand) {
     // TODO: create new task to run
     return ddlCommand.run(metaStore);
   }

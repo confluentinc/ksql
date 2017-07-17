@@ -6,10 +6,7 @@ package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
-import io.confluent.ksql.physical.GenericRow;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class DropSourceCommand implements DDLCommand {
 
@@ -20,8 +17,8 @@ public class DropSourceCommand implements DDLCommand {
   }
 
   @Override
-  public List<GenericRow> run(MetaStore metaStore) {
+  public DDLCommandResult run(MetaStore metaStore) {
     metaStore.deleteSource(sourceName);
-    return new ArrayList<>();
+    return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
   }
 }

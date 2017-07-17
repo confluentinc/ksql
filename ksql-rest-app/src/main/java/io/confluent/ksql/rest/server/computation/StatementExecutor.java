@@ -246,19 +246,18 @@ public class StatementExecutor {
       Map<Long, CommandId> terminatedQueries
   ) throws Exception {
     String statementStr = command.getStatement();
-    String successMessage;
+
 
     DDLCommandExec ddlCommandExec = ksqlEngine.getDDLCommandExec();
+    DDLCommandResult result = null;
+    String successMessage = "";
 
     if (statement instanceof RegisterTopic) {
-      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()));
-      successMessage = "Topic created";
+      result = ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()));
     } else if (statement instanceof CreateStream) {
-      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
-      successMessage = "Stream created";
+      result = ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
     } else if (statement instanceof CreateTable) {
-      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
-      successMessage = "Table created";
+      result = ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =
@@ -295,21 +294,20 @@ public class StatementExecutor {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Termination request granted";
     } else if (statement instanceof DropTopic) {
-      ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
-      successMessage = "Topic was dropped";
+      result = ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
     } else if (statement instanceof DropStream) {
-      ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
-      successMessage = "Stream was dropped";
+      result = ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
     } else if (statement instanceof DropTable) {
-      ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
-      successMessage = "Table was dropped";
+      result = ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
     }
-    CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+    // TODO: change to unified return message
+    CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS,
+        result != null ? result.getMessage(): successMessage);
     statusStore.put(commandId, successStatus);
     completeStatusFuture(commandId, successStatus);
   }

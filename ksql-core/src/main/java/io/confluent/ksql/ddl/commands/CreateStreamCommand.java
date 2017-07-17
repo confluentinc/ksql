@@ -7,10 +7,7 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.physical.GenericRow;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
   public CreateStreamCommand(CreateStream createStream) {
@@ -18,7 +15,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public List<GenericRow> run(MetaStore metaStore) {
+  public DDLCommandResult run(MetaStore metaStore) {
     checkMetaData(metaStore, sourceName, topicName);
 
     KsqlStream ksqlStream = new KsqlStream(sourceName, schema,
@@ -31,6 +28,6 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putSource(ksqlStream.cloneWithTimeKeyColumns());
-    return new ArrayList<>();
+    return new DDLCommandResult(true, "Stream created");
   }
 }

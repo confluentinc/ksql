@@ -81,12 +81,12 @@ public class RegisterTopicCommand implements DDLCommand {
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
     if (metaStore.getTopic(topicName) != null) {
+      // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
-        System.out.println("Topic already exists."); // TODO: remove syso
+        return new DDLCommandResult(true, "Topic is not created because it already exists.");
       } else {
         throw new KsqlException("Topic already exists.");
       }
-      return null;
     }
 
     KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe);

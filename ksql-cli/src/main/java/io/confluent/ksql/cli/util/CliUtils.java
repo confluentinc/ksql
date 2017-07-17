@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -25,16 +26,15 @@ public class CliUtils {
                                                       registerTopicContext) {
     AstBuilder astBuilder = new AstBuilder(null);
     RegisterTopic registerTopic = (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
-    if (registerTopic.getProperties().get("FORMAT").toString()
+    if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
         .equalsIgnoreCase("'AVRO'")) {
-      if (registerTopic.getProperties().containsKey("AVROSCHEMAFILE")) {
+      if (registerTopic.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FILE)) {
         String avroSchema = getAvroSchema(AstBuilder.unquote(registerTopic.getProperties()
-                                                                 .get("AVROSCHEMAFILE")
+                                                                 .get(DdlConfig.AVRO_SCHEMA_FILE)
                                                                  .toString(), "'"));
         return Optional.of(avroSchema);
       } else {
-        throw new KsqlException("You need to provide avro schema file path for topics in avro "
-                                + "format.");
+        throw new KsqlException("You need to provide avro schema file path for topics in avro format.");
       }
     }
     return Optional.empty();

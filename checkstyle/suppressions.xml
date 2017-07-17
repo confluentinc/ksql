@@ -7,39 +7,29 @@
 <suppressions>
 
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
-    <suppress
-            checks="IndentationCheck"
-            files="(KsqlEntity|Cli|Ksql).java"
-    />
+    <suppress files="(KsqlEntity|Cli|Ksql).java" checks="IndentationCheck"/>
 
-    <!-- TODO -->
-    <suppress
-            checks="ClassDataAbstractionCouplingCheck"
-            files="(KsqlRestApplication|KsqlResource|Cli).java"
-    />
+    <!-- Suppress some checks on all files -->
+    <suppress files="." checks="ExplicitInitializationCheck"/>
+    <suppress files="." checks="FinalClassCheck"/>
+    <suppress files="." checks="AvoidStarImport"/>
+    <suppress files="." checks="AbbreviationAsWordInName"/>
+    <suppress files="." checks="WhitespaceAround"/>
+    <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
 
-    <!-- TODO -->
-    <suppress
-            checks="CyclomaticComplexityCheck"
-            files="(KsqlResource|StatementExecutor).java"
-    />
+    <!-- Semantics may not be well checked by rules -->
+    <suppress files="." checks="ParameterNumber"/>
+    <suppress files="." checks="BooleanExpressionComplexityCheck"/>
+    <suppress files="." checks="NPathComplexity"/>
+    <suppress files="." checks="JavaNCSSCheck"/>
+    <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>
+    <suppress files="." checks="CyclomaticComplexityCheck"/>
 
-    <!-- TODO -->
-    <suppress
-            checks="BooleanExpressionComplexityCheck"
-            files="KsqlResource.java"
-    />
-
-    <!-- TODO -->
-    <suppress
-            checks="MethodLengthCheck"
-            files="Cli.java"
-    />
-
-    <!-- TODO -->
-    <suppress
-            checks="JavaNCSSCheck"
-            files="(Cli|StatementExecutor).java"
-    />
+    <!-- These checks may be included in the future -->
+    <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
+    <suppress files="." checks="NonEmptyAtclauseDescription"/>
+    <suppress files="." checks="LineLengthCheck"/>
+    <suppress files="." checks="MethodLengthCheck"/>
+    <suppress files="." checks="EmptyLineSeparator"/>
 
 </suppressions>

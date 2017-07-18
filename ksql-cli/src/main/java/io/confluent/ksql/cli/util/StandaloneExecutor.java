@@ -16,6 +16,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -32,10 +33,12 @@ public class StandaloneExecutor {
   }
 
   public void executeStatements(String queries) throws Exception {
-    List<Pair<String, Query>> queryList = ksqlEngine.parseQueries(queries,
-                                                                       Collections.emptyMap());
+    MetaStore tempMetaStore = ksqlEngine.getMetaStore().clone();
+    List<Pair<String, Statement>> queryList = ksqlEngine.parseQueries(queries,
+                                                                      Collections.emptyMap(),
+                                                                      tempMetaStore);
     List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
-        false, queryList, Collections.emptyMap());
+        false, queryList, Collections.emptyMap(), tempMetaStore);
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

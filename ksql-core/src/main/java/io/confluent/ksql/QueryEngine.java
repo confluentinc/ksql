@@ -9,6 +9,13 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.ddl.commands.DropTopicCommand;
+import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -16,13 +23,20 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -69,190 +83,238 @@ public class QueryEngine {
 
 
   public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore,
-                                                        List<Pair<String, Query>> queryList) {
+                                                        List<Pair<String, Statement>> statementList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
-    MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName : metaStore.getAllKsqlTopics().keySet()) {
-      tempMetaStore.putTopic(metaStore.getTopic(topicName));
-    }
-    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
-      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
-    }
+    MetaStore tempMetaStore = metaStore.clone();
 
-    for (Pair<String, Query> statementQueryPair : queryList) {
-      Query query = statementQueryPair.getRight();
-      // Analyze the query to resolve the references and extract operations
-      Analysis analysis = new Analysis();
-      Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
-      analyzer.process(query, new AnalysisContext(null, null));
-
-      AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-      AggregateAnalyzer aggregateAnalyzer = new
-          AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
-      AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
-      for (Expression expression: analysis.getSelectExpressions()) {
-        aggregateAnalyzer
-            .process(expression, new AnalysisContext(null, null));
-        if (!aggregateAnalyzer.isHasAggregateFunction()) {
-          aggregateAnalysis.getNonAggResultColumns().add(expression);
-        }
-        aggregateAnalysis.getFinalSelectExpressions()
-            .add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-        aggregateAnalyzer.setHasAggregateFunction(false);
+    for (Pair<String, Statement> statementQueryPair : statementList) {
+      if (statementQueryPair.getRight() instanceof Query) {
+        PlanNode logicalPlan = buildQueryLogicalPlan((Query) statementQueryPair.getRight(),
+                                                     tempMetaStore);
+        logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
+      } else {
+        logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), null));
       }
 
-      // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
-      if (analysis.getHavingExpression() != null) {
-        aggregateAnalyzer.process(analysis.getHavingExpression(),
-                                  new AnalysisContext(null, null));
-        if (!aggregateAnalyzer.isHasAggregateFunction()) {
-          aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
-        }
-        aggregateAnalysis
-            .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-                                                              analysis.getHavingExpression()));
-        aggregateAnalyzer.setHasAggregateFunction(false);
-      }
-
-      enforceAggregateRules(query, aggregateAnalysis);
-
-
-      // Build a logical plan
-      PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-      if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
-        KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
-            (KsqlStructuredDataOutputNode) logicalPlan;
-
-        StructuredDataSource
-            structuredDataSource =
-            new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
-                          ksqlStructuredDataOutputNode.getSchema(),
-                          ksqlStructuredDataOutputNode.getKeyField(),
-                          ksqlStructuredDataOutputNode.getTimestampField() == null
-                              ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
-                              : ksqlStructuredDataOutputNode.getTimestampField(),
-                          ksqlStructuredDataOutputNode.getKsqlTopic());
-
-        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-        tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
-      }
-
-      logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
       log.info("Build logical plan for {}.", statementQueryPair.getLeft());
     }
     return logicalPlansList;
+  }
+
+  public PlanNode buildQueryLogicalPlan(Query query, MetaStore tempMetaStore) {
+
+    // Analyze the query to resolve the references and extract operations
+    Analysis analysis = new Analysis();
+    Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
+    analyzer.process(query, new AnalysisContext(null, null));
+
+    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    AggregateAnalyzer aggregateAnalyzer = new
+        AggregateAnalyzer(aggregateAnalysis, tempMetaStore, analysis);
+    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+    for (Expression expression: analysis.getSelectExpressions()) {
+      aggregateAnalyzer
+          .process(expression, new AnalysisContext(null, null));
+      if (!aggregateAnalyzer.isHasAggregateFunction()) {
+        aggregateAnalysis.getNonAggResultColumns().add(expression);
+      }
+      aggregateAnalysis.getFinalSelectExpressions()
+          .add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+      aggregateAnalyzer.setHasAggregateFunction(false);
+    }
+
+    // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
+    if (analysis.getHavingExpression() != null) {
+      aggregateAnalyzer.process(analysis.getHavingExpression(),
+                                new AnalysisContext(null, null));
+      if (!aggregateAnalyzer.isHasAggregateFunction()) {
+        aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+      }
+      aggregateAnalysis
+          .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
+                                                                  analysis.getHavingExpression()));
+      aggregateAnalyzer.setHasAggregateFunction(false);
+    }
+
+    enforceAggregateRules(query, aggregateAnalysis);
+
+
+    // Build a logical plan
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
+          (KsqlStructuredDataOutputNode) logicalPlan;
+
+      StructuredDataSource
+          structuredDataSource =
+          new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
+                         ksqlStructuredDataOutputNode.getSchema(),
+                         ksqlStructuredDataOutputNode.getKeyField(),
+                         ksqlStructuredDataOutputNode.getTimestampField() == null
+                         ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
+                         : ksqlStructuredDataOutputNode.getTimestampField(),
+                         ksqlStructuredDataOutputNode.getKsqlTopic());
+
+      tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+      tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+    }
+    return logicalPlan;
   }
 
   public List<QueryMetadata> buildPhysicalPlans(
       boolean addUniqueTimeSuffix,
       MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
+      List<Pair<String, Statement>> statementList,
       KsqlConfig ksqlConfig,
       Map<String, Object> overriddenStreamsProperties,
       boolean updateMetastore
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
+    DDLCommandExec ddlCommandExec = new DDLCommandExec();
 
-    for (Pair<String, PlanNode> statementPlanPair : logicalPlans) {
+    for (int i = 0; i < logicalPlans.size(); i++) {
 
-      PlanNode logicalPlan = statementPlanPair.getRight();
-      KStreamBuilder builder = new KStreamBuilder();
-
-      KsqlConfig ksqlConfigClone = ksqlConfig.clone();
-
-      // Build a physical plan, in this case a Kafka Streams DSL
-      PhysicalPlanBuilder physicalPlanBuilder =
-          new PhysicalPlanBuilder(builder, ksqlConfigClone);
-      SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-
-      OutputNode outputNode = physicalPlanBuilder.getPlanSink();
-      boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
-
-      // Check to make sure the logical and physical plans match up;
-      // important to do this BEFORE actually starting up
-      // the corresponding Kafka Streams job
-      if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
-        throw new Exception(String.format(
-            "Mismatch between logical and physical output; "
-            + "expected a QueuedSchemaKStream based on logical "
-                + "KsqlBareOutputNode, found a %s instead",
-            schemaKStream.getClass().getCanonicalName()
-        ));
-      }
-
-      if (isBareQuery) {
-        String applicationId = getBareQueryApplicationId();
-        if (addUniqueTimeSuffix) {
-          applicationId = addTimeSuffix(applicationId);
-        }
-
-        KafkaStreams streams =
-            buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
-
-        QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-        KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
-        physicalPlans.add(new QueuedQueryMetadata(
-            statementPlanPair.getLeft(),
-            streams,
-            ksqlBareOutputNode,
-            schemaKStream.getExecutionPlan(""),
-            queuedSchemaKStream.getQueue()
-        ));
-
-      } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
-        long queryId = getNextQueryId();
-        String applicationId = String.format("ksql_query_%d", queryId);
-        if (addUniqueTimeSuffix) {
-          applicationId = addTimeSuffix(applicationId);
-        }
-
-        KafkaStreams streams =
-            buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
-
-        KsqlStructuredDataOutputNode kafkaTopicOutputNode =
-            (KsqlStructuredDataOutputNode) outputNode;
-        physicalPlans.add(
-            new PersistentQueryMetadata(statementPlanPair.getLeft(),
-                                        streams, kafkaTopicOutputNode, schemaKStream
-                                            .getExecutionPlan(""), queryId)
-        );
-        if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
-          metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
-        }
-        StructuredDataSource sinkDataSource;
-        if (schemaKStream instanceof SchemaKTable) {
-          SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
-          sinkDataSource =
-              new KsqlTable(kafkaTopicOutputNode.getId().toString(),
-                  kafkaTopicOutputNode.getSchema(),
-                  schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getTimestampField(),
-                  kafkaTopicOutputNode.getKsqlTopic(), kafkaTopicOutputNode.getId()
-                  .toString() + "_statestore",
-                  schemaKTable.isWindowed());
-        } else {
-          sinkDataSource =
-              new KsqlStream(kafkaTopicOutputNode.getId().toString(),
-                  kafkaTopicOutputNode.getSchema(),
-                  schemaKStream.getKeyField(),
-                  kafkaTopicOutputNode.getTimestampField(),
-                  kafkaTopicOutputNode.getKsqlTopic());
-        }
-
-        if (updateMetastore) {
-          metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
-        }
+      Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
+      if (statementPlanPair.getRight() == null) {
+        handleDdlStatement(statementList.get(i).getRight(),
+                           metaStore, ddlCommandExec, overriddenStreamsProperties);
       } else {
-        throw new KsqlException("Sink data source is not correct.");
+        buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
+                               ksqlConfig, overriddenStreamsProperties, updateMetastore, metaStore);
       }
-      log.info("Build physical plan for {}.", statementPlanPair.getLeft());
-      log.info(" Execution plan: \n");
-      log.info(schemaKStream.getExecutionPlan(""));
+
     }
     return physicalPlans;
+  }
+
+  public void buildQueryPhysicalPlan(List<QueryMetadata> physicalPlans,
+                                     boolean addUniqueTimeSuffix,
+                                     Pair<String, PlanNode> statementPlanPair,
+                                     KsqlConfig ksqlConfig,
+                                     Map<String, Object> overriddenStreamsProperties,
+                                     boolean updateMetastore,
+                                     MetaStore metaStore) throws Exception {
+
+    PlanNode logicalPlan = statementPlanPair.getRight();
+    KStreamBuilder builder = new KStreamBuilder();
+
+    KsqlConfig ksqlConfigClone = ksqlConfig.clone();
+
+    // Build a physical plan, in this case a Kafka Streams DSL
+    PhysicalPlanBuilder physicalPlanBuilder =
+        new PhysicalPlanBuilder(builder, ksqlConfigClone);
+    SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
+
+    OutputNode outputNode = physicalPlanBuilder.getPlanSink();
+    boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
+
+    // Check to make sure the logical and physical plans match up;
+    // important to do this BEFORE actually starting up
+    // the corresponding Kafka Streams job
+    if (isBareQuery && !(schemaKStream instanceof QueuedSchemaKStream)) {
+      throw new Exception(String.format(
+          "Mismatch between logical and physical output; "
+          + "expected a QueuedSchemaKStream based on logical "
+          + "KsqlBareOutputNode, found a %s instead",
+          schemaKStream.getClass().getCanonicalName()
+      ));
+    }
+
+    if (isBareQuery) {
+      String applicationId = getBareQueryApplicationId();
+      if (addUniqueTimeSuffix) {
+        applicationId = addTimeSuffix(applicationId);
+      }
+
+      KafkaStreams streams =
+          buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
+
+      QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
+      KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
+      physicalPlans.add(new QueuedQueryMetadata(
+          statementPlanPair.getLeft(),
+          streams,
+          ksqlBareOutputNode,
+          schemaKStream.getExecutionPlan(""),
+          queuedSchemaKStream.getQueue()
+      ));
+
+    } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
+      long queryId = getNextQueryId();
+      String applicationId = String.format("ksql_query_%d", queryId);
+      if (addUniqueTimeSuffix) {
+        applicationId = addTimeSuffix(applicationId);
+      }
+
+      KafkaStreams streams =
+          buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
+
+      KsqlStructuredDataOutputNode kafkaTopicOutputNode =
+          (KsqlStructuredDataOutputNode) outputNode;
+      physicalPlans.add(
+          new PersistentQueryMetadata(statementPlanPair.getLeft(),
+                                      streams, kafkaTopicOutputNode, schemaKStream
+                                          .getExecutionPlan(""), queryId)
+      );
+      if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
+        metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
+      }
+      StructuredDataSource sinkDataSource;
+      if (schemaKStream instanceof SchemaKTable) {
+        SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
+        sinkDataSource =
+            new KsqlTable(kafkaTopicOutputNode.getId().toString(),
+                          kafkaTopicOutputNode.getSchema(),
+                          schemaKStream.getKeyField(),
+                          kafkaTopicOutputNode.getTimestampField(),
+                          kafkaTopicOutputNode.getKsqlTopic(), kafkaTopicOutputNode.getId()
+                                                                   .toString() + "_statestore",
+                          schemaKTable.isWindowed());
+      } else {
+        sinkDataSource =
+            new KsqlStream(kafkaTopicOutputNode.getId().toString(),
+                           kafkaTopicOutputNode.getSchema(),
+                           schemaKStream.getKeyField(),
+                           kafkaTopicOutputNode.getTimestampField(),
+                           kafkaTopicOutputNode.getKsqlTopic());
+      }
+
+      if (updateMetastore) {
+        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+      }
+    } else {
+      throw new KsqlException("Sink data source is not correct.");
+    }
+    log.info("Build physical plan for {}.", statementPlanPair.getLeft());
+    log.info(" Execution plan: \n");
+    log.info(schemaKStream.getExecutionPlan(""));
+  }
+
+  public DDLCommandResult handleDdlStatement(Statement statement,
+                                             MetaStore metaStore,
+                                             DDLCommandExec ddlCommandExec,
+                                             Map<String, Object> overriddenProperties) {
+
+    if (statement instanceof RegisterTopic) {
+      return ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement,
+                                                      overriddenProperties), metaStore);
+    } else if (statement instanceof CreateStream) {
+      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
+    } else if (statement instanceof CreateTable) {
+      return ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), metaStore);
+    } else if (statement instanceof DropStream) {
+      return ddlCommandExec.execute(new DropSourceCommand((DropStream) statement), metaStore);
+    } else if (statement instanceof DropTable) {
+      return ddlCommandExec.execute(new DropSourceCommand((DropTable) statement), metaStore);
+    } else if (statement instanceof DropTopic) {
+      return ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement), metaStore);
+    } else {
+      return new DDLCommandResult(false);
+    }
   }
 
   public StructuredDataSource getResultDatasource(final Select select, final String name) {

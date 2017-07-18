@@ -89,17 +89,17 @@ public class JsonFormatTest {
     inputData = getInputData();
 
     String ordersTopicStr = String.format("REGISTER TOPIC %s WITH (value_format = 'json', "
-                                          + "kafka_topicname='%s');", inputTopic, inputTopic);
+                                          + "kafka_topic='%s');", inputTopic, inputTopic);
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-                                           + "map<varchar, double>) WITH (registered_topicname = "
+                                           + "map<varchar, double>) WITH (registered_topic = "
                                            + "'%s' , "
                                            + "key='ordertime');", inputStream, inputTopic);
 
     String messageTopicStr = String.format("REGISTER TOPIC %s WITH (value_format = 'json', "
-                                           + "kafka_topicname='%s');", messageLogTopic,
+                                           + "kafka_topic='%s');", messageLogTopic,
                                            messageLogTopic);
-    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (registered_topicname = "
+    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (registered_topic = "
                                             + "'%s');", messageLogStream, messageLogTopic);
 
     ksqlEngine.buildMultipleQueries(false, ordersTopicStr, Collections.emptyMap());

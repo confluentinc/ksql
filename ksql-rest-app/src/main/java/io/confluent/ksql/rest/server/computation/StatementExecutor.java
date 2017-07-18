@@ -252,12 +252,17 @@ public class StatementExecutor {
     DDLCommandResult result = null;
     String successMessage = "";
 
-    if (statement instanceof RegisterTopic) {
-      result = ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()));
-    } else if (statement instanceof CreateStream) {
-      result = ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
-    } else if (statement instanceof CreateTable) {
-      result = ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
+    if (statement instanceof RegisterTopic
+        || statement instanceof CreateStream
+        || statement instanceof CreateTable
+        || statement instanceof DropTopic
+        || statement instanceof DropStream
+        || statement instanceof DropTable
+        ) {
+      result = ksqlEngine.getQueryEngine().handleDdlStatement(statement,
+                                                              ksqlEngine.getMetaStore(),
+                                                              ddlCommandExec,
+                                                              command.getStreamsProperties());
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =
@@ -292,13 +297,6 @@ public class StatementExecutor {
       }
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
-      successMessage = "Termination request granted";
-    } else if (statement instanceof DropTopic) {
-      result = ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
-    } else if (statement instanceof DropStream) {
-      result = ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
-    } else if (statement instanceof DropTable) {
-      result = ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

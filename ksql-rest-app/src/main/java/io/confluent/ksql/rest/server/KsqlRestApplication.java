@@ -211,7 +211,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
             QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
             false,
-            commandTopicProperties)));
+            commandTopicProperties)), metaStore);
 
     ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
@@ -220,7 +220,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             Collections.singletonMap(
                     DdlConfig.TOPIC_NAME_PROPERTY,
                     new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            ))));
+            ))), metaStore);
 
     Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

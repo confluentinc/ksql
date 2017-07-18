@@ -142,7 +142,7 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("REGISTER TOPIC %s WITH (kafka_topicname='%s', value_format='%s');",
+        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', value_format='%s');",
                       ksqlTopic,
                       kafkaTopic, format);
 
@@ -205,7 +205,7 @@ public class KsqlResourceTest {
     final String format = "json";
 
     final String ksqlString =
-        String.format("REGISTER TOPIC %s WITH (kafka_topicname='%s', value_format='%s');",
+        String.format("REGISTER TOPIC %s WITH (kafka_topic='%s', value_format='%s');",
                       ksqlTopic,
                       kafkaTopic, format);
 

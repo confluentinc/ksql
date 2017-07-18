@@ -29,8 +29,8 @@ public class MetaStoreImpl implements MetaStore {
   }
 
   public MetaStoreImpl(Map<String, KsqlTopic> topicMap, Map<String, StructuredDataSource> dataSourceMap) {
-    this.topicMap = (topicMap != null)? new HashMap<>(topicMap): new HashMap<>();
-    this.dataSourceMap = (dataSourceMap != null)? new HashMap<>(dataSourceMap): new HashMap<>();
+    this.topicMap = (topicMap != null)? topicMap: new HashMap<>();
+    this.dataSourceMap = (dataSourceMap != null)? dataSourceMap: new HashMap<>();
   }
 
   @Override
@@ -93,6 +93,23 @@ public class MetaStoreImpl implements MetaStore {
   @Override
   public Set<String> getAllTopicNames() {
     return getAllKsqlTopics().keySet();
+  }
+
+  @Override
+  public void putAll(MetaStore otherMetaStore) {
+    this.topicMap.putAll(otherMetaStore.getAllKsqlTopics());
+    this.dataSourceMap.putAll(otherMetaStore.getAllStructuredDataSources());
+  }
+
+  @Override
+  public MetaStore clone() {
+    Map<String, KsqlTopic> cloneTopicMap = new HashMap<>();
+    Map<String, StructuredDataSource> cloneDataSourceMap = new HashMap<>();
+
+    cloneTopicMap.putAll(topicMap);
+    cloneDataSourceMap.putAll(dataSourceMap);
+
+    return new MetaStoreImpl(cloneTopicMap, cloneDataSourceMap);
   }
 
 }

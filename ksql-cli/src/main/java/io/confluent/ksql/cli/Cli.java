@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
@@ -32,9 +33,10 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.rest.entity.TopicsList;
+import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -52,6 +54,8 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -84,6 +88,7 @@ public class Cli implements Closeable, AutoCloseable {
     TABULAR
   }
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
   private static final String DEFAULT_PRIMARY_PROMPT   = "ksql> ";
   private static final String DEFAULT_SECONDARY_PROMPT = "      ";
 
@@ -158,15 +163,18 @@ public class Cli implements Closeable, AutoCloseable {
 
   }
 
-  public void runInteractively() throws IOException {
+  public void runInteractively() {
     displayWelcomeMessage();
-    while (true) {
+    boolean eof = false;
+    while (!eof) {
       try {
         handleLine(readLine());
       } catch (EndOfFileException exception) {
         // EOF is fine, just terminate the REPL
-        return;
+        terminal.writer().println("Exit REPL.");
+        eof = true;
       } catch (Exception exception) {
+        LOGGER.error(ExceptionUtils.getStackTrace(exception));
         if (exception.getMessage() != null) {
           terminal.writer().println(exception.getMessage());
         } else {
@@ -948,8 +956,8 @@ public class Cli implements Closeable, AutoCloseable {
               tableInfo.getStateStoreName(),
               Boolean.toString(tableInfo.getIsWindowed()))
           ).collect(Collectors.toList());
-    } else if (ksqlEntity instanceof TopicsList) {
-      List<TopicsList.TopicInfo> topicInfos = ((TopicsList) ksqlEntity).getTopics();
+    } else if (ksqlEntity instanceof KsqlTopicsList) {
+      List<KsqlTopicInfo> topicInfos = ((KsqlTopicsList) ksqlEntity).getTopics();
       columnHeaders = Arrays.asList("Topic Name", "Kafka Topic", "Format");
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(

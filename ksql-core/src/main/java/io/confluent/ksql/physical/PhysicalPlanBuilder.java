@@ -32,6 +32,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -67,14 +68,16 @@ public class PhysicalPlanBuilder {
 
   private static final Logger log = LoggerFactory.getLogger(PhysicalPlanBuilder.class);
 
-  KStreamBuilder builder;
+  private final KStreamBuilder builder;
+  private final KsqlConfig ksqlConfig;
+  private final KafkaTopicClient kafkaTopicClient;
+
   OutputNode planSink = null;
 
-  KsqlConfig ksqlConfig = null;
-
-  public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig) {
+  public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
+    this.kafkaTopicClient = kafkaTopicClient;
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
@@ -186,7 +189,8 @@ public class PhysicalPlanBuilder {
               ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
                        ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
           rowkeyIndexes,
-          ksqlConfig);
+          ksqlConfig,
+          kafkaTopicClient);
 
 
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new

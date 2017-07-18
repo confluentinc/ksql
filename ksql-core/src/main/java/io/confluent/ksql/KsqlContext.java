@@ -4,6 +4,8 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -25,24 +26,22 @@ public class KsqlContext {
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
-
   public KsqlContext() {
-    Map<String, Object> streamsProperties = new HashMap<>();
-    streamsProperties
-        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
-    streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-    ksqlEngine = new KsqlEngine(new MetaStoreImpl(), streamsProperties);
+    this(null);
   }
 
   public KsqlContext(Map<String, Object> streamsProperties) {
+    if (streamsProperties == null) {
+      streamsProperties = new HashMap<>();
+    }
     if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
     }
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      streamsProperties
-          .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
+      streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
-    ksqlEngine = new KsqlEngine(new MetaStoreImpl(), streamsProperties);
+    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
   }
 
   public void sql(String sql) throws Exception {

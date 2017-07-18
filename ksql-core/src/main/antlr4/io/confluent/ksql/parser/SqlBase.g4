@@ -35,7 +35,7 @@ singleExpression
 statement
     : query                                                                 #querystatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
-    | (LIST | SHOW) REGISTERED TOPICS                                       #listTopics
+    | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
     | (LIST | SHOW) STREAMS                                                 #listStreams
     | (LIST | SHOW) TABLES                                                  #listTables
     | DESCRIBE (qualifiedName | TOPIC qualifiedName)                        #showColumns

@@ -13,8 +13,6 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
@@ -34,12 +32,12 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.util.TopicUtil;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -72,7 +70,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
-  private final TopicUtil topicUtil;
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
@@ -85,7 +82,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      TopicUtil topicUtil,
       boolean enableQuickstartPage
   ) {
     super(config);
@@ -95,7 +91,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
-    this.topicUtil = topicUtil;
     this.enableQuickstartPage = enableQuickstartPage;
 
     this.commandRunnerThread = new Thread(commandRunner);
@@ -135,7 +130,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   public void stop() throws Exception {
     ksqlEngine.close();
     commandRunner.close();
-    topicUtil.close();
     try {
       commandRunnerThread.join();
     } catch (InterruptedException exception) {
@@ -180,27 +174,23 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static KsqlRestApplication buildApplication(Properties props, boolean quickstart)
       throws Exception {
-    KsqlRestConfig config = new KsqlRestConfig(props);
+    KsqlRestConfig restConfig = new KsqlRestConfig(props);
 
-    AdminClient client = AdminClient.create((Map) props);
-    TopicUtil topicUtil = new TopicUtil(client);
+    Map<String, Object> ksqlConfProperties = new HashMap<>();
+    ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
+    ksqlConfProperties.putAll(restConfig.getCommandProducerProperties());
+    ksqlConfProperties.putAll(restConfig.getKsqlStreamsProperties());
+    ksqlConfProperties.putAll(restConfig.getOriginals());
 
-    String commandTopic = config.getCommandTopic();
-    if (!topicUtil.ensureTopicExists(commandTopic, 1, (short) 1)) {
+    KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+
+    String commandTopic = restConfig.getCommandTopic();
+    if (!ksqlEngine.getKafkaTopicClient().ensureTopicExists(commandTopic, 1, (short) 1)) {
       throw new Exception(
           String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
       );
     }
-
-    // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
-    MetaStore metaStore = new MetaStoreImpl();
-
-    Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(config.getCommandConsumerProperties());
-    ksqlConfProperties.putAll(config.getCommandProducerProperties());
-    ksqlConfProperties.putAll(config.getKsqlStreamsProperties());
-    ksqlConfProperties.putAll(config.getOriginals());
-    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, ksqlConfProperties);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -212,11 +202,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         new StringLiteral(commandTopic)
     );
 
-
     ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
             QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
             false,
-            commandTopicProperties)), metaStore);
+            commandTopicProperties)));
 
     ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
@@ -225,9 +214,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             Collections.singletonMap(
                     DdlConfig.TOPIC_NAME_PROPERTY,
                     new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            ))), metaStore);
+            ))));
 
-    Map<String, Object> commandConsumerProperties = config.getCommandConsumerProperties();
+    Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
         commandConsumerProperties,
         getJsonDeserializer(CommandId.class, true),
@@ -235,7 +224,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     KafkaProducer<CommandId, Command> commandProducer = new KafkaProducer<>(
-        config.getCommandProducerProperties(),
+        restConfig.getCommandProducerProperties(),
         getJsonSerializer(true),
         getJsonSerializer(false)
     );
@@ -244,7 +233,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         commandTopic,
         commandConsumer,
         commandProducer,
-        new CommandIdAssigner(metaStore)
+        new CommandIdAssigner(ksqlEngine.getMetaStore())
     );
 
     StatementParser statementParser = new StatementParser(ksqlEngine);
@@ -265,26 +254,25 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         statementParser,
-        config.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
+        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
     KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandStore,
         statementExecutor,
-        config.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
     );
 
     commandRunner.processPriorCommands();
 
     return new KsqlRestApplication(
         ksqlEngine,
-        config,
+        restConfig,
         commandRunner,
         serverInfoResource,
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        topicUtil,
         quickstart
     );
   }

@@ -24,7 +24,7 @@ import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
@@ -43,7 +43,7 @@ import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.rest.entity.TopicsList;
+import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
@@ -110,6 +110,7 @@ public class KsqlResource {
       try {
         result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       } catch (Exception exception) {
+        exception.printStackTrace();
         result.add(new ErrorMessageEntity(statementText, exception));
       }
     }
@@ -135,13 +136,17 @@ public class KsqlResource {
     return result;
   }
 
+  public KsqlEngine getKsqlEngine() {
+    return ksqlEngine;
+  }
+
   private KsqlEntity executeStatement(
       String statementText,
       Statement statement,
       Map<String, Object> streamsProperties
   ) throws Exception {
-    if (statement instanceof ListTopics) {
-      return listTopics(statementText);
+    if (statement instanceof ListRegisteredTopics) {
+      return listRegisteredTopics(statementText);
     } else if (statement instanceof ListStreams) {
       return listStreams(statementText);
     } else if (statement instanceof ListTables) {
@@ -204,8 +209,8 @@ public class KsqlResource {
     return new CommandStatusEntity(statementText, commandId, commandStatus);
   }
 
-  private TopicsList listTopics(String statementText) {
-    return TopicsList.fromKsqlTopics(
+  private KsqlTopicsList listRegisteredTopics(String statementText) {
+    return KsqlTopicsList.buildFromKsqlTopics(
         statementText,
         ksqlEngine.getMetaStore().getAllKsqlTopics().values()
     );

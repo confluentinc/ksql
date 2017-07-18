@@ -3,7 +3,6 @@ package io.confluent.ksql.parser;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.rewrite.KsqlRewriteParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -25,8 +24,6 @@ import org.junit.Test;
 public class KsqlParserTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
-  private static final KsqlRewriteParser KSQL_REWRITE_PARSER = new KsqlRewriteParser();
 
   private MetaStore metaStore;
 

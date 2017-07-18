@@ -155,6 +155,7 @@ public class KsqlEngine implements Closeable {
   public List<Pair<String, Statement>> parseQueries(final String queriesString,
                                 Map<String, Object> overriddenProperties,
                                 MetaStore tempMetaStore) {
+    MetaStore tempMetaStoreForParser = tempMetaStore.clone();
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
     List<SqlBaseParser.SingleStatementContext>
@@ -163,11 +164,15 @@ public class KsqlEngine implements Closeable {
     List<Pair<String, Statement>> queryList = new ArrayList<>();
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
       Pair<Statement, DataSourceExtractor> statementInfo =
-          ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
+          ksqlParser.prepareStatement(singleStatementContext, tempMetaStoreForParser);
       Statement statement = statementInfo.getLeft();
       Pair<String, Statement> queryPair =
-          buildSingleQueryAst(statement, getStatementString(singleStatementContext),
-                                                          tempMetaStore, overriddenProperties);
+          buildSingleQueryAst(
+              statement,
+              getStatementString(singleStatementContext),
+              tempMetaStore,
+              tempMetaStoreForParser,
+              overriddenProperties);
       if (queryPair != null) {
         queryList.add(queryPair);
       }
@@ -175,8 +180,11 @@ public class KsqlEngine implements Closeable {
     return queryList;
   }
 
-  private Pair<String, Statement> buildSingleQueryAst(Statement statement, String
-      statementString, MetaStore tempMetaStore, Map<String, Object> overriddenProperties) {
+  private Pair<String, Statement> buildSingleQueryAst(Statement statement,
+                                                      String statementString,
+                                                      MetaStore tempMetaStore,
+                                                      MetaStore tempMetaStoreForParser,
+                                                      Map<String,Object> overriddenProperties) {
 
     log.info("Building AST for {}.", statementString);
 
@@ -193,7 +201,7 @@ public class KsqlEngine implements Closeable {
           createStreamAsSelect.getProperties(),
           createStreamAsSelect.getPartitionByColumn()
       );
-      tempMetaStore.putSource(queryEngine.getResultDatasource(
+      tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
           querySpecification.getSelect(),
           createStreamAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
@@ -211,35 +219,43 @@ public class KsqlEngine implements Closeable {
           Optional.empty()
       );
 
-      tempMetaStore.putSource(queryEngine.getResultDatasource(
+      tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
           querySpecification.getSelect(),
           createTableAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
-      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement,
-                                                      overriddenProperties), tempMetaStore);
+      ddlCommandExec.execute(
+          new RegisterTopicCommand(
+              (RegisterTopic) statement,
+              overriddenProperties),
+          tempMetaStoreForParser);
+      ddlCommandExec.execute(
+          new RegisterTopicCommand(
+              (RegisterTopic) statement,
+              overriddenProperties),
+          tempMetaStore);
       return new Pair<>(statementString, statement);
-      // TODO: correct way to handle tempMetaStore
-      //if (ksqlTopic != null) {
-      //  tempMetaStore.putTopic(ksqlTopic);
-      //}
     } else if (statement instanceof CreateStream) {
-      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), tempMetaStore);
+      ddlCommandExec.execute(
+          new CreateStreamCommand(
+              (CreateStream) statement),
+          tempMetaStoreForParser);
+      ddlCommandExec.execute(
+          new CreateStreamCommand(
+              (CreateStream) statement),
+          tempMetaStore);
       return new Pair<>(statementString, statement);
-      // TODO: correct way to handle tempMetaStore
-      // KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
-      //if (ksqlStream != null) {
-      //  tempMetaStore.putSource(ksqlStream);
-      //}
     } else if (statement instanceof CreateTable) {
-      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), tempMetaStore);
+      ddlCommandExec.execute(
+          new CreateTableCommand(
+              (CreateTable) statement),
+          tempMetaStoreForParser);
+      ddlCommandExec.execute(
+          new CreateTableCommand(
+              (CreateTable) statement),
+          tempMetaStore);
       return new Pair<>(statementString, statement);
-      // TODO: correct way to handle tempMetaStore
-      // KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
-      //if (ksqlTable != null) {
-      //  tempMetaStore.putSource(ksqlTable);
-      //}
     }
     return null;
   }

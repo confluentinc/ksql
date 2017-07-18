@@ -13,6 +13,8 @@ import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandExec;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -23,6 +25,9 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
@@ -175,7 +180,7 @@ public class QueryEngine {
 
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
       if (statementPlanPair.getRight() == null) {
-        handleDdlStatement(statementList.get(i).getRight(), statementList.get(i).getLeft(),
+        handleDdlStatement(statementList.get(i).getRight(),
                            metaStore, ddlCommandExec, overriddenStreamsProperties);
       } else {
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
@@ -290,7 +295,6 @@ public class QueryEngine {
   }
 
   public DDLCommandResult handleDdlStatement(Statement statement,
-                                             String statementString,
                                              MetaStore metaStore,
                                              DDLCommandExec ddlCommandExec,
                                              Map<String, Object> overriddenProperties) {
@@ -302,12 +306,12 @@ public class QueryEngine {
       return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
     } else if (statement instanceof CreateTable) {
       return ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), metaStore);
-    } else if (statement instanceof CreateStream) {
-      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
-    } else if (statement instanceof CreateStream) {
-      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
-    } else if (statement instanceof CreateStream) {
-      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
+    } else if (statement instanceof DropStream) {
+      return ddlCommandExec.execute(new DropSourceCommand((DropStream) statement), metaStore);
+    } else if (statement instanceof DropTable) {
+      return ddlCommandExec.execute(new DropSourceCommand((DropTable) statement), metaStore);
+    } else if (statement instanceof DropTopic) {
+      return ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement), metaStore);
     } else {
       return new DDLCommandResult(false);
     }

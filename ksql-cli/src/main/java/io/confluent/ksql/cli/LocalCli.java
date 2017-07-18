@@ -40,6 +40,7 @@ public class LocalCli extends Cli {
   @Override
   public void close() throws IOException {
     try {
+      serverApplication.getKsqlEngine().terminateAllQueries();
       serverApplication.stop();
       serverApplication.join();
     } catch (TimeoutException exception) {

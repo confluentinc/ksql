@@ -351,4 +351,20 @@ public class KsqlEngine implements Closeable {
   public QueryEngine getQueryEngine() {
     return queryEngine;
   }
+
+  public boolean terminateAllQueries() {
+    try {
+      for (QueryMetadata queryMetadata: liveQueries) {
+        if (queryMetadata instanceof PersistentQueryMetadata) {
+          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+          persistentQueryMetadata.getKafkaStreams().close();
+          persistentQueryMetadata.getKafkaStreams().cleanUp();
+        }
+      }
+    } catch (Exception e) {
+      return false;
+    }
+
+    return true;
+  }
 }

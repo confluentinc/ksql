@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
@@ -41,6 +42,7 @@ public class TopicStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final KafkaConsumer<?, ?> topicConsumer;
   private final String kafkaTopic;
+  KsqlTopic ksqlTopic;
   private final ObjectMapper objectMapper;
 
   private long messagesWritten;
@@ -52,6 +54,7 @@ public class TopicStreamWriter implements StreamingOutput {
       long disconnectCheckInterval,
       boolean fromBeginning
   ) {
+    this.ksqlTopic = ksqlTopic;
     this.kafkaTopic = ksqlTopic.getKafkaTopicName();
     this.messagesWritten = 0;
     this.objectMapper = new ObjectMapper();
@@ -111,15 +114,11 @@ public class TopicStreamWriter implements StreamingOutput {
             for (ConsumerRecord<?, ?> record : records.records(kafkaTopic)) {
               if (record.value() != null) {
                 if (messagesWritten++ % interval == 0) {
-                  JsonNode jsonNode = objectMapper.readTree(record.value().toString());
-                  ObjectNode objectNode = objectMapper.createObjectNode();
-                  objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-                  objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key()
-                      .toString(): "null");
-                  objectNode.setAll((ObjectNode) jsonNode);
-                  objectMapper.writeValue(out, objectNode);
-                  out.write("\n".getBytes());
-                  out.flush();
+                  if (ksqlTopic.getKsqlTopicSerDe().getSerDe() == DataSource.DataSourceSerDe.JSON) {
+                    printJsonValue(out, record);
+                  } else {
+                    printAvroOrDelimitedValue(out, record);
+                  }
                 }
               }
             }
@@ -139,4 +138,25 @@ public class TopicStreamWriter implements StreamingOutput {
       topicConsumer.close();
     }
   }
+
+  private void printJsonValue(OutputStream out, ConsumerRecord<?, ?> record) throws IOException {
+    JsonNode jsonNode = objectMapper.readTree(record.value().toString());
+    ObjectNode objectNode = objectMapper.createObjectNode();
+    objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
+    objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key()
+        .toString(): "null");
+    objectNode.setAll((ObjectNode) jsonNode);
+    objectMapper.writeValue(out, objectNode);
+    out.write("\n".getBytes());
+    out.flush();
+  }
+
+  private void printAvroOrDelimitedValue(OutputStream out, ConsumerRecord<?, ?> record) throws
+                                                                                   IOException {
+    out.write((record.timestamp() + " , " +record.key().toString() + " , " + record.value()
+        .toString()).getBytes());
+    out.write("\n".getBytes());
+    out.flush();
+  }
+
 }

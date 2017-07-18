@@ -313,5 +313,6 @@ public class Ksql {
       }
       System.err.println("See the help command for usage information");
     }
+    System.exit(0);
   }
 }

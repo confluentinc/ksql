@@ -303,6 +303,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     result.configure(props, isKey);
     return result;
   }
+
+  public KsqlEngine getKsqlEngine() {
+    return ksqlEngine;
+  }
 }
 
 /*

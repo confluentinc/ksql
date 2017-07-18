@@ -73,13 +73,7 @@ public class QueryEngine {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
-    MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String topicName : metaStore.getAllKsqlTopics().keySet()) {
-      tempMetaStore.putTopic(metaStore.getTopic(topicName));
-    }
-    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
-      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
-    }
+    MetaStore tempMetaStore = metaStore.clone();
 
     for (Pair<String, Query> statementQueryPair : queryList) {
       Query query = statementQueryPair.getRight();
@@ -90,7 +84,7 @@ public class QueryEngine {
 
       AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
       AggregateAnalyzer aggregateAnalyzer = new
-          AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
+          AggregateAnalyzer(aggregateAnalysis, tempMetaStore, analysis);
       AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
       for (Expression expression: analysis.getSelectExpressions()) {
         aggregateAnalyzer

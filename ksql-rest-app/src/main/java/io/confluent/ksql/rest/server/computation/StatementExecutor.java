@@ -253,11 +253,20 @@ public class StatementExecutor {
     String successMessage = "";
 
     if (statement instanceof RegisterTopic) {
-      result = ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()));
+      result = ddlCommandExec.execute(
+          new RegisterTopicCommand((RegisterTopic) statement, command.getStreamsProperties()),
+          ksqlEngine.getMetaStore()
+      );
     } else if (statement instanceof CreateStream) {
-      result = ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
+      result = ddlCommandExec.execute(
+          new CreateStreamCommand((CreateStream) statement),
+          ksqlEngine.getMetaStore()
+      );
     } else if (statement instanceof CreateTable) {
-      result = ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
+      result = ddlCommandExec.execute(
+          new CreateTableCommand((CreateTable) statement),
+          ksqlEngine.getMetaStore()
+      );
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =
@@ -294,11 +303,20 @@ public class StatementExecutor {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Termination request granted";
     } else if (statement instanceof DropTopic) {
-      result = ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
+      result = ddlCommandExec.execute(
+          new DropTopicCommand((DropTopic) statement),
+          ksqlEngine.getMetaStore()
+      );
     } else if (statement instanceof DropStream) {
-      result = ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
+      result = ddlCommandExec.execute(
+          new DropSourceCommand((DropStream) statement),
+          ksqlEngine.getMetaStore()
+      );
     } else if (statement instanceof DropTable) {
-      result = ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
+      result = ddlCommandExec.execute(
+          new DropSourceCommand((DropTable) statement),
+          ksqlEngine.getMetaStore()
+      );
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

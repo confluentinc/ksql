@@ -291,7 +291,7 @@ public class KsqlParserTest {
     String
         queryStr =
         "REGISTER TOPIC orders_topic WITH (value_format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topicname='orders_topic');";
+        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
     RegisterTopic registerTopic = (RegisterTopic)statement;
@@ -306,7 +306,7 @@ public class KsqlParserTest {
     String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (registered_topicname = 'orders_topic' , key='ordertime');";
+        + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     CreateStream createStream = (CreateStream)statement;
@@ -320,7 +320,7 @@ public class KsqlParserTest {
   public void testCreateTable() throws Exception {
     String
         queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topicname = 'users_topic', key='userid', statestore='user_statestore');";
+        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     CreateTable createTable = (CreateTable)statement;
@@ -336,7 +336,7 @@ public class KsqlParserTest {
     String
         queryStr =
         "CREATE STREAM bigorders_json WITH (value_format = 'json', "
-        + "kafka_topicname='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
+        + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStreamAsSelect failed.", statement instanceof CreateStreamAsSelect);
     CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
@@ -360,7 +360,7 @@ public class KsqlParserTest {
     String kafkaTopic = "case_insensitive_kafka_topic";
 
     String queryStr = String.format(
-        "REGISTER TOPIC %s WITH (value_format = %s, kafka_topicname = %s);",
+        "REGISTER TOPIC %s WITH (value_format = %s, kafka_topic = %s);",
         ksqlTopic,
         format,
         kafkaTopic

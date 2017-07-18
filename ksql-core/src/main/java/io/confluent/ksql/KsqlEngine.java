@@ -60,7 +60,7 @@ public class KsqlEngine implements Closeable {
     this.ksqlConfig = new KsqlConfig(streamsProperties);
     this.metaStore = metaStore;
     this.queryEngine = new QueryEngine(ksqlConfig);
-    this.ddlCommandExec = new DDLCommandExec(metaStore);
+    this.ddlCommandExec = new DDLCommandExec();
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
   }
@@ -217,20 +217,21 @@ public class KsqlEngine implements Closeable {
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
-      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties));
+      ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement,
+                                                      overriddenProperties), metaStore);
       // TODO: correct way to handle tempMetaStore
       //if (ksqlTopic != null) {
       //  tempMetaStore.putTopic(ksqlTopic);
       //}
     } else if (statement instanceof CreateStream) {
-      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
+      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
       // TODO: correct way to handle tempMetaStore
       // KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
       //if (ksqlStream != null) {
       //  tempMetaStore.putSource(ksqlStream);
       //}
     } else if (statement instanceof CreateTable) {
-      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
+      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), metaStore);
       // TODO: correct way to handle tempMetaStore
       // KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
       //if (ksqlTable != null) {

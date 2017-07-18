@@ -29,4 +29,7 @@ public interface MetaStore {
 
   public Set<String> getAllTopicNames();
 
+  public void putAll(MetaStore otherMetaStore);
+
+  public MetaStore clone();
 }

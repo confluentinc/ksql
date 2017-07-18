@@ -10,8 +10,8 @@ public class DdlConfig {
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
   public static final String AVRO_SCHEMA = "AVROSCHEMA";
-  public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPICNAME";
-  public static final String TOPIC_NAME_PROPERTY = "REGISTERED_TOPICNAME";
+  public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
+  public static final String TOPIC_NAME_PROPERTY = "REGISTERED_TOPIC";
   public static final String STATE_STORE_NAME_PROPERTY = "STATESTORE";
   public static final String KEY_NAME_PROPERTY = "KEY";
   public static final String IS_WINDOWED_PROPERTY = "WINDOWED";

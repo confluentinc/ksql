@@ -90,27 +90,30 @@ public class KsqlEngine implements Closeable {
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
 
+    MetaStore tempMetaStore = metaStore.clone();
     // Build query AST from the query string
-    List<Pair<String, Query>> queries = parseQueries(queriesString, overriddenProperties); //, tempMetaStore);
+    List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties,
+                                                         tempMetaStore);
 
-    return planQueries(createNewAppId, queries, overriddenProperties); //, tempMetaStore);
+    return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore);
 
   }
 
   public List<QueryMetadata> planQueries(boolean createNewAppId,
-                                         List<Pair<String, Query>> queryList,
-                                         Map<String, Object> overriddenProperties
-                                         /*, MetaStore tempMetaStore*/)
+                                         List<Pair<String, Statement>> statementList,
+                                         Map<String, Object> overriddenProperties,
+                                         MetaStore tempMetaStore)
       throws Exception {
 
     // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, queryList);
+    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         createNewAppId,
         metaStore,
         logicalPlans,
+        statementList,
         ksqlConfig,
         overriddenProperties,
         true
@@ -140,6 +143,7 @@ public class KsqlEngine implements Closeable {
         false,
         metaStore,
         logicalPlans,
+        Arrays.asList(new Pair<>("", query)),
         ksqlConfig,
         Collections.emptyMap(),
         false
@@ -148,24 +152,20 @@ public class KsqlEngine implements Closeable {
   }
 
 
-  public List<Pair<String, Query>> parseQueries(final String queriesString,
-                                Map<String, Object> overriddenProperties
-                                /* , MetaStore tempMetaStore */) {
+  public List<Pair<String, Statement>> parseQueries(final String queriesString,
+                                Map<String, Object> overriddenProperties,
+                                MetaStore tempMetaStore) {
     // Parse and AST creation
     KsqlParser ksqlParser = new KsqlParser();
     List<SqlBaseParser.SingleStatementContext>
         parsedStatements =
         ksqlParser.getStatements(queriesString);
-    List<Pair<String, Query>> queryList = new ArrayList<>();
-    MetaStore tempMetaStore = new MetaStoreImpl();
-    for (String dataSourceName : metaStore.getAllStructuredDataSourceNames()) {
-      tempMetaStore.putSource(metaStore.getSource(dataSourceName));
-    }
+    List<Pair<String, Statement>> queryList = new ArrayList<>();
     for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
       Pair<Statement, DataSourceExtractor> statementInfo =
           ksqlParser.prepareStatement(singleStatementContext, tempMetaStore);
       Statement statement = statementInfo.getLeft();
-      Pair<String, Query> queryPair =
+      Pair<String, Statement> queryPair =
           buildSingleQueryAst(statement, getStatementString(singleStatementContext),
                                                           tempMetaStore, overriddenProperties);
       if (queryPair != null) {
@@ -175,7 +175,7 @@ public class KsqlEngine implements Closeable {
     return queryList;
   }
 
-  private Pair<String, Query> buildSingleQueryAst(Statement statement, String
+  private Pair<String, Statement> buildSingleQueryAst(Statement statement, String
       statementString, MetaStore tempMetaStore, Map<String, Object> overriddenProperties) {
 
     log.info("Building AST for {}.", statementString);
@@ -218,20 +218,23 @@ public class KsqlEngine implements Closeable {
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement,
-                                                      overriddenProperties), metaStore);
+                                                      overriddenProperties), tempMetaStore);
+      return new Pair<>(statementString, statement);
       // TODO: correct way to handle tempMetaStore
       //if (ksqlTopic != null) {
       //  tempMetaStore.putTopic(ksqlTopic);
       //}
     } else if (statement instanceof CreateStream) {
-      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
+      ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), tempMetaStore);
+      return new Pair<>(statementString, statement);
       // TODO: correct way to handle tempMetaStore
       // KsqlStream ksqlStream = ddlEngine.createStream((CreateStream) statement);
       //if (ksqlStream != null) {
       //  tempMetaStore.putSource(ksqlStream);
       //}
     } else if (statement instanceof CreateTable) {
-      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), metaStore);
+      ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), tempMetaStore);
+      return new Pair<>(statementString, statement);
       // TODO: correct way to handle tempMetaStore
       // KsqlTable ksqlTable = ddlEngine.createTable((CreateTable) statement);
       //if (ksqlTable != null) {

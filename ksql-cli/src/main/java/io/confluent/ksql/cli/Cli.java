@@ -95,7 +95,6 @@ public class Cli implements Closeable, AutoCloseable {
   private final ExecutorService queryStreamExecutorService;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
   private final ObjectMapper objectMapper;
-  private final Map<String, Object> localProperties;
 
   private final Long streamedQueryRowLimit;
   private final Long streamedQueryTimeoutMs;
@@ -157,7 +156,6 @@ public class Cli implements Closeable, AutoCloseable {
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
     new SchemaMapper().registerToObjectMapper(objectMapper);
 
-    this.localProperties = new HashMap<>();
   }
 
   public void runInteractively() throws IOException {
@@ -616,7 +614,7 @@ public class Cli implements Closeable, AutoCloseable {
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         if (consecutiveStatements.length() != 0) {
           printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+              restClient.makeKsqlRequest(consecutiveStatements.toString())
           );
           consecutiveStatements = new StringBuilder();
         }
@@ -625,10 +623,17 @@ public class Cli implements Closeable, AutoCloseable {
         } else {
           handlePrintedTopic(statementText);
         }
+      } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
+
+        printKsqlEntityList(
+            Arrays.asList(
+                propertiesListWithOverrides(
+                    new PropertiesList(line, restClient.getLocalProperties())))
+        );
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
         if (consecutiveStatements.length() != 0) {
           printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+              restClient.makeKsqlRequest(consecutiveStatements.toString())
           );
           consecutiveStatements = new StringBuilder();
         }
@@ -640,7 +645,7 @@ public class Cli implements Closeable, AutoCloseable {
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         if (consecutiveStatements.length() != 0) {
           printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+              restClient.makeKsqlRequest(consecutiveStatements.toString())
           );
           consecutiveStatements = new StringBuilder();
         }
@@ -662,7 +667,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString(), localProperties)
+          restClient.makeKsqlRequest(consecutiveStatements.toString())
       );
     }
   }
@@ -670,7 +675,7 @@ public class Cli implements Closeable, AutoCloseable {
   private void handleStreamedQuery(String query)
       throws IOException, InterruptedException, ExecutionException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        restClient.makeQueryRequest(query, localProperties);
+        restClient.makeQueryRequest(query);
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
@@ -725,7 +730,7 @@ public class Cli implements Closeable, AutoCloseable {
   private void handlePrintedTopic(String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     RestResponse<InputStream> topicResponse =
-        restClient.makePrintTopicRequest(printTopic, localProperties);
+        restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
       try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse())) {
@@ -848,7 +853,8 @@ public class Cli implements Closeable, AutoCloseable {
 
   private PropertiesList propertiesListWithOverrides(PropertiesList propertiesList) {
     Map<String, Object> properties = propertiesList.getProperties();
-    for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
+    for (Map.Entry<String, Object> localPropertyEntry
+        : restClient.getLocalProperties().entrySet()) {
       properties.put(
           "(LOCAL OVERRIDE) " + localPropertyEntry.getKey(),
           localPropertyEntry.getValue()
@@ -1062,7 +1068,7 @@ public class Cli implements Closeable, AutoCloseable {
       }
       type = configKey.type;
     } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
-      localProperties.put(property, value);
+      restClient.setProperty(property, value);
       return;
     } else {
       throw new IllegalArgumentException(String.format(
@@ -1079,7 +1085,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
 
     Object parsedValue = ConfigDef.parseType(parsedProperty, value, type);
-    Object priorValue = localProperties.put(property, parsedValue);
+    Object priorValue = restClient.setProperty(property, parsedValue);
 
     terminal.writer().printf(
         "Successfully changed local property '%s' from '%s' to '%s'%n",
@@ -1091,8 +1097,8 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void unsetProperty(String property) {
-    if (localProperties.containsKey(property)) {
-      Object value = localProperties.remove(property);
+    if (restClient.unsetProperty(property)) {
+      Object value = restClient.getLocalProperties().get(property);
       terminal.writer().printf(
           "Successfully unset local property '%s' (value was '%s')%n",
           property,

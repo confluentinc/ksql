@@ -260,7 +260,7 @@ public class KsqlResource {
   }
 
   private PropertiesList listProperties(String statementText) {
-    return new PropertiesList(statementText, ksqlEngine.getStreamsProperties());
+    return new PropertiesList(statementText, ksqlEngine.getKsqlConfigProperties());
   }
 
   private StreamsList listStreams(String statementText) {

@@ -8,17 +8,21 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 
 import javax.ws.rs.ProcessingException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 public class RemoteCli extends Cli {
 
   public RemoteCli(
       String serverAddress,
+      Map<String, Object> propertiesMap,
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
       OutputFormat outputFormat
   ) throws IOException {
     super(
-        new KsqlRestClient(serverAddress),
+        new KsqlRestClient(serverAddress, propertiesMap),
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
         outputFormat

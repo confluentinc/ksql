@@ -336,8 +336,8 @@ public class KsqlEngine implements Closeable {
     return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }
 
-  public Map<String, Object> getStreamsProperties() {
-    return ksqlConfig.getStreamsProperties();
+  public Map<String, Object> getKsqlConfigProperties() {
+    return ksqlConfig.getKsqlConfigProps();
   }
 
   @Override

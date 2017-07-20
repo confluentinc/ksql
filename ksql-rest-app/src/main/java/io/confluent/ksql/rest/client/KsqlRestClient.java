@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -34,9 +35,19 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private String serverAddress;
 
+  private final Map<String, Object> localProperties;
+
   public KsqlRestClient(String serverAddress) {
     this.serverAddress = serverAddress;
+    this.localProperties = new HashMap<>();
+    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  }
 
+  public KsqlRestClient(String serverAddress, Map<String, Object> localProperties) {
+    this.serverAddress = serverAddress;
+    this.localProperties = localProperties;
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
@@ -57,8 +68,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return RestResponse.successful(result);
   }
 
-  public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql, Map<String, Object> properties) {
-    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
+  public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("ksql", jsonRequest);
     KsqlEntityList result = response.readEntity(KsqlEntityList.class);
     response.close();
@@ -84,8 +95,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     return result;
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(String ksql, Map<String, Object> properties) {
-    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
+  public RestResponse<QueryStream> makeQueryRequest(String ksql) {
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("query", jsonRequest);
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       return RestResponse.successful(new QueryStream(response));
@@ -95,11 +106,10 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(
-      String ksql,
-      Map<String, Object> properties
+      String ksql
   ) {
     RestResponse<InputStream> result;
-    KsqlRequest jsonRequest = new KsqlRequest(ksql, properties);
+    KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties);
     Response response = makePostRequest("query", jsonRequest);
     if (response.getStatus() == Response.Status.OK.getStatusCode()) {
       result = RestResponse.successful((InputStream) response.getEntity());
@@ -197,5 +207,23 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       responseScanner.close();
       response.close();
     }
+  }
+
+  public Map<String, Object> getLocalProperties() {
+    return localProperties;
+  }
+
+  public Object setProperty(String property, Object value) {
+    Object oldValue = localProperties.get(property);
+    localProperties.put(property, value);
+    return oldValue;
+  }
+
+  public boolean unsetProperty(String property) {
+    if (localProperties.containsKey(property)) {
+      Object value = localProperties.remove(property);
+      return true;
+    }
+    return false;
   }
 }

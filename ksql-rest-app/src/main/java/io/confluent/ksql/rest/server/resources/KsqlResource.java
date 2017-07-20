@@ -110,7 +110,6 @@ public class KsqlResource {
       try {
         result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       } catch (Exception exception) {
-        exception.printStackTrace();
         result.add(new ErrorMessageEntity(statementText, exception));
       }
     }

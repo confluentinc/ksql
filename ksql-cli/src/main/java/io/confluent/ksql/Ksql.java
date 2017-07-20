@@ -24,6 +24,8 @@ import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class Ksql {
@@ -216,15 +218,54 @@ public class Ksql {
         description = "The address of the Ksql server to connect to (ex: http://confluent.io:9098)"
     )
     String server;
+    private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
+    private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
+
+    private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
+    private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
+    private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
+
+    @Option(
+        name = PROPERTIES_FILE_OPTION_NAME,
+        description = "A file specifying properties for Ksql and its underlying Kafka Streams "
+                      + "instance(s) (can specify port number, bootstrap server, etc. "
+                      + "but these options will "
+                      + "be overridden if also given via  flags)"
+    )
+    String propertiesFile;
 
     @Override
     public Cli getCli() throws Exception {
+      Map<String, Object> propertiesMap = new HashMap<>();
+      Properties properties = getStandaloneProperties();
+      for (String key: properties.stringPropertyNames()) {
+        propertiesMap.put(key, properties.getProperty(key));
+      }
       return new RemoteCli(
           server,
+          propertiesMap,
           streamedQueryRowLimit,
           streamedQueryTimeoutMs,
           parseOutputFormat()
       );
+    }
+
+    private Properties getStandaloneProperties() throws IOException {
+      Properties properties = new Properties();
+      addDefaultProperties(properties);
+      addFileProperties(properties);
+      return properties;
+    }
+
+    private void addDefaultProperties(Properties properties) {
+      properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
+      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
+    }
+
+    private void addFileProperties(Properties properties) throws IOException {
+      if (propertiesFile != null) {
+        properties.load(new FileInputStream(propertiesFile));
+      }
     }
   }
 

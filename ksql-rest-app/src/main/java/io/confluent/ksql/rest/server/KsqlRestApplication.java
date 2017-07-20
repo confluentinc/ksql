@@ -195,7 +195,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     // TODO: Make MetaStore class configurable, consider renaming MetaStoreImpl to MetaStoreCache
     MetaStore metaStore = new MetaStoreImpl();
 
-    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, config.getKsqlStreamsProperties());
+    Map<String, Object> ksqlConfProperties = new HashMap<>();
+    ksqlConfProperties.putAll(config.getCommandConsumerProperties());
+    ksqlConfProperties.putAll(config.getCommandProducerProperties());
+    ksqlConfProperties.putAll(config.getKsqlStreamsProperties());
+    ksqlConfProperties.putAll(config.getOriginals());
+    KsqlEngine ksqlEngine = new KsqlEngine(metaStore, ksqlConfProperties);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(

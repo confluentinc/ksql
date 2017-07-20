@@ -45,6 +45,14 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
+  public KsqlRestClient(String serverAddress, Map<String, Object> localProperties) {
+    this.serverAddress = serverAddress;
+    this.localProperties = localProperties;
+    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
+    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
+    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  }
+
   public String getServerAddress() {
     return serverAddress;
   }

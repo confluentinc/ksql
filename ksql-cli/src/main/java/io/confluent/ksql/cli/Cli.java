@@ -625,18 +625,13 @@ public class Cli implements Closeable, AutoCloseable {
         }
       } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
 
+        KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
+        PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
+        propertiesList.getProperties().putAll(restClient.getLocalProperties());
         printKsqlEntityList(
-            Arrays.asList(
-                propertiesListWithOverrides(
-                    new PropertiesList(line, restClient.getLocalProperties())))
+            Arrays.asList(propertiesList)
         );
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
-        if (consecutiveStatements.length() != 0) {
-          printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString())
-          );
-          consecutiveStatements = new StringBuilder();
-        }
         SqlBaseParser.SetPropertyContext setPropertyContext =
             (SqlBaseParser.SetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");

@@ -67,7 +67,7 @@ public class StreamedQueryResource {
           ksqlTopic,
           String.format("Could not find topic '%s' in the metastore", topicName)
       );
-      Map<String, Object> properties = ksqlEngine.getStreamsProperties();
+      Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
       properties.putAll(clientLocalProperties);
       TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
           properties,

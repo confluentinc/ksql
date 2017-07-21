@@ -6,6 +6,7 @@ import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -468,17 +469,9 @@ public class JsonFormatTest {
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
-    StreamsKafkaClient streamsKafkaClient = new StreamsKafkaClient(new StreamsConfig(configMap));
-    final MetadataResponse metadata = streamsKafkaClient.fetchMetadata();
-    final Collection<MetadataResponse.TopicMetadata> topicsMetadata = metadata.topicMetadata();
-
-    boolean topicExists = false;
-    for (MetadataResponse.TopicMetadata topicMetadata: topicsMetadata) {
-      if (topicMetadata.topic().equalsIgnoreCase(streamName)) {
-        topicExists = true;
-        Assert.assertTrue(topicMetadata.partitionMetadata().size() == resultPartitionCount);
-      }
-    }
+    KafkaTopicClient kafkaTopicClient = ksqlEngine.getKafkaTopicClient();
+    boolean topicExists = kafkaTopicClient.ensureTopicExists(streamName, resultPartitionCount,
+                                                             (short)1);
     Assert.assertTrue(topicExists);
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -71,4 +72,13 @@ public class CliUtils {
     }
     return sb.toString();
   }
+
+  public static String getErrorMessage(Throwable e) {
+    if (e instanceof ConnectException) {
+      return "Could not connect to the server.";
+    } else {
+      return e.getMessage();
+    }
+  }
+
 }

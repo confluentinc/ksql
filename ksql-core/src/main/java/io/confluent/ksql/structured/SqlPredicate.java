@@ -69,7 +69,7 @@ public class SqlPredicate {
     ee.cook(expressionStr);
   }
 
-  public Predicate getPredicate() {
+  public Predicate getPredicate() throws Exception {
     if (isWindowedKey) {
       return getWindowedKeyPredicate();
     } else {
@@ -77,15 +77,16 @@ public class SqlPredicate {
     }
   }
 
-  private Predicate getStringKeyPredicate() {
+  private Predicate getStringKeyPredicate() throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
+    ExpressionMetadata
+        expressionEvaluator =
+        expressionUtil.getExpressionEvaluator(filterExpression, schema);
     return new Predicate<String, GenericRow>() {
       @Override
       public boolean test(String key, GenericRow row) {
         try {
-          ExpressionMetadata
-              expressionEvaluator =
-              expressionUtil.getExpressionEvaluator(filterExpression, schema);
+
           Kudf[] kudfs = expressionEvaluator.getUdfs();
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
@@ -112,15 +113,16 @@ public class SqlPredicate {
     };
   }
 
-  private Predicate getWindowedKeyPredicate() {
+  private Predicate getWindowedKeyPredicate() throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
+    ExpressionMetadata
+        expressionEvaluator =
+        expressionUtil.getExpressionEvaluator(filterExpression, schema);
     return new Predicate<Windowed<String>, GenericRow>() {
       @Override
       public boolean test(Windowed<String> key, GenericRow row) {
         try {
-          ExpressionMetadata
-              expressionEvaluator =
-              expressionUtil.getExpressionEvaluator(filterExpression, schema);
+
           Kudf[] kudfs = expressionEvaluator.getUdfs();
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {

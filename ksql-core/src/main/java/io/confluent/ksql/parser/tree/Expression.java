@@ -31,6 +31,11 @@ public abstract class Expression
   }
 
   public final String getCodegenString(Schema schema) {
-    return CodegenExpressionFormatter.formatExpression(this, schema);
+    try {
+      return CodegenExpressionFormatter.formatExpression(this, schema);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 }

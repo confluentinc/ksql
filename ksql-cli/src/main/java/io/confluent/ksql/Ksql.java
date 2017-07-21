@@ -298,6 +298,7 @@ public class Ksql {
         String queries = cliUtils.readQueryFile(queryFile);
         StandaloneExecutor standaloneExecutor = new StandaloneExecutor(getStandaloneProperties());
         standaloneExecutor.executeStatements(queries);
+
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -323,7 +324,7 @@ public class Ksql {
 
   }
   public static void main(String[] args) throws IOException {
-
+    Runnable runnable = null;
     com.github.rvesse.airline.Cli<Runnable> cli =
         com.github.rvesse.airline.Cli.<Runnable>builder("Cli")
             .withDescription("Kafka Query Language")
@@ -334,7 +335,8 @@ public class Ksql {
             .build();
 
     try {
-      cli.parse(args).run();
+      runnable = cli.parse(args);
+      runnable.run();
     } catch (ParseException exception) {
       if (exception.getMessage() != null) {
         System.err.println(exception.getMessage());
@@ -343,6 +345,9 @@ public class Ksql {
       }
       System.err.println("See the help command for usage information");
     }
-    System.exit(0);
+    if ((runnable != null) && !(runnable instanceof Standalone)) {
+      System.exit(0);
+    }
+
   }
 }

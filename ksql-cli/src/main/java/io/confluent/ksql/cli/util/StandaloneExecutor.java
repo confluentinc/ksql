@@ -5,6 +5,9 @@
 package io.confluent.ksql.cli.util;
 
 
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -28,8 +28,8 @@ public class StandaloneExecutor {
   KsqlEngine ksqlEngine;
 
   public StandaloneExecutor(Map streamProperties) {
-    MetaStore metaStore = new MetaStoreImpl();
-    ksqlEngine = new KsqlEngine(metaStore, streamProperties);
+    KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
   }
 
   public void executeStatements(String queries) throws Exception {

@@ -20,7 +20,6 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -73,12 +72,12 @@ public class QueryEngine {
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final AtomicLong queryIdCounter;
+  private final KsqlEngine ksqlEngine;
 
 
-  public QueryEngine(KsqlConfig ksqlConfig) {
-    Objects.requireNonNull(
-        ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+  public QueryEngine(KsqlEngine ksqlEngine) {
     this.queryIdCounter = new AtomicLong(1);
+    this.ksqlEngine = ksqlEngine;
   }
 
 
@@ -165,26 +164,22 @@ public class QueryEngine {
 
   public List<QueryMetadata> buildPhysicalPlans(
       boolean addUniqueTimeSuffix,
-      MetaStore metaStore,
       List<Pair<String, PlanNode>> logicalPlans,
       List<Pair<String, Statement>> statementList,
-      KsqlConfig ksqlConfig,
       Map<String, Object> overriddenStreamsProperties,
       boolean updateMetastore
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
-    DDLCommandExec ddlCommandExec = new DDLCommandExec();
 
     for (int i = 0; i < logicalPlans.size(); i++) {
 
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
       if (statementPlanPair.getRight() == null) {
-        handleDdlStatement(statementList.get(i).getRight(),
-                           metaStore, ddlCommandExec, overriddenStreamsProperties);
+        handleDdlStatement(statementList.get(i).getRight(), overriddenStreamsProperties);
       } else {
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
-                               ksqlConfig, overriddenStreamsProperties, updateMetastore, metaStore);
+                               overriddenStreamsProperties, updateMetastore);
       }
 
     }
@@ -194,19 +189,17 @@ public class QueryEngine {
   public void buildQueryPhysicalPlan(List<QueryMetadata> physicalPlans,
                                      boolean addUniqueTimeSuffix,
                                      Pair<String, PlanNode> statementPlanPair,
-                                     KsqlConfig ksqlConfig,
                                      Map<String, Object> overriddenStreamsProperties,
-                                     boolean updateMetastore,
-                                     MetaStore metaStore) throws Exception {
+                                     boolean updateMetastore) throws Exception {
 
     PlanNode logicalPlan = statementPlanPair.getRight();
     KStreamBuilder builder = new KStreamBuilder();
 
-    KsqlConfig ksqlConfigClone = ksqlConfig.clone();
+    KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
     PhysicalPlanBuilder physicalPlanBuilder =
-        new PhysicalPlanBuilder(builder, ksqlConfigClone);
+        new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getKafkaTopicClient());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -260,6 +253,8 @@ public class QueryEngine {
                                       streams, kafkaTopicOutputNode, schemaKStream
                                           .getExecutionPlan(""), queryId)
       );
+
+      MetaStore metaStore = ksqlEngine.getMetaStore();
       if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
         metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
       }
@@ -294,24 +289,22 @@ public class QueryEngine {
     log.info(schemaKStream.getExecutionPlan(""));
   }
 
-  public DDLCommandResult handleDdlStatement(Statement statement,
-                                             MetaStore metaStore,
-                                             DDLCommandExec ddlCommandExec,
-                                             Map<String, Object> overriddenProperties) {
+  public DDLCommandResult handleDdlStatement(Statement statement, Map<String, Object> overriddenProperties) {
+
+    DDLCommandExec ddlCommandExec = ksqlEngine.getDDLCommandExec();
 
     if (statement instanceof RegisterTopic) {
-      return ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement,
-                                                      overriddenProperties), metaStore);
+      return ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties));
     } else if (statement instanceof CreateStream) {
-      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement), metaStore);
+      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
     } else if (statement instanceof CreateTable) {
-      return ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement), metaStore);
+      return ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
     } else if (statement instanceof DropStream) {
-      return ddlCommandExec.execute(new DropSourceCommand((DropStream) statement), metaStore);
+      return ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
     } else if (statement instanceof DropTable) {
-      return ddlCommandExec.execute(new DropSourceCommand((DropTable) statement), metaStore);
+      return ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
     } else if (statement instanceof DropTopic) {
-      return ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement), metaStore);
+      return ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
     } else {
       return new DDLCommandResult(false);
     }

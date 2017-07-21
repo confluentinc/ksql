@@ -2,11 +2,12 @@ package io.confluent.ksql.integtests.json;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
@@ -66,7 +67,6 @@ public class JsonFormatTest {
 
   @Before
   public void before() throws Exception {
-    metaStore = new MetaStoreImpl();
 
     SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
         .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
@@ -85,7 +85,10 @@ public class JsonFormatTest {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
-    ksqlEngine = new KsqlEngine(metaStore, configMap);
+
+    KsqlConfig ksqlConfig = new KsqlConfig(configMap);
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+    metaStore = ksqlEngine.getMetaStore();
     inputData = getInputData();
 
     String ordersTopicStr = String.format("REGISTER TOPIC %s WITH (value_format = 'json', "

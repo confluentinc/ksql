@@ -16,6 +16,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlTestUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -41,13 +42,13 @@ public class PhysicalPlanBuilderTest {
         kStreamBuilder = new KStreamBuilder();
         ksqlParser = new KsqlParser();
         metaStore = KsqlTestUtil.getNewMetaStore();
-        Map configMap = new HashMap<>();
-        configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "");
+        Map<String, Object> configMap = new HashMap<>();
+        configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configMap.put("application.id", "KSQL");
         configMap.put("commit.interval.ms", 0);
         configMap.put("cache.max.bytes.buffering", 0);
         configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap));
+        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient());
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {

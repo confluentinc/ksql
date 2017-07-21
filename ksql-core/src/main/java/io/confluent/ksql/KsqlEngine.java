@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -48,19 +50,26 @@ public class KsqlEngine implements Closeable {
       StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
   ));
 
-  private final QueryEngine queryEngine;
-  private final DDLCommandExec ddlCommandExec;
+  private KsqlConfig ksqlConfig;
+
   private final MetaStore metaStore;
+  private final KafkaTopicClient kafkaTopicClient;
+  private final DDLCommandExec ddlCommandExec;
+  private final QueryEngine queryEngine;
+
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
-  private KsqlConfig ksqlConfig;
+  public KsqlEngine(KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
-  public KsqlEngine(MetaStore metaStore, Map<String, Object> streamsProperties) {
-    this.ksqlConfig = new KsqlConfig(streamsProperties);
-    this.metaStore = metaStore;
-    this.queryEngine = new QueryEngine(ksqlConfig);
-    this.ddlCommandExec = new DDLCommandExec();
+    this.ksqlConfig = ksqlConfig;
+
+    this.metaStore = new MetaStoreImpl();
+    this.kafkaTopicClient = kafkaTopicClient;
+    this.ddlCommandExec = new DDLCommandExec(metaStore);
+    this.queryEngine = new QueryEngine(this);
+
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
   }
@@ -111,10 +120,8 @@ public class KsqlEngine implements Closeable {
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         createNewAppId,
-        metaStore,
         logicalPlans,
         statementList,
-        ksqlConfig,
         overriddenProperties,
         true
     );
@@ -141,10 +148,8 @@ public class KsqlEngine implements Closeable {
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         false,
-        metaStore,
         logicalPlans,
         Arrays.asList(new Pair<>("", query)),
-        ksqlConfig,
         Collections.emptyMap(),
         false
     );
@@ -225,33 +230,33 @@ public class KsqlEngine implements Closeable {
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new RegisterTopicCommand(
               (RegisterTopic) statement,
               overriddenProperties),
           tempMetaStoreForParser);
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new RegisterTopicCommand(
               (RegisterTopic) statement,
               overriddenProperties),
           tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStream) {
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new CreateStreamCommand(
               (CreateStream) statement),
           tempMetaStoreForParser);
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new CreateStreamCommand(
               (CreateStream) statement),
           tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new CreateTableCommand(
               (CreateTable) statement),
           tempMetaStoreForParser);
-      ddlCommandExec.execute(
+      ddlCommandExec.tryExecute(
           new CreateTableCommand(
               (CreateTable) statement),
           tempMetaStore);
@@ -307,6 +312,10 @@ public class KsqlEngine implements Closeable {
     return metaStore;
   }
 
+  public KafkaTopicClient getKafkaTopicClient() {
+    return kafkaTopicClient;
+  }
+
   public DDLCommandExec getDDLCommandExec() {
     return ddlCommandExec;
   }
@@ -340,12 +349,17 @@ public class KsqlEngine implements Closeable {
     return ksqlConfig.getKsqlConfigProps();
   }
 
+  public KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
+
   @Override
-  public void close() {
+  public void close() throws IOException {
     for (QueryMetadata queryMetadata : liveQueries) {
       queryMetadata.getKafkaStreams().close();
       queryMetadata.getKafkaStreams().cleanUp();
     }
+    kafkaTopicClient.close();
   }
 
   public QueryEngine getQueryEngine() {

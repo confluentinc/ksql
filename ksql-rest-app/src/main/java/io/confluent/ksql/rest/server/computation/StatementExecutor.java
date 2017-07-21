@@ -248,7 +248,6 @@ public class StatementExecutor {
     String statementStr = command.getStatement();
 
 
-    DDLCommandExec ddlCommandExec = ksqlEngine.getDDLCommandExec();
     DDLCommandResult result = null;
     String successMessage = "";
 
@@ -259,10 +258,7 @@ public class StatementExecutor {
         || statement instanceof DropStream
         || statement instanceof DropTable
         ) {
-      result = ksqlEngine.getQueryEngine().handleDdlStatement(statement,
-                                                              ksqlEngine.getMetaStore(),
-                                                              ddlCommandExec,
-                                                              command.getStreamsProperties());
+      result = ksqlEngine.getQueryEngine().handleDdlStatement(statement, command.getStreamsProperties());
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =

@@ -7,13 +7,13 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
 
 import java.util.List;
 import java.util.Set;
@@ -50,7 +50,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   @Override
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe,
-                            Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig) {
+                            Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
     throw new UnsupportedOperationException();
   }
 

@@ -63,7 +63,7 @@ import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NaturalJoin;
@@ -605,13 +605,12 @@ public class AstBuilder
     return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
-
   @Override
-  public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
+  public Node visitListRegisteredTopics(SqlBaseParser.ListRegisteredTopicsContext context) {
     if (context.TOPICS() == null) {
       throw new KsqlException("Syntax error! Did you mean: list topics");
     }
-    return new ListTopics(Optional.ofNullable(getLocation(context)));
+    return new ListRegisteredTopics(Optional.ofNullable(getLocation(context)));
   }
 
   @Override

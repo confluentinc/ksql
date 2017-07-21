@@ -13,24 +13,16 @@ import java.util.Set;
 public class MetaStoreImpl implements MetaStore {
 
   private final Map<String, KsqlTopic> topicMap;
-
   private final Map<String, StructuredDataSource> dataSourceMap;
 
   public MetaStoreImpl() {
-    this(null, null);
+    this.topicMap = new HashMap<>();
+    this.dataSourceMap = new HashMap<>();
   }
 
-  /**
-   * Create a copy of the provided metaStore
-   * @param metaStore
-   */
-  public MetaStoreImpl(MetaStore metaStore) {
-    this(metaStore.getAllKsqlTopics(), metaStore.getAllStructuredDataSources());
-  }
-
-  public MetaStoreImpl(Map<String, KsqlTopic> topicMap, Map<String, StructuredDataSource> dataSourceMap) {
-    this.topicMap = (topicMap != null)? topicMap: new HashMap<>();
-    this.dataSourceMap = (dataSourceMap != null)? dataSourceMap: new HashMap<>();
+  private MetaStoreImpl(Map<String, KsqlTopic> topicMap, Map<String, StructuredDataSource> dataSourceMap) {
+    this.topicMap = (topicMap != null) ? topicMap : new HashMap<>();
+    this.dataSourceMap = (dataSourceMap != null) ? dataSourceMap : new HashMap<>();
   }
 
   @Override

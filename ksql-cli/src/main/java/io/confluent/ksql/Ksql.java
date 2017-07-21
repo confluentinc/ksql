@@ -218,11 +218,6 @@ public class Ksql {
         description = "The address of the Ksql server to connect to (ex: http://confluent.io:9098)"
     )
     String server;
-    private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
-    private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-
-    private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
-    private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
     private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
     @Option(
@@ -252,14 +247,8 @@ public class Ksql {
 
     private Properties getStandaloneProperties() throws IOException {
       Properties properties = new Properties();
-      addDefaultProperties(properties);
       addFileProperties(properties);
       return properties;
-    }
-
-    private void addDefaultProperties(Properties properties) {
-      properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
     }
 
     private void addFileProperties(Properties properties) throws IOException {

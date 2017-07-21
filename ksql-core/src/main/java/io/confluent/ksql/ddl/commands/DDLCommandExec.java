@@ -5,7 +5,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.util.ExceptionUtil;
+import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.util.KsqlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

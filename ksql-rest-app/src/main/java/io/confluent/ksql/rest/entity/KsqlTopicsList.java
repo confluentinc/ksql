@@ -15,14 +15,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-@JsonTypeName("topics")
+@JsonTypeName("ksql_topics")
 public class KsqlTopicsList extends KsqlEntity {
   private final Collection<KsqlTopicInfo> topics;
 
   @JsonCreator
   public KsqlTopicsList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("topics")        Collection<KsqlTopicInfo> topics
+      @JsonProperty("ksql_topics")   Collection<KsqlTopicInfo> topics
   ) {
     super(statementText);
     this.topics = topics;
@@ -50,7 +50,7 @@ public class KsqlTopicsList extends KsqlEntity {
     return Objects.hash(getTopics());
   }
 
-  public static KsqlTopicsList buildFromKsqlTopics(String statementText, Collection<KsqlTopic> ksqlTopics) {
+  public static KsqlTopicsList build(String statementText, Collection<KsqlTopic> ksqlTopics) {
     List<KsqlTopicInfo> ksqlTopicInfoList = new ArrayList<>();
     for (KsqlTopic ksqlTopic: ksqlTopics) {
       ksqlTopicInfoList.add(new KsqlTopicInfo(ksqlTopic));

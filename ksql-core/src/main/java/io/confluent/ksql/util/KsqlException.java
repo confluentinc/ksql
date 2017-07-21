@@ -12,7 +12,7 @@ public class KsqlException extends StreamsException {
     super(message);
   }
 
-  public KsqlException(String s, Throwable throwable) {
-    super(s, throwable);
+  public KsqlException(String message, Throwable throwable) {
+    super(message, throwable);
   }
 }

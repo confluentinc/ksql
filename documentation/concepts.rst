@@ -74,7 +74,7 @@ Formatting
 Auto-generated Fields
 ^^^^^^^^^^^^^^^^^^^^^
 * ROWTIME
-* ROWKEY: always message key
+* ROWKEY: always Kafka message key
 * TIMESTAMP
 
 
@@ -91,7 +91,5 @@ Data Flow
 Syntax Help
 -----------
 * How users can get help (syntax guide, also built-in help functions)
-* Call out `set earliest`...
-
-
+* For reading history: call out `auto.offset.reset=earliest` (two ways: with properties file when running KSQL, or inside KSQL with `SET` command)
 

@@ -205,11 +205,11 @@ Query and transform KSQL data
 
    ksql> PRINT `ksql-output-key1`;
 
-3. <TODO: INSERT example with limit keyword>
+3. <TODO: INSERT example with limit keyword, requires KSQL-140>
 
-4. <TODO: INSERT JOIN example>
+4. <TODO: INSERT JOIN example, requires KSQL-152>
 
-5. <TODO: window example>
+5. <TODO: window example, requires KSQL-152>
 
 
 Use JSON and Avro formats

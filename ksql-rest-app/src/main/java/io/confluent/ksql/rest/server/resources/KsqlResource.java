@@ -5,6 +5,7 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -77,7 +78,7 @@ import java.util.stream.Collectors;
 @Produces(MediaType.APPLICATION_JSON)
 public class KsqlResource {
 
-  private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
+  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(KsqlResource.class);
 
   private final KsqlEngine ksqlEngine;
   private final CommandStore commandStore;
@@ -114,6 +115,8 @@ public class KsqlResource {
       try {
         result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       } catch (Exception exception) {
+        String stackTrace = ExceptionUtil.stackTraceToString(exception);
+        LOGGER.error(stackTrace);
         result.add(new ErrorMessageEntity(statementText, exception));
       }
     }
@@ -209,6 +212,7 @@ public class KsqlResource {
       commandStatus = statementExecutor.registerQueuedStatement(commandId)
           .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
     } catch (TimeoutException exception) {
+      LOGGER.warn("Timeout to get commandStatus, waited {} milliseconds.", distributedCommandResponseTimeout);
       commandStatus = statementExecutor.getStatus(commandId).get();
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);

@@ -140,7 +140,7 @@ public class DataGen {
         format = null;
         topicName = null;
         keyName = null;
-        iterations = 1000;
+        iterations = Integer.MAX_VALUE;
       }
 
       private enum Quickstart {

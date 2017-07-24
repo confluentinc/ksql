@@ -20,6 +20,9 @@ import java.util.Properties;
 
 public abstract class DataGenProducer {
 
+  // Max 100 ms between messsages.
+  public static final long INTER_MESSAGE_MAX_INTERVAL = 100;
+
   public void populateTopic(
       Properties props,
       Generator generator,
@@ -59,6 +62,11 @@ public abstract class DataGenProducer {
           new ProducerRecord<>(kafkaTopicName, keyString, genericRow);
       producer.send(producerRecord);
       System.err.println(keyString + " --> (" + genericRow + ")");
+      try {
+        Thread.sleep((long)(INTER_MESSAGE_MAX_INTERVAL*Math.random()));
+      } catch (InterruptedException e) {
+        // Ignore the exception.
+      }
     }
     producer.flush();
     producer.close();

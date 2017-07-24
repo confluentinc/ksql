@@ -302,32 +302,3 @@ Exit KSQL
   ksql> exit
 
 
-Examine Kafka cluster changes
------------------------------
-
-KSQL uses the Kafka cluster to store state. We will examine the Kafka cluster to see what happened behind the scenes.
-
-1. View the topics in the Kafka cluster. You should see the topics you manually created, e.g. ``ksqlString``, ``ksqlRecord``, as well as other topics created by KSQL including ``ksql_app_commands``, ``ksql_bare_query_*``, etc. <TODO: link to KSQL concepts guide to explain what these other auto-generated topics are used for>
-
-.. sourcecode:: bash
-
-   $ kafka-topics --list --zookeeper localhost:2181
-   ...
-   ksql_app_commands
-   ksqlString
-   ksql_bare_query_6739854484049497815_1500404750526-ksqlstore-changelog
-   ksql_bare_query_6739854484049497815_1500404750526-ksqlstore-repartition
-   ...
-   <TODO: update this list based on quickstart workflow>
-
-2. Read the data stored in the topic called ``ksql_app_commands``
-
-.. sourcecode:: bash
-
-   $ ./bin/kafka-console-consumer --topic ksql_app_commands --bootstrap-server localhost:9092 --from-beginning --property print.key=true
-   <TODO: INSERT OUTPUT>
-
-3. <TODO: INSERT OTHER INTERIM TOPICS CREATED>
-
-4. <TODO: Anything else to look at?>
-

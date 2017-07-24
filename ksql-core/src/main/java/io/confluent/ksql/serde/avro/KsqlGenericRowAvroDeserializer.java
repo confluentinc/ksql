@@ -49,10 +49,13 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     if (bytes == null) {
       return null;
     }
+
     GenericRow genericRow = null;
     GenericRecord genericRecord = null;
     try {
-      Decoder decoder = DecoderFactory.get().binaryDecoder(bytes, null);
+      Decoder decoder = DecoderFactory.get().binaryDecoder((bytes[0] == 0)?
+                                                           removeSchemaRegistryMetaBytes(bytes):
+                                                           bytes, null);
       genericRecord = reader.read(genericRecord, decoder);
       List<Schema.Field> fields = genericRecord.getSchema().getFields();
       List columns = new ArrayList();
@@ -64,6 +67,14 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       throw new SerializationException(e);
     }
     return genericRow;
+  }
+
+  private byte[] removeSchemaRegistryMetaBytes(final byte[] data) {
+    byte[] avroBytes = new byte[data.length - 5];
+    for (int i = 5; i < data.length; i++) {
+      avroBytes[i-5] = data[i];
+    }
+    return avroBytes;
   }
 
   private Object enforceFieldType(Schema fieldSchema, Object value) {

@@ -122,6 +122,7 @@ Start KSQL and read topic data into KSQL
 .. sourcecode:: bash
 
    ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topicname='ksqlString', value_format='DELIMITED');
+   <TODO: kafka_topicname is becoming kafka_topic with KSQL-111>
 
    ksql> PRINT ksqlStringTopic;
    <TODO: THIS DOES NOT OUTPUT ANYTHING even with earliest set KSQL-130, plus error on new messages KSQL-129>
@@ -138,6 +139,7 @@ Start KSQL and read topic data into KSQL
 .. sourcecode:: bash
 
    ksql> CREATE STREAM ksqlStringStream (value string) WITH (registered_topicname='ksqlStringTopic');
+   <TODO: registered_topicname is becoming registered_topic with KSQL-111?>
 
 6. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
 

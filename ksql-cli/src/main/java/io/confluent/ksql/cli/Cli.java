@@ -21,6 +21,8 @@ import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.KafkaTopicInfo;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
@@ -36,6 +38,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
+import kafka.Kafka;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -958,12 +961,22 @@ public class Cli implements Closeable, AutoCloseable {
           ).collect(Collectors.toList());
     } else if (ksqlEntity instanceof KsqlTopicsList) {
       List<KsqlTopicInfo> topicInfos = ((KsqlTopicsList) ksqlEntity).getTopics();
-      columnHeaders = Arrays.asList("Topic Name", "Kafka Topic", "Format");
+      columnHeaders = Arrays.asList("Ksql Topic", "Kafka Topic", "Format");
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
               topicInfo.getKafkaTopic(),
               topicInfo.getFormat().name()
+          )).collect(Collectors.toList());
+    } else if (ksqlEntity instanceof KafkaTopicsList) {
+      List<KafkaTopicInfo> topicInfos = ((KafkaTopicsList) ksqlEntity).getTopics();
+      columnHeaders = Arrays.asList("Kafka Topic", "Registered", "Partitions", "Partition Replicas");
+      rowValues = topicInfos.stream()
+          .map(topicInfo -> Arrays.asList(
+              topicInfo.getName(),
+              topicInfo.getRegistered(),
+              topicInfo.getPartitionCount(),
+              topicInfo.getReplicaInfo()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof ExecutionPlan) {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;

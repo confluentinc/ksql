@@ -15,6 +15,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -34,6 +35,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -48,6 +50,7 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 
@@ -62,6 +65,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -144,7 +148,9 @@ public class KsqlResource {
       Statement statement,
       Map<String, Object> streamsProperties
   ) throws Exception {
-    if (statement instanceof ListRegisteredTopics) {
+    if (statement instanceof ListTopics) {
+      return listTopics(statementText);
+    } else if (statement instanceof ListRegisteredTopics) {
       return listRegisteredTopics(statementText);
     } else if (statement instanceof ListStreams) {
       return listStreams(statementText);
@@ -208,11 +214,17 @@ public class KsqlResource {
     return new CommandStatusEntity(statementText, commandId, commandStatus);
   }
 
+  private KafkaTopicsList listTopics(String statementText) {
+    KafkaTopicClient client = ksqlEngine.getKafkaTopicClient();
+    return KafkaTopicsList.build(statementText, getKsqlTopics(), client.describeTopics(client.listTopicNames()));
+  }
+
+  private Collection<KsqlTopic> getKsqlTopics() {
+    return ksqlEngine.getMetaStore().getAllKsqlTopics().values();
+  }
+
   private KsqlTopicsList listRegisteredTopics(String statementText) {
-    return KsqlTopicsList.buildFromKsqlTopics(
-        statementText,
-        ksqlEngine.getMetaStore().getAllKsqlTopics().values()
-    );
+    return KsqlTopicsList.build(statementText, getKsqlTopics());
   }
 
   // Only shows queries running on the current machine, not across the entire cluster

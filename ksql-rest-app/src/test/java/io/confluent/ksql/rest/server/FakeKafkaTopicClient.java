@@ -5,33 +5,40 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.util.KafkaTopicClient;
+import org.apache.kafka.clients.admin.TopicDescription;
 
-import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
+
   @Override
-  public boolean ensureTopicExists(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
-  public boolean createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public boolean isTopicExists(String topic) {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
-  public Set<String> listTopicNames() throws ExecutionException, InterruptedException {
+  public Set<String> listTopicNames() {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
-  public void close() throws IOException {
+  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }
+
+  @Override
+  public void close() {
+    throw new UnsupportedOperationException("Calling method on FakeObject");
+  }
+
 }
-

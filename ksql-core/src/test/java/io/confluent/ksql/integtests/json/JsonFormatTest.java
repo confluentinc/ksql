@@ -19,24 +19,23 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.requests.MetadataResponse;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
-import org.apache.kafka.streams.processor.internals.StreamsKafkaClient;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +64,8 @@ public class JsonFormatTest {
   private static final String inputStream = "ORDERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
+
+  private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
 
   @Before
   public void before() throws Exception {
@@ -117,10 +118,14 @@ public class JsonFormatTest {
 
   }
 
+  @After
+  public void after() throws Exception {
+    ksqlEngine.close();
+  }
 
   @Test
   public void testSelectStar() throws Exception {
-    final String streamName = "STARSTREAM";
+    final String streamName = "SelectStarStream".toUpperCase();
     final String queryString = String.format("CREATE STREAM %s AS SELECT * FROM %s;", streamName, inputStream);
 
     PersistentQueryMetadata queryMetadata =
@@ -137,12 +142,9 @@ public class JsonFormatTest {
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
-
-
-
   @Test
   public void testSelectProject() throws Exception {
-    final String streamName = "STARTSTREAM";
+    final String streamName = "SelectProjectStream".toUpperCase();
     final String queryString =
         String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM %s;", streamName, inputStream);
 
@@ -203,7 +205,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSelectProjectKeyTimestamp() throws Exception {
-    final String streamName = "STARTSTREAM";
+    final String streamName = "SelectProjectKeyTimestampStream".toUpperCase();
     final String queryString =
         String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME AS RTIME, ITEMID "
                       + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';", streamName,
@@ -274,7 +276,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSelectFilter() throws Exception {
-    final String streamName = "FILTERSTREAM";
+    final String streamName = "SelectFilterStream".toUpperCase();
     final String queryString = String.format(
         "CREATE STREAM %s AS SELECT * FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
         streamName,
@@ -310,7 +312,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSelectExpression() throws Exception {
-    final String streamName = "FILTERSTREAM";
+    final String streamName = "SelectExpressionStream".toUpperCase();
 
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
@@ -344,7 +346,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSelectUDFs() throws Exception {
-    final String streamName = "UDFSTREAM";
+    final String streamName = "SelectUDFsStream".toUpperCase();
 
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
@@ -378,7 +380,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSelectUDFLogicalExpression() throws Exception {
-    final String streamName = "UDFSTREAM";
+    final String streamName = "SelectUDFLogicalExpressionStream".toUpperCase();
 
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
@@ -459,7 +461,7 @@ public class JsonFormatTest {
 
   @Test
   public void testSinkProperties() throws Exception {
-    final String streamName = "STARSTREAM";
+    final String streamName = "SinkPropertiesStream".toUpperCase();
     final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
                                              + "FROM %s;",
@@ -470,12 +472,18 @@ public class JsonFormatTest {
     queryMetadata.getKafkaStreams().start();
 
     KafkaTopicClient kafkaTopicClient = ksqlEngine.getKafkaTopicClient();
-    boolean topicExists = kafkaTopicClient.ensureTopicExists(streamName, resultPartitionCount,
-                                                             (short)1);
-    Assert.assertTrue(topicExists);
+
+    /*
+     * It may take several seconds after AdminClient#createTopics returns
+     * success for all the brokers to become aware that the topics have been created.
+     * During this time, AdminClient#listTopics may not return information about the new topics.
+     */
+    log.info("Wait for the created topic to appear in the topic list...");
+    Thread.sleep(2000);
+
+    Assert.assertTrue(kafkaTopicClient.isTopicExists(streamName));
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
-
 
   @Test
   public void testJsonStreamExtractor() throws Exception {

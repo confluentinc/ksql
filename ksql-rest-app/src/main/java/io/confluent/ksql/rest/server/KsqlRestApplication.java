@@ -13,6 +13,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
@@ -32,6 +33,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
@@ -184,12 +186,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+    KafkaTopicClient client = ksqlEngine.getKafkaTopicClient();
 
     String commandTopic = restConfig.getCommandTopic();
-    if (!ksqlEngine.getKafkaTopicClient().ensureTopicExists(commandTopic, 1, (short) 1)) {
-      throw new Exception(
-          String.format("Failed to guarantee existence of command topic '%s'", commandTopic)
-      );
+
+    try {
+      client.createTopic(commandTopic, 1, (short) 1);
+    } catch (KafkaTopicExistsException e) {
+      log.info("Command Topic Exists: " + e.getMessage());
     }
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();

@@ -33,3 +33,4 @@ TODO
 * How to run it all the time
 * `partition by`: specify a non-null key, e.g., create stream s2 with (partitions = 4) as select * from orders partition by itemid;)
 * To persist a query, why do we need a stream?  Why can't we write directly to just a topic?
+* How users can get help (syntax guide, also built-in help functions)

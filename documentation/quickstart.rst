@@ -65,21 +65,21 @@ You have two installation choices:
 Produce data to topics in the Kafka cluster
 -------------------------------------------
 
-1. Use the ``kafka-console-producer`` to produce messages to a topic called ``ksql-string``, with value of type String.
+1. Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksql-string``, with a key of type String and value of type String
-   $ ./bin/kafka-console-producer --topic ksql-string --broker-list localhost:9092  --property parse.key=true --property key.separator=,
+   # Produce messages to a topic called ``ksqlString``, with a key of type String and value of type String
+   $ ./bin/kafka-console-producer --topic ksqlString --broker-list localhost:9092  --property parse.key=true --property key.separator=,
    key1,value1
    key2,value2
    key3,value3
    key1,value4
 
-2. Verify messages were written to this topic ``ksql-string``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
+2. Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
 
-   # Consume messages from the topic called ``ksql-string``
-   $ ./bin/kafka-console-consumer --topic ksql-string --bootstrap-server localhost:9092 --from-beginning --property print.key=true
+   # Consume messages from the topic called ``ksqlString``
+   $ ./bin/kafka-console-consumer --topic ksqlString --bootstrap-server localhost:9092 --from-beginning --property print.key=true
    key1,value1
    key2,value2
    key3,value3
@@ -117,16 +117,16 @@ Start KSQL and read topic data into KSQL
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
 
-3. Register the ``ksql-string`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
+3. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topicname='ksql-string', value_format='DELIMITED');
+   ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topicname='ksqlString', value_format='DELIMITED');
 
    ksql> PRINT ksqlStringTopic;
    <TODO: THIS DOES NOT OUTPUT ANYTHING even with earliest set KSQL-130, plus error on new messages KSQL-129>
 
-4. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksql-string``. It is marked as "registered" in KSQL.
+4. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksqlString``. It is marked as "registered" in KSQL.
 
 .. sourcecode:: bash
 
@@ -193,58 +193,62 @@ Query and transform KSQL data
    ksql> SELECT * from ksqlStringStream WHERE rowkey LIKE '%key1%';
    <TODO: select * hangs, due to KSQL-130?  HOW DOES LIMIT WORK TO MAKE SURE THIS RETURNS? Ctrl-c doesn't work>
 
-2. Create a persistent query to select rows where the key is ``key1``, and persist it by sending the query results to a new KSQL stream called ``newksqlStringStream`` and to a Kafka topic called 11ksql-output-key1``. <TODO: explain why do we need a stream?  Why can't we write directly to just a topic?>
+2. Create a persistent query to select rows where the key is ``key1``, and persist it by sending the query results to a new KSQL stream called ``newksqlStringStream`` and to a Kafka topic called ``ksqlOutput-key1``. <TODO: explain why do we need a stream?  Why can't we write directly to just a topic?>
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM newksqlStringStream WITH (kafka_topicname='ksql-output-key1', value_format='DELIMITED') AS SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
+   ksql> CREATE STREAM newksqlStringStream WITH (kafka_topicname='ksqlOutput-key1', value_format='DELIMITED') AS SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
 
-3. Print the contents of the newly created topic ``ksql-output-key1``, which should show only those rows where value is ``key``. Backticks are required around the name of the topic because of SQL standard rules for hyphens.
+   <TODO: discuss/resolve KSQL-145, "show queries" connection to "create stream">
+
+3. Print the contents of the newly created topic ``ksqlOutput-key1``, which should show only those rows where value is ``key``. Backticks are required around the name of the topic because of SQL standard rules for hyphens.
 
 .. sourcecode:: bash
 
-   ksql> PRINT `ksql-output-key1`;
+   ksql> PRINT `ksqlOutput-key1`;
 
-3. <TODO: INSERT example with limit keyword, requires KSQL-140>
+4. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
 
-4. <TODO: INSERT JOIN example, requires KSQL-152>
+5. <TODO: INSERT example with limit keyword, requires KSQL-140>
 
-5. <TODO: window example, requires KSQL-152>
+6. <TODO: INSERT JOIN example, requires KSQL-152>
+
+7. <TODO: window example, requires KSQL-152>
 
 
 Use JSON and Avro formats
 -------------------------
 
-When we registered the Kafka topic ``ksql-string`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``avro``.
+When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``avro``.
 
 JSON
 ^^^^
 
-1. From the command line, use the ``kafka-console-producer`` to produce messages to a topic called ``ksql-record``, with value of type JSON.
+1. From the command line, use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlRecord``, with value of type JSON.
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksql-record``, with a key of type String and value of type Vro
-   $ ./bin/kafka-console-producer --topic ksql-record --broker-list localhost:9092
+   # Produce messages to a topic called ``ksqlRecord``, with a key of type String and value of type Vro
+   $ ./bin/kafka-console-producer --topic ksqlRecord --broker-list localhost:9092
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
 
-2. Verify messages were written to this topic ``ksql-record``
+2. Verify messages were written to this topic ``ksqlRecord``
 
-   # Consume messages from the topic called ``ksql-record``
-   $ ./bin/kafka-console-consumer --topic ksql-record --bootstrap-server localhost:9092 --from-beginning
+   # Consume messages from the topic called ``ksqlRecord``
+   $ ./bin/kafka-console-consumer --topic ksqlRecord --bootstrap-server localhost:9092 --from-beginning
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
 
-3. In the KSQL application, register the ``ksql-record`` topic into KSQL, specifying the ``value_format`` of ``JSON``.
+3. In the KSQL application, register the ``ksqlRecord`` topic into KSQL, specifying the ``value_format`` of ``JSON``.
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlJsonTopic WITH (kafka_topicname='ksql-record', value_format='JSON');
+   ksql> REGISTER TOPIC ksqlJsonTopic WITH (kafka_topicname='ksqlRecord', value_format='JSON');
 
 4. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. 
 
@@ -301,14 +305,14 @@ Examine Kafka cluster changes
 
 KSQL uses the Kafka cluster to store state. We will examine the Kafka cluster to see what happened behind the scenes.
 
-1. View the topics in the Kafka cluster. You should see the topics you manually created, e.g. ``ksql-string``, ``ksql-record``, as well as other topics created by KSQL including ``ksql_app_commands``, ``ksql_bare_query_*``, etc. <TODO: link to KSQL concepts guide to explain what these other auto-generated topics are used for>
+1. View the topics in the Kafka cluster. You should see the topics you manually created, e.g. ``ksqlString``, ``ksqlRecord``, as well as other topics created by KSQL including ``ksql_app_commands``, ``ksql_bare_query_*``, etc. <TODO: link to KSQL concepts guide to explain what these other auto-generated topics are used for>
 
 .. sourcecode:: bash
 
    $ kafka-topics --list --zookeeper localhost:2181
    ...
    ksql_app_commands
-   ksql-string
+   ksqlString
    ksql_bare_query_6739854484049497815_1500404750526-ksqlstore-changelog
    ksql_bare_query_6739854484049497815_1500404750526-ksqlstore-repartition
    ...

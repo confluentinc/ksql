@@ -20,24 +20,39 @@ will guide you through a simple workflow to be able to query and transform KSQL 
 Start the Kafka cluster
 -----------------------
 
-In this section we download and install a Kafka cluster on your local machine.  This cluster consists of a single
-Kafka broker alongside a single-node ZooKeeper ensemble.  
+In this quickstart, you will run KSQL on the same machine as the Kafka cluster.  If you already have an existing running Kafka cluster that you can connect to locally, you can skip this section.  On the other hand, if you want to spin up a development Kafka environment for KSQL, you have two options:
 
-.. note::
-  In this quickstart, you will run KSQL on the same machine as the Kafka cluster. In production, you would
-  typically run KSQL on client machines separate from the Kafka cluster
+Option 1: Docker
+^^^^^^^^^^^^^^^^
+
+If you are new to Docker, get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
+
+<TODO: Docker>
+
+1. Clone the Confluent KSQL Docker demo repository:
+
+<TODO: insert link>
+
+2. Change into the directory for this tutorial
+
+<TODO: cd>
+
+3. Launch the KSQL demo in Docker
+
+.. sourcecode:: bash
+
+   $ docker-compose up -d
+
+
+Option 2: Non-Docker
+^^^^^^^^^^^^^^^
+
+In this section we download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker alongside a single-node ZooKeeper ensemble.  
 
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
 2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
-We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>
-
-You have two installation choices:
-* Install directly onto a Linux server: http://docs.confluent.io/current/installation.html
-* Install with Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
-
-.. note::
-   This quickstart assumes you have installed directly onto a Linux server. <TODO: Docker version?>
+We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>.  Install Confluent Platform directly onto a Linux server: http://docs.confluent.io/current/installation.html
 
 3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart
    assume that your are in this installation directory:

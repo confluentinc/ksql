@@ -276,7 +276,7 @@ public class SchemaKStream {
         }
         if (limit.isPresent()) {
           counter ++;
-          if (counter >= limit.get()) {
+          if (counter > limit.get()) {
             return;
           }
         }

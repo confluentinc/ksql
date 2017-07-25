@@ -467,7 +467,10 @@ public class PhysicalPlanBuilder {
     SchemaKStream rightSchemaKStream = kafkaStreamsDsl(joinNode.getRight());
     if (rightSchemaKStream instanceof SchemaKTable) {
       SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
-      if (!leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {
+
+      if (
+          leftSchemaKStream.getKeyField() == null ||
+          !leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {
         leftSchemaKStream =
             leftSchemaKStream.selectKey(SchemaUtil.getFieldByName(leftSchemaKStream.getSchema(),
                 joinNode.getLeftKeyFieldName()).get());

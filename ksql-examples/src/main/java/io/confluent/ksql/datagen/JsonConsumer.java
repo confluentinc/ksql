@@ -244,9 +244,6 @@ public class JsonConsumer {
   }
 
   public static void main(String[] args) {
-//        new KSqlStreamProcessor().processGenericRow();
-//        new KSqlStreamProcessor().printGenericRowTopic("streams-userprofile-input");
-//        new KSqlStreamProcessor().printGenericRowTopic("FEMALEUSERS");
     new JsonConsumer().printGenericRowTopic("ENRICHEDFEMALE_CSV");
   }
 }

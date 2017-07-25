@@ -8,6 +8,8 @@ import io.confluent.ksql.function.udaf.count.CountAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
+import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
+import io.confluent.ksql.function.udf.datetime.TimestampToString;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
@@ -107,13 +109,28 @@ public class KsqlFunctions {
                                            "RANDOM", RandomKudf.class);
     addFunction(random);
 
+
+    /***************************************
+     * Date/Time functions                      *
+     ***************************************/
+    KsqlFunction timestampToString = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
+                                                                                  .INT64_SCHEMA),
+                                        "TIMESTAMPTOSTRING", TimestampToString.class);
+    addFunction(timestampToString);
+
+    KsqlFunction stringToTimestamp = new KsqlFunction(Schema.INT64_SCHEMA,
+                                                      Arrays.asList(Schema.STRING_SCHEMA),
+                                                      "STRINGTOTIMESTAMP",
+                                                      StringToTimestamp.class);
+    addFunction(stringToTimestamp);
+
     /***************************************
      * JSON functions                     *
      ****************************************/
 
     KsqlFunction getStringFromJson = new KsqlFunction(
         Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
-        "EXTRAXTJSONFIELD", JsonExtractStringKudf.class);
+        "EXTRACTJSONFIELD", JsonExtractStringKudf.class);
     addFunction(getStringFromJson);
 
 

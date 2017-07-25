@@ -77,7 +77,6 @@ public class DelimitedConsumer {
   }
 
   public static void main(String[] args) {
-//    new CsvConsumer().printGenericRowTopic("Order-csv-GenericRow");
     new DelimitedConsumer().printGenericRowTopic("ENRICHEDFEMALE_CSV");
   }
 }

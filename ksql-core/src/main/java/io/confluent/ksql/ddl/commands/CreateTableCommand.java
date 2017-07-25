@@ -23,9 +23,12 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
     Map<String, Expression> properties = createTable.getProperties();
 
-    checkStateStoreNameNotNull(properties);
+    if (properties.containsKey(DdlConfig.STATE_STORE_NAME_PROPERTY)) {
+      this.stateStoreName =  StringUtil.cleanQuotes(properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY).toString());
+    } else {
+      this.stateStoreName = createTable.getName().toString() + "_statestore";
+    }
 
-    this.stateStoreName =  StringUtil.cleanQuotes(properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY).toString());
 
   }
 
@@ -47,9 +50,4 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     return new DDLCommandResult(true, "Table created");
   }
 
-  private void checkStateStoreNameNotNull(Map<String, Expression> properties) {
-    KsqlPreconditions.checkNotNull(
-        properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY),
-        "State store name for the table should be set in WITH clause.");
-  }
 }

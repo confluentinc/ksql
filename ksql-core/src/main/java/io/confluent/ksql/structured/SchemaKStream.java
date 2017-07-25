@@ -203,7 +203,8 @@ public class SchemaKStream {
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
-    if (keyField.name().equals(newKeyField.name())) {
+    if (keyField != null &&
+        keyField.name().equals(newKeyField.name())) {
       return this;
     }
 

@@ -10,9 +10,13 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -115,8 +119,16 @@ public class AggregateNode extends PlanNode {
     return nonAggResultColumns;
   }
 
-  public List<Expression> getFinalSelectExpressions() {
-    return finalSelectExpressions;
+  public List<Pair<String, Expression>> getFinalSelectExpressions() {
+    List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
+    if (finalSelectExpressions.size() != schema.fields().size()) {
+      throw new KsqlException("Incompatible aggregate schema.");
+    }
+    for (int i = 0; i < finalSelectExpressions.size(); i++) {
+      finalSelectExpressionList.add(new Pair<>(schema.fields().get(i).name(),
+                                               finalSelectExpressions.get(i)));
+    }
+    return finalSelectExpressionList;
   }
 
   public Expression getHavingExpressions() {

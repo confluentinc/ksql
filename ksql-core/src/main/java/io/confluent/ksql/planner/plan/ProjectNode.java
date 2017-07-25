@@ -9,10 +9,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -69,6 +74,18 @@ public class ProjectNode
 
   public List<Expression> getProjectExpressions() {
     return projectExpressions;
+  }
+
+  public List<Pair<String, Expression>> getProjectNameExpressionPairList() {
+    if (schema.fields().size() != projectExpressions.size()) {
+      throw new KsqlException("Error in projection. Schema fields and expression list are not "
+                              + "compatible.");
+    }
+    List<Pair<String, Expression>> expressionPairs = new ArrayList<>();
+    for (int i = 0; i < projectExpressions.size(); i++) {
+      expressionPairs.add(new Pair<>(schema.fields().get(i).name(), projectExpressions.get(i)));
+    }
+    return expressionPairs;
   }
 
   @Override

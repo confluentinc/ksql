@@ -83,7 +83,7 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
                               .size() == 6);
@@ -100,10 +100,10 @@ public class PhysicalPlanBuilderTest {
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase
-            ("T1.COL1"));
+            ("T1_COL1"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(3).name().equalsIgnoreCase
-            ("T1.COL5"));
+            ("COL5"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
                               .size() == 11);
@@ -120,7 +120,7 @@ public class PhysicalPlanBuilderTest {
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).name().equalsIgnoreCase
-            ("T2.COL1"));
+            ("T2_COL1"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
                               .size() == 11);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
@@ -135,7 +135,7 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
@@ -148,10 +148,11 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
         Assert.assertNotNull(schemaKStream);
         Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
         Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
-        Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+        Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name()
+                              .equalsIgnoreCase("COL0"));
         Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0) instanceof SchemaKTable);
         Assert.assertTrue(((SchemaKTable) schemaKStream.getSourceSchemaKStreams().get(0))
                               .isWindowed() == false);
@@ -164,7 +165,8 @@ public class PhysicalPlanBuilderTest {
         SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
         String planText = schemaKStream.getExecutionPlan("");
         String[] lines = planText.split("\n");
-        Assert.assertEquals(lines[0], " > [ SINK ] Schema: [TEST1.COL0 : INT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].");
+        Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , KSQL_COL_1 : FLOAT64 "
+                                      + ", KSQL_COL_2 : INT64].");
         Assert.assertEquals(lines[1], "\t\t > [ AGGREGATE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : FLOAT64 , KSQL_AGG_VARIABLE_0 : FLOAT64 , KSQL_AGG_VARIABLE_1 : INT64].");
         Assert.assertEquals(lines[2], "\t\t\t\t > [ PROJECT ] Schema: [TEST1.COL0 : INT64 , TEST1.COL3 : FLOAT64].");
         Assert.assertEquals(lines[3], "\t\t\t\t\t\t > [ REKEY ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");

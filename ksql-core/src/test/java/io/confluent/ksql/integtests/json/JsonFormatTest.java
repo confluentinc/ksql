@@ -489,7 +489,7 @@ public class JsonFormatTest {
   public void testJsonStreamExtractor() throws Exception {
 
     final String streamName = "JSONSTREAM";
-    final String queryString = String.format("CREATE STREAM %s AS SELECT GETSTREAMFROMJSON"
+    final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRAXTJSONFIELD"
                                              + "(message, '$.log.cloud') "
                                              + "FROM %s;",
                                              streamName, messageLogStream);

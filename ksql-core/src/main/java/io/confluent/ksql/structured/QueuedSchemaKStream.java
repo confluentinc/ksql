@@ -9,6 +9,8 @@ import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -65,7 +67,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream select(List<Expression> expressions) throws Exception {
+  public SchemaKStream select(List<Pair<String, Expression>> expressions) throws Exception {
     throw new UnsupportedOperationException();
   }
 

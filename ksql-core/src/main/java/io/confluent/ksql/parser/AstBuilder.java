@@ -262,7 +262,7 @@ public class AstBuilder
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        return getSelectStartItems(selectItem, from);
+        selectItems.addAll(getSelectStartItems(selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
         selectItems.add((SingleColumn) selectItem);

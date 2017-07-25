@@ -12,6 +12,7 @@ import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -118,7 +119,7 @@ public class SchemaKStream {
                              Type.PROJECT);
   }
 
-  public SchemaKStream select(final List<Expression> expressions)
+  public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
       throws Exception {
     ExpressionUtil expressionUtil = new ExpressionUtil();
     // TODO: Optimize to remove the code gen for constants and single columns references
@@ -126,11 +127,11 @@ public class SchemaKStream {
     // TODO: Only use code get when we have real expression.
     List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Expression expression : expressions) {
+    for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          expressionUtil.getExpressionEvaluator(expression, schema);
-      schemaBuilder.field(expression.toString(), expressionEvaluator.getExpressionType());
+          expressionUtil.getExpressionEvaluator(expressionPair.getRight(), schema);
+      schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
     KStream
@@ -139,8 +140,7 @@ public class SchemaKStream {
           @Override
           public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
             List<Object> newColumns = new ArrayList();
-            for (int i = 0; i < expressions.size(); i++) {
-              Expression expression = expressions.get(i);
+            for (int i = 0; i < expressionPairList.size(); i++) {
               int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
               Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
               Object[] parameterObjects = new Object[parameterIndexes.length];

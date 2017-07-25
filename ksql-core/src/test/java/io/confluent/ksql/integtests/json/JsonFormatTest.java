@@ -413,6 +413,44 @@ public class JsonFormatTest {
   }
 
   @Test
+  public void testSelectDateTimeUDFs() throws Exception {
+    final String streamName = "SelectDateTimeUDFsStream".toUpperCase();
+
+    final String selectColumns =
+        "(ORDERTIME+1500962514806) , TIMESTAMPTOSTRING(ORDERTIME+1500962514806), STRINGTOTIMESTAMP"
+        + "(TIMESTAMPTOSTRING"
+        + "(ORDERTIME+1500962514806))";
+    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
+
+    final String queryString = String.format(
+        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
+        streamName,
+        selectColumns,
+        inputStream,
+        whereClause
+    );
+
+    PersistentQueryMetadata queryMetadata =
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814l,
+                                                          "2017-07-24 23:01:54.814",
+                                                          1500962514814l)));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    Assert.assertTrue(assertExpectedResults(results, expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  }
+
+  @Test
   public void testAggSelectStar() throws Exception {
 
     Map<String, RecordMetadata> newRecordsMetadata = produceInputData(inputData, SchemaUtil

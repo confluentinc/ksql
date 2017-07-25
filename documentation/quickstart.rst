@@ -76,6 +76,13 @@ We recommend running the latest version of Confluent Platform, but the minimum v
   # Start Kafka.  Run this command in its own terminal
   $ ./bin/kafka-server-start ./etc/kafka/server.properties
 
+6. Start the Confluent Schema Registry, which will listen on ``localhost:8081`` and connect to the ZooKeeper instance we just started.  Since this is also a long-running service, you should run it in its own terminal.
+
+.. sourcecode:: bash
+
+  # Start Schema Registry.  Run this command in its own terminal
+  $ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
+
 
 Produce data to topics in the Kafka cluster
 -------------------------------------------
@@ -136,11 +143,16 @@ Start KSQL and read topic data into KSQL
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topicname='ksqlString', value_format='DELIMITED');
-   <TODO: kafka_topicname is becoming kafka_topic with KSQL-111>
+   ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topic='ksqlString', value_format='DELIMITED');
+
+4. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
 
    ksql> PRINT ksqlStringTopic;
-   <TODO: THIS DOES NOT OUTPUT ANYTHING even with earliest set KSQL-130, plus error on new messages KSQL-129>
+   <TODO: KSQL-165 earliest problem getting all values. Also KSQL-132, ctrl-c does not work>
+1500990793064 , key1 , value1
+1500990796384 , key2 , value2
+1500990798954 , key3 , value3
+1500990800506 , key1 , value4
 
 4. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksqlString``. It is marked as "registered" in KSQL.
 
@@ -153,14 +165,13 @@ Start KSQL and read topic data into KSQL
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM ksqlStringStream (value string) WITH (registered_topicname='ksqlStringTopic');
-   <TODO: registered_topicname is becoming registered_topic with KSQL-111?>
+   ksql> CREATE STREAM ksqlStringStream (value string) WITH (registered_topic='ksqlStringTopic');
 
 6. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE ksqlStringTable (value string) WITH (registered_topicname='ksqlStringTopic', statestore='ksqlStringStore');
+   ksql> CREATE TABLE ksqlStringTable (value string) WITH (registered_topic='ksqlStringTopic', statestore='ksqlStringStore');
 
 7. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``VALUE``. <TODO: ROWTIME corresponds to...message timestamp?>
 
@@ -207,15 +218,14 @@ Query and transform KSQL data
 
 .. sourcecode:: bash
 
-   ksql> SELECT * from ksqlStringStream WHERE rowkey LIKE '%key1%';
-   <TODO: select * hangs, due to KSQL-130?  HOW DOES LIMIT WORK TO MAKE SURE THIS RETURNS? Ctrl-c doesn't work>
+   ksql> SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
+   <TODO: select * hangs, due to KSQL-130?  LIMIT still has issues like KSQL-140. And Ctrl-c doesn't work KSQL-132>
 
 2. Create a persistent query to select rows where the key is ``key1``, and persist it by sending the query results to a new KSQL stream called ``newksqlStringStream`` and to a Kafka topic called ``ksqlOutput-key1``. <TODO: explain why do we need a stream?  Why can't we write directly to just a topic?>
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM newksqlStringStream WITH (kafka_topicname='ksqlOutput-key1', value_format='DELIMITED') AS SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
-
+   ksql> CREATE STREAM newksqlStringStream WITH (kafka_topic='ksqlOutput-key1', value_format='DELIMITED') AS SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
    <TODO: discuss/resolve KSQL-145, "show queries" connection to "create stream">
 
 3. Print the contents of the newly created topic ``ksqlOutput-key1``, which should show only those rows where value is ``key``. Backticks are required around the name of the topic because of SQL standard rules for hyphens.
@@ -226,11 +236,9 @@ Query and transform KSQL data
 
 4. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
 
-5. <TODO: INSERT example with limit keyword, requires KSQL-140>
+5. <TODO: INSERT JOIN example, requires KSQL-152>
 
-6. <TODO: INSERT JOIN example, requires KSQL-152>
-
-7. <TODO: window example, requires KSQL-152>
+6. <TODO: window example, requires KSQL-152>
 
 
 Use JSON and Avro formats
@@ -241,37 +249,37 @@ When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value 
 JSON
 ^^^^
 
-1. From the command line, use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlRecord``, with value of type JSON.
+1. From the command line, use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlJson``, with value of type JSON.
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksqlRecord``, with a key of type String and value of type Vro
-   $ ./bin/kafka-console-producer --topic ksqlRecord --broker-list localhost:9092
+   # Produce messages to a topic called ``ksqlJson``, with a key of type String and value of type Vro
+   $ ./bin/kafka-console-producer --topic ksqlJson --broker-list localhost:9092
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
 
-2. Verify messages were written to this topic ``ksqlRecord``
+2. Verify messages were written to this topic ``ksqlJson``
 
-   # Consume messages from the topic called ``ksqlRecord``
-   $ ./bin/kafka-console-consumer --topic ksqlRecord --bootstrap-server localhost:9092 --from-beginning
+   # Consume messages from the topic called ``ksqlJson``
+   $ ./bin/kafka-console-consumer --topic ksqlJson --bootstrap-server localhost:9092 --from-beginning
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
 
-3. In the KSQL application, register the ``ksqlRecord`` topic into KSQL, specifying the ``value_format`` of ``JSON``.
+3. In the KSQL application, register the ``ksqlJson`` topic into KSQL, specifying the ``value_format`` of ``JSON``.
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlJsonTopic WITH (kafka_topicname='ksqlRecord', value_format='JSON');
+   ksql> REGISTER TOPIC ksqlJsonTopic WITH (kafka_topic='ksqlJson', value_format='JSON');
 
 4. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. 
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM ksqlJsonStream (name varchar, id varchar) WITH (registered_topicname='ksqlJsonTopic', key='id');
+   ksql> CREATE STREAM ksqlJsonStream (name varchar, id varchar) WITH (registered_topic='ksqlJsonTopic', key='id');
 
 5. View the schemas of the newly created STREAM. Notice that now there are columns ``NAME`` and ``ID``. <TODO: explain why ROWKEY has empty values>
 
@@ -300,9 +308,61 @@ Now you can proceed with any computations and transformations as described earli
 Avro
 ^^^^
 
-Use an Avro schema file for a given topic to read. Schema Registry integration is not yet supported.  
+Use an Avro schema file for a given topic to read. Avro records are written using Schema Registry, but use a local schema file to deserialize the Avro message
 
 <TODO: Need KSQL-133 and KSQL-125>
+
+1. From the command line, use the ``kafka-avro-console-producer`` to produce messages to a topic called ``ksqlAvro``, writing schemas to Schema Registry.
+
+.. sourcecode:: bash
+
+   # Produce messages to a topic called ``ksqlAvro``, with a key of type String and value of type Avro
+   $ ./bin/kafka-avro-console-producer --broker-list localhost:9092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://localhost:8081
+   {"name":"value1","id":"key1"}
+   {"name":"value2","id":"key2"}
+   {"name":"value3","id":"key3"}
+   {"name":"value4","id":"key1"}
+
+2. Verify messages were written to this topic ``ksqlAvro``
+
+   # Consume messages from the topic called ``ksqlAvro``
+   $ ./bin/kafka-avro-console-consumer --topic ksqlAvro --bootstrap-server localhost:9092 --from-beginning --property schema.registry.url=http://localhost:8081
+   {"name":"value1","id":"key1"}
+   {"name":"value2","id":"key2"}
+   {"name":"value3","id":"key3"}
+   {"name":"value4","id":"key1"}
+
+3. In the KSQL application, register the ``ksqlAvro`` topic into KSQL, specifying the ``value_format`` of ``Avro``.
+
+.. sourcecode:: bash
+
+   ksql> REGISTER TOPIC ksqlAvroTopic WITH (kafka_topic='ksqlAvro', value_format='Avro', avroschemafile='myavro.avsc');
+
+4. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. 
+
+.. sourcecode:: bash
+
+   ksql> CREATE STREAM ksqlAvroStream (name varchar, id varchar) WITH (registered_topic='ksqlAvroTopic', key='id');
+
+5. View the schemas of the newly created STREAM. Notice that now there are columns ``NAME`` and ``ID``. <TODO: explain why ROWKEY has empty values>
+
+.. sourcecode:: bash
+
+   ksql> DESCRIBE ksqlAvroStream;
+
+      Field |   Type 
+   ------------------
+    ROWTIME |  INT64 
+     ROWKEY | STRING 
+       NAME | STRING 
+         ID | STRING 
+
+6. Create a non-persistent query to select all rows. Press ``ctrl-c`` to exit this query.
+
+.. sourcecode:: bash
+
+   ksql> SELECT * from ksqlAvroStream;
+   <TODO: Need KSQL-133 and KSQL-125>
 
 
 Exit KSQL

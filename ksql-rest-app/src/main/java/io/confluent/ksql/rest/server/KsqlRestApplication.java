@@ -13,7 +13,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
@@ -192,7 +192,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     try {
       client.createTopic(commandTopic, 1, (short) 1);
-    } catch (KafkaTopicExistsException e) {
+    } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: " + e.getMessage());
     }
 

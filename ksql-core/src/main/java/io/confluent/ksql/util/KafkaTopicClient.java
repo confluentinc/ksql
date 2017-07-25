@@ -5,7 +5,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
@@ -21,7 +21,7 @@ public interface KafkaTopicClient extends Closeable {
    * @param topic name of the topic to create
    * @param numPartitions
    * @param replicatonFactor
-   * @throws KafkaTopicExistsException
+   * @throws KafkaTopicException
    * @throws KafkaResponseGetFailedException
    */
   void createTopic(String topic, int numPartitions, short replicatonFactor);

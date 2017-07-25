@@ -35,6 +35,7 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
 import io.confluent.ksql.util.WindowedSerde;
@@ -226,18 +227,18 @@ public class PhysicalPlanBuilder {
     SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
 
     // Pre aggregate computations
-    List<Expression> aggArgExpansionList = new ArrayList<>();
+    List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
     Map<String, Integer> expressionNames = new HashMap<>();
     for (Expression expression: aggregateNode.getRequiredColumnList()) {
       if (!expressionNames.containsKey(expression.toString())) {
         expressionNames.put(expression.toString(), aggArgExpansionList.size());
-        aggArgExpansionList.add(expression);
+        aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
       }
     }
     for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
       if (!expressionNames.containsKey(expression.toString())) {
         expressionNames.put(expression.toString(), aggArgExpansionList.size());
-        aggArgExpansionList.add(expression);
+        aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
       }
     }
 
@@ -336,7 +337,7 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {
     SchemaKStream projectedSchemaStream =
-        kafkaStreamsDsl(projectNode.getSource()).select(projectNode.getProjectExpressions());
+        kafkaStreamsDsl(projectNode.getSource()).select(projectNode.getProjectNameExpressionPairList());
     return projectedSchemaStream;
   }
 

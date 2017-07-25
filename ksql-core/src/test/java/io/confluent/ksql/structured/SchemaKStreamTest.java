@@ -84,18 +84,18 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
                                              SchemaKStream.Type.SOURCE);
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL2") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2") ==
                       projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL3") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3") ==
                       projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema() == Schema.INT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2").schema() == Schema.STRING_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3").schema() == Schema.FLOAT64_SCHEMA);
 
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKStream);
@@ -110,16 +110,16 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
                                              SchemaKStream.Type.SOURCE);
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectExpressions());
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("LEN(UCASE(TEST1.COL2))") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_1") ==
                       projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("((TEST1.COL3 * 3) + 5)") ==
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_2") ==
                       projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
+    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema() == Schema.INT64_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema() == Schema
         .INT32_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema() == Schema

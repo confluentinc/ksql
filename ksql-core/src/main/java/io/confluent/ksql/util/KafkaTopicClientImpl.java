@@ -5,13 +5,14 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -30,7 +31,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
     log.info("Creating topic '{}'", topic);
     if (isTopicExists(topic)) {
-      throw new KafkaTopicExistsException(String.format("Topic '%s' exists", topic));
+      Map<String, TopicDescription> topicDescriptions = describeTopics(Arrays.asList(topic));
+      TopicDescription topicDescription = topicDescriptions.get(topic);
+      if (topicDescription.partitions().size() != numPartitions ||
+          topicDescription.partitions().get(0).replicas().size() != replicatonFactor) {
+        throw new KafkaTopicException(String.format("Topic '%s' does not conform to the "
+                                                    + "requirements.", topic));
+      }
+      // Topic with the partitons and replicas exists, reuse it!
+      return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {

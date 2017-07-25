@@ -130,7 +130,7 @@ public class KsqlFunctions {
 
     KsqlFunction getStringFromJson = new KsqlFunction(
         Schema.STRING_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
-        "EXTRAXTJSONFIELD", JsonExtractStringKudf.class);
+        "EXTRACTJSONFIELD", JsonExtractStringKudf.class);
     addFunction(getStringFromJson);
 
 

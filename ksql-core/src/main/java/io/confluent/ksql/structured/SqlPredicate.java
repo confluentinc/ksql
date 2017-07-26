@@ -86,7 +86,6 @@ public class SqlPredicate {
       @Override
       public boolean test(String key, GenericRow row) {
         try {
-
           Kudf[] kudfs = expressionEvaluator.getUdfs();
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
@@ -99,13 +98,8 @@ public class SqlPredicate {
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;
-        } catch (InvocationTargetException e) {
-          if (e.getTargetException() instanceof NullPointerException) {
-            return false;
-          }
-          e.printStackTrace();
         } catch (Exception e) {
-          e.printStackTrace();
+          log.error(e.getMessage(), e);
         }
         log.error("Invalid format: " + key + " : " + row);
         return false;
@@ -122,7 +116,6 @@ public class SqlPredicate {
       @Override
       public boolean test(Windowed<String> key, GenericRow row) {
         try {
-
           Kudf[] kudfs = expressionEvaluator.getUdfs();
           Object[] values = new Object[columnIndexes.length];
           for (int i = 0; i < values.length; i++) {
@@ -135,10 +128,8 @@ public class SqlPredicate {
           }
           boolean result = (Boolean) ee.evaluate(values);
           return result;
-        } catch (InvocationTargetException e) {
-          e.printStackTrace();
         } catch (Exception e) {
-          e.printStackTrace();
+          log.error(e.getMessage(), e);
         }
         log.error("Invalid format: " + key + " : " + row);
         return false;

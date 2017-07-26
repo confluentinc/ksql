@@ -58,7 +58,6 @@ public class KsqlParser {
       SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
       return statementsContext.singleStatement();
     } catch (Exception e) {
-//      e.printStackTrace();
       throw new KsqlException(e.getMessage());
     }
   }

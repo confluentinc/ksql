@@ -23,6 +23,8 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -33,6 +35,8 @@ import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKTable extends SchemaKStream {
+
+  private static final Logger log = LoggerFactory.getLogger(SchemaKTable.class);
 
   final KTable ktable;
   final boolean isWindowed;
@@ -127,32 +131,33 @@ public class SchemaKTable extends SchemaKStream {
     KTable projectedKTable = ktable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
       @Override
       public GenericRow apply(GenericRow row) {
-        List<Object> newColumns = new ArrayList();
-        for (int i = 0; i < expressionPairList.size(); i++) {
-          int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-          Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-          Object[] parameterObjects = new Object[parameterIndexes.length];
-          for (int j = 0; j < parameterIndexes.length; j++) {
-            if (parameterIndexes[j] < 0) {
-              parameterObjects[j] = kudfs[j];
-            } else {
-              parameterObjects[j] =
-                  genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
-                                                               row.getColumns()
-                                                                   .get(parameterIndexes[j]));
+        try {
+          List<Object> newColumns = new ArrayList();
+          for (int i = 0; i < expressionPairList.size(); i++) {
+            int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+            Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+            Object[] parameterObjects = new Object[parameterIndexes.length];
+            for (int j = 0; j < parameterIndexes.length; j++) {
+              if (parameterIndexes[j] < 0) {
+                parameterObjects[j] = kudfs[j];
+              } else {
+                parameterObjects[j] =
+                    genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
+                                                                 row.getColumns()
+                                                                     .get(parameterIndexes[j]));
+              }
             }
-          }
-          Object columnValue = null;
-          try {
+            Object columnValue = null;
             columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
                 .evaluate(parameterObjects);
-          } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            newColumns.add(columnValue);
           }
-          newColumns.add(columnValue);
+          GenericRow newRow = new GenericRow(newColumns);
+          return newRow;
+        } catch (Exception e) {
+          log.error(e.getMessage(), e);
         }
-        GenericRow newRow = new GenericRow(newColumns);
-        return newRow;
+        return null;
       }
     });
 

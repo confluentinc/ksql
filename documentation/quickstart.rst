@@ -14,6 +14,7 @@ Welcome to Confluent and Kafka Structured Query Language (KSQL)!
 The goal of this quickstart guide is to provide you with a first hands-on look at KSQL. This quickstart
 will guide you through a simple workflow to be able to query and transform KSQL data.
 
+
 Start a Kafka cluster
 ---------------------
 
@@ -104,10 +105,6 @@ We recommend running the latest version of Confluent Platform, but the minimum v
   # Start Schema Registry.  Run this command in its own terminal
   $ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
 
-7. Download the KSQL jar file <TODO: insert download link>.
-
-8. Download the demo data generation jar file <TODO: insert download link>.
-
 
 
 Start KSQL
@@ -115,6 +112,8 @@ Start KSQL
 
 Option 1: Docker
 ^^^^^^^^^^^^^^^^
+
+You should be using the Docker Compose file provided in github <TODO: INSERT LINK>, because it includes the Docker container with the KSQL image and the data generator to produce sample data.
 
 .. sourcecode:: bash
 
@@ -130,12 +129,15 @@ Option 1: Docker
 Option 2: non-Docker
 ^^^^^^^^^^^^^^^^^^^^
 
+Download the KSQL jar file <TODO: insert download link>. Then you can run KSQL:
+
 .. sourcecode:: bash
 
    # Start KSQL connecting to broker running on local host
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql> 
+
 
 Cluster properties
 ^^^^^^^^^^^^^^^^^^
@@ -169,7 +171,7 @@ Our docker-compose file already runs a data generator, so no action is required 
 Option 1: Run the data generator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the data generator with other arguments.  <TODO: KSQL-205>
+If you are running Docker, there is already a container with the data generator that you can invoke.  If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>
 
    .. sourcecode:: bash
 

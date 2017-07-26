@@ -21,11 +21,12 @@ import java.util.concurrent.ExecutionException;
 
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
-
-  private final AdminClient client;
+  KsqlConfig ksqlConfig;
+//  private final AdminClient client;
 
   public KafkaTopicClientImpl(KsqlConfig ksqlConfig) {
-    this.client = AdminClient.create(ksqlConfig.getKsqlConfigProps());
+//    this.client = AdminClient.create(ksqlConfig.getKsqlConfigProps());
+    this.ksqlConfig = ksqlConfig.clone();
   }
 
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
@@ -43,9 +44,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
-      client.createTopics(Collections.singleton(newTopic)).all().get();
+//      client.createTopics(Collections.singleton(newTopic)).all().get();
+      AdminClient.create(ksqlConfig.getKsqlConfigProps())
+          .createTopics(Collections.singleton(newTopic)).all().get();
     } catch (InterruptedException | ExecutionException e) {
-      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " + topic, e);
+      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
+                                                topic, e);
     }
   }
 
@@ -56,7 +60,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Set<String> listTopicNames() {
     try {
-      return client.listTopics().names().get();
+//      return client.listTopics().names().get();
+      return AdminClient.create(ksqlConfig.getKsqlConfigProps())
+          .listTopics().names().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve kafka topic names", e);
     }
@@ -64,14 +70,16 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
-      return client.describeTopics(topicNames).all().get();
+//      return client.describeTopics(topicNames).all().get();
+      return AdminClient.create(ksqlConfig.getKsqlConfigProps())
+          .describeTopics(topicNames).all().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);
     }
   }
 
   public void close() {
-    client.close();
+//    client.close();
   }
 
 }

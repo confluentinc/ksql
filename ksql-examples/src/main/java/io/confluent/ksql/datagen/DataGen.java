@@ -63,7 +63,8 @@ public class DataGen {
     props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KSQLDataGenProducer");
 
-    dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName, arguments.iterations);
+    dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
+                               arguments.iterations, arguments.maxInterval);
   }
 
   private static void usage() {
@@ -95,6 +96,7 @@ public class DataGen {
     public final String topicName;
     public final String keyName;
     public final int iterations;
+    public final long maxInterval;
 
     public Arguments(
         boolean help,
@@ -103,7 +105,8 @@ public class DataGen {
         Format format,
         String topicName,
         String keyName,
-        int iterations
+        int iterations,
+        long maxInterval
     ) {
       this.help = help;
       this.bootstrapServer = bootstrapServer;
@@ -112,6 +115,7 @@ public class DataGen {
       this.topicName = topicName;
       this.keyName = keyName;
       this.iterations = iterations;
+      this.maxInterval = maxInterval;
     }
 
     public static class ArgumentParseException extends RuntimeException {
@@ -130,7 +134,7 @@ public class DataGen {
       private String topicName;
       private String keyName;
       private int iterations;
-
+      private long maxInterval;
 
       public Builder() {
         quickstart = null;
@@ -141,6 +145,7 @@ public class DataGen {
         topicName = null;
         keyName = null;
         iterations = Integer.MAX_VALUE;
+        maxInterval = -1;
       }
 
       private enum Quickstart {
@@ -178,7 +183,7 @@ public class DataGen {
 
       public Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0);
+          return new Arguments(true, null, null, null, null, null, 0, -1);
         }
 
         if (quickstart != null) {
@@ -196,7 +201,8 @@ public class DataGen {
         } catch (NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
-        return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName, iterations);
+        return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName,
+                             iterations, maxInterval);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -267,6 +273,9 @@ public class DataGen {
           case "iterations":
             iterations = parseIterations(argValue);
             break;
+          case "maxInterval":
+            maxInterval = parseIterations(argValue);
+            break;
           default:
             throw new ArgumentParseException(String.format(
                 "Unknown argument name in '%s'",
@@ -301,6 +310,24 @@ public class DataGen {
           throw new ArgumentParseException(String.format(
               "Invalid number of iterations in '%s'; must be a valid base 10 integer",
               iterationsString
+          ));
+        }
+      }
+
+      private long parseMaxInterval(String maxIntervalString) {
+        try {
+          long result = Long.valueOf(maxIntervalString, 10);
+          if (result <= 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid number of maxInterval in '%d'; must be a positive number",
+                result
+            ));
+          }
+          return Long.valueOf(maxIntervalString, 10);
+        } catch (NumberFormatException exception) {
+          throw new ArgumentParseException(String.format(
+              "Invalid number of maxInterval in '%s'; must be a valid base 10 long",
+              maxIntervalString
           ));
         }
       }

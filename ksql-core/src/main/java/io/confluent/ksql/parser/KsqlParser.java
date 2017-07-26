@@ -53,10 +53,14 @@ public class KsqlParser {
   }
 
   public List<SqlBaseParser.SingleStatementContext> getStatements(String sql) {
-
-    ParserRuleContext tree = getParseTree(sql);
-    SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
-    return statementsContext.singleStatement();
+    try {
+      ParserRuleContext tree = getParseTree(sql);
+      SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
+      return statementsContext.singleStatement();
+    } catch (Exception e) {
+//      e.printStackTrace();
+      throw new KsqlException(e.getMessage());
+    }
   }
 
 

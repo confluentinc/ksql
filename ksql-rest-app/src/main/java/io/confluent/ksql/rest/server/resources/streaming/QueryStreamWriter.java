@@ -44,13 +44,13 @@ class QueryStreamWriter implements StreamingOutput {
       ));
     }
 
-    queryMetadata.getKafkaStreams().start();
-
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
 
     this.streamsException = new AtomicReference<>(null);
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
+
+    queryMetadata.getKafkaStreams().start();
   }
 
   @Override

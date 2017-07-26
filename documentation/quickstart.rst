@@ -142,12 +142,14 @@ Start KSQL and read topic data into KSQL
 
 .. sourcecode:: bash
 
-   # Start KSQL on the local host
+   # Docker: connect to Docker container and start KSQL connecting to broker running on remote container/host
+   host$ docker-compose exec <container with KSQL application> sh
+   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar remote --bootstrap-server kafka:29092
+
+   # Non-docker: start KSQL connecting to broker running on local host
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql> 
-
-   <TODO: If user is using Docker, they will connect a different way. Do they log directly into the container and run at ksql> prompt?>
 
 .. note::
    KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.

@@ -308,6 +308,20 @@ Query and transform KSQL data
    ksql> PRINT `ksqlOutput-key1`;
 
 
+
+Exit KSQL
+---------
+
+1. <TODO: INSERT TERMINATE EXAMPLE>  <TODO: link to KSQL concepts guide, when is terminate relevant...is it only with workers?>
+
+2. From the KSQL prompt ``ksql>``, type 'exit'.
+
+.. sourcecode:: bash
+
+  ksql> exit
+
+
+
 Advanced: Complex KSQL Queries
 ------------------------------
 
@@ -447,17 +461,6 @@ Use an Avro schema file for a given topic to read. Avro records are written usin
    ksql> SELECT * from ksqlAvroStream;
    <TODO: Need KSQL-133 and KSQL-125>
 
-
-Exit KSQL
----------
-
-1. <TODO: INSERT TERMINATE EXAMPLE>  <TODO: link to KSQL concepts guide, when is terminate relevant...is it only with workers?>
-
-2. From the KSQL prompt ``ksql>``, type 'exit'.
-
-.. sourcecode:: bash
-
-  ksql> exit
 
 
 Extra (To be Removed)

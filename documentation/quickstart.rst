@@ -70,7 +70,7 @@ This assumes Docker on Mac.  If you are still using Docker Machine, please upgra
 Option 2: Non-Docker
 ^^^^^^^^^^^^^^^^^^^^
 
-In this section we download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker alongside a single-node ZooKeeper ensemble.  
+This section is for users who are not using Docker. You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker alongside a single-node ZooKeeper ensemble.  
 
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
@@ -111,6 +111,7 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 8. Download the demo data generation jar file <TODO: insert download link>.
 
 
+
 Produce data to topics in the Kafka cluster
 -------------------------------------------
 
@@ -127,6 +128,8 @@ Produce data to topics in the Kafka cluster
 
 2. Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
 
+.. sourcecode:: bash
+
    # Consume messages from the topic called ``ksqlString``
    $ ./bin/kafka-console-consumer --topic ksqlString --bootstrap-server localhost:9092 --from-beginning --property print.key=true
    key1,value1
@@ -134,27 +137,46 @@ Produce data to topics in the Kafka cluster
    key3,value3
    key1,value4
 
-
-Start KSQL and read topic data into KSQL
-----------------------------------------
-
-1. Start KSQL. In this example, we use ``local`` mode to connect to the Kafka broker running on the local machine that is listening on ``localhost:9092``.
+3. Run the data generator to produce additional data to the Kafka cluster.
 
 .. sourcecode:: bash
 
-   # Docker: connect to Docker container and start KSQL connecting to broker running on remote container/host
-   host$ docker-compose exec <container with KSQL application> sh
-   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar remote --bootstrap-server kafka:29092
+   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=topic_json maxInterval=1000
 
-   # Non-docker: start KSQL connecting to broker running on local host
+
+Start KSQL
+----------
+
+Option 1: Docker
+^^^^^^^^^^^^^^^^
+
+.. sourcecode:: bash
+
+   # From the host machine: connect to Docker container
+   host$ docker-compose exec <container with KSQL application> sh
+
+   # From the Docker container: start KSQL connecting to broker running on remote container/host
+   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar remote --bootstrap-server kafka:29092
+   ...
+   ksql> 
+
+
+Option 2: non-Docker
+^^^^^^^^^^^^^^^^^^^^
+
+.. sourcecode:: bash
+
+   # Start KSQL connecting to broker running on local host
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql> 
 
-.. note::
-   KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
-   If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
-   For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``: <TODO: call out earliest>
+Cluster properties
+^^^^^^^^^^^^^^^^^^
+
+KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
+If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
+For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``: <TODO: call out earliest>
 
    .. sourcecode:: bash
 
@@ -168,13 +190,16 @@ Start KSQL and read topic data into KSQL
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
 
-2. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
+Read Kafka topic data into KSQL
+-------------------------------
+
+1. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
 
    ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topic='ksqlString', value_format='DELIMITED');
 
-3. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
+2. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
 
    ksql> PRINT ksqlStringTopic;
    <TODO: KSQL-165 earliest problem getting all values. Also KSQL-132, ctrl-c does not work>
@@ -183,26 +208,26 @@ Start KSQL and read topic data into KSQL
 1500990798954 , key3 , value3
 1500990800506 , key1 , value4
 
-4. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksqlString``. It is marked as "registered" in KSQL.
+3. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksqlString``. It is marked as "registered" in KSQL.
 
 .. sourcecode:: bash
 
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
 
-5. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
+4. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
 
 .. sourcecode:: bash
 
    ksql> CREATE STREAM ksqlStringStream (value string) WITH (registered_topic='ksqlStringTopic');
 
-6. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
+5. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
 
 .. sourcecode:: bash
 
    ksql> CREATE TABLE ksqlStringTable (value string) WITH (registered_topic='ksqlStringTopic', statestore='ksqlStringStore');
 
-7. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``VALUE``. <TODO: ROWTIME corresponds to...message timestamp?>
+6. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``VALUE``. <TODO: ROWTIME corresponds to...message timestamp?>
 
 .. sourcecode:: bash
 
@@ -220,7 +245,7 @@ Start KSQL and read topic data into KSQL
      ROWKEY | STRING 
       VALUE | STRING 
 
-8. View all the KSQL STREAMS and TABLES.
+7. View all the KSQL STREAMS and TABLES.
 
 .. sourcecode:: bash
 

@@ -161,9 +161,28 @@ For example, if your broker is listening on ``broker1:9092`` and you want to set
 Produce data to topics in the Kafka cluster
 -------------------------------------------
 
-Docker image already generates data into Kafka topics.  If you want to generate additional data, you can use the provided data generator jar.  Or you can use the commandline tools to write messages, as shown below.
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup.
 
-1. Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
+If you want other data, you have several options.
+
+Option 1: Data Generator
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run the data generator with other arguments.  <TODO: KSQL-205>
+
+   .. sourcecode:: bash
+
+   # Docker:
+   $ docker-compose exec ksql-application java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar bootstrap-server=kafka:29092 format=DELIMITED topic=ksqlString
+
+   # Non-Docker:
+   $ ksql-examples-1.0-SNAPSHOT-standalone.jar format=DELIMITED topic=ksqlString
+
+
+Option 2: Kafka Console Producer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
 
 .. sourcecode:: bash
 
@@ -174,7 +193,7 @@ Docker image already generates data into Kafka topics.  If you want to generate 
    key3,value3
    key1,value4
 
-2. Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
+Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
 
 .. sourcecode:: bash
 
@@ -184,12 +203,6 @@ Docker image already generates data into Kafka topics.  If you want to generate 
    key2,value2
    key3,value3
    key1,value4
-
-3. Run the data generator to produce additional data to the Kafka cluster.
-
-.. sourcecode:: bash
-
-   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=topic_json maxInterval=1000
 
 
 

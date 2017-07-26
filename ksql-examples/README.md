@@ -6,16 +6,16 @@ After building the project you can run the examples by following these steps:
 
 2. Start the data gen for the users using the following command:
 
-    $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+        $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
 
 
 3. Start the data gen for pageview topic using the following command:
 
-    $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=json topic=pageview_topic_json
+        $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=json topic=pageview_topic_json
 
 4. Start the KSQL CLI using the following command:
 
-    $ java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
+        $ java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
 
 
 You will be able to run the provided queries and see the results. The data gen module will continuously push new messages to the topics until you terminate them

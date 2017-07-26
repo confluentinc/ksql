@@ -38,7 +38,6 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
-import kafka.Kafka;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -66,7 +65,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -778,7 +776,22 @@ public class Cli implements Closeable, AutoCloseable {
 
   private void printKsqlResponse(RestResponse<KsqlEntityList> response) throws IOException {
     if (response.isSuccessful()) {
-      printKsqlEntityList(response.getResponse());
+      KsqlEntityList ksqlEntities = response.getResponse();
+      boolean noErrorFromServer = true;
+      for (KsqlEntity entity : ksqlEntities) {
+        if (entity instanceof ErrorMessageEntity) {
+          printErrorMessage(((ErrorMessageEntity) entity).getErrorMessage());
+          noErrorFromServer = false;
+        } else if (entity instanceof CommandStatusEntity &&
+            (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {
+          String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
+          printError(fullMessage.split("\n")[0], fullMessage);
+          noErrorFromServer = false;
+        }
+      }
+      if (noErrorFromServer) {
+        printKsqlEntityList(response.getResponse());
+      }
     } else {
       printErrorMessage(response.getErrorMessage());
     }
@@ -855,7 +868,12 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void printErrorMessage(ErrorMessage errorMessage) {
-    terminal.writer().println(errorMessage.getMessage());
+    printError(errorMessage.getMessage(), errorMessage.toString());
+  }
+
+  private void printError(String shortMsg, String fullMsg) {
+    LOGGER.error(fullMsg);
+    terminal.writer().println(shortMsg);
   }
 
   private PropertiesList propertiesListWithOverrides(PropertiesList propertiesList) {

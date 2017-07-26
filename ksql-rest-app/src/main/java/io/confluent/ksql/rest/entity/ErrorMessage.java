@@ -47,6 +47,18 @@ public class ErrorMessage {
   }
 
   @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(message);
+    sb.append("\n");
+    for (String line : stackTrace) {
+      sb.append(line);
+      sb.append("\n");
+    }
+    return sb.toString();
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

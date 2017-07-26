@@ -6,6 +6,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.exception.ParseFailedException;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -160,29 +161,33 @@ public class KsqlEngine implements Closeable {
   public List<Pair<String, Statement>> parseQueries(final String queriesString,
                                 Map<String, Object> overriddenProperties,
                                 MetaStore tempMetaStore) {
-    MetaStore tempMetaStoreForParser = tempMetaStore.clone();
-    // Parse and AST creation
-    KsqlParser ksqlParser = new KsqlParser();
-    List<SqlBaseParser.SingleStatementContext>
-        parsedStatements =
-        ksqlParser.getStatements(queriesString);
-    List<Pair<String, Statement>> queryList = new ArrayList<>();
-    for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-      Pair<Statement, DataSourceExtractor> statementInfo =
-          ksqlParser.prepareStatement(singleStatementContext, tempMetaStoreForParser);
-      Statement statement = statementInfo.getLeft();
-      Pair<String, Statement> queryPair =
-          buildSingleQueryAst(
-              statement,
-              getStatementString(singleStatementContext),
-              tempMetaStore,
-              tempMetaStoreForParser,
-              overriddenProperties);
-      if (queryPair != null) {
-        queryList.add(queryPair);
+    try {
+      MetaStore tempMetaStoreForParser = tempMetaStore.clone();
+      // Parse and AST creation
+      KsqlParser ksqlParser = new KsqlParser();
+      List<SqlBaseParser.SingleStatementContext>
+          parsedStatements =
+          ksqlParser.getStatements(queriesString);
+      List<Pair<String, Statement>> queryList = new ArrayList<>();
+      for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
+        Pair<Statement, DataSourceExtractor> statementInfo =
+            ksqlParser.prepareStatement(singleStatementContext, tempMetaStoreForParser);
+        Statement statement = statementInfo.getLeft();
+        Pair<String, Statement> queryPair =
+            buildSingleQueryAst(
+                statement,
+                getStatementString(singleStatementContext),
+                tempMetaStore,
+                tempMetaStoreForParser,
+                overriddenProperties);
+        if (queryPair != null) {
+          queryList.add(queryPair);
+        }
       }
+      return queryList;
+    } catch (Exception e) {
+      throw new ParseFailedException("Parsing failed on KsqlEngine.", e);
     }
-    return queryList;
   }
 
   private Pair<String, Statement> buildSingleQueryAst(Statement statement,

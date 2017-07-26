@@ -4,11 +4,11 @@
 
 package io.confluent.ksql.parser;
 
+import io.confluent.ksql.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -46,9 +46,9 @@ public class KsqlParser {
         astNodes.add(statement);
       }
       return astNodes;
-    } catch (ParseCancellationException ex) {
+    } catch (Exception e) {
       // if we fail, parse with LL mode
-      throw new KsqlException(ex.getMessage());
+      throw new ParseFailedException(e.getMessage(), e);
     }
   }
 
@@ -58,7 +58,7 @@ public class KsqlParser {
       SqlBaseParser.StatementsContext statementsContext = (SqlBaseParser.StatementsContext) tree;
       return statementsContext.singleStatement();
     } catch (Exception e) {
-      throw new KsqlException(e.getMessage());
+      throw new ParseFailedException(e.getMessage(), e);
     }
   }
 

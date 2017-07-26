@@ -270,8 +270,11 @@ Exit KSQL
 
 
 
-Advanced: Complex KSQL Queries
-------------------------------
+Advanced
+--------
+
+Complex KSQL Queries
+^^^^^^^^^^^^^^^^^^^^
 
 Maybe we just point users to the Demo?
 
@@ -283,13 +286,10 @@ Maybe we just point users to the Demo?
 
 
 
-Advanced: Produce new topic data
---------------------------------
+Produce new topic data
+^^^^^^^^^^^^^^^^^^^^^^
 
 KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, you have several options.
-
-Option 1: Run the data generator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you are running Docker, there is already a container with the data generator that you can invoke.  If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>
 
@@ -302,10 +302,7 @@ If you are running Docker, there is already a container with the data generator 
    $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
 
 
-Option 2: Run Kafka console producer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString2``, with value of type String.
+Alternatively, you can use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString2``, with value of type String.
 
 .. sourcecode:: bash
 
@@ -329,13 +326,10 @@ Verify messages were written to this topic ``ksqlString2``. Press ``ctrl-c`` to 
 
 
 
-Advanced: Using JSON and Avro formats
--------------------------------------
-
-When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``avro``.
-
 JSON
 ^^^^
+
+When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON``. 
 
 1. From the command line, use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlJson``, with value of type JSON.
 

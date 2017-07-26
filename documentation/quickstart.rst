@@ -161,12 +161,15 @@ For example, if your broker is listening on ``broker1:9092`` and you want to set
 Produce data to topics in the Kafka cluster
 -------------------------------------------
 
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup.
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.
 
-If you want other data, you have several options.
+Option 0: Do nothing
+^^^^^^^^^^^^^^^^^^^^
 
-Option 1: Data Generator
-^^^^^^^^^^^^^^^^^^^^^^^^
+Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you want other data, you have several options.
+
+Option 1: Run the data generator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run the data generator with other arguments.  <TODO: KSQL-205>
 
@@ -179,8 +182,8 @@ Run the data generator with other arguments.  <TODO: KSQL-205>
    $ ksql-examples-1.0-SNAPSHOT-standalone.jar format=DELIMITED topic=ksqlString
 
 
-Option 2: Kafka Console Producer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Option 2: Run Kafka console producer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
 
@@ -304,15 +307,21 @@ Query and transform KSQL data
 
    ksql> PRINT `ksqlOutput-key1`;
 
-4. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
 
-5. <TODO: INSERT JOIN example, requires KSQL-152>
+Advanced: Complex KSQL Queries
+------------------------------
 
-6. <TODO: WINDOW example, requires KSQL-152>
+Maybe we just point users to the Demo?
+
+1. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
+
+2. <TODO: INSERT JOIN example, requires KSQL-152>
+
+3. <TODO: WINDOW example, requires KSQL-152>
 
 
-Use JSON and Avro formats
--------------------------
+Advanced: Using JSON and Avro formats
+-------------------------------------
 
 When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``avro``.
 

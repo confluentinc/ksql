@@ -153,55 +153,12 @@ Download the KSQL jar file <TODO: insert download link>. Then you can run KSQL:
    ksql> 
 
 
-
-Produce data to topics in the Kafka cluster
--------------------------------------------
-
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, you have several options.
-
-Option 1: Run the data generator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you are running Docker, there is already a container with the data generator that you can invoke.  If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>
-
-   .. sourcecode:: bash
-
-   # Docker:
-   $ docker-compose exec ksql-application java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar bootstrap-server=kafka:29092 format=DELIMITED topic=ksqlString
-
-   # Non-Docker:
-   $ ksql-examples-1.0-SNAPSHOT-standalone.jar format=DELIMITED topic=ksqlString
-
-
-Option 2: Run Kafka console producer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
-
-.. sourcecode:: bash
-
-   # Produce messages to a topic called ``ksqlString``, with a key of type String and value of type String
-   $ ./bin/kafka-console-producer --topic ksqlString --broker-list localhost:9092  --property parse.key=true --property key.separator=,
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
-
-Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
-
-.. sourcecode:: bash
-
-   # Consume messages from the topic called ``ksqlString``
-   $ ./bin/kafka-console-consumer --topic ksqlString --bootstrap-server localhost:9092 --from-beginning --property print.key=true
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
-
-
-
 Read Kafka topic data into KSQL
 -------------------------------
+
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, please see the section "Advanced: Produce new topic data" later in this quickstart.
+
+<TODO: KSQL-205: data generator should pre-generate this data>
 
 1. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
@@ -323,6 +280,53 @@ Maybe we just point users to the Demo?
 2. <TODO: INSERT JOIN example, requires KSQL-152>
 
 3. <TODO: WINDOW example, requires KSQL-152>
+
+
+
+Advanced: Produce new topic data
+--------------------------------
+
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, you have several options.
+
+Option 1: Run the data generator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are running Docker, there is already a container with the data generator that you can invoke.  If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>
+
+   .. sourcecode:: bash
+
+   # Docker:
+   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+
+   # Non-Docker:
+   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+
+
+Option 2: Run Kafka console producer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString2``, with value of type String.
+
+.. sourcecode:: bash
+
+   # Produce messages to a topic called ``ksqlString2``, with a key of type String and value of type String
+   $ ./bin/kafka-console-producer --topic ksqlString2 --broker-list localhost:9092  --property parse.key=true --property key.separator=,
+   key1,value1
+   key2,value2
+   key3,value3
+   key1,value4
+
+Verify messages were written to this topic ``ksqlString2``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
+
+.. sourcecode:: bash
+
+   # Consume messages from the topic called ``ksqlString2``
+   $ ./bin/kafka-console-consumer --topic ksqlString2 --bootstrap-server localhost:9092 --from-beginning --property print.key=true
+   key1,value1
+   key2,value2
+   key3,value3
+   key1,value4
+
 
 
 Advanced: Using JSON and Avro formats

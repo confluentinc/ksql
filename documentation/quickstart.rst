@@ -24,9 +24,11 @@ Do not run KSQL against a production cluster, since KSQL is in tech preview.  To
 Option 1: Docker
 ^^^^^^^^^^^^^^^^
 
-This assumes Docker on Mac.  If you are still using Docker Machine, please upgrade <TODO: INSERT LINKS>.  If you are new to Docker, get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
+Pre-requisites:
+- Docker on Mac
+- docker-compose
 
-<TODO: Docker>
+If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
 
 1. Clone the Confluent KSQL Docker demo repository:
 
@@ -46,16 +48,10 @@ This assumes Docker on Mac.  If you are still using Docker Machine, please upgra
 
 .. sourcecode:: bash
 
-   $ docker ps
+   $ docker-compose ps
    <TODO: update with expected output>
 
    CONTAINER ID        IMAGE                                           COMMAND                  CREATED             STATUS              PORTS                                                    NAMES
-   4ccd999c5be9        confluentinc/cp-kafka-ksql-standalone:latest    "bash -c 'echo Wai..."   7 minutes ago       Up 7 minutes        0.0.0.0:7070->7070/tcp                                   demo_kafka-ksql-standalone_1
-   bba4889c1002        confluentinc/cp-kafka-ksql-datagen:latest       "bash -c 'echo Wai..."   7 minutes ago       Up 7 minutes        0.0.0.0:7071->7071/tcp                                   demo_kafka-ksql-datagen_1
-   c5e586669ed7        confluentinc/cp-schema-registry:latest          "/etc/confluent/do..."   7 minutes ago       Up 7 minutes        0.0.0.0:8081->8081/tcp                                   demo_schema-registry_1
-   342a056f024e        confluentinc/cp-enterprise-kafka:latest         "/etc/confluent/do..."   7 minutes ago       Up 7 minutes        0.0.0.0:9092->9092/tcp, 0.0.0.0:29092->29092/tcp         demo_kafka_1
-   5f2917b2bed4        confluentinc/cp-zookeeper:latest                "/etc/confluent/do..."   9 minutes ago       Up 7 minutes        2181/tcp, 2888/tcp, 3888/tcp, 0.0.0.0:32181->32181/tcp   demo_zookeeper_1
-
 
 5. Verify Kafka topics were pre-generated.
 
@@ -110,17 +106,35 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
+KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
+If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
+For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic.
+
+   .. sourcecode:: bash
+
+   # Here is a sample cluster.properties file, you need to create your own if you want to override defaults
+   $ cat cluster.properties
+   application.id=ksql_app
+   bootstrap.servers=broker1:9092
+   auto.offset.reset=earliest
+
+   # Start KSQL and pass in the properties file
+   $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
+
+
 Option 1: Docker
 ^^^^^^^^^^^^^^^^
 
-You should be using the Docker Compose file provided in github <TODO: INSERT LINK>, because it includes the Docker container with the KSQL image and the data generator to produce sample data.
+From the host machine, connect to a shell on the Docker container ``<TOOD: container with KSQL application>``.
 
 .. sourcecode:: bash
 
-   # From the host machine: connect to Docker container
-   host$ docker-compose exec <container with KSQL application> sh
+   host$ docker-compose exec <TODO: container with KSQL application> sh
 
-   # From the Docker container: start KSQL connecting to broker running on remote container/host
+From the container, start KSQL connecting to broker running on remote container
+
+.. sourcecode:: bash
+
    container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar remote --bootstrap-server kafka:29092
    ...
    ksql> 
@@ -139,34 +153,11 @@ Download the KSQL jar file <TODO: insert download link>. Then you can run KSQL:
    ksql> 
 
 
-Cluster properties
-^^^^^^^^^^^^^^^^^^
-
-KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
-If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
-For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``: <TODO: call out earliest>
-
-   .. sourcecode:: bash
-
-   # Create ``cluster.properties`` file
-   $ cat cluster.properties
-   application.id=ksql_app
-   bootstrap.servers=broker1:9092
-   auto.offset.reset=earliest
-
-   # Start KSQL and pass in the properties file
-   $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
-
 
 Produce data to topics in the Kafka cluster
 -------------------------------------------
 
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.
-
-Option 0: Do nothing
-^^^^^^^^^^^^^^^^^^^^
-
-Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you want other data, you have several options.
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, you have several options.
 
 Option 1: Run the data generator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

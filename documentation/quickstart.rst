@@ -1,7 +1,7 @@
 .. _ksql_quickstart:
 
-Quickstart
-==========
+KSQL Quickstart
+===============
 
 **Table of Contents**
 
@@ -24,11 +24,7 @@ Do not run KSQL against a production cluster, since KSQL is in tech preview.  To
 Option 1: Docker
 ^^^^^^^^^^^^^^^^
 
-Pre-requisites:
-- Docker on Mac
-- docker-compose
-
-If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
+Pre-requisites: Docker Compose.  If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
 
 1. Clone the Confluent KSQL Docker demo repository:
 
@@ -72,33 +68,28 @@ This section is for users who are not using Docker. You will need to download an
 2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
 We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>.  Install Confluent Platform directly onto a Linux server: http://docs.confluent.io/current/installation.html
 
-3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart
-   assume that your are in this installation directory:
+3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart assume that your are in this installation directory:
 
 .. sourcecode:: bash
 
-  # Change to the installation directory (if you installed via tar or zip)
   $ cd confluent-3.3.0/
 
 4. Start the ZooKeeper instance, which will listen on ``localhost:2181``.  Since this is a long-running service, you should run it in its own terminal.
 
 .. sourcecode:: bash
 
-  # Start ZooKeeper.  Run this command in its own terminal.
   $ ./bin/zookeeper-server-start ./etc/kafka/zookeeper.properties
 
 5. Start the Kafka broker, which will listen on ``localhost:9092`` and connect to the ZooKeeper instance we just started.  Since this is also a long-running service, you should run it in its own terminal.
 
 .. sourcecode:: bash
 
-  # Start Kafka.  Run this command in its own terminal
   $ ./bin/kafka-server-start ./etc/kafka/server.properties
 
 6. Start the Confluent Schema Registry, which will listen on ``localhost:8081`` and connect to the ZooKeeper instance we just started.  Since this is also a long-running service, you should run it in its own terminal.
 
 .. sourcecode:: bash
 
-  # Start Schema Registry.  Run this command in its own terminal
   $ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
 
 
@@ -108,17 +99,15 @@ Start KSQL
 
 KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
 If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
-For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic.
+For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample properties file, you need to create your own if you want to override defaults.
 
    .. sourcecode:: bash
 
-   # Here is a sample cluster.properties file, you need to create your own if you want to override defaults
    $ cat cluster.properties
    application.id=ksql_app
    bootstrap.servers=broker1:9092
    auto.offset.reset=earliest
 
-   # Start KSQL and pass in the properties file
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
 
@@ -140,14 +129,13 @@ From the container, start KSQL connecting to broker running on remote container
    ksql> 
 
 
-Option 2: non-Docker
+Option 2: Non-Docker
 ^^^^^^^^^^^^^^^^^^^^
 
-Download the KSQL jar file <TODO: insert download link>. Then you can run KSQL:
+Download the KSQL jar file <TODO: insert download link>. Then you can start KSQL. Use the keyword ``local`` if the broker is running on your local machine.
 
 .. sourcecode:: bash
 
-   # Start KSQL connecting to broker running on local host
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql> 
@@ -273,16 +261,16 @@ Exit KSQL
 Advanced
 --------
 
-Complex KSQL Queries
-^^^^^^^^^^^^^^^^^^^^
+JOIN, WINDOW, PARTITION
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Maybe we just point users to the Demo?
 
-1. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
+1. <TODO: INSERT JOIN example, requires KSQL-152>
 
-2. <TODO: INSERT JOIN example, requires KSQL-152>
+2. <TODO: WINDOW example, requires KSQL-152>
 
-3. <TODO: WINDOW example, requires KSQL-152>
+3. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
 
 
 
@@ -291,22 +279,23 @@ Produce new topic data
 
 KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator, so no action is required if you are running a Docker setup. If you are running Docker but want to produce additional data, or if you are not running Docker, you have several options.
 
-If you are running Docker, there is already a container with the data generator that you can invoke.  If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>
+If you are running Docker, there is already a container with the data generator that you can invoke.
 
    .. sourcecode:: bash
 
-   # Docker:
    $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
 
-   # Non-Docker:
+If you are not running Docker, you can download the java data generator <INSERT LINK>.  <TODO: KSQL-205>  Run it as follows.
+
+   .. sourcecode:: bash
+
    $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
 
 
-Alternatively, you can use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString2``, with value of type String.
+Alternatively, you can use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString2``, with value of type String.  In the example below, you can poduce messages to a topic called ``ksqlString2``, with a key of type String and value of type String.
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksqlString2``, with a key of type String and value of type String
    $ ./bin/kafka-console-producer --topic ksqlString2 --broker-list localhost:9092  --property parse.key=true --property key.separator=,
    key1,value1
    key2,value2
@@ -317,7 +306,6 @@ Verify messages were written to this topic ``ksqlString2``. Press ``ctrl-c`` to 
 
 .. sourcecode:: bash
 
-   # Consume messages from the topic called ``ksqlString2``
    $ ./bin/kafka-console-consumer --topic ksqlString2 --bootstrap-server localhost:9092 --from-beginning --property print.key=true
    key1,value1
    key2,value2
@@ -335,7 +323,6 @@ When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value 
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksqlJson``, with a key of type String and value of type Vro
    $ ./bin/kafka-console-producer --topic ksqlJson --broker-list localhost:9092
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
@@ -346,7 +333,6 @@ When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value 
 
 .. sourcecode:: bash
 
-   # Consume messages from the topic called ``ksqlJson``
    $ ./bin/kafka-console-consumer --topic ksqlJson --bootstrap-server localhost:9092 --from-beginning
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
@@ -402,7 +388,6 @@ Use an Avro schema file for a given topic to read. Avro records are written usin
 
 .. sourcecode:: bash
 
-   # Produce messages to a topic called ``ksqlAvro``, with a key of type String and value of type Avro
    $ ./bin/kafka-avro-console-producer --broker-list localhost:9092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://localhost:8081
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
@@ -413,7 +398,6 @@ Use an Avro schema file for a given topic to read. Avro records are written usin
 
 .. sourcecode:: bash
 
-   # Consume messages from the topic called ``ksqlAvro``
    $ ./bin/kafka-avro-console-consumer --topic ksqlAvro --bootstrap-server localhost:9092 --from-beginning --property schema.registry.url=http://localhost:8081
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}

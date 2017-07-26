@@ -58,14 +58,19 @@ public class WindowExpression extends Node {
   public static WindowUnit getWindowUnit(String windowUnitString) {
     switch (windowUnitString) {
       case "DAY":
+      case "DAYS":
         return WindowUnit.DAY;
       case "HOUR":
+      case "HOURS":
         return WindowUnit.HOUR;
       case "MINUTE":
+      case "MINUTES":
         return WindowUnit.MINUTE;
       case "SECOND":
+      case "SECONDS":
         return WindowUnit.SECOND;
       case "MILLISECOND":
+      case "MILLISECONDS":
         return WindowUnit.MILLISECOND;
       default:
         return null;

@@ -28,8 +28,12 @@ public abstract class DataGenProducer {
       Generator generator,
       String kafkaTopicName,
       String key,
-      int messageCount
+      int messageCount,
+      long maxInterval
   ) {
+    if (maxInterval < 0) {
+      maxInterval = INTER_MESSAGE_MAX_INTERVAL;
+    }
     Schema avroSchema = generator.schema();
     org.apache.kafka.connect.data.Schema kafkaSchema = new AvroData(1).toConnectSchema(avroSchema);
 
@@ -63,7 +67,7 @@ public abstract class DataGenProducer {
       producer.send(producerRecord);
       System.err.println(keyString + " --> (" + genericRow + ")");
       try {
-        Thread.sleep((long)(INTER_MESSAGE_MAX_INTERVAL*Math.random()));
+        Thread.sleep((long)(maxInterval * Math.random()));
       } catch (InterruptedException e) {
         // Ignore the exception.
       }

@@ -112,38 +112,6 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 
 
 
-Produce data to topics in the Kafka cluster
--------------------------------------------
-
-1. Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
-
-.. sourcecode:: bash
-
-   # Produce messages to a topic called ``ksqlString``, with a key of type String and value of type String
-   $ ./bin/kafka-console-producer --topic ksqlString --broker-list localhost:9092  --property parse.key=true --property key.separator=,
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
-
-2. Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
-
-.. sourcecode:: bash
-
-   # Consume messages from the topic called ``ksqlString``
-   $ ./bin/kafka-console-consumer --topic ksqlString --bootstrap-server localhost:9092 --from-beginning --property print.key=true
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
-
-3. Run the data generator to produce additional data to the Kafka cluster.
-
-.. sourcecode:: bash
-
-   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=topic_json maxInterval=1000
-
-
 Start KSQL
 ----------
 
@@ -188,6 +156,41 @@ For example, if your broker is listening on ``broker1:9092`` and you want to set
 
    # Start KSQL and pass in the properties file
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
+
+
+Produce data to topics in the Kafka cluster
+-------------------------------------------
+
+Docker image already generates data into Kafka topics.  If you want to generate additional data, you can use the provided data generator jar.  Or you can use the commandline tools to write messages, as shown below.
+
+1. Use the ``kafka-console-producer`` to produce messages to a topic called ``ksqlString``, with value of type String.
+
+.. sourcecode:: bash
+
+   # Produce messages to a topic called ``ksqlString``, with a key of type String and value of type String
+   $ ./bin/kafka-console-producer --topic ksqlString --broker-list localhost:9092  --property parse.key=true --property key.separator=,
+   key1,value1
+   key2,value2
+   key3,value3
+   key1,value4
+
+2. Verify messages were written to this topic ``ksqlString``. Press ``ctrl-c`` to exit ``kafka-console-consumer``.
+
+.. sourcecode:: bash
+
+   # Consume messages from the topic called ``ksqlString``
+   $ ./bin/kafka-console-consumer --topic ksqlString --bootstrap-server localhost:9092 --from-beginning --property print.key=true
+   key1,value1
+   key2,value2
+   key3,value3
+   key1,value4
+
+3. Run the data generator to produce additional data to the Kafka cluster.
+
+.. sourcecode:: bash
+
+   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=topic_json maxInterval=1000
+
 
 
 Read Kafka topic data into KSQL

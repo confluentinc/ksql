@@ -6,6 +6,8 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.parser.CodegenExpressionFormatter;
 import io.confluent.ksql.parser.ExpressionFormatter;
+import io.confluent.ksql.util.KsqlException;
+
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Optional;
@@ -34,8 +36,7 @@ public abstract class Expression
     try {
       return CodegenExpressionFormatter.formatExpression(this, schema);
     } catch (Exception e) {
-      e.printStackTrace();
+      throw new KsqlException(e.getMessage());
     }
-    return null;
   }
 }

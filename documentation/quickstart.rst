@@ -25,7 +25,7 @@ In this quickstart, you will run KSQL on the same machine as the Kafka cluster. 
 Option 1: Docker
 ^^^^^^^^^^^^^^^^
 
-If you are new to Docker, get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
+This assumes Docker on Mac.  If you are still using Docker Machine, please upgrade <TODO: INSERT LINKS>.  If you are new to Docker, get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
 
 <TODO: Docker>
 
@@ -43,9 +43,32 @@ If you are new to Docker, get a general overview of Kafka on Docker: http://docs
 
    $ docker-compose up -d
 
+4. Verify five Docker containers were created: ZooKeeper, Kafka Broker, Schema Registry, KSQL, Data Generator.
+
+.. sourcecode:: bash
+
+   $ docker ps
+   <TODO: update with expected output>
+
+   CONTAINER ID        IMAGE                                           COMMAND                  CREATED             STATUS              PORTS                                                    NAMES
+   4ccd999c5be9        confluentinc/cp-kafka-ksql-standalone:latest    "bash -c 'echo Wai..."   7 minutes ago       Up 7 minutes        0.0.0.0:7070->7070/tcp                                   demo_kafka-ksql-standalone_1
+   bba4889c1002        confluentinc/cp-kafka-ksql-datagen:latest       "bash -c 'echo Wai..."   7 minutes ago       Up 7 minutes        0.0.0.0:7071->7071/tcp                                   demo_kafka-ksql-datagen_1
+   c5e586669ed7        confluentinc/cp-schema-registry:latest          "/etc/confluent/do..."   7 minutes ago       Up 7 minutes        0.0.0.0:8081->8081/tcp                                   demo_schema-registry_1
+   342a056f024e        confluentinc/cp-enterprise-kafka:latest         "/etc/confluent/do..."   7 minutes ago       Up 7 minutes        0.0.0.0:9092->9092/tcp, 0.0.0.0:29092->29092/tcp         demo_kafka_1
+   5f2917b2bed4        confluentinc/cp-zookeeper:latest                "/etc/confluent/do..."   9 minutes ago       Up 7 minutes        2181/tcp, 2888/tcp, 3888/tcp, 0.0.0.0:32181->32181/tcp   demo_zookeeper_1
+
+
+5. Verify Kafka topics were pre-generated.
+
+.. sourcecode:: bash
+
+   $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+   <TODO: insert expected output>
+
+
 
 Option 2: Non-Docker
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 In this section we download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker alongside a single-node ZooKeeper ensemble.  
 
@@ -83,6 +106,10 @@ We recommend running the latest version of Confluent Platform, but the minimum v
   # Start Schema Registry.  Run this command in its own terminal
   $ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
 
+7. Download the KSQL jar file <TODO: insert download link>.
+
+8. Download the demo data generation jar file <TODO: insert download link>.
+
 
 Produce data to topics in the Kafka cluster
 -------------------------------------------
@@ -111,9 +138,7 @@ Produce data to topics in the Kafka cluster
 Start KSQL and read topic data into KSQL
 ----------------------------------------
 
-1. Download the KSQL jar file <TODO: insert download link>.
-
-2. Start KSQL. In this example, we use ``local`` mode to connect to the Kafka broker running on the local machine that is listening on ``localhost:9092``.
+1. Start KSQL. In this example, we use ``local`` mode to connect to the Kafka broker running on the local machine that is listening on ``localhost:9092``.
 
 .. sourcecode:: bash
 
@@ -121,6 +146,8 @@ Start KSQL and read topic data into KSQL
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql> 
+
+   <TODO: If user is using Docker, they will connect a different way. Do they log directly into the container and run at ksql> prompt?>
 
 .. note::
    KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
@@ -139,13 +166,13 @@ Start KSQL and read topic data into KSQL
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
 
-3. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
+2. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
 
    ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topic='ksqlString', value_format='DELIMITED');
 
-4. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
+3. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
 
    ksql> PRINT ksqlStringTopic;
    <TODO: KSQL-165 earliest problem getting all values. Also KSQL-132, ctrl-c does not work>
@@ -238,7 +265,7 @@ Query and transform KSQL data
 
 5. <TODO: INSERT JOIN example, requires KSQL-152>
 
-6. <TODO: window example, requires KSQL-152>
+6. <TODO: WINDOW example, requires KSQL-152>
 
 
 Use JSON and Avro formats
@@ -261,6 +288,8 @@ JSON
    {"name":"value4","id":"key1"}
 
 2. Verify messages were written to this topic ``ksqlJson``
+
+.. sourcecode:: bash
 
    # Consume messages from the topic called ``ksqlJson``
    $ ./bin/kafka-console-consumer --topic ksqlJson --bootstrap-server localhost:9092 --from-beginning
@@ -325,6 +354,8 @@ Use an Avro schema file for a given topic to read. Avro records are written usin
 
 2. Verify messages were written to this topic ``ksqlAvro``
 
+.. sourcecode:: bash
+
    # Consume messages from the topic called ``ksqlAvro``
    $ ./bin/kafka-avro-console-consumer --topic ksqlAvro --bootstrap-server localhost:9092 --from-beginning --property schema.registry.url=http://localhost:8081
    {"name":"value1","id":"key1"}
@@ -376,4 +407,18 @@ Exit KSQL
 
   ksql> exit
 
+
+Extra (To be Removed)
+---------------------
+
+Until KSQL-172 is done, I need to manually pre-create topics, produce, consume:
+
+.. sourcecode:: bash
+docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --create --topic ksqlString --partitions 1 --replication-factor 1
+docker-compose exec kafka kafka-console-producer --topic ksqlString --broker-list kafka:29092  --property parse.key=true --property key.separator=,
+docker-compose exec kafka kafka-console-consumer --topic ksqlString --bootstrap-server kafka:29092 --from-beginning
+
+docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --create --topic order_json --partitions 1 --replication-factor 1
+java -jar ksql-examples-1.0-SNAPSHOT-standalone-4.jar bootstrap-server=localhost:9092 quickstart=orders format=json topic=order_json
+docker-compose exec kafka kafka-console-consumer --topic order_json --bootstrap-server kafka:29092 --from-beginning
 

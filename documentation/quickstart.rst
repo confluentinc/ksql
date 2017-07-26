@@ -9,18 +9,16 @@ Quickstart
   :local:
 
 
-Goal of this KSQL quickstart
-----------------------------
-
 Welcome to Confluent and Kafka Structured Query Language (KSQL)!
 
 The goal of this quickstart guide is to provide you with a first hands-on look at KSQL. This quickstart
 will guide you through a simple workflow to be able to query and transform KSQL data.
 
-Start the Kafka cluster
------------------------
+Start a Kafka cluster
+---------------------
 
-In this quickstart, you will run KSQL on the same machine as the Kafka cluster.  If you already have an existing running Kafka cluster that you can connect to locally, you can skip this section.  On the other hand, if you want to spin up a development Kafka environment for KSQL, you have two options:
+Do not run KSQL against a production cluster, since KSQL is in tech preview.  To spin up a development Kafka environment for KSQL, you have two options:
+
 
 Option 1: Docker
 ^^^^^^^^^^^^^^^^

@@ -57,7 +57,7 @@ public class JsonFormatTest {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
-  private static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 1000;
+  private static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
   private static final long RESULTS_POLL_MAX_TIME_MS = 30000;
   private static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
   private static final String inputTopic = "orders_topic";

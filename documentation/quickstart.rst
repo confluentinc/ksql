@@ -392,7 +392,9 @@ Now you can proceed with any computations and transformations as described earli
 Avro
 ^^^^
 
-Use an Avro schema file for a given topic to read. Avro records are written using Schema Registry, but use a local schema file to deserialize the Avro message
+When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``Avro``. 
+
+Use an Avro schema file for a given topic to read. Avro records are written using Schema Registry, but use a local schema file to deserialize the Avro message. Full Schema Registry integration into KSQL will be available soon.
 
 <TODO: Need KSQL-133 and KSQL-125>
 

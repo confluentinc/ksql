@@ -63,13 +63,13 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 Start KSQL
 ----------
 
-1. From the host machine, connect to a shell on the Docker container ``<TOOD: container with KSQL application>``.
+1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built>
 
 .. sourcecode:: bash
 
-   host$ docker-compose exec <TODO: container with KSQL application> sh
+   $ docker-compose exec ksql-application java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file /app2/cluster.properties
 
-2. You can override any Kafka properties when starting KSQL with a properties file.
+2. (Optional) You may have noticed the ``--properties-file /app2/cluster.properties`` argument which allows you to override any Kafka properties when starting KSQL with a properties file.
 For example, if your broker is listening on ``kafka:29092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample properties file, you need to create your own if you want to override defaults.
 
    .. sourcecode:: bash
@@ -79,15 +79,7 @@ For example, if your broker is listening on ``kafka:29092`` and you want to set 
    bootstrap.servers=kafka:29092
    auto.offset.reset=earliest
 
-3. From the container, start KSQL.
-
-.. sourcecode:: bash
-
-   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
-   ...
-   ksql> 
-
-4. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster.
+3. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster.
 
 
 

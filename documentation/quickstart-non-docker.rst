@@ -18,7 +18,7 @@ Start a Kafka cluster
 
 Do not run KSQL against a production cluster, since KSQL is in tech preview.
 
-You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker alongside a single-node ZooKeeper ensemble.
+You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker along with a single-node ZooKeeper ensemble and a single Schema Registry instance.
 
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 

@@ -41,6 +41,8 @@ Once you have your Kafka cluster running and have started KSQL, you should see t
 Read Kafka topic data into KSQL
 -------------------------------
 
+We assume that you have a topic called ``ksqlString`` in your Kafka cluster, with String keys and values. 
+
 1. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
@@ -152,6 +154,8 @@ Maybe we just point users to the Demo?
 
 JSON and Avro
 -------------
+
+<TODO: discuss if we should omit talk of JSON/Avro completely for the first release?>
 
 When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``Avro``.
 

@@ -7,6 +7,8 @@ package io.confluent.ksql.cli.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.codehaus.jackson.JsonParseException;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -47,6 +49,8 @@ public class CliUtils {
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
+    } catch (JsonParseException e) {
+      throw new KsqlException("Could not parse the avro schema file.");
     } catch (IOException e) {
       throw new KsqlException("Could not read the avro schema file.");
     }

@@ -43,13 +43,13 @@ public class SerDeUtil {
 
   }
 
-  private static Serde<GenericRow> getGenericRowDelimitedSerde() {
+  private static Serde<GenericRow> getGenericRowDelimitedSerde(final Schema schema) {
     Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer();
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer();
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(schema);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -77,7 +77,7 @@ public class SerDeUtil {
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJsonSerde(schema);
     } else if (topicSerDe instanceof KsqlDelimitedTopicSerDe) {
-      return SerDeUtil.getGenericRowDelimitedSerde();
+      return SerDeUtil.getGenericRowDelimitedSerde(schema);
     } else {
       throw new KsqlException("Unknown topic serde.");
     }

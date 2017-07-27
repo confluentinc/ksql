@@ -34,7 +34,7 @@ public class DelimitedConsumer {
       final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer();
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer();
+      final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(null);
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

@@ -11,7 +11,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.rest.entity.*;
-import io.confluent.ksql.rest.server.FakeKafkaTopicClient;
+import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.*;
@@ -82,7 +82,7 @@ public class KsqlResourceTest {
       KsqlRestConfig restConfig = new KsqlRestConfig(defaultKsqlConfig);
       KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlStreamsProperties());
 
-      KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new FakeKafkaTopicClient());
+      KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient());
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
           commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));

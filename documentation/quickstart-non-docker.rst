@@ -31,24 +31,21 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 
   $ cd confluent-3.3.0/
 
-4. Start the ZooKeeper instance, which will listen on ``localhost:2181``.  Since this is a long-running service, you should run it in its own terminal.
+4.  Start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on ``localhost:2181``, Kafka broker is listening on ``localhost:9092``, and Confluent Schema Registry is listening on ``localhost:8081``.
 
 .. sourcecode:: bash
 
-  $ ./bin/zookeeper-server-start ./etc/kafka/zookeeper.properties
-
-5. Start the Kafka broker, which will listen on ``localhost:9092`` and connect to the ZooKeeper instance we just started.  Since this is also a long-running service, you should run it in its own terminal.
-
-.. sourcecode:: bash
-
-  $ ./bin/kafka-server-start ./etc/kafka/server.properties
-
-6. Start the Confluent Schema Registry, which will listen on ``localhost:8081`` and connect to the ZooKeeper instance we just started.  Since this is also a long-running service, you should run it in its own terminal.
-
-.. sourcecode:: bash
-
-  $ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
-
+   $ ./bin/confluent start
+   Starting zookeeper
+   zookeeper is [UP]
+   Starting kafka
+   kafka is [UP]
+   Starting schema-registry
+   schema-registry is [UP]
+   Starting kafka-rest
+   kafka-rest is [UP]
+   Starting connect
+   connect is [UP]
 
 
 Start KSQL

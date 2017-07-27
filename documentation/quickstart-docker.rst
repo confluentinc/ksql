@@ -96,21 +96,23 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
 
 However, if you want to produce additional data.
 
-1. You can produce additional Kafka data using the provided container with the data generator. The following example generates data to a topic called ``user_topic_json``.
-
-   .. sourcecode:: bash
-
-   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
-
-2. You can also produce additional Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString2``, with value of type String.
+1. Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString``, with value of type String.
 
 .. sourcecode:: bash
 
-   $ docker-compose exec kafka kafka-console-producer --topic ksqlString2 --broker-list kafka:29092  --property parse.key=true --property key.separator=,
+   $ docker-compose exec kafka kafka-console-producer --topic ksqlString --broker-list kafka:29092  --property parse.key=true --property key.separator=,
    key1,value1
    key2,value2
    key3,value3
    key1,value4
+
+2. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query this topic.
+
+3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
+
+   .. sourcecode:: bash
+
+   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
 
 3. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
 

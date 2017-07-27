@@ -138,24 +138,8 @@ Query and transform KSQL data
 
 
 
-Exit KSQL
----------
-
-1. <TODO: INSERT TERMINATE EXAMPLE>  <TODO: link to KSQL concepts guide, when is terminate relevant...is it only with workers?>
-
-2. From the KSQL prompt ``ksql>``, type 'exit'.
-
-.. sourcecode:: bash
-
-  ksql> exit
-
-
-
-Advanced
---------
-
 JOIN, WINDOW, PARTITION
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 Maybe we just point users to the Demo?
 
@@ -167,7 +151,7 @@ Maybe we just point users to the Demo?
 
 
 JSON and Avro
-^^^^^^^^^^^^^
+-------------
 
 When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``Avro``.
 
@@ -198,3 +182,17 @@ When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value 
    ksql> CREATE STREAM ksqlAvroStream (name varchar, id varchar) WITH (registered_topic='ksqlAvroTopic', key='id');
 
 6. Proceed with any processing and data transformations as described earlier.
+
+
+
+Exit KSQL
+---------
+
+1. <TODO: INSERT TERMINATE EXAMPLE>  <TODO: link to KSQL concepts guide, when is terminate relevant...is it only with workers?>
+
+2. From the KSQL prompt ``ksql>``, type 'exit'.
+
+.. sourcecode:: bash
+
+  ksql> exit
+

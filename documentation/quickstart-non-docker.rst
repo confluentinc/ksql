@@ -93,7 +93,7 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    key3,value3
    key1,value4
 
-2. Return to the [main KSQL quickstart](quickstart.rst) and follow those steps to start using KSQL to query this topic.
+2. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query this topic.
 
 3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
 

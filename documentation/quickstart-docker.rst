@@ -85,7 +85,7 @@ s file, you need to create your own if you want to override defaults.
 
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
-4. Return to the [main KSQL quickstart](quickstart.rst) and follow those steps to start querying the Kafka cluster.
+4. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster.
 
 
 

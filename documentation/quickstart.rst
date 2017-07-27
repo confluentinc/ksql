@@ -41,9 +41,11 @@ Once you have your Kafka cluster running and have started KSQL, you should see t
 Read Kafka topic data into KSQL
 -------------------------------
 
-We assume that you have a topic called ``ksqlString`` in your Kafka cluster, with String keys and values. 
+Before proceeding with the steps below, please ensure that you have a topic in your Kafka cluster called ``ksqlString``, with messages keys and values of type String.
 
-1. Register the ``ksqlString`` topic into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
+You should now be at your ``ksql>`` prompt.
+
+1. Register the Kafka topic ``ksqlString`` into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
 
@@ -142,8 +144,6 @@ Query and transform KSQL data
 
 JOIN, WINDOW, PARTITION
 -----------------------
-
-Maybe we just point users to the Demo?
 
 1. <TODO: INSERT JOIN example, requires KSQL-152>
 

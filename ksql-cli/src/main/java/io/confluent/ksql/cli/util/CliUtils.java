@@ -29,6 +29,9 @@ public class CliUtils {
                                                       registerTopicContext) {
     AstBuilder astBuilder = new AstBuilder(null);
     RegisterTopic registerTopic = (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
+    if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) == null) {
+      throw new KsqlException("VALUE_FORMAT is not set for the topic.");
+    }
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
         .equalsIgnoreCase("'AVRO'")) {
       if (registerTopic.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FILE)) {

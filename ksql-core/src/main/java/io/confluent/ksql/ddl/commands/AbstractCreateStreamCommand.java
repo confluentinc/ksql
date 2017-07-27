@@ -38,7 +38,11 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     Map<String, Expression> properties = statement.getProperties();
     this.sourceName = statement.getName().getSuffix();
 
-    this.topicName = StringUtil.cleanQuotes(properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
+    if (!properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
+      throw new KsqlException("You need to set the corresponding registered topic in WITH clasue.");
+    }
+    this.topicName = StringUtil.cleanQuotes(
+        properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 
     checkTopicNameNotNull(properties);
 
@@ -47,7 +51,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
 
     this.keyColumnName = "";
 
-    if (properties.get(DdlConfig.KEY_NAME_PROPERTY) != null) {
+    if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       keyColumnName = properties.get(DdlConfig.KEY_NAME_PROPERTY)
           .toString().toUpperCase();
 
@@ -55,7 +59,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     }
 
     this.timestampColumnName = "";
-    if (properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
+    if (properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)) {
       timestampColumnName = properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
           .toString().toUpperCase();
       timestampColumnName = StringUtil.cleanQuotes(timestampColumnName);
@@ -69,7 +73,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
 
 
     this.isWindowed = false;
-    if (properties.get(DdlConfig.IS_WINDOWED_PROPERTY) != null) {
+    if (properties.containsKey(DdlConfig.IS_WINDOWED_PROPERTY)) {
       String isWindowedProp = properties.get(DdlConfig.IS_WINDOWED_PROPERTY)
           .toString().toUpperCase();
       try {

@@ -124,6 +124,10 @@ public class QueryEngine {
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
 
+    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty() &&
+        analysis.getGroupByExpressions().isEmpty()) {
+      throw new KsqlException("Aggregate query needs GROUP BY clause.");
+    }
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       aggregateAnalyzer.process(analysis.getHavingExpression(),

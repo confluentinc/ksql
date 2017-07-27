@@ -10,7 +10,7 @@ Docker Setup for KSQL
   :local:
 
 
-This part of the quickstart will guide you through the steps to setup KSQL for Docker environments.
+This part of the quickstart will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. Once you complete these steps, you can start using KSQL to query the Kafka cluster.
 
 
 Start a Kafka cluster
@@ -84,6 +84,8 @@ s file, you need to create your own if you want to override defaults.
    auto.offset.reset=earliest
 
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
+
+4. Return to the [main KSQL quickstart](quickstart.rst) and follow those steps to start querying the Kafka cluster.
 
 
 

@@ -10,7 +10,7 @@ Non-Docker Setup for KSQL
   :local:
 
 
-This part of the quickstart will guide you through the steps to setup KSQL for non-Docker environments.
+This part of the quickstart will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. Once you complete these steps, you can start using KSQL to query the Kafka cluster.
 
 
 Start a Kafka cluster
@@ -78,18 +78,12 @@ s file, you need to create your own if you want to override defaults.
    $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
 
 
-Produce more topic data
+Produce topic data
 -----------------------
 
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.
+KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from. Choose any of the following options:
 
-1. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
-
-   .. sourcecode:: bash
-
-   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
-
-2. You can also produce additional Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString``, with value of type String.
+1. Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString``, with value of type String.
 
 .. sourcecode:: bash
 
@@ -99,7 +93,15 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    key3,value3
    key1,value4
 
-3. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
+2. Return to the [main KSQL quickstart](quickstart.rst) and follow those steps to start using KSQL to query this topic.
+
+3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
+
+   .. sourcecode:: bash
+
+   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+
+4. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
 
 .. sourcecode:: bash
 
@@ -109,7 +111,7 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
 
-4. From Avro format, using the same Kafka commandline, use the ``kafka-avro-console-producer`` to produce messages to a topic called ``ksqlAvro``.
+5. From Avro format, using the same Kafka commandline, use the ``kafka-avro-console-producer`` to produce messages to a topic called ``ksqlAvro``.
 
 .. sourcecode:: bash
 
@@ -118,3 +120,4 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}
    {"name":"value4","id":"key1"}
+

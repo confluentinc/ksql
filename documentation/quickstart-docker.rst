@@ -41,7 +41,14 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
    $ docker-compose ps
    <TODO: update with expected output>
 
-   CONTAINER ID        IMAGE                                           COMMAND                  CREATED             STATUS              PORTS                                                    NAMES
+              Name                         Command               State                           Ports                          
+   ----------------------------------------------------------------------------------------------------------------------------
+   demo_kafka-create-topics_1   bash -c echo Waiting for K ...   Up      9092/tcp                                               
+   demo_kafka_1                 /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
+   demo_ksql-application_1      bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
+   demo_schema-registry_1       /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
+   demo_zookeeper_1             /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
+
 
 5. Verify Kafka topics were pre-generated.
 
@@ -128,7 +135,7 @@ However, if you want to produce additional data.
 
 .. sourcecode:: bash
 
-   $ docker-compose exec kafka kafka-avro-console-producer --broker-list kafka:29092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://schemaregistry:28081
+   $ docker-compose exec kafka kafka-avro-console-producer --broker-list kafka:29092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://schema-registry:8081
    {"name":"value1","id":"key1"}
    {"name":"value2","id":"key2"}
    {"name":"value3","id":"key3"}

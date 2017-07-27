@@ -59,11 +59,17 @@ public class MetaStoreImpl implements MetaStore {
 
   @Override
   public void deleteTopic(String topicName) {
+    if (!topicMap.containsKey(topicName)) {
+      throw new KsqlException(String.format("No topic with name %s was registered.", true));
+    }
     topicMap.remove(topicName);
   }
 
   @Override
   public void deleteSource(final String sourceName) {
+    if (!dataSourceMap.containsKey(sourceName)) {
+      throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
+    }
     dataSourceMap.remove(sourceName);
   }
 

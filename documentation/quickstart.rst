@@ -170,19 +170,19 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
 
-4. Create a KSQL stream from the registered Kafka topic, and describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
+4. Create a KSQL stream from the registered Kafka topic, assigning the topic's message value as a column called ``country``.  Describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM ksqlStringStream (value string) WITH (registered_topic='ksqlStringTopic');
+   ksql> CREATE STREAM ksqlStringStream (country string) WITH (registered_topic='ksqlStringTopic');
 
 5. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE ksqlStringTable (value string) WITH (registered_topic='ksqlStringTopic', statestore='ksqlStringStore');
+   ksql> CREATE TABLE ksqlStringTable (country string) WITH (registered_topic='ksqlStringTopic', statestore='ksqlStringStore');
 
-6. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``VALUE``. <TODO: ROWTIME corresponds to...message timestamp?>
+6. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``COUNTRY``. <TODO: ROWTIME corresponds to...message timestamp?>
 
 .. sourcecode:: bash
 
@@ -191,14 +191,14 @@ KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to 
    ------------------
     ROWTIME |  INT64 
      ROWKEY | STRING 
-      VALUE | STRING 
+    COUNTRY | STRING 
 
    ksql> DESCRIBE ksqlStringTable;
       Field |   Type 
    ------------------
     ROWTIME |  INT64 
      ROWKEY | STRING 
-      VALUE | STRING 
+    COUNTRY | STRING 
 
 7. View all the KSQL STREAMS and TABLES.
 

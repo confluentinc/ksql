@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: docker.confluent.io:5000/confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:latest
     hostname: zookeeper
     ports:
       - '32181:32181'
@@ -13,7 +13,7 @@ services:
       - "moby:127.0.0.1"
 
   kafka:
-    image: docker.confluent.io:5000/confluentinc/cp-enterprise-kafka:latest
+    image: confluentinc/cp-enterprise-kafka:latest
     hostname: kafka
     ports:
       - '9092:9092'
@@ -37,7 +37,7 @@ services:
       - "moby:127.0.0.1"
 
   schema-registry:
-    image: docker.confluent.io:5000/confluentinc/cp-schema-registry:latest
+    image: confluentinc/cp-schema-registry:latest
     hostname: schema-registry
     depends_on:
       - zookeeper
@@ -53,7 +53,7 @@ services:
   # This "container" is a workaround to pre-create topics for the Kafka Music application
   # until we have a more elegant way to do that.
   kafka-create-topics:
-    image: docker.confluent.io:5000/confluentinc/cp-enterprise-kafka:latest
+    image: confluentinc/cp-enterprise-kafka:latest
     depends_on:
       - kafka
     hostname: kafka-create-topics
@@ -81,6 +81,7 @@ services:
     volumes:
       - /Users/yeva/Downloads/ksql-examples-1.0-SNAPSHOT-standalone-4.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
       - /Users/yeva/Downloads/ksql-cli-1.0-SNAPSHOT-standalone-4.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/Downloads/cluster.properties:/app2/cluster.properties
     hostname: ksql-application
     depends_on:
       - kafka

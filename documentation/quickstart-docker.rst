@@ -69,28 +69,23 @@ Start KSQL
 
    host$ docker-compose exec <TODO: container with KSQL application> sh
 
-2. From the container, start KSQL connecting to broker running on remote container
-
-.. sourcecode:: bash
-
-   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar remote --bootstrap-server kafka:29092
-   ...
-   ksql> 
-
-3. KSQL accepts command line options, see ``java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar help local`` for usage.
-If you have any Kafka properties that you want to override when starting KSQL, you can start KSQL with a properties file.
-For example, if your broker is listening on ``broker1:9092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as fo
-llows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample propertie
-s file, you need to create your own if you want to override defaults.
+2. You can override any Kafka properties when starting KSQL with a properties file.
+For example, if your broker is listening on ``kafka:29092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample properties file, you need to create your own if you want to override defaults.
 
    .. sourcecode:: bash
 
-   $ cat cluster.properties
+   container$ cat cluster.properties
    application.id=ksql_app
    bootstrap.servers=kafka:29092
    auto.offset.reset=earliest
 
-   $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
+3. From the container, start KSQL.
+
+.. sourcecode:: bash
+
+   container$ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file cluster.properties
+   ...
+   ksql> 
 
 4. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster.
 

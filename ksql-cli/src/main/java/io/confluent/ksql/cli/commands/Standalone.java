@@ -1,0 +1,85 @@
+/**
+ * Copyright 2017 Confluent Inc.
+ **/
+
+package io.confluent.ksql.cli.commands;
+
+import com.github.rvesse.airline.annotations.Arguments;
+import com.github.rvesse.airline.annotations.Command;
+import com.github.rvesse.airline.annotations.Option;
+import com.github.rvesse.airline.annotations.restrictions.Once;
+import com.github.rvesse.airline.annotations.restrictions.Required;
+import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.cli.StandaloneExecutor;
+import org.apache.kafka.streams.StreamsConfig;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+@Command(name = "standalone", description = "Running KSQL statements from a file.")
+public class Standalone extends AbstractCliCommands {
+
+  private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
+
+  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
+  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
+
+  private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
+  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
+
+  @Option(
+      name = PROPERTIES_FILE_OPTION_NAME,
+      description = "A file specifying properties for Ksql and its underlying Kafka Streams "
+                    + "instance(s) (can specify port number, bootstrap server, etc. "
+                    + "but these options will "
+                    + "be overridden if also given via  flags)"
+  )
+  String propertiesFile;
+
+  @Once
+  @Required
+  @Arguments(
+      title = "query-file",
+      description = "Path to the query file in the local machine.)"
+  )
+  String queryFile;
+
+  @Override
+  protected Cli getCli() throws Exception {
+    return null;
+  }
+
+  @Override
+  public void run() {
+    try {
+      CliUtils cliUtils = new CliUtils();
+      String queries = cliUtils.readQueryFile(queryFile);
+      StandaloneExecutor standaloneExecutor = new StandaloneExecutor(getStandaloneProperties());
+      standaloneExecutor.executeStatements(queries);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private Properties getStandaloneProperties() throws IOException {
+    Properties properties = new Properties();
+    addDefaultProperties(properties);
+    addFileProperties(properties);
+    return properties;
+  }
+
+  private void addDefaultProperties(Properties properties) {
+    properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
+  }
+
+  private void addFileProperties(Properties properties) throws IOException {
+    if (propertiesFile != null) {
+      properties.load(new FileInputStream(propertiesFile));
+    }
+  }
+
+}

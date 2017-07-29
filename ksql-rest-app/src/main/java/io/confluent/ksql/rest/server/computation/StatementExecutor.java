@@ -6,6 +6,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -229,11 +230,9 @@ public class StatementExecutor {
     } catch (WakeupException exception) {
       throw exception;
     } catch (Exception exception) {
-      StringWriter stringWriter = new StringWriter();
-      PrintWriter printWriter = new PrintWriter(stringWriter);
-      exception.printStackTrace(printWriter);
-      CommandStatus errorStatus =
-          new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString());
+      String stackTraceString = ExceptionUtil.stackTraceToString(exception);
+      log.error(stackTraceString);
+      CommandStatus errorStatus = new CommandStatus(CommandStatus.Status.ERROR, stackTraceString);
       statusStore.put(commandId, errorStatus);
       completeStatusFuture(commandId, errorStatus);
     }

@@ -2,6 +2,7 @@ package io.confluent.ksql.parser;
 
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -378,8 +379,8 @@ public class KsqlParserTest {
       String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
       Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
       Assert.fail();
-    } catch (ParsingException parsingException) {
-      String errorMessage = parsingException.getMessage();
+    } catch (ParseFailedException e) {
+      String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
     }
   }

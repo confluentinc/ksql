@@ -11,7 +11,7 @@ import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DDLCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -294,23 +293,25 @@ public class QueryEngine {
   }
 
   public DDLCommandResult handleDdlStatement(Statement statement, Map<String, Object> overriddenProperties) {
+    DDLCommand command = generateDDLCommand(statement, overriddenProperties);
+    return ksqlEngine.getDDLCommandExec().execute(command);
+  }
 
-    DDLCommandExec ddlCommandExec = ksqlEngine.getDDLCommandExec();
-
+  private DDLCommand generateDDLCommand(Statement statement, Map<String, Object> overriddenProperties) {
     if (statement instanceof RegisterTopic) {
-      return ddlCommandExec.execute(new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties));
+      return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
     } else if (statement instanceof CreateStream) {
-      return ddlCommandExec.execute(new CreateStreamCommand((CreateStream) statement));
+      return new CreateStreamCommand((CreateStream) statement);
     } else if (statement instanceof CreateTable) {
-      return ddlCommandExec.execute(new CreateTableCommand((CreateTable) statement));
+      return new CreateTableCommand((CreateTable) statement);
     } else if (statement instanceof DropStream) {
-      return ddlCommandExec.execute(new DropSourceCommand((DropStream) statement));
+      return new DropSourceCommand((DropStream) statement);
     } else if (statement instanceof DropTable) {
-      return ddlCommandExec.execute(new DropSourceCommand((DropTable) statement));
+      return new DropSourceCommand((DropTable) statement);
     } else if (statement instanceof DropTopic) {
-      return ddlCommandExec.execute(new DropTopicCommand((DropTopic) statement));
+      return new DropTopicCommand((DropTopic) statement);
     } else {
-      return new DDLCommandResult(false);
+      throw new KsqlException("Corresponding command not found for statement: " + statement.toString());
     }
   }
 

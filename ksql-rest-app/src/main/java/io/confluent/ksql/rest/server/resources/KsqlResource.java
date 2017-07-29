@@ -5,6 +5,12 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.ddl.commands.DropTopicCommand;
+import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -99,27 +105,30 @@ public class KsqlResource {
 
   @POST
   public Response handleKsqlStatements(KsqlRequest request) throws Exception {
-    List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
-    List<String> statementStrings = getStatementStrings(request.getKsql());
-    Map<String, Object> streamsProperties = request.getStreamsProperties();
-    if (parsedStatements.size() != statementStrings.size()) {
-      throw new Exception(String.format(
-          "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
-          parsedStatements.size(),
-          statementStrings.size()
-      ));
-    }
     KsqlEntityList result = new KsqlEntityList();
-    for (int i = 0; i < parsedStatements.size(); i++) {
-      String statementText = statementStrings.get(i);
-      try {
-        result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
-      } catch (Exception exception) {
-        String stackTrace = ExceptionUtil.stackTraceToString(exception);
-        LOGGER.error(stackTrace);
-        result.add(new ErrorMessageEntity(statementText, exception));
+    try {
+      List<Statement> parsedStatements = ksqlEngine.getStatements(request.getKsql());
+      List<String> statementStrings = getStatementStrings(request.getKsql());
+      Map<String, Object> streamsProperties = request.getStreamsProperties();
+      if (parsedStatements.size() != statementStrings.size()) {
+        throw new Exception(String.format(
+            "Size of parsed statements and statement strings differ; %d vs. %d, respectively",
+            parsedStatements.size(),
+            statementStrings.size()
+        ));
       }
+
+      for (int i = 0; i < parsedStatements.size(); i++) {
+        String statementText = statementStrings.get(i);
+        result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
+      }
+    } catch (Exception exception) {
+      String stackTrace = ExceptionUtil.stackTraceToString(exception);
+      LOGGER.error(stackTrace);
+      result.add(new ErrorMessageEntity(request.getKsql(), exception));
     }
+
+
     return Response.ok(result).build();
   }
 
@@ -182,6 +191,7 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
+      ExecutionPlan executionPlan = getStatementExecutionPlan(statement, statementText);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
@@ -293,15 +303,49 @@ public class KsqlResource {
 
   private ExecutionPlan getStatementExecutionPlan(Explain explain, String statementText)
       throws Exception {
+    return getStatementExecutionPlan(explain.getStatement(), statementText);
+  }
+  private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText)
+      throws Exception {
     String executionPlan;
-    if (explain.getStatement() instanceof Query) {
-      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) explain.getStatement());
-    } else if (explain.getStatement() instanceof CreateStreamAsSelect) {
-      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) explain.getStatement();
+    if (statement instanceof Query) {
+      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement);
+    } else if (statement instanceof CreateStreamAsSelect) {
+      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       executionPlan = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect.getQuery());
-    } else if (explain.getStatement() instanceof CreateTableAsSelect) {
-      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) explain.getStatement();
+    } else if (statement instanceof CreateTableAsSelect) {
+      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
       executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());
+    } else if (statement instanceof RegisterTopic) {
+      RegisterTopic registerTopic = (RegisterTopic) statement;
+      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
+      executionPlan = registerTopic.toString();
+    } else if (statement instanceof CreateStream) {
+      CreateStream createStream = (CreateStream) statement;
+      CreateStreamCommand createStreamCommand = new CreateStreamCommand(createStream);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
+      executionPlan = createStream.toString();
+    } else if (statement instanceof CreateTable) {
+      CreateTable createTable = (CreateTable) statement;
+      CreateTableCommand createTableCommand = new CreateTableCommand(createTable);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
+      executionPlan = createTable.toString();
+    } else if (statement instanceof DropTopic) {
+      DropTopic dropTopic = (DropTopic) statement;
+      DropTopicCommand dropTopicCommand = new DropTopicCommand(dropTopic);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
+      executionPlan = dropTopic.toString();
+    } else if (statement instanceof DropStream) {
+      DropStream dropStream = (DropStream) statement;
+      DropSourceCommand dropSourceCommand = new DropSourceCommand(dropStream);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
+      executionPlan = dropStream.toString();
+    } else if (statement instanceof DropTable) {
+      DropTable dropTable = (DropTable) statement;
+      DropSourceCommand dropSourceCommand = new DropSourceCommand(dropTable);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
+      executionPlan = dropTable.toString();
     } else {
       throw new KsqlException("Cannot build execution plan for this statement.");
     }

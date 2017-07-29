@@ -41,7 +41,15 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
   public GenericRow deserialize(final String topic, final byte[] bytes) {
     String recordCsvString = new String(bytes);
     try {
-      CSVRecord csvRecord = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT).getRecords().get(0);
+      List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
+          .getRecords();
+      if (csvRecords == null || csvRecords.isEmpty()) {
+        throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
+      }
+      CSVRecord csvRecord = csvRecords.get(0);
+      if (csvRecord == null || csvRecord.size() == 0) {
+        throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
+      }
       List<Object> columns = new ArrayList();
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException("Missing/Extra fields in the delimited line: " + recordCsvString);

@@ -17,7 +17,6 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -36,7 +35,6 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -177,7 +175,6 @@ public class Cli implements Closeable, AutoCloseable {
       } catch (Exception exception) {
         LOGGER.error(ExceptionUtils.getStackTrace(exception));
         if (exception.getMessage() != null) {
-//          terminal.writer().println(CliUtils.getErrorMessage(exception.getCause()));
           terminal.writer().println(exception.getMessage());
         } else {
           terminal.writer().println(exception.getClass().getName());
@@ -219,8 +216,6 @@ public class Cli implements Closeable, AutoCloseable {
     int logoWidth = 33;
     String copyrightMessage = "Copyright 2017 Confluent Inc.";
     String helpReminderMessage = "Having trouble? "
-        + "Need quick refresher? "
-        + "Wanna RTFM but perturbed by our lack of man pages? "
         + "Type 'help' (case-insensitive) for a rundown of how things work!";
     // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
     if (terminal.getWidth() >= logoWidth) {
@@ -232,15 +227,15 @@ public class Cli implements Closeable, AutoCloseable {
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
       String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
-      terminal.writer().printf("%s=================================%n", leftPadding);
-      terminal.writer().printf("%s=   _  __ _____  ____  _        =%n", leftPadding);
-      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |       =%n", leftPadding);
-      terminal.writer().printf("%s=  | ' /| (___ | |  | | |       =%n", leftPadding);
-      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |       =%n", leftPadding);
-      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____   =%n", leftPadding);
-      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|  =%n", leftPadding);
-      terminal.writer().printf("%s=                               =%n", leftPadding);
-      terminal.writer().printf("%s=  Kafka Streams Query Language =%n", leftPadding);
+      terminal.writer().printf("%s==================================%n", leftPadding);
+      terminal.writer().printf("%s=   _  __ _____  ____  _         =%n", leftPadding);
+      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |        =%n", leftPadding);
+      terminal.writer().printf("%s=  | ' /| (___ | |  | | |        =%n", leftPadding);
+      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |        =%n", leftPadding);
+      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____    =%n", leftPadding);
+      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|   =%n", leftPadding);
+      terminal.writer().printf("%s=                                =%n", leftPadding);
+      terminal.writer().printf("%s= Kafka Streaming Query Language =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);
@@ -358,45 +353,6 @@ public class Cli implements Closeable, AutoCloseable {
       }
     });
 
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "status";
-      }
-
-      @Override
-      public void printHelp() {
-        terminal.writer().println("\tstatus:      Get status information on all distributed "
-            + "statements"
-        );
-        terminal.writer().println("\tstatus <id>: Get detailed status information on the command "
-            + "with an ID of <id>"
-        );
-        terminal.writer().println("\t             example: "
-            + "\"status stream/MY_AWESOME_KSQL_STREAM\""
-        );
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        if (commandStrippedLine.trim().isEmpty()) {
-          RestResponse<CommandStatuses> response = restClient.makeStatusRequest();
-          if (response.isSuccessful()) {
-            printCommandStatuses(response.getResponse());
-          } else {
-            printErrorMessage(response.getErrorMessage());
-          }
-        } else {
-          String statementId = commandStrippedLine.trim();
-          RestResponse<CommandStatus> response = restClient.makeStatusRequest(statementId);
-          if (response.isSuccessful()) {
-            printCommandStatus(response.getResponse());
-          } else {
-            printErrorMessage(response.getErrorMessage());
-          }
-        }
-      }
-    });
 
     registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
@@ -833,21 +789,6 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void printCommandStatuses(CommandStatuses statuses) throws IOException {
-    switch (outputFormat) {
-      case JSON:
-        printAsJson(statuses);
-        break;
-      case TABULAR:
-        printAsTable(statuses);
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected output format: '%s'", outputFormat.name()
-        ));
-    }
-  }
-
   private void printKsqlEntityList(List<KsqlEntity> entityList) throws IOException {
     switch (outputFormat) {
       case JSON:
@@ -911,11 +852,9 @@ public class Cli implements Closeable, AutoCloseable {
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
-      columnHeaders = Arrays.asList("Command ID", "Status", "Message");
-      CommandId commandId = commandStatusEntity.getCommandId();
+      columnHeaders = Arrays.asList("Status", "Message");
       CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
       rowValues = Collections.singletonList(Arrays.asList(
-          commandId.toString(),
           commandStatus.getStatus().name(),
           commandStatus.getMessage().split("\n", 2)[0]
       ));
@@ -934,7 +873,7 @@ public class Cli implements Closeable, AutoCloseable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("ID", "Kafka Topic", "Query String");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
               Long.toString(runningQuery.getId()),
@@ -1017,16 +956,6 @@ public class Cli implements Closeable, AutoCloseable {
         String.join(" | ", row.columns.stream().map(Objects::toString).collect(Collectors.toList()))
     );
     terminal.flush();
-  }
-
-  private void printAsTable(CommandStatuses statuses) {
-    List<String> columnHeaders = Arrays.asList("Command ID", "Status");
-    List<List<String>> rowValues = statuses.entrySet().stream()
-        .map(statusEntry -> Arrays.asList(
-            statusEntry.getKey().toString(),
-            statusEntry.getValue().name()
-        )).collect(Collectors.toList());
-    printTable(columnHeaders, rowValues);
   }
 
   private void printAsTable(CommandStatus status) {

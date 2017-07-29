@@ -45,21 +45,6 @@ public class CliTest {
   }
 
   @Test
-  public void testStatusInput() throws Exception {
-    final String commandId = "topics/TEST_TOPIC";
-
-    KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
-    expect(mockRestClient.makeStatusRequest())
-        .andReturn(RestResponse.successful(new CommandStatuses(Collections.emptyMap())));
-    expect(mockRestClient.makeStatusRequest(commandId))
-        .andReturn(RestResponse.successful(new CommandStatus(CommandStatus.Status.SUCCESS, "Success")));
-    replay(mockRestClient);
-
-    getTestCli(mockRestClient).runNonInteractively(String.format("status\nstatus %s", commandId));
-    verify(mockRestClient);
-  }
-
-  @Test
   public void testQueryInput() throws Exception {
     final String testBareQuery = "SELECT * FROM test_topic WHERE foo > bar;";
 

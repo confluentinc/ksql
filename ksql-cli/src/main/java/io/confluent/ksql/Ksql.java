@@ -20,6 +20,8 @@ import io.confluent.ksql.cli.RemoteCli;
 import io.confluent.ksql.cli.util.CliUtils;
 import io.confluent.ksql.cli.util.StandaloneExecutor;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.util.KsqlException;
+
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
@@ -344,6 +346,8 @@ public class Ksql {
         System.err.println("Options parsing failed for an unknown reason");
       }
       System.err.println("See the help command for usage information");
+    } catch (Exception e) {
+      System.err.println(e.getMessage());
     }
     if ((runnable != null) && !(runnable instanceof Standalone)) {
       System.exit(0);

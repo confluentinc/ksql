@@ -301,7 +301,7 @@ public class QueryEngine {
     if (statement instanceof RegisterTopic) {
       return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
     } else if (statement instanceof CreateStream) {
-      return new CreateStreamCommand((CreateStream) statement);
+      return new CreateStreamCommand((CreateStream) statement, overriddenProperties);
     } else if (statement instanceof CreateTable) {
       return new CreateTableCommand((CreateTable) statement);
     } else if (statement instanceof DropStream) {

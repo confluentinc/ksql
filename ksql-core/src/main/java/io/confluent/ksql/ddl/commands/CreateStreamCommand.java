@@ -4,13 +4,16 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import java.util.Map;
+
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
-  public CreateStreamCommand(CreateStream createStream) {
+  public CreateStreamCommand(CreateStream createStream,
+                             Map<String, Object> overriddenProperties) {
     super(createStream);
   }
 

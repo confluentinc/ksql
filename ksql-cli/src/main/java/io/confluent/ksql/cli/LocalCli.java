@@ -63,6 +63,7 @@ public class LocalCli extends Cli {
       throw new RuntimeException(exception);
     } finally {
       super.close();
+      System.exit(0);
     }
   }
 

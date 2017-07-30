@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -36,6 +37,7 @@ import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -70,6 +72,21 @@ public class StatementExecutor {
 
     this.statusStore = new HashMap<>();
     this.statusFutures = new HashMap<>();
+  }
+
+  public void handleStatements(List<Pair<CommandId, Command>> priorCommands) throws Exception {
+    for (Pair<CommandId, Command> commandIdCommandPair: priorCommands) {
+      log.info("Executing prior statement: '{}'", commandIdCommandPair.getRight());
+      try {
+        handleStatementWithTerminatedQueries(
+            commandIdCommandPair.getRight(),
+            commandIdCommandPair.getLeft(),
+            Collections.emptyMap()
+        );
+      } catch (Exception exception) {
+        log.warn("Failed to execute statement due to exception", exception);
+      }
+    }
   }
 
   /**
@@ -292,6 +309,7 @@ public class StatementExecutor {
       }
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
+      successMessage = "Query terminated.";
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

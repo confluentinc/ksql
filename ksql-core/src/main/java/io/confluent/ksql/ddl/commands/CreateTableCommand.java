@@ -34,10 +34,10 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
-    checkMetaData(metaStore, sourceName, topicName);
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore);
     }
+    checkMetaData(metaStore, sourceName, topicName);
     KsqlTable ksqlTable = new KsqlTable(sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),

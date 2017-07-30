@@ -18,11 +18,10 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
 
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
-    checkMetaData(metaStore, sourceName, topicName);
-
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore);
     }
+    checkMetaData(metaStore, sourceName, topicName);
     KsqlStream ksqlStream = new KsqlStream(sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),

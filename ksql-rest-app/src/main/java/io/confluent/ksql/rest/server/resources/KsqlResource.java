@@ -307,8 +307,8 @@ public class KsqlResource {
       throws Exception {
     return getStatementExecutionPlan(explain.getStatement(), statementText, Collections.emptyMap());
   }
-  private ExecutionPlan getStatementExecutionPlan(Statement statement,
-                                                  String statementText,
+
+  private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText,
                                                   Map<String, Object> properties)
       throws Exception {
     String executionPlan;

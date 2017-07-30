@@ -73,6 +73,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -191,7 +192,8 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
-      ExecutionPlan executionPlan = getStatementExecutionPlan(statement, statementText);
+      ExecutionPlan executionPlan = getStatementExecutionPlan(statement, statementText,
+                                                              streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
@@ -303,9 +305,10 @@ public class KsqlResource {
 
   private ExecutionPlan getStatementExecutionPlan(Explain explain, String statementText)
       throws Exception {
-    return getStatementExecutionPlan(explain.getStatement(), statementText);
+    return getStatementExecutionPlan(explain.getStatement(), statementText, Collections.emptyMap());
   }
-  private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText)
+  private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText,
+                                                  Map<String, Object> properties)
       throws Exception {
     String executionPlan;
     if (statement instanceof Query) {
@@ -318,7 +321,8 @@ public class KsqlResource {
       executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());
     } else if (statement instanceof RegisterTopic) {
       RegisterTopic registerTopic = (RegisterTopic) statement;
-      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic);
+      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic,
+                                                                           properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
       executionPlan = registerTopic.toString();
     } else if (statement instanceof CreateStream) {

@@ -33,16 +33,25 @@ public class RegisterTopicCommand implements DDLCommand {
   public RegisterTopicCommand(RegisterTopic registerTopic,
                               Map<String, Object> overriddenProperties) {
     // TODO: find a way to merge overriddenProperties
-    enforceTopicProperties(registerTopic.getProperties());
+    this(registerTopic.getName().getSuffix(),
+         registerTopic.isNotExists(),
+         registerTopic.getProperties(),
+         overriddenProperties
+    );
+  }
 
-    final String serde = StringUtil.cleanQuotes(
-        registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(overriddenProperties, serde);
-
-    this.topicName = registerTopic.getName().getSuffix();
+  public RegisterTopicCommand(String topicName, boolean notExist,
+                              Map<String, Expression> properties,
+                              Map<String, Object> overriddenProperties) {
+    this.topicName = topicName;
+    // TODO: find a way to merge overriddenProperties
+    enforceTopicProperties(properties);
     this.kafkaTopicName = StringUtil.cleanQuotes(
-        registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    this.notExists = registerTopic.isNotExists();
+        properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+    final String serde = StringUtil.cleanQuotes(
+        properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+    this.topicSerDe = extractTopicSerDe(overriddenProperties, serde);
+    this.notExists = notExist;
   }
 
   private KsqlTopicSerDe extractTopicSerDe(Map<String, Object> overriddenProperties, String serde) {
@@ -66,7 +75,7 @@ public class RegisterTopicCommand implements DDLCommand {
 
   private void enforceTopicProperties(final Map<String, Expression> properties) {
     if (properties.size() == 0) {
-      throw new KsqlException("Create topic statement needs WITH clause.");
+      throw new KsqlException("Register topic statement needs WITH clause.");
     }
 
     if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
@@ -83,9 +92,11 @@ public class RegisterTopicCommand implements DDLCommand {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
-        return new DDLCommandResult(true, "Topic is not created because it already exists.");
+        return new DDLCommandResult(true,
+                                    "Topic is not registered because it already registered"
+                                          + ".");
       } else {
-        throw new KsqlException("Topic already exists.");
+        throw new KsqlException("Topic already registered.");
       }
     }
 
@@ -95,6 +106,6 @@ public class RegisterTopicCommand implements DDLCommand {
     // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
-    return new DDLCommandResult(true, "Topic created");
+    return new DDLCommandResult(true, "Topic registered");
   }
 }

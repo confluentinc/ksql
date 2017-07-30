@@ -31,20 +31,24 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   String keyColumnName;
   String timestampColumnName;
   boolean isWindowed;
+  RegisterTopicCommand registerTopicCommand;
 
-  public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement) {
+  public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
+                                     Map<String, Object> overriddenProperties) {
     // TODO: get rid of toUpperCase in following code
-
     Map<String, Expression> properties = statement.getProperties();
     this.sourceName = statement.getName().getSuffix();
 
-    if (!properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-      throw new KsqlException("You need to set the corresponding registered topic in WITH clasue.");
-    }
-    this.topicName = StringUtil.cleanQuotes(
-        properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
+    if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
+        !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+      this.topicName = StringUtil.cleanQuotes(
+          properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 
-    checkTopicNameNotNull(properties);
+      checkTopicNameNotNull(properties);
+    } else {
+      this.registerTopicCommand = registerTopicFirst(properties, overriddenProperties);
+    }
+
 
     this.schema = getStreamTableSchema(statement.getElements());
 
@@ -160,5 +164,24 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     KsqlPreconditions.checkNotNull(
         metaStore.getTopic(topicName),
         String.format("The corresponding topic, %s, does not exist.", topicName));
+  }
+
+  protected RegisterTopicCommand registerTopicFirst(Map<String, Expression> properties,
+                                    Map<String, Object> overriddenProperties) {
+    if (properties.size() == 0) {
+      throw new KsqlException("Create Stream/Table statement needs WITH clause.");
+    }
+    if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+      throw new KsqlException("Topic format(" + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set "
+                              + "in WITH clause.");
+    }
+    if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
+      throw new KsqlException("Corresponding kafka topic(" + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
+                              + ") should be set in WITH clause.");
+    }
+    String kafkaTopicName = StringUtil.cleanQuotes(
+        properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+    this.topicName = kafkaTopicName.replace(".", "_____");
+    return new RegisterTopicCommand(this.topicName, false, properties, overriddenProperties);
   }
 }

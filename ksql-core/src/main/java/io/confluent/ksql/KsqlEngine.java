@@ -259,11 +259,11 @@ public class KsqlEngine implements Closeable {
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
-              (CreateTable) statement),
+              (CreateTable) statement, overriddenProperties),
           tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
-              (CreateTable) statement),
+              (CreateTable) statement, overriddenProperties),
           tempMetaStore);
       return new Pair<>(statementString, statement);
     }

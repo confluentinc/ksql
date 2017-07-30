@@ -333,7 +333,7 @@ public class KsqlResource {
       executionPlan = createStream.toString();
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
-      CreateTableCommand createTableCommand = new CreateTableCommand(createTable);
+      CreateTableCommand createTableCommand = new CreateTableCommand(createTable, properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
       executionPlan = createTable.toString();
     } else if (statement instanceof DropTopic) {

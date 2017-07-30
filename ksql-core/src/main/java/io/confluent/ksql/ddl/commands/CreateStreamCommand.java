@@ -12,15 +12,17 @@ import io.confluent.ksql.parser.tree.CreateStream;
 
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
-  public CreateStreamCommand(CreateStream createStream,
-                             Map<String, Object> overriddenProperties) {
-    super(createStream);
+  public CreateStreamCommand(CreateStream createStream, Map<String, Object> overriddenProperties) {
+    super(createStream, overriddenProperties);
   }
 
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
     checkMetaData(metaStore, sourceName, topicName);
 
+    if (registerTopicCommand != null) {
+      registerTopicCommand.run(metaStore);
+    }
     KsqlStream ksqlStream = new KsqlStream(sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),

@@ -18,8 +18,8 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   String stateStoreName;
 
-  public CreateTableCommand(CreateTable createTable) {
-    super(createTable);
+  public CreateTableCommand(CreateTable createTable, Map<String, Object> overriddenProperties) {
+    super(createTable, overriddenProperties);
 
     Map<String, Expression> properties = createTable.getProperties();
 
@@ -35,7 +35,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
     checkMetaData(metaStore, sourceName, topicName);
-
+    if (registerTopicCommand != null) {
+      registerTopicCommand.run(metaStore);
+    }
     KsqlTable ksqlTable = new KsqlTable(sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),

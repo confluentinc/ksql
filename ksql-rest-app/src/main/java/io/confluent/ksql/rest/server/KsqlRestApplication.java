@@ -218,7 +218,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             Collections.singletonMap(
                     DdlConfig.TOPIC_NAME_PROPERTY,
                     new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            ))));
+            )), Collections.emptyMap()));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

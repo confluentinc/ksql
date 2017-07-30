@@ -303,7 +303,7 @@ public class QueryEngine {
     } else if (statement instanceof CreateStream) {
       return new CreateStreamCommand((CreateStream) statement, overriddenProperties);
     } else if (statement instanceof CreateTable) {
-      return new CreateTableCommand((CreateTable) statement);
+      return new CreateTableCommand((CreateTable) statement, overriddenProperties);
     } else if (statement instanceof DropStream) {
       return new DropSourceCommand((DropStream) statement);
     } else if (statement instanceof DropTable) {

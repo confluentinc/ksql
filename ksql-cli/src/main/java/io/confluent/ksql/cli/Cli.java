@@ -100,7 +100,6 @@ public class Cli implements Closeable, AutoCloseable {
       } catch (Exception exception) {
         LOGGER.error(ExceptionUtils.getStackTrace(exception));
         if (exception.getMessage() != null) {
-//          terminal.writer().println(CliUtils.getErrorMessage(exception.getCause()));
           terminal.writer().println(exception.getMessage());
         } else {
           terminal.writer().println(exception.getClass().getName());
@@ -142,8 +141,6 @@ public class Cli implements Closeable, AutoCloseable {
     int logoWidth = 33;
     String copyrightMessage = "Copyright 2017 Confluent Inc.";
     String helpReminderMessage = "Having trouble? "
-        + "Need quick refresher? "
-        + "Wanna RTFM but perturbed by our lack of man pages? "
         + "Type 'help' (case-insensitive) for a rundown of how things work!";
     // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
     if (terminal.getWidth() >= logoWidth) {
@@ -155,15 +152,15 @@ public class Cli implements Closeable, AutoCloseable {
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
       String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
-      terminal.writer().printf("%s=================================%n", leftPadding);
-      terminal.writer().printf("%s=   _  __ _____  ____  _        =%n", leftPadding);
-      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |       =%n", leftPadding);
-      terminal.writer().printf("%s=  | ' /| (___ | |  | | |       =%n", leftPadding);
-      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |       =%n", leftPadding);
-      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____   =%n", leftPadding);
-      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|  =%n", leftPadding);
-      terminal.writer().printf("%s=                               =%n", leftPadding);
-      terminal.writer().printf("%s=  Kafka Streams Query Language =%n", leftPadding);
+      terminal.writer().printf("%s==================================%n", leftPadding);
+      terminal.writer().printf("%s=   _  __ _____  ____  _         =%n", leftPadding);
+      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |        =%n", leftPadding);
+      terminal.writer().printf("%s=  | ' /| (___ | |  | | |        =%n", leftPadding);
+      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |        =%n", leftPadding);
+      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____    =%n", leftPadding);
+      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|   =%n", leftPadding);
+      terminal.writer().printf("%s=                                =%n", leftPadding);
+      terminal.writer().printf("%s= Kafka Streaming Query Language =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);

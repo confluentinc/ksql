@@ -332,46 +332,6 @@ public abstract class Console implements Closeable {
         throw new EndOfFileException();
       }
     });
-
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "status";
-      }
-
-      @Override
-      public void printHelp() {
-        writer().println("\tstatus:      Get status information on all distributed "
-            + "statements"
-        );
-        writer().println("\tstatus <id>: Get detailed status information on the command "
-            + "with an ID of <id>"
-        );
-        writer().println("\t             example: "
-            + "\"status stream/MY_AWESOME_KSQL_STREAM\""
-        );
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        if (commandStrippedLine.trim().isEmpty()) {
-          RestResponse<CommandStatuses> response = restClient.makeStatusRequest();
-          if (response.isSuccessful()) {
-            printCommandStatuses(response.getResponse());
-          } else {
-            printErrorMessage(response.getErrorMessage());
-          }
-        } else {
-          String statementId = commandStrippedLine.trim();
-          RestResponse<CommandStatus> response = restClient.makeStatusRequest(statementId);
-          if (response.isSuccessful()) {
-            printCommandStatus(response.getResponse());
-          } else {
-            printErrorMessage(response.getErrorMessage());
-          }
-        }
-      }
-    });
   }
 
   private void printCommandStatus(CommandStatus status) throws IOException {
@@ -386,21 +346,6 @@ public abstract class Console implements Closeable {
         throw new RuntimeException(String.format(
             "Unexpected output format: '%s'",
             outputFormat.name()
-        ));
-    }
-  }
-
-  private void printCommandStatuses(CommandStatuses statuses) throws IOException {
-    switch (outputFormat) {
-      case JSON:
-        printAsJson(statuses);
-        break;
-      case TABULAR:
-        printAsTable(statuses);
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected output format: '%s'", outputFormat.name()
         ));
     }
   }
@@ -436,16 +381,6 @@ public abstract class Console implements Closeable {
     flush();
   }
 
-  private void printAsTable(CommandStatuses statuses) {
-    List<String> columnHeaders = Arrays.asList("Command ID", "Status");
-    List<List<String>> rowValues = statuses.entrySet().stream()
-        .map(statusEntry -> Arrays.asList(
-            statusEntry.getKey().toString(),
-            statusEntry.getValue().name()
-        )).collect(Collectors.toList());
-    printTable(columnHeaders, rowValues);
-  }
-
   private void printAsTable(CommandStatus status) {
     printTable(
         Arrays.asList("Status", "Message"),
@@ -461,11 +396,9 @@ public abstract class Console implements Closeable {
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
-      columnHeaders = Arrays.asList("Command ID", "Status", "Message");
-      CommandId commandId = commandStatusEntity.getCommandId();
+      columnHeaders = Arrays.asList("Status", "Message");
       CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
       rowValues = Collections.singletonList(Arrays.asList(
-          commandId.toString(),
           commandStatus.getStatus().name(),
           commandStatus.getMessage().split("\n", 2)[0]
       ));
@@ -484,7 +417,7 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("ID", "Kafka Topic", "Query String");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
               Long.toString(runningQuery.getId()),

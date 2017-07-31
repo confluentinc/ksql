@@ -2,12 +2,15 @@
  * Copyright 2017 Confluent Inc.
  **/
 
-package io.confluent.ksql.cli.util;
+package io.confluent.ksql.cli;
 
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +20,6 @@ import java.util.Map;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 
 public class StandaloneExecutor {
 

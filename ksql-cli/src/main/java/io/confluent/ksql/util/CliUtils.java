@@ -2,11 +2,12 @@
  * Copyright 2017 Confluent Inc.
  **/
 
-package io.confluent.ksql.cli.util;
+package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
 import java.io.BufferedReader;
@@ -15,13 +16,15 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.util.KsqlException;
 
 public class CliUtils {
 
@@ -88,4 +91,40 @@ public class CliUtils {
     }
   }
 
+  public static PropertiesList propertiesListWithOverrides(PropertiesList propertiesList, Map<String, Object> localProperties) {
+    Map<String, Object> properties = propertiesList.getProperties();
+    for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
+      properties.put(
+          "(LOCAL OVERRIDE) " + localPropertyEntry.getKey(),
+          localPropertyEntry.getValue()
+      );
+    }
+    return new PropertiesList(propertiesList.getStatementText(), properties);
+  }
+
+  private static final Pattern QUOTED_PROMPT_PATTERN = Pattern.compile("'(''|[^'])*'");
+
+  private String parsePromptString(String commandStrippedLine) {
+    if (commandStrippedLine.trim().isEmpty()) {
+      throw new RuntimeException("Prompt command must be followed by a new prompt to use");
+    }
+
+    String trimmedLine = commandStrippedLine.trim().replace("%", "%%");
+    if (trimmedLine.contains("'")) {
+      Matcher quotedPromptMatcher = QUOTED_PROMPT_PATTERN.matcher(trimmedLine);
+      if (quotedPromptMatcher.matches()) {
+        return trimmedLine.substring(1, trimmedLine.length() - 1).replace("''", "'");
+      } else {
+        throw new RuntimeException(
+            "Failed to parse prompt string. All non-enclosing single quotes must be doubled."
+        );
+      }
+    } else {
+      return trimmedLine;
+    }
+  }
+
+  public static String getServerAddress(int portNumber) {
+    return String.format("http://localhost:%d", portNumber);
+  }
 }

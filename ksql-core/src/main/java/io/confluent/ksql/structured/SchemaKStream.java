@@ -228,7 +228,7 @@ public class SchemaKStream {
         GenericRow>>() {
       @Override
       public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-        row.getColumns().set(0, key);
+        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
         return new KeyValue<>(key, row);
       }
     });

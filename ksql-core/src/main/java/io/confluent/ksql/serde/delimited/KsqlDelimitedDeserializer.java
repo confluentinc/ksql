@@ -39,6 +39,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
+    if (bytes == null) {
+      return null;
+    }
     String recordCsvString = new String(bytes);
     try {
       List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
@@ -60,6 +63,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       return new GenericRow(columns);
     } catch (IOException e) {
       throw new KsqlException("Could not parse the DELIMITED record: " + recordCsvString, e);
+    } catch (Exception e) {
+      throw new KsqlException("Exception in deserializing the delimited row: " + recordCsvString,
+                              e);
     }
   }
 

@@ -14,8 +14,11 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.confluent.ksql.util.Pair;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -83,11 +86,7 @@ public class CommandRunner implements Runnable, Closeable {
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() throws Exception {
-    LinkedHashMap<CommandId, Command> priorCommands = commandStore.getPriorCommands();
-    LinkedHashMap<CommandId, String> priorStatements = new LinkedHashMap<>();
-    for (Map.Entry<CommandId, Command> priorCommand : priorCommands.entrySet()) {
-      priorStatements.put(priorCommand.getKey(), priorCommand.getValue().getStatement());
-    }
+    List<Pair<CommandId, Command>> priorCommands = commandStore.getPriorCommands();
     statementExecutor.handleStatements(priorCommands);
   }
 

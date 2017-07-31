@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
@@ -36,6 +37,7 @@ import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -72,45 +74,17 @@ public class StatementExecutor {
     this.statusFutures = new HashMap<>();
   }
 
-  /**
-   * Execute a series of statements. The only difference between this and multiple consecutive calls
-   * to {@link #handleStatement(Command, CommandId)} is that terminated queries will not be
-   * instantiated at all (as long as the statements responsible for both their creation and
-   * termination are both present in {@code priorCommands}.
-   * @param priorCommands A map of statements to execute, where keys are statement IDs and values
-   *                      are the actual strings of the statements.
-   * @throws Exception TODO: Refine this.
-   */
-  public void handleStatements(LinkedHashMap<CommandId, Command> priorCommands) throws Exception {
-
-    Map<Long, CommandId> terminatedQueries = getTerminatedQueries(priorCommands);
-
-    for (Map.Entry<CommandId, Command> commandEntry : priorCommands.entrySet()) {
-      String statementString = commandEntry.getValue().getStatement();
-      Statement statement = statementParser.parseSingleStatement(statementString);
-      if (!(statement instanceof TerminateQuery)) {
-        log.info("Executing prior statement: '{}'", commandEntry.getValue());
-        try {
-          handleStatementWithTerminatedQueries(
-              commandEntry.getValue(),
-              commandEntry.getKey(),
-              terminatedQueries
-          );
-        } catch (Exception exception) {
-          log.warn("Failed to execute statement due to exception", exception);
-        }
-      }
-    }
-
-    for (CommandId terminateCommand : terminatedQueries.values()) {
-      if (!statusStore.containsKey(terminateCommand)) {
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        new Exception("Query not found").printStackTrace(printWriter);
-        statusStore.put(
-            terminateCommand,
-            new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString())
+  public void handleStatements(List<Pair<CommandId, Command>> priorCommands) throws Exception {
+    for (Pair<CommandId, Command> commandIdCommandPair: priorCommands) {
+      log.info("Executing prior statement: '{}'", commandIdCommandPair.getRight());
+      try {
+        handleStatementWithTerminatedQueries(
+            commandIdCommandPair.getRight(),
+            commandIdCommandPair.getLeft(),
+            Collections.emptyMap()
         );
+      } catch (Exception exception) {
+        log.warn("Failed to execute statement due to exception", exception);
       }
     }
   }
@@ -292,6 +266,7 @@ public class StatementExecutor {
       }
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
+      successMessage = "Query terminated.";
     } else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",

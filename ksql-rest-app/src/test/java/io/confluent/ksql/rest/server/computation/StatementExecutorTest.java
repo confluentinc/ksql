@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -14,6 +15,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.Pair;
 
 public class StatementExecutorTest extends EasyMockSupport {
 
@@ -103,7 +105,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void handlePriorStatement() throws Exception {
     TestUtils testUtils = new TestUtils();
-    LinkedHashMap<CommandId, Command> priorCommands = testUtils.getAllPriorCommandRecords();
+    List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
 
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");

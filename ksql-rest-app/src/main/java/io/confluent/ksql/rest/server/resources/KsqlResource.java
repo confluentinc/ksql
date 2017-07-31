@@ -350,6 +350,8 @@ public class KsqlResource {
       DropSourceCommand dropSourceCommand = new DropSourceCommand(dropTable);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
       executionPlan = dropTable.toString();
+    } else if (statement instanceof TerminateQuery) {
+      executionPlan = statement.toString();
     } else {
       throw new KsqlException("Cannot build execution plan for this statement.");
     }

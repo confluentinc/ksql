@@ -5,6 +5,8 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.Pair;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -100,16 +102,13 @@ public class CommandStore implements Closeable {
    * offset and proceeding until it appears that all have been returned.
    * @return The commands that have been read from the command topic
    */
-  public LinkedHashMap<CommandId, Command> getPriorCommands() {
-    LinkedHashMap<CommandId, Command> result = new LinkedHashMap<>();
+  public List<Pair<CommandId, Command>> getPriorCommands() {
+    List<Pair<CommandId, Command>> result = new ArrayList<>();
     for (ConsumerRecord<CommandId, Command> commandRecord : getAllPriorCommandRecords()) {
       CommandId commandId = commandRecord.key();
       Command command = commandRecord.value();
       if (command != null) {
-        result.put(commandId, command);
-      } else {
-        // Handle potential log compaction by ignoring commands with null values
-        result.remove(commandId);
+        result.add(new Pair<>(commandId, command));
       }
     }
 

@@ -55,55 +55,87 @@ Before proceeding, please check:
 
    ksql> REGISTER TOPIC pageviews WITH (kafka_topic='pageviews', value_format='DELIMITED');
 
-1. Register the Kafka topic ``users`` into KSQL, specifying the ``value_format`` of ``JSON``, and view the contents of topic.
+2. Register the Kafka topic ``users`` into KSQL, specifying the ``value_format`` of ``JSON``, and view the contents of topic.
 
 .. sourcecode:: bash
 
    ksql> REGISTER TOPIC users WITH (kafka_topic='users', value_format='JSON');
 
-2. Print contents of these topics. Press ``<Ctrl-c>`` to exit.
-
-   ksql> PRINT pageviews;
-   <TODO: KSQL-165 earliest problem getting all values. Also KSQL-132, ctrl-c does not work>
-   <TODO: insert output>
-
-3. List all the Kafka topics on the Kafka broker. You will see all topics in the Kafka cluster, including ``pageviews`` and ``users`` which are marked as "registered" in KSQL.
+3. List all the Kafka topics on the Kafka broker. You will see all topics in the Kafka cluster, including ``pageviews`` and ``users`` which are marked as "registered" in KSQL. <TODO: upate _commands topic with appropriate name>
 
 .. sourcecode:: bash
 
    ksql> show topics;
-   <TODO: INSERT show topics command when KSQL-115 is implemented>
+           Kafka Topic | Registered | Partitions | Partition Replicas 
+   -------------------------------------------------------------------
+         app1_commands |       true |          1 |                  1 
+             pageviews |       true |          1 |                  1 
+    _confluent-metrics |      false |         12 |                  1 
+              _schemas |      false |          1 |                  1 
+                 users |       true |          1 |                  1 
 
-4. Create a KSQL stream from the registered Kafka topic ``pageviews``. Describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
-
-.. sourcecode:: bash
-
-   ksql> CREATE STREAM pageviewsStream (viewtime bigint, pageid varchar, userid varchar) WITH (registered_topic = 'pageviews');
-
-5. Create a KSQL table from the registered Kafka topic ``users``.  Describe and view the table.
-
-.. sourcecode:: bash
-
-   ksql> CREATE TABLE usersTable (registertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users');
-
-6. View the schemas of the newly created STREAM and TABLE. Notice that KSQL creates additional columns called ``ROWTIME`` and ``ROWKEY``.
+4. Print the contents of these topics. Notice that as part of the REGISTER command, KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message logstamp time, and ``ROWKEY``, which corresponds to the Kafka message key value.  Press ``<Ctrl-c>`` to exit.
 
 .. sourcecode:: bash
 
-   ksql> DESCRIBE pageviewsStream;
-   <TODO: insert>
+   ksql> PRINT pageviews;
+   1501522918853 , 1494635607849 , 1494635607849,User_26,Page_56
+   1501522921587 , 1508208297320 , 1508208297320,User_75,Page_44
+   1501522924952 , 1498506236716 , 1498506236716,User_36,Page_53
+   ...
 
-   ksql> DESCRIBE usersTable;
-   <TODO: insert>
+   ksql> PRINT users;
+   {"ROWTIME":1501522918922,"ROWKEY":"User_28","registertime":1488473173617,"gender":"OTHER","regionid":"Region_16","userid":"User_28"}
+   {"ROWTIME":1501522927631,"ROWKEY":"User_77","registertime":1497218930240,"gender":"FEMALE","regionid":"Region_70","userid":"User_77"}
+   {"ROWTIME":1501522933194,"ROWKEY":"User_96","registertime":1502724600263,"gender":"FEMALE","regionid":"Region_36","userid":"User_96"}
 
-7. View all the KSQL STREAMS and TABLES.
-   <TODO: insert output>
+5. Create a KSQL stream ``pageviews_original`` from the registered Kafka topic ``pageviews``. Describe the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
+
+.. sourcecode:: bash
+
+   ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (registered_topic = 'pageviews');
+   ksql> describe pageviews_original;
+
+       Field |   Type 
+   -------------------
+     ROWTIME |  INT64 
+      ROWKEY | STRING 
+    VIEWTIME |  INT64 
+      PAGEID | STRING 
+      USERID | STRING 
+
+5. Create a KSQL table ``users_original`` from the registered Kafka topic ``users``.  Describe the table.
+
+.. sourcecode:: bash
+
+   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (registered_topic = 'users');
+   ksql> DESCRIBE users_original;
+
+        Field |   Type 
+   -----------------------
+      ROWTIME |  INT64 
+       ROWKEY | STRING 
+ REGISTERTIME |  INT64 
+       USERID | STRING 
+     REGIONID | STRING 
+       GENDER | STRING 
+
+7. Show all the KSQL STREAMS and TABLES. <TODO: update with KSQL-253>
 
 .. sourcecode:: bash
 
    ksql> show streams;
+   
+        Stream Name |       Ksql Topic 
+   ------------------------------------
+           COMMANDS | __COMMANDS_TOPIC 
+ PAGEVIEWS_ORIGINAL |        PAGEVIEWS 
 
    ksql> show tables;
+   
+    Table Name | Ksql Topic |            Statestore | Windowed 
+   ------------------------------------------------------------
+ USERS_ORIGINAL |      USERS | USERS_ORIGINAL_statestore |    false 
 
 
 
@@ -114,13 +146,23 @@ Query and transform KSQL data
 
 .. sourcecode:: bash
 
-   ksql> SELECT users.userid AS userid, pageid, regionid, gender FROM pageviewsStream;
+   ksql> SELECT pageid FROM pageviews_original;
+   Page_56
+   Page_44
+   Page_53
+   ...
 
-2. Create a persistent query that enriches the pageviews STREAM by doing a ``JOIN`` with data in the usersTable TABLE where a condition is met.
+2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement.  This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met.
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM pageviews_enriched AS SELECT usersTable.userid AS userid, pageid, regionid, gender FROM pageviewsStream LEFT JOIN usersTable ON pageviewsStream.userid = usersTable.userid WHERE gender = 'FEMALE';
+   ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
+
+
+                 Command ID |    Status |             Message 
+   -----------------------------------------------------------
+    stream/PAGEVIEWS_FEMALE | EXECUTING | Executing statement 
+
 
 3. Show the newly created query
 
@@ -136,20 +178,20 @@ Query and transform KSQL data
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM enrichedpv_female_r8_r9 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM enrichedpv_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+   ksql> CREATE STREAM pageviews_female_like WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM enrichedpv_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-6. List all the Kafka topics on the Kafka broker. You will see some new topics including <TODO: insert names>
+6. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
+
+.. sourcecode:: bash
+
+   ksql> CREATE TABLE pageviews_grouping AS SELECT gender, regionid , count(*) from pageviews_female window tumbling (size 15 second) group by gender, regionid having count(*) > 5;
+
+7. List all the Kafka topics on the Kafka broker. You will see some new topics including <TODO: insert names>
 
 .. sourcecode:: bash
 
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
-
-7. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
-
-.. sourcecode:: bash
-
-   ksql> CREATE TABLE pvcount_gender_region AS SELECT gender, regionid , count(*) from pageviews_enriched window tumbling (size 15 second) group by gender, regionid having count(*) > 5;
 
 
 

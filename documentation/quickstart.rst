@@ -11,26 +11,29 @@ KSQL Quickstart
 
 Welcome to Confluent and Kafka Structured Query Language (KSQL)!
 
-The goal of this quickstart guide is to provide you with a first hands-on look at KSQL. This quickstart
-will guide you through a simple workflow to be able to query and transform KSQL data.
+KSQL provides a structured query language to do processing on data stored in a Kafka cluster.
+
+The goal of this quickstart guide is to guide you through a simple workflow to be able to query and transform KSQL data.
+
 
 Setup
 -----
 
-1. You will need access to a development Kafka cluster (with ZooKeeper, a Kafka broker, and Confluent Schema Registry) and then run KSQL against it. Do not run KSQL against a production Kafka cluster, since KSQL is in tech preview.
+1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster (with ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry). Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
 
-* If you are using a Docker environment, then follow [these instructions](quickstart-docker.rst) to run the Kafka cluster and start KSQL
-* If you are not using a Docker environment, then follow (these instructions)[quickstart-non-docker.rst] to run the Kafka cluster and start KSQL
+To run a Kafka development cluster and to start KSQL:
+* If you are using a Docker environment, then follow [these instructions](quickstart-docker.rst) 
+* If you are not using a Docker environment, then follow (these instructions)[quickstart-non-docker.rst]
 
-Once you have your Kafka cluster running and have started KSQL, you should see the KSQL prompt:
+Once you have completed the above steps, you will have a running Kafka cluster and you will have started KSQL. You will see the KSQL prompt:
 
 .. sourcecode:: bash
 
    ksql>
 
-2. Produce data to your Kafka cluster
+2. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock data to the Kafka cluster.
 
-* If you are using our Docker Compose files, a data generator is already running and producing Kafka messages to your cluster. No further action is required
+* If you are using our Docker Compose files, a Docker container is already running with a data generator that is producing Kafka messages to your cluster. No further action is required
 * If you are not not using our Docker environment, then follow [these instructions](quickstart-non-docker.rst#producedata) to generate data
 
 <TODO: KSQL-205: data generator should pre-generate this data>
@@ -41,151 +44,112 @@ Once you have your Kafka cluster running and have started KSQL, you should see t
 Read Kafka topic data into KSQL
 -------------------------------
 
-Before proceeding with the steps below, please ensure that you have a topic in your Kafka cluster called ``ksqlString``, with messages keys and values of type String.
+Before proceeding, please check:
+* You should now be at your ``ksql>`` prompt
+* If you are not using Docker, you must have run the data generator to produce topics called ``pageviews`` and ``topics``. If you haven't done this, please follow these [instructions](quickstart-non-docker.rst#producedata) to generate data. (Docker compose file automatically runs the data generator)
 
-You should now be at your ``ksql>`` prompt.
 
-1. Register the Kafka topic ``ksqlString`` into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
+1. Register the Kafka topic ``pageviews`` into KSQL, specifying the ``value_format`` of ``DELIMITED``, and view the contents of topic.
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlStringTopic WITH (kafka_topic='ksqlString', value_format='DELIMITED');
+   ksql> REGISTER TOPIC pageviews WITH (kafka_topic='pageviews', value_format='DELIMITED');
 
-2. Print contents of this topic. Press ``<Ctrl-c>`` to exit.
+1. Register the Kafka topic ``users`` into KSQL, specifying the ``value_format`` of ``JSON``, and view the contents of topic.
 
-   ksql> PRINT ksqlStringTopic;
+.. sourcecode:: bash
+
+   ksql> REGISTER TOPIC users WITH (kafka_topic='users', value_format='JSON');
+
+2. Print contents of these topics. Press ``<Ctrl-c>`` to exit.
+
+   ksql> PRINT pageviews;
    <TODO: KSQL-165 earliest problem getting all values. Also KSQL-132, ctrl-c does not work>
-1500990793064 , key1 , value1
-1500990796384 , key2 , value2
-1500990798954 , key3 , value3
-1500990800506 , key1 , value4
+   <TODO: insert output>
 
-3. List all the Kafka topics on the Kafka broker. You should see a topic in the Kafka cluster called ``ksqlString``. It is marked as "registered" in KSQL.
+3. List all the Kafka topics on the Kafka broker. You will see all topics in the Kafka cluster, including ``pageviews`` and ``users`` which are marked as "registered" in KSQL.
 
 .. sourcecode:: bash
 
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
 
-4. Create a KSQL stream from the registered Kafka topic, assigning the topic's message value as a column called ``country``.  Describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
+4. Create a KSQL stream from the registered Kafka topic ``pageviews``. Describe and view the stream. <TODO: Can we not REGISTER And CREATE STREAM in one command? KSQL-137>
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM ksqlStringStream (country string) WITH (registered_topic='ksqlStringTopic');
+   ksql> CREATE STREAM pageviewsStream (viewtime bigint, pageid varchar, userid varchar) WITH (registered_topic = 'pageviews');
 
-5. Create a KSQL table from the registered Kafka topic, and describe and view the stream. Notice that you now need to specify the state store name (i.e. Kafka topic) that will be used for backup. <TODO: link to KSQL concepts guide to explain difference between Stream and Table> <TODO: link to KSQL concepts guide to explain why tables need state store and streams don't>
-
-.. sourcecode:: bash
-
-   ksql> CREATE TABLE ksqlStringTable (country string) WITH (registered_topic='ksqlStringTopic', statestore='ksqlStringStore');
-
-6. View the schemas of the newly created STREAM and TABLE. Notice that the key corresponds to column ``ROWKEY`` and the value corresponds to column ``COUNTRY``. <TODO: ROWTIME corresponds to...message timestamp?>
+5. Create a KSQL table from the registered Kafka topic ``users``.  Describe and view the table.
 
 .. sourcecode:: bash
 
-   ksql> DESCRIBE ksqlStringStream;
-      Field |   Type 
-   ------------------
-    ROWTIME |  INT64 
-     ROWKEY | STRING 
-    COUNTRY | STRING 
+   ksql> CREATE TABLE usersTable (registertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users');
 
-   ksql> DESCRIBE ksqlStringTable;
-      Field |   Type 
-   ------------------
-    ROWTIME |  INT64 
-     ROWKEY | STRING 
-    COUNTRY | STRING 
+6. View the schemas of the newly created STREAM and TABLE. Notice that KSQL creates additional columns called ``ROWTIME`` and ``ROWKEY``.
+
+.. sourcecode:: bash
+
+   ksql> DESCRIBE pageviewsStream;
+   <TODO: insert>
+
+   ksql> DESCRIBE usersTable;
+   <TODO: insert>
 
 7. View all the KSQL STREAMS and TABLES.
+   <TODO: insert output>
 
 .. sourcecode:: bash
 
    ksql> show streams;
 
-    Stream Name |       Ksql Topic 
-   --------------------------------
-       COMMANDS | __COMMANDS_TOPIC 
-     KSQLSTREAM |  KSQLSTRINGTOPIC 
-
-.. sourcecode:: bash
-
    ksql> show tables;
 
-         Table Name |      Ksql Topic |      Statestore | Windowed 
-   ----------------------------------------------------------------
-    KSQLSTRINGTABLE | KSQLSTRINGTOPIC | ksqlStringStore |    false 
 
 
 Query and transform KSQL data
 -----------------------------
 
-1. Create a non-persistent query to select rows where the key is ``key1``. Press ``ctrl-c`` to exit this query.
+1. Create a non-persistent query that selects data from a stream. Press ``<ctrl-c>`` to stop it.
 
 .. sourcecode:: bash
 
-   ksql> SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
-   <TODO: select * hangs, due to KSQL-130?  LIMIT still has issues like KSQL-140. And Ctrl-c doesn't work KSQL-132>
+   ksql> SELECT users.userid AS userid, pageid, regionid, gender FROM pageviewsStream;
 
-2. Create a persistent query to select rows where the key is ``key1``, and persist it by sending the query results to a new KSQL stream called ``newksqlStringStream`` and to a Kafka topic called ``ksqlOutput-key1``. <TODO: explain why do we need a stream?  Why can't we write directly to just a topic?>
-
-.. sourcecode:: bash
-
-   ksql> CREATE STREAM newksqlStringStream WITH (kafka_topic='ksqlOutput-key1', value_format='DELIMITED') AS SELECT * FROM ksqlStringStream WHERE rowkey LIKE '%key1%';
-   <TODO: discuss/resolve KSQL-145, "show queries" connection to "create stream">
-
-3. Print the contents of the newly created topic ``ksqlOutput-key1``, which should show only those rows where value is ``key``. Backticks are required around the name of the topic because of SQL standard rules for hyphens.
+2. Create a persistent query that enriches the pageviews STREAM by doing a ``JOIN`` with data in the usersTable TABLE where a condition is met.
 
 .. sourcecode:: bash
 
-   ksql> PRINT `ksqlOutput-key1`;
+   ksql> CREATE STREAM pageviews_enriched AS SELECT usersTable.userid AS userid, pageid, regionid, gender FROM pageviewsStream LEFT JOIN usersTable ON pageviewsStream.userid = usersTable.userid WHERE gender = 'FEMALE';
 
-
-
-JOIN, WINDOW, PARTITION
------------------------
-
-1. <TODO: INSERT JOIN example, requires KSQL-152>
-
-2. <TODO: WINDOW example, requires KSQL-152>
-
-3. Provide example with "PARTITION BY" to assign key, if ROWKEY is null.  <TODO: discuss/resolve KSQL-146 in case this changes the keywords>
-
-
-JSON and Avro
--------------
-
-<TODO: discuss if we should omit talk of JSON/Avro completely for the first release?>
-
-When we registered the Kafka topic ``ksqlString`` in KSQL, we specified a value format ``DELIMITED``. This is because the messages were written to the Kafka topic as plain Strings. You can also register Kafka topics with other formats, including ``JSON`` and ``Avro``.
-
-1. Follow the corresponding (Docker)[quickstart-docker.rst] and (non-Docker)[quickstart-non-docker.rst] instructions for how to produce Json and Avro types of messages to the kafka cluster.
-
-2. In the KSQL application, register the ``ksqlJson`` topic into KSQL, specifying the ``value_format`` of ``JSON``.
+3. Show the newly created query
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlJsonTopic WITH (kafka_topic='ksqlJson', value_format='JSON');
+   ksql> show queries;
 
-3. Create a KSQL stream from the registered Json Kafka topic.
+4. Get the results of the queries. These will continue to produce results as the streams process newly incoming data, until you press `<ctrl-c>`.
 
-.. sourcecode:: bash
+   <TODO: insert output>
 
-   ksql> CREATE STREAM ksqlJsonStream (name varchar, id varchar) WITH (registered_topic='ksqlJsonTopic', key='id');
-
-4. <TODO: Need KSQL-133 and KSQL-125> In the KSQL application, register the ``ksqlAvro`` topic into KSQL, specifying the ``value_format`` of ``Avro``.
+5. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
 
 .. sourcecode:: bash
 
-   ksql> REGISTER TOPIC ksqlAvroTopic WITH (kafka_topic='ksqlAvro', value_format='Avro', avroschemafile='myavro.avsc');
+   ksql> CREATE STREAM enrichedpv_female_r8_r9 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM enrichedpv_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-5. Create a KSQL stream from the registered Avro Kafka topic.
+6. List all the Kafka topics on the Kafka broker. You will see some new topics including <TODO: insert names>
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM ksqlAvroStream (name varchar, id varchar) WITH (registered_topic='ksqlAvroTopic', key='id');
+   ksql> show topics;
+   <TODO: INSERT show topics command when KSQL-115 is implemented>
 
-6. Proceed with any processing and data transformations as described earlier.
+7. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
+
+.. sourcecode:: bash
+
+   ksql> CREATE TABLE pvcount_gender_region AS SELECT gender, regionid , count(*) from pageviews_enriched window tumbling (size 15 second) group by gender, regionid having count(*) > 5;
 
 
 

@@ -34,42 +34,64 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 
    $ docker-compose up -d
 
-4. Verify five Docker containers were created: ZooKeeper, Kafka Broker, Schema Registry, KSQL, Data Generator.
+
+The next three steps are optional verification steps to ensure your environment is properly setup.
+
+4. Verify six Docker containers were created:
 
 .. sourcecode:: bash
 
    $ docker-compose ps
-   <TODO: update with expected output>
+   <TODO: update with expected output once Docker images are built KSQL-185>
 
-              Name                         Command               State                           Ports                          
-   ----------------------------------------------------------------------------------------------------------------------------
-   demo_kafka-create-topics_1   bash -c echo Waiting for K ...   Up      9092/tcp                                               
-   demo_kafka_1                 /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-   demo_ksql-application_1      bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
-   demo_schema-registry_1       /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
-   demo_zookeeper_1             /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
+            Name                        Command               State                           Ports                          
+   -------------------------------------------------------------------------------------------------------------------------
+   demo_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
+   demo_ksql-application_1         bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
+   demo_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   demo_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   demo_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
+   demo_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
 
 
-5. Verify Kafka topics were pre-generated.
+5. The docker-compose file already runs a data generator that pre-populates two Kafka topics ``pageviews`` and ``users`` with mock data. Verify that the data generator created two Kafka topics, including ``pageviews`` and ``users``.
 
 .. sourcecode:: bash
 
    $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
-   <TODO: insert expected output>
+   __consumer_offsets
+   _confluent-metrics
+   _schemas
+   pageviews
+   users
 
+6. Use the ``kafka-console-consumer`` to view a few messages from each topic.  The topic ``pageviews`` has a key that is a mock timestamp and a value that is in ``DELIMITED`` format. The topic ``users`` has a key that is the user id and a value that is in ``Json`` format.
 
+.. sourcecode:: bash
+
+   $ docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   1512423359573	1512423359573,User_81,Page_22
+   1487894860785	1487894860785,User_44,Page_61
+   1492825930409	1492825930409,User_79,Page_52
+   ...
+
+   $ docker-compose exec zookeeper kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   User_44	{"registertime":1516454306672,"gender":"MALE","regionid":"Region_9","userid":"User_44"}
+   User_31	{"registertime":1501062988015,"gender":"OTHER","regionid":"Region_9","userid":"User_31"}
+   User_31	{"registertime":1492682761137,"gender":"FEMALE","regionid":"Region_1","userid":"User_31"}
+   ...
 
 
 Start KSQL
 ----------
 
-1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built>
+1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built KSQL-185>
 
 .. sourcecode:: bash
 
    $ docker-compose exec ksql-application java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file /app2/cluster.properties
 
-2. (Optional) You may have noticed the ``--properties-file /app2/cluster.properties`` argument which allows you to override any Kafka properties when starting KSQL with a properties file.
+2. You may have noticed the ``--properties-file /app2/cluster.properties`` argument which allows you to override any Kafka properties when starting KSQL with a properties file.
 For example, if your broker is listening on ``kafka:29092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample properties file, you need to create your own if you want to override defaults.
 
    .. sourcecode:: bash
@@ -86,66 +108,39 @@ For example, if your broker is listening on ``kafka:29092`` and you want to set 
 Produce more topic data
 -----------------------
 
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from.  Our docker-compose file already runs a data generator that pre-populates Kafka topics with data, so no action is required if you want to use just the data available there.
+The docker-compose file automatically runs a data generator that produces data to two Kafka topics ``pageviews`` and ``users``. No further action is required if you want to use just the data available. You can return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query these two topics.
 
-However, if you want to produce additional data.
+However, if you want to produce additional data, you can use any of the following methods.
 
-1. Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString``, with value of type String.
-
-.. sourcecode:: bash
-
-   $ docker-compose exec kafka kafka-console-producer --topic ksqlString --broker-list kafka:29092  --property parse.key=true --property key.separator=,
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
-
-2. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query this topic.
-
-3. You can produce additional Kafka data using the provided data generator. The following example generates delimited data to a topic called ``t4``.
+* Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ docker-compose exec ksql-application java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pagiew format=delimited topic=t4 bootstrap-server=kafka:29092
+   $ docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   key1:v1,v2,v3
+   key2:v4,v5,v6
+   key3:v7,v8,v9
+   key1:v10,v11,v12
 
-3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
+* Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data with a value in Json format
+
+.. sourcecode:: bash
+
+   $ docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
+   key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
+   key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
+   key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
+
+* Produce Kafka data using the provided data generator. The following example generates data with a value in DELIMITED format
+
+.. sourcecode:: bash
+
+   $ docker-compose exec ksql-datagen-users java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=t3 maxInterval=10000 bootstrap-server=kafka:29092
+
+* Produce Kafka data using the provided data generator. The following example generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000 bootstrap-server=kafka:29092
-
-3. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
-
-.. sourcecode:: bash
-
-   $ docker-compose exec kafka kafka-console-producer --topic ksqlJson --broker-list kafka:29092
-   {"name":"value1","id":"key1"}
-   {"name":"value2","id":"key2"}
-   {"name":"value3","id":"key3"}
-   {"name":"value4","id":"key1"}
-
-4. From Avro format, using the same Kafka commandline, use the ``kafka-avro-console-producer`` to produce messages to a topic called ``ksqlAvro``.
-
-.. sourcecode:: bash
-
-   $ docker-compose exec kafka kafka-avro-console-producer --broker-list kafka:29092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://schema-registry:8081
-   {"name":"value1","id":"key1"}
-   {"name":"value2","id":"key2"}
-   {"name":"value3","id":"key3"}
-   {"name":"value4","id":"key1"}
-
-
-Extra (To be Removed)
----------------------
-
-Until KSQL-172 is done, I need to manually pre-create topics, produce, consume:
-
-.. sourcecode:: bash
-docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --create --topic ksqlString --partitions 1 --replication-factor 1
-docker-compose exec kafka kafka-console-producer --topic ksqlString --broker-list kafka:29092  --property parse.key=true --property key.separator=,
-docker-compose exec kafka kafka-console-consumer --topic ksqlString --bootstrap-server kafka:29092 --from-beginning
-
-docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --create --topic order_json --partitions 1 --replication-factor 1
-java -jar ksql-examples-1.0-SNAPSHOT-standalone-4.jar bootstrap-server=localhost:9092 quickstart=orders format=json topic=order_json
-docker-compose exec kafka kafka-console-consumer --topic order_json --bootstrap-server kafka:29092 --from-beginning
+   $ docker-compose exec ksql-datagen-users java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=t4 maxInterval=10000 bootstrap-server=kafka:29092
 

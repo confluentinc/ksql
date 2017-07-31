@@ -77,46 +77,44 @@ s file, you need to create your own if you want to override defaults.
 3. Refer to the steps below to produce some topic data to the Kafka cluster.
 
 
+
 Produce topic data
 ------------------
 
-KSQL creates STREAMS and TABLES that queries Kafka topics, so first you need to make sure you have Kafka topics to read from. Choose any of the following options:
+The KSQL quickstart requires you to run the provided data generator which produces data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster.
 
-1. Produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data to a topic called ``ksqlString``, with value of type String.
+1. Download the data generator jar file <TODO: insert download link>
+
+2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ kafka-console-producer --topic ksqlString --broker-list localhost:9092  --property parse.key=true --property key.separator=,
-   key1,value1
-   key2,value2
-   key3,value3
-   key1,value4
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000 bootstrap-server=kafka:29092
 
-2. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query this topic.
-
-3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
+3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000 bootstrap-server=kafka:29092
 
-4. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
+At this point you may return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster. Optionally, if you would like to do additional testing: 
 
-.. sourcecode:: bash
-
-   $ kafka-console-producer --topic ksqlJson --broker-list localhost:9092
-   {"name":"value1","id":"key1"}
-   {"name":"value2","id":"key2"}
-   {"name":"value3","id":"key3"}
-   {"name":"value4","id":"key1"}
-
-5. From Avro format, using the same Kafka commandline, use the ``kafka-avro-console-producer`` to produce messages to a topic called ``ksqlAvro``.
+4. You can produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ kafka-avro-console-producer --broker-list localhost:9092 --topic ksqlAvro  --property value.schema='{"type":"record","name":"myavro","fields":[{"name":"name","type":"string"},{"name":"id","type":"string"}]}' --property schema.registry.url=http://localhost:8081
-   {"name":"value1","id":"key1"}
-   {"name":"value2","id":"key2"}
-   {"name":"value3","id":"key3"}
-   {"name":"value4","id":"key1"}
+   $ kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   key1:v1,v2,v3
+   key2:v4,v5,v6
+   key3:v7,v8,v9
+   key1:v10,v11,v12
 
+5. The following example generates data with a value in Json format
+
+.. sourcecode:: bash
+
+   $ kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
+   key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
+   key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
+   key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}

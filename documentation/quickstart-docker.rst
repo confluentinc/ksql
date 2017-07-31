@@ -104,6 +104,8 @@ However, if you want to produce additional data.
 
 3. You can produce additional Kafka data using the provided data generator. The following example generates delimited data to a topic called ``t4``.
 
+.. sourcecode:: bash
+
    $ docker-compose exec ksql-application java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pagiew format=delimited topic=t4 bootstrap-server=kafka:29092
 
 3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.

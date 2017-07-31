@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.Pair;
 
 public class MockCommandStore extends CommandStore {
 
@@ -49,11 +50,11 @@ public class MockCommandStore extends CommandStore {
     List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
     Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordsMap = new HashMap<>();
     if (isFirstCall) {
-      LinkedHashMap<CommandId, Command> commands = new TestUtils().getAllPriorCommandRecords();
-      for (CommandId commandId: commands.keySet()) {
+      List<Pair<CommandId, Command>> commands = new TestUtils().getAllPriorCommandRecords();
+      for (Pair<CommandId, Command> commandIdCommandPair: commands) {
         records.add(new ConsumerRecord<CommandId, Command>(
             "T1",10, 100,
-            commandId, commands.get(commandId)));
+            commandIdCommandPair.getLeft(), commandIdCommandPair.getRight()));
       }
 
       recordsMap.put(new TopicPartition("T1", 1), records);
@@ -75,7 +76,7 @@ public class MockCommandStore extends CommandStore {
   }
 
   @Override
-  public LinkedHashMap<CommandId, Command> getPriorCommands() {
+  public List<Pair<CommandId, Command>> getPriorCommands() {
     return new TestUtils().getAllPriorCommandRecords();
   }
 

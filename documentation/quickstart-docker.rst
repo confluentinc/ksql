@@ -108,7 +108,7 @@ For example, if your broker is listening on ``kafka:29092`` and you want to set 
 Produce more topic data
 -----------------------
 
-The docker-compose file automatically runs a data generator that produces data to two Kafka topics ``pageviews`` and ``users``. No further action is required if you want to use just the data available. You can return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query these two topics.
+The docker-compose file automatically runs a data generator that continuously produces data to two Kafka topics ``pageviews`` and ``users``. No further action is required if you want to use just the data available. You can return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query these two topics.
 
 However, if you want to produce additional data, you can use any of the following methods.
 

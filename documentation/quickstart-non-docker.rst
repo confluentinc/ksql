@@ -85,13 +85,13 @@ The KSQL quickstart requires you to run the provided data generator which produc
 
 1. Download the data generator jar file <TODO: insert download link>
 
-2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example generates data with a value in DELIMITED format
+2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example continuously generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
    $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000 bootstrap-server=kafka:29092
 
-3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example generates data with a value in Json format
+3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 
    .. sourcecode:: bash
 

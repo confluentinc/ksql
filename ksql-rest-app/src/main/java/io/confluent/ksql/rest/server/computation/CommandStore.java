@@ -103,13 +103,11 @@ public class CommandStore implements Closeable {
    * @return The commands that have been read from the command topic
    */
   public List<Pair<CommandId, Command>> getPriorCommands() {
-//    LinkedHashMap<CommandId, Command> result = new LinkedHashMap<>();
     List<Pair<CommandId, Command>> result = new ArrayList<>();
     for (ConsumerRecord<CommandId, Command> commandRecord : getAllPriorCommandRecords()) {
       CommandId commandId = commandRecord.key();
       Command command = commandRecord.value();
       if (command != null) {
-//        result.put(commandId, command);
         result.add(new Pair<>(commandId, command));
       }
     }

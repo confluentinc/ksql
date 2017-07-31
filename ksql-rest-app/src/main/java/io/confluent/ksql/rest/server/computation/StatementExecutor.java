@@ -90,49 +90,6 @@ public class StatementExecutor {
   }
 
   /**
-   * Execute a series of statements. The only difference between this and multiple consecutive calls
-   * to {@link #handleStatement(Command, CommandId)} is that terminated queries will not be
-   * instantiated at all (as long as the statements responsible for both their creation and
-   * termination are both present in {@code priorCommands}.
-   * @param priorCommands A map of statements to execute, where keys are statement IDs and values
-   *                      are the actual strings of the statements.
-   * @throws Exception TODO: Refine this.
-   */
-  public void handleStatements(LinkedHashMap<CommandId, Command> priorCommands) throws Exception {
-
-    Map<Long, CommandId> terminatedQueries = getTerminatedQueries(priorCommands);
-
-    for (Map.Entry<CommandId, Command> commandEntry : priorCommands.entrySet()) {
-      String statementString = commandEntry.getValue().getStatement();
-      Statement statement = statementParser.parseSingleStatement(statementString);
-      if (!(statement instanceof TerminateQuery)) {
-        log.info("Executing prior statement: '{}'", commandEntry.getValue());
-        try {
-          handleStatementWithTerminatedQueries(
-              commandEntry.getValue(),
-              commandEntry.getKey(),
-              terminatedQueries
-          );
-        } catch (Exception exception) {
-          log.warn("Failed to execute statement due to exception", exception);
-        }
-      }
-    }
-
-    for (CommandId terminateCommand : terminatedQueries.values()) {
-      if (!statusStore.containsKey(terminateCommand)) {
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        new Exception("Query not found").printStackTrace(printWriter);
-        statusStore.put(
-            terminateCommand,
-            new CommandStatus(CommandStatus.Status.ERROR, stringWriter.toString())
-        );
-      }
-    }
-  }
-
-  /**
    * Attempt to execute a single statement.
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command

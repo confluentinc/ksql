@@ -87,13 +87,7 @@ public class CommandRunner implements Runnable, Closeable {
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() throws Exception {
-//    LinkedHashMap<CommandId, Command> priorCommands = commandStore.getPriorCommands();
-//    LinkedHashMap<CommandId, String> priorStatements = new LinkedHashMap<>();
     List<Pair<CommandId, Command>> priorCommands = commandStore.getPriorCommands();
-//    List<String> priorStatements = new ArrayList<>();
-//    for (Map.Entry<CommandId, Command> priorCommand : priorCommands.entrySet()) {
-//      priorStatements.put(priorCommand.getKey(), priorCommand.getValue().getStatement());
-//    }
     statementExecutor.handleStatements(priorCommands);
   }
 

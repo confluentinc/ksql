@@ -102,11 +102,15 @@ However, if you want to produce additional data.
 
 2. Return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start using KSQL to query this topic.
 
+3. You can produce additional Kafka data using the provided data generator. The following example generates delimited data to a topic called ``t4``.
+
+   $ docker-compose exec ksql-application java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pagiew format=delimited topic=t4 bootstrap-server=kafka:29092
+
 3. You can produce additional Kafka data using the provided data generator. The following example generates data to a topic called ``user_topic_json``.
 
    .. sourcecode:: bash
 
-   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000
+   $ docker-compose exec ksql-application java -jar ./ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=user_topic_json maxInterval=1000 bootstrap-server=kafka:29092
 
 3. For Json format, using the same Kafka commandline ``kafka-console-producer``, produce messages to a topic called ``ksqlJson``.
 

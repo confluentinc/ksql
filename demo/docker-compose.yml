@@ -80,8 +80,8 @@ services:
   ksql-application:
     image: confluentinc/cp-kafka-streams-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0728.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
-      - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0728.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0728-504bd02.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0728-504bd02.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
       - /Users/yeva/assets/ksql/cluster.properties:/app2/cluster.properties
     hostname: ksql-application
     depends_on:

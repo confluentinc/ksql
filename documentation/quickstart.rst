@@ -142,17 +142,16 @@ Before proceeding, please check:
 Query and transform KSQL data
 -----------------------------
 
-1. Create a non-persistent query that selects data from a stream. Press ``<ctrl-c>`` to stop it.
+1. Create a non-persistent query that returns three data rows from a stream. Press ``<ctrl-c>`` to stop it. <TODO: KSQL-255: this should return after 3 records are reached>
 
 .. sourcecode:: bash
 
-   ksql> SELECT pageid FROM pageviews_original;
-   Page_56
-   Page_44
-   Page_53
-   ...
+   ksql> SELECT pageid FROM pageviews_original LIMIT 3;
+   User_30
+   User_73
+   User_96
 
-2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement.  This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met.
+2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement. Unlike the non-persistent case above, results from this query will be produced to a Kafka topic ``pageviews_female``. This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met. <TODO: this currently errors out...Hojjat is looking into it>
 
 .. sourcecode:: bash
 
@@ -163,44 +162,49 @@ Query and transform KSQL data
    -----------------------------------------------------------
     stream/PAGEVIEWS_FEMALE | EXECUTING | Executing statement 
 
-
-3. Show the newly created query
-
-.. sourcecode:: bash
-
-   ksql> show queries;
-
-4. Get the results of the queries. These will continue to produce results as the streams process newly incoming data, until you press `<ctrl-c>`.
-
-   <TODO: insert output>
-
-5. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
+3. View the results of this query. This continuous query will keep on producing results as the stream processes incoming data, until you press `<ctrl-c>`.
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM pageviews_female_like WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM enrichedpv_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+   ksql> SELECT * FROM pageviews_female;
 
-6. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
+4. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
+
+.. sourcecode:: bash
+
+   ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+
+5. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
 
 .. sourcecode:: bash
 
    ksql> CREATE TABLE pageviews_grouping AS SELECT gender, regionid , count(*) from pageviews_female window tumbling (size 15 second) group by gender, regionid having count(*) > 5;
 
-7. List all the Kafka topics on the Kafka broker. You will see some new topics including <TODO: insert names>
+6. Show the newly created queries.  <TODO: update output>
+
+.. sourcecode:: bash
+
+   ksql> show queries;
+
+
+
+Terminate and Exit
+------------------
+
+1. List all the Kafka topics on the Kafka broker. You will see some new topics that represent the persistent queries as well as the topics that Kafka Streams uses behind-the-scenes. including <TODO: insert topics>  
 
 .. sourcecode:: bash
 
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
 
+2. Until you terminate a query, it will run continuously as a Kafka streams application. From the output of ``show queries;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``4``:
 
+.. sourcecode:: bash
 
-Exit KSQL
----------
+   ksql> terminate 4;
 
-1. <TODO: INSERT TERMINATE EXAMPLE>  <TODO: link to KSQL concepts guide, when is terminate relevant...is it only with workers?>
-
-2. From the KSQL prompt ``ksql>``, type 'exit'.
+3. To exit from KSQL application, from the KSQL prompt ``ksql>``, type 'exit'.
 
 .. sourcecode:: bash
 

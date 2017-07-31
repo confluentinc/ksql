@@ -19,6 +19,8 @@ public class SchemaUtil {
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
+  public static final int ROWKEY_NAME_INDEX = 1;
+  public static final int ROWTIME_NAME_INDEX = 0;
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {

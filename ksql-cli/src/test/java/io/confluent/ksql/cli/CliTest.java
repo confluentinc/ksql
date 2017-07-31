@@ -1,12 +1,10 @@
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.JLineTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -19,7 +17,8 @@ import static org.easymock.EasyMock.verify;
 public class CliTest {
 
   private static Cli getTestCli(KsqlRestClient restClient) throws Exception {
-    return new Cli(restClient, null, null, Cli.OutputFormat.JSON);
+    Console terminal = new JLineTerminal(Cli.OutputFormat.JSON, restClient);
+    return new Cli(null, null, restClient, terminal);
   }
 
   private static Cli getTestCli() throws Exception {

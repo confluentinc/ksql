@@ -7,6 +7,8 @@ package io.confluent.ksql.cli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.cli.console.Console;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -21,17 +23,18 @@ public class LocalCli extends Cli {
       int portNumber,
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
-      OutputFormat outputFormat
+      KsqlRestClient restClient,
+      Console terminal
   ) throws Exception {
     super(
-        new KsqlRestClient(getServerAddress(portNumber)),
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
-        outputFormat
+        restClient,
+        terminal
     );
 
     // Have to override listeners config to make sure it aligns with port number for client
-    serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, getServerAddress(portNumber));
+    serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getServerAddress(portNumber));
 
     this.serverApplication = KsqlRestApplication.buildApplication(serverProperties, false);
     serverApplication.start();
@@ -66,7 +69,4 @@ public class LocalCli extends Cli {
     }
   }
 
-  private static String getServerAddress(int portNumber) {
-    return String.format("http://localhost:%d", portNumber);
-  }
 }

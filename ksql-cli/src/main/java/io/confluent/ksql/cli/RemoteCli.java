@@ -5,32 +5,30 @@
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.cli.console.CliSpecificCommand;
+import io.confluent.ksql.cli.console.Console;
 
 import javax.ws.rs.ProcessingException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
 
 public class RemoteCli extends Cli {
 
   public RemoteCli(
-      String serverAddress,
-      Map<String, Object> propertiesMap,
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
-      OutputFormat outputFormat
+      KsqlRestClient restClient,
+      Console terminal
   ) throws IOException {
     super(
-        new KsqlRestClient(serverAddress, propertiesMap),
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
-        outputFormat
+        restClient,
+        terminal
     );
 
     validateClient();
 
-    registerCliSpecificCommand(new CliSpecificCommand() {
+    terminal.registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
       public String getName() {
         return "server";

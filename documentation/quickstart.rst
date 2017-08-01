@@ -40,8 +40,8 @@ Once you have completed the above steps, you will have a running Kafka cluster a
 3. With KSQL running and data in your Kafka cluster ready for querying, you can proceed below.
 
 
-Create a STREAM and TABLE in KSQL
----------------------------------
+Create a STREAM and TABLE
+-------------------------
 
 This KSQL quickstart shows examples querying data from Kafka topics called ``pageviews`` and ``users`` using the following schemas:
 

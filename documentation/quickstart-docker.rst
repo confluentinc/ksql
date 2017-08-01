@@ -85,7 +85,7 @@ The next three steps are optional verification steps to ensure your environment 
 Start KSQL
 ----------
 
-1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built KSQL-185>
+1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built KSQL-185; update how ksql is invoked with KSQL-254>
 
 .. sourcecode:: bash
 

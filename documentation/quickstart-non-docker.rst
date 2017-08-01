@@ -51,7 +51,7 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
-1. Download the KSQL jar file <TODO: insert download link>. Then you can start KSQL. Use the keyword ``local`` if the broker is running on your local machine.
+1. Download the KSQL jar file <TODO: insert download link>. Then you can start KSQL. Use the keyword ``local`` if the broker is running on your local machine.  <TODO: update how ksql is invoked with KSQL-254>
 
 .. sourcecode:: bash
 

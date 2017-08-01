@@ -60,19 +60,19 @@ public class TablesList extends KsqlEntity {
   public static class TableInfo {
     private final String name;
     private final String topic;
-    private final String stateStoreName;
+    private final String format;
     private final boolean isWindowed;
 
     @JsonCreator
     public TableInfo(
         @JsonProperty("name")           String name,
         @JsonProperty("topic")          String topic,
-        @JsonProperty("stateStoreName") String stateStoreName,
+        @JsonProperty("format") String format,
         @JsonProperty("isWindowed")     boolean isWindowed
     ) {
       this.name = name;
       this.topic = topic;
-      this.stateStoreName = stateStoreName;
+      this.format = format;
       this.isWindowed = isWindowed;
     }
 
@@ -80,7 +80,7 @@ public class TablesList extends KsqlEntity {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getName(),
-          ksqlTable.getStateStoreName(),
+          ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
           ksqlTable.isWinidowed()
       );
     }
@@ -93,8 +93,8 @@ public class TablesList extends KsqlEntity {
       return topic;
     }
 
-    public String getStateStoreName() {
-      return stateStoreName;
+    public String getFormat() {
+      return format;
     }
 
     public boolean getIsWindowed() {
@@ -113,12 +113,12 @@ public class TablesList extends KsqlEntity {
       return getIsWindowed() == tableInfo.getIsWindowed()
           && Objects.equals(getName(), tableInfo.getName())
           && Objects.equals(getTopic(), tableInfo.getTopic())
-          && Objects.equals(getStateStoreName(), tableInfo.getStateStoreName());
+          && Objects.equals(getFormat(), tableInfo.getFormat());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getName(), getTopic(), getStateStoreName(), isWindowed);
+      return Objects.hash(getName(), getTopic(), getFormat(), isWindowed);
     }
   }
 }

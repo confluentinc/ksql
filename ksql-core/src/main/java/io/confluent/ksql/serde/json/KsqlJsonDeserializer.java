@@ -55,7 +55,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     } catch (Exception e) {
       throw new SerializationException(e);
     }
-
     return data;
   }
 

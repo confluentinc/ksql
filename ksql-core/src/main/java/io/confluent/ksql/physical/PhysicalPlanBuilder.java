@@ -392,7 +392,7 @@ public class PhysicalPlanBuilder {
                         Windowed<String> key, GenericRow row) {
                       if (row != null) {
                         row.getColumns().add(0,
-                                             String.format("%s : Window{start=%d, end=%d}", key
+                                             String.format("%s : Window{start=%d end=%d}", key
                                                  .key(), key.window().start(), key.window().end()));
                       }
                       return new KeyValue<>(key, row);

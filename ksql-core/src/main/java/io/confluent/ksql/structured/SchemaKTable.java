@@ -11,6 +11,7 @@ import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
@@ -19,6 +20,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
@@ -134,35 +136,47 @@ public class SchemaKTable extends SchemaKStream {
         try {
           List<Object> newColumns = new ArrayList();
           for (int i = 0; i < expressionPairList.size(); i++) {
-            int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-            Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-            Object[] parameterObjects = new Object[parameterIndexes.length];
-            for (int j = 0; j < parameterIndexes.length; j++) {
-              if (parameterIndexes[j] < 0) {
-                parameterObjects[j] = kudfs[j];
-              } else {
-                parameterObjects[j] =
-                    genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
-                                                                 row.getColumns()
-                                                                     .get(parameterIndexes[j]));
+            try {
+              int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+              Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+              Object[] parameterObjects = new Object[parameterIndexes.length];
+              for (int j = 0; j < parameterIndexes.length; j++) {
+                if (parameterIndexes[j] < 0) {
+                  parameterObjects[j] = kudfs[j];
+                } else {
+                  parameterObjects[j] =
+                      genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
+                                                                   row.getColumns()
+                                                                       .get(parameterIndexes[j]));
+                }
               }
+              Object columnValue = null;
+              columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
+                  .evaluate(parameterObjects);
+              newColumns.add(columnValue);
+            } catch (Exception e) {
+              log.error("Error calculating column with index " + i + " : " +
+                        expressionPairList.get(i).getLeft());
+              newColumns.add(null);
             }
-            Object columnValue = null;
-            columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
-                .evaluate(parameterObjects);
-            newColumns.add(columnValue);
           }
           GenericRow newRow = new GenericRow(newColumns);
           return newRow;
         } catch (Exception e) {
+          log.error("Projection exception for row: " + row.toString());
           log.error(e.getMessage(), e);
+          throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
         }
-        return null;
       }
     });
 
     return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
                             Arrays.asList(this), isWindowed, Type.PROJECT);
+  }
+
+  @Override
+  public KStream getKstream() {
+    return ktable.toStream();
   }
 
   public SchemaKStream toStream() {

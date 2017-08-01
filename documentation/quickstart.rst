@@ -22,6 +22,7 @@ Setup
 1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster (with ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry). Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
 
 To run a Kafka development cluster and to start KSQL:
+
 * If you are using a Docker environment, then follow these `instructions <quickstart-docker.rst>`__
 * If you are not using a Docker environment, then follow these `instructions <quickstart-non-docker.rst>`__
 

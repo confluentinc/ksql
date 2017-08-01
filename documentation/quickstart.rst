@@ -42,11 +42,14 @@ Once you have completed the above steps, you will have a running Kafka cluster a
 Create a STREAM and TABLE in KSQL
 ---------------------------------
 
-This KSQL quickstart shows examples using data from Kafka topics that translate to the following schemas:
+This KSQL quickstart shows examples querying data from Kafka topics called ``pageviews`` and ``users`` using the following schemas:
 
+.. image:: https://github.com/ybyzek/ksql/blob/master/documentation/ksql-quickstart-schemas.jpg
+    :width: 200px
+    
 Before proceeding, please check:
 * In the window where you started KSQL, you see the ``ksql>`` prompt
-* If you are not using Docker, you must have run the data generator to produce topics called ``pageviews`` and ``topics``. If you haven't done this, please follow these [instructions](quickstart-non-docker.rst#producedata) to generate data. (Docker compose file automatically runs the data generator)
+* If you are not using Docker, you must manually have run the data generator to produce topics called ``pageviews`` and ``users``. If you haven't done this, please follow these [instructions](quickstart-non-docker.rst#producedata) to generate data. (Docker compose file automatically runs the data generator)
 
 
 1. Create a STREAM ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``. Describe the new STREAM.  Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message logstamp time, and ``ROWKEY``, which corresponds to the Kafka message key.

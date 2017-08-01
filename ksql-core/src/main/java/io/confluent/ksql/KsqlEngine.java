@@ -128,10 +128,8 @@ public class KsqlEngine implements Closeable {
     );
 
     for (QueryMetadata queryMetadata : runningQueries) {
-
-      liveQueries.add(queryMetadata);
-
       if (queryMetadata instanceof PersistentQueryMetadata) {
+        liveQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
       }
@@ -361,8 +359,8 @@ public class KsqlEngine implements Closeable {
   @Override
   public void close() throws IOException {
     for (QueryMetadata queryMetadata : liveQueries) {
-      queryMetadata.getKafkaStreams().close();
       queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.getKafkaStreams().close();
     }
     kafkaTopicClient.close();
   }

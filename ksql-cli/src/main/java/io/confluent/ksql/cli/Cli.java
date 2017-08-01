@@ -95,7 +95,7 @@ public class Cli implements Closeable, AutoCloseable {
         handleLine(readLine());
       } catch (EndOfFileException exception) {
         // EOF is fine, just terminate the REPL
-        terminal.writer().println("Exit REPL.");
+        terminal.writer().println("Exiting KSQL.");
         eof = true;
       } catch (Exception exception) {
         LOGGER.error(ExceptionUtils.getStackTrace(exception));

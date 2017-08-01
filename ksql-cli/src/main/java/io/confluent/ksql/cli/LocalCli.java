@@ -60,8 +60,6 @@ public class LocalCli extends Cli {
 
           TODO: Prevent the TimeoutException from being thrown when this happens.
        */
-    } catch (IOException exception) {
-      throw exception;
     } catch (Exception exception) {
       throw new RuntimeException(exception);
     } finally {

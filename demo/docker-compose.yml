@@ -108,6 +108,7 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
+                       java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
                        java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=10000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092
@@ -138,6 +139,7 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
+                       java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
                        java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=10000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092

@@ -36,8 +36,6 @@ Once you have completed the above steps, you will have a running Kafka cluster a
 * If you are using our Docker Compose files, a Docker container is already running with a data generator that is producing Kafka messages to your cluster. No further action is required
 * If you are not not using our Docker environment, then follow [these instructions](quickstart-non-docker.rst#producedata) to generate data
 
-<TODO: KSQL-205: data generator should pre-generate this data>
-
 3. With KSQL running and data in your Kafka cluster ready for querying, you can proceed below.
 
 
@@ -155,7 +153,7 @@ Terminate and Exit
 .. sourcecode:: bash
 
    ksql> show topics;
-   <TODO: INSERT show topics command when KSQL-115 is implemented>
+   <TODO: INSERT show topics command when other issues are resolved>
 
 2. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of ``show queries;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``2``:
 

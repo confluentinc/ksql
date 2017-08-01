@@ -60,7 +60,7 @@ Before proceeding, please check:
 
 .. sourcecode:: bash
 
-   ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (registered_topic = 'pageviews');
+   ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
    ksql> describe pageviews_original;
 
        Field |   Type 
@@ -75,7 +75,7 @@ Before proceeding, please check:
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (registered_topic = 'users');
+   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
    ksql> DESCRIBE users_original;
 
         Field |   Type 

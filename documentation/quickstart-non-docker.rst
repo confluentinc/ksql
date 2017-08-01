@@ -81,7 +81,7 @@ s file, you need to create your own if you want to override defaults.
 Produce topic data
 ------------------
 
-The KSQL quickstart requires you to run the provided data generator which produces data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster.
+The KSQL quickstart assumes you have run at least the following three steps to produce data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster.
 
 1. Download the data generator jar file <TODO: insert download link>
 
@@ -97,7 +97,7 @@ The KSQL quickstart requires you to run the provided data generator which produc
 
    $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000 bootstrap-server=kafka:29092
 
-At this point you may return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster. Optionally, if you would like to do additional testing: 
+At this point you may return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 
 
 4. You can produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data with a value in DELIMITED format
 

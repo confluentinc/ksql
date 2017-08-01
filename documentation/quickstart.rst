@@ -126,16 +126,16 @@ Before proceeding, please check:
 
    ksql> show streams;
    
-        Stream Name |       Ksql Topic 
-   ------------------------------------
-           COMMANDS | __COMMANDS_TOPIC 
- PAGEVIEWS_ORIGINAL |        PAGEVIEWS 
+           Stream Name |   Kafka Topic |    Format 
+   ------------------------------------------------
+              COMMANDS | app1_commands |      JSON 
+    PAGEVIEWS_ORIGINAL |     pageviews | DELIMITED 
 
    ksql> show tables;
    
-    Table Name | Ksql Topic |            Statestore | Windowed 
-   ------------------------------------------------------------
- USERS_ORIGINAL |      USERS | USERS_ORIGINAL_statestore |    false 
+        Table Name | Kafka Topic | Format | Windowed 
+   --------------------------------------------------
+    USERS_ORIGINAL |       USERS |   JSON |    false 
 
 
 
@@ -174,7 +174,7 @@ Query and transform KSQL data
 
    ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-5. Create a persistent query that counts the views for each reagion and gender combination for tumbling window of 15 seconds when the view count is greater than 5
+5. Create a persistent query that counts the views for each region and gender combination for tumbling window of 15 seconds when the view count is greater than 5.  <TODO: this does not work as expected.  Need to resolve KSQL-257, KSQL-260>
 
 .. sourcecode:: bash
 
@@ -198,11 +198,11 @@ Terminate and Exit
    ksql> show topics;
    <TODO: INSERT show topics command when KSQL-115 is implemented>
 
-2. Until you terminate a query, it will run continuously as a Kafka streams application. From the output of ``show queries;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``4``:
+2. Until you terminate a query, it will run continuously as a Kafka streams application. From the output of ``show queries;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``2``:
 
 .. sourcecode:: bash
 
-   ksql> terminate 4;
+   ksql> terminate 2;
 
 3. To exit from KSQL application, from the KSQL prompt ``ksql>``, type 'exit'.
 

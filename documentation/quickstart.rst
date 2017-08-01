@@ -22,9 +22,8 @@ Setup
 1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster (with ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry). Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
 
 To run a Kafka development cluster and to start KSQL:
-* If you are using a Docker environment, then follow `these instructions <quickstart-docker.rst>`__
-* `Kafka documentation <http://kafka.apache.org/0110/documentation/#upgrade_1100_notable>`__
-* If you are not using a Docker environment, then follow (these instructions)[quickstart-non-docker.rst]
+* If you are using a Docker environment, then follow these `instructions <quickstart-docker.rst>`__
+* If you are not using a Docker environment, then follow these `instructions <quickstart-non-docker.rst>`__
 
 Once you have completed the above steps, you will have a running Kafka cluster and you will have started KSQL. You will see the KSQL prompt:
 
@@ -35,7 +34,7 @@ Once you have completed the above steps, you will have a running Kafka cluster a
 2. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock data to the Kafka cluster.
 
 * If you are using our Docker Compose files, a Docker container is already running with a data generator that is producing Kafka messages to your cluster. No further action is required
-* If you are not not using our Docker environment, then follow [these instructions](quickstart-non-docker.rst#producedata) to generate data
+* If you are not not using our Docker environment, then follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data
 
 3. With KSQL running and data in your Kafka cluster ready for querying, you can proceed below.
 
@@ -50,7 +49,7 @@ This KSQL quickstart shows examples querying data from Kafka topics called ``pag
     
 Before proceeding, please check:
 * In the window where you started KSQL, you see the ``ksql>`` prompt
-* If you are not using Docker, you must manually have run the data generator to produce topics called ``pageviews`` and ``users``. If you haven't done this, please follow these [instructions](quickstart-non-docker.rst#producedata) to generate data. (Docker compose file automatically runs the data generator)
+* If you are not using Docker, you must manually have run the data generator to produce topics called ``pageviews`` and ``users``. If you haven't done this, please follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data. (Docker compose file automatically runs the data generator)
 
 
 1. Create a STREAM ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``. Describe the new STREAM.  Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message logstamp time, and ``ROWKEY``, which corresponds to the Kafka message key.

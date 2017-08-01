@@ -93,24 +93,18 @@ public class JsonFormatTest {
     metaStore = ksqlEngine.getMetaStore();
     inputData = getInputData();
 
-    String ordersTopicStr = String.format("REGISTER TOPIC %s WITH (value_format = 'json', "
-                                          + "kafka_topic='%s');", inputTopic, inputTopic);
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-                                           + "map<varchar, double>) WITH (registered_topic = "
-                                           + "'%s' , "
-                                           + "key='ordertime');", inputStream, inputTopic);
+                                           + "map<varchar, double>) WITH (value_format = 'json', "
+                                           + "kafka_topic='%s' , "
+                                           + "key='ordertime');", inputStream, inputTopic, inputTopic);
 
-    String messageTopicStr = String.format("REGISTER TOPIC %s WITH (value_format = 'json', "
-                                           + "kafka_topic='%s');", messageLogTopic,
-                                           messageLogTopic);
-    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (registered_topic = "
-                                            + "'%s');", messageLogStream, messageLogTopic);
+    String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
+                                            + "kafka_topic='%s');", messageLogStream,
+                                            messageLogTopic, messageLogTopic);
 
-    ksqlEngine.buildMultipleQueries(false, ordersTopicStr, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(false, ordersStreamStr, Collections.emptyMap());
 
-    ksqlEngine.buildMultipleQueries(false, messageTopicStr, Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(false, messageStreamStr, Collections.emptyMap());
 
     inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());

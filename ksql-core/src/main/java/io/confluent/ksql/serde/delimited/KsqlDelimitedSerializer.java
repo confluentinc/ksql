@@ -5,6 +5,8 @@
 package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
@@ -20,14 +22,24 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
   @Override
   public byte[] serialize(final String topic, final GenericRow genericRow) {
-    StringBuilder recordString = new StringBuilder();
-    for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      if (i != 0) {
-        recordString.append(",");
-      }
-      recordString.append(genericRow.columns.get(i).toString());
+    if (genericRow == null) {
+      return null;
     }
-    return recordString.toString().getBytes();
+
+    try {
+      StringBuilder recordString = new StringBuilder();
+      for (int i = 0; i < genericRow.getColumns().size(); i++) {
+        if (i != 0) {
+          recordString.append(",");
+        }
+        recordString.append(genericRow.columns.get(i).toString());
+      }
+      return recordString.toString().getBytes();
+    } catch (Exception e) {
+      throw new KsqlException(e.getMessage(), e);
+    }
+
+
   }
 
   @Override

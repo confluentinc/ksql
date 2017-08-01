@@ -447,18 +447,19 @@ public abstract class Console implements Closeable {
       rowValues = Arrays.asList(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
       List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
-      columnHeaders = Arrays.asList("Stream Name", "Ksql Topic");
+      columnHeaders = Arrays.asList("Stream Name", "Kafka Topic", "Format");
       rowValues = streamInfos.stream()
-          .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic()))
+          .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic(),
+                                           streamInfo.getFormat()))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TablesList) {
       List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
-      columnHeaders = Arrays.asList("Table Name", "Ksql Topic", "Statestore", "Windowed");
+      columnHeaders = Arrays.asList("Table Name", "Kafka Topic", "Format", "Windowed");
       rowValues = tableInfos.stream()
           .map(tableInfo -> Arrays.asList(
               tableInfo.getName(),
               tableInfo.getTopic(),
-              tableInfo.getStateStoreName(),
+              tableInfo.getFormat(),
               Boolean.toString(tableInfo.getIsWindowed()))
           ).collect(Collectors.toList());
     } else if (ksqlEntity instanceof KsqlTopicsList) {

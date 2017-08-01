@@ -63,20 +63,24 @@ public class StreamsList extends KsqlEntity {
   public static class StreamInfo {
     private final String name;
     private final String topic;
+    private final String format;
 
     @JsonCreator
     public StreamInfo(
         @JsonProperty("name")  String name,
-        @JsonProperty("topic") String topic
+        @JsonProperty("topic") String topic,
+        @JsonProperty("format") String format
     ) {
       this.name = name;
       this.topic = topic;
+      this.format = format;
     }
 
     public StreamInfo(KsqlStream ksqlStream) {
       this(
           ksqlStream.getName(),
-          ksqlStream.getKsqlTopic().getName()
+          ksqlStream.getKsqlTopic().getKafkaTopicName(),
+          ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name()
       );
     }
 
@@ -86,6 +90,10 @@ public class StreamsList extends KsqlEntity {
 
     public String getTopic() {
       return topic;
+    }
+
+    public String getFormat() {
+      return format;
     }
 
     @Override
@@ -98,12 +106,13 @@ public class StreamsList extends KsqlEntity {
       }
       StreamInfo that = (StreamInfo) o;
       return Objects.equals(getName(), that.getName())
-          && Objects.equals(getTopic(), that.getTopic());
+          && Objects.equals(getTopic(), that.getTopic())
+          && Objects.equals(getFormat(), that.getFormat());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getName(), getTopic());
+      return Objects.hash(getName(), getTopic(), getFormat());
     }
   }
 }

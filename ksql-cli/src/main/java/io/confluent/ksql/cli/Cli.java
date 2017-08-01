@@ -131,17 +131,14 @@ public class Cli implements Closeable, AutoCloseable {
                             =                               =
                             == Kafka Streams Query Language =
                               Copyright 2017 Confluent Inc.
-
         CLI v1.0.0, Server v1.0.0 located at http://localhost:9098
-
         <help message reminder>
-
         Text generated via http://www.network-science.de/ascii/, with the "big" font
      */
     int logoWidth = 33;
     String copyrightMessage = "Copyright 2017 Confluent Inc.";
     String helpReminderMessage = "Having trouble? "
-        + "Type 'help' (case-insensitive) for a rundown of how things work!";
+                                 + "Type 'help' (case-insensitive) for a rundown of how things work!";
     // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
     if (terminal.getWidth() >= logoWidth) {
       // Want to center the logo, but in the case of something like a fullscreen terminal, just
@@ -333,7 +330,7 @@ public class Cli implements Closeable, AutoCloseable {
           terminal.printErrorMessage(((ErrorMessageEntity) entity).getErrorMessage());
           noErrorFromServer = false;
         } else if (entity instanceof CommandStatusEntity &&
-            (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {
+                   (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;

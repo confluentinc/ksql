@@ -307,6 +307,7 @@ public class KsqlResource {
       throws Exception {
     return getStatementExecutionPlan(explain.getStatement(), statementText, Collections.emptyMap());
   }
+
   private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText,
                                                   Map<String, Object> properties)
       throws Exception {
@@ -327,12 +328,12 @@ public class KsqlResource {
       executionPlan = registerTopic.toString();
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
-      CreateStreamCommand createStreamCommand = new CreateStreamCommand(createStream);
+      CreateStreamCommand createStreamCommand = new CreateStreamCommand(createStream, properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
       executionPlan = createStream.toString();
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
-      CreateTableCommand createTableCommand = new CreateTableCommand(createTable);
+      CreateTableCommand createTableCommand = new CreateTableCommand(createTable, properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
       executionPlan = createTable.toString();
     } else if (statement instanceof DropTopic) {

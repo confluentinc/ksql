@@ -16,6 +16,10 @@ public class DropTopicCommand implements DDLCommand {
     this.topicName = dropTopic.getTopicName().getSuffix();
   }
 
+  public DropTopicCommand(String topicName) {
+    this.topicName = topicName;
+  }
+
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
     metaStore.deleteTopic(topicName);

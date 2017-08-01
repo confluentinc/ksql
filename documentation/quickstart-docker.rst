@@ -101,9 +101,7 @@ For example, if your broker is listening on ``kafka:29092`` and you want to set 
    bootstrap.servers=kafka:29092
    auto.offset.reset=earliest
 
-3. Return to the 
-
-`main KSQL quickstart <quickstart.rst#create-a-stream-and-table>`__ to start querying the data in the Kafka cluster.
+3. Return to the `main KSQL quickstart <quickstart.rst#create-a-stream-and-table>`__ to start querying the data in the Kafka cluster.
 
 
 Produce more topic data

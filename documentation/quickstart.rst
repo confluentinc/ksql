@@ -51,6 +51,7 @@ This KSQL quickstart shows examples querying data from Kafka topics called ``pag
     :width: 200px
     
 Before proceeding, please check:
+
 * In the window where you started KSQL, you see the ``ksql>`` prompt
 * If you are not using Docker, you must manually have run the data generator to produce topics called ``pageviews`` and ``users``. If you haven't done this, please follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data. (Docker compose file automatically runs the data generator)
 

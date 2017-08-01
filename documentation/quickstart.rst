@@ -42,6 +42,8 @@ Once you have completed the above steps, you will have a running Kafka cluster a
 Create a STREAM and TABLE in KSQL
 ---------------------------------
 
+This KSQL quickstart shows examples using data from Kafka topics that translate to the following schemas:
+
 Before proceeding, please check:
 * In the window where you started KSQL, you see the ``ksql>`` prompt
 * If you are not using Docker, you must have run the data generator to produce topics called ``pageviews`` and ``topics``. If you haven't done this, please follow these [instructions](quickstart-non-docker.rst#producedata) to generate data. (Docker compose file automatically runs the data generator)

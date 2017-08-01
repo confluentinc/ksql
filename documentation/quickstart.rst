@@ -19,25 +19,27 @@ The goal of this quickstart guide is to guide you through a simple workflow to b
 Setup
 -----
 
-1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster (with ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry). Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
+1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster, including ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry. Do not run KSQL against a production Kafka cluster while KSQL is in tech preview. To start a Kafka development cluster, follow these instructions and then return to this quickstart:
 
-To run a Kafka development cluster and to start KSQL:
+* If you are using a Docker environment, then go `here <quickstart-docker.rst#start-a-kafka-cluster>`__
+* If you are not using a Docker environment, then go `here <quickstart-non-docker.rst#start-a-kafka-cluster>`__
 
-* If you are using a Docker environment, then follow these `instructions <quickstart-docker.rst>`__
-* If you are not using a Docker environment, then follow these `instructions <quickstart-non-docker.rst>`__
+2. Start KSQL. Follow these instructions and then return this quickstart:
 
-Once you have completed the above steps, you will have a running Kafka cluster and you will have started KSQL. You will see the KSQL prompt:
+* If you are using a Docker environment, then go `here <quickstart-docker.rst##start-ksql>`__
+* If you are not using a Docker environment, then go `here <quickstart-non-docker.rst#start-ksql>`__
+
+You will see the KSQL prompt:
 
 .. sourcecode:: bash
 
    ksql>
 
-2. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock data to the Kafka cluster.
+3. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock data to the Kafka cluster.
 
 * If you are using our Docker Compose files, a Docker container is already running with a data generator that is producing Kafka messages to your cluster. No further action is required
 * If you are not not using our Docker environment, then follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data
 
-3. With KSQL running and data in your Kafka cluster ready for querying, you can proceed below.
 
 
 Create a STREAM and TABLE

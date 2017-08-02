@@ -23,7 +23,7 @@ You will need to download and install a Kafka cluster on your local machine.  Th
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
 2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
-We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>.  Install Confluent Platform directly onto a Linux server: http://docs.confluent.io/current/installation.html
+We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>.  `Install <http://docs.confluent.io/current/installation.html>`__ Confluent Platform directly onto a Linux server.
 
 3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart assume that your are in this installation directory:
 

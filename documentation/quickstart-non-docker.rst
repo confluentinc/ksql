@@ -18,7 +18,7 @@ Start a Kafka cluster
 
 Do not run KSQL against a production cluster, since KSQL is in tech preview.
 
-You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker along with a single-node ZooKeeper ensemble and a single Schema Registry instance.
+You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker along with a single-node ZooKeeper ensemble and an optional single Schema Registry instance.
 
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
@@ -51,7 +51,7 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
-1. Download the KSQL jar file <TODO: insert download link>. Then you can start KSQL. Use the keyword ``local`` if the broker is running on your local machine.  <TODO: update how ksql is invoked with KSQL-254>
+1. Download the KSQL jar file <TODO: insert download link>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update how ksql is invoked with KSQL-254>
 
 .. sourcecode:: bash
 
@@ -89,13 +89,13 @@ The KSQL quickstart assumes you have run at least the following three steps to p
 
 .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000 bootstrap-server=kafka:29092
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000 bootstrap-server=kafka:9092
 
 3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000 bootstrap-server=kafka:29092
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000 bootstrap-server=kafka:9092
 
 At this point you may return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 
 
@@ -103,7 +103,7 @@ At this point you may return to the [main KSQL quickstart](quickstart.rst#query-
 
 .. sourcecode:: bash
 
-   $ kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   $ kafka-console-producer --topic t1 --broker-list kafka:9092  --property parse.key=true --property key.separator=:
    key1:v1,v2,v3
    key2:v4,v5,v6
    key3:v7,v8,v9
@@ -113,7 +113,7 @@ At this point you may return to the [main KSQL quickstart](quickstart.rst#query-
 
 .. sourcecode:: bash
 
-   $ kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+   $ kafka-console-producer --topic t2 --broker-list kafka:9092  --property parse.key=true --property key.separator=:
    key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
    key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
    key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}

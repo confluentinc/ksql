@@ -9,9 +9,7 @@ KSQL Quickstart
   :local:
 
 
-Welcome to Confluent and Kafka Structured Query Language (KSQL)!
-
-KSQL provides a structured query language to do processing on data stored in a Kafka cluster.
+Welcome to Confluent and Kafka Structured Query Language (KSQL)!  KSQL provides a structured query language to do processing on data stored in a Kafka cluster.
 
 The goal of this quickstart guide is to guide you through a simple workflow to be able to query and transform KSQL data.
 
@@ -26,7 +24,7 @@ Because KSQL queries data in a Kafka cluster, you will need access to a developm
 * `Starting Kafka and KSQL with Docker <quickstart-docker.rst>`__
 * `Starting Kafka and KSQL without Docker <quickstart-non-docker.rst>`__
 
-2. After you have successfully started KSQL, you will see the KSQL prompt:
+2. After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
 .. sourcecode:: bash
 

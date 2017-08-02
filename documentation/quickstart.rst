@@ -19,17 +19,14 @@ The goal of this quickstart guide is to guide you through a simple workflow to b
 Setup
 -----
 
-1. Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster, including ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry. Do not run KSQL against a production Kafka cluster while KSQL is in tech preview. To start a Kafka development cluster, follow these instructions and then return to this quickstart:
+Because KSQL queries data in a Kafka cluster, you will need access to a development Kafka cluster, including ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry. Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
 
-* If you are using a Docker environment, then go `here to start up Kafka with Docker <quickstart-docker.rst#start-a-kafka-cluster>`__
-* If you are not using a Docker environment, then go `here to start up Kafka without Docker <quickstart-non-docker.rst#start-a-kafka-cluster>`__
+1. Start a Kafka development cluster and start KSQL. Depending on whether or not you are using Docker (we recommend Docker for simplicity), follow these instructions and then return to this page:
 
-2. Start KSQL. Follow these instructions and then return this quickstart:
+* If you are using a Docker environment, then go `here to start up Kafka with Docker <quickstart-docker.rst>`__
+* If you are not using a Docker environment, then go `here to start up Kafka without Docker <quickstart-non-docker.rst>`__
 
-* If you are using a Docker environment, then go `here to start KSQL in Docker <quickstart-docker.rst#start-ksql>`__
-* If you are not using a Docker environment, then go `here to start KSQL without Docker <quickstart-non-docker.rst#start-ksql>`__
-
-You will see the KSQL prompt:
+2. After you have successfully started KSQL, you will see the KSQL prompt:
 
 .. sourcecode:: bash
 
@@ -61,7 +58,8 @@ Before proceeding, please check:
 .. sourcecode:: bash
 
    ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
-   ksql> describe pageviews_original;
+
+   ksql> DESCRIBE pageviews_original;
 
        Field |   Type 
    -------------------
@@ -76,6 +74,7 @@ Before proceeding, please check:
 .. sourcecode:: bash
 
    ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
+
    ksql> DESCRIBE users_original;
 
         Field |   Type 
@@ -91,14 +90,14 @@ Before proceeding, please check:
 
 .. sourcecode:: bash
 
-   ksql> show streams;
+   ksql> SHOW STREAMS;
    
            Stream Name |   Kafka Topic |    Format 
    ------------------------------------------------
               COMMANDS | app1_commands |      JSON 
     PAGEVIEWS_ORIGINAL |     pageviews | DELIMITED 
 
-   ksql> show tables;
+   ksql> SHOW TABLES;
    
         Table Name | Kafka Topic | Format | Windowed 
    --------------------------------------------------
@@ -128,49 +127,61 @@ Write Queries
    -----------------------------------------------------------
     stream/PAGEVIEWS_FEMALE | EXECUTING | Executing statement 
 
-3. View the results of this query. This continuous query will keep on producing results as the stream processes incoming data, until you press `<ctrl-c>`.
-
-.. sourcecode:: bash
-
-   ksql> SELECT * FROM pageviews_female;
-
-4. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
+3. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
 
 .. sourcecode:: bash
 
    ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-5. Create a persistent query that counts the views for each region and gender combination for tumbling window of 15 seconds when the view count is greater than 5.  <TODO: this does not work as expected.  Need to resolve KSQL-257, KSQL-260>
+4. Create a persistent query that counts the pageviews for each region and gender combination in a `tumbling window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than 1.  <TODO: this does not work as expected.  Need to resolve KSQL-257, KSQL-260>
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE pageviews_grouping AS SELECT gender, regionid , count(*) from pageviews_female window tumbling (size 15 second) group by gender, regionid having count(*) > 5;
+   ksql> CREATE TABLE pageviews_duplicates AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
-6. Show the newly created queries.  <TODO: update output>
+   ksql> DESCRIBE pageviews_duplicates;
+
+       Field |   Type 
+   -------------------
+     ROWTIME |  INT64 
+      ROWKEY | STRING 
+      GENDER | STRING 
+    REGIONID | STRING 
+    NUMUSERS |  INT64 
+
+5. View the results of the query ``pageviews_duplicates`` as they come in. To stop viewing the query results, press `<ctrl-c>`. This will not terminate the actual query; it will continue to run in the underyling Kafka Streams application.
 
 .. sourcecode:: bash
 
-   ksql> show queries;
+   ksql> SELECT regionid, numusers FROM pageviews_duplicates;
 
+6. List all the Kafka topics on the Kafka broker. You will see some new topics that represent the persistent queries as well as the topics that the Kafka Streams application uses behind-the-scenes. including <TODO: insert topics>  
+
+.. sourcecode:: bash
+
+   ksql> SHOW TOPICS;
+
+   <TODO: INSERT show topics command when other issues are resolved>
+
+7. Show all queries.  <TODO: update output>
+
+.. sourcecode:: bash
+
+   ksql> SHOW QUERIES;
+
+   <TODO: INSERT show queries command when other issues are resolved>
 
 
 Terminate and Exit
 ------------------
 
-1. List all the Kafka topics on the Kafka broker. You will see some new topics that represent the persistent queries as well as the topics that the Kafka Streams application uses behind-the-scenes. including <TODO: insert topics>  
-
-.. sourcecode:: bash
-
-   ksql> show topics;
-   <TODO: INSERT show topics command when other issues are resolved>
-
-2. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of ``show queries;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``2``:
+1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of ``SHOW QUERIES;`` identify a query ID you would like to terminate. For example, if you wish to terminate query ID ``2``:
 
 .. sourcecode:: bash
 
    ksql> terminate 2;
 
-3. To exit from KSQL application, from the KSQL prompt ``ksql>``, type 'exit'.
+2. To exit from KSQL application, from the KSQL prompt ``ksql>``, type 'exit'.
 
 .. sourcecode:: bash
 

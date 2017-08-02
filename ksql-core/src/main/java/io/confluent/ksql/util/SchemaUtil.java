@@ -47,6 +47,7 @@ public class SchemaUtil {
 
   public static Schema getTypeSchema(final String ksqlType) {
     switch (ksqlType) {
+      case "VARCHAR":
       case "STRING":
         return Schema.STRING_SCHEMA;
       case "BOOLEAN":

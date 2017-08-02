@@ -9,11 +9,18 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlTestUtil;
@@ -21,6 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.List;
 
 public class KsqlParserTest {
 
@@ -300,7 +309,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStream() throws Exception {
+  public void testCreateStreamWithTopic() throws Exception {
     String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
@@ -315,7 +324,26 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateTable() throws Exception {
+  public void testCreateStream() throws Exception {
+    String
+        queryStr =
+        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
+        + "double) WITH (value_format = 'avro', "
+        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
+    CreateStream createStream = (CreateStream)statement;
+    Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 4);
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig
+                                                                                       .VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString().equalsIgnoreCase("'/Users/hojjat/avro_order_schema.avro'"));
+  }
+
+  @Test
+  public void testCreateTableWithTopic() throws Exception {
     String
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
@@ -326,6 +354,24 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
     Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'users_topic'"));
+  }
+
+  @Test
+  public void testCreateTable() throws Exception {
+    String
+        queryStr =
+        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
+        + "WITH (kafka_topic = 'users_topic', value_format='json');";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
+    CreateTable createTable = (CreateTable)statement;
+    Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
+    Assert.assertTrue("testCreateTable failed.", createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)
+        .toString().equalsIgnoreCase("'users_topic'"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY)
+        .toString().equalsIgnoreCase("'json'"));
   }
 
   @Test
@@ -383,6 +429,152 @@ public class KsqlParserTest {
       String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
     }
+  }
+
+  @Test
+  public void testSelectTumblingWindow() throws Exception {
+
+    String
+        queryStr =
+        "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) where orderunits > 5 group by itemid;";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testSelectTumblingWindow failed.", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems
+        ().size() == 2);
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
+    Assert.assertTrue("testSelectTumblingWindow failed.", ((AliasedRelation)querySpecification.getFrom().get()).getAlias().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
+                                                               .getWindowExpression().isPresent());
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
+        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECOND ) "));
+  }
+
+  @Test
+  public void testSelectHuppingWindow() throws Exception {
+
+    String
+        queryStr =
+        "select itemid, sum(orderunits) from orders window HOPPING ( size 30 second, advance by 5"
+        + " seconds) "
+        + "where "
+        + "orderunits"
+        + " > 5 group by itemid;";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testSelectTumblingWindow failed.", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems
+        ().size() == 2);
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
+    Assert.assertTrue("testSelectTumblingWindow failed.", ((AliasedRelation)querySpecification.getFrom().get()).getAlias().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
+        .getWindowExpression().isPresent());
+    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
+        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECOND , ADVANCE BY 5 SECOND ) "));
+  }
+
+  @Test
+  public void testSelectSessionWindow() throws Exception {
+
+    String
+        queryStr =
+        "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
+        + "orderunits > 5 group by itemid;";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testSelectSessionWindow failed.", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testSelectSessionWindow failed.", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems
+        ().size() == 2);
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
+    Assert.assertTrue("testSelectSessionWindow failed.", ((AliasedRelation)querySpecification.getFrom().get()).getAlias().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification
+        .getWindowExpression().isPresent());
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification
+        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  SESSION "
+                                                                 + "( 30 SECOND ) "));
+  }
+
+  @Test
+  public void testShowTopics() throws Exception {
+    String simpleQuery = "SHOW TOPICS;";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue(statement instanceof ListTopics);
+    ListTopics listTopics = (ListTopics) statement;
+    Assert.assertTrue(listTopics.toString().equalsIgnoreCase("ListTopics{}"));
+  }
+
+  @Test
+  public void testShowStreams() throws Exception {
+    String simpleQuery = "SHOW STREAMS;";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue(statement instanceof ListStreams);
+    ListStreams listStreams = (ListStreams) statement;
+    Assert.assertTrue(listStreams.toString().equalsIgnoreCase("ListStreams{}"));
+  }
+
+  @Test
+  public void testShowTables() throws Exception {
+    String simpleQuery = "SHOW TABLES;";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue(statement instanceof ListTables);
+    ListTables listTables = (ListTables) statement;
+    Assert.assertTrue(listTables.toString().equalsIgnoreCase("ListTables{}"));
+  }
+
+  @Test
+  public void testShowProperties() throws Exception {
+    String simpleQuery = "SHOW PROPERTIES;";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue(statement instanceof ListProperties);
+    ListProperties listProperties = (ListProperties) statement;
+    Assert.assertTrue(listProperties.toString().equalsIgnoreCase("ListProperties{}"));
+  }
+
+  @Test
+  public void testSetProperties() throws Exception {
+    String simpleQuery = "set 'auto.offset.reset'='earliest';";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue(statement instanceof SetProperty);
+    SetProperty setProperty = (SetProperty) statement;
+    Assert.assertTrue(setProperty.toString().equalsIgnoreCase("SetProperty{}"));
+    Assert.assertTrue(setProperty.getPropertyName().equalsIgnoreCase("auto.offset.reset"));
+    Assert.assertTrue(setProperty.getPropertyValue().equalsIgnoreCase("earliest"));
+  }
+
+  @Test
+  public void testSelectSinkProperties() throws Exception {
+    String simpleQuery = "create stream s1 with (timestamp='orderid', partitions = 3) as select "
+                         + "col1, col2"
+                         + " from orders where col2 is null and col3 is not null or (col3*col2 = "
+                         + "12);";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+    Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof CreateStreamAsSelect);
+    CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+    Assert.assertTrue("testSelectTumblingWindow failed.", createStreamAsSelect.getQuery().getQueryBody()
+        instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification)
+        createStreamAsSelect.getQuery().getQueryBody();
+    Assert.assertTrue(querySpecification.getWhere().toString().equalsIgnoreCase("Optional[(((ORDERS.COL2 IS NULL) AND (ORDERS.COL3 IS NOT NULL)) OR ((ORDERS.COL3 * ORDERS.COL2) = 12))]"));
+  }
+
+  @Test
+  public void testDrop() throws Exception {
+    String simpleQuery = "DROP STREAM STREAM1; DROP TABLE TABLE1;";
+    List<Statement> statements =  KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    Statement statement0 =statements.get(0);
+    Statement statement1 =statements.get(1);
+    Assert.assertTrue(statement0 instanceof DropStream);
+    Assert.assertTrue(statement1 instanceof DropTable);
+    DropStream dropStream = (DropStream)  statement0;
+    DropTable dropTable = (DropTable) statement1;
+    Assert.assertTrue(dropStream.getName().toString().equalsIgnoreCase("STREAM1"));
+    Assert.assertTrue(dropTable.getName().toString().equalsIgnoreCase("TABLE1"));
   }
 
 }

@@ -394,8 +394,10 @@ public class PhysicalPlanBuilder {
                         row.getColumns().add(0,
                                              String.format("%s : Window{start=%d end=%d}", key
                                                  .key(), key.window().start(), key.window().end()));
+                        return new KeyValue<>(key, row);
+                      } else {
+                        throw new KsqlException("Null row for key: " + key);
                       }
-                      return new KeyValue<>(key, row);
                     }
                   });
           kstream = addTimestampColumn(kstream);
@@ -419,8 +421,10 @@ public class PhysicalPlanBuilder {
                     public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
                       if (row != null) {
                         row.getColumns().add(0, key);
+                        return new KeyValue<>(key, row);
+                      } else {
+                        throw new KsqlException("Null row for key: " + key);
                       }
-                      return new KeyValue<>(key, row);
                     }
                   });
           kstream = addTimestampColumn(kstream);
@@ -450,8 +454,10 @@ public class PhysicalPlanBuilder {
                 public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
                   if (row != null) {
                     row.getColumns().add(0, key);
+                    return new KeyValue<>(key, row);
+                  } else {
+                    throw new KsqlException("Null row for key: " + key);
                   }
-                  return new KeyValue<>(key, row);
                 }
               });
       kstream = addTimestampColumn(kstream);
@@ -607,8 +613,10 @@ public class PhysicalPlanBuilder {
           public GenericRow transform(GenericRow row) {
             if (row != null) {
               row.getColumns().add(0, processorContext.timestamp());
+              return row;
+            } else {
+              throw new KsqlException("Row is null! ");
             }
-            return row;
           }
 
           @Override

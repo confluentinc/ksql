@@ -259,11 +259,14 @@ public class CodegenExpressionFormatter {
 
       switch (returnTypeStr) {
 
+        case "VARCHAR":
         case "STRING":
           return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
 
-        case "BOOLEAN":
-          return new Pair<>(" ((Boolean)" + expr.getLeft() + ")", returnType);
+        case "BOOLEAN": {
+          Schema rightSchema = expr.getRight();
+          return new Pair<>(getCastToBooleanString(rightSchema, expr.getLeft()), returnType);
+        }
 
         case "INTEGER": {
           Schema rightSchema = expr.getRight();
@@ -408,15 +411,26 @@ public class CodegenExpressionFormatter {
                                       .map((e) -> process(e, unmangleNames)).iterator());
     }
 
+    private String getCastToBooleanString(Schema schema, String exprStr) {
+      if (schema == Schema.BOOLEAN_SCHEMA) {
+        return exprStr;
+      } else if (schema == Schema.STRING_SCHEMA) {
+        return "Boolean.parseBoolean(" + exprStr + ")";
+      } else {
+        throw new KsqlFunctionException(
+            "Invalid cast operation: Cannot cast " + exprStr + " to boolean.");
+      }
+    }
+
     private String getCastToIntegerString(Schema schema, String exprStr) {
       if (schema == Schema.STRING_SCHEMA) {
         return "Integer.parseInt(" + exprStr + ")";
       } else if (schema == Schema.INT32_SCHEMA) {
         return exprStr;
       } else if (schema == Schema.INT64_SCHEMA) {
-        return "((Long)(" + exprStr + "))";
+        return "(new Long(" + exprStr + ").intValue())";
       } else if (schema == Schema.FLOAT64_SCHEMA) {
-        return "(" + exprStr + ").intValue()";
+        return "(new Double(" + exprStr + ").intValue())";
       } else {
         throw new KsqlFunctionException(
             "Invalid cast operation: Cannot cast " + exprStr + " to Integer.");
@@ -427,29 +441,29 @@ public class CodegenExpressionFormatter {
       if (schema == Schema.STRING_SCHEMA) {
         return "Long.parseLong(" + exprStr + ")";
       } else if (schema == Schema.INT32_SCHEMA) {
-        return "((Long)(" + exprStr + "))";
+        return "(new Integer(" + exprStr + ").longValue())";
       } else if (schema == Schema.INT64_SCHEMA) {
         return exprStr;
       } else if (schema == Schema.FLOAT64_SCHEMA) {
-        return "(" + exprStr + ").longValue()";
+        return "(new Double(" + exprStr + ").longValue())";
       } else {
         throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
                                         + exprStr + " to Long.");
       }
     }
 
-    private String getCastToDoubleString(Schema schema, String leftExpr) {
+    private String getCastToDoubleString(Schema schema, String exprStr) {
       if (schema == Schema.STRING_SCHEMA) {
-        return  "Double.parseDouble(" + leftExpr + ")";
+        return  "Double.parseDouble(" + exprStr + ")";
       } else if (schema == Schema.INT32_SCHEMA) {
-        return "((Double)(" + leftExpr + "))";
+        return "(new Integer(" + exprStr + ").doubleValue())";
       } else if (schema == Schema.INT64_SCHEMA) {
-        return "((Double)(" + leftExpr + "))";
+        return "(new Long(" + exprStr + ").doubleValue())";
       } else if (schema == Schema.FLOAT64_SCHEMA) {
-        return leftExpr;
+        return exprStr;
       } else {
         throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
-                                        + leftExpr + " to Double.");
+                                        + exprStr + " to Double.");
       }
     }
   }

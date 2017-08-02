@@ -259,6 +259,7 @@ public class CodegenExpressionFormatter {
 
       switch (returnTypeStr) {
 
+        case "VARCHAR":
         case "STRING":
           return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
 

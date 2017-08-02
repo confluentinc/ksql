@@ -15,13 +15,13 @@
                 {"name": "userid", "type": {
                     "type": "string",
                     "arg.properties": {
-                        "regex": "User_[1-9][0-9]{0,1}"
+                        "regex": "User_[1-9]{0,1}"
                     }
                 }},
                 {"name": "regionid", "type": {
                     "type": "string",
                     "arg.properties": {
-                        "regex": "Region_[1-9][0-9]?"
+                        "regex": "Region_[1-9]?"
                     }
                 }},
                 {"name": "gender", "type": {

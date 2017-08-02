@@ -478,6 +478,29 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testSelectSessionWindow() throws Exception {
+
+    String
+        queryStr =
+        "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
+        + "orderunits > 5 group by itemid;";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testSelectSessionWindow failed.", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testSelectSessionWindow failed.", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems
+        ().size() == 2);
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
+    Assert.assertTrue("testSelectSessionWindow failed.", ((AliasedRelation)querySpecification.getFrom().get()).getAlias().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification
+        .getWindowExpression().isPresent());
+    Assert.assertTrue("testSelectSessionWindow failed.", querySpecification
+        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  SESSION "
+                                                                 + "( 30 SECOND ) "));
+  }
+
+  @Test
   public void testShowTopics() throws Exception {
     String simpleQuery = "SHOW TOPICS;";
     Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);

@@ -89,21 +89,21 @@ The KSQL quickstart assumes you have run at least the following three steps to p
 
 .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000 bootstrap-server=kafka:9092
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000
 
 3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000 bootstrap-server=kafka:9092
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000
 
-At this point you may return to the [main KSQL quickstart](quickstart.rst#query-and-transform-ksql-data) and follow those steps to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 
+At this point you may return to the `main KSQL quickstart page <quickstart.rst#create-a-stream-and-table>`__ to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 
 
 4. You can produce Kafka data with the Kafka commandline ``kafka-console-producer``. The following example generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ kafka-console-producer --topic t1 --broker-list kafka:9092  --property parse.key=true --property key.separator=:
+   $ kafka-console-producer --topic t1 --broker-list localhost:9092  --property parse.key=true --property key.separator=:
    key1:v1,v2,v3
    key2:v4,v5,v6
    key3:v7,v8,v9
@@ -113,7 +113,7 @@ At this point you may return to the [main KSQL quickstart](quickstart.rst#query-
 
 .. sourcecode:: bash
 
-   $ kafka-console-producer --topic t2 --broker-list kafka:9092  --property parse.key=true --property key.separator=:
+   $ kafka-console-producer --topic t2 --broker-list localhost:9092  --property parse.key=true --property key.separator=:
    key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
    key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
    key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}

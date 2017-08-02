@@ -23,8 +23,8 @@ Because KSQL queries data in a Kafka cluster, you will need access to a developm
 
 1. Start a Kafka development cluster and start KSQL. Depending on whether or not you are using Docker (we recommend Docker for simplicity), follow these instructions and then return to this page:
 
-* If you are using a Docker environment, then go `here to start up Kafka with Docker <quickstart-docker.rst>`__
-* If you are not using a Docker environment, then go `here to start up Kafka without Docker <quickstart-non-docker.rst>`__
+* `Starting Kafka and KSQL with Docker <quickstart-docker.rst>`__
+* `Starting Kafka and KSQL without Docker <quickstart-non-docker.rst>`__
 
 2. After you have successfully started KSQL, you will see the KSQL prompt:
 

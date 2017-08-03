@@ -1,6 +1,6 @@
 {
         "namespace": "ksql",
-        "name": "orders",
+        "name": "pageviews",
         "type": "record",
         "fields": [
                 {"name": "viewtime", "type": {

@@ -89,16 +89,14 @@ Start KSQL
 
 .. sourcecode:: bash
 
-   $ docker-compose exec ksql-application java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --properties-file /app2/cluster.properties
+   $ docker-compose exec ksql-application java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --bootstrap-server kafka:29092
 
-2. You may have noticed the ``--properties-file /app2/cluster.properties`` argument which allows you to override any Kafka properties when starting KSQL with a properties file.
-For example, if your broker is listening on ``kafka:29092`` and you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic. Here is a sample properties file, you need to create your own if you want to override defaults.
+2. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
+For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
 
    .. sourcecode:: bash
 
-   container$ cat cluster.properties
-   application.id=ksql_app
-   bootstrap.servers=kafka:29092
+   container$ cat /app2/cluster.properties
    auto.offset.reset=earliest
 
 3. Return to the `main KSQL quickstart <quickstart.rst#create-a-stream-and-table>`__ to start querying the data in the Kafka cluster.

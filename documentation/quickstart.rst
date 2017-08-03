@@ -147,7 +147,7 @@ Write Queries
     REGIONID | STRING 
     NUMUSERS |  INT64 
 
-5. View the results of the query ``pageviews_female_duplicates`` as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+5. Use ``SELECT`` to view the results any query as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
 
 .. sourcecode:: bash
 

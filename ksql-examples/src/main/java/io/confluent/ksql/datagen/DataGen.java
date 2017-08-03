@@ -153,7 +153,7 @@ public class DataGen {
       private enum Quickstart {
         ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
-        PAGEVIEW("pageviews_schema.avro", "pageviews", "viewtime");
+        PAGEVIEWS("pageviews_schema.avro", "pageviews", "viewtime");
 
         private final String schemaFileName;
         private final String rootTopicName;

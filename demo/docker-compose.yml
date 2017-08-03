@@ -55,7 +55,7 @@ services:
   ksql-application:
     image: confluentinc/cp-kafka-streams-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0801-aa916b1.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0803-706ba7b.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
       - /Users/yeva/assets/ksql/cluster.properties:/app2/cluster.properties
     hostname: ksql-application
     depends_on:
@@ -90,7 +90,7 @@ services:
   ksql-datagen-pageviews:
     image: confluentinc/cp-kafka-streams-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0801-aa916b1.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0803-706ba7b.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-application
     depends_on:
       - kafka
@@ -121,7 +121,7 @@ services:
   ksql-datagen-users:
     image: confluentinc/cp-kafka-streams-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0801-aa916b1.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0803-706ba7b.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-application
     depends_on:
       - kafka

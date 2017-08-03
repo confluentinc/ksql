@@ -135,9 +135,9 @@ Write Queries
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE pageviews_duplicates AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+   ksql> CREATE TABLE pageviews_female_duplicates AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
-   ksql> DESCRIBE pageviews_duplicates;
+   ksql> DESCRIBE pageviews_female_duplicates;
 
        Field |   Type 
    -------------------
@@ -147,21 +147,21 @@ Write Queries
     REGIONID | STRING 
     NUMUSERS |  INT64 
 
-5. View the results of the query ``pageviews_duplicates`` as they come in. To stop viewing the query results, press `<ctrl-c>`. This will not terminate the actual query; it will continue to run in the underyling Kafka Streams application.
+5. View the results of the query ``pageviews_female_duplicates`` as they come in. To stop viewing the query results, press `<ctrl-c>`. This will not terminate the actual query; it will continue to run in the underyling Kafka Streams application.
 
 .. sourcecode:: bash
 
-   ksql> SELECT regionid, numusers FROM pageviews_duplicates;
+   ksql> SELECT regionid, numusers FROM pageviews_female_duplicates;
+   Region_3 | 4
+   Region_3 | 5
+   Region_6 | 5
+   Region_6 | 6
+   Region_3 | 8
+   Region_1 | 2
+   Region_1 | 3
+   ...
 
-6. List all the Kafka topics on the Kafka broker. You will see some new topics that represent the persistent queries as well as the topics that the Kafka Streams application uses behind-the-scenes. including <TODO: insert topics>  
-
-.. sourcecode:: bash
-
-   ksql> SHOW TOPICS;
-
-   <TODO: INSERT show topics command when other issues are resolved>
-
-7. Show all queries.  <TODO: update output>
+6. Show all queries.  <TODO: update output>
 
 .. sourcecode:: bash
 

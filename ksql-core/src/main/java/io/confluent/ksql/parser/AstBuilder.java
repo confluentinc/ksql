@@ -1071,43 +1071,6 @@ public class AstBuilder
                             getType(context.type()));
   }
 
-  @Override
-  public Node visitSortItem(SqlBaseParser.SortItemContext context) {
-    return new SortItem(
-        getLocation(context),
-        (Expression) visit(context.expression()),
-        Optional.ofNullable(context.ordering)
-            .map(AstBuilder::getOrderingType)
-            .orElse(SortItem.Ordering.ASCENDING),
-        Optional.ofNullable(context.nullOrdering)
-            .map(AstBuilder::getNullOrderingType)
-            .orElse(SortItem.NullOrdering.UNDEFINED));
-  }
-
-  @Override
-  public Node visitWindowFrame(SqlBaseParser.WindowFrameContext context) {
-    return new WindowFrame(
-        getLocation(context),
-        getFrameType(context.frameType),
-        (FrameBound) visit(context.start),
-        visitIfPresent(context.end, FrameBound.class));
-  }
-
-  @Override
-  public Node visitUnboundedFrame(SqlBaseParser.UnboundedFrameContext context) {
-    return new FrameBound(getLocation(context), getUnboundedFrameBoundType(context.boundType));
-  }
-
-  @Override
-  public Node visitBoundedFrame(SqlBaseParser.BoundedFrameContext context) {
-    return new FrameBound(getLocation(context), getBoundedFrameBoundType(context.boundType),
-                          (Expression) visit(context.expression()));
-  }
-
-  @Override
-  public Node visitCurrentRowBound(SqlBaseParser.CurrentRowBoundContext context) {
-    return new FrameBound(getLocation(context), FrameBound.Type.CURRENT_ROW);
-  }
 
   // ************** literals **************
 
@@ -1330,52 +1293,6 @@ public class AstBuilder
     }
   }
 
-  private static WindowFrame.Type getFrameType(Token type) {
-    switch (type.getType()) {
-      case SqlBaseLexer.RANGE:
-        return WindowFrame.Type.RANGE;
-      case SqlBaseLexer.ROWS:
-        return WindowFrame.Type.ROWS;
-      default:
-        throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
-    }
-  }
-
-  private static FrameBound.Type getBoundedFrameBoundType(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.PRECEDING:
-        return FrameBound.Type.PRECEDING;
-      case SqlBaseLexer.FOLLOWING:
-        return FrameBound.Type.FOLLOWING;
-      default:
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-    }
-  }
-
-  private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.PRECEDING:
-        return FrameBound.Type.UNBOUNDED_PRECEDING;
-      case SqlBaseLexer.FOLLOWING:
-        return FrameBound.Type.UNBOUNDED_FOLLOWING;
-      default:
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-    }
-  }
-
-  private static SampledRelation.Type getSamplingMethod(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.BERNOULLI:
-        return SampledRelation.Type.BERNOULLI;
-      case SqlBaseLexer.SYSTEM:
-        return SampledRelation.Type.SYSTEM;
-      case SqlBaseLexer.POISSONIZED:
-        return SampledRelation.Type.POISSONIZED;
-      default:
-        throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
-    }
-  }
-
   private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
     switch (token.getType()) {
       case SqlBaseLexer.AND:
@@ -1384,28 +1301,6 @@ public class AstBuilder
         return LogicalBinaryExpression.Type.OR;
       default:
         throw new IllegalArgumentException("Unsupported operator: " + token.getText());
-    }
-  }
-
-  private static SortItem.NullOrdering getNullOrderingType(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.FIRST:
-        return SortItem.NullOrdering.FIRST;
-      case SqlBaseLexer.LAST:
-        return SortItem.NullOrdering.LAST;
-      default:
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
-    }
-  }
-
-  private static SortItem.Ordering getOrderingType(Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.ASC:
-        return SortItem.Ordering.ASCENDING;
-      case SqlBaseLexer.DESC:
-        return SortItem.Ordering.DESCENDING;
-      default:
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
   }
 

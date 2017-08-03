@@ -38,6 +38,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     // TODO: get rid of toUpperCase in following code
     Map<String, Expression> properties = statement.getProperties();
     this.sourceName = statement.getName().getSuffix();
+    this.topicName = this.sourceName;
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
         !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
@@ -181,7 +182,6 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     }
     String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    this.topicName = kafkaTopicName.replace(".", "_____");
     return new RegisterTopicCommand(this.topicName, false, properties, overriddenProperties);
   }
 }

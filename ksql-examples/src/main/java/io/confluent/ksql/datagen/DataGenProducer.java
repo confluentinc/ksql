@@ -21,7 +21,7 @@ import java.util.Properties;
 public abstract class DataGenProducer {
 
   // Max 100 ms between messsages.
-  public static final long INTER_MESSAGE_MAX_INTERVAL = 100;
+  public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
   public void populateTopic(
       Properties props,

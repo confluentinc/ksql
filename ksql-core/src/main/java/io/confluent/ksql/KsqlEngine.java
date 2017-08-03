@@ -224,7 +224,7 @@ public class KsqlEngine implements Closeable {
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
           createTableAsSelect.getProperties(),
-          Optional.empty()
+          createTableAsSelect.getPartitionByColumn()
       );
 
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(

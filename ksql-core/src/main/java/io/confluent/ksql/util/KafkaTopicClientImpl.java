@@ -22,10 +22,8 @@ import java.util.concurrent.ExecutionException;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   KsqlConfig ksqlConfig;
-//  private final AdminClient client;
 
   public KafkaTopicClientImpl(KsqlConfig ksqlConfig) {
-//    this.client = AdminClient.create(ksqlConfig.getKsqlConfigProps());
     this.ksqlConfig = ksqlConfig.clone();
   }
 
@@ -36,15 +34,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       TopicDescription topicDescription = topicDescriptions.get(topic);
       if (topicDescription.partitions().size() != numPartitions ||
           topicDescription.partitions().get(0).replicas().size() != replicatonFactor) {
-        throw new KafkaTopicException(String.format("Topic '%s' does not conform to the "
-                                                    + "requirements.", topic));
+        throw new KafkaTopicException(String.format(
+            "Topic '%s' does not conform to the requirements.", topic));
       }
       // Topic with the partitons and replicas exists, reuse it!
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
-//      client.createTopics(Collections.singleton(newTopic)).all().get();
       AdminClient.create(ksqlConfig.getKsqlConfigProps())
           .createTopics(Collections.singleton(newTopic)).all().get();
     } catch (InterruptedException | ExecutionException e) {
@@ -60,7 +57,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Set<String> listTopicNames() {
     try {
-//      return client.listTopics().names().get();
       return AdminClient.create(ksqlConfig.getKsqlConfigProps())
           .listTopics().names().get();
     } catch (InterruptedException | ExecutionException e) {
@@ -70,7 +66,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
-//      return client.describeTopics(topicNames).all().get();
       return AdminClient.create(ksqlConfig.getKsqlConfigProps())
           .describeTopics(topicNames).all().get();
     } catch (InterruptedException | ExecutionException e) {
@@ -79,7 +74,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   public void close() {
-//    client.close();
   }
 
 }

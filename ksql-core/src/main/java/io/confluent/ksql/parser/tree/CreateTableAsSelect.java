@@ -21,26 +21,34 @@ public class CreateTableAsSelect
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
+  private final Optional<Expression> partitionByColumn;
 
   public CreateTableAsSelect(QualifiedName name, Query query, boolean notExists,
-                             Map<String, Expression> properties) {
-    this(Optional.empty(), name, query, notExists, properties);
+                             Map<String, Expression> properties,
+                             Optional<Expression> partitionByColumn) {
+    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
   }
 
   public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
-                             boolean notExists, Map<String, Expression> properties
+                             boolean notExists,
+                             Map<String, Expression> properties,
+                             Optional<Expression> partitionByColumn
                              ) {
-    this(Optional.of(location), name, query, notExists, properties);
+    this(Optional.of(location), name, query, notExists, properties, partitionByColumn);
   }
 
   private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
-                              boolean notExists, Map<String, Expression> properties
+                              boolean notExists,
+                              Map<String, Expression> properties,
+                              Optional<Expression> partitionByColumn
                               ) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap
+        .copyOf(requireNonNull(properties, "properties is null"));
+    this.partitionByColumn = partitionByColumn;
   }
 
   public QualifiedName getName() {
@@ -59,6 +67,9 @@ public class CreateTableAsSelect
     return properties;
   }
 
+  public Optional<Expression> getPartitionByColumn() {
+    return partitionByColumn;
+  }
 
   @Override
   public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

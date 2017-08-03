@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -36,6 +37,8 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -302,6 +305,20 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
+      } else if (statementContext.statement() instanceof SqlBaseParser.LoadFromFileContext) {
+        SqlBaseParser.LoadFromFileContext loadFromFileContext =
+            (SqlBaseParser.LoadFromFileContext) statementContext.statement();
+        String schemaFilePath = AstBuilder.unquote(loadFromFileContext.STRING().getText(), "'");
+        String fileContent;
+        try {
+          fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
+        } catch (IOException e) {
+          throw new KsqlException(" COuld not read statements from file: " + schemaFilePath);
+        }
+        setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
+        printKsqlResponse(
+            restClient.makeKsqlRequest(statementText)
+        );
       } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
         CliUtils cliUtils = new CliUtils();
         Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
@@ -476,6 +493,9 @@ public class Cli implements Closeable, AutoCloseable {
       }
       type = configKey.type;
     } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
+      restClient.setProperty(property, value);
+      return;
+    } else if (property.equalsIgnoreCase(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
       restClient.setProperty(property, value);
       return;
     } else {

@@ -122,7 +122,7 @@ public class SchemaUtil {
 
   public static final ImmutableMap<String, String> TYPE_MAP =
       new ImmutableMap.Builder<String, String>()
-          .put("STRING", "VARCHAR")
+          .put("STRING", "VARCHAR(STRING)")
           .put("INT64", "BIGINT")
           .put("INT32", "INTEGER")
           .put("FLOAT64", "DOUBLE")
@@ -130,6 +130,17 @@ public class SchemaUtil {
           .put("ARRAY", "ARRAY")
           .put("MAP", "MAP")
           .build();
+
+  public static String getSchemaFieldName(Field field) {
+    if (field.schema().type() == Schema.Type.ARRAY) {
+      return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+    } else if (field.schema().type() == Schema.Type.MAP) {
+      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + "," +
+             TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+    } else {
+      return TYPE_MAP.get(field.schema().type().name());
+    }
+  }
 
   public static String getJavaCastString(Schema schema) {
     switch (schema.type()) {

@@ -51,7 +51,7 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
-1. Download the KSQL jar file <TODO: insert download link>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update how ksql is invoked with KSQL-254>
+1. Download the KSQL jar file <TODO: finalize packaging>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update how ksql is invoked with KSQL-254>
 
 .. sourcecode:: bash
 

@@ -9,9 +9,9 @@ KSQL Quickstart
   :local:
 
 
-Welcome to Confluent and Kafka Structured Query Language (KSQL)!  KSQL provides a structured query language to do processing on data stored in a Kafka cluster.
+Welcome to Confluent and Kafka Streaming Query Language (KSQL)!  KSQL allows users to query and enrich streams in Kafka.
 
-The goal of this quickstart guide is to guide you through a simple workflow to be able to query and transform KSQL data.
+The goal of this quickstart guide is to demonstrate a simple workflow to be able to query and enrich KSQL data.
 
 
 Setup
@@ -30,7 +30,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
    ksql>
 
-3. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock data to the Kafka cluster.
+3. KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quickstart, you will produce mock streams to the Kafka cluster.
 
 * If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
 * If you are not using our Docker environment, then follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data to the Kafka cluster
@@ -47,7 +47,7 @@ This KSQL quickstart shows examples querying data from Kafka topics called ``pag
     
 Before proceeding, please check:
 
-* In the window where you started KSQL, you see the ``ksql>`` prompt
+* In the terminal window where you started KSQL, you see the ``ksql>`` prompt
 * If you are not using Docker, you must manually have run the data generator to produce topics called ``pageviews`` and ``users``. If you haven't done this, please follow these `instructions <quickstart-non-docker.rst#produce-topic-data>`__ to generate data. (Docker compose file automatically runs the data generator)
 
 
@@ -105,7 +105,7 @@ Before proceeding, please check:
 Write Queries
 -------------
 
-1. Create a non-persistent query that returns three data rows from a STREAM. Press ``<ctrl-c>`` to stop it. <TODO: KSQL-255: this should return after 3 records are reached>
+1. Write a query that returns three data rows from a STREAM. Press ``<ctrl-c>`` to stop it. <TODO: KSQL-255: this should return after 3 records are reached>
 
 .. sourcecode:: bash
 
@@ -135,9 +135,9 @@ Write Queries
 
 .. sourcecode:: bash
 
-   ksql> CREATE TABLE pageviews_female_duplicates AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+   ksql> CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
-   ksql> DESCRIBE pageviews_female_duplicates;
+   ksql> DESCRIBE pageviews_regions;
 
        Field |   Type 
    -------------------
@@ -151,7 +151,7 @@ Write Queries
 
 .. sourcecode:: bash
 
-   ksql> SELECT regionid, numusers FROM pageviews_female_duplicates;
+   ksql> SELECT regionid, numusers FROM pageviews_regions;
    Region_3 | 4
    Region_3 | 5
    Region_6 | 5

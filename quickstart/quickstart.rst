@@ -17,7 +17,7 @@ The goal of this quickstart guide is to guide you through a simple workflow to b
 Setup
 -----
 
-Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka cluster, including ZooKeeper, a Kafka broker, and optionally Confluent Schema Registry. Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
+Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka cluster, including ZooKeeper and a Kafka broker. Do not run KSQL against a production Kafka cluster while KSQL is in tech preview.
 
 1. Bring up a Kafka cluster and start KSQL.
 
@@ -42,7 +42,7 @@ Create a STREAM and TABLE
 
 This KSQL quickstart shows examples querying data from Kafka topics called ``pageviews`` and ``users`` using the following schemas:
 
-.. image:: https://github.com/ybyzek/ksql/blob/master/documentation/ksql-quickstart-schemas.jpg
+.. image:: https://github.com/ybyzek/ksql/blob/master/quickstart/ksql-quickstart-schemas.jpg
     :width: 200px
     
 Before proceeding, please check:

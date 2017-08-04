@@ -33,6 +33,8 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.Pair;
+
 import org.apache.kafka.connect.data.Field;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.History;
@@ -423,10 +425,10 @@ public abstract class Console implements Closeable {
               runningQuery.getQueryString()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
-      List<Field> fields = ((SourceDescription) ksqlEntity).getSchema().fields();
+      List<SourceDescription.FieldSchemaInfo> fields = ((SourceDescription) ksqlEntity).getSchema();
       columnHeaders = Arrays.asList("Field", "Type");
       rowValues = fields.stream()
-          .map(field -> Arrays.asList(field.name(), field.schema().type().toString()))
+          .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TopicDescription) {
       columnHeaders = new ArrayList<>();

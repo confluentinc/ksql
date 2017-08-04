@@ -152,15 +152,15 @@ public class Cli implements Closeable, AutoCloseable {
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
       String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
-      terminal.writer().printf("%s==================================%n", leftPadding);
-      terminal.writer().printf("%s=   _  __ _____  ____  _         =%n", leftPadding);
-      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |        =%n", leftPadding);
-      terminal.writer().printf("%s=  | ' /| (___ | |  | | |        =%n", leftPadding);
-      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |        =%n", leftPadding);
-      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____    =%n", leftPadding);
-      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|   =%n", leftPadding);
-      terminal.writer().printf("%s=                                =%n", leftPadding);
-      terminal.writer().printf("%s= Kafka Streaming Query Language =%n", leftPadding);
+      terminal.writer().printf("%s======================================%n", leftPadding);
+      terminal.writer().printf("%s=      _  __ _____  ____  _          =%n", leftPadding);
+      terminal.writer().printf("%s=     | |/ // ____|/ __ \\| |         =%n", leftPadding);
+      terminal.writer().printf("%s=     | ' /| (___ | |  | | |         =%n", leftPadding);
+      terminal.writer().printf("%s=     |  <  \\___ \\| |  | | |         =%n", leftPadding);
+      terminal.writer().printf("%s=     | . \\ ____) | |__| | |____     =%n", leftPadding);
+      terminal.writer().printf("%s=     |_|\\_\\_____/ \\___\\_\\______|    =%n", leftPadding);
+      terminal.writer().printf("%s=                                    =%n", leftPadding);
+      terminal.writer().printf("%s= Streaming Query Language for Kafka =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);

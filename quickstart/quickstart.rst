@@ -42,7 +42,7 @@ Create a STREAM and TABLE
 
 This KSQL quickstart shows examples querying data from Kafka topics called ``pageviews`` and ``users`` using the following schemas:
 
-.. image:: https://github.com/ybyzek/ksql/blob/master/quickstart/ksql-quickstart-schemas.jpg
+.. image:: https://github.com/confluentinc/ksql/blob/master/quickstart/ksql-quickstart-schemas.jpg
     :width: 200px
     
 Before proceeding, please check:

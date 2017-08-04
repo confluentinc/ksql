@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: docker.confluent.io:5000/confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:3.3.0
     hostname: zookeeper
     ports:
       - '32181:32181'
@@ -13,7 +13,7 @@ services:
       - "moby:127.0.0.1"
 
   kafka:
-    image: docker.confluent.io:5000/confluentinc/cp-enterprise-kafka:latest
+    image: confluentinc/cp-enterprise-kafka:3.3.0
     hostname: kafka
     ports:
       - '9092:9092'
@@ -38,7 +38,7 @@ services:
       - "moby:127.0.0.1"
 
   schema-registry:
-    image: docker.confluent.io:5000/confluentinc/cp-schema-registry:latest
+    image: confluentinc/cp-schema-registry:3.3.0
     hostname: schema-registry
     depends_on:
       - zookeeper
@@ -53,7 +53,7 @@ services:
 
   # Runs the Kafka KSQL data generator
   ksql-datagen-pageview:
-    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
+    image: confluentinc/cp-ksql-examples:latest
     hostname: ksql-datagen-pageview
     depends_on:
       - kafka
@@ -82,7 +82,7 @@ services:
 
   # Runs the Kafka KSQL data generator
   ksql-datagen-users:
-    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
+    image: confluentinc/cp-ksql-examples:latest
     hostname: ksql-datagen-users
     depends_on:
       - kafka

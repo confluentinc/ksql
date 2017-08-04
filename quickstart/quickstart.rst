@@ -9,9 +9,9 @@ KSQL Quickstart
   :local:
 
 
-Welcome to Confluent and Kafka Streaming Query Language (KSQL)!  KSQL allows users to query and enrich streams in Kafka.
+Welcome to the quickstart guide for KSQL!
 
-The goal of this quickstart guide is to demonstrate a simple workflow to be able to query and enrich KSQL data.
+The goal of this quickstart guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 
 Setup

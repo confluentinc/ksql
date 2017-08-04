@@ -132,16 +132,10 @@ public class AstBuilder
 
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
-    Optional<Expression> partitionByColumn = Optional.empty();
-    if (context.identifier() != null) {
-      partitionByColumn = Optional.of(new QualifiedNameReference(
-          QualifiedName.of(getIdentifierText(context.identifier()))));
-    }
     return new CreateTableAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
                                    (Query) visitQuery(context.query()),
                                    context.EXISTS() != null,
-                                   processTableProperties(context.tableProperties()),
-                                   partitionByColumn);
+                                   processTableProperties(context.tableProperties()));
   }
 
   @Override

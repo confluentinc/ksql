@@ -260,7 +260,7 @@ public class StatementExecutor {
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
           createTableAsSelect.getProperties(),
-          createTableAsSelect.getPartitionByColumn()
+          Optional.empty()
       );
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Table created and running";

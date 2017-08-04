@@ -6,7 +6,7 @@
 
 2) Log in to nexus: `docker login docker.confluent.io:5000`
 
-3) In this directory, run `docker-compose up`
+3) In this directory, run `docker-compose up -d`
 
 4) For a KSQL client, run `docker run --net=host --add-host=kafka:127.0.0.1 -it docker.confluent.io:5000/confluentinc/cp-ksql-cli`
 

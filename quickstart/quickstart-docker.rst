@@ -20,7 +20,7 @@ Do not run KSQL against a production cluster, since KSQL is in tech preview.
 
 As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
 
-1. Clone the Confluent KSQL Docker demo repository:
+1. Clone the Confluent KSQL Docker quickstart repository:
 
 <TODO: insert link>
 
@@ -28,7 +28,7 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 
 <TODO: cd>
 
-3. Launch the KSQL demo in Docker
+3. Launch the KSQL quickstart in Docker
 
 .. sourcecode:: bash
 
@@ -46,12 +46,12 @@ The next three steps are optional verification steps to ensure your environment 
 
             Name                        Command               State                           Ports                          
    -------------------------------------------------------------------------------------------------------------------------
-   demo_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-   demo_ksql-cli_1                 bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
-   demo_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up      7070/tcp                                               
-   demo_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up      7070/tcp                                               
-   demo_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
-   demo_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
+   quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
+   quickstart_ksql-cli_1                 bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
+   quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
+   quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
 
 
 5. The docker-compose file already runs a data generator that pre-populates two Kafka topics ``pageviews`` and ``users`` with mock data. Verify that the data generator created two Kafka topics, including ``pageviews`` and ``users``.

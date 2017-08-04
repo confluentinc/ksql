@@ -149,6 +149,8 @@ public class DataGen {
       }
 
       private enum Quickstart {
+        CLICKSTREAM_CODES("clickstream_codes_schema.avro", "clickstream", "code"),
+        CLICKSTREAM("clickstream_schema.avro", "clickstream", "ip"),
         ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
         PAGEVIEW("pageview_schema.avro", "pageview", "viewtime");

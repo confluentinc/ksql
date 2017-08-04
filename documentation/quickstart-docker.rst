@@ -47,7 +47,7 @@ The next three steps are optional verification steps to ensure your environment 
             Name                        Command               State                           Ports                          
    -------------------------------------------------------------------------------------------------------------------------
    demo_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-   demo_ksql-application_1         bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
+   demo_ksql-cli_1                 bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
    demo_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up      7070/tcp                                               
    demo_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up      7070/tcp                                               
    demo_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
@@ -89,7 +89,7 @@ Start KSQL
 
 .. sourcecode:: bash
 
-   $ docker-compose exec ksql-application java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --bootstrap-server kafka:29092
+   $ docker-compose exec ksql-cli java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --bootstrap-server kafka:29092
 
 2. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
 For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
@@ -129,15 +129,4 @@ However, if you want to produce additional data, you can use any of the followin
    key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
    key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
 
-* Produce Kafka data using the provided data generator. The following example generates data with a value in DELIMITED format
-
-.. sourcecode:: bash
-
-   $ docker-compose exec ksql-datagen-users java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=t3 maxInterval=10000 bootstrap-server=kafka:29092
-
-* Produce Kafka data using the provided data generator. The following example generates data with a value in Json format
-
-   .. sourcecode:: bash
-
-   $ docker-compose exec ksql-datagen-users java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=t4 maxInterval=10000 bootstrap-server=kafka:29092
-
+* If advanced Docker users want to run the data generator with different options, edit the Docker compile file and modify how the containers ``ksql-datagen-users`` and ``ksql-datagen-pageviews`` invoke the data generator.

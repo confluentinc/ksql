@@ -82,7 +82,7 @@ The KSQL quickstart assumes you have run at least the following three steps to p
 
 .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageview format=delimited topic=pageviews maxInterval=10000
+   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
 
 3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 

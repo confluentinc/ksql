@@ -507,6 +507,11 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitLoadFromFile(SqlBaseParser.LoadFromFileContext context) {
+    return new LoadFromFile(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+  }
+
+  @Override
   public Node visitListRegisteredTopics(SqlBaseParser.ListRegisteredTopicsContext context) {
     return new ListRegisteredTopics(Optional.ofNullable(getLocation(context)));
   }

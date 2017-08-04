@@ -72,12 +72,14 @@ public class DataGen {
         "usage: DataGen "
             + "[help] "
             + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
-            + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or 'pageview')] "
+            + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
+        + "'pageviews')] "
             + "schema=<avro schema file> "
             + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
             + "topic=<kafka topic name> "
             + "key=<name of key column> "
-            + "[iterations=<number of rows> (defaults to 1000)]"
+            + "[iterations=<number of rows> (defaults to 1,000,000)] "
+            + "[maxInterval=<Max time in ms between rows> (defaults to 500)]"
     );
   }
 
@@ -144,7 +146,7 @@ public class DataGen {
         format = null;
         topicName = null;
         keyName = null;
-        iterations = Integer.MAX_VALUE;
+        iterations = 1000000;
         maxInterval = -1;
       }
 
@@ -153,7 +155,7 @@ public class DataGen {
         CLICKSTREAM("clickstream_schema.avro", "clickstream", "ip"),
         ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
-        PAGEVIEW("pageview_schema.avro", "pageview", "viewtime");
+        PAGEVIEWS("pageviews_schema.avro", "pageviews", "viewtime");
 
         private final String schemaFileName;
         private final String rootTopicName;
@@ -252,7 +254,8 @@ public class DataGen {
               quickstart = Quickstart.valueOf(argValue.toUpperCase());
             } catch (IllegalArgumentException iae) {
               throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of ORDERS, USERS, or PAGEVIEW (case-insensitive)",
+                  "Invalid quickstart in '%s'; was expecting one of ORDERS, USERS, or PAGEVIEWS "
+                  + "(case-insensitive)",
                   argValue
               ));
             }

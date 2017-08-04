@@ -5,6 +5,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.DataSource;
@@ -12,6 +13,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.LoadFromFile;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -25,6 +27,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -220,7 +223,6 @@ public class StatementExecutor {
   ) throws Exception {
     String statementStr = command.getStatement();
 
-
     DDLCommandResult result = null;
     String successMessage = "";
 
@@ -231,7 +233,8 @@ public class StatementExecutor {
         || statement instanceof DropStream
         || statement instanceof DropTable
         ) {
-      result = ksqlEngine.getQueryEngine().handleDdlStatement(statement, command.getStreamsProperties());
+      result =
+          ksqlEngine.getQueryEngine().handleDdlStatement(statement, command.getStreamsProperties());
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =
@@ -267,7 +270,17 @@ public class StatementExecutor {
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";
-    } else {
+    } else if (statement instanceof LoadFromFile) {
+      if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+        String queries =
+            (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
+        ksqlEngine.buildMultipleQueries(false, queries,
+                                            command.getStreamsProperties());
+      } else {
+        throw new KsqlException("No statements received for LOAD FROM FILE.");
+      }
+
+    }else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()

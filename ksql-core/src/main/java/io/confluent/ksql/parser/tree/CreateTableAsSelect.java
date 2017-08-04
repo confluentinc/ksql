@@ -28,19 +28,22 @@ public class CreateTableAsSelect
   }
 
   public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
-                             boolean notExists, Map<String, Expression> properties
+                             boolean notExists,
+                             Map<String, Expression> properties
                              ) {
     this(Optional.of(location), name, query, notExists, properties);
   }
 
   private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
-                              boolean notExists, Map<String, Expression> properties
+                              boolean notExists,
+                              Map<String, Expression> properties
                               ) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap
+        .copyOf(requireNonNull(properties, "properties is null"));
   }
 
   public QualifiedName getName() {
@@ -58,7 +61,6 @@ public class CreateTableAsSelect
   public Map<String, Expression> getProperties() {
     return properties;
   }
-
 
   @Override
   public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

@@ -63,8 +63,9 @@ statement
     | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
     | EXPLAIN ANALYZE?
-            ('(' explainOption (',' explainOption)* ')')? statement        #explain
+            ('(' explainOption (',' explainOption)* ')')? statement         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
+    | LOAD QUERIES FROM STRING                                              #loadFromFile
     ;
 
 query

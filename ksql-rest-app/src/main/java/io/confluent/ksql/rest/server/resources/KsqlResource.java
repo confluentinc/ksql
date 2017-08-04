@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.LoadFromFile;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -182,7 +183,9 @@ public class KsqlResource {
     } else if (statement instanceof Explain) {
       Explain explain = (Explain) statement;
       return getStatementExecutionPlan(explain, statementText);
-    } else if (statement instanceof RegisterTopic
+    } else if (statement instanceof LoadFromFile) {
+      return distributeStatement(statementText, statement, streamsProperties);
+    }else if (statement instanceof RegisterTopic
             || statement instanceof CreateStream
             || statement instanceof CreateTable
             || statement instanceof CreateStreamAsSelect

@@ -9,6 +9,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.LoadFromFile;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -43,6 +44,8 @@ public class CommandIdAssigner {
       return getDropStreamCommandId((DropStream) command);
     } else if (command instanceof DropTable) {
       return getDropTableCommandId((DropTable) command);
+    } else if (command instanceof LoadFromFile) {
+      return new CommandId(CommandId.Type.STREAM, "LoadFromFile");
     } else {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",

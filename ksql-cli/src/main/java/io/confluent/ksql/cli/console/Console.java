@@ -383,9 +383,8 @@ public abstract class Console implements Closeable {
 
   private void printAsTable(CommandStatus status) {
     printTable(
-        Arrays.asList("Status", "Message"),
+        Arrays.asList("Message"),
         Collections.singletonList(Arrays.asList(
-            status.getStatus().name(),
             status.getMessage().split("\n", 2)[0]
         ))
     );
@@ -396,10 +395,9 @@ public abstract class Console implements Closeable {
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
-      columnHeaders = Arrays.asList("Status", "Message");
+      columnHeaders = Arrays.asList("Message");
       CommandStatus commandStatus = commandStatusEntity.getCommandStatus();
       rowValues = Collections.singletonList(Arrays.asList(
-          commandStatus.getStatus().name(),
           commandStatus.getMessage().split("\n", 2)[0]
       ));
     } else if (ksqlEntity instanceof ErrorMessageEntity) {

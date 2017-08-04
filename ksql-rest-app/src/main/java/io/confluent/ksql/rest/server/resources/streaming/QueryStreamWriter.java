@@ -7,6 +7,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.slf4j.Logger;
@@ -91,7 +92,11 @@ class QueryStreamWriter implements StreamingOutput {
         log.error("Exception occurred while writing to connection stream: ", exception);
         synchronized (out) {
           out.write("\n".getBytes());
-          new ObjectMapper().writeValue(out, new StreamedRow(exception));
+          if (exception.getCause() instanceof KsqlException) {
+            new ObjectMapper().writeValue(out, new StreamedRow(exception.getCause()));
+          } else {
+            new ObjectMapper().writeValue(out, new StreamedRow(exception));
+          }
           out.write("\n".getBytes());
           out.flush();
         }

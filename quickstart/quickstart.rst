@@ -21,8 +21,8 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 1. Bring up a Kafka cluster and start KSQL.
 
-* Follow these instructions `if you are using Docker <quickstart-docker.rst>`__  (we recommend Docker for simplicity)
-* Follow these instructions `if you are not using Docker <quickstart-non-docker.rst>`__
+* `Follow these instructions if you are using Docker <quickstart-docker.rst>`__  (we recommend Docker for simplicity)
+* `Follow these instructions if you are not using Docker <quickstart-non-docker.rst>`__
 
 2. After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 

@@ -290,7 +290,7 @@ public class SchemaKStream {
         if (limit.isPresent()) {
           counter ++;
           if (counter > limit.get()) {
-            return;
+            throw new KsqlException("LIMIT reached for the partition.");
           }
         }
         String keyString;

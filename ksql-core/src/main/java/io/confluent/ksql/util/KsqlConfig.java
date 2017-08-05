@@ -26,6 +26,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
 
+
+  public static final String KSQL_PERSISTENT_QUERY_NAME_PREFIX = "ksql_query_";
+  public static final String KSQL_TRANSIENT_QUERY_NAME_PREFIX = "ksql_transient_";
+  public static final String KSQL_TABLE_STATESTORE_NAME_SUFFIX = "_statestore";
+
   public int defaultSinkNumberOfPartitions = 10;
   public short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.

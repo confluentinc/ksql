@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StringUtil;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartitionInfo;
@@ -16,11 +17,13 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 
 @JsonTypeName("kafka_topics")
 public class KafkaTopicsList extends KsqlEntity {
@@ -61,7 +64,9 @@ public class KafkaTopicsList extends KsqlEntity {
                                       Collection<KsqlTopic> ksqlTopics,
                                       Map<String, TopicDescription> kafkaTopicDescriptions) {
     Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
+
     List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
+    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(kafkaTopicDescriptions));
     for (TopicDescription desp: kafkaTopicDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
@@ -101,6 +106,18 @@ public class KafkaTopicsList extends KsqlEntity {
     } else {
       return StringUtil.join(", ", Arrays.asList(replicaSizes));
     }
+  }
+
+  private static Map<String, TopicDescription> filterKsqlInternalTopics(
+      Map<String, TopicDescription> kafkaTopicDescriptions) {
+    Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
+    for (String kafkaTopicName: kafkaTopicDescriptions.keySet()) {
+      if (!kafkaTopicName.startsWith(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX) &&
+          !kafkaTopicName.startsWith(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX)) {
+        filteredKafkaTopics.put(kafkaTopicName.toLowerCase(), kafkaTopicDescriptions.get(kafkaTopicName));
+      }
+    }
+    return filteredKafkaTopics;
   }
 
 }

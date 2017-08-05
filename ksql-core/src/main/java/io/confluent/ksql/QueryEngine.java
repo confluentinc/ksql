@@ -241,7 +241,7 @@ public class QueryEngine {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
       long queryId = getNextQueryId();
-      String applicationId = String.format("ksql_query_%d", queryId);
+      String applicationId = KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX + queryId;
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -269,8 +269,9 @@ public class QueryEngine {
                           kafkaTopicOutputNode.getSchema(),
                           schemaKStream.getKeyField(),
                           kafkaTopicOutputNode.getTimestampField(),
-                          kafkaTopicOutputNode.getKsqlTopic(), kafkaTopicOutputNode.getId()
-                                                                   .toString() + "_statestore",
+                          kafkaTopicOutputNode.getKsqlTopic(),
+                          kafkaTopicOutputNode.getId().toString() +
+                          KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX,
                           schemaKTable.isWindowed());
       } else {
         sinkDataSource =
@@ -366,7 +367,8 @@ public class QueryEngine {
 
   // TODO: This should probably be changed
   private String getBareQueryApplicationId() {
-    return String.format("ksql_bare_query_%d", Math.abs(ThreadLocalRandom.current().nextLong()));
+    return KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX + Math.abs(ThreadLocalRandom.current()
+                                                                     .nextLong());
   }
 
   private String addTimeSuffix(String original) {

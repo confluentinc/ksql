@@ -274,8 +274,14 @@ public class StatementExecutor {
       if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
         String queries =
             (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
-        ksqlEngine.buildMultipleQueries(false, queries,
+        List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
                                             command.getStreamsProperties());
+        for (QueryMetadata queryMetadata : queryMetadataList) {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+            persistentQueryMetadata.getKafkaStreams().start();
+          }
+        }
       } else {
         throw new KsqlException("No statements received for LOAD FROM FILE.");
       }

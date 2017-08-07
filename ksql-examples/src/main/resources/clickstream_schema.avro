@@ -1,0 +1,123 @@
+{
+        "namespace": "ksql",
+        "name": "clickstream",
+        "type": "record",
+  // $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+  // 104.152.45.45 - #user
+// {"ts": "2015-09-14T10:30:21-07:00", "status": "200", "request_method": "GET", "user_agent": "Mozilla/5.0 (pc-x86_64-linux-gnu) Siege/3.0.5", "url": "/page38/path7?user=24746", "latency": "0.001",  "user": "24746"}
+  // '$remote_addr - $remote_user [$time_local] '   '"$request" $status $bytes_sent '   '"$http_referer" "$http_user_agent" "$gzip_ratio"';
+  // 66.249.79.62 - - [01/Aug/2017:13:45:20 -0500] "GET /reddit/ HTTP/1.1" 302 278 "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+        "fields": [
+                {"name": "ip", "type": {
+                    "type": "string",
+                  "arg.properties": {
+                    "options": [
+                      "104.152.45.45",
+                      "89.203.236.146",
+                      "205.168.57.122",
+                      "66.249.79.93",
+                      "205.168.57.122",
+                      "209.90.225.227",
+                      "54.173.165.103",
+                      "37.145.8.144",
+                      "172.245.174.248"
+                    ]
+                  }
+                }},
+                {"name": "userid", "type": {
+                  "type": "string",
+                  "arg.properties": {
+                    "options": [
+                    "-"
+                  ]
+                  }}},
+
+              {"name": "remote_user", "type": {
+                "type": "string",
+                "arg.properties": {
+                  "options": [
+                    "-"
+                  ]
+                }}},
+
+
+          {"name": "time", "type": {
+            "type": "long",
+            "format_as_time" : "dd/MMM/yyyy:HH:mm:ss Z",
+            "arg.properties": {
+              "iteration": { "start": 1, "step": 10}
+            }
+          }},
+          {"name": "_time", "type": {
+            "type": "long",
+            "format_as_time" : "unix_long",
+            "arg.properties": {
+              "iteration": { "start": 1, "step": 10}
+            }
+          }},
+
+          {"name": "request", "type": {
+                    "type": "string",
+            "arg.properties": {
+              "options": [
+                "GET /index.html HTTP/1.1",
+                "GET /site/user_status.html HTTP/1.1",
+                "GET /site/login.html HTTP/1.1",
+                "GET /site/user_status.html HTTP/1.1",
+                "GET /images/track.png HTTP/1.1",
+                "GET /images/logo-small.png HTTP/1.1"
+              ]
+            }}},
+          //https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+          {"name": "status", "type": {
+            "type": "string",
+            "arg.properties": {
+              "options": [
+                "200",
+                "302",
+                "404",
+                "405", // err codes
+                "406",
+                "407"
+              ]
+            }
+                }},
+
+          {"name": "bytes", "type": {
+            "type": "string",
+            "arg.properties": {
+              "options": [
+                "278",
+                "1289",
+                "2048",
+                "4096",
+                "4006",
+                "4196",
+                "14096"
+              ]
+            }
+          }},
+
+          {"name": "referrer", "type": {
+            "type": "string",
+            "arg.properties": {
+              "options": [
+                "-"
+              ]
+            }
+          }},
+
+          {"name": "agent", "type": {
+            "type": "string",
+            "arg.properties": {
+              "options": [
+                "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
+              ]
+            }
+          }}
+
+
+
+        ]
+}

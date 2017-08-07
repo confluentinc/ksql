@@ -9,11 +9,11 @@ import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import java.util.Optional;
 
-public class LoadFromFile extends Statement {
+public class RunScript extends Statement {
 
   final String schemaFilePath;
 
-  public LoadFromFile(Optional<NodeLocation> location, String catalogFilePath) {
+  public RunScript(Optional<NodeLocation> location, String catalogFilePath) {
     super(location);
     if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
       this.schemaFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);

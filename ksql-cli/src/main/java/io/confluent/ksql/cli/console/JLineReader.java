@@ -16,7 +16,7 @@ import org.jline.terminal.Terminal;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-public class JLineReader {
+public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   private static final String DEFAULT_PROMPT = "ksql> ";
 
@@ -61,10 +61,12 @@ public class JLineReader {
     this.prompt = DEFAULT_PROMPT;
   }
 
+  @Override
   public Iterable<? extends History.Entry> getHistory() {
     return lineReader.getHistory();
   }
 
+  @Override
   public String readLine() throws IOException {
     String line = lineReader.readLine(prompt);
     history.add(line);

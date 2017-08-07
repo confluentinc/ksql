@@ -4,7 +4,6 @@
 
 package io.confluent.ksql.cli.console;
 
-import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -17,7 +16,7 @@ public class JLineTerminal extends Console {
 
   private final org.jline.terminal.Terminal terminal;
 
-  public JLineTerminal(Cli.OutputFormat outputFormat, KsqlRestClient restClient) {
+  public JLineTerminal(OutputFormat outputFormat, KsqlRestClient restClient) {
     super(outputFormat, restClient);
 
     try {

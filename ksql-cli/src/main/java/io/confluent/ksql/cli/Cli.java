@@ -55,11 +55,6 @@ import java.util.concurrent.TimeoutException;
 
 public class Cli implements Closeable, AutoCloseable {
 
-  public enum OutputFormat {
-    JSON,
-    TABULAR
-  }
-
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
@@ -113,7 +108,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  public void displayWelcomeMessage() {
+  private void displayWelcomeMessage() {
     String serverVersion;
     try {
       serverVersion = restClient.makeRootRequest().getResponse().getVersion();

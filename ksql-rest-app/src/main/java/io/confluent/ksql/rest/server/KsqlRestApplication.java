@@ -63,8 +63,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  private static final String COMMANDS_KSQL_TOPIC_NAME = "__COMMANDS_TOPIC";
-  private static final String COMMANDS_STREAM_NAME = "COMMANDS";
+  private static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
+  private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -75,6 +75,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
+
+  public static String getCommandsKsqlTopicName() {
+    return COMMANDS_KSQL_TOPIC_NAME;
+  }
+
+  public static String getCommandsStreamName() {
+    return COMMANDS_STREAM_NAME;
+  }
 
   public KsqlRestApplication(
       KsqlEngine ksqlEngine,

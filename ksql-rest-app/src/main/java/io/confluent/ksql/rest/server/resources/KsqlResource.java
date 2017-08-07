@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
@@ -365,6 +366,8 @@ public class KsqlResource {
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {
     return ksqlEngine.getMetaStore().getAllStructuredDataSources().values().stream()
         .filter(dataSourceClass::isInstance)
+        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+            KsqlRestApplication.getCommandsStreamName()))
         .map(dataSourceClass::cast)
         .collect(Collectors.toList());
   }

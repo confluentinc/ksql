@@ -51,44 +51,66 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
-1. Download the KSQL jar file <TODO: update when KSQL-200 is resolved>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update when KSQL-254 is resolved>
+1. Clone the Confluent KSQL repository:
+
+<TODO: update when KSQL-200 is resolved>
+
+2. Change into the KSQL directory:
+
+<TODO: update when KSQL-200 is resolved>
 
 .. sourcecode:: bash
 
-   $ java -jar ksql-cli-1.0-SNAPSHOT-standalone.jar local
+   $ cd ksql
+
+3. Compile the code:
+
+.. sourcecode:: bash
+
+   $ mvn clean install
+
+4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update when KSQL-254 is resolved>
+
+.. sourcecode:: bash
+
+   $ java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
    ...
    ksql>
 
-2. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
+5. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
 For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
 
-   .. sourcecode:: bash
+.. sourcecode:: bash
 
    localhost$ cat /app2/cluster.properties
    auto.offset.reset=earliest
 
-3. Refer to the steps below to produce some topic data to the Kafka cluster.
+6. Refer to the steps below to produce some topic data to the Kafka cluster.
 
 
 
 Produce topic data
 ------------------
 
-The KSQL quickstart assumes you have run at least the following three steps to produce data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster.
+The `main KSQL quickstart page <quickstart.rst>` assumes you have run at least the following three steps to produce data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster. So if you're not using Docker, when automatically generates this data, you have to do these steps manually
 
-1. Download the data generator jar file <TODO: update when KSQL-200 is resolved>
+1. Assuming you have already completed the steps above to compile the KSQL code, verify that you have a compiled ``jar`` file ``ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar`` for data generation. 
+
+.. sourcecode:: bash
+
+   $ ls ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar
 
 2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example continuously generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
+   $ java -jar ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
 
 3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ java -jar /app2/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000
+   $ java -jar ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users maxInterval=10000
 
 At this point you may return to the `main KSQL quickstart page <quickstart.rst#create-a-stream-and-table>`__ to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 
 

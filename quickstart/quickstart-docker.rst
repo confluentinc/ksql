@@ -20,13 +20,17 @@ Do not run KSQL against a production cluster, since KSQL is in tech preview.
 
 As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
 
-1. Clone the Confluent KSQL Docker quickstart repository:
+1. Clone the Confluent KSQL repository:
 
 <TODO: update when KSQL-200 is resolved>
 
-2. Change into the directory for this tutorial
+2. Change into the quickstart directory.
 
 <TODO: update when KSQL-200 is resolved>
+
+.. sourcecode:: bash
+
+   $ cd ksql/quickstart
 
 3. Launch the KSQL quickstart in Docker
 

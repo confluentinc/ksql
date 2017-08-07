@@ -54,7 +54,7 @@ public class JLineReader {
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
-    this.lineReader.setVariable(LineReader.HISTORY_FILE, Paths.get( System.getProperty("history-file",  System.getProperty("user.home") + "/.ksq-history")));
+    this.lineReader.setVariable(LineReader.HISTORY_FILE, Paths.get( System.getProperty("history-file",  System.getProperty("user.home") + "/.ksql-history")));
     this.lineReader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
     this.history = new DefaultHistory(this.lineReader);
 

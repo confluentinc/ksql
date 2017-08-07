@@ -65,7 +65,7 @@ statement
     | EXPLAIN ANALYZE?
             ('(' explainOption (',' explainOption)* ')')? statement         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
-    | LOAD QUERIES FROM STRING                                              #loadFromFile
+    | RUN SCRIPT STRING                                                     #runScript
     ;
 
 query
@@ -113,7 +113,7 @@ sortItem
     ;
 
 querySpecification
-    : SELECT setQuantifier? selectItem (',' selectItem)*
+    : SELECT STREAM? setQuantifier? selectItem (',' selectItem)*
       (INTO into=relationPrimary)?
       (FROM from=relation (',' relation)*)?
       (WINDOW  windowExpression)?
@@ -639,6 +639,8 @@ CATALOG: 'CATALOG';
 PROPERTIES: 'PROPERTIES';
 BEGINNING: 'BEGINNING';
 UNSET: 'UNSET';
+RUN: 'RUN';
+SCRIPT: 'SCRIPT';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';

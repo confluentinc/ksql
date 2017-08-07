@@ -305,10 +305,10 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
-      } else if (statementContext.statement() instanceof SqlBaseParser.LoadFromFileContext) {
-        SqlBaseParser.LoadFromFileContext loadFromFileContext =
-            (SqlBaseParser.LoadFromFileContext) statementContext.statement();
-        String schemaFilePath = AstBuilder.unquote(loadFromFileContext.STRING().getText(), "'");
+      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
+        SqlBaseParser.RunScriptContext runScriptContext =
+            (SqlBaseParser.RunScriptContext) statementContext.statement();
+        String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
         String fileContent;
         try {
           fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));

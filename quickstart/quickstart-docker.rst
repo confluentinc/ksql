@@ -22,11 +22,11 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 
 1. Clone the Confluent KSQL Docker quickstart repository:
 
-<TODO: insert link>
+<TODO: update when KSQL-200 is resolved>
 
 2. Change into the directory for this tutorial
 
-<TODO: cd>
+<TODO: update when KSQL-200 is resolved>
 
 3. Launch the KSQL quickstart in Docker
 
@@ -42,14 +42,14 @@ The next three steps are optional verification steps to ensure your environment 
 .. sourcecode:: bash
 
    $ docker-compose ps
-   <TODO: update with expected output once Docker images are built KSQL-185>
+   <TODO: update when KSQL-185 is resolved>
 
             Name                        Command               State                           Ports                          
    -------------------------------------------------------------------------------------------------------------------------
    quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-   quickstart_ksql-cli_1                 bash -c echo Waiting for K ...   Up      0.0.0.0:7070->7070/tcp                                 
-   quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up      7070/tcp                                               
-   quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   quickstart_ksql-cli_1                 bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
+   quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
    quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
    quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp 
 
@@ -85,7 +85,7 @@ The next three steps are optional verification steps to ensure your environment 
 Start KSQL
 ----------
 
-1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when Docker image is built KSQL-185; update how ksql is invoked with KSQL-254>
+1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when KSQL-185, KSQL-254 is resolved>
 
 .. sourcecode:: bash
 

@@ -23,7 +23,7 @@ You will need to download and install a Kafka cluster on your local machine.  Th
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
 2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
-We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: INSERT VERSION>.  `Install <http://docs.confluent.io/current/installation.html>`__ Confluent Platform directly onto a Linux server.
+We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: insert version>.  `Install <http://docs.confluent.io/current/installation.html>`__ Confluent Platform directly onto a Linux server.
 
 3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart assume that your are in this installation directory:
 
@@ -51,7 +51,7 @@ We recommend running the latest version of Confluent Platform, but the minimum v
 Start KSQL
 ----------
 
-1. Download the KSQL jar file <TODO: finalize packaging>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update how ksql is invoked with KSQL-254>
+1. Download the KSQL jar file <TODO: update when KSQL-200 is resolved>. Start KSQL, using the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update when KSQL-254 is resolved>
 
 .. sourcecode:: bash
 
@@ -76,7 +76,7 @@ Produce topic data
 
 The KSQL quickstart assumes you have run at least the following three steps to produce data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster.
 
-1. Download the data generator jar file <TODO: insert download link>
+1. Download the data generator jar file <TODO: update when KSQL-200 is resolved>
 
 2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example continuously generates data with a value in DELIMITED format
 

@@ -84,16 +84,16 @@ Before proceeding, please check:
      REGIONID | STRING 
        GENDER | STRING 
 
-3. Show all the KSQL STREAMS and TABLES. <TODO: update with KSQL-253>
+3. Show all the KSQL STREAMS and TABLES. <TODO: update when KSQL-253 is resolved>
 
 .. sourcecode:: bash
 
    ksql> SHOW STREAMS;
    
-           Stream Name |   Kafka Topic |    Format 
-   ------------------------------------------------
-              COMMANDS | app1_commands |      JSON 
-    PAGEVIEWS_ORIGINAL |     pageviews | DELIMITED 
+           Stream Name |                  Kafka Topic |    Format 
+   ---------------------------------------------------------------
+              COMMANDS | ksql_standalone_cli_commands |      JSON 
+    PAGEVIEWS_ORIGINAL |                    pageviews | DELIMITED 
 
    ksql> SHOW TABLES;
    
@@ -105,16 +105,19 @@ Before proceeding, please check:
 Write Queries
 -------------
 
-1. Write a query that returns three data rows from a STREAM. Press ``<ctrl-c>`` to stop it. <TODO: KSQL-255: this should return after 3 records are reached>
+1. Write a query that returns three data rows from a STREAM.
 
 .. sourcecode:: bash
 
    ksql> SELECT pageid FROM pageviews_original LIMIT 3;
-   User_30
-   User_73
-   User_96
+   Page_24
+   Page_73
+   Page_78
+   LIMIT reached for the partition.
+   Query terminated
+   ksql> 
 
-2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement. Unlike the non-persistent case above, results from this query will be produced to a Kafka topic ``pageviews_female``. This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met. <TODO: this currently errors out...Hojjat is looking into it>
+2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement. Unlike the non-persistent case above, results from this query will be produced to a Kafka topic ``pageviews_female``. This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met.
 
 .. sourcecode:: bash
 
@@ -131,7 +134,7 @@ Write Queries
 
    ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-4. Create a persistent query that counts the pageviews for each region and gender combination in a `tumbling window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than 1.  <TODO: this does not work as expected.  Need to resolve KSQL-257, KSQL-260>
+4. Create a persistent query that counts the pageviews for each region and gender combination in a `tumbling window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than 1.
 
 .. sourcecode:: bash
 
@@ -161,13 +164,11 @@ Write Queries
    Region_1 | 3
    ...
 
-6. Show all queries.  <TODO: update output>
+6. Show all queries.  <TODO: update when KSQL-263 is resolved>
 
 .. sourcecode:: bash
 
    ksql> SHOW QUERIES;
-
-   <TODO: INSERT show queries command when other issues are resolved>
 
 
 Terminate and Exit

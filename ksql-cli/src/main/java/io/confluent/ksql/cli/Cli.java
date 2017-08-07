@@ -313,7 +313,7 @@ public class Cli implements Closeable, AutoCloseable {
         try {
           fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
         } catch (IOException e) {
-          throw new KsqlException(" COuld not read statements from file: " + schemaFilePath);
+          throw new KsqlException(" Could not read statements from file: " + schemaFilePath);
         }
         setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
         printKsqlResponse(

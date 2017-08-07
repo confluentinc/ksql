@@ -14,29 +14,29 @@ import java.util.Optional;
 public class KsqlTable extends StructuredDataSource {
 
   final String stateStoreName;
-  final boolean isWinidowed;
+  final boolean isWindowed;
 
   public KsqlTable(final String datasourceName, final Schema schema, final Field keyField,
                    final Field timestampField,
-                   final KsqlTopic ksqlTopic, final String stateStoreName, boolean isWinidowed) {
+                   final KsqlTopic ksqlTopic, final String stateStoreName, boolean isWindowed) {
     super(datasourceName, schema, keyField, timestampField, DataSourceType.KTABLE, ksqlTopic);
     this.stateStoreName = stateStoreName;
-    this.isWinidowed = isWinidowed;
+    this.isWindowed = isWindowed;
   }
 
   public String getStateStoreName() {
     return stateStoreName;
   }
 
-  public boolean isWinidowed() {
-    return isWinidowed;
+  public boolean isWindowed() {
+    return isWindowed;
   }
 
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KsqlTable(dataSourceName, newSchema, keyField, timestampField, ksqlTopic,
-                         stateStoreName, isWinidowed);
+                         stateStoreName, isWindowed);
   }
 
   @Override
@@ -47,6 +47,11 @@ public class KsqlTable extends StructuredDataSource {
                               + "(INT64).");
     }
     return new KsqlTable(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic,
-                         stateStoreName, isWinidowed);
+                         stateStoreName, isWindowed);
+  }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + " name:" + getName();
   }
 }

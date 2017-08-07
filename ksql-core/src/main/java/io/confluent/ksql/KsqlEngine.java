@@ -184,7 +184,7 @@ public class KsqlEngine implements Closeable {
       }
       return queryList;
     } catch (Exception e) {
-      throw new ParseFailedException("Parsing failed on KsqlEngine.", e);
+      throw new ParseFailedException("Parsing failed on KsqlEngine msg:" + e.getMessage(), e);
     }
   }
 

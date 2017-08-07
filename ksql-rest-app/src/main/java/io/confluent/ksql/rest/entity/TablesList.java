@@ -81,7 +81,7 @@ public class TablesList extends KsqlEntity {
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),
           ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
-          ksqlTable.isWinidowed()
+          ksqlTable.isWindowed()
       );
     }
 

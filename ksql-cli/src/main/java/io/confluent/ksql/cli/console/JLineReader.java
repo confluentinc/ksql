@@ -10,13 +10,17 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 public class JLineReader {
 
   private static final String DEFAULT_PROMPT = "ksql> ";
+
+  private final DefaultHistory history;
 
   private final LineReader lineReader;
   private final String prompt;
@@ -50,6 +54,10 @@ public class JLineReader {
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
+    this.lineReader.setVariable(LineReader.HISTORY_FILE, Paths.get( System.getProperty("history-file",  System.getProperty("user.home") + "/.ksq-history")));
+    this.lineReader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+    this.history = new DefaultHistory(this.lineReader);
+
     this.prompt = DEFAULT_PROMPT;
   }
 
@@ -58,7 +66,10 @@ public class JLineReader {
   }
 
   public String readLine() throws IOException {
-    return lineReader.readLine(prompt);
+    String line = lineReader.readLine(prompt);
+    history.add(line);
+    history.save();
+    return line;
   }
 
 }

@@ -530,7 +530,7 @@ public abstract class Console implements Closeable {
   }
 
   private static String constructSingleColumnFormatString(Integer length) {
-    return String.format("%%%ds", length);
+    return String.format("%%%ds", (-1*length));
   }
 
 }

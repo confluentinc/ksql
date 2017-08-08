@@ -6,7 +6,7 @@ images:
 ifndef DOCKER_REGISTRY
 	@echo "***"
 	@echo "*** DOCKER_REGISTRY is not set."
-	@echo "*** Defaulting to local and public images. ***"
+	@echo "*** Defaulting to public registry and local images. ***"
 	@echo "***"
 	@sleep 1
 endif

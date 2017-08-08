@@ -55,11 +55,6 @@ import java.util.concurrent.TimeoutException;
 
 public class Cli implements Closeable, AutoCloseable {
 
-  public enum OutputFormat {
-    JSON,
-    TABULAR
-  }
-
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
@@ -113,7 +108,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  public void displayWelcomeMessage() {
+  private void displayWelcomeMessage() {
     String serverVersion;
     try {
       serverVersion = restClient.makeRootRequest().getResponse().getVersion();
@@ -305,10 +300,10 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
-      } else if (statementContext.statement() instanceof SqlBaseParser.LoadFromFileContext) {
-        SqlBaseParser.LoadFromFileContext loadFromFileContext =
-            (SqlBaseParser.LoadFromFileContext) statementContext.statement();
-        String schemaFilePath = AstBuilder.unquote(loadFromFileContext.STRING().getText(), "'");
+      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
+        SqlBaseParser.RunScriptContext runScriptContext =
+            (SqlBaseParser.RunScriptContext) statementContext.statement();
+        String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
         String fileContent;
         try {
           fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));

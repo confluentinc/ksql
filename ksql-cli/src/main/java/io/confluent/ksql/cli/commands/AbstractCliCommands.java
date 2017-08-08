@@ -8,6 +8,7 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.console.OutputFormat;
 
 public abstract class AbstractCliCommands implements Runnable {
 
@@ -48,7 +49,7 @@ public abstract class AbstractCliCommands implements Runnable {
           + "(either 'JSON' or 'TABULAR'; can be changed during REPL as well; "
           + "defaults to TABULAR)"
   )
-  String outputFormat = Cli.OutputFormat.TABULAR.name();
+  String outputFormat = OutputFormat.TABULAR.name();
 
   @Override
   public void run() {
@@ -65,11 +66,12 @@ public abstract class AbstractCliCommands implements Runnable {
 
   protected abstract Cli getCli() throws Exception;
 
-  protected Cli.OutputFormat parseOutputFormat() {
+  protected OutputFormat parseOutputFormat() {
     try {
-      return Cli.OutputFormat.valueOf(outputFormat.toUpperCase());
+      return OutputFormat.valueOf(outputFormat.toUpperCase());
     } catch (IllegalArgumentException exception) {
       throw new ParseException(String.format("Invalid output format: '%s'", outputFormat));
     }
   }
+
 }

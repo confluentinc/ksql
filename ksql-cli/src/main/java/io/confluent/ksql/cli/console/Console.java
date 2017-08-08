@@ -6,13 +6,10 @@ package io.confluent.ksql.cli.console;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -31,11 +28,8 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.Pair;
 
-import org.apache.kafka.connect.data.Field;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.History;
 import org.jline.terminal.Terminal;
@@ -57,16 +51,16 @@ import java.util.stream.Collectors;
 
 public abstract class Console implements Closeable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Console.class);
 
-  private JLineReader lineReader;
+  private LineReader lineReader;
   private final ObjectMapper objectMapper;
   private final KsqlRestClient restClient;
   private final LinkedHashMap<String, CliSpecificCommand> cliSpecificCommands;
 
-  private Cli.OutputFormat outputFormat;
+  private OutputFormat outputFormat;
 
-  public Console(Cli.OutputFormat outputFormat, KsqlRestClient restClient) {
+  public Console(OutputFormat outputFormat, KsqlRestClient restClient) {
     Objects.requireNonNull(outputFormat, "Must provide the terminal with a beginning output format");
     Objects.requireNonNull(restClient, "Must provide the terminal with a REST client");
 
@@ -89,7 +83,7 @@ public abstract class Console implements Closeable {
 
   /* jline specific */
 
-  protected abstract JLineReader buildLineReader();
+  protected abstract LineReader buildLineReader();
 
   protected abstract void puts(InfoCmp.Capability capability);
 
@@ -109,7 +103,7 @@ public abstract class Console implements Closeable {
     return cliSpecificCommands;
   }
 
-  public JLineReader getLineReader() {
+  public LineReader getLineReader() {
     if (lineReader == null) {
       lineReader = buildLineReader();
     }
@@ -166,6 +160,19 @@ public abstract class Console implements Closeable {
 
   public void registerCliSpecificCommand(CliSpecificCommand cliSpecificCommand) {
     cliSpecificCommands.put(cliSpecificCommand.getName(), cliSpecificCommand);
+  }
+
+  public void setOutputFormat(String newFormat) {
+    try {
+      outputFormat = OutputFormat.get(newFormat);
+      writer().printf("Output format set to %s%n", outputFormat.name());
+    } catch (IllegalArgumentException exception) {
+      writer().printf(
+          "Invalid output format: '%s' (valid formats: %s)%n",
+          newFormat,
+          OutputFormat.VALID_FORMATS
+      );
+    }
   }
 
   /* private */
@@ -229,15 +236,6 @@ public abstract class Console implements Closeable {
     });
 
     registerCliSpecificCommand(new CliSpecificCommand() {
-      private final String outputFormats = String.format(
-          "'%s'",
-          String.join(
-              "', '",
-              Arrays.stream(Cli.OutputFormat.values())
-                  .map(Object::toString)
-                  .collect(Collectors.toList())
-          )
-      );
 
       @Override
       public String getName() {
@@ -249,7 +247,7 @@ public abstract class Console implements Closeable {
         writer().println("\toutput:          View the current output format");
         writer() .printf(
             "\toutput <format>: Set the output format to <format> (valid formats: %s)%n",
-            outputFormats
+            OutputFormat.VALID_FORMATS
         );
         writer().println("\t                 example: \"output JSON\"");
       }
@@ -260,16 +258,7 @@ public abstract class Console implements Closeable {
         if (newFormat.isEmpty()) {
           writer().printf("Current output format: %s%n", outputFormat.name());
         } else {
-          try {
-            outputFormat = Cli.OutputFormat.valueOf(newFormat);
-            writer().printf("Output format set to %s%n", outputFormat.name());
-          } catch (IllegalArgumentException exception) {
-            writer().printf(
-                "Invalid output format: '%s' (valid formats: %s)%n",
-                newFormat,
-                outputFormats
-            );
-          }
+          setOutputFormat(newFormat);
         }
       }
     });
@@ -336,21 +325,6 @@ public abstract class Console implements Closeable {
     });
   }
 
-  private void printCommandStatus(CommandStatus status) throws IOException {
-    switch (outputFormat) {
-      case JSON:
-        printAsJson(status);
-        break;
-      case TABULAR:
-        printAsTable(status);
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected output format: '%s'",
-            outputFormat.name()
-        ));
-    }
-  }
 
   private void printTable(List<String> columnHeaders, List<List<String>> rowValues) {
     if (columnHeaders.size() == 0) {
@@ -381,15 +355,6 @@ public abstract class Console implements Closeable {
     }
 
     flush();
-  }
-
-  private void printAsTable(CommandStatus status) {
-    printTable(
-        Arrays.asList("Message"),
-        Collections.singletonList(Arrays.asList(
-            status.getMessage().split("\n", 2)[0]
-        ))
-    );
   }
 
   private void printAsTable(KsqlEntity ksqlEntity) {
@@ -516,6 +481,8 @@ public abstract class Console implements Closeable {
         newEntities.add(ksqlEntity);
       }
       o = newEntities;
+    } else {
+      LOGGER.warn(String.format("Unexpected result class: '%s' found in printAsJson", o.getClass().getCanonicalName()));
     }
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
     writer().println();

@@ -507,8 +507,8 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitLoadFromFile(SqlBaseParser.LoadFromFileContext context) {
-    return new LoadFromFile(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+  public Node visitRunScript(SqlBaseParser.RunScriptContext context) {
+    return new RunScript(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
   @Override

@@ -71,8 +71,8 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=json topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=json topic=pageviews bootstrap-server=kafka:29092 maxInterval=10000'"
+                       java -jar /usr/share/confluent/ksql-examples-${KSQL_VERSION}-standalone.jar quickstart=pageviews format=json topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
+                       java -jar /usr/share/confluent/ksql-examples-${KSQL_VERSION}-standalone.jar quickstart=pageviews format=json topic=pageviews bootstrap-server=kafka:29092 maxInterval=10000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092
       STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
@@ -100,8 +100,8 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=10000'"
+                       java -jar /usr/share/confluent/ksql-examples-${KSQL_VERSION}-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
+                       java -jar /usr/share/confluent/ksql-examples-${KSQL_VERSION}-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=10000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092
       STREAMS_SCHEMA_REGISTRY_HOST: schema-registry

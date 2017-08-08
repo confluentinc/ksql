@@ -123,7 +123,16 @@ ksql> select * from PAGES_PER_MIN;
 ksql> 
 ```
 
-8. 'curl' the  'Connect' so that it pipes data into Elastic
+8. Define an Elasticsearch dynamic template so that any field ending `_TS` is interpretted as a date when creating indicies
+```
+ksql user$ cd ksql-examples/examples/clickstream-analysis/
+user$ ./es-add-dynamic-template.sh
+{"acknowledged":true}⏎
+user$ 
+
+```
+
+9. Add Kafka Connect connector via `curl` to pipe the data into Elasticsearch
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
 user$ ./clickstream-schema-connect-elastic.sh 
@@ -131,7 +140,7 @@ user$ ./clickstream-schema-connect-elastic.sh
 user$ 
 ```
 
-9. Import the data source definitions into Grafana
+10. Import the data source definitions into Grafana
 
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
@@ -140,13 +149,13 @@ user$ ./grafana_import_data_sources.sh
 user$ 
 ```
 
-10. Load the dashboard into Grafana
+11. Load the dashboard into Grafana
 ```
 Navigate to: http://localhost:3000/
 LHS => Dashboard => Import  => Upload .json file [choose ksql/ksql-examples/examples/clickstream-analysis/clickstream-analysis-dashboard.json ]
 ```
 
-11. View the ClickStream Dashboard
+12. View the ClickStream Dashboard
 ```
 Load [Click Stream Analysis]
 

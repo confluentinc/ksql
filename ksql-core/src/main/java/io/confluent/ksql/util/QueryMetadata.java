@@ -4,6 +4,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
 
@@ -14,13 +15,16 @@ public class QueryMetadata {
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
   private final String executionPlan;
+  private final DataSource.DataSourceType dataSourceType;
 
   public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
-                       String executionPlan) {
+                       String executionPlan,
+                       DataSource.DataSourceType dataSourceType) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
+    this.dataSourceType = dataSourceType;
   }
 
   public String getStatementString() {
@@ -37,6 +41,10 @@ public class QueryMetadata {
 
   public String getExecutionPlan() {
     return executionPlan;
+  }
+
+  public DataSource.DataSourceType getDataSourceType() {
+    return dataSourceType;
   }
 
   @Override

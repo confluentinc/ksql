@@ -131,13 +131,22 @@ user$ ./clickstream-schema-connect-elastic.sh
 user$ 
 ```
 
-9. Load the dashboard into Grafana
+9. Import the data source definitions into Grafana
+
+```
+ksql user$ cd ksql-examples/examples/clickstream-analysis/
+user$ ./grafana_import_data_sources.sh
+{<<JSON RESPONSE>>} 
+user$ 
+```
+
+10. Load the dashboard into Grafana
 ```
 Navigate to: http://localhost:3000/
 LHS => Dashboard => Import  => Upload .json file [choose ksql/ksql-examples/examples/clickstream-analysis/clickstream-analysis-dashboard.json ]
 ```
 
-10. View the ClickStream Dashboard
+11. View the ClickStream Dashboard
 ```
 Load [Click Stream Analysis]
 

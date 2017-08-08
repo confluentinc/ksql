@@ -1,4 +1,4 @@
-CONFLUENT_VERSION := 1.0-SNAPSHOT
+CONFLUENT_VERSION ?= 1.0-SNAPSHOT
 
 all: images compose cli
 

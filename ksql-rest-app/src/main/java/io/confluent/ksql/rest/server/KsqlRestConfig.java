@@ -22,9 +22,11 @@ public class KsqlRestConfig extends RestConfig {
   public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
 
   public static final String
-      COMMAND_TOPIC_SUFFIX_CONFIG = "command.topic.suffix";
+      COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.command.topic.suffix";
   public static final ConfigDef.Type
       COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      COMMAND_TOPIC_SUFFIX_DEFAULT = "commands";
   public static final ConfigDef.Importance
       COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String
@@ -78,6 +80,7 @@ public class KsqlRestConfig extends RestConfig {
     CONFIG_DEF = baseConfigDef().define(
         COMMAND_TOPIC_SUFFIX_CONFIG,
         COMMAND_TOPIC_SUFFIX_TYPE,
+        COMMAND_TOPIC_SUFFIX_DEFAULT,
         COMMAND_TOPIC_SUFFIX_IMPORTANCE,
         COMMAND_TOPIC_SUFFIX_DOC
     ).define(

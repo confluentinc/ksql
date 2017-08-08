@@ -12,6 +12,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -23,6 +24,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -62,6 +64,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -78,6 +81,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -317,13 +321,25 @@ public class KsqlResource {
       throws Exception {
     String executionPlan;
     if (statement instanceof Query) {
-      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement);
+      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement).getExecutionPlan();
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      executionPlan = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect.getQuery());
+      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect
+                                                                         .getQuery());
+      if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+        throw new KsqlException("Invalid result type. Your select query produces a TABLE. Please "
+                                + "use CREATE TABLE AS SELECT statement instead.");
+      }
+      executionPlan = queryMetadata.getExecutionPlan();
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());
+      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(createTableAsSelect
+                                                                         .getQuery());
+      if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
+        throw new KsqlException("Invalid result type. Your select query produces a STREAM. Please "
+                                + "use CREATE STREAM AS SELECT statement instead.");
+      }
+      executionPlan = queryMetadata.getExecutionPlan();
     } else if (statement instanceof RegisterTopic) {
       RegisterTopic registerTopic = (RegisterTopic) statement;
       RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic,

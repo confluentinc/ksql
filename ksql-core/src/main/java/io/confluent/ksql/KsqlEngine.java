@@ -138,7 +138,7 @@ public class KsqlEngine implements Closeable {
     return runningQueries;
   }
 
-  public String getQueryExecutionPlan(Query query) throws Exception {
+  public QueryMetadata getQueryExecutionPlan(Query query) throws Exception {
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays
@@ -152,7 +152,7 @@ public class KsqlEngine implements Closeable {
         Collections.emptyMap(),
         false
     );
-    return runningQueries.get(0).getExecutionPlan();
+    return runningQueries.get(0);
   }
 
 

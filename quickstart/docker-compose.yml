@@ -54,9 +54,10 @@ services:
   # Runs the Kafka KSQL application
   ksql-cli:
     image: confluentinc/cp-kafka-streams-examples:latest
+    #image: docker.confluent.io:5000/confluentinc/cp-ksql-cli:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0807-ed2b70e.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
-      - /Users/yeva/assets/ksql/cluster.properties:/app2/cluster.properties
+    #  - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0807-ed2b70e.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
+      - ../ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-cli
     depends_on:
       - kafka
@@ -83,7 +84,7 @@ services:
   ksql-datagen-pageviews:
     image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0807-ed2b70e.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+      - ../ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
@@ -111,7 +112,7 @@ services:
   ksql-datagen-users:
     image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
     volumes:
-      - /Users/yeva/assets/ksql/ksql-examples-1.0-SNAPSHOT-standalone-0807-ed2b70e.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+      - ../ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-datagen-users
     depends_on:
       - kafka

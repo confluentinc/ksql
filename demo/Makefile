@@ -1,6 +1,6 @@
-all: build compose cli
+all: images compose cli
 
-build:
+images:
 	cd .. && mvn compile install -DskipTests
 	cd ../ksql-examples && docker build . -t confluentinc/cp-ksql-examples
 	cd ../ksql-cli && docker build . -t confluentinc/cp-ksql-cli

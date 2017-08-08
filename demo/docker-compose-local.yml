@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:3.3.0
+    image: confluentinc/cp-zookeeper:latest
     hostname: zookeeper
     ports:
       - '32181:32181'
@@ -13,7 +13,7 @@ services:
       - "moby:127.0.0.1"
 
   kafka:
-    image: confluentinc/cp-enterprise-kafka:3.3.0
+    image: confluentinc/cp-enterprise-kafka:latest
     hostname: kafka
     ports:
       - '9092:9092'
@@ -38,7 +38,7 @@ services:
       - "moby:127.0.0.1"
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:3.3.0
+    image: confluentinc/cp-schema-registry:latest
     hostname: schema-registry
     depends_on:
       - zookeeper
@@ -52,9 +52,9 @@ services:
       - "moby:127.0.0.1"
 
   # Runs the Kafka KSQL data generator
-  ksql-datagen-pageview:
+  ksql-datagen-pageviews:
     image: confluentinc/cp-ksql-examples:latest
-    hostname: ksql-datagen-pageview
+    hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
       - schema-registry
@@ -109,7 +109,24 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
+  # Keeps a container alive for the CLI (don't want to lose logs)
+  ksql-cli:
+    image: confluentinc/cp-ksql-cli:latest
+    hostname: ksql-cli
+    depends_on:
+      - ksql-datagen-pageviews
+      - ksql-datagen-users
+    command: "perl -e 'while(1){ sleep 99999 }'"
+    environment:
+      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
+      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
+      STREAMS_SCHEMA_REGISTRY_PORT: 8081
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "kafka:127.0.0.1"
+    network_mode: "host"
+
 volumes:
   ksql-cli:
-  ksql-datagen-pageview:
+  ksql-datagen-pageviews:
   ksql-datagen-users:

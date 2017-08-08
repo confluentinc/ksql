@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -320,7 +321,16 @@ public class KsqlResource {
       executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement);
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      executionPlan = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect.getQuery());
+      QuerySpecification querySpecification =
+          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+      Query query = ksqlEngine.addInto(
+          createStreamAsSelect.getQuery(),
+          querySpecification,
+          createStreamAsSelect.getName().getSuffix(),
+          createStreamAsSelect.getProperties(),
+          createStreamAsSelect.getPartitionByColumn()
+      );
+      executionPlan = ksqlEngine.getQueryExecutionPlan(query);
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
       executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());

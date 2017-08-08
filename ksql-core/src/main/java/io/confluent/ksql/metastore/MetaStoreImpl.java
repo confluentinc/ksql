@@ -53,7 +53,7 @@ public class MetaStoreImpl implements MetaStore {
     } else {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
-          + dataSource.getName());
+          + dataSource.toString());
     }
   }
 

@@ -237,7 +237,7 @@ public class MetastoreUtil {
         KsqlTable ksqlTable = (KsqlTable) structuredDataSource;
         stringBuilder.append("\t\t\t \"statestore\": \"" + ksqlTable.getStateStoreName()
                              + "\", \n");
-        stringBuilder.append("\t\t\t \"iswindowed\": \"" + ksqlTable.isWinidowed() + "\", \n");
+        stringBuilder.append("\t\t\t \"iswindowed\": \"" + ksqlTable.isWindowed() + "\", \n");
       }
       stringBuilder.append("\t\t\t \"fields\": [\n");
       boolean isFirstField = true;

@@ -35,5 +35,9 @@ public class KsqlStream extends StructuredDataSource {
     return new KsqlStream(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic);
   }
 
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + " name:" + getName();
+  }
 
 }

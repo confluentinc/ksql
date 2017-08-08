@@ -21,26 +21,22 @@ public class CreateTableAsSelect
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
-  private final Optional<Expression> partitionByColumn;
 
   public CreateTableAsSelect(QualifiedName name, Query query, boolean notExists,
-                             Map<String, Expression> properties,
-                             Optional<Expression> partitionByColumn) {
-    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
+                             Map<String, Expression> properties) {
+    this(Optional.empty(), name, query, notExists, properties);
   }
 
   public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
                              boolean notExists,
-                             Map<String, Expression> properties,
-                             Optional<Expression> partitionByColumn
+                             Map<String, Expression> properties
                              ) {
-    this(Optional.of(location), name, query, notExists, properties, partitionByColumn);
+    this(Optional.of(location), name, query, notExists, properties);
   }
 
   private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
                               boolean notExists,
-                              Map<String, Expression> properties,
-                              Optional<Expression> partitionByColumn
+                              Map<String, Expression> properties
                               ) {
     super(location);
     this.name = requireNonNull(name, "name is null");
@@ -48,7 +44,6 @@ public class CreateTableAsSelect
     this.notExists = notExists;
     this.properties = ImmutableMap
         .copyOf(requireNonNull(properties, "properties is null"));
-    this.partitionByColumn = partitionByColumn;
   }
 
   public QualifiedName getName() {
@@ -65,10 +60,6 @@ public class CreateTableAsSelect
 
   public Map<String, Expression> getProperties() {
     return properties;
-  }
-
-  public Optional<Expression> getPartitionByColumn() {
-    return partitionByColumn;
   }
 
   @Override

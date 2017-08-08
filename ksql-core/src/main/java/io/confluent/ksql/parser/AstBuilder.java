@@ -132,16 +132,10 @@ public class AstBuilder
 
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
-    Optional<Expression> partitionByColumn = Optional.empty();
-    if (context.identifier() != null) {
-      partitionByColumn = Optional.of(new QualifiedNameReference(
-          QualifiedName.of(getIdentifierText(context.identifier()))));
-    }
     return new CreateTableAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
                                    (Query) visitQuery(context.query()),
                                    context.EXISTS() != null,
-                                   processTableProperties(context.tableProperties()),
-                                   partitionByColumn);
+                                   processTableProperties(context.tableProperties()));
   }
 
   @Override
@@ -513,8 +507,8 @@ public class AstBuilder
   }
 
   @Override
-  public Node visitLoadFromFile(SqlBaseParser.LoadFromFileContext context) {
-    return new LoadFromFile(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+  public Node visitRunScript(SqlBaseParser.RunScriptContext context) {
+    return new RunScript(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
 
   @Override

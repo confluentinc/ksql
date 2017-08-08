@@ -55,11 +55,6 @@ import java.util.concurrent.TimeoutException;
 
 public class Cli implements Closeable, AutoCloseable {
 
-  public enum OutputFormat {
-    JSON,
-    TABULAR
-  }
-
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
@@ -113,7 +108,7 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  public void displayWelcomeMessage() {
+  private void displayWelcomeMessage() {
     String serverVersion;
     try {
       serverVersion = restClient.makeRootRequest().getResponse().getVersion();
@@ -152,15 +147,15 @@ public class Cli implements Closeable, AutoCloseable {
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
       String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
-      terminal.writer().printf("%s==================================%n", leftPadding);
-      terminal.writer().printf("%s=   _  __ _____  ____  _         =%n", leftPadding);
-      terminal.writer().printf("%s=  | |/ // ____|/ __ \\| |        =%n", leftPadding);
-      terminal.writer().printf("%s=  | ' /| (___ | |  | | |        =%n", leftPadding);
-      terminal.writer().printf("%s=  |  <  \\___ \\| |  | | |        =%n", leftPadding);
-      terminal.writer().printf("%s=  | . \\ ____) | |__| | |____    =%n", leftPadding);
-      terminal.writer().printf("%s=  |_|\\_\\_____/ \\___\\_\\______|   =%n", leftPadding);
-      terminal.writer().printf("%s=                                =%n", leftPadding);
-      terminal.writer().printf("%s= Kafka Streaming Query Language =%n", leftPadding);
+      terminal.writer().printf("%s======================================%n", leftPadding);
+      terminal.writer().printf("%s=      _  __ _____  ____  _          =%n", leftPadding);
+      terminal.writer().printf("%s=     | |/ // ____|/ __ \\| |         =%n", leftPadding);
+      terminal.writer().printf("%s=     | ' /| (___ | |  | | |         =%n", leftPadding);
+      terminal.writer().printf("%s=     |  <  \\___ \\| |  | | |         =%n", leftPadding);
+      terminal.writer().printf("%s=     | . \\ ____) | |__| | |____     =%n", leftPadding);
+      terminal.writer().printf("%s=     |_|\\_\\_____/ \\___\\_\\______|    =%n", leftPadding);
+      terminal.writer().printf("%s=                                    =%n", leftPadding);
+      terminal.writer().printf("%s= Streaming Query Language for Kafka =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);
@@ -305,15 +300,15 @@ public class Cli implements Closeable, AutoCloseable {
             (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
         String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
         unsetProperty(property);
-      } else if (statementContext.statement() instanceof SqlBaseParser.LoadFromFileContext) {
-        SqlBaseParser.LoadFromFileContext loadFromFileContext =
-            (SqlBaseParser.LoadFromFileContext) statementContext.statement();
-        String schemaFilePath = AstBuilder.unquote(loadFromFileContext.STRING().getText(), "'");
+      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
+        SqlBaseParser.RunScriptContext runScriptContext =
+            (SqlBaseParser.RunScriptContext) statementContext.statement();
+        String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
         String fileContent;
         try {
           fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
         } catch (IOException e) {
-          throw new KsqlException(" COuld not read statements from file: " + schemaFilePath);
+          throw new KsqlException(" Could not read statements from file: " + schemaFilePath);
         }
         setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
         printKsqlResponse(

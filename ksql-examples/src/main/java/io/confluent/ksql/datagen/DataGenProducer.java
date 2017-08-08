@@ -14,7 +14,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -54,8 +56,22 @@ public abstract class DataGenProducer {
 
       List<Object> genericRowValues = new ArrayList<>();
 
+      SimpleDateFormat timeformatter = null;
       for (Schema.Field field : avroSchema.getFields()) {
-        genericRowValues.add(randomAvroMessage.get(field.name()));
+        String timeFormatFromLong = field.schema().getProp("format_as_time");
+        if (timeFormatFromLong != null) {
+          Date date = new Date(System.currentTimeMillis());
+          if (timeFormatFromLong.equals("unix_long")) {
+            genericRowValues.add(date.getTime());
+          } else {
+            if (timeformatter == null) {
+              timeformatter = new SimpleDateFormat(timeFormatFromLong);
+            }
+            genericRowValues.add(timeformatter.format(date));
+          }
+        } else {
+          genericRowValues.add(randomAvroMessage.get(field.name()));
+        }
       }
 
       GenericRow genericRow = new GenericRow(genericRowValues);

@@ -379,7 +379,7 @@ public class PhysicalPlanBuilder {
 
         KsqlTable ksqlTable = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
         KTable ktable;
-        if (ksqlTable.isWinidowed()) {
+        if (ksqlTable.isWindowed()) {
           KStream
               kstream =
               builder
@@ -437,7 +437,7 @@ public class PhysicalPlanBuilder {
 
         return new SchemaKTable(sourceNode.getSchema(), ktable,
                                 sourceNode.getKeyField(), new ArrayList<>(),
-                                ksqlTable.isWinidowed(),
+                                ksqlTable.isWindowed(),
                                 SchemaKStream.Type.SOURCE);
       }
       KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();

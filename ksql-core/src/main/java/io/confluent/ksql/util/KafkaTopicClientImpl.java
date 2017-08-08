@@ -35,7 +35,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       if (topicDescription.partitions().size() != numPartitions ||
           topicDescription.partitions().get(0).replicas().size() != replicatonFactor) {
         throw new KafkaTopicException(String.format(
-            "Topic '%s' does not conform to the requirements.", topic));
+            "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d v %d", topic,
+                topicDescription.partitions().size(), numPartitions,
+                topicDescription.partitions().get(0).replicas().size(), replicatonFactor
+        ));
       }
       // Topic with the partitons and replicas exists, reuse it!
       return;

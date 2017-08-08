@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.LoadFromFile;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
@@ -183,7 +184,7 @@ public class KsqlResource {
     } else if (statement instanceof Explain) {
       Explain explain = (Explain) statement;
       return getStatementExecutionPlan(explain, statementText);
-    } else if (statement instanceof LoadFromFile) {
+    } else if (statement instanceof RunScript) {
       return distributeStatement(statementText, statement, streamsProperties);
     }else if (statement instanceof RegisterTopic
             || statement instanceof CreateStream
@@ -365,6 +366,8 @@ public class KsqlResource {
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {
     return ksqlEngine.getMetaStore().getAllStructuredDataSources().values().stream()
         .filter(dataSourceClass::isInstance)
+        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+            KsqlRestApplication.getCommandsStreamName()))
         .map(dataSourceClass::cast)
         .collect(Collectors.toList());
   }

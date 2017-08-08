@@ -13,7 +13,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.LoadFromFile;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -35,11 +35,8 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -260,7 +257,7 @@ public class StatementExecutor {
           querySpecification,
           createTableAsSelect.getName().getSuffix(),
           createTableAsSelect.getProperties(),
-          createTableAsSelect.getPartitionByColumn()
+          Optional.empty()
       );
       if (startQuery(statementStr, query, commandId, terminatedQueries)) {
         successMessage = "Table created and running";
@@ -270,12 +267,18 @@ public class StatementExecutor {
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";
-    } else if (statement instanceof LoadFromFile) {
+    } else if (statement instanceof RunScript) {
       if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
         String queries =
             (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
-        ksqlEngine.buildMultipleQueries(false, queries,
+        List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
                                             command.getStreamsProperties());
+        for (QueryMetadata queryMetadata : queryMetadataList) {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+            persistentQueryMetadata.getKafkaStreams().start();
+          }
+        }
       } else {
         throw new KsqlException("No statements received for LOAD FROM FILE.");
       }

@@ -1,5 +1,7 @@
-ARG DOCKER_REGISTRY=""
+ARG DOCKER_REGISTRY
 
 FROM "${DOCKER_REGISTRY}confluentinc/cp-base"
 
-ADD target/ksql-examples-1.0-SNAPSHOT-standalone.jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar
+ARG KSQL_VERSION
+
+ADD target/ksql-examples-${KSQL_VERSION}-standalone.jar /usr/share/confluent/ksql-examples-${KSQL_VERSION}-standalone.jar

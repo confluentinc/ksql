@@ -232,12 +232,17 @@ public class QueryEngine {
 
       QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
       KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
+
+      SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
+
       physicalPlans.add(new QueuedQueryMetadata(
           statementPlanPair.getLeft(),
           streams,
           ksqlBareOutputNode,
           schemaKStream.getExecutionPlan(""),
-          queuedSchemaKStream.getQueue()
+          queuedSchemaKStream.getQueue(),
+          (sourceSchemaKstream instanceof SchemaKTable)?
+          DataSource.DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM
       ));
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {

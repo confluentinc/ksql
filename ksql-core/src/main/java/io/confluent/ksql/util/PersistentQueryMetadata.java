@@ -13,22 +13,18 @@ import java.util.Objects;
 public class PersistentQueryMetadata extends QueryMetadata {
 
   private final long id;
-  private final DataSource.DataSourceType dataSourceType;
+
 
   public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams,
                                  OutputNode outputNode, String executionPlan, long id,
                                  DataSource.DataSourceType dataSourceType) {
-    super(statementString, kafkaStreams, outputNode, executionPlan);
+    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType);
     this.id = id;
-    this.dataSourceType = dataSourceType;
+
   }
 
   public long getId() {
     return id;
-  }
-
-  public DataSource.DataSourceType getDataSourceType() {
-    return dataSourceType;
   }
 
   @Override

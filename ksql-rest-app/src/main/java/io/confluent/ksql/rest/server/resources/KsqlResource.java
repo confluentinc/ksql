@@ -12,6 +12,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -79,6 +80,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -318,7 +320,7 @@ public class KsqlResource {
       throws Exception {
     String executionPlan;
     if (statement instanceof Query) {
-      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement);
+      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement).getExecutionPlan();
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification =
@@ -330,10 +332,31 @@ public class KsqlResource {
           createStreamAsSelect.getProperties(),
           createStreamAsSelect.getPartitionByColumn()
       );
-      executionPlan = ksqlEngine.getQueryExecutionPlan(query);
+      PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) ksqlEngine
+          .getQueryExecutionPlan(query);
+      if (persistentQueryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+        throw new KsqlException("Invalid result type. Your select query produces a TABLE. Please "
+                                + "use CREATE TABLE AS SELECT statement instead.");
+      }
+      executionPlan = persistentQueryMetadata.getExecutionPlan();
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      executionPlan = ksqlEngine.getQueryExecutionPlan(createTableAsSelect.getQuery());
+      QuerySpecification querySpecification =
+          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
+      Query query = ksqlEngine.addInto(
+          createTableAsSelect.getQuery(),
+          querySpecification,
+          createTableAsSelect.getName().getSuffix(),
+          createTableAsSelect.getProperties(),
+          Optional.empty()
+      );
+      PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) ksqlEngine
+          .getQueryExecutionPlan(query);
+      if (persistentQueryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
+        throw new KsqlException("Invalid result type. Your select query produces a STREAM. Please "
+                                + "use CREATE STREAM AS SELECT statement instead.");
+      }
+      executionPlan = persistentQueryMetadata.getExecutionPlan();
     } else if (statement instanceof RegisterTopic) {
       RegisterTopic registerTopic = (RegisterTopic) statement;
       RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic,

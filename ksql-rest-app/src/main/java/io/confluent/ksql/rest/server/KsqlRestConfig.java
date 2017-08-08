@@ -25,6 +25,8 @@ public class KsqlRestConfig extends RestConfig {
       COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.command.topic.suffix";
   public static final ConfigDef.Type
       COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      COMMAND_TOPIC_SUFFIX_DEFAULT = "commands";
   public static final ConfigDef.Importance
       COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String
@@ -33,7 +35,7 @@ public class KsqlRestConfig extends RestConfig {
               + "commands";
 
   public static final String
-      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "ksql.query.stream.disconnect.check";
+      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
   public static final ConfigDef.Type
       STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
@@ -78,6 +80,7 @@ public class KsqlRestConfig extends RestConfig {
     CONFIG_DEF = baseConfigDef().define(
         COMMAND_TOPIC_SUFFIX_CONFIG,
         COMMAND_TOPIC_SUFFIX_TYPE,
+        COMMAND_TOPIC_SUFFIX_DEFAULT,
         COMMAND_TOPIC_SUFFIX_IMPORTANCE,
         COMMAND_TOPIC_SUFFIX_DOC
     ).define(

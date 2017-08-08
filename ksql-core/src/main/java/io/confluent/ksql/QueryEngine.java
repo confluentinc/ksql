@@ -16,6 +16,7 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.metastore.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -254,7 +255,9 @@ public class QueryEngine {
       physicalPlans.add(
           new PersistentQueryMetadata(statementPlanPair.getLeft(),
                                       streams, kafkaTopicOutputNode, schemaKStream
-                                          .getExecutionPlan(""), queryId)
+                                          .getExecutionPlan(""), queryId,
+                                      (schemaKStream instanceof SchemaKTable)? DataSource
+                                          .DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM)
       );
 
       MetaStore metaStore = ksqlEngine.getMetaStore();

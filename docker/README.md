@@ -8,7 +8,7 @@
 docker-compose up -d
 ```
 
-2) For a KSQL client, run:
+2) To launch KSQL CLI, run:
 
 ```
 docker-compose exec ksql-cli \
@@ -18,7 +18,7 @@ docker-compose exec ksql-cli \
 
 ## Local Images and Private Registry
 
-The included `Makefile` includes shortcuts for building images, launching the cluster, and launching a KSQL client. By default, local images and the public Docker repository are used.
+The included `Makefile` includes shortcuts for building images, launching the cluster, and launching KSQL CLI. By default, local images and the public Docker repository are used.
 
 To work with a private Docker registry, set the `DOCKER_REGISTRY` environment variable when building images and launching the cluster. You must log in to the private registry using `docker login`.
 

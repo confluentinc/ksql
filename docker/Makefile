@@ -24,7 +24,7 @@ endif
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-cli
 
 compose:
-	docker-compose -f docker-compose.yml up -d
+	docker-compose up -d
 
 cli:
 	docker-compose exec ksql-cli java -jar /usr/share/confluent/ksql-cli-${KSQL_VERSION}-standalone.jar local --bootstrap-server kafka:29092

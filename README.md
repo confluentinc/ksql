@@ -1,4 +1,4 @@
-# KSQL - a Streaming SQL Engine for Apache KafkaTM from Confluent
+# KSQL - a Streaming SQL Engine for Apache Kafka<sup>TM</sup> from Confluent
 ---
 
 A DEVELOPER PREVIEW

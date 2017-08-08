@@ -109,5 +109,6 @@ $ mvn clean package
 # License
 ---
 The project is licensed under the Apache License, version 2.0.
+
 *Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/)*
 

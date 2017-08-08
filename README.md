@@ -62,11 +62,11 @@ In client-server mode, a pool of KSQL server(s) can be running on remote machine
 
 # Frequently Asked Questions
 ---
-*Why would I choose KSQL over alternatives?*
+**Why would I choose KSQL over alternatives?**
 
 KSQL allows you to query, read, write, and process data in Apache Kafka in real-time and at scale using intuitive SQL-like syntax. KSQL does not require proficiency with a programming language such as Java or Scala, and you don’t have to install a separate processing cluster technology.
 
-*What are the technical requirements of KSQL?*
+**What are the technical requirements of KSQL?**
 
 KSQL only requires 
 1. a Java runtime environment
@@ -74,23 +74,23 @@ KSQL only requires
 
 We recommend the use of [Confluent Platform](https://www.confluent.io/product/confluent-platform/) or [Confluent Cloud](https://www.confluent.io/confluent-cloud/) for running Apache Kafka.
 
-*Is KSQL owned by the Apache Software Foundation?*
+**Is KSQL owned by the Apache Software Foundation?**
 
 No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) as part of its free [Confluent Open Source](https://www.confluent.io/product/confluent-open-source/) product.
 
-*How does KSQL compare to Apache Kafka’s Streams API?*
+**How does KSQL compare to Apache Kafka’s Streams API?**
 
 KSQL does not require proficiency with a programming language such as Java or Scala. It is aimed at users who are responding to a real-time, continuous business request, as opposed to writing a full-fledged stream processing application. That said, there are shades of grey here and experienced Kafka users will comprehend that for different purposes, one is better suited based on available developer talent, problem complexity and mission-criticality.
 
-*Is KSQL ready for production?*
+**Is KSQL ready for production?**
 
 KSQL is a technical preview at this point in time.  We do not yet recommend to use it for production purposes.
 
-*Can I use KSQL with my favorite data (e.g. JSON, Avro)?*
+**Can I use KSQL with my favorite data (e.g. JSON, Avro)?**
 
 KSQL currently supports three formats: DELIMITED (CSV), JSON, and AVRO.
 
-*Is KSQL fully compliant to ANSI SQL?*
+**Is KSQL fully compliant to ANSI SQL?**
 
 KSQL is a dialect very similar to ANSI SQL but has a few differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
 

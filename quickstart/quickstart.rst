@@ -84,7 +84,7 @@ Before proceeding, please check:
      REGIONID | STRING 
        GENDER | STRING 
 
-3. Show all the KSQL STREAMS and TABLES. <TODO: update when KSQL-253 is resolved>
+3. Show all STREAMS and TABLES.
 
 .. sourcecode:: bash
 
@@ -92,14 +92,13 @@ Before proceeding, please check:
    
            Stream Name |                  Kafka Topic |    Format 
    ---------------------------------------------------------------
-              COMMANDS | ksql_standalone_cli_commands |      JSON 
     PAGEVIEWS_ORIGINAL |                    pageviews | DELIMITED 
 
    ksql> SHOW TABLES;
    
-        Table Name | Kafka Topic | Format | Windowed 
-   --------------------------------------------------
-    USERS_ORIGINAL |       USERS |   JSON |    false 
+    Table Name        | Kafka Topic       | Format    | Windowed 
+   --------------------------------------------------------------
+    USERS_ORIGINAL    | users             | JSON      | false  
 
 
 Write Queries
@@ -164,11 +163,17 @@ Write Queries
    Region_1 | 3
    ...
 
-6. Show all queries.  <TODO: update when KSQL-263 is resolved>
+6. Show all queries.
 
 .. sourcecode:: bash
 
    ksql> SHOW QUERIES;
+
+    Query ID | Kafka Topic              | Query String                                                                                                                                                                                                                      
+   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    1        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE'; 
+    2        | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';                                
+    3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;   
 
 
 Terminate and Exit

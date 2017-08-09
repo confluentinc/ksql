@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:3.3.0
+    image: "confluentinc/cp-zookeeper:3.3.0"
     hostname: zookeeper
     ports:
       - '32181:32181'
@@ -13,7 +13,7 @@ services:
       - "moby:127.0.0.1"
 
   kafka:
-    image: confluentinc/cp-enterprise-kafka:3.3.0
+    image: "confluentinc/cp-enterprise-kafka:3.3.0"
     hostname: kafka
     ports:
       - '9092:9092'
@@ -38,7 +38,7 @@ services:
       - "moby:127.0.0.1"
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:3.3.0
+    image: "confluentinc/cp-schema-registry:3.3.0"
     hostname: schema-registry
     depends_on:
       - zookeeper
@@ -51,40 +51,9 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL application
-  ksql-cli:
-    image: confluentinc/cp-kafka-streams-examples:latest
-    #image: docker.confluent.io:5000/confluentinc/cp-ksql-cli:latest
-    volumes:
-    #  - /Users/yeva/assets/ksql/ksql-cli-1.0-SNAPSHOT-standalone-0807-ed2b70e.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
-      - ../ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar:/app2/ksql-cli-1.0-SNAPSHOT-standalone.jar
-    hostname: ksql-cli
-    depends_on:
-      - kafka
-      - schema-registry
-    # Note: The container's `run` script will perform the same readiness checks
-    # for Kafka and Confluent Schema Registry, but that's ok because they complete fast.
-    # The reason we check for readiness here is that we can insert a sleep time
-    # for topic creation before we start the application.
-    command: "bash -c 'echo Waiting for Kafka to be ready... && \
-                       cub kafka-ready -b kafka:29092 1 20 && \
-                       echo Waiting for Confluent Schema Registry to be ready... && \
-                       cub sr-ready schema-registry 8081 20 && \
-                       echo Waiting a few seconds for topic creation to finish... && \
-                       sleep 2 && \
-                       /etc/confluent/docker/run'"
-    environment:
-      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
-      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
-      STREAMS_SCHEMA_REGISTRY_PORT: 8081
-    extra_hosts:
-      - "moby:127.0.0.1"
-
-  # Runs the Kafka KSQL data generator
+  # Runs the Kafka KSQL data generator for topic called "pageviews"
   ksql-datagen-pageviews:
-    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
-    volumes:
-      - ../ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+    image: "docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest"
     hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
@@ -108,11 +77,9 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL data generator
+  # Runs the Kafka KSQL data generator for topic called "users"
   ksql-datagen-users:
-    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
-    volumes:
-      - ../ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar:/app2/ksql-examples-1.0-SNAPSHOT-standalone.jar
+    image: "docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest"
     hostname: ksql-datagen-users
     depends_on:
       - kafka
@@ -136,7 +103,19 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-volumes:
+  # Runs the Kafka KSQL application
   ksql-cli:
-  ksql-datagen-pageviews:
-  ksql-datagen-users:
+    image: "docker.confluent.io:5000/confluentinc/cp-ksql-cli:latest"
+    hostname: ksql-cli
+    depends_on:
+      - kafka
+      - schema-registry
+      - ksql-datagen-pageviews
+      - ksql-datagen-users
+    command: "perl -e 'while(1){ sleep 99999 }'"
+    environment:
+      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
+      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
+      STREAMS_SCHEMA_REGISTRY_PORT: 8081
+    extra_hosts:
+      - "moby:127.0.0.1"

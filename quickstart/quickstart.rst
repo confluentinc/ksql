@@ -59,13 +59,13 @@ Before proceeding, please check:
 
    ksql> DESCRIBE pageviews_original;
 
-       Field |   Type 
-   -------------------
-     ROWTIME |  INT64 
-      ROWKEY | STRING 
-    VIEWTIME |  INT64 
-      PAGEID | STRING 
-      USERID | STRING 
+    Field    | Type            
+   ----------------------------
+    ROWTIME  | BIGINT          
+    ROWKEY   | VARCHAR(STRING) 
+    VIEWTIME | BIGINT          
+    USERID   | VARCHAR(STRING) 
+    PAGEID   | VARCHAR(STRING) 
 
 2. Create a TABLE ``users_original`` from the Kafka topic ``users``, specifying the ``value_format`` of ``JSON``. Describe the new TABLE.
 
@@ -75,14 +75,14 @@ Before proceeding, please check:
 
    ksql> DESCRIBE users_original;
 
-        Field |   Type 
-   -----------------------
-      ROWTIME |  INT64 
-       ROWKEY | STRING 
- REGISTERTIME |  INT64 
-       USERID | STRING 
-     REGIONID | STRING 
-       GENDER | STRING 
+    Field        | Type            
+   --------------------------------
+    ROWTIME      | BIGINT          
+    ROWKEY       | VARCHAR(STRING) 
+    REGISTERTIME | BIGINT          
+    GENDER       | VARCHAR(STRING) 
+    REGIONID     | VARCHAR(STRING) 
+    USERID       | VARCHAR(STRING) 
 
 3. Show all STREAMS and TABLES.
 
@@ -90,15 +90,15 @@ Before proceeding, please check:
 
    ksql> SHOW STREAMS;
    
-           Stream Name |                  Kafka Topic |    Format 
-   ---------------------------------------------------------------
-    PAGEVIEWS_ORIGINAL |                    pageviews | DELIMITED 
+    Stream Name              | Kafka Topic              | Format    
+   -----------------------------------------------------------------
+    PAGEVIEWS_ORIGINAL       | pageviews                | DELIMITED 
 
    ksql> SHOW TABLES;
    
     Table Name        | Kafka Topic       | Format    | Windowed 
    --------------------------------------------------------------
-    USERS_ORIGINAL    | users             | JSON      | false  
+    USERS_ORIGINAL    | users             | JSON      | false   
 
 
 Write Queries
@@ -122,11 +122,6 @@ Write Queries
 
    ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
 
-
-                 Command ID |    Status |             Message 
-   -----------------------------------------------------------
-    stream/PAGEVIEWS_FEMALE | EXECUTING | Executing statement 
-
 3. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
 
 .. sourcecode:: bash
@@ -141,13 +136,13 @@ Write Queries
 
    ksql> DESCRIBE pageviews_regions;
 
-       Field |   Type 
-   -------------------
-     ROWTIME |  INT64 
-      ROWKEY | STRING 
-      GENDER | STRING 
-    REGIONID | STRING 
-    NUMUSERS |  INT64 
+    Field    | Type            
+   ----------------------------
+    ROWTIME  | BIGINT          
+    ROWKEY   | VARCHAR(STRING) 
+    GENDER   | VARCHAR(STRING) 
+    REGIONID | VARCHAR(STRING) 
+    NUMUSERS | BIGINT 
 
 5. Use ``SELECT`` to view the results any query as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
 

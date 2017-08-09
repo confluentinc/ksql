@@ -69,7 +69,7 @@ Start KSQL
 
    $ mvn clean install
 
-4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update when KSQL-254 is resolved>
+4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally.
 
 .. sourcecode:: bash
 
@@ -77,15 +77,7 @@ Start KSQL
    ...
    ksql>
 
-5. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
-For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
-
-.. sourcecode:: bash
-
-   localhost$ cat /app2/cluster.properties
-   auto.offset.reset=earliest
-
-6. Refer to the steps below to produce some topic data to the Kafka cluster.
+5. Refer to the steps below to generate data to the Kafka cluster.
 
 
 

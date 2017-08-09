@@ -22,11 +22,11 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 
 1. Clone the Confluent KSQL repository:
 
-<TODO: update when KSQL-200 is resolved>
+.. sourcecode:: bash
+
+   $ git clone https://github.com/confluentinc/ksql
 
 2. Change into the quickstart directory.
-
-<TODO: update when KSQL-200 is resolved>
 
 .. sourcecode:: bash
 

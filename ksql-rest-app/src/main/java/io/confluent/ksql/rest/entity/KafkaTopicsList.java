@@ -113,7 +113,7 @@ public class KafkaTopicsList extends KsqlEntity {
   private static Map<String, TopicDescription> filterKsqlInternalTopics(
       Map<String, TopicDescription> kafkaTopicDescriptions, KsqlConfig ksqlConfig) {
     Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    String clusterId = ksqlConfig.get(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)
+    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
         .toString();
     String persistent_query_prefix = ksqlConfig.get(KsqlConfig
                                                       .KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
@@ -122,8 +122,8 @@ public class KafkaTopicsList extends KsqlEntity {
         .toString();
 
     for (String kafkaTopicName: kafkaTopicDescriptions.keySet()) {
-      if (!kafkaTopicName.startsWith(clusterId + persistent_query_prefix) &&
-          !kafkaTopicName.startsWith(clusterId + transient_query_prefix)) {
+      if (!kafkaTopicName.startsWith(serviceId + persistent_query_prefix) &&
+          !kafkaTopicName.startsWith(serviceId + transient_query_prefix)) {
         filteredKafkaTopics.put(kafkaTopicName.toLowerCase(), kafkaTopicDescriptions.get(kafkaTopicName));
       }
     }

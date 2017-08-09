@@ -220,14 +220,14 @@ public class QueryEngine {
           schemaKStream.getClass().getCanonicalName()
       ));
     }
-    String clusterId = ksqlEngine.getKsqlConfig()
-        .get(KsqlConfig.KSQL_CLUSTER_ID_CONFIG).toString();
+    String serviceId = ksqlEngine.getKsqlConfig()
+        .get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
     String persistance_query_prefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
     String transient_query_prefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
     if (isBareQuery) {
-      String applicationId = getBareQueryApplicationId(clusterId, transient_query_prefix);
+      String applicationId = getBareQueryApplicationId(serviceId, transient_query_prefix);
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -253,7 +253,7 @@ public class QueryEngine {
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
       long queryId = getNextQueryId();
 
-      String applicationId =  clusterId + persistance_query_prefix +
+      String applicationId =  serviceId + persistance_query_prefix +
                              queryId;
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
@@ -381,8 +381,8 @@ public class QueryEngine {
   }
 
   // TODO: This should probably be changed
-  private String getBareQueryApplicationId(String clusterId, String transientQueryPrefix) {
-    return  clusterId + transientQueryPrefix +
+  private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {
+    return  serviceId + transientQueryPrefix +
            Math.abs(ThreadLocalRandom.current().nextLong());
   }
 

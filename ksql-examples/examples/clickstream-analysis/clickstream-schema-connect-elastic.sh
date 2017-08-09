@@ -1,8 +1,23 @@
 #!/bin/bash
 
-#` -- [ '37.145.8.144' | '-' | '-' | '02/Aug/2017:12:39:55 -0700' | 1501702795917 | 'GET /site/login.html HTTP/1.1' | '404' | '4196' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
-# -- json
-# -- {"remote_user":"-","request":"GET /site/login.html HTTP/1.1","referrer":"-","agent":"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)","bytes":"4196","ip":"37.145.8.144","time":"02/Aug/2017:12:39:55 -0700","userid":"-","_time":1501702795917,"status":"404"}
+curl -X "POST" "http://localhost:8083/connectors/" \
+     -H "Content-Type: application/json" \
+     -d $'{
+  "name": "es_sink_CLICK_USER_SESSIONS_TS",
+  "config": {
+    "schema.ignore": "true",
+    "topics": "CLICK_USER_SESSIONS_TS",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter.schemas.enable": false,
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "key.ignore": "true",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "type.name": "type.name=kafkaconnect",
+    "topic.index.map": "CLICK_USER_SESSIONS_TS:click_user_sessions_ts",
+    "connection.url": "http://localhost:9200"
+  }
+}'
+
 
 curl -X "POST" "http://localhost:8083/connectors/" \
      -H "Content-Type: application/json" \

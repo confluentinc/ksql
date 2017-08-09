@@ -7,6 +7,8 @@
 - ElasticSeach installed locally (default settings port:9200)
 - Grafana installed locally (default settings port:3000)
 
+  Mac: [user$ brew install elasticsearch grafana]
+
 - KSQL is downloaded and compiled [mvn package -Dmaven.test.skip=true]
 
 _**Prior: Run Elastic and Grafana on default ports**_
@@ -122,8 +124,16 @@ ksql> select * from PAGES_PER_MIN;
 ^CQuery terminated
 ksql> 
 ```
+7. 'curl' the a dynamic template into Elastic so it can pick up EVENT_TS fields as the timestamp
+```
+ksql user$ cd ksql-examples/examples/clickstream-analysis/
+user$ ./elastic-dynamic-templates.sh 
+{<<JSON RESPONSE>>} 
+user$ 
+```
 
-8. 'curl' the  'Connect' so that it pipes data into Elastic
+
+8. 'curl' the  'Connect' so that it pipes data into Elastic from the TABLE topics
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
 user$ ./clickstream-schema-connect-elastic.sh 
@@ -131,16 +141,24 @@ user$ ./clickstream-schema-connect-elastic.sh
 user$ 
 ```
 
-9. Load the dashboard into Grafana
+9. Add datasources to Grafana
 ```
-Navigate to: http://localhost:3000/
-LHS => Dashboard => Import  => Upload .json file [choose ksql/ksql-examples/examples/clickstream-analysis/clickstream-analysis-dashboard.json ]
+:ksql user$ cd ksql-examples/examples/clickstream-analysis
+:clickstream-analysis user$ ./grafana-datasources.sh
+{<<JSON RESPONSE>>}
+user$ 
 ```
 
-10. View the ClickStream Dashboard
+10. Load the dashboard into Grafana
 ```
-Load [Click Stream Analysis]
+user$ ./clickstream-analysis-dashboard.sh
+{"slug":"click-stream-analysis","status":"success","version":5}
+user$ 
+```
 
+11. View the ClickStream Dashboard
+```
+Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 ```
 
 Interesting things to try:

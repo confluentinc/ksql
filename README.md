@@ -1,11 +1,13 @@
-# KSQL - a Streaming SQL Engine for Apache Kafka<sup>TM</sup> from Confluent
+# KSQL - a Streaming SQL Engine for Apache Kafka™ from Confluent
 ---
 
 A DEVELOPER PREVIEW
 
 ---
 
-KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache KafkaTM. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands. KSQL does not require proficiency with a programming language such as Java or Go, and it does not require you to install and manage a separate processing cluster technology. As such, it opens up the world of stream processing to a broader set of users and applications than ever before.
+KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands. 
+
+KSQL does not require proficiency with a programming language such as Java or Go, and it does not require you to install and manage a separate processing cluster technology. As such, it opens up the world of stream processing to a broader set of users and applications than ever before.
 
 This release is a DEVELOPER PREVIEW which is free and open-source from Confluent under the Apache 2.0 license.
 
@@ -14,6 +16,13 @@ This release is a DEVELOPER PREVIEW which is free and open-source from Confluent
 # Hello, KSQL!
 ---
 Here are some example queries to illustrate the look and feel of the KSQL syntax:
+
+Filter an inbound stream of page views to only show errors
+
+```sql
+SELECT STREAM request, ip, status 
+ WHERE status >= 400
+```
 
 Create a new stream that contains the pageviews from female users only
 ```sql
@@ -41,14 +50,14 @@ To learn more about KSQL see our [documentation](https://github.com/confluentinc
 
 # Need help?
 ---
-If you need help or have questions, you have two options:
+If you need help or have questions, you have several options:
 * Ask a question in the #ksql channel in our public [Confluent Community Slack](https://confluent.typeform.com/to/GxTHUD). Account registration is free and self-service.
 * Create a [ticket](https://github.com/confluentinc/ksql) in our issue [tracker](https://github.com/confluentinc/ksql).
 * Join the [Confluent google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 # How it works
 ---
-KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. Use the CLI and client to enter your KSQL queries. The server, of which you can run one or many instances, executes those queries for you.
+KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
 
 You can use KSQL in stand-alone mode and/or in client-server mode.
 
@@ -62,7 +71,7 @@ In client-server mode, a pool of KSQL server(s) can be running on remote machine
 
 # Frequently Asked Questions
 ---
-**Why would I choose KSQL over alternatives?**
+**What are the benefits of KSQL?**
 
 KSQL allows you to query, read, write, and process data in Apache Kafka in real-time and at scale using intuitive SQL-like syntax. KSQL does not require proficiency with a programming language such as Java or Scala, and you don’t have to install a separate processing cluster technology.
 
@@ -70,7 +79,7 @@ KSQL allows you to query, read, write, and process data in Apache Kafka in real-
 
 KSQL only requires 
 1. a Java runtime environment
-2. access to an Apache Kafka cluster on-premises or in the cloud for reading and writing data in real-time.
+2. access to an Apache Kafka cluster for reading and writing data in real-time. The cluster can be on-premises or in the cloud.
 
 We recommend the use of [Confluent Platform](https://www.confluent.io/product/confluent-platform/) or [Confluent Cloud](https://www.confluent.io/confluent-cloud/) for running Apache Kafka.
 
@@ -80,19 +89,26 @@ No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) 
 
 **How does KSQL compare to Apache Kafka’s Streams API?**
 
-KSQL does not require proficiency with a programming language such as Java or Scala. It is aimed at users who are responding to a real-time, continuous business request, as opposed to writing a full-fledged stream processing application. That said, there are shades of grey here and experienced Kafka users will comprehend that for different purposes, one is better suited based on available developer talent, problem complexity and mission-criticality.
+KSQL is complementary to the Kafka Streams API, and indeed executes queries through Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. 
+This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
+As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skillset.
 
 **Is KSQL ready for production?**
 
-KSQL is a technical preview at this point in time.  We do not yet recommend to use it for production purposes.
+KSQL is a technical preview at this point in time.  We do not yet recommend its use for production purposes.
 
-**Can I use KSQL with my favorite data (e.g. JSON, Avro)?**
+**Can I use KSQL with my favorite data format (e.g. JSON, Avro)?**
 
-KSQL currently supports three formats: DELIMITED (CSV), JSON, and AVRO.
+KSQL currently supports formats: 
+
+* DELIMITED (e.g. CSV)
+* JSON
+
+_Support for AVRO is expected soon._
 
 **Is KSQL fully compliant to ANSI SQL?**
 
-KSQL is a dialect very similar to ANSI SQL but has a few differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
+KSQL is a dialect inspired by ANSI SQL. It has some differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
 
 # Contributing to KSQL
 ---

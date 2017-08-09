@@ -11,6 +11,83 @@ KSQL does not require proficiency with a programming language such as Java or Go
 
 This release is a DEVELOPER PREVIEW which is free and open-source from Confluent under the Apache 2.0 license.
 
+#### Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Syntax Reference](#syntax-reference)
+- [FAQ](#frequently-asked-questions)
+- [Troubleshooting](#troubleshooting)
+
+
+# Overview
+---
+KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
+
+You can use KSQL in stand-alone mode and/or in client-server mode.
+
+In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
+
+![alt text](https://user-images.githubusercontent.com/2977624/29090610-f4b11096-7c34-11e7-8a63-85c9ead22bc3.png)
+
+In client-server mode, a pool of KSQL server(s) can be running on remote machines, VMs, or containers and the CLI connects to them over HTTP.
+
+![alt text](https://user-images.githubusercontent.com/2977624/29090617-fab5e930-7c34-11e7-9eee-0554192854d5.png)
+
+# Installation
+
+**Prerequisites:**
+
+- [Maven](https://maven.apache.org/install.html)
+- [Git](https://git-scm.com/downloads)
+- Java: Minimum version 1.7. 
+
+1.  Clone the Confluent KSQL repository:
+
+	```bash
+	git clone https://github.com/confluentinc/ksql
+	```
+
+1.  Navigate to the KSQL directory:
+
+	```bash
+	cd ksql
+	```
+
+1.  Compile the KSQL code:
+
+	```bash
+	mvn clean install
+	```
+
+1.  Start KSQL by running the compiled jar file ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar. Use the local argument for the developer preview. This starts the KSQL engine locally.
+
+	```bash
+	java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
+	```
+
+	When this command completes, you should see the KSQL prompt:
+
+	```bash
+	                       ======================================
+	                       =      _  __ _____  ____  _          =
+	                       =     | |/ // ____|/ __ \| |         =
+	                       =     | ' /| (___ | |  | | |         =
+	                       =     |  <  \___ \| |  | | |         =
+	                       =     | . \ ____) | |__| | |____     =
+	                       =     |_|\_\_____/ \___\_\______|    =
+	                       =                                    =
+	                       = Streaming Query Language for Kafka =
+	Copyright 2017 Confluent Inc.                         
+
+	CLI v0.0.1, Server v0.0.1 located at http://localhost:9098
+
+	Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+
+	ksql> 
+	```
+
 ---
 
 # Hello, KSQL!
@@ -38,13 +115,13 @@ CREATE TABLE pageview_counts AS
   SELECT pageid, count(*) FROM pageviews
   WINDOW TUMBLING (size 5 second)
   GROUP BY pageid;
-```
+```	
 
-# Let’s Play with KSQL
----
+# Getting Started
+<!-- What do you users need to get started -->
 
-* First-time users may want to try our [interactive quickstart](https://github.com/confluentinc/ksql).
-* If you want a more realistic end-to-end example, walk through our [KSQL demo](https://github.com/confluentinc/ksql).
+* Beginners can try the [interactive quickstart](https://github.com/confluentinc/ksql).
+* Advanced users can try a more realistic [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
 
 To learn more about KSQL see our [documentation](https://github.com/confluentinc/ksql) including the [KSQL Syntax Guide](https://github.com/confluentinc/ksql).
 
@@ -55,19 +132,6 @@ If you need help or have questions, you have several options:
 * Create a [ticket](https://github.com/confluentinc/ksql) in our issue [tracker](https://github.com/confluentinc/ksql).
 * Join the [Confluent google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
-# How it works
----
-KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
-
-You can use KSQL in stand-alone mode and/or in client-server mode.
-
-In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
-
-![alt text](https://user-images.githubusercontent.com/2977624/29090610-f4b11096-7c34-11e7-8a63-85c9ead22bc3.png)
-
-In client-server mode, a pool of KSQL server(s) can be running on remote machines, VMs, or containers and the CLI connects to them over HTTP.
-
-![alt text](https://user-images.githubusercontent.com/2977624/29090617-fab5e930-7c34-11e7-9eee-0554192854d5.png)
 
 # Frequently Asked Questions
 ---

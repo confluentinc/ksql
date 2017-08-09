@@ -10,6 +10,7 @@ import com.github.rvesse.airline.annotations.restrictions.Port;
 import com.github.rvesse.airline.annotations.restrictions.PortType;
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
@@ -91,16 +92,21 @@ public class Local extends AbstractCliCommands {
       throw new RuntimeException(exception);
     }
 
-    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getServerAddress(portNumber));
+    // Have to override listeners config to make sure it aligns with port number for client
+    serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(portNumber));
+    KsqlRestConfig restServerConfig = new KsqlRestConfig(serverProperties);
+    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
+    restServer.start();
+
+    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getLocalServerAddress(portNumber));
     Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
 
     return new LocalCli(
-        serverProperties,
-        portNumber,
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
         restClient,
-        terminal
+        terminal,
+        restServer
     );
   }
 

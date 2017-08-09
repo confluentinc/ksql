@@ -1,6 +1,7 @@
 package io.confluent.ksql.datagen;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,7 +57,7 @@ public class SessionManager {
     public String recycleOldestExpired() {
         Map.Entry<String, SessionObject> oldest = null;
         for (Map.Entry<String, SessionObject> entry : expiredSessions.entrySet()) {
-            if (oldest == null || (entry.getValue().created > oldest.getValue().created)) {
+            if (oldest == null || (entry.getValue().created < oldest.getValue().created)) {
                 oldest = entry;
             }
         }
@@ -124,6 +125,11 @@ public class SessionManager {
 
         public boolean isExpired() {
             return (System.currentTimeMillis() - created)/1000 > sessionDurationSecs;
+        }
+
+        @Override
+        public String toString() {
+            return "Session:" + new Date(created).toString();
         }
     }
 

@@ -87,6 +87,26 @@ public class SessionManagerTest {
 
 
 
+    @Test
+    public void isReturningOldestExpiredSession() throws InterruptedException {
+
+        SessionManager sm = new SessionManager();
+        sm.setMaxSessionDurationSeconds(1);
+        sm.newSession("1");
+        Thread.sleep(200);
+        sm.newSession("2");
+        Thread.sleep(2500);
+
+        sm.isActiveAndExpire("1");
+        sm.isActiveAndExpire("2");
+
+
+        assertEquals("1", sm.recycleOldestExpired());
+
+    }
+
+
+
 
     @Test
     public void isActiveThenAddSession() throws InterruptedException {

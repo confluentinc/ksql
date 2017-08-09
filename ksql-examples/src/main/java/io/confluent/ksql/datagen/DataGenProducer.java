@@ -115,12 +115,12 @@ public abstract class DataGenProducer {
    * @param currentValue
    * @return
    */
-  Set<String> accummulatedSessionTokens = new HashSet<String>();
+  Set<String> allTokens = new HashSet<String>();
 
   private String handleSessionisationOfValue(SessionManager sessionManager, String currentValue) {
 
     // superset of all values
-    accummulatedSessionTokens.add(currentValue);
+    allTokens.add(currentValue);
 
     /**
      * handle known sessions
@@ -151,18 +151,24 @@ public abstract class DataGenProducer {
     /**
      * Use accummulated SessionTokens-tokens, or recycle old tokens or blow-up
      */
-    String value = getRandomToken(accummulatedSessionTokens);
-    while (value != null && sessionManager.isActive(value) || sessionManager.isExpired(value)) {
-      value = getRandomToken(accummulatedSessionTokens);
+    String value = null;
+    for (String token : allTokens) {
+      if (value == null) {
+        if (!sessionManager.isActive(token) && !sessionManager.isExpired(token)) {
+          value = token;
+        }
+      }
     }
 
     if (value != null) {
+//      System.out.println("1-New Session:" + value + " Sessions: " + sessionManager.getActiveSessionCount());
       sessionManager.newSession(value);
     } else {
       value = sessionManager.recycleOldestExpired();
       if (value == null) {
           new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
         }
+//        System.out.println("2-New [Recycle] Session:" + value + " Tokens:" + allTokens.size());
         sessionManager.newSession(value);
         return value;
     }

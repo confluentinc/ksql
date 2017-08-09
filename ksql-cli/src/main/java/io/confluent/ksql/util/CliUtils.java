@@ -7,6 +7,7 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
@@ -15,6 +16,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
@@ -25,8 +27,12 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CliUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
                                                       registerTopicContext) {
@@ -126,5 +132,16 @@ public class CliUtils {
 
   public static String getServerAddress(int portNumber) {
     return String.format("http://localhost:%d", portNumber);
+  }
+
+  public static boolean createFile(Path path) {
+    try {
+      Files.createDirectories(path.getParent());
+      Files.createFile(path);
+      return true;
+    } catch (Exception e) {
+      LOGGER.error(ExceptionUtil.stackTraceToString(e));
+      return false;
+    }
   }
 }

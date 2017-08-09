@@ -22,8 +22,7 @@ You will need to download and install a Kafka cluster on your local machine.  Th
 
 1. Install Oracle Java JRE or JDK >= 1.7 on your local machine
 
-2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
-We recommend running the latest version of Confluent Platform, but the minimum version compatible with KSQL is <TODO: insert version>.  `Install <http://docs.confluent.io/current/installation.html>`__ Confluent Platform directly onto a Linux server.
+2. Download and install Confluent Platform 3.3.0, which includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect. `Install <http://docs.confluent.io/current/installation.html>`__ Confluent Platform directly onto a Linux server.
 
 3. If you installed Confluent Platform via tar or zip, change into the installation directory. The paths and commands used throughout this quickstart assume that your are in this installation directory:
 
@@ -53,11 +52,11 @@ Start KSQL
 
 1. Clone the Confluent KSQL repository:
 
-<TODO: update when KSQL-200 is resolved>
+.. sourcecode:: bash
+
+   $ git clone https://github.com/confluentinc/ksql
 
 2. Change into the KSQL directory:
-
-<TODO: update when KSQL-200 is resolved>
 
 .. sourcecode:: bash
 
@@ -69,7 +68,7 @@ Start KSQL
 
    $ mvn clean install
 
-4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally. <TODO: update when KSQL-254 is resolved>
+4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally.
 
 .. sourcecode:: bash
 
@@ -77,15 +76,7 @@ Start KSQL
    ...
    ksql>
 
-5. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
-For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
-
-.. sourcecode:: bash
-
-   localhost$ cat /app2/cluster.properties
-   auto.offset.reset=earliest
-
-6. Refer to the steps below to produce some topic data to the Kafka cluster.
+5. Refer to the steps below to generate data to the Kafka cluster.
 
 
 

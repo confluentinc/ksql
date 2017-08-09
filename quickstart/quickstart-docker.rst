@@ -22,11 +22,11 @@ As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you
 
 1. Clone the Confluent KSQL repository:
 
-<TODO: update when KSQL-200 is resolved>
+.. sourcecode:: bash
+
+   $ git clone https://github.com/confluentinc/ksql
 
 2. Change into the quickstart directory.
-
-<TODO: update when KSQL-200 is resolved>
 
 .. sourcecode:: bash
 
@@ -46,12 +46,11 @@ The next three steps are optional verification steps to ensure your environment 
 .. sourcecode:: bash
 
    $ docker-compose ps
-   <TODO: update when KSQL-185 is resolved>
 
             Name                        Command               State                           Ports                          
    -------------------------------------------------------------------------------------------------------------------------
    quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-   quickstart_ksql-cli_1                 bash -c echo Waiting for K ...   Up      7070/tcp                                               
+   quickstart_ksql-cli_1                 perl -e while(1){ sleep 99 ...   Up                                                             
    quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
    quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
    quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
@@ -74,34 +73,28 @@ The next three steps are optional verification steps to ensure your environment 
 .. sourcecode:: bash
 
    $ docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
-   1512423359573	1512423359573,User_81,Page_22
-   1487894860785	1487894860785,User_44,Page_61
-   1492825930409	1492825930409,User_79,Page_52
+   1491040409254	1491040409254,User_5,Page_70
+   1488611895904	1488611895904,User_8,Page_76
+   1504052725192	1504052725192,User_8,Page_92
    ...
 
    $ docker-compose exec zookeeper kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
-   User_44	{"registertime":1516454306672,"gender":"MALE","regionid":"Region_9","userid":"User_44"}
-   User_31	{"registertime":1501062988015,"gender":"OTHER","regionid":"Region_9","userid":"User_31"}
-   User_31	{"registertime":1492682761137,"gender":"FEMALE","regionid":"Region_1","userid":"User_31"}
+   User_2	{"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
+   User_6	{"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}
+   User_8	{"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
    ...
 
 
 Start KSQL
 ----------
 
-1. From the host machine, connect to the container and call KSQL in one command: <TODO: update when KSQL-185, KSQL-254 is resolved>
+1. From the host machine, start KSQL on the container.
 
 .. sourcecode:: bash
 
-   $ docker-compose exec ksql-cli java -jar /app2/ksql-cli-1.0-SNAPSHOT-standalone.jar local --bootstrap-server kafka:29092
-
-2. (Optional) You can use the argument ``--properties-file`` to specify a file to override any Kafka properties when starting KSQL.
-For example, if you want to set ``auto.offset.reset=earliest``, you can override these settings as follows. NOTE: set ``auto.offset.reset=earliest`` if you want the STREAM or TABLE to process data already in the Kafka topic instead of just new data. Here is a sample properties file.
-
-   .. sourcecode:: bash
-
-   container$ cat /app2/cluster.properties
-   auto.offset.reset=earliest
+   $ docker-compose exec ksql-cli java -jar /usr/share/confluent/ksql-cli-1.0-SNAPSHOT-standalone.jar local --bootstrap-server kafka:29092
+   ...
+   ksql>
 
 3. Return to the `main KSQL quickstart <quickstart.rst#create-a-stream-and-table>`__ to start querying the data in the Kafka cluster.
 

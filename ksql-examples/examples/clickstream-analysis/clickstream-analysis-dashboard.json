@@ -1,7 +1,8 @@
 {
+  "dashboard": {
   "__inputs": [
     {
-      "name": "DS_ERRORS_PER_MIN_ALERT_TS",
+      "name": "errors_per_min_alert_ts",
       "label": "errors_per_min_alert_ts",
       "description": "",
       "type": "datasource",
@@ -9,7 +10,7 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_ENRICHED_ERROR_CODES_TS",
+      "name": "enriched_error_codes_ts",
       "label": "enriched_error_codes_ts",
       "description": "",
       "type": "datasource",
@@ -17,7 +18,7 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_CLICK_USER_SESSIONS_TS",
+      "name": "click_user_sessions_ts",
       "label": "click_user_sessions_ts",
       "description": "",
       "type": "datasource",
@@ -25,7 +26,7 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_EVENTS_PER_MIN_TS",
+      "name": "events_per_min_ts",
       "label": "events_per_min_ts",
       "description": "",
       "type": "datasource",
@@ -33,7 +34,7 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_EVENTS_PER_MIN_MAX_AVG_TS",
+      "name": "events_per_min_max_avg_ts",
       "label": "events_per_min_max_avg_ts",
       "description": "",
       "type": "datasource",
@@ -41,7 +42,7 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_PAGES_PER_MIN_TS",
+      "name": "pages_per_min_ts",
       "label": "pages_per_min_ts",
       "description": "",
       "type": "datasource",
@@ -95,7 +96,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_ERRORS_PER_MIN_ALERT_TS}",
+          "datasource": "errors_per_min_alert_ts",
           "fill": 1,
           "id": 7,
           "legend": {
@@ -214,7 +215,7 @@
               "value": "DEFINITION"
             }
           ],
-          "datasource": "${DS_ENRICHED_ERROR_CODES_TS}",
+          "datasource": "enriched_error_codes_ts",
           "fontSize": "100%",
           "id": 6,
           "interval": ">30s",
@@ -361,7 +362,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_CLICK_USER_SESSIONS_TS}",
+          "datasource": "click_user_sessions_ts",
           "fill": 1,
           "id": 8,
           "legend": {
@@ -481,7 +482,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_EVENTS_PER_MIN_TS}",
+          "datasource": "events_per_min_ts",
           "fill": 1,
           "id": 2,
           "legend": {
@@ -576,7 +577,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_EVENTS_PER_MIN_MAX_AVG_TS}",
+          "datasource": "events_per_min_max_avg_ts",
           "fill": 1,
           "id": 1,
           "legend": {
@@ -738,7 +739,7 @@
           "bars": true,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_ENRICHED_ERROR_CODES_TS}",
+          "datasource": "enriched_error_codes_ts",
           "fill": 1,
           "id": 5,
           "legend": {
@@ -844,7 +845,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_PAGES_PER_MIN_TS}",
+          "datasource": "pages_per_min_ts",
           "fill": 1,
           "id": 3,
           "legend": {
@@ -982,4 +983,6 @@
   "timezone": "",
   "title": "Click Stream Analysis",
   "version": 26
+},
+  "overwrite": false
 }

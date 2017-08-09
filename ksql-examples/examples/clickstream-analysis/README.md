@@ -125,8 +125,13 @@ ksql> select * from PAGES_PER_MIN;
 ksql> 
 ```
 7. 'curl' the a dynamic template into Elastic so it can pick up EVENT_TS fields as the timestamp
+```
+ksql user$ cd ksql-examples/examples/clickstream-analysis/
+user$ ./elastic-dynamic-templates.sh 
+{<<JSON RESPONSE>>} 
+user$ 
+```
 
-[TODO]
 
 8. 'curl' the  'Connect' so that it pipes data into Elastic from the TABLE topics
 ```
@@ -146,14 +151,14 @@ user$
 
 10. Load the dashboard into Grafana
 ```
-Navigate to: http://localhost:3000/
-LHS => Dashboard => Import  => Upload .json file [choose ksql/ksql-examples/examples/clickstream-analysis/clickstream-analysis-dashboard.json ]
+user$ ./clickstream-analysis-dashboard.sh
+{"slug":"click-stream-analysis","status":"success","version":5}
+user$ 
 ```
 
 11. View the ClickStream Dashboard
 ```
-Load [Click Stream Analysis]
-
+Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 ```
 
 Interesting things to try:

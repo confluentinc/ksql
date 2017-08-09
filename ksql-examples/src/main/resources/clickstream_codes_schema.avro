@@ -19,6 +19,10 @@
         "definition": "Successful"
       },
       {
+        "code": 300,
+        "definition": "Redirect"
+      },
+      {
         "code": 404,
         "definition": "Page not found"
       },

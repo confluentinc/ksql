@@ -5,6 +5,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.rest.RestConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -61,19 +62,6 @@ public class KsqlRestConfig extends RestConfig {
           "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
-  private static final String
-      APPLICATION_ID_CONFIG = StreamsConfig.APPLICATION_ID_CONFIG;
-  private static final ConfigDef.Type
-      APPLICATION_ID_TYPE = ConfigDef.Type.STRING;
-  private static final String
-      APPLICATION_ID_DEFAULT = "";
-  private static final ConfigDef.Importance
-      APPLICATION_ID_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final String
-      APPLICATION_ID_DOC =
-          "Ugly hack to be able to access the application ID property for the StreamsConfig class "
-              + "via getString()";
-
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -95,12 +83,6 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
-    ).define(
-        APPLICATION_ID_CONFIG,
-        APPLICATION_ID_TYPE,
-        APPLICATION_ID_DEFAULT,
-        APPLICATION_ID_IMPORTANCE,
-        APPLICATION_ID_DOC
     );
   }
 
@@ -134,7 +116,7 @@ public class KsqlRestConfig extends RestConfig {
   public String getCommandTopic() {
     return String.format(
         "%s_%s",
-        getString(APPLICATION_ID_CONFIG),
+        KsqlConfig.KSQL_CLUSTER_ID_DEFAULT,
         getString(COMMAND_TOPIC_SUFFIX_CONFIG)
     );
   }

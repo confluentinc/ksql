@@ -27,9 +27,55 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.sink.window.change.log.additional.retention.default";
 
 
-  public static final String KSQL_PERSISTENT_QUERY_NAME_PREFIX = "ksql_query_";
-  public static final String KSQL_TRANSIENT_QUERY_NAME_PREFIX = "ksql_transient_";
-  public static final String KSQL_TABLE_STATESTORE_NAME_SUFFIX = "_statestore";
+  public static final String
+      KSQL_CLUSTER_ID_CONFIG = "ksql.cluster.id";
+  public static final ConfigDef.Type
+      KSQL_CLUSTER_ID_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      KSQL_CLUSTER_ID_DEFAULT = "ksql_";
+  public static final ConfigDef.Importance
+      KSQL_CLUSTER_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  public static final String
+      KSQL_CLUSTER_ID_DOC =
+      "Indicates the ID of the ksql cluster. It will be used as prefix for all KSQL queires in "
+      + "this cluster.";
+
+  public static final String
+      KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
+  public static final ConfigDef.Type
+      KSQL_PERSISTENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT = "query_";
+  public static final ConfigDef.Importance
+      KSQL_PERSISTENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  public static final String
+      KSQL_PERSISTENT_QUERY_NAME_PREFIX_DOC =
+      "Second part of the prefix for persitent queries.";
+
+  public static final String
+      KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
+  public static final ConfigDef.Type
+      KSQL_TRANSIENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
+  public static final ConfigDef.Importance
+      KSQL_TRANSIENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  public static final String
+      KSQL_TRANSIENT_QUERY_NAME_PREFIX_DOC =
+      "Second part of the prefix for transient queries.";
+
+
+  public static final String
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
+  public static final ConfigDef.Type
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_TYPE = ConfigDef.Type.STRING;
+  public static final String
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "transient_";
+  public static final ConfigDef.Importance
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  public static final String
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DOC =
+      "Suffix for state store names in Tables.";
 
   public int defaultSinkNumberOfPartitions = 10;
   public short defaultSinkNumberOfReplications = 1;
@@ -43,13 +89,18 @@ public class KsqlConfig extends AbstractConfig {
 
   Map<String, Object> ksqlConfigProps;
 
-
   private static final ConfigDef CONFIG_DEF = new ConfigDef(StreamsConfig.configDef());
 
   public KsqlConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
 
     ksqlConfigProps = new HashMap<>();
+    ksqlConfigProps.put(KSQL_CLUSTER_ID_CONFIG, KSQL_CLUSTER_ID_DEFAULT);
+    ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
+    ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
+    ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
+
+
     ksqlConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
     ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
     ksqlConfigProps.put(

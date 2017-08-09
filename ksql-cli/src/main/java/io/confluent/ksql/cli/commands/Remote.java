@@ -9,11 +9,15 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+
+import org.apache.kafka.streams.StreamsConfig;
+
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.RemoteCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
+import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,6 +67,7 @@ public class Remote extends AbstractCliCommands {
 
   private Properties getStandaloneProperties() throws IOException {
     Properties properties = new Properties();
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
     addFileProperties(properties);
     return properties;
   }
@@ -70,6 +75,13 @@ public class Remote extends AbstractCliCommands {
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
       properties.load(new FileInputStream(propertiesFile));
+      if (properties.containsKey(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)) {
+        properties
+            .put(StreamsConfig.APPLICATION_ID_CONFIG,
+                 properties.getProperty(KsqlConfig.KSQL_CLUSTER_ID_CONFIG));
+      } else {
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
+      }
     }
   }
 }

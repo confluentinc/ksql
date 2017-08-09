@@ -62,11 +62,13 @@ public class KafkaTopicsList extends KsqlEntity {
 
   public static KafkaTopicsList build(String statementText,
                                       Collection<KsqlTopic> ksqlTopics,
-                                      Map<String, TopicDescription> kafkaTopicDescriptions) {
+                                      Map<String, TopicDescription> kafkaTopicDescriptions,
+                                      KsqlConfig ksqlConfig) {
     Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
 
     List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
-    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(kafkaTopicDescriptions));
+    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(kafkaTopicDescriptions,
+                                                                    ksqlConfig));
     for (TopicDescription desp: kafkaTopicDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
@@ -109,11 +111,19 @@ public class KafkaTopicsList extends KsqlEntity {
   }
 
   private static Map<String, TopicDescription> filterKsqlInternalTopics(
-      Map<String, TopicDescription> kafkaTopicDescriptions) {
+      Map<String, TopicDescription> kafkaTopicDescriptions, KsqlConfig ksqlConfig) {
     Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
+    String clusterId = ksqlConfig.get(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)
+        .toString();
+    String persistent_query_prefix = ksqlConfig.get(KsqlConfig
+                                                      .KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
+        .toString();
+    String transient_query_prefix = ksqlConfig.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)
+        .toString();
+
     for (String kafkaTopicName: kafkaTopicDescriptions.keySet()) {
-      if (!kafkaTopicName.startsWith(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX) &&
-          !kafkaTopicName.startsWith(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX)) {
+      if (!kafkaTopicName.startsWith(clusterId + persistent_query_prefix) &&
+          !kafkaTopicName.startsWith(clusterId + transient_query_prefix)) {
         filteredKafkaTopics.put(kafkaTopicName.toLowerCase(), kafkaTopicDescriptions.get(kafkaTopicName));
       }
     }

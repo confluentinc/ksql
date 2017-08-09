@@ -4,6 +4,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import io.confluent.ksql.util.CliUtils;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -12,11 +13,16 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JLineReader.class);
 
   private static final String DEFAULT_PROMPT = "ksql> ";
 
@@ -54,7 +60,14 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
-    this.lineReader.setVariable(LineReader.HISTORY_FILE, Paths.get( System.getProperty("history-file",  System.getProperty("user.home") + "/.ksql-history")));
+    Path historyFilePath = Paths.get(System.getProperty("history-file",  System.getProperty("user.home") + "/.ksql-history")).toAbsolutePath();
+    if (CliUtils.createFile(historyFilePath)) {
+      this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
+      LOGGER.info("Command history saved at: " + historyFilePath);
+    } else {
+      terminal.writer().println(String.format("WARNING: Unable to create command history file '%s', command history will not be saved.", historyFilePath));
+    }
+
     this.lineReader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
     this.history = new DefaultHistory(this.lineReader);
 

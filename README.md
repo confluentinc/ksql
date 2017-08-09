@@ -108,7 +108,7 @@ _Support for AVRO is expected soon._
 
 **Is KSQL fully compliant to ANSI SQL?**
 
-KSQL is a dialect inspired by ANSI SQL. It has several differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
+KSQL is a dialect inspired by ANSI SQL. It has some differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
 
 # Contributing to KSQL
 ---

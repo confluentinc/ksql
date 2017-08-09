@@ -28,17 +28,17 @@ public class KsqlConfig extends AbstractConfig {
 
 
   public static final String
-      KSQL_CLUSTER_ID_CONFIG = "ksql.cluster.id";
+      KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
   public static final ConfigDef.Type
-      KSQL_CLUSTER_ID_TYPE = ConfigDef.Type.STRING;
+      KSQL_SERVICE_ID_TYPE = ConfigDef.Type.STRING;
   public static final String
-      KSQL_CLUSTER_ID_DEFAULT = "ksql_";
+      KSQL_SERVICE_ID_DEFAULT = "ksql_";
   public static final ConfigDef.Importance
-      KSQL_CLUSTER_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+      KSQL_SERVICE_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   public static final String
-      KSQL_CLUSTER_ID_DOC =
-      "Indicates the ID of the ksql cluster. It will be used as prefix for all KSQL queires in "
-      + "this cluster.";
+      KSQL_SERVICE_ID_DOC =
+      "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queires in "
+      + "this service.";
 
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
@@ -95,7 +95,7 @@ public class KsqlConfig extends AbstractConfig {
     super(CONFIG_DEF, props);
 
     ksqlConfigProps = new HashMap<>();
-    ksqlConfigProps.put(KSQL_CLUSTER_ID_CONFIG, KSQL_CLUSTER_ID_DEFAULT);
+    ksqlConfigProps.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
     ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);

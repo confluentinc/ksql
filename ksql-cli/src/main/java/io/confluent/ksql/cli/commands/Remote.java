@@ -67,7 +67,7 @@ public class Remote extends AbstractCliCommands {
 
   private Properties getStandaloneProperties() throws IOException {
     Properties properties = new Properties();
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     addFileProperties(properties);
     return properties;
   }
@@ -75,12 +75,12 @@ public class Remote extends AbstractCliCommands {
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
       properties.load(new FileInputStream(propertiesFile));
-      if (properties.containsKey(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)) {
+      if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,
-                 properties.getProperty(KsqlConfig.KSQL_CLUSTER_ID_CONFIG));
+                 properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
       } else {
-        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
       }
     }
   }

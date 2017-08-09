@@ -7,7 +7,6 @@ package io.confluent.ksql.rest.server;
 import io.confluent.common.config.ConfigDef;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.rest.RestConfig;
-import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;
 
@@ -116,7 +115,7 @@ public class KsqlRestConfig extends RestConfig {
   public String getCommandTopic() {
     return String.format(
         "%s_%s",
-        KsqlConfig.KSQL_CLUSTER_ID_DEFAULT,
+        KsqlConfig.KSQL_SERVICE_ID_DEFAULT,
         getString(COMMAND_TOPIC_SUFFIX_CONFIG)
     );
   }

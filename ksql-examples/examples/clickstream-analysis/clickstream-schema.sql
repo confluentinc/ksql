@@ -42,7 +42,7 @@ create table pages_per_min as select userid, count(*) as pages from clickstream 
 DROP TABLE pages_per_min_ts;
 CREATE TABLE pages_per_min_ts as select rowTime as event_ts, * from pages_per_min;
 
- -- 4. URL STATUS CODES
+ -- 4. URL STATUS CODES (Join AND Alert)
  
 -- Use 'HAVING' Filter to show ERROR codes > 400 where count > 5
 DROP TABLE ERRORS_PER_MIN_ALERT;
@@ -62,6 +62,13 @@ CREATE TABLE ERRORS_PER_MIN_TS as select rowTime as event_ts, * from ERRORS_PER_
 -- VIEW - Enrich Codes with errors with Join to Status-Code definition
 DROP STREAM ENRICHED_ERROR_CODES_TS;
 CREATE STREAM ENRICHED_ERROR_CODES_TS AS SELECT clickstream.rowTime as event_ts, status, definition FROM clickstream LEFT JOIN clickstream_codes ON clickstream.status = clickstream_codes.code;
+
+
+-- 5 Sessionisation using IP addresses - 300 seconds of inactivity expires the session
+DROP TABLE CLICK_USER_SESSIONS;
+DROP TABLE CLICK_USER_SESSIONS_TS;
+create TABLE CLICK_USER_SESSIONS as SELECT ip, count(*) as events FROM clickstream window SESSION (300 second) GROUP BY ip;
+create TABLE CLICK_USER_SESSIONS_TS as SELECT rowTime as event_ts, * from CLICK_USER_SESSIONS;
 
 
 

@@ -42,7 +42,7 @@ statement
     | DESCRIBE (qualifiedName | TOPIC qualifiedName)                        #showColumns
     | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES                                                 #listQueries
-    | TERMINATE INTEGER_VALUE                                               #terminateQuery
+    | TERMINATE QUERY? INTEGER_VALUE                                               #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
     | LOAD expression                                                       #loadProperties
@@ -584,6 +584,7 @@ LIST: 'LIST';
 TABLES: 'TABLES';
 TOPICS: 'TOPICS';
 REGISTERED: 'REGISTERED';
+QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';
 LOAD: 'LOAD';

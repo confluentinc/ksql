@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -232,7 +231,8 @@ public class KsqlResource {
       commandStatus = statementExecutor.registerQueuedStatement(commandId)
           .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
     } catch (TimeoutException exception) {
-      LOGGER.warn("Timeout to get commandStatus, waited {} milliseconds.", distributedCommandResponseTimeout);
+      LOGGER.warn("Timeout to get commandStatus, waited {} milliseconds.",
+                  distributedCommandResponseTimeout);
       commandStatus = statementExecutor.getStatus(commandId).get();
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);
@@ -240,7 +240,9 @@ public class KsqlResource {
 
   private KafkaTopicsList listTopics(String statementText) {
     KafkaTopicClient client = ksqlEngine.getKafkaTopicClient();
-    return KafkaTopicsList.build(statementText, getKsqlTopics(), client.describeTopics(client.listTopicNames()));
+    return KafkaTopicsList.build(statementText, getKsqlTopics(),
+                                 client.describeTopics(client.listTopicNames()),
+                                 ksqlEngine.getKsqlConfig());
   }
 
   private Collection<KsqlTopic> getKsqlTopics() {

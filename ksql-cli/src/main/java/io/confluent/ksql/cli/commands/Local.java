@@ -14,6 +14,8 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
+import io.confluent.ksql.util.KsqlConfig;
+
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
@@ -31,8 +33,8 @@ public class Local extends AbstractCliCommands {
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
 
-  private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
-  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
+  private static final String CLUSTER_ID_OPTION_NAME = "--cluster-id";
+  private static final String CLUSTER_ID_OPTION_DEFAULT = KsqlConfig.KSQL_CLUSTER_ID_DEFAULT;
 
   private static final String COMMAND_TOPIC_SUFFIX_OPTION_NAME = "--command-topic-suffix";
   private static final String COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT = "commands";
@@ -55,13 +57,13 @@ public class Local extends AbstractCliCommands {
   String bootstrapServer;
 
   @Option(
-      name = APPLICATION_ID_OPTION_NAME,
+      name = CLUSTER_ID_OPTION_NAME,
       description = "The application ID to use for the created Kafka Streams instance(s) "
-          + "(defaults to '"
-          + APPLICATION_ID_OPTION_DEFAULT
-          + "')"
+                    + "(defaults to '"
+                    + CLUSTER_ID_OPTION_DEFAULT
+                    + "')"
   )
-  String applicationId;
+  String clusterId;
 
   @Option(
       name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
@@ -112,16 +114,24 @@ public class Local extends AbstractCliCommands {
 
   private void addDefaultProperties(Properties properties) {
     properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
+    properties.put(KsqlConfig.KSQL_CLUSTER_ID_CONFIG, CLUSTER_ID_OPTION_DEFAULT);
     properties.put(
         KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG,
         COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
     );
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
   }
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
       properties.load(new FileInputStream(propertiesFile));
+      if (properties.containsKey(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)) {
+        properties
+            .put(StreamsConfig.APPLICATION_ID_CONFIG,
+                 properties.getProperty(KsqlConfig.KSQL_CLUSTER_ID_CONFIG));
+      } else {
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
+      }
     }
   }
 
@@ -129,8 +139,9 @@ public class Local extends AbstractCliCommands {
     if (bootstrapServer != null) {
       properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
     }
-    if (applicationId != null) {
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    if (clusterId != null) {
+      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, clusterId);
+      properties.put(KsqlConfig.KSQL_CLUSTER_ID_CONFIG, clusterId);
     }
     if (commandTopicSuffix != null) {
       properties.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, commandTopicSuffix);

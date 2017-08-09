@@ -359,8 +359,8 @@ public class KsqlEngine implements Closeable {
   @Override
   public void close() throws IOException {
     for (QueryMetadata queryMetadata : liveQueries) {
-      queryMetadata.getKafkaStreams().cleanUp();
       queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().cleanUp();
     }
     kafkaTopicClient.close();
   }

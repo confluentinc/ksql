@@ -12,6 +12,8 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.StandaloneExecutor;
+import io.confluent.ksql.util.KsqlConfig;
+
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
@@ -73,12 +75,19 @@ public class Standalone extends AbstractCliCommands {
 
   private void addDefaultProperties(Properties properties) {
     properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
   }
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
       properties.load(new FileInputStream(propertiesFile));
+      if (properties.containsKey(KsqlConfig.KSQL_CLUSTER_ID_CONFIG)) {
+        properties
+            .put(StreamsConfig.APPLICATION_ID_CONFIG,
+                 properties.getProperty(KsqlConfig.KSQL_CLUSTER_ID_CONFIG));
+      } else {
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_CLUSTER_ID_DEFAULT);
+      }
     }
   }
 

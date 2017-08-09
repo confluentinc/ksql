@@ -220,9 +220,14 @@ public class QueryEngine {
           schemaKStream.getClass().getCanonicalName()
       ));
     }
-
+    String clusterId = ksqlEngine.getKsqlConfig()
+        .get(KsqlConfig.KSQL_CLUSTER_ID_CONFIG).toString();
+    String persistance_query_prefix = ksqlEngine.getKsqlConfig()
+        .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
+    String transient_query_prefix = ksqlEngine.getKsqlConfig()
+        .get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
     if (isBareQuery) {
-      String applicationId = getBareQueryApplicationId();
+      String applicationId = getBareQueryApplicationId(clusterId, transient_query_prefix);
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -247,7 +252,9 @@ public class QueryEngine {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
       long queryId = getNextQueryId();
-      String applicationId = KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX + queryId;
+
+      String applicationId =  clusterId + persistance_query_prefix +
+                             queryId;
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -279,7 +286,7 @@ public class QueryEngine {
                           kafkaTopicOutputNode.getTimestampField(),
                           kafkaTopicOutputNode.getKsqlTopic(),
                           kafkaTopicOutputNode.getId().toString() +
-                          KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX,
+                          ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
                           schemaKTable.isWindowed());
       } else {
         sinkDataSource =
@@ -374,9 +381,9 @@ public class QueryEngine {
   }
 
   // TODO: This should probably be changed
-  private String getBareQueryApplicationId() {
-    return KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX + Math.abs(ThreadLocalRandom.current()
-                                                                     .nextLong());
+  private String getBareQueryApplicationId(String clusterId, String transientQueryPrefix) {
+    return  clusterId + transientQueryPrefix +
+           Math.abs(ThreadLocalRandom.current().nextLong());
   }
 
   private String addTimeSuffix(String original) {

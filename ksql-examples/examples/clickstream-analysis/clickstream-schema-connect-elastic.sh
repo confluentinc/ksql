@@ -2,6 +2,14 @@
 
 echo "Configuring Confluent-Connect to send Data to Elastic"
 
+# list connectors
+#curl -X "GET" "http://localhost:8083/connectors"
+# delete a connector
+#curl -X "DELETE" "http://localhost:8083/connectors/es_sink_PER_USER_KBYTES_TS5"
+# Delete an Elastic Index
+# curl -X "DELETE" "http://localhost:8083/connectors/es_sink_PER_USER_KBYTES_TS"
+
+
 curl -X "POST" "http://localhost:8083/connectors/" \
      -H "Content-Type: application/json" \
      -d $'{
@@ -132,3 +140,21 @@ curl -X "POST" "http://localhost:8083/connectors/" \
   }'
 
 
+# -- Demo Blog Article tracking user-session-kbytes
+#curl -X "POST" "http://localhost:8083/connectors/" \
+#     -H "Content-Type: application/json" \
+#     -d $'{
+#  "name": "es_sink_PER_USER_KBYTES_TS",
+#  "config": {
+#    "schema.ignore": "true",
+#    "topics": "PER_USER_KBYTES_TS",
+#    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+#    "value.converter.schemas.enable": false,
+#    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+#    "key.ignore": "true",
+#    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+#    "type.name": "type.name=kafkaconnect",
+#    "topic.index.map": "PER_USER_KBYTES_TS:per_user_kbytes_ts",
+#    "connection.url": "http://localhost:9200"
+#  }
+#}'

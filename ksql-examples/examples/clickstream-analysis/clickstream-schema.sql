@@ -72,11 +72,17 @@ create TABLE CLICK_USER_SESSIONS as SELECT ip, count(*) as events FROM clickstre
 create TABLE CLICK_USER_SESSIONS_TS as SELECT rowTime as event_ts, * from CLICK_USER_SESSIONS;
 
 
-DROP TABLE PER_USER_KBYTES;
-create TABLE PER_USER_KBYTES as SELECT ip, sum(bytes)/1024 as events FROM clickstream window SESSION (300 second) GROUP BY ip;
+-- Demo Blog Article tracking user-session-kbytes
 
-DROP TABLE PER_USER_KBYTES_ALERT;
-create TABLE PER_USER_KBYTES_ALERT as SELECT ip, sum(bytes)/1024 as events FROM clickstream window SESSION (300 second) GROUP BY ip HAVING sum(bytes)/1024 > 5;
+--DROP TABLE PER_USER_KBYTES;
+--create TABLE PER_USER_KBYTES as SELECT ip, sum(bytes)/1024 as kbytes FROM clickstream window SESSION (300 second) GROUP BY ip;
+
+--DROP TABLE PER_USER_KBYTES_TS;
+--CREATE TABLE PER_USER_KBYTES_TS as select rowTime as event_ts, kbytes, ip from PER_USER_KBYTES;
+
+--DROP TABLE PER_USER_KBYTES_ALERT;
+--create TABLE PER_USER_KBYTES_ALERT as SELECT ip, sum(bytes)/1024 as kbytes FROM clickstream window SESSION (300 second) GROUP BY ip HAVING sum(bytes)/1024 > 5;
+
 
 
 

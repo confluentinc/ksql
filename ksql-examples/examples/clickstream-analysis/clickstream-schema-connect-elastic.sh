@@ -3,11 +3,11 @@
 echo "Configuring Confluent-Connect to send Data to Elastic"
 
 # list connectors
-#curl -X "GET" "http://localhost:8083/connectors"
+# curl -X "GET" "http://localhost:8083/connectors"
 # delete a connector
-#curl -X "DELETE" "http://localhost:8083/connectors/es_sink_PER_USER_KBYTES_TS5"
-# Delete an Elastic Index
 # curl -X "DELETE" "http://localhost:8083/connectors/es_sink_PER_USER_KBYTES_TS"
+# Delete an Elastic Index
+# curl -X "DELETE" "http://localhost:9200/per_user_kbytes_ts"
 
 
 curl -X "POST" "http://localhost:8083/connectors/" \
@@ -139,6 +139,8 @@ curl -X "POST" "http://localhost:8083/connectors/" \
     }
   }'
 
+
+# View the index-mapping @http://localhost:9200/per_user_kbytes_ts
 
 # -- Demo Blog Article tracking user-session-kbytes
 #curl -X "POST" "http://localhost:8083/connectors/" \

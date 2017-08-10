@@ -2,7 +2,7 @@
 This package provides KSQL example queries along with data generator tools for them.
 After building the project you can run the examples by following these steps:
 
-1. Start Zookeeper and Kafka in local machine with defaut settings
+1. Start ZooKeeper and Kafka in local machine with defaut settings
 
 2. Start the data gen for the users using the following command:
 

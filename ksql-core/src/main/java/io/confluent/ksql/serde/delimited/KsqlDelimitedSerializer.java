@@ -32,7 +32,7 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
         if (i != 0) {
           recordString.append(",");
         }
-        recordString.append(genericRow.columns.get(i).toString());
+        recordString.append(genericRow.getColumns().get(i).toString());
       }
       return recordString.toString().getBytes();
     } catch (Exception e) {

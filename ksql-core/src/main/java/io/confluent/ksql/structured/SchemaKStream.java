@@ -85,9 +85,9 @@ public class SchemaKStream {
               return new KeyValue<>(key, null);
             }
             List columns = new ArrayList();
-            for (int i = 0; i < row.columns.size(); i++) {
+            for (int i = 0; i < row.getColumns().size(); i++) {
               if (!rowkeyIndexes.contains(i)) {
-                columns.add(row.columns.get(i));
+                columns.add(row.getColumns().get(i));
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));

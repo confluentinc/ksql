@@ -73,7 +73,7 @@ public class PhysicalPlanBuilder {
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
 
-  OutputNode planSink = null;
+  private OutputNode planSink = null;
 
   public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
     this.builder = builder;

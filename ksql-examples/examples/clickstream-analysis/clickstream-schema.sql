@@ -78,7 +78,7 @@ create TABLE CLICK_USER_SESSIONS_TS as SELECT rowTime as event_ts, * from CLICK_
 --create TABLE PER_USER_KBYTES as SELECT ip, sum(bytes)/1024 as kbytes FROM clickstream window SESSION (300 second) GROUP BY ip;
 
 --DROP TABLE PER_USER_KBYTES_TS;
---CREATE TABLE PER_USER_KBYTES_TS as select rowTime as event_ts, kbytes, ip from PER_USER_KBYTES;
+--CREATE TABLE PER_USER_KBYTES_TS as select rowTime as event_ts, kbytes, ip from PER_USER_KBYTES WHERE ip IS NOT NULL;
 
 --DROP TABLE PER_USER_KBYTES_ALERT;
 --create TABLE PER_USER_KBYTES_ALERT as SELECT ip, sum(bytes)/1024 as kbytes FROM clickstream window SESSION (300 second) GROUP BY ip HAVING sum(bytes)/1024 > 5;

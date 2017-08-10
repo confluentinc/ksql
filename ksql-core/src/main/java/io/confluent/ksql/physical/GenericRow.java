@@ -9,7 +9,7 @@ import java.util.List;
 
 public class GenericRow {
 
-  public List<Object> columns;
+  private List<Object> columns;
 
   public GenericRow() {
   }

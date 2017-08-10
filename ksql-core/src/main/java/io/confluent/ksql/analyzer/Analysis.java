@@ -18,24 +18,24 @@ import java.util.Optional;
 
 public class Analysis {
 
-  StructuredDataSource into;
-  Map<String, Object> intoProperties = new HashMap<>();
-  String intoFormat = null;
+  private StructuredDataSource into;
+  private Map<String, Object> intoProperties = new HashMap<>();
+  private String intoFormat = null;
   // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
-  String intoAvroSchemaFilePath = null;
-  String intoKafkaTopicName = null;
-  List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
-  JoinNode join;
-  Expression whereExpression = null;
-  List<Expression> selectExpressions = new ArrayList<>();
-  List<String> selectExpressionAlias = new ArrayList<>();
+  private String intoAvroSchemaFilePath = null;
+  private String intoKafkaTopicName = null;
+  private List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
+  private JoinNode join;
+  private Expression whereExpression = null;
+  private List<Expression> selectExpressions = new ArrayList<>();
+  private List<String> selectExpressionAlias = new ArrayList<>();
 
-  List<Expression> groupByExpressions = new ArrayList<>();
-  WindowExpression windowExpression = null;
+  private List<Expression> groupByExpressions = new ArrayList<>();
+  private WindowExpression windowExpression = null;
 
-  Expression havingExpression = null;
+  private Expression havingExpression = null;
 
-  Optional<Integer> limitClause = Optional.empty();
+  private Optional<Integer> limitClause = Optional.empty();
 
 
   public void addSelectItem(final Expression expression, final String alias) {

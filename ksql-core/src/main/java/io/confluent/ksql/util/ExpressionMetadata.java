@@ -10,10 +10,10 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
 
-  final IExpressionEvaluator expressionEvaluator;
-  final int[] indexes;
-  final Kudf[] udfs;
-  final Schema expressionType;
+  private final IExpressionEvaluator expressionEvaluator;
+  private final int[] indexes;
+  private final Kudf[] udfs;
+  private final Schema expressionType;
 
   public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, Kudf[] udfs,
                             Schema expressionType) {

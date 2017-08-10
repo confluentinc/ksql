@@ -59,9 +59,9 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     GenericRecord avroRecord = new GenericData.Record(avroSchema);
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
-        avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.columns.get(i)));
+        avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.getColumns().get(i)));
       } else {
-        avroRecord.put(fields.get(i).name(), genericRow.columns.get(i));
+        avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
       }
 
     }

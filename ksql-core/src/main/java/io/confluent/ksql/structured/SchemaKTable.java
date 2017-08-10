@@ -40,8 +40,8 @@ public class SchemaKTable extends SchemaKStream {
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKTable.class);
 
-  final KTable ktable;
-  final boolean isWindowed;
+  private final KTable ktable;
+  private final boolean isWindowed;
 
   public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
                       final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
@@ -68,9 +68,9 @@ public class SchemaKTable extends SchemaKStream {
                 return new KeyValue<>(key, null);
               }
               List columns = new ArrayList();
-              for (int i = 0; i < row.columns.size(); i++) {
+              for (int i = 0; i < row.getColumns().size(); i++) {
                 if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.columns.get(i));
+                  columns.add(row.getColumns().get(i));
                 }
               }
               return new KeyValue<>(key, new GenericRow(columns));
@@ -85,9 +85,9 @@ public class SchemaKTable extends SchemaKStream {
                 return new KeyValue<>(key, null);
               }
               List columns = new ArrayList();
-              for (int i = 0; i < row.columns.size(); i++) {
+              for (int i = 0; i < row.getColumns().size(); i++) {
                 if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.columns.get(i));
+                  columns.add(row.getColumns().get(i));
                 }
               }
               return new KeyValue<>(key, new GenericRow(columns));

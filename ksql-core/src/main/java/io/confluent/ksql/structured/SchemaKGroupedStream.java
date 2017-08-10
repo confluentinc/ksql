@@ -28,11 +28,11 @@ import java.util.List;
 
 public class SchemaKGroupedStream {
 
-  final Schema schema;
-  final KGroupedStream kgroupedStream;
-  final Field keyField;
-  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  final List<SchemaKStream> sourceSchemaKStreams;
+  private  final Schema schema;
+  private final KGroupedStream kgroupedStream;
+  private final Field keyField;
+  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private final List<SchemaKStream> sourceSchemaKStreams;
 
   public SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
                               final Field keyField,

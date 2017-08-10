@@ -33,8 +33,8 @@ import java.util.List;
 
 public class LogicalPlanner {
 
-  Analysis analysis;
-  AggregateAnalysis aggregateAnalysis;
+  private Analysis analysis;
+  private AggregateAnalysis aggregateAnalysis;
 
   public LogicalPlanner(Analysis analysis, AggregateAnalysis aggregateAnalysis) {
     this.analysis = analysis;

@@ -47,12 +47,12 @@ public class SchemaKStream {
   
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
-  final Schema schema;
-  final KStream kstream;
-  final Field keyField;
-  final List<SchemaKStream> sourceSchemaKStreams;
-  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  final Type type;
+  protected final Schema schema;
+  protected final KStream kstream;
+  protected final Field keyField;
+  protected final List<SchemaKStream> sourceSchemaKStreams;
+  protected final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  protected final Type type;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 

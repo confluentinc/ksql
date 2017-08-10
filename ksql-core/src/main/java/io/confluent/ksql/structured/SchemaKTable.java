@@ -40,8 +40,8 @@ public class SchemaKTable extends SchemaKStream {
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKTable.class);
 
-  final KTable ktable;
-  final boolean isWindowed;
+  private final KTable ktable;
+  private final boolean isWindowed;
 
   public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
                       final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,

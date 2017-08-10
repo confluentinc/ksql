@@ -595,7 +595,7 @@ public class PhysicalPlanBuilder {
     return -1;
   }
 
-  private KStream addTimestampColumn(KStream kstream) {
+  private KStream addTimestampColumn(final KStream kstream) {
     return kstream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
       @Override
       public ValueTransformer<GenericRow, GenericRow> get() {
@@ -629,7 +629,7 @@ public class PhysicalPlanBuilder {
     });
   }
 
-  private int getTimeStampColumnIndex(Schema schema, Field timestampField) {
+  private int getTimeStampColumnIndex(final Schema schema, final Field timestampField) {
     String timestampFieldName = timestampField.name();
     if (timestampFieldName.contains(".")) {
       for (int i = 2; i < schema.fields().size(); i++) {

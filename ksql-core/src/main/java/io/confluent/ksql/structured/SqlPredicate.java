@@ -24,13 +24,13 @@ import java.util.Map;
 
 public class SqlPredicate {
 
-  Expression filterExpression;
-  final Schema schema;
-  IExpressionEvaluator ee;
-  int[] columnIndexes;
-  boolean isWindowedKey;
+  private Expression filterExpression;
+  private final Schema schema;
+  private IExpressionEvaluator ee;
+  private int[] columnIndexes;
+  private boolean isWindowedKey;
 
-  GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
 
   public SqlPredicate(final Expression filterExpression, final Schema schema,
@@ -135,5 +135,25 @@ public class SqlPredicate {
         return false;
       }
     };
+  }
+
+  public Expression getFilterExpression() {
+    return filterExpression;
+  }
+
+  public Schema getSchema() {
+    return schema;
+  }
+
+  public int[] getColumnIndexes() {
+    return columnIndexes;
+  }
+
+  public boolean isWindowedKey() {
+    return isWindowedKey;
+  }
+
+  public GenericRowValueTypeEnforcer getGenericRowValueTypeEnforcer() {
+    return genericRowValueTypeEnforcer;
   }
 }

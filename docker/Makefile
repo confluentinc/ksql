@@ -13,16 +13,12 @@ endif
 
 	cd .. && mvn compile install -DskipTests
 
-	cd ../ksql-examples \
-		&& docker build . \
+	cd ../ksql-examples && docker build . \
 		--build-arg KSQL_VERSION=${KSQL_VERSION} \
 		--build-arg DOCKER_REGISTRY=${DOCKER_REGISTRY} \
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-examples
 
-	cd ../ksql-cli \
-		&& rm -rf bin \
-		&& cp -rf ../bin ./bin \
-		&& docker build . \
+	cd ../ksql-cli && docker build . \
 		--build-arg KSQL_VERSION=${KSQL_VERSION} \
 		--build-arg DOCKER_REGISTRY=${DOCKER_REGISTRY} \
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-cli

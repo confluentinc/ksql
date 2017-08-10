@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Configuring Confluent-Connect to send Data to Elastic"
+
 curl -X "POST" "http://localhost:8083/connectors/" \
      -H "Content-Type: application/json" \
      -d $'{

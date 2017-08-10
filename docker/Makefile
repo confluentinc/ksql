@@ -22,9 +22,3 @@ endif
 		--build-arg KSQL_VERSION=${KSQL_VERSION} \
 		--build-arg DOCKER_REGISTRY=${DOCKER_REGISTRY} \
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-cli
-
-compose:
-	docker-compose up -d
-
-cli:
-	docker-compose exec ksql-cli java -jar /usr/share/confluent/ksql-cli-${KSQL_VERSION}-standalone.jar local --bootstrap-server kafka:29092

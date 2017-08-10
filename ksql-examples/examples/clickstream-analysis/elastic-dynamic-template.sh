@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+echo "Loading Elastic Dynamic Template"
+
 curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: application/json' -d'
 {
   "template": "*",

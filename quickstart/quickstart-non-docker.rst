@@ -68,11 +68,11 @@ Start KSQL
 
    $ mvn clean install
 
-4. Start KSQL by running the compiled ``jar`` file ``ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar``. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally.
+4. Start KSQL. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally.
 
 .. sourcecode:: bash
 
-   $ java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
+   $ ./bin/ksql-cli local
    ...
    ksql>
 

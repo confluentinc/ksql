@@ -13,18 +13,16 @@ endif
 
 	cd .. && mvn compile install -DskipTests
 
-	cd ../ksql-examples && docker build . \
+	cd ../ksql-examples \
+		&& docker build . \
 		--build-arg KSQL_VERSION=${KSQL_VERSION} \
 		--build-arg DOCKER_REGISTRY=${DOCKER_REGISTRY} \
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-examples
 
-	cd ../ksql-cli && docker build . \
+	cd ../ksql-cli \
+		&& rm -rf bin \
+		&& cp -rf ../bin ./bin \
+		&& docker build . \
 		--build-arg KSQL_VERSION=${KSQL_VERSION} \
 		--build-arg DOCKER_REGISTRY=${DOCKER_REGISTRY} \
 		-t ${DOCKER_REGISTRY}confluentinc/cp-ksql-cli
-
-compose:
-	docker-compose up -d
-
-cli:
-	docker-compose exec ksql-cli java -jar /usr/share/confluent/ksql-cli-${KSQL_VERSION}-standalone.jar local --bootstrap-server kafka:29092

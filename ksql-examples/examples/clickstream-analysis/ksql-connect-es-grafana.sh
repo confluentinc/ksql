@@ -16,7 +16,7 @@ TABLE_NAME=`echo $1 | tr '[a-z]' '[A-Z]'`
 echo "GOT:" $TABLE_NAME " And " $table_name
 
 ## Load the _TS dynamic template into ELASTIC
-#. ./elastic-dynamic-template.sh
+./elastic-dynamic-template.sh
 
 # Tell Kafka to send this Table-Topic to Elastic
 echo "Adding Elastic Source\n\n"

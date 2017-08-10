@@ -44,6 +44,12 @@ curl -X "POST" "http://localhost:3000/api/datasources" \
 	     -d $'{"id":4,"orgId":1,"name":"pages_per_min_ts","type":"elasticsearch","typeLogoUrl":"public/app/plugins/datasource/elasticsearch/img/elasticsearch.svg","access":"proxy","url":"http://localhost:9200","password":"","user":"","database":"pages_per_min_ts","basicAuth":false,"isDefault":false,"jsonData":{"timeField":"EVENT_TS"}}'
 
 
+#curl -X "POST" "http://localhost:3000/api/datasources" \
+#	    -H "Content-Type: application/json" \
+#	     --user admin:admin \
+#	     -d $'{"id":4,"orgId":1,"name":"per_user_kbytes_ts","type":"elasticsearch","typeLogoUrl":"public/app/plugins/datasource/elasticsearch/img/elasticsearch.svg","access":"proxy","url":"http://localhost:9200","password":"","user":"","database":"per_user_kbytes_ts","basicAuth":false,"isDefault":false,"jsonData":{"timeField":"EVENT_TS"}}'
+#
+#
 
 
 

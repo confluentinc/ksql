@@ -1,7 +1,5 @@
 KSQL_VERSION ?= 1.0-SNAPSHOT
 
-all: images compose cli
-
 images:
 ifndef DOCKER_REGISTRY
 	@echo "***"

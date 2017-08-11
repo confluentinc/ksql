@@ -5,11 +5,7 @@ set 'cache.max.bytes.buffering'='10000000';
 
 -- 1. SOURCE of ClickStream
 DROP STREAM clickstream;
-<<<<<<< HEAD
-CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
-=======
-CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid varchar, bytes bigint, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
->>>>>>> 1f610bb6d25bf8578dcadcc3f37110f7221ddc1e
+CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
 
 
 -- 2. Derive raw EVENTS_PER_MIN

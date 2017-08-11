@@ -8,6 +8,7 @@ import io.confluent.avro.random.generator.Generator;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -153,6 +154,7 @@ public class DataGen {
       private enum Quickstart {
         CLICKSTREAM_CODES("clickstream_codes_schema.avro", "clickstream", "code"),
         CLICKSTREAM("clickstream_schema.avro", "clickstream", "ip"),
+        CLICKSTREAM_USERS("clickstream_users_schema.avro", "webusers", "user_id"),
         ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
         PAGEVIEWS("pageviews_schema.avro", "pageviews", "viewtime");
@@ -254,8 +256,9 @@ public class DataGen {
               quickstart = Quickstart.valueOf(argValue.toUpperCase());
             } catch (IllegalArgumentException iae) {
               throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of ORDERS, USERS, or PAGEVIEWS "
-                  + "(case-insensitive)",
+                  "Invalid quickstart in '%s'; was expecting one of " 
+                  + Arrays.toString(Quickstart.values()) 
+                  + " (case-insensitive)",
                   argValue
               ));
             }

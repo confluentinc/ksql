@@ -52,14 +52,22 @@
                     ]
                   }
                 }},
+//                {"name": "userid", "type": {
+//                  "type": "string",
+//                  "arg.properties": {
+//                    "options": [
+//                    "-"
+//                  ]
+//                  }}},
                 {"name": "userid", "type": {
-                  "type": "string",
-                  "arg.properties": {
-                    "options": [
-                    "-"
-                  ]
-                  }}},
-
+                    "type": "int",
+                    "arg.properties": {
+                        "range": {
+                            "min": -1,
+                            "max": 20
+                        }
+                    }
+                }},
               {"name": "remote_user", "type": {
                 "type": "string",
                 "arg.properties": {

@@ -1,4 +1,5 @@
-# ![rocket](ksql-rocket.png) KSQL
+![rocket](ksql-rocket.png) 
+# KSQL
 *A Streaming SQL Engine for Apache Kafka™ from Confluent*
 
 ---

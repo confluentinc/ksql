@@ -5,7 +5,7 @@ set 'cache.max.bytes.buffering'='10000000';
 
 -- 1. SOURCE of ClickStream
 DROP STREAM clickstream;
-CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid varchar, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
+CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
 
 
 -- 2. Derive raw EVENTS_PER_MIN
@@ -32,6 +32,10 @@ CREATE TABLE clickstream_codes (code int, definition varchar) with (key='code', 
 -- need to add _TS for ElasticSearch
 DROP TABLE clickstream_codes_ts;
 create table clickstream_codes_ts as select rowTime as event_ts, * from clickstream_codes;
+
+-- 3.5 BUILD users lookup table
+DROP TABLE web_users;
+CREATE TABLE web_users (user_id int, registered_At long, first_name varchar, last_name varchar, city varchar, level varchar) with (key='user_id', kafka_topic = 'webusers_kafka_topic_json', value_format = 'json');
 
 
 -- 4. BUILD PAGE_VIEWS
@@ -64,9 +68,20 @@ DROP STREAM ENRICHED_ERROR_CODES_TS;
 CREATE STREAM ENRICHED_ERROR_CODES_TS AS SELECT clickstream.rowTime as event_ts, status, definition FROM clickstream LEFT JOIN clickstream_codes ON clickstream.status = clickstream_codes.code;
 
 
+-- Clickstream enriched with user account data
+--DROP STREAM customer_clickstream
+--CREATE STREAM customer_clickstream WITH (PARTITIONS=2) as SELECT userid, u.first_name, u.last_name, u.level, time, ip, request, status, agent FROM clickstream c LEFT JOIN web_users u ON c.userid = u.user_id;
 
+-- Find error views by important users
+--DROP STREAM platinum_customers_with_errors
+--create stream platinum_customers_with_errors WITH (PARTITIONS=2) as seLECT * FROM customer_clickstream WHERE status > 400 AND level = 'Platinum';
 
+-- Find error views by important users in one shot
+DROP STREAM platinum_errors;
+CREATE STREAM platinum_errors WITH (PARTITIONS=2) as SELECT userid, u.first_name, u.last_name, u.city, u.level, time, ip, request, status, agent FROM clickstream c LEFT JOIN web_users u ON c.userid = u.user_id WHERE status > 400 AND level = 'Platinum';
 
-
+-- Trend of errors from important users
+DROP TABLE platinum_page_errors_per_5_min;
+CREATE TABLE platinum_errors_per_5_min AS SELECT userid, first_name, last_name, city, count(*) as running_count FROM platinum_errors WINDOW TUMBLING (SIZE 5 MINUTE) WHERE request LIKE '%html%' GROUP BY userid, first_name, last_name, city;
 
 

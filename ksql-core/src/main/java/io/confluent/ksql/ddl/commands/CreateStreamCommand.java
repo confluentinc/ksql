@@ -9,11 +9,13 @@ import java.util.Map;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.util.KafkaTopicClient;
 
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
-  public CreateStreamCommand(CreateStream createStream, Map<String, Object> overriddenProperties) {
-    super(createStream, overriddenProperties);
+  public CreateStreamCommand(CreateStream createStream, Map<String, Object> overriddenProperties,
+                             KafkaTopicClient kafkaTopicClient) {
+    super(createStream, overriddenProperties, kafkaTopicClient);
   }
 
   @Override

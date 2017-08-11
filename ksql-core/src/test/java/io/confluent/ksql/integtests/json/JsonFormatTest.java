@@ -92,6 +92,10 @@ public class JsonFormatTest {
     ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
     metaStore = ksqlEngine.getMetaStore();
     inputData = getInputData();
+    produceMessageData(schemaBuilderMessage.build());
+
+    ksqlEngine.getKafkaTopicClient().createTopic(inputTopic, 1, (short)1);
+    ksqlEngine.getKafkaTopicClient().createTopic(messageLogTopic, 1, (short)1);
 
     String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
@@ -108,7 +112,7 @@ public class JsonFormatTest {
     ksqlEngine.buildMultipleQueries(false, messageStreamStr, Collections.emptyMap());
 
     inputRecordsMetadata = produceInputData(inputData, schemaBuilderOrders.build());
-    produceMessageData(schemaBuilderMessage.build());
+
 
   }
 

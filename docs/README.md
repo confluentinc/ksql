@@ -1,7 +1,5 @@
 # KSQL Documentation
 
-![rocket](ksql-rocket.png)
-
 ## Overview
 
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL an SQL-like commands. KSQL interacts directly with the [Kafka Streams API](http://docs.confluent.io/current/streams/concepts.html), removing the requirement of building a Java app. Common KSQL use cases are:

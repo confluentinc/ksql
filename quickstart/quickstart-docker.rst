@@ -63,7 +63,6 @@ The next three steps are optional verification steps to ensure your environment 
 .. sourcecode:: bash
 
    $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
-   __consumer_offsets
    _confluent-metrics
    _schemas
    pageviews

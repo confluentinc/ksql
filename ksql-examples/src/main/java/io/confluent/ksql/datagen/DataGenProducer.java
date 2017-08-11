@@ -91,7 +91,7 @@ public abstract class DataGenProducer {
 
       GenericRow genericRow = new GenericRow(genericRowValues);
 
-      String keyString = genericRowValues.iterator().next().toString();// randomAvroMessage.get(key).toString();
+      String keyString = randomAvroMessage.get(key).toString();
 
       ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(kafkaTopicName, keyString, genericRow);
       producer.send(producerRecord);

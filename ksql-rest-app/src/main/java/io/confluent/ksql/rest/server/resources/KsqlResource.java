@@ -350,12 +350,15 @@ public class KsqlResource {
       executionPlan = registerTopic.toString();
     } else if (statement instanceof CreateStream) {
       CreateStream createStream = (CreateStream) statement;
-      CreateStreamCommand createStreamCommand = new CreateStreamCommand(createStream, properties);
+      CreateStreamCommand createStreamCommand =
+          new CreateStreamCommand(createStream, properties,
+                                  ksqlEngine.getKafkaTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
       executionPlan = createStream.toString();
     } else if (statement instanceof CreateTable) {
       CreateTable createTable = (CreateTable) statement;
-      CreateTableCommand createTableCommand = new CreateTableCommand(createTable, properties);
+      CreateTableCommand createTableCommand =
+          new CreateTableCommand(createTable, properties, ksqlEngine.getKafkaTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
       executionPlan = createTable.toString();
     } else if (statement instanceof DropTopic) {

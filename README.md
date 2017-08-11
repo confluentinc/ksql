@@ -1,5 +1,8 @@
 # | ![rocket](ksql-rocket.png) | KSQL - a Streaming SQL Engine for Apache Kafka™ from Confluent |
 
+|-|-|
+| ![rocket](ksql-rocket.png) | KSQL - a Streaming SQL Engine for Apache Kafka™ from Confluent |
+
 ---
 
 A DEVELOPER PREVIEW

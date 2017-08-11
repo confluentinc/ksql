@@ -16,7 +16,7 @@ This part of the quickstart will guide you through the steps to setup a Kafka cl
 Start a Kafka cluster
 ---------------------
 
-Do not run KSQL against a production cluster, since KSQL is in tech preview.
+Do not run KSQL against a production cluster, since KSQL is in developer preview.
 
 You will need to download and install a Kafka cluster on your local machine.  This cluster consists of a single Kafka broker along with a single-node ZooKeeper ensemble and an optional single Schema Registry instance.
 
@@ -68,7 +68,7 @@ Start KSQL
 
    $ mvn clean install
 
-4. Start KSQL. Use the ``local`` argument for the tech preview KSQL release because it starts the KSQL engine locally.
+4. Start KSQL. Use the ``local`` argument for the developer preview KSQL release because it starts the KSQL engine locally.
 
 .. sourcecode:: bash
 

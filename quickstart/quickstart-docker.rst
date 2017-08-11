@@ -16,9 +16,10 @@ This part of the quickstart will guide you through the steps to setup a Kafka cl
 Start a Kafka cluster
 ---------------------
 
-Do not run KSQL against a production cluster, since KSQL is in tech preview.
+Do not run KSQL against a production cluster, since KSQL is in developer preview.
 
-As a pre-requisite, you will need Docker Compose.  If you are new to Docker, you can get a general overview of Kafka on Docker: http://docs.confluent.io/current/cp-docker-images/docs/quickstart.html
+As a pre-requisite install `Docker for Mac <https://docs.docker.com/docker-for-mac/install/>`__. If you do not have MacOS, you can install Docker on another `platform <https://docs.docker.com/engine/installation/#supported-platforms>`__
+
 
 1. Clone the Confluent KSQL repository:
 

@@ -36,11 +36,11 @@ import static java.util.stream.Collectors.toList;
 public class AstBuilder
     extends SqlBaseBaseVisitor<Node> {
 
-  int selectItemIndex = 0;
+  private int selectItemIndex = 0;
 
   public static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
-  DataSourceExtractor dataSourceExtractor;
+  private DataSourceExtractor dataSourceExtractor;
   public StructuredDataSource resultDataSource = null;
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {

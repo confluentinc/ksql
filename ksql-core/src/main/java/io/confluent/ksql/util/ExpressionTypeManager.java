@@ -33,18 +33,10 @@ import java.util.Optional;
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-  final Schema schema;
-  ImmutableMap<String, Schema> schemaImmutableMap;
-  SchemaUtil schemaUtil = new SchemaUtil();
+  private final Schema schema;
 
   public ExpressionTypeManager(Schema schema) {
     this.schema = schema;
-  }
-
-  public ExpressionTypeManager(final Schema schema,
-                               final ImmutableMap<String, Schema> schemaImmutableMap) {
-    this.schema = schema;
-    this.schemaImmutableMap = schemaImmutableMap;
   }
 
   public Schema getExpressionType(final Expression expression) {

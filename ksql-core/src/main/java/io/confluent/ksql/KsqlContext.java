@@ -30,6 +30,12 @@ public class KsqlContext {
     this(null);
   }
 
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param streamsProperties
+   */
   public KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
@@ -44,6 +50,12 @@ public class KsqlContext {
     ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
   }
 
+  /**
+   * Execute the ksql statement in this context.
+   *
+   * @param sql
+   * @throws Exception
+   */
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         false, sql, Collections.emptyMap());
@@ -62,6 +74,11 @@ public class KsqlContext {
     }
   }
 
+  /**
+   * Terminate a query with the given id.
+   *
+   * @param queryId
+   */
   public void terminateQuery(long queryId) {
     if (!ksqlEngine.getPersistentQueries().containsKey(queryId)) {
       throw new KsqlException(String.format("Invalid query id. Query id, %d, does not exist.",

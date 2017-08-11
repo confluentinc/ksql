@@ -7,6 +7,8 @@
 - ElasticSeach installed locally (default settings port:9200)
 - Grafana installed locally (default settings port:3000)
 
+  **Mac: [user$ brew install elasticsearch grafana]**
+
 - KSQL is downloaded and compiled [mvn package -Dmaven.test.skip=true]
 
 _**Prior: Run Elastic and Grafana on default ports**_
@@ -26,7 +28,13 @@ Starting connect
 connect is [UP]
 ```
 
-2. Run KSQL in local mode
+2. Run Elastic and Grafana-Server
+``` 
+user% elastic&
+user% run-grafana.sh&
+```
+
+3. Run KSQL in local mode
 ```
 :ksql user$ ./bin/ksql-cli local
                        ======================================
@@ -47,21 +55,21 @@ Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 ksql>
 ``` 
 
-3. Use DataGen to create the ClickStream
+4. Use DataGen to create the ClickStream
 ```
 :ksql user$ bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
 66.249.79.93 --> ([ '66.249.79.93' | '-' | '-' | '07/Aug/2017:17:02:37 -0700' | 1502150557891 | 'GET /index.html HTTP/1.1' | '407' | '4196' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
 54.173.165.103 --> ([ '54.173.165.103' | '-' | '-' | '07/Aug/2017:17:02:38 -0700' | 1502150558520 | 'GET /site/login.html HTTP/1.1' | '405' | '278' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
 ```
 
-4. Use DataGen to create the StatusCodes
+5. Use DataGen to create the StatusCodes
 ```
 :ksql user$ bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes_1 maxInterval=1000 iterations=5000
 404 --> ([ 404 | 'Page not found' ])
 405 --> ([ 405 | 'Method not allowed' ])
 ```
 
-5. Load the clickstream.sql schema file that will run the demo app
+6. Load the clickstream.sql schema file that will run the demo app
 ```
 ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';
 
@@ -71,7 +79,7 @@ ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema
 ksql>
 ```
 
-6. Check that TABLEs are created
+7. Check that TABLEs are created
 ```
 ksql> show TABLES;
 
@@ -86,7 +94,7 @@ ksql> show TABLES;
  EVENTS_PER_MIN         | EVENTS_PER_MIN         | JSON   | true  
 ```
 
-6. Check that STREAMs are created
+8. Check that STREAMs are created
 ```
 ksql> show STREAMS;
 
@@ -101,7 +109,7 @@ ksql> show STREAMS;
  CLICKSTREAM               | clickstream_1             | JSON   
 ```
 
-7. Ensure that data is being streamed through various TABLEs and STREAMs
+9. Ensure that data is being streamed through various TABLEs and STREAMs
 ```
 ksql> select * from CLICKSTREAM;
 1502152008511 | 104.152.45.45 | 1502152008511 | 07/Aug/2017:17:26:48 -0700 | 104.152.45.45 | GET /index.html HTTP/1.1 | 404 | - | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
@@ -122,8 +130,16 @@ ksql> select * from PAGES_PER_MIN;
 ^CQuery terminated
 ksql> 
 ```
+10. 'curl' the a dynamic template into Elastic so it can pick up EVENT_TS fields as the timestamp
+```
+ksql user$ cd ksql-examples/examples/clickstream-analysis/
+user$ ./elastic-dynamic-template.sh 
+{<<JSON RESPONSE>>} 
+user$ 
+```
 
-8. 'curl' the  'Connect' so that it pipes data into Elastic
+
+11. 'curl' the  'Connect' so that it pipes data into Elastic from the TABLE topics
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
 user$ ./clickstream-schema-connect-elastic.sh 
@@ -131,16 +147,24 @@ user$ ./clickstream-schema-connect-elastic.sh
 user$ 
 ```
 
-9. Load the dashboard into Grafana
+12. Add datasources to Grafana
 ```
-Navigate to: http://localhost:3000/
-LHS => Dashboard => Import  => Upload .json file [choose ksql/ksql-examples/examples/clickstream-analysis/clickstream-analysis-dashboard.json ]
+:ksql user$ cd ksql-examples/examples/clickstream-analysis
+:clickstream-analysis user$ ./grafana-datasources.sh
+{<<JSON RESPONSE>>}
+user$ 
 ```
 
-10. View the ClickStream Dashboard
+13. Load the dashboard into Grafana
 ```
-Load [Click Stream Analysis]
+user$ ./clickstream-analysis-dashboard.sh
+{"slug":"click-stream-analysis","status":"success","version":5}
+user$ 
+```
 
+14. View the ClickStream Dashboard
+```
+Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 ```
 
 Interesting things to try:

@@ -1,31 +1,16 @@
 {
+  "dashboard": {
   "__inputs": [
     {
-      "name": "DS_EVENTS_PER_MIN_TS",
-      "label": "events_per_min_ts",
+      "name": "errors_per_min_alert_ts",
+      "label": "errors_per_min_alert_ts",
       "description": "",
       "type": "datasource",
       "pluginId": "elasticsearch",
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_EVENTS_PER_MIN_MAX_AVG_TS",
-      "label": "events_per_min_max_avg_ts",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "elasticsearch",
-      "pluginName": "Elasticsearch"
-    },
-    {
-      "name": "DS_PAGES_PER_MIN_TS",
-      "label": "pages_per_min_ts",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "elasticsearch",
-      "pluginName": "Elasticsearch"
-    },
-    {
-      "name": "DS_ENRICHED_ERROR_CODES_TS",
+      "name": "enriched_error_codes_ts",
       "label": "enriched_error_codes_ts",
       "description": "",
       "type": "datasource",
@@ -33,8 +18,32 @@
       "pluginName": "Elasticsearch"
     },
     {
-      "name": "DS_ERRORS_PER_MIN_ALERT_TS",
-      "label": "errors_per_min_alert_ts",
+      "name": "click_user_sessions_ts",
+      "label": "click_user_sessions_ts",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "elasticsearch",
+      "pluginName": "Elasticsearch"
+    },
+    {
+      "name": "events_per_min_ts",
+      "label": "events_per_min_ts",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "elasticsearch",
+      "pluginName": "Elasticsearch"
+    },
+    {
+      "name": "events_per_min_max_avg_ts",
+      "label": "events_per_min_max_avg_ts",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "elasticsearch",
+      "pluginName": "Elasticsearch"
+    },
+    {
+      "name": "pages_per_min_ts",
+      "label": "pages_per_min_ts",
       "description": "",
       "type": "datasource",
       "pluginId": "elasticsearch",
@@ -80,14 +89,400 @@
   "rows": [
     {
       "collapse": false,
-      "height": 333,
+      "height": 273,
       "panels": [
         {
           "aliasColors": {},
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_EVENTS_PER_MIN_TS}",
+          "datasource": "errors_per_min_alert_ts",
+          "fill": 1,
+          "id": 7,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "max": true,
+            "min": false,
+            "rightSide": false,
+            "show": true,
+            "total": true,
+            "values": true
+          },
+          "lines": false,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "percentage": false,
+          "pointradius": 5,
+          "points": true,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "bucketAggs": [
+                {
+                  "fake": true,
+                  "field": "STATUS",
+                  "id": "4",
+                  "settings": {
+                    "min_doc_count": 1,
+                    "order": "desc",
+                    "orderBy": "_term",
+                    "size": "10"
+                  },
+                  "type": "terms"
+                },
+                {
+                  "fake": true,
+                  "field": "EVENT_TS",
+                  "id": "3",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": 0,
+                    "trimEdges": 0
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "dsType": "elasticsearch",
+              "metrics": [
+                {
+                  "field": "ERRORS",
+                  "id": "1",
+                  "meta": {},
+                  "settings": {},
+                  "type": "max"
+                }
+              ],
+              "refId": "A",
+              "timeField": "EVENT_TS"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "400 error status alert HAVING count(*) > 5",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "columns": [
+            {
+              "text": "STATUS",
+              "value": "STATUS"
+            },
+            {
+              "text": "Count",
+              "value": "Count"
+            },
+            {
+              "text": "DEFINITION",
+              "value": "DEFINITION"
+            }
+          ],
+          "datasource": "enriched_error_codes_ts",
+          "fontSize": "100%",
+          "id": 6,
+          "interval": ">30s",
+          "links": [],
+          "pageSize": null,
+          "scroll": true,
+          "showHeader": true,
+          "sort": {
+            "col": null,
+            "desc": false
+          },
+          "span": 6,
+          "styles": [
+            {
+              "alias": "Time",
+              "colorMode": "cell",
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": null,
+              "pattern": "Time",
+              "thresholds": [
+                "180.00"
+              ],
+              "type": "number"
+            },
+            {
+              "alias": "Status Codes",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": 0,
+              "pattern": "STATUS",
+              "thresholds": [],
+              "type": "number",
+              "unit": "short"
+            },
+            {
+              "alias": "Count",
+              "colorMode": "cell",
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": 0,
+              "pattern": "Count",
+              "thresholds": [
+                "200"
+              ],
+              "type": "number",
+              "unit": "short"
+            },
+            {
+              "alias": "Definition",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": 2,
+              "pattern": "Definition",
+              "thresholds": [],
+              "type": "string",
+              "unit": "short"
+            },
+            {
+              "alias": "",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "decimals": 2,
+              "pattern": "/.*/",
+              "thresholds": [],
+              "type": "number",
+              "unit": "short"
+            }
+          ],
+          "targets": [
+            {
+              "bucketAggs": [
+                {
+                  "fake": true,
+                  "field": "STATUS",
+                  "id": "3",
+                  "settings": {
+                    "min_doc_count": 1,
+                    "order": "desc",
+                    "orderBy": "_term",
+                    "size": "10"
+                  },
+                  "type": "terms"
+                },
+                {
+                  "field": "DEFINITION",
+                  "id": "2",
+                  "settings": {
+                    "min_doc_count": 1,
+                    "order": "desc",
+                    "orderBy": "_term",
+                    "size": "10"
+                  },
+                  "type": "terms"
+                }
+              ],
+              "dsType": "elasticsearch",
+              "metrics": [
+                {
+                  "field": "select field",
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "refId": "B",
+              "timeField": "EVENT_TS"
+            }
+          ],
+          "title": "TABLE-STREAM JOIN between ClickStream and Definition Table",
+          "transform": "json",
+          "type": "table"
+        }
+      ],
+      "repeat": null,
+      "repeatIteration": null,
+      "repeatRowId": null,
+      "showTitle": false,
+      "title": "Dashboard Row",
+      "titleSize": "h6"
+    },
+    {
+      "collapse": false,
+      "height": 299,
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "click_user_sessions_ts",
+          "fill": 1,
+          "id": 8,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": false,
+            "hideEmpty": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "percentage": false,
+          "pointradius": 5,
+          "points": true,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "span": 12,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "bucketAggs": [
+                {
+                  "fake": true,
+                  "field": "IP",
+                  "id": "3",
+                  "settings": {
+                    "min_doc_count": 1,
+                    "order": "desc",
+                    "orderBy": "_term",
+                    "size": "10"
+                  },
+                  "type": "terms"
+                },
+                {
+                  "field": "EVENT_TS",
+                  "id": "2",
+                  "settings": {
+                    "interval": "10s",
+                    "min_doc_count": 0,
+                    "trimEdges": 0
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "dsType": "elasticsearch",
+              "metrics": [
+                {
+                  "field": "select field",
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "refId": "A",
+              "timeField": "EVENT_TS"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "User Sessionisation by IP",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "repeat": null,
+      "repeatIteration": null,
+      "repeatRowId": null,
+      "showTitle": false,
+      "title": "Dashboard Row",
+      "titleSize": "h6"
+    },
+    {
+      "collapse": false,
+      "height": 231,
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "events_per_min_ts",
           "fill": 1,
           "id": 2,
           "legend": {
@@ -110,7 +505,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "spaceLength": 10,
-          "span": 12,
+          "span": 6,
           "stack": false,
           "steppedLine": false,
           "targets": [
@@ -182,7 +577,7 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_EVENTS_PER_MIN_MAX_AVG_TS}",
+          "datasource": "events_per_min_max_avg_ts",
           "fill": 1,
           "id": 1,
           "legend": {
@@ -208,7 +603,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "spaceLength": 10,
-          "span": 12,
+          "span": 6,
           "stack": false,
           "steppedLine": false,
           "targets": [
@@ -341,384 +736,10 @@
       "panels": [
         {
           "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "${DS_PAGES_PER_MIN_TS}",
-          "fill": 1,
-          "id": 3,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "percentage": false,
-          "pointradius": 5,
-          "points": true,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 12,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "bucketAggs": [
-                {
-                  "field": "EVENT_TS",
-                  "id": "2",
-                  "settings": {
-                    "interval": "10s",
-                    "min_doc_count": 0,
-                    "trimEdges": 0
-                  },
-                  "type": "date_histogram"
-                }
-              ],
-              "dsType": "elasticsearch",
-              "metrics": [
-                {
-                  "field": "PAGES",
-                  "id": "1",
-                  "meta": {},
-                  "settings": {},
-                  "type": "avg"
-                }
-              ],
-              "refId": "A",
-              "timeField": "EVENT_TS"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Page Views using LIKE filtering",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "repeatIteration": null,
-      "repeatRowId": null,
-      "showTitle": false,
-      "title": "Dashboard Row",
-      "titleSize": "h6"
-    },
-    {
-      "collapse": false,
-      "height": 250,
-      "panels": [
-        {
-          "columns": [
-            {
-              "text": "STATUS",
-              "value": "STATUS"
-            },
-            {
-              "text": "Count",
-              "value": "Count"
-            },
-            {
-              "text": "DEFINITION",
-              "value": "DEFINITION"
-            }
-          ],
-          "datasource": "${DS_ENRICHED_ERROR_CODES_TS}",
-          "fontSize": "100%",
-          "id": 6,
-          "interval": ">30s",
-          "links": [],
-          "pageSize": null,
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": null,
-            "desc": false
-          },
-          "span": 6,
-          "styles": [
-            {
-              "alias": "Time",
-              "colorMode": "cell",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": null,
-              "pattern": "Time",
-              "thresholds": [
-                "180.00"
-              ],
-              "type": "number"
-            },
-            {
-              "alias": "Status Codes",
-              "colorMode": null,
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 0,
-              "pattern": "STATUS",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "Count",
-              "colorMode": "cell",
-              "colors": [
-                "rgba(50, 172, 45, 0.97)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(245, 54, 54, 0.9)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 0,
-              "pattern": "Count",
-              "thresholds": [
-                "200"
-              ],
-              "type": "number",
-              "unit": "short"
-            },
-            {
-              "alias": "Definition",
-              "colorMode": null,
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "decimals": 2,
-              "pattern": "Definition",
-              "thresholds": [],
-              "type": "string",
-              "unit": "short"
-            },
-            {
-              "alias": "",
-              "colorMode": null,
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "decimals": 2,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "bucketAggs": [
-                {
-                  "fake": true,
-                  "field": "STATUS",
-                  "id": "3",
-                  "settings": {
-                    "min_doc_count": 1,
-                    "order": "desc",
-                    "orderBy": "_term",
-                    "size": "10"
-                  },
-                  "type": "terms"
-                },
-                {
-                  "field": "DEFINITION",
-                  "id": "2",
-                  "settings": {
-                    "min_doc_count": 1,
-                    "order": "desc",
-                    "orderBy": "_term",
-                    "size": "10"
-                  },
-                  "type": "terms"
-                }
-              ],
-              "dsType": "elasticsearch",
-              "metrics": [
-                {
-                  "field": "select field",
-                  "id": "1",
-                  "type": "count"
-                }
-              ],
-              "refId": "B",
-              "timeField": "EVENT_TS"
-            }
-          ],
-          "title": "TABLE-STREAM JOIN between ClickStream and Definition Table",
-          "transform": "json",
-          "type": "table"
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "${DS_ERRORS_PER_MIN_ALERT_TS}",
-          "fill": 1,
-          "id": 7,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": false,
-            "max": true,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "total": true,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "percentage": false,
-          "pointradius": 5,
-          "points": true,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 6,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "bucketAggs": [
-                {
-                  "fake": true,
-                  "field": "STATUS",
-                  "id": "4",
-                  "settings": {
-                    "min_doc_count": 1,
-                    "order": "desc",
-                    "orderBy": "_term",
-                    "size": "10"
-                  },
-                  "type": "terms"
-                },
-                {
-                  "fake": true,
-                  "field": "EVENT_TS",
-                  "id": "3",
-                  "settings": {
-                    "interval": "auto",
-                    "min_doc_count": 0,
-                    "trimEdges": 0
-                  },
-                  "type": "date_histogram"
-                }
-              ],
-              "dsType": "elasticsearch",
-              "metrics": [
-                {
-                  "field": "ERRORS",
-                  "id": "1",
-                  "meta": {},
-                  "settings": {},
-                  "type": "max"
-                }
-              ],
-              "refId": "A",
-              "timeField": "EVENT_TS"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "400 error status alert HAVING count(*) > 5",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "repeatIteration": null,
-      "repeatRowId": null,
-      "showTitle": false,
-      "title": "Dashboard Row",
-      "titleSize": "h6"
-    },
-    {
-      "collapse": false,
-      "height": 250,
-      "panels": [
-        {
-          "aliasColors": {},
           "bars": true,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${DS_ENRICHED_ERROR_CODES_TS}",
+          "datasource": "enriched_error_codes_ts",
           "fill": 1,
           "id": 5,
           "legend": {
@@ -818,6 +839,102 @@
               "show": true
             }
           ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "pages_per_min_ts",
+          "fill": 1,
+          "id": 3,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": false,
+            "max": false,
+            "min": false,
+            "rightSide": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "percentage": false,
+          "pointradius": 5,
+          "points": true,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "bucketAggs": [
+                {
+                  "field": "EVENT_TS",
+                  "id": "2",
+                  "settings": {
+                    "interval": "10s",
+                    "min_doc_count": 0,
+                    "trimEdges": 0
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "dsType": "elasticsearch",
+              "metrics": [
+                {
+                  "field": "PAGES",
+                  "id": "1",
+                  "meta": {},
+                  "settings": {},
+                  "type": "avg"
+                }
+              ],
+              "refId": "A",
+              "timeField": "EVENT_TS"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Page Views using LIKE filtering",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "repeat": null,
@@ -865,5 +982,7 @@
   },
   "timezone": "",
   "title": "Click Stream Analysis",
-  "version": 21
+  "version": 26
+},
+  "overwrite": false
 }

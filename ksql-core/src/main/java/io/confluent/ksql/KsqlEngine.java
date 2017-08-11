@@ -61,7 +61,7 @@ public class KsqlEngine implements Closeable {
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
-  public KsqlEngine(KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient kafkaTopicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
     this.ksqlConfig = ksqlConfig;
@@ -84,9 +84,9 @@ public class KsqlEngine implements Closeable {
    * @throws Exception Any exception thrown here!
    */
   public List<QueryMetadata> buildMultipleQueries(
-      boolean createNewAppId,
-      String queriesString,
-      Map<String, Object> overriddenProperties
+      final boolean createNewAppId,
+      final String queriesString,
+      final Map<String, Object> overriddenProperties
   ) throws Exception {
     for (String property : overriddenProperties.keySet()) {
       if (IMMUTABLE_PROPERTIES.contains(property)) {
@@ -109,10 +109,10 @@ public class KsqlEngine implements Closeable {
 
   }
 
-  public List<QueryMetadata> planQueries(boolean createNewAppId,
-                                         List<Pair<String, Statement>> statementList,
-                                         Map<String, Object> overriddenProperties,
-                                         MetaStore tempMetaStore)
+  public List<QueryMetadata> planQueries(final boolean createNewAppId,
+                                         final List<Pair<String, Statement>> statementList,
+                                         final Map<String, Object> overriddenProperties,
+                                         final MetaStore tempMetaStore)
       throws Exception {
 
     // Logical plan creation from the ASTs
@@ -138,7 +138,7 @@ public class KsqlEngine implements Closeable {
     return runningQueries;
   }
 
-  public QueryMetadata getQueryExecutionPlan(Query query) throws Exception {
+  public QueryMetadata getQueryExecutionPlan(final Query query) throws Exception {
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays
@@ -157,8 +157,8 @@ public class KsqlEngine implements Closeable {
 
 
   public List<Pair<String, Statement>> parseQueries(final String queriesString,
-                                Map<String, Object> overriddenProperties,
-                                MetaStore tempMetaStore) {
+                                                    final Map<String, Object> overriddenProperties,
+                                                    final MetaStore tempMetaStore) {
     try {
       MetaStore tempMetaStoreForParser = tempMetaStore.clone();
       // Parse and AST creation
@@ -188,11 +188,12 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private Pair<String, Statement> buildSingleQueryAst(Statement statement,
-                                                      String statementString,
-                                                      MetaStore tempMetaStore,
-                                                      MetaStore tempMetaStoreForParser,
-                                                      Map<String,Object> overriddenProperties) {
+  private Pair<String, Statement> buildSingleQueryAst(final Statement statement,
+                                                      final String statementString,
+                                                      final MetaStore tempMetaStore,
+                                                      final MetaStore tempMetaStoreForParser,
+                                                      final Map<String,Object> overriddenProperties
+  ) {
 
     log.info("Building AST for {}.", statementString);
 
@@ -269,7 +270,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public static String getStatementString(
-      SqlBaseParser.SingleStatementContext singleStatementContext) {
+      final SqlBaseParser.SingleStatementContext singleStatementContext) {
     CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(new Interval(
         singleStatementContext.start.getStartIndex(),
@@ -284,9 +285,8 @@ public class KsqlEngine implements Closeable {
 
   public Query addInto(final Query query, final QuerySpecification querySpecification,
                        final String intoName,
-                       final Map<String,
-                           Expression> intoProperties,
-                       Optional<Expression> partitionByExpression) {
+                       final Map<String, Expression> intoProperties,
+                       final Optional<Expression> partitionByExpression) {
     Table intoTable = new Table(QualifiedName.of(intoName));
     if (partitionByExpression.isPresent()) {
       Map<String, Expression> newIntoProperties = new HashMap<>();
@@ -323,7 +323,7 @@ public class KsqlEngine implements Closeable {
     return ddlCommandExec;
   }
 
-  public boolean terminateQuery(long queryId, boolean closeStreams) {
+  public boolean terminateQuery(final long queryId, final boolean closeStreams) {
     QueryMetadata queryMetadata = persistentQueries.remove(queryId);
     if (queryMetadata == null) {
       return false;

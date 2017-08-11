@@ -87,9 +87,9 @@ public class SqlPredicateTest {
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
         .getSchema(), false);
 
-    Assert.assertTrue(predicate.filterExpression
+    Assert.assertTrue(predicate.getFilterExpression()
                           .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
-    Assert.assertTrue(predicate.columnIndexes.length == 1);
+    Assert.assertTrue(predicate.getColumnIndexes().length == 1);
 
   }
 
@@ -107,11 +107,11 @@ public class SqlPredicateTest {
         .getSchema(), false);
 
     Assert.assertTrue(predicate
-                          .filterExpression
+                          .getFilterExpression()
                           .toString()
                           .equalsIgnoreCase("((TEST1.COL0 > 100) AND"
                                             + " (LEN(TEST1.COL2) = 5))"));
-    Assert.assertTrue(predicate.columnIndexes.length == 3);
+    Assert.assertTrue(predicate.getColumnIndexes().length == 3);
 
   }
 

@@ -75,14 +75,15 @@ public class QueryEngine {
   private final KsqlEngine ksqlEngine;
 
 
-  public QueryEngine(KsqlEngine ksqlEngine) {
+  public QueryEngine(final KsqlEngine ksqlEngine) {
     this.queryIdCounter = new AtomicLong(1);
     this.ksqlEngine = ksqlEngine;
   }
 
 
-  public List<Pair<String, PlanNode>> buildLogicalPlans(MetaStore metaStore,
-                                                        List<Pair<String, Statement>> statementList) {
+  public List<Pair<String, PlanNode>> buildLogicalPlans(
+      final MetaStore metaStore,
+      final List<Pair<String, Statement>> statementList) {
 
     List<Pair<String, PlanNode>> logicalPlansList = new ArrayList<>();
     // TODO: the purpose of tempMetaStore here
@@ -102,7 +103,7 @@ public class QueryEngine {
     return logicalPlansList;
   }
 
-  public PlanNode buildQueryLogicalPlan(Query query, MetaStore tempMetaStore) {
+  public PlanNode buildQueryLogicalPlan(final Query query, final MetaStore tempMetaStore) {
 
     // Analyze the query to resolve the references and extract operations
     Analysis analysis = new Analysis();
@@ -167,11 +168,11 @@ public class QueryEngine {
   }
 
   public List<QueryMetadata> buildPhysicalPlans(
-      boolean addUniqueTimeSuffix,
-      List<Pair<String, PlanNode>> logicalPlans,
-      List<Pair<String, Statement>> statementList,
-      Map<String, Object> overriddenStreamsProperties,
-      boolean updateMetastore
+      final boolean addUniqueTimeSuffix,
+      final List<Pair<String, PlanNode>> logicalPlans,
+      final List<Pair<String, Statement>> statementList,
+      final Map<String, Object> overriddenStreamsProperties,
+      final boolean updateMetastore
   ) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
@@ -190,11 +191,11 @@ public class QueryEngine {
     return physicalPlans;
   }
 
-  public void buildQueryPhysicalPlan(List<QueryMetadata> physicalPlans,
-                                     boolean addUniqueTimeSuffix,
-                                     Pair<String, PlanNode> statementPlanPair,
-                                     Map<String, Object> overriddenStreamsProperties,
-                                     boolean updateMetastore) throws Exception {
+  public void buildQueryPhysicalPlan(final List<QueryMetadata> physicalPlans,
+                                     final boolean addUniqueTimeSuffix,
+                                     final Pair<String, PlanNode> statementPlanPair,
+                                     final Map<String, Object> overriddenStreamsProperties,
+                                     final boolean updateMetastore) throws Exception {
 
     PlanNode logicalPlan = statementPlanPair.getRight();
     KStreamBuilder builder = new KStreamBuilder();
@@ -220,14 +221,14 @@ public class QueryEngine {
           schemaKStream.getClass().getCanonicalName()
       ));
     }
-    String clusterId = ksqlEngine.getKsqlConfig()
-        .get(KsqlConfig.KSQL_CLUSTER_ID_CONFIG).toString();
+    String serviceId = ksqlEngine.getKsqlConfig()
+        .get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
     String persistance_query_prefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
     String transient_query_prefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
     if (isBareQuery) {
-      String applicationId = getBareQueryApplicationId(clusterId, transient_query_prefix);
+      String applicationId = getBareQueryApplicationId(serviceId, transient_query_prefix);
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -253,7 +254,7 @@ public class QueryEngine {
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
       long queryId = getNextQueryId();
 
-      String applicationId =  clusterId + persistance_query_prefix +
+      String applicationId =  serviceId + persistance_query_prefix +
                              queryId;
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
@@ -308,12 +309,16 @@ public class QueryEngine {
     log.info(schemaKStream.getExecutionPlan(""));
   }
 
-  public DDLCommandResult handleDdlStatement(Statement statement, Map<String, Object> overriddenProperties) {
+  public DDLCommandResult handleDdlStatement(
+      final Statement statement,
+      final Map<String, Object> overriddenProperties) {
     DDLCommand command = generateDDLCommand(statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
   }
 
-  private DDLCommand generateDDLCommand(Statement statement, Map<String, Object> overriddenProperties) {
+  private DDLCommand generateDDLCommand(
+      final Statement statement,
+      final Map<String, Object> overriddenProperties) {
     if (statement instanceof RegisterTopic) {
       return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
     } else if (statement instanceof CreateStream) {
@@ -327,7 +332,8 @@ public class QueryEngine {
     } else if (statement instanceof DropTopic) {
       return new DropTopicCommand((DropTopic) statement);
     } else {
-      throw new KsqlException("Corresponding command not found for statement: " + statement.toString());
+      throw new KsqlException(
+          "Corresponding command not found for statement: " + statement.toString());
     }
   }
 
@@ -381,8 +387,8 @@ public class QueryEngine {
   }
 
   // TODO: This should probably be changed
-  private String getBareQueryApplicationId(String clusterId, String transientQueryPrefix) {
-    return  clusterId + transientQueryPrefix +
+  private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {
+    return  serviceId + transientQueryPrefix +
            Math.abs(ThreadLocalRandom.current().nextLong());
   }
 

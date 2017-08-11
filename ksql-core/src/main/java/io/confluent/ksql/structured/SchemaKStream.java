@@ -47,12 +47,12 @@ public class SchemaKStream {
   
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
-  final Schema schema;
-  final KStream kstream;
-  final Field keyField;
-  final List<SchemaKStream> sourceSchemaKStreams;
-  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  final Type type;
+  protected final Schema schema;
+  protected final KStream kstream;
+  protected final Field keyField;
+  protected final List<SchemaKStream> sourceSchemaKStreams;
+  protected final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  protected final Type type;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
@@ -85,9 +85,9 @@ public class SchemaKStream {
               return new KeyValue<>(key, null);
             }
             List columns = new ArrayList();
-            for (int i = 0; i < row.columns.size(); i++) {
+            for (int i = 0; i < row.getColumns().size(); i++) {
               if (!rowkeyIndexes.contains(i)) {
-                columns.add(row.columns.get(i));
+                columns.add(row.getColumns().get(i));
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));

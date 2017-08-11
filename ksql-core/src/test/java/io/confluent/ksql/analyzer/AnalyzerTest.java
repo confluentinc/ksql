@@ -36,12 +36,12 @@ public class AnalyzerTest {
   public void testSimpleQueryAnalysis() throws Exception {
     String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     Analysis analysis = analyze(simpleQuery);
-    Assert.assertNotNull("INTO is null", analysis.into);
-    Assert.assertNotNull("FROM is null", analysis.fromDataSources);
-    Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
-    Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
+    Assert.assertNotNull("INTO is null", analysis.getInto());
+    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
+    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
+    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.fromDataSources.get(0).getLeft().getName()
+                      analysis.getFromDataSources().get(0).getLeft().getName()
                           .equalsIgnoreCase("test1"));
     Assert.assertTrue(
         analysis.getSelectExpressions().size() == analysis.getSelectExpressionAlias().size());
@@ -66,9 +66,9 @@ public class AnalyzerTest {
             .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("TEST1.COL3"));
 
-    Assert.assertTrue(analysis.selectExpressionAlias.get(0).equalsIgnoreCase("COL0"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(1).equalsIgnoreCase("COL2"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(2).equalsIgnoreCase("COL3"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(0).equalsIgnoreCase("COL0"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(1).equalsIgnoreCase("COL2"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("COL3"));
   }
 
   @Test
@@ -78,21 +78,21 @@ public class AnalyzerTest {
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
         + "t1.col1 = t2.col1;";
     Analysis analysis = analyze(simpleQuery);
-    Assert.assertNotNull("INTO is null", analysis.into);
-    Assert.assertNotNull("JOIN is null", analysis.join);
+    Assert.assertNotNull("INTO is null", analysis.getInto());
+    Assert.assertNotNull("JOIN is null", analysis.getJoin());
 
-    Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
-    Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
+    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
+    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("JOIN left hand side was not analyzed correctly.",
-                      analysis.join.getLeftAlias().equalsIgnoreCase("t1"));
+                      analysis.getJoin().getLeftAlias().equalsIgnoreCase("t1"));
     Assert.assertTrue("JOIN right hand side was not analyzed correctly.",
-                      analysis.join.getRightAlias().equalsIgnoreCase("t2"));
+                      analysis.getJoin().getRightAlias().equalsIgnoreCase("t2"));
 
     Assert.assertTrue(
         analysis.getSelectExpressions().size() == analysis.getSelectExpressionAlias().size());
 
-    Assert.assertTrue(analysis.join.getLeftKeyFieldName().equalsIgnoreCase("COL1"));
-    Assert.assertTrue(analysis.join.getRightKeyFieldName().equalsIgnoreCase("COL1"));
+    Assert.assertTrue(analysis.getJoin().getLeftKeyFieldName().equalsIgnoreCase("COL1"));
+    Assert.assertTrue(analysis.getJoin().getRightKeyFieldName().equalsIgnoreCase("COL1"));
 
     String
         select1 =
@@ -115,11 +115,11 @@ public class AnalyzerTest {
     Assert.assertTrue(select3.equalsIgnoreCase("T2.COL4"));
     Assert.assertTrue(select4.equalsIgnoreCase("T1.COL5"));
 
-    Assert.assertTrue(analysis.selectExpressionAlias.get(0).equalsIgnoreCase("T1_COL1"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(1).equalsIgnoreCase("T2_COL1"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(2).equalsIgnoreCase("T2_COL4"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(3).equalsIgnoreCase("COL5"));
-    Assert.assertTrue(analysis.selectExpressionAlias.get(4).equalsIgnoreCase("T2_COL2"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(0).equalsIgnoreCase("T1_COL1"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(1).equalsIgnoreCase("T2_COL1"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("T2_COL4"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(3).equalsIgnoreCase("COL5"));
+    Assert.assertTrue(analysis.getSelectExpressionAlias().get(4).equalsIgnoreCase("T2_COL2"));
 
   }
 
@@ -128,12 +128,12 @@ public class AnalyzerTest {
     String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
     Analysis analysis = analyze(queryStr);
 
-    Assert.assertNotNull("INTO is null", analysis.into);
-    Assert.assertNotNull("FROM is null", analysis.fromDataSources);
-    Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
-    Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
+    Assert.assertNotNull("INTO is null", analysis.getInto());
+    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
+    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
+    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.fromDataSources.get(0).getLeft().getName()
+                      analysis.getFromDataSources().get(0).getLeft().getName()
                           .equalsIgnoreCase("test1"));
 
     String
@@ -159,12 +159,12 @@ public class AnalyzerTest {
     String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
     Analysis analysis = analyze(queryStr);
 
-    Assert.assertNotNull("INTO is null", analysis.into);
-    Assert.assertNotNull("FROM is null", analysis.fromDataSources);
-    Assert.assertNotNull("SELECT is null", analysis.selectExpressions);
-    Assert.assertNotNull("SELECT aliacs is null", analysis.selectExpressionAlias);
+    Assert.assertNotNull("INTO is null", analysis.getInto());
+    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
+    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
+    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-            analysis.fromDataSources.get(0).getLeft().getName()
+            analysis.getFromDataSources().get(0).getLeft().getName()
                     .equalsIgnoreCase("test1"));
 
     String

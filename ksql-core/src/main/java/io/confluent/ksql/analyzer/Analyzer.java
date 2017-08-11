@@ -52,8 +52,8 @@ import static java.lang.String.format;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-  Analysis analysis;
-  MetaStore metaStore;
+  private Analysis analysis;
+  private MetaStore metaStore;
 
   public Analyzer(Analysis analysis, MetaStore metaStore) {
     this.analysis = analysis;

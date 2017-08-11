@@ -21,9 +21,9 @@ import java.util.concurrent.ExecutionException;
 
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
-  KsqlConfig ksqlConfig;
+  private final KsqlConfig ksqlConfig;
 
-  public KafkaTopicClientImpl(KsqlConfig ksqlConfig) {
+  public KafkaTopicClientImpl(final KsqlConfig ksqlConfig) {
     this.ksqlConfig = ksqlConfig.clone();
   }
 

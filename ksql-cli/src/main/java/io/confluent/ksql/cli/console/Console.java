@@ -125,7 +125,7 @@ public abstract class Console implements Closeable {
     } else {
       switch (outputFormat) {
         case JSON:
-          printAsJson(row.getRow().columns);
+          printAsJson(row.getRow().getColumns());
           break;
         case TABULAR:
           printAsTable(row.getRow());
@@ -464,7 +464,7 @@ public abstract class Console implements Closeable {
   private void printAsTable(GenericRow row) {
     addResult(row);
     writer().println(
-        String.join(" | ", row.columns.stream().map(Objects::toString).collect(Collectors.toList()))
+        String.join(" | ", row.getColumns().stream().map(Objects::toString).collect(Collectors.toList()))
     );
     flush();
   }

@@ -104,7 +104,7 @@ Before proceeding, please check:
 Write Queries
 -------------
 
-1. Write a query that returns three data rows from a STREAM.
+1. Use ``SELECT`` to create a query that returns data from a STREAM. To stop viewing the data, press `<ctrl-c>`. You may optionally include the ``LIMIT`` keyword to limit the number of rows returned in the query result. 
 
 .. sourcecode:: bash
 
@@ -116,19 +116,40 @@ Write Queries
    Query terminated
    ksql> 
 
-2. Create a persistent query by using the ``CREATE STREAM`` command to precede the ``SELECT`` statement. Unlike the non-persistent case above, results from this query will be produced to a Kafka topic ``pageviews_female``. This query enriches the pageviews STREAM by doing a ``JOIN`` with data in the users_original TABLE where a condition is met.
+2. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. Unlike the non-persistent query above, results from this query are written to a Kafka topic ``PAGEVIEWS_FEMALE``. The query below enriches the ``pageviews`` STREAM by doing a ``LEFT JOIN`` with the ``users_original`` TABLE on the user ID, where a condition is met.
 
 .. sourcecode:: bash
 
    ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
 
-3. Create a persistent query where a condition is met, using ``LIKE``. Write the query results to a Kafka topic called ``pageviews_enriched_r8_r9``.
+   ksql> DESCRIBE pageviews_female;
+    Field    | Type            
+   ----------------------------
+    ROWTIME  | BIGINT          
+    ROWKEY   | VARCHAR(STRING) 
+    USERID   | VARCHAR(STRING) 
+    PAGEID   | VARCHAR(STRING) 
+    REGIONID | VARCHAR(STRING) 
+    GENDER   | VARCHAR(STRING) 
+
+3. Use ``SELECT`` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+
+.. sourcecode:: bash
+
+   ksql> SELECT * FROM pageviews_female;
+   1502477856762 | User_2 | User_2 | Page_55 | Region_9 | FEMALE
+   1502477857946 | User_5 | User_5 | Page_14 | Region_2 | FEMALE
+   1502477858436 | User_3 | User_3 | Page_60 | Region_3 | FEMALE
+   ^CQuery terminated
+   ksql> 
+
+4. Create a new persistent query where another condition is met, using ``LIKE``. Results from this query are written to a Kafka topic called ``pageviews_enriched_r8_r9``.
 
 .. sourcecode:: bash
 
    ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
-4. Create a persistent query that counts the pageviews for each region and gender combination in a `tumbling window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than 1.
+5. Create a new persistent query that counts the pageviews for each region and gender combination in a `tumbling window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than 1. Results from this query are written to a Kafka topic called ``PAGEVIEWS_REGIONS``.
 
 .. sourcecode:: bash
 
@@ -144,21 +165,21 @@ Write Queries
     REGIONID | VARCHAR(STRING) 
     NUMUSERS | BIGINT 
 
-5. Use ``SELECT`` to view the results any query as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+6. Use ``SELECT`` to view results from the above query.
 
 .. sourcecode:: bash
 
-   ksql> SELECT regionid, numusers FROM pageviews_regions;
+   ksql> SELECT regionid, numusers FROM pageviews_regions LIMIT 5;
    Region_3 | 4
    Region_3 | 5
    Region_6 | 5
    Region_6 | 6
    Region_3 | 8
-   Region_1 | 2
-   Region_1 | 3
-   ...
+   LIMIT reached for the partition.
+   Query terminated
+   ksql> 
 
-6. Show all queries.
+7. Show all queries.
 
 .. sourcecode:: bash
 

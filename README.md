@@ -11,16 +11,6 @@ KSQL does not require proficiency with a programming language such as Java or Go
 This release is a DEVELOPER PREVIEW which is free and open-source from Confluent under the Apache 2.0 license.
 KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
 
-You can use KSQL in stand-alone mode and/or in client-server mode.
-
-In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
-
-![alt text](https://user-images.githubusercontent.com/2977624/29090610-f4b11096-7c34-11e7-8a63-85c9ead22bc3.png)
-
-In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers and the CLI connects to them over HTTP.
-
-![alt text](https://user-images.githubusercontent.com/2977624/29090617-fab5e930-7c34-11e7-9eee-0554192854d5.png)
-
 # Installation
 
 **Prerequisites:**

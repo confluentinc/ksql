@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "Loading Elastic Dynamic Template"
+echo "Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp"
 
 curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: application/json' -d'
 {

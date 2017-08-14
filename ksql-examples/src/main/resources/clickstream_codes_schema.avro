@@ -1,5 +1,5 @@
 {
-  "namespace": "ksql",
+  "namespace": "clickstream",
   "name": "codes",
   "type": "record",
   "fields": [
@@ -17,6 +17,10 @@
       {
         "code": 200,
         "definition": "Successful"
+      },
+      {
+        "code": 300,
+        "definition": "Redirect"
       },
       {
         "code": 404,

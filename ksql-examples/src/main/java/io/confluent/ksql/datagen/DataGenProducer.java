@@ -15,12 +15,12 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public abstract class DataGenProducer {
+
+
+
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
@@ -43,6 +43,8 @@ public abstract class DataGenProducer {
 
     final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(props, new StringSerializer(), serializer);
 
+    SessionManager sessionManager = new SessionManager();
+
     for (int i = 0; i < messageCount; i++) {
       Object generatedObject = generator.generate();
 
@@ -57,20 +59,33 @@ public abstract class DataGenProducer {
       List<Object> genericRowValues = new ArrayList<>();
 
       SimpleDateFormat timeformatter = null;
+
+      /**
+       * Populate the record entries
+       */
       for (Schema.Field field : avroSchema.getFields()) {
-        String timeFormatFromLong = field.schema().getProp("format_as_time");
-        if (timeFormatFromLong != null) {
-          Date date = new Date(System.currentTimeMillis());
-          if (timeFormatFromLong.equals("unix_long")) {
-            genericRowValues.add(date.getTime());
-          } else {
-            if (timeformatter == null) {
-              timeformatter = new SimpleDateFormat(timeFormatFromLong);
-            }
-            genericRowValues.add(timeformatter.format(date));
-          }
+
+          String isSession = field.schema().getProp("session");
+          String timeFormatFromLong = field.schema().getProp("format_as_time");
+          if (isSession != null) {
+            String currentValue = (String) randomAvroMessage.get(field.name());
+            String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
+
+
+            genericRowValues.add(newCurrentValue);
+
+          } else if (timeFormatFromLong != null) {
+              Date date = new Date(System.currentTimeMillis());
+              if (timeFormatFromLong.equals("unix_long")) {
+                genericRowValues.add(date.getTime());
+              } else {
+                if (timeformatter == null) {
+                  timeformatter = new SimpleDateFormat(timeFormatFromLong);
+                }
+                genericRowValues.add(timeformatter.format(date));
+              }
         } else {
-          genericRowValues.add(randomAvroMessage.get(field.name()));
+            genericRowValues.add(randomAvroMessage.get(field.name()));
         }
       }
 
@@ -78,8 +93,7 @@ public abstract class DataGenProducer {
 
       String keyString = randomAvroMessage.get(key).toString();
 
-      ProducerRecord<String, GenericRow> producerRecord =
-          new ProducerRecord<>(kafkaTopicName, keyString, genericRow);
+      ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(kafkaTopicName, keyString, genericRow);
       producer.send(producerRecord);
       System.err.println(keyString + " --> (" + genericRow + ")");
       try {
@@ -91,6 +105,86 @@ public abstract class DataGenProducer {
     producer.flush();
     producer.close();
   }
+
+
+  /**
+   * If the sessionId is new Create a Session
+   * If the sessionId is active - return the value
+   * If the sessionId has expired - use a known token that is not expired
+   * @param sessionManager
+   * @param currentValue
+   * @return
+   */
+  Set<String> allTokens = new HashSet<String>();
+
+  private String handleSessionisationOfValue(SessionManager sessionManager, String currentValue) {
+
+    // superset of all values
+    allTokens.add(currentValue);
+
+    /**
+     * handle known sessions
+     */
+    if (sessionManager.isActive(currentValue)) {
+      if (sessionManager.isExpired(currentValue)) {
+        sessionManager.isActiveAndExpire(currentValue);
+        return currentValue;
+      } else {
+        return currentValue;
+      }
+    }
+    /**
+     * If session count maxed out - reuse session tokens
+     */
+    if (sessionManager.getActiveSessionCount() > sessionManager.getMaxSessions()) {
+      return sessionManager.getRandomActiveToken();
+    }
+
+    /**
+     * Force expiring tokens to expire
+     */
+    String expired = sessionManager.getActiveSessionThatHasExpired();
+    if (expired != null) {
+      return expired;
+    }
+
+    /**
+     * Use accummulated SessionTokens-tokens, or recycle old tokens or blow-up
+     */
+    String value = null;
+    for (String token : allTokens) {
+      if (value == null) {
+        if (!sessionManager.isActive(token) && !sessionManager.isExpired(token)) {
+          value = token;
+        }
+      }
+    }
+
+    if (value != null) {
+//      System.out.println("1-New Session:" + value + " Sessions: " + sessionManager.getActiveSessionCount());
+      sessionManager.newSession(value);
+    } else {
+      value = sessionManager.recycleOldestExpired();
+      if (value == null) {
+          new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
+        }
+//        System.out.println("2-New [Recycle] Session:" + value + " Tokens:" + allTokens.size());
+        sessionManager.newSession(value);
+        return value;
+    }
+    return currentValue;
+
+  }
+
+  private String getRandomToken(Set<String> collected){
+    if (collected.size() == 0) return null;
+    List<String> values = new ArrayList<>(collected);
+    int index = (int) (Math.random() * values.size());
+    String value = values.remove(index);
+    collected.remove(value);
+    return value;
+  }
+
 
   protected abstract Serializer<GenericRow> getSerializer(
       Schema avroSchema,

@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-examples</artifactId>
@@ -35,6 +35,19 @@
             <artifactId>avro-random-generator</artifactId>
 
         </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>[1.0.0,]</version>
+
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
     
     <build>
@@ -65,6 +78,51 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>create-licenses</id>
+                        <configuration>
+                            <mainClass>io.confluent.licenses.LicenseFinder</mainClass>
+                            <arguments>
+                                <!-- Note use of development instead of package so we pick up all dependencies.
+                                     This assumes both subprojects will be packaged together. -->
+                                <argument>-i
+                                    ${artifactId}/target/${artifactId}-${project.version}-package/share/java/${artifactId}</argument>
+                                <argument>-f</argument>
+                                <argument>-h licenses/licenses.html</argument>
+                                <argument>-l licenses</argument>
+                                <argument>-n notices</argument>
+                                <argument>-x licenses-${project.version}.jar</argument>
+                            </arguments>
+                        </configuration>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includeProjectDependencies>true</includeProjectDependencies>
+                    <includePluginDependencies>true</includePluginDependencies>
+                    <executableDependency>
+                        <groupId>io.confluent</groupId>
+                        <artifactId>licenses</artifactId>
+                    </executableDependency>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.confluent</groupId>
+                        <artifactId>licenses</artifactId>
+                        <version>${licenses.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
         </plugins>
     </build>
 </project>

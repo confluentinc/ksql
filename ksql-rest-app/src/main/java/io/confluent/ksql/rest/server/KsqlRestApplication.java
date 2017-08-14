@@ -63,8 +63,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  private static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
-  private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
+  public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -173,8 +173,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       return;
     }
 
-    Properties props = getProps(cliOptions.getPropertiesFile());
-    KsqlRestApplication app = buildApplication(props, cliOptions.getQuickstart());
+    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
+    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart());
+
     log.info("Starting server");
     app.start();
     log.info("Server up and running");
@@ -182,9 +183,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     log.info("Server shutting down");
   }
 
-  public static KsqlRestApplication buildApplication(Properties props, boolean quickstart)
+  public static KsqlRestApplication buildApplication(KsqlRestConfig restConfig, boolean quickstart)
       throws Exception {
-    KsqlRestConfig restConfig = new KsqlRestConfig(props);
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
     ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
@@ -226,7 +226,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             Collections.singletonMap(
                     DdlConfig.TOPIC_NAME_PROPERTY,
                     new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            )), Collections.emptyMap()));
+            )), Collections.emptyMap(), ksqlEngine.getKafkaTopicClient()));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

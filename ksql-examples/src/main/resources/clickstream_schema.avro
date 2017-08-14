@@ -1,37 +1,73 @@
 {
-        "namespace": "ksql",
-        "name": "clickstream",
+        "namespace": "clickstream",
+        "name": "events",
         "type": "record",
-  // $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-  // 104.152.45.45 - #user
-// {"ts": "2015-09-14T10:30:21-07:00", "status": "200", "request_method": "GET", "user_agent": "Mozilla/5.0 (pc-x86_64-linux-gnu) Siege/3.0.5", "url": "/page38/path7?user=24746", "latency": "0.001",  "user": "24746"}
-  // '$remote_addr - $remote_user [$time_local] '   '"$request" $status $bytes_sent '   '"$http_referer" "$http_user_agent" "$gzip_ratio"';
-  // 66.249.79.62 - - [01/Aug/2017:13:45:20 -0500] "GET /reddit/ HTTP/1.1" 302 278 "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
         "fields": [
                 {"name": "ip", "type": {
+                  "ses_NOOO_sion" : "true",
                     "type": "string",
                   "arg.properties": {
                     "options": [
-                      "104.152.45.45",
-                      "89.203.236.146",
-                      "205.168.57.122",
-                      "66.249.79.93",
-                      "205.168.57.122",
-                      "209.90.225.227",
-                      "54.173.165.103",
-                      "37.145.8.144",
-                      "172.245.174.248"
+                      "111.152.45.45",
+                      "111.203.236.146",
+                      "111.168.57.122",
+                      "111.249.79.93",
+                      "111.168.57.122",
+                      "111.90.225.227",
+                      "111.173.165.103",
+                      "111.145.8.144",
+                      "111.245.174.248",
+
+                      "222.152.45.45",
+                      "222.203.236.146",
+                      "222.168.57.122",
+                      "222.249.79.93",
+                      "222.168.57.122",
+                      "222.90.225.227",
+                      "222.173.165.103",
+                      "222.145.8.144",
+                      "222.245.174.248",
+
+                      "122.152.45.245",
+                      "122.203.236.246",
+                      "122.168.57.222",
+                      "122.249.79.233",
+                      "122.168.57.222",
+                      "122.90.225.227",
+                      "122.173.165.203",
+                      "122.145.8.244",
+                      "122.245.174.248",
+
+                      "233.152.245.45",
+                      "233.203.236.146",
+                      "233.168.257.122",
+                      "233.249.279.93",
+                      "233.168.257.122",
+                      "233.90.225.227",
+                      "233.173.215.103",
+                      "233.145.28.144",
+                      "233.245.174.248"
+
+
                     ]
                   }
                 }},
+//                {"name": "userid", "type": {
+//                  "type": "string",
+//                  "arg.properties": {
+//                    "options": [
+//                    "-"
+//                  ]
+//                  }}},
                 {"name": "userid", "type": {
-                  "type": "string",
-                  "arg.properties": {
-                    "options": [
-                    "-"
-                  ]
-                  }}},
-
+                    "type": "int",
+                    "arg.properties": {
+                        "range": {
+                            "min": -1,
+                            "max": 20
+                        }
+                    }
+                }},
               {"name": "remote_user", "type": {
                 "type": "string",
                 "arg.properties": {

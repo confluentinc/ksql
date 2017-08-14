@@ -17,11 +17,11 @@ import io.confluent.ksql.util.SchemaUtil;
 
 public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-  AggregateAnalysis aggregateAnalysis;
-  MetaStore metaStore;
-  Analysis analysis;
+  private AggregateAnalysis aggregateAnalysis;
+  private MetaStore metaStore;
+  private Analysis analysis;
 
-  boolean hasAggregateFunction = false;
+  private boolean hasAggregateFunction = false;
 
   public boolean isHasAggregateFunction() {
     return hasAggregateFunction;

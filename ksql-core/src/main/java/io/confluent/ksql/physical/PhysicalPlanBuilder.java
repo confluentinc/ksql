@@ -45,6 +45,8 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
@@ -54,11 +56,13 @@ import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.TopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +77,7 @@ public class PhysicalPlanBuilder {
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
 
-  OutputNode planSink = null;
+  private OutputNode planSink = null;
 
   public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
     this.builder = builder;
@@ -86,25 +90,30 @@ public class PhysicalPlanBuilder {
   }
 
   private SchemaKStream kafkaStreamsDsl(final PlanNode planNode) throws Exception {
+    return kafkaStreamsDsl(planNode, new HashMap<>());
+  }
+
+  private SchemaKStream kafkaStreamsDsl(final PlanNode planNode, Map<String, Object> propsMap) throws
+                                                                                   Exception {
     if (planNode instanceof SourceNode) {
-      return buildSource((SourceNode) planNode);
+      return buildSource((SourceNode) planNode, propsMap);
     } else if (planNode instanceof JoinNode) {
-      return buildJoin((JoinNode) planNode);
+      return buildJoin((JoinNode) planNode, propsMap);
     } else if (planNode instanceof AggregateNode) {
       AggregateNode aggregateNode = (AggregateNode) planNode;
-      SchemaKStream aggregateSchemaStream = buildAggregate(aggregateNode);
+      SchemaKStream aggregateSchemaStream = buildAggregate(aggregateNode, propsMap);
       return aggregateSchemaStream;
     } else if (planNode instanceof ProjectNode) {
       ProjectNode projectNode = (ProjectNode) planNode;
-      SchemaKStream projectedSchemaStream = buildProject(projectNode);
+      SchemaKStream projectedSchemaStream = buildProject(projectNode, propsMap);
       return projectedSchemaStream;
     } else if (planNode instanceof FilterNode) {
       FilterNode filterNode = (FilterNode) planNode;
-      SchemaKStream filteredSchemaStream = buildFilter(filterNode);
+      SchemaKStream filteredSchemaStream = buildFilter(filterNode, propsMap);
       return filteredSchemaStream;
     } else if (planNode instanceof OutputNode) {
       OutputNode outputNode = (OutputNode) planNode;
-      SchemaKStream outputSchemaStream = buildOutput(outputNode);
+      SchemaKStream outputSchemaStream = buildOutput(outputNode, propsMap);
       return outputSchemaStream;
     }
     throw new KsqlException(
@@ -112,7 +121,8 @@ public class PhysicalPlanBuilder {
             .getName());
   }
 
-  private SchemaKStream buildOutput(final OutputNode outputNode) throws Exception {
+  private SchemaKStream buildOutput(final OutputNode outputNode, Map<String, Object> propsMap)
+      throws Exception {
     SchemaKStream schemaKStream = kafkaStreamsDsl(outputNode.getSource());
     Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
     if (outputNode instanceof KsqlStructuredDataOutputNode) {
@@ -218,7 +228,8 @@ public class PhysicalPlanBuilder {
     throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
   }
 
-  private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
+  private SchemaKStream buildAggregate(final AggregateNode aggregateNode,
+                                       Map<String, Object> propsMap) throws Exception {
 
     StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
 
@@ -335,21 +346,35 @@ public class PhysicalPlanBuilder {
     return finalResult;
   }
 
-  private SchemaKStream buildProject(final ProjectNode projectNode) throws Exception {
+  private SchemaKStream buildProject(final ProjectNode projectNode, Map<String, Object> propsMap)
+      throws Exception {
     SchemaKStream projectedSchemaStream =
         kafkaStreamsDsl(projectNode.getSource()).select(projectNode.getProjectNameExpressionPairList());
     return projectedSchemaStream;
   }
 
 
-  private SchemaKStream buildFilter(final FilterNode filterNode) throws Exception {
+  private SchemaKStream buildFilter(final FilterNode filterNode, Map<String, Object> propsMap)
+      throws Exception {
     SchemaKStream
         filteredSchemaKStream =
         kafkaStreamsDsl(filterNode.getSource()).filter(filterNode.getPredicate());
     return filteredSchemaKStream;
   }
 
-  private SchemaKStream buildSource(final SourceNode sourceNode) {
+  private SchemaKStream buildSource(final SourceNode sourceNode, Map<String, Object> props) {
+
+    TopologyBuilder.AutoOffsetReset autoOffsetReset = null;
+    if (props.containsKey(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)) {
+      if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
+          .equalsIgnoreCase("EARLIEST")) {
+        autoOffsetReset = TopologyBuilder.AutoOffsetReset.EARLIEST;
+      } else if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
+          .equalsIgnoreCase("LATEST")) {
+        autoOffsetReset = TopologyBuilder.AutoOffsetReset.LATEST;
+      }
+    }
+
 
     if (sourceNode instanceof StructuredDataSourceNode) {
       StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
@@ -383,7 +408,7 @@ public class PhysicalPlanBuilder {
           KStream
               kstream =
               builder
-                  .stream(new WindowedSerde(), genericRowSerde,
+                  .stream(autoOffsetReset, new WindowedSerde(), genericRowSerde,
                       ksqlTable.getKsqlTopic().getKafkaTopicName())
                   .map(new KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>,
                       GenericRow>>() {
@@ -412,7 +437,7 @@ public class PhysicalPlanBuilder {
           KStream
               kstream =
               builder
-                  .stream(Serdes.String(), genericRowSerde,
+                  .stream(autoOffsetReset, Serdes.String(), genericRowSerde,
                       ksqlTable.getKsqlTopic().getKafkaTopicName())
                   .map(new KeyValueMapper<String, GenericRow, KeyValue<String,
                       GenericRow>>() {
@@ -465,9 +490,13 @@ public class PhysicalPlanBuilder {
     throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
 
-  private SchemaKStream buildJoin(final JoinNode joinNode) throws Exception {
+  private SchemaKStream buildJoin(final JoinNode joinNode, Map<String, Object> propsMap)
+      throws Exception {
     SchemaKStream leftSchemaKStream = kafkaStreamsDsl(joinNode.getLeft());
-    SchemaKStream rightSchemaKStream = kafkaStreamsDsl(joinNode.getRight());
+
+    propsMap.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+              TopologyBuilder.AutoOffsetReset.EARLIEST.toString());
+    SchemaKStream rightSchemaKStream = kafkaStreamsDsl(joinNode.getRight(), propsMap);
     if (rightSchemaKStream instanceof SchemaKTable) {
       SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
 
@@ -595,7 +624,7 @@ public class PhysicalPlanBuilder {
     return -1;
   }
 
-  private KStream addTimestampColumn(KStream kstream) {
+  private KStream addTimestampColumn(final KStream kstream) {
     return kstream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
       @Override
       public ValueTransformer<GenericRow, GenericRow> get() {
@@ -629,7 +658,7 @@ public class PhysicalPlanBuilder {
     });
   }
 
-  private int getTimeStampColumnIndex(Schema schema, Field timestampField) {
+  private int getTimeStampColumnIndex(final Schema schema, final Field timestampField) {
     String timestampFieldName = timestampField.name();
     if (timestampFieldName.contains(".")) {
       for (int i = 2; i < schema.fields().size(); i++) {

@@ -15,7 +15,7 @@ import javax.annotation.concurrent.Immutable;
 public abstract class SourceNode extends PlanNode {
 
   private final StructuredDataSource.DataSourceType dataSourceType;
-  final Field timestampField;
+  private final Field timestampField;
 
   public SourceNode(@JsonProperty("id") final PlanNodeId id,
                     @JsonProperty("timestampField") final Field timestampField,

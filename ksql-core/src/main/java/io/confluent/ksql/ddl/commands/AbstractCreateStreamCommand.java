@@ -9,6 +9,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
@@ -32,13 +33,16 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   String timestampColumnName;
   boolean isWindowed;
   RegisterTopicCommand registerTopicCommand;
+  KafkaTopicClient kafkaTopicClient;
 
   public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
-                                     Map<String, Object> overriddenProperties) {
+                                     Map<String, Object> overriddenProperties,
+                                     KafkaTopicClient kafkaTopicClient) {
     // TODO: get rid of toUpperCase in following code
     Map<String, Expression> properties = statement.getProperties();
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
+    this.kafkaTopicClient = kafkaTopicClient;
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
         !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
@@ -182,6 +186,9 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     }
     String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+    if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
+      throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
+    }
     return new RegisterTopicCommand(this.topicName, false, properties, overriddenProperties);
   }
 }

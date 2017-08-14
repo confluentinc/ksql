@@ -35,7 +35,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class StreamedQueryResourceTest {
 
@@ -138,7 +138,7 @@ public class StreamedQueryResourceTest {
           expectedRow = writtenRows.poll();
         }
         GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
-        assertTrue(expectedRow.hasTheSameContent(testRow));
+        assertEquals(expectedRow, testRow);
       }
     }
 

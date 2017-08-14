@@ -2,8 +2,6 @@
 
 KSQL provides a structured query language to do stream processing on Kafka topics.  KSQL is built on top of Kafka and the Kafka [Streams API](https://kafka.apache.org/documentation/streams). 
 
-Here are the main concepts.
-
 ## Stream
 A stream is an unbounded sequence of structured values that are stored in a Kafka topic. The structure of the values is specified in a schema. In Kafka streams vocabulary, a KSQL stream is a [KStream](http://docs.confluent.io/current/streams/concepts.html?highlight=kstream#kstream) plus a schema. 
 

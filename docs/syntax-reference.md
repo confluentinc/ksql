@@ -26,11 +26,18 @@ version
 server [http://my.server.name:8090] (Remote Cli Only)
   Without arguments will display the address of the KSQL server to which this CLI is currently connected. With server specification it drops any current server connection and replaces it with one to the specified server address.
 
-DDL statements
-++++++++++++++
-All KSQL statements should be terminated with a semi-colon. If desired, use a back-slash ('\\') to indicate continuation on the next line.
+## DDL statements
 
-DESCRIBE `stream-or-table`
+All KSQL statements should be terminated with a semi-colon. If desired, use a back-slash ('\\') to indicate continuation on the next line. Here are the supported DDL statements.
+
+### DESCRIBE
+
+```
+DESCRIBE stream-or-table
+```
+
+
+### SHOW
 
 SHOW | LIST TOPICS
 
@@ -76,18 +83,19 @@ Example
   ksql> CREATE TABLE users (usertimestamp bigint, userid varchar, gender varchar, regionid varchar) WITH (value_format = 'json', kafka_topic='user_topic_json'); 
 
 
-DML statements
-++++++++++++++
-SELECT
-  Selects rows from a KSQL stream or table. The result of this statement will be printed out in the console. To stop the continuous query in the CLI press Ctrl+C.
-::
+## DML statements
 
+### SELECT
+  Selects rows from a KSQL stream or table. The result of this statement will be printed out in the console. To stop the continuous query in the CLI press Ctrl+C.
+
+  ```
   SELECT `select_expr` [, ...] 
   FROM `from_item` [, ...]
   [ WINDOW `window_expression` ]
   [ WHERE `condition` ]
   [ GROUP BY `grouping expression` ]
   [ HAVING `having_expression` ]
+  ```
 
 where `from_item` is one of the following:
 
@@ -169,8 +177,7 @@ The WITH section can be used to set the properties for the result KSQL topic. Th
 * REPLICATIONS: The replication factor for the sink stream.
 
 
-Scalar Functions
-++++++++++++++++
+## Scalar Functions
 KSQL provides a set of internal functions that can use used in query expressions. The following is the list of the currently available functions:
 
 =========  ======================  =======================================================
@@ -189,8 +196,7 @@ ROUND      ROUND(col1)             Round a value to the nearest integral value
 RANDOM     RANDOM()                Return a random value between 0 and 1.0	
 =========  ======================  =======================================================
 
-Aggregate Functions
-++++++++++++++++
+## Aggregate Functions
 KSQL provides a set of internal aggregate functions that can use used in query expressions. The following is the list of the currently available aggregate functions:
 
 =========  ======================  =======================================================

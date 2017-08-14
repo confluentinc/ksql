@@ -16,6 +16,7 @@ In client-server mode, you can run a pool of KSQL servers on remote machines, VM
 
 - [Maven](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/downloads) and [Confluent KSQL repository](https://github.com/confluentinc/ksql)
+- A Kafka cluster
 - Java: Minimum version 1.7. 
 
 1.  Navigate to the KSQL root directory and compile the KSQL code:
@@ -39,7 +40,7 @@ In client-server mode, you can run a pool of KSQL servers on remote machines, VM
 1.  Start KSQL by running the compiled JAR file. Use the local argument for the developer preview. This starts the KSQL engine locally.
 
 	```bash
-	java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
+	java -jar ksql-cli/target/ksql-cli-0.1-SNAPSHOT-standalone.jar local
 	```
 
 	When this command completes, you should see the KSQL prompt:

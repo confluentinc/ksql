@@ -26,6 +26,7 @@ If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quic
 
 - [Maven](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/downloads)
+- A Kafka cluster
 - Java: Minimum version 1.7. 
 
 1.  Clone the Confluent KSQL repository:
@@ -49,7 +50,7 @@ If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quic
 1.  Start KSQL by running the compiled jar file ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar. Use the local argument for the developer preview. This starts the KSQL engine locally.
 
 	```bash
-	java -jar ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar local
+	java -jar ksql-cli/target/ksql-cli-0.1-SNAPSHOT-standalone.jar local
 	```
 
 	When this command completes, you should see the KSQL prompt:

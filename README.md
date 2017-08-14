@@ -68,14 +68,12 @@ KSQL consists of a client and a server component. The client is a command line i
 You can [find the KSQL documentation here](/docs/). 
 
 # Getting Help
----
 If you need help or have questions, you have several options:
 * Ask a question in the #ksql channel in our public [Confluent Community Slack](https://confluent.typeform.com/to/GxTHUD). Account registration is free and self-service.
 * Create a [ticket](https://github.com/confluentinc/ksql) in our issue [tracker](https://github.com/confluentinc/ksql).
 * Join the [Confluent google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 # Contributing to KSQL
----
 *This section contains information about how to contribute code and documentation, etc.*
 
 To build KSQL locally:
@@ -87,7 +85,6 @@ $ mvn clean package
 ```
 
 # License
----
 The project is licensed under the Apache License, version 2.0.
 
 *Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/)*

@@ -453,9 +453,11 @@ public class JsonFormatTest {
     final String streamName = "SelectDateTimeUDFsStream".toUpperCase();
 
     final String selectColumns =
-        "(ORDERTIME+1500962514806) , TIMESTAMPTOSTRING(ORDERTIME+1500962514806), STRINGTOTIMESTAMP"
+        "(ORDERTIME+1500962514806) , TIMESTAMPTOSTRING(ORDERTIME+1500962514806, "
+        + "'yyyy-MM-dd HH:mm:ss.SSS'), "
+        + "STRINGTOTIMESTAMP"
             + "(TIMESTAMPTOSTRING"
-            + "(ORDERTIME+1500962514806))";
+            + "(ORDERTIME+1500962514806, 'yyyy-MM-dd HH:mm:ss.SSS'), 'yyyy-MM-dd HH:mm:ss.SSS')";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
 
     final String queryString = String.format(

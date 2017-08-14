@@ -14,7 +14,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 public class LongMinKudaf extends KsqlAggregateFunction<Long, Long> {
 
   public LongMinKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0L, Schema.INT64_SCHEMA,
+    super(argIndexInValue, Long.MAX_VALUE, Schema.INT64_SCHEMA,
           Arrays.asList(Schema.INT64_SCHEMA),
           "MIN", LongMinKudaf.class);
   }

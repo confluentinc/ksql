@@ -8,5 +8,5 @@ To build SNAPSHOT images, configure `.m2/settings.xml` for SNAPSHOT dependencies
 mvn package -DskipTests  # Build local images
 
 # Build images for a private registry; trailing '/' is required:
-# mvn package -DskipTests -Ddocker.registry=docker.example.com:8080/
+# mvn package -DskipTests -Ddocker.registry=docker.example.com:8080/ -Ddocker.tag=0.1-SNAPSHOT-$BUILD_NUMBER
 ```

@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-zookeeper:latest"
+    image: confluentinc/cp-zookeeper:3.3.0
     hostname: zookeeper
     ports:
       - '32181:32181'
@@ -13,7 +13,7 @@ services:
       - "moby:127.0.0.1"
 
   kafka:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-enterprise-kafka:latest"
+    image: confluentinc/cp-enterprise-kafka:3.3.0
     hostname: kafka
     ports:
       - '9092:9092'
@@ -38,7 +38,7 @@ services:
       - "moby:127.0.0.1"
 
   schema-registry:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-schema-registry:latest"
+    image: confluentinc/cp-schema-registry:3.3.0
     hostname: schema-registry
     depends_on:
       - zookeeper
@@ -51,9 +51,38 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL data generator for topic called "pageviews"
+  # Runs the Kafka KSQL application
+  ksql-cli:
+    image: confluentinc/cp-kafka-streams-examples:latest
+    volumes:
+      - /Users/joel/projects/ksql/ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar
+    hostname: ksql-cli
+    depends_on:
+      - kafka
+      - schema-registry
+    # Note: The container's `run` script will perform the same readiness checks
+    # for Kafka and Confluent Schema Registry, but that's ok because they complete fast.
+    # The reason we check for readiness here is that we can insert a sleep time
+    # for topic creation before we start the application.
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+                       cub kafka-ready -b kafka:29092 1 20 && \
+                       echo Waiting for Confluent Schema Registry to be ready... && \
+                       cub sr-ready schema-registry 8081 20 && \
+                       echo Waiting a few seconds for topic creation to finish... && \
+                       sleep 2 && \
+                       /etc/confluent/docker/run'"
+    environment:
+      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
+      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
+      STREAMS_SCHEMA_REGISTRY_PORT: 8081
+    extra_hosts:
+      - "moby:127.0.0.1"
+
+  # Runs the Kafka KSQL data generator
   ksql-datagen-pageviews:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-ksql-examples:latest"
+    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
+    volumes:
+      - /Users/joel/projects/ksql/ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
@@ -68,10 +97,8 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/confluent/ksql-examples-0.1-SNAPSHOT-standalone.jar
-                       quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/confluent/ksql-examples-0.1-SNAPSHOT-standalone.jar
-                       quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=1000'"
+                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
+                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=1000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092
       STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
@@ -79,9 +106,11 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL data generator for topic called "users"
+  # Runs the Kafka KSQL data generator
   ksql-datagen-users:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-ksql-examples:latest"
+    image: docker.confluent.io:5000/confluentinc/cp-ksql-examples:latest
+    volumes:
+      - /Users/joel/projects/ksql/ksql-examples/target/ksql-examples-1.0-SNAPSHOT-standalone.jar
     hostname: ksql-datagen-users
     depends_on:
       - kafka
@@ -96,10 +125,8 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/confluent/ksql-examples-0.1-SNAPSHOT-standalone.jar
-                       quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/confluent/ksql-examples-0.1-SNAPSHOT-standalone.jar
-                       quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=1000'"
+                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
+                       java -jar /usr/share/confluent/ksql-examples-1.0-SNAPSHOT-standalone.jar quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=1000'"
     environment:
       STREAMS_BOOTSTRAP_SERVERS: kafka:29092
       STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
@@ -107,19 +134,7 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
 
-  # Runs the Kafka KSQL application
+volumes:
   ksql-cli:
-    image: "${DOCKER_REGISTRY}confluentinc/cp-ksql-cli:latest"
-    hostname: ksql-cli
-    depends_on:
-      - kafka
-      - schema-registry
-      - ksql-datagen-pageviews
-      - ksql-datagen-users
-    command: "perl -e 'while(1){ sleep 99999 }'"
-    environment:
-      STREAMS_BOOTSTRAP_SERVERS: kafka:29092
-      STREAMS_SCHEMA_REGISTRY_HOST: schema-registry
-      STREAMS_SCHEMA_REGISTRY_PORT: 8081
-    extra_hosts:
-      - "moby:127.0.0.1"
+  ksql-datagen-pageviews:
+  ksql-datagen-users:

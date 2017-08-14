@@ -1,4 +1,10 @@
-.. _ksql_quickstart:
+Concepts.md
+FAQ.md
+Home.md
+Installation.md
+Limitations.md
+Quickstart-Guide.md
+Syntax-Guide.rest.. _ksql_quickstart:
 
 KSQL Quickstart
 ===============

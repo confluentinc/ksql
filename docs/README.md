@@ -13,6 +13,8 @@ KSQL is an open source streaming SQL engine that implements continuous, interact
 
 KSQL lowers the barriers for using real-time data in your applications. It is powered by a scalable streaming platform without the learning curve or additional management complexity of other stream processing solutions.
 
+> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+
 ## Features
 
 ## Concepts

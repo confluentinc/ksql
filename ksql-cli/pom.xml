@@ -98,6 +98,27 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                        <configuration>
+                            <buildArgs>
+                                <KSQL_VERSION>${project.version}</KSQL_VERSION>
+                                <DOCKER_REGISTRY>${docker.registry}</DOCKER_REGISTRY>
+                            </buildArgs>
+                            <tag>${docker.tag}</tag>
+                            <repository>${docker.registry}confluentinc/${project.artifactId}</repository>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>

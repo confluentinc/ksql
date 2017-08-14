@@ -35,7 +35,7 @@
         <arg.version>0.1-SNAPSHOT</arg.version>
         <avro.version>1.8.1</avro.version>
         <csv.version>1.4</csv.version>
-        <docker.registry>docker.confluent.io:5000/</docker.registry>
+        <docker.registry>${env.DOCKER_REGISTRY}</docker.registry>
         <docker.tag>${project.version}</docker.tag>
         <guava.version>21.0</guava.version>
         <inject.version>1</inject.version>
@@ -186,6 +186,13 @@
     </dependencies>
 
     <build>
+		<extensions>
+            <extension>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+            </extension>
+        </extensions>
+
         <pluginManagement>
             <plugins>
                 <plugin>

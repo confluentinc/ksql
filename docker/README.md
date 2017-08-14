@@ -7,10 +7,6 @@ By default, local images and the public Docker registry are used. To work with a
 To build SNAPSHOT images, configure `.m2/settings.xml` for SNAPSHOT dependencies. These must be available at build time.
 
 ```
-# In the top level project directory:
-
-# Set private registry, if needed. Trailing slash is required.
-export DOCKER_REGISTRY=docker.example.com:8080/
-
-mvn package  # Build images locally.
+# Build images locally; trailing '/' is required:
+mvn package -DskipTests -Ddocker.registry=docker.confluent.io:5000/
 ```

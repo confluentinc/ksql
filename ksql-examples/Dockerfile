@@ -1,6 +1,6 @@
 ARG DOCKER_REGISTRY
 
-FROM "${DOCKER_REGISTRY}confluentinc/cp-base"
+FROM ${DOCKER_REGISTRY}confluentinc/cp-base
 
 ARG KSQL_VERSION
 

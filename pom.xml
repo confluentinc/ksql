@@ -35,6 +35,8 @@
         <arg.version>0.1-SNAPSHOT</arg.version>
         <avro.version>1.8.1</avro.version>
         <csv.version>1.4</csv.version>
+        <docker.registry>docker.confluent.io:5000/</docker.registry>
+        <docker.tag>${project.version}</docker.tag>
         <guava.version>21.0</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>

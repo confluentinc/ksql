@@ -4,17 +4,21 @@
 
 package io.confluent.ksql.physical;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class GenericRow {
 
-  private List<Object> columns;
+  private final List<Object> columns;
 
   public GenericRow() {
+    columns = new ArrayList<>();
   }
 
   public GenericRow(List<Object> columns) {
+    Objects.requireNonNull(columns);
     this.columns = columns;
   }
 
@@ -43,25 +47,25 @@ public class GenericRow {
     return stringBuilder.toString();
   }
 
-  public boolean hasTheSameContent(Object other) {
-    if (!(other instanceof GenericRow)) {
-      return  false;
-    }
-    GenericRow otherGenericRow = (GenericRow) other;
-    if (columns.size() != otherGenericRow.columns.size()) {
-      return false;
-    }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    GenericRow that = (GenericRow) o;
 
-    // For now string matching is used to compare the rows.
-    return this.toString().equals(otherGenericRow.toString());
+    if (columns.size() != that.columns.size()) return false;
+
+    // For now string matching is used to compare the rows as double comparision will cause issues
+    return this.toString().equals(that.toString());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(columns);
   }
 
   public List<Object> getColumns() {
     return columns;
-  }
-
-  public void setColumns(List<Object> columns) {
-    this.columns = columns;
   }
 
 }

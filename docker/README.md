@@ -4,6 +4,8 @@ This project uses the `dockerfile-maven` plugin to build Docker images via `mvn 
 
 To build SNAPSHOT images, configure `.m2/settings.xml` for SNAPSHOT dependencies. These must be available at build time.
 
+Pushing images is currently handled via `docker push`, and is not part of the build.
+
 ```
 mvn package -DskipTests  # Build local images
 

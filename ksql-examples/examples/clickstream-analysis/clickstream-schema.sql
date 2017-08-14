@@ -87,7 +87,7 @@ create TABLE CLICK_USER_SESSIONS_TS as SELECT rowTime as event_ts, * from CLICK_
 
 -- users lookup table
 DROP TABLE web_users;
-CREATE TABLE web_users (user_id int, registered_At long, first_name varchar, last_name varchar, city varchar, level varchar) with (key='user_id', kafka_topic = 'webusers_kafka_topic_json', value_format = 'json');
+CREATE TABLE web_users (user_id int, registered_At long, first_name varchar, last_name varchar, city varchar, level varchar) with (key='user_id', kafka_topic = 'clickstream_users', value_format = 'json');
 
 -- Clickstream enriched with user account data
 --DROP STREAM customer_clickstream

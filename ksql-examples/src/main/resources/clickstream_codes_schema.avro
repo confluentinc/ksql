@@ -1,5 +1,5 @@
 {
-  "namespace": "ksql",
+  "namespace": "clickstream",
   "name": "codes",
   "type": "record",
   "fields": [

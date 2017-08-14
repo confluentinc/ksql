@@ -104,7 +104,7 @@ Before proceeding, please check:
 Write Queries
 -------------
 
-1. Use ``SELECT`` to create a query that returns data from a STREAM. To stop viewing the data, press `<ctrl-c>`. You may optionally include the ``LIMIT`` keyword to limit the number of rows returned in the query result. 
+1. Use ``SELECT`` to create a query that returns data from a STREAM. To stop viewing the data, press `<ctrl-c>`. You may optionally include the ``LIMIT`` keyword to limit the number of rows returned in the query result. Note that exact data output may vary because of the randomness of the data generation.
 
 .. sourcecode:: bash
 

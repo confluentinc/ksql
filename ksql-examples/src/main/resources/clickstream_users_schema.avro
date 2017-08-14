@@ -1,6 +1,6 @@
 {
-        "namespace": "ksql",
-        "name": "clickstream_users",
+        "namespace": "clickstream",
+        "name": "users",
         "type": "record",
         "fields": [
                 {"name": "user_id", "type": {

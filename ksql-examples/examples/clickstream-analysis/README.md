@@ -130,28 +130,11 @@ ksql> select * from PAGES_PER_MIN;
 ^CQuery terminated
 ksql> 
 ```
-10. 'curl' the a dynamic template into Elastic so it can pick up EVENT_TS fields as the timestamp
+10. Send KSQL Tables=>Connect=>Elastic=>Grafana
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
-user$ ./elastic-dynamic-template.sh 
+user$ ./ksql-tables-to-grafana.sh
 {<<JSON RESPONSE>>} 
-user$ 
-```
-
-
-11. 'curl' the  'Connect' so that it pipes data into Elastic from the TABLE topics
-```
-ksql user$ cd ksql-examples/examples/clickstream-analysis/
-user$ ./clickstream-schema-connect-elastic.sh 
-{<<JSON RESPONSE>>} 
-user$ 
-```
-
-12. Add datasources to Grafana
-```
-:ksql user$ cd ksql-examples/examples/clickstream-analysis
-:clickstream-analysis user$ ./grafana-datasources.sh
-{<<JSON RESPONSE>>}
 user$ 
 ```
 

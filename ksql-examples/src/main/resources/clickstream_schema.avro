@@ -1,10 +1,10 @@
 {
-        "namespace": "ksql",
-        "name": "clickstream",
+        "namespace": "clickstream",
+        "name": "events",
         "type": "record",
         "fields": [
                 {"name": "ip", "type": {
-                  "session" : "true",
+                  "ses_NOOO_sion" : "true",
                     "type": "string",
                   "arg.properties": {
                     "options": [

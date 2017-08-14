@@ -13,7 +13,7 @@ table_name=$1
 TABLE_NAME=`echo $1 | tr '[a-z]' '[A-Z]'`
 
 
-echo "GOT:" $TABLE_NAME " And " $table_name
+echo "Connecting:" $table_name
 
 ## Load the _TS dynamic template into ELASTIC
 ./elastic-dynamic-template.sh
@@ -36,13 +36,15 @@ curl -X "POST" "http://localhost:8083/connectors/" \
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "type.name": "type.name=kafkaconnect",
     "topic.index.map": "'$TABLE_NAME':'$table_name'",
-    "connection.url": "http://localhost:9200"
+     "connection.url": "http://localhost:9200",
+    "transforms": "FilterNulls",
+    "transforms.FilterNulls.type": "io.confluent.transforms.NullFilter"
   }
 }'
 
 
-
-echo "Adding Grafana Source\n\n"
+echo ""
+echo "Adding Grafana Source"
 
 ## Add the Elastic DataSource into Grafana
 curl -X "POST" "http://localhost:3000/api/datasources" \
@@ -51,7 +53,9 @@ curl -X "POST" "http://localhost:3000/api/datasources" \
 	     -d $'{"id":1,"orgId":1,"name":"'$table_name'","type":"elasticsearch","typeLogoUrl":"public/app/plugins/datasource/elasticsearch/img/elasticsearch.svg","access":"proxy","url":"http://localhost:9200","password":"","user":"","database":"'$table_name'","basicAuth":false,"isDefault":false,"jsonData":{"timeField":"EVENT_TS"}}'
 
 
-Echo "Navigate to Grafana to create a Dashboard Panel with the datasource: http://localhost:3000/dashboard/new" $1
+echo ""
+echo "Navigate to Grafana and create a Dashboard Panel: http://localhost:3000/dashboard/new"
+echo "Add the datasource: " $1
 
 
 

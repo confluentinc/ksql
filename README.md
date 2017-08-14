@@ -2,14 +2,13 @@
 
 *A Streaming SQL Engine for Apache Kafka™ from Confluent*
 
-**DEVELOPER PREVIEW**
-
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands. 
 
 KSQL does not require proficiency with a programming language such as Java or Go, and it does not require you to install and manage a separate processing cluster technology. As such, it opens up the world of stream processing to a broader set of users and applications than ever before.
 
-This release is a DEVELOPER PREVIEW which is free and open-source from Confluent under the Apache 2.0 license.
-KSQL consists of a client and a server component. The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
+KSQL consists of a client and a server component.  The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
+
+*Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
 # Installation
 
@@ -73,16 +72,8 @@ If you need help or have questions, you have several options:
 * Create a [ticket](https://github.com/confluentinc/ksql) in our issue [tracker](https://github.com/confluentinc/ksql).
 * Join the [Confluent google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
-# Contributing to KSQL
-*This section contains information about how to contribute code and documentation, etc.*
-
-To build KSQL locally:
-
-```sh
-$ git clone https://github.com/confluentinc/ksql.git
-$ cd ksql
-$ mvn clean package
-```
+# Contributing
+Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).
 
 # License
 The project is licensed under the Apache License, version 2.0.

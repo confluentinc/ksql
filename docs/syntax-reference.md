@@ -1,9 +1,9 @@
+# KSQL CLI
+The KSQL CLI provides a terminal-based interactive shell for running queries. The CLI is a self-executing JAR file, which means it acts like a normal UNIX executable.
 
 
-
-CLI commands
-++++++++++++
-Commands are non-SQL statements such as setting a property or adding a resource. 
+## CLI command line options
+Commands are non-SQL statements such as setting a property or adding a resource. Run the CLI with the --help option to see the available options.
 
 clear
   Clears the current CLI contents

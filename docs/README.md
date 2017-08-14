@@ -31,7 +31,7 @@ KSQL queries are issued from the KSQL CLI client and operated on a server. The C
 ## Getting Started
 <!-- What do you users need to get started -->
 
-* Beginners can try the [interactive quickstart](https://github.com/confluentinc/ksql).
+* Beginners can try the [interactive quickstart](/quickstart/).
 * Advanced users can try a more realistic [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
 
 To learn more about KSQL see our [documentation](https://github.com/confluentinc/ksql) including the [KSQL Syntax Guide](https://github.com/confluentinc/ksql).

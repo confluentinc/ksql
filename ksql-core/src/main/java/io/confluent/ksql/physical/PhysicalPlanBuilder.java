@@ -417,8 +417,8 @@ public class PhysicalPlanBuilder {
                         Windowed<String> key, GenericRow row) {
                       if (row != null) {
                         row.getColumns().add(0,
-                                             String.format("%s : Window{start=%d end=%d}", key
-                                                 .key(), key.window().start(), key.window().end()));
+                                             String.format("%s : Window{start=%d end=-}", key
+                                                 .key(), key.window().start()));
 
                       }
                       return new KeyValue<>(key, row);

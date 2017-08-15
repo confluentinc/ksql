@@ -123,10 +123,10 @@ ksql> select * from EVENTS_PER_MIN_TS;
 1502152020000 | -]�<�  | 1502152020000 | - | 6
 ^CQuery terminated
 ksql> select * from PAGES_PER_MIN;
-1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 6
-1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 7
-1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 4
-1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 5
+1502152040000 | - : Window{start=1502152040000 end=-} | - | 6
+1502152040000 | - : Window{start=1502152040000 end=-} | - | 7
+1502152045000 | - : Window{start=1502152045000 end=-} | - | 4
+1502152045000 | - : Window{start=1502152045000 end=-} | - | 5
 ^CQuery terminated
 ksql> 
 ```

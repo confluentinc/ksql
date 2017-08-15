@@ -178,8 +178,7 @@ Before proceeding, please check:
 
 7. Show all queries.
 
-.. sourcecode:: bash
-
+   ```bash
    ksql> SHOW QUERIES;
 
     Query ID | Kafka Topic              | Query String                                                                                                                                                                                                                      
@@ -187,19 +186,19 @@ Before proceeding, please check:
     1        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE'; 
     2        | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';                                
     3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;   
+   ```
 
 
-Terminate and Exit
-------------------
+## Terminate and Exit
 
 1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
-.. sourcecode:: bash
-
+   ```bash
    ksql> terminate 2;
+   ```
 
 2. To exit from KSQL application, from the KSQL prompt `ksql>`, type 'exit'.
 
-.. sourcecode:: bash
-
-  ksql> exit
+   ```bash
+   ksql> exit
+   ```

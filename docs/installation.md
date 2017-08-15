@@ -1,6 +1,6 @@
 # Installation
 
-| [Overview](/docs/overview.md) | Installation | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
+| [Overview](/docs/) | Installation | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
 |----------|--------------|-------------|------------------|------------------|------------------|
 
 You can quickly install KSQL in your environment. 

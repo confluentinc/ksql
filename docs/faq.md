@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-| [Overview](/docs/overview.md) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | FAQ |
+| [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | FAQ |
 |----------|--------------|-------------|------------------|------------------|------------------|
 
 **What are the benefits of KSQL?**

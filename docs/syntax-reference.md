@@ -1,6 +1,6 @@
 # Syntax Reference
 
-| [Overview](/docs/overview.md) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
+| [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
 |----------|--------------|-------------|------------------|------------------|------------------|
 
 The KSQL CLI provides a terminal-based interactive shell for running queries. The CLI is a self-executing JAR file, which means it acts like a normal UNIX executable.

@@ -1,17 +1,19 @@
+| [Overview](/docs/overview.md) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)|
+|----------|--------------|-------------|------------------|--|-----|
+
 # KSQL Documentation
 
-## Overview
+Table of Contents:
 
-KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL an SQL-like commands. KSQL interacts directly with the [Kafka Streams API](http://docs.confluent.io/current/streams/concepts.html), removing the requirement of building a Java app. Common KSQL use cases are:
+- [Overview](/docs/overview.md)
+- [Installation](/docs/installation.md)
+- [Quick Start Guide](/docs/installation.md)
+- [Syntax Reference](/docs/syntax-reference.md)
+- [Examples](/docs/examples.md)
+- [FAQ](/docs/faq.md)
 
-- Fraud detection - identify and act on out of the ordinary data to provide real-time awareness. 
-- Personalization - create real-time experiences and insight for end users driven by data. 
-- Notifications - build custom alerts and messages based on real-time data. 
-- Real-time Analytics - power real-time dashboards to understand what’s happening as it does. 
-- Sensor data and IoT - understand and deliver sensor data how and where it needs to be. 
-- Customer 360 - provide a clear, real-time understanding of your customers across every interaction.
-
-KSQL lowers the barriers for using real-time data in your applications. It is powered by a scalable streaming platform without the learning curve or additional management complexity of other stream processing solutions.
+# Overview
+KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL an SQL-like commands. KSQL interacts directly with the [Kafka Streams API](http://docs.confluent.io/current/streams/concepts.html), removing the requirement of building a Java app. 
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
@@ -29,13 +31,14 @@ A topic is a category or feed name where records are published. For more informa
 ## Getting Started
 <!-- What do you users need to get started -->
 
-* Beginners: Try the [interactive quickstart](/quickstart/).
+* Beginners: Try the [interactive quick start](/quickstart/). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 * Advanced users: Try the [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
 
-Table of Contents:
+<!-- merged content here -->
 
-- [Installation](/docs/installation.md)
-- [Quick Start Guide](/docs/installation.md)
-- [Syntax Reference](/docs/syntax-reference.md)
-- [Examples](/docs/examples.md)
-- [FAQ](/docs/faq.md)
+# Installation
+
+Follow [these instructions](../README.md/#initial-cleanup#installation).
+
+# Quick Start Guide
+

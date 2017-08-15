@@ -23,8 +23,8 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 1.  Bring up a Kafka cluster and start KSQL.
 
-	* `Follow these instructions if you are using Docker <quick start-docker.rst>`__  (we recommend Docker for simplicity)
-	* `Follow these instructions if you are not using Docker <quick start-non-docker.rst>`__
+	* [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.rst)  (we recommend Docker for simplicity)
+	* [Follow these instructions if you are not using Docker](quickstart-non-docker.rst)
 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
@@ -35,7 +35,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 3.  KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quick start, you will produce mock streams to the Kafka cluster.
 
 	* If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
-	* If you are not using our Docker environment, then follow these `instructions <quick start-non-docker.rst#produce-topic-data>`__ to generate data to the Kafka cluster
+	* If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.rst#produce-topic-data) to generate data to the Kafka cluster
 
 ## Create a STREAM and TABLE
 

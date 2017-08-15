@@ -41,7 +41,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 This KSQL quick start shows examples querying data from Kafka topics called `pageviews` and `users` using the following schemas:
 
-![image](https://github.com/confluentinc/ksql/blob/master/quick start/ksql-quick start-schemas.jpg)
+![image](/docs/quickstart/ksql-quickstart-schemas.jpg)
     
 Before proceeding, please check:
 

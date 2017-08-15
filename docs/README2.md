@@ -22,6 +22,7 @@ KSQL lowers the barriers for using real-time data in your applications. It is po
 * Advanced users: Try the [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
 
 # Concepts
+----
 
 KSQL provides a structured query language to do stream processing on Kafka topics.  KSQL is built on top of Kafka and the Kafka [Streams API](https://kafka.apache.org/documentation/streams). 
 
@@ -35,6 +36,7 @@ A table in KSQL is finite, where the bounds are defined by the size of the key s
 A topic is a category or feed name where records are published. For more information, see the [Apache Kafka documentation](https://kafka.apache.org/documentation/#intro_topics).
 
 # Installation
+----
 
 You can quickly install KSQL in your environment. 
 
@@ -101,9 +103,11 @@ In client-server mode, you can run a pool of KSQL servers on remote machines, VM
 	```
 
 # Limitations
+----
 Content TBD.
 
 # Syntax Reference
+----
 The KSQL CLI provides a terminal-based interactive shell for running queries. The CLI is a self-executing JAR file, which means it acts like a normal UNIX executable.
 
 

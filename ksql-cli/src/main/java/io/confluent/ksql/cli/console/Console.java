@@ -186,15 +186,14 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\thelp: Print usage.");
+        writer().println("help:");
+        writer().println("\tShow this message.");
       }
 
       @Override
       public void execute(String line) {
         writer().println("CLI-specific commands. Each command must be on a separate line:");
         writer().println();
-        writer().println("Commands:");
-        writer().println();        
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
           writer().println();
@@ -203,7 +202,7 @@ public abstract class Console implements Closeable {
         writer().println("Default behavior:");
         writer().println();
         writer().println("    Lines are read one at a time and are sent to the server as"
-            + " KSQL unless one of the following is true:"
+            + "KSQL unless one of the following is true:"
         );
         writer().println();
         writer().println("    1. The line is empty or entirely whitespace. In this case, "
@@ -228,7 +227,7 @@ public abstract class Console implements Closeable {
       @Override
       public void printHelp() {
         writer().println("clear:");
-        writer().println("\t.Clear the current terminal.");
+        writer().println("\tClear the current terminal.");
       }
 
       @Override
@@ -247,10 +246,15 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\toutput:");
-        writer().println("\tView the current output format");
-        writer() .printf("output <format>:"),
-        writer() .printf("\tSet the output format to <format> (valid formats: %s)%n"),
+        writer().println("output:");
+        writer().println("\tView the current output format.");
+        writer().println("");
+        writer() .printf(
+            "output <format>:",
+            OutputFormat.VALID_FORMATS
+        );
+        writer() .printf(
+            "\tSet the output format to <format> (valid formats: %s)%n",
             OutputFormat.VALID_FORMATS
         );
         writer().println("\tFor example: \"output JSON\"");
@@ -275,8 +279,10 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("history:"),
-        writer().println("history:\tShow previous lines entered during the current CLI session. You can use "
+        writer().println(
+            "history:");
+        writer().println(
+            "\tShow previous lines entered during the current CLI session. You can use "
                 + "up and down arrow keys to navigate to the previous lines too."
         );
       }
@@ -298,8 +304,8 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("version:"),
-        writer().println("\tGet the current KSQL version");
+        writer().println("version:");
+        writer().println("\tGet the current KSQL version.");
       }
 
       @Override
@@ -318,8 +324,9 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("exit:"),
-        writer().println("\tExit the CLI; EOF (CTRL + D) works as well."
+        writer().println("exit:");
+        writer().println(
+            "\tExit the CLI."
         );
       }
 

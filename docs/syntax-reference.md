@@ -5,30 +5,46 @@ The KSQL CLI provides a terminal-based interactive shell for running queries. Th
 ## CLI command line options
 Commands are non-SQL statements such as setting a property or adding a resource. Run the CLI with the --help option to see the available options.
 
-clear
-  Clears the current CLI contents
-exit | CTRL-D
-  Exit the CLI process.
-help
-  Display inline help for all of the CLI commands.
-history
-  Show a history of your commands entered during the current CLI session.
-output [JSON|TABULAR]
-  Sets the display format for interactive query results. Entering just `output` without any options will display the currently-set value.
-set 'foo' = 'bar'
-  Set the value of a session variable, which will be passed through to the Kafka Streams process(es) executing any subsequent queries during this session. Can be used to tune various producer and consumer settings. One option very useful during iterative development of new queries on limited data may be ``SET 'auto.offset.reset' = 'earliest'`` which will force subsequent queries to read their input topics from the earliest available offsets (as opposed to from the tail, which is the default). Entering just `SET` without any arguments will display the list of all currently-set session variables.
-show properties 
-  TODO this one is a bit weird - needs a semi-colon, and is kinda dml but kinda not - where best to put it?
-unset 'foo'
-  Remove the value of any session variable previously set via the `SET` command.
-version
-  Display the software version specifics.
-server [http://my.server.name:8090] (Remote Cli Only)
-  Without arguments will display the address of the KSQL server to which this CLI is currently connected. With server specification it drops any current server connection and replaces it with one to the specified server address.
+```bash
+Description:
+  The KSQL CLI provides a terminal-based interactive shell for running queries. Each command must be on a separate line:
+
+help:
+  Show this message.
+
+clear:
+  Clear the current terminal.
+
+output:
+  View the current output format.
+
+output <format>:
+  Set the output format to <format> (valid formats: 'JSON', 'TABULAR')
+  For example: "output JSON"
+
+history:
+  Show previous lines entered during the current CLI session. You can use up and down arrow keys to navigate to the previous lines too.
+
+version:
+  Get the current KSQL version.
+
+exit:
+  Exit the CLI.
+
+
+Default behavior:
+
+    Lines are read one at a time and are sent to the server asKSQL unless one of the following is true:
+
+    1. The line is empty or entirely whitespace. In this case, no request is made to the server.
+
+    2. The line ends with backslash ('\'). In this case, lines are continuously read and stripped of their trailing newline and '\' until one is encountered that does not end with '\'; then, the concatenation of all lines read during this time is sent to the server as KSQL.
+```
+
 
 ## DDL statements
 
-All KSQL statements should be terminated with a semi-colon. If desired, use a back-slash ('\\') to indicate continuation on the next line. Here are the supported DDL statements.
+All KSQL statements should be terminated with a semicolon (`;`). If desired, use a back-slash ('\\') to indicate continuation on the next line. Here are the supported DDL statements.
 
 ### DESCRIBE
 

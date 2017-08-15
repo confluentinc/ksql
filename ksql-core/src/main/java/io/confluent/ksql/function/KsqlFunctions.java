@@ -113,13 +113,15 @@ public class KsqlFunctions {
     /***************************************
      * Date/Time functions                      *
      ***************************************/
-    KsqlFunction timestampToString = new KsqlFunction(Schema.STRING_SCHEMA, Arrays.asList(Schema
-                                                                                  .INT64_SCHEMA),
+    KsqlFunction timestampToString = new KsqlFunction(Schema.STRING_SCHEMA,
+                                                      Arrays.asList(Schema.INT64_SCHEMA,
+                                                                    Schema.STRING_SCHEMA),
                                         "TIMESTAMPTOSTRING", TimestampToString.class);
     addFunction(timestampToString);
 
     KsqlFunction stringToTimestamp = new KsqlFunction(Schema.INT64_SCHEMA,
-                                                      Arrays.asList(Schema.STRING_SCHEMA),
+                                                      Arrays.asList(Schema.STRING_SCHEMA,
+                                                                    Schema.STRING_SCHEMA),
                                                       "STRINGTOTIMESTAMP",
                                                       StringToTimestamp.class);
     addFunction(stringToTimestamp);

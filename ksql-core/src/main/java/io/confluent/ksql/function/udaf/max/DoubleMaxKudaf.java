@@ -14,7 +14,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 public class DoubleMaxKudaf extends KsqlAggregateFunction<Double, Double> {
 
   public DoubleMaxKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0.0, Schema.FLOAT64_SCHEMA,
+    super(argIndexInValue, Double.MIN_VALUE, Schema.FLOAT64_SCHEMA,
           Arrays.asList(Schema.FLOAT64_SCHEMA),
           "MAX", DoubleMaxKudaf.class);
   }

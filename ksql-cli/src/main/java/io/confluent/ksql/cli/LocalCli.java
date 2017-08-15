@@ -6,25 +6,21 @@ package io.confluent.ksql.cli;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
 public class LocalCli extends Cli {
 
-  private final KsqlRestApplication serverApplication;
+  private final KsqlRestApplication restServer;
 
   public LocalCli(
-      Properties serverProperties,
-      int portNumber,
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
       KsqlRestClient restClient,
-      Console terminal
+      Console terminal,
+      KsqlRestApplication restServer
   ) throws Exception {
     super(
         streamedQueryRowLimit,
@@ -32,20 +28,15 @@ public class LocalCli extends Cli {
         restClient,
         terminal
     );
-
-    // Have to override listeners config to make sure it aligns with port number for client
-    serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getServerAddress(portNumber));
-
-    this.serverApplication = KsqlRestApplication.buildApplication(serverProperties, false);
-    serverApplication.start();
+    this.restServer = restServer;
   }
 
   @Override
   public void close() throws IOException {
     try {
-      serverApplication.getKsqlEngine().terminateAllQueries();
-      serverApplication.stop();
-      serverApplication.join();
+      restServer.getKsqlEngine().terminateAllQueries();
+      restServer.stop();
+      restServer.join();
     } catch (TimeoutException exception) {
       /*
           This is only thrown under the following circumstances:
@@ -53,7 +44,7 @@ public class LocalCli extends Cli {
             1. A user makes a request for a streamed query.
             2. The user terminates the request for the streamed query.
             3. Before the thread(s) responsible for streaming the query have terminated,
-               serverApplication.stop() is called.
+               restServer.stop() is called.
 
           Even if the threads then manage to terminate within the graceful shutdown window for the
           server, the TimeoutException is still thrown.

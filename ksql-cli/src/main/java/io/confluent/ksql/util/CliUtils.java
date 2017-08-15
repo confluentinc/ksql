@@ -130,7 +130,7 @@ public class CliUtils {
     }
   }
 
-  public static String getServerAddress(int portNumber) {
+  public static String getLocalServerAddress(int portNumber) {
     return String.format("http://localhost:%d", portNumber);
   }
 

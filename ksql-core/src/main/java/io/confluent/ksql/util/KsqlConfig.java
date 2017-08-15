@@ -100,6 +100,25 @@ public class KsqlConfig extends AbstractConfig {
     ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
 
+    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
+      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, props.get(DEFAULT_SINK_NUMBER_OF_PARTITIONS));
+    } else {
+      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
+    }
+
+    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
+      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, props.get(DEFAULT_SINK_NUMBER_OF_REPLICATIONS));
+    } else {
+      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
+    }
+
+    if (props.containsKey(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION)) {
+      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+                          props.get(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION));
+    } else {
+      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+                          defaultSinkWindowChangeLogAdditionalRetention);
+    }
 
     ksqlConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
     ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
@@ -107,10 +126,9 @@ public class KsqlConfig extends AbstractConfig {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
     ksqlConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
 
-    ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
-    ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
-    ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
-                        defaultSinkWindowChangeLogAdditionalRetention);
+
+
+
     for (Object propKey: props.keySet()) {
       ksqlConfigProps.put(propKey.toString(), props.get(propKey));
     }

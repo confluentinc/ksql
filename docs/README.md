@@ -20,7 +20,7 @@ A table in KSQL is finite, where the bounds are defined by the size of the key s
 #### Topic
 A topic is a category or feed name where records are published. For more information, see the [Apache Kafka documentation](https://kafka.apache.org/documentation/#intro_topics).
 
-### Using
+### Modes of operation
 
 You can use KSQL in stand-alone mode or in client-server mode.
 

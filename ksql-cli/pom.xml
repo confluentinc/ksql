@@ -64,7 +64,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-core</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

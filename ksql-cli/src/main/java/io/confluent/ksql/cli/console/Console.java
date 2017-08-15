@@ -192,7 +192,9 @@ public abstract class Console implements Closeable {
 
       @Override
       public void execute(String line) {
-        writer().println("CLI-specific commands. Each command must be on a separate line:");
+        writer().println("Description:");
+        writer().println("\tKSQL CLI provides a terminal-based interactive shell for running queries."
+             + "Each command must be on a separate line:");
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
@@ -253,6 +255,7 @@ public abstract class Console implements Closeable {
             "output <format>:",
             OutputFormat.VALID_FORMATS
         );
+        writer().println("");
         writer() .printf(
             "\tSet the output format to <format> (valid formats: %s)%n",
             OutputFormat.VALID_FORMATS

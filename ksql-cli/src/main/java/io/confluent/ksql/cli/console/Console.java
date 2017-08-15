@@ -192,9 +192,11 @@ public abstract class Console implements Closeable {
 
       @Override
       public void execute(String line) {
+        writer().println();
         writer().println("Description:");
         writer().println("\tThe KSQL CLI provides a terminal-based interactive shell for running queries. "
-             + "Each command must be on a separate line:");
+             + "Each command must be on a separate line. "
+             + "For KSQL command syntax, see the documentation at https://github.com/confluentinc/ksql/docs/.");
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
@@ -216,7 +218,7 @@ public abstract class Console implements Closeable {
             + "encountered that does not end with '\\'; then, the concatenation of all lines read "
             + "during this time is sent to the server as KSQL."
         );
-        writer().println();
+        writer().println();       
       }
     });
 

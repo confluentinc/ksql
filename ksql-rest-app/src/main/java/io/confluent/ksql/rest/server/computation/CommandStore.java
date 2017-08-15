@@ -155,7 +155,6 @@ public class CommandStore implements Closeable {
       log.debug("Polling end offset(s) for command topic");
       endOffsets = commandConsumer.endOffsets(commandTopicPartitions);
     } while (!offsetsCaughtUp(currentOffsets, endOffsets));
-
     return result;
   }
 

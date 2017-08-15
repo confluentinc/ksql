@@ -1,6 +1,6 @@
 # Syntax Reference
 
-| [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
+| [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/quickstart/) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
 |----------|--------------|-------------|------------------|------------------|------------------|
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*

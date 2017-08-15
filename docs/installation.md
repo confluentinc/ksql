@@ -5,9 +5,7 @@
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
-You can quickly install KSQL in your environment. 
-
-You can use KSQL in stand-alone mode or in client-server mode.
+You can quickly install KSQL in your environment. You can use KSQL in stand-alone mode or in client-server mode.
 
 In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
 

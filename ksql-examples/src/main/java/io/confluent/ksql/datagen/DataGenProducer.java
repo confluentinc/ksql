@@ -65,27 +65,27 @@ public abstract class DataGenProducer {
        */
       for (Schema.Field field : avroSchema.getFields()) {
 
-          String isSession = field.schema().getProp("session");
-          String timeFormatFromLong = field.schema().getProp("format_as_time");
-          if (isSession != null) {
-            String currentValue = (String) randomAvroMessage.get(field.name());
-            String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
+        String isSession = field.schema().getProp("session");
+        String timeFormatFromLong = field.schema().getProp("format_as_time");
+        if (isSession != null) {
+          String currentValue = (String) randomAvroMessage.get(field.name());
+          String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
 
 
-            genericRowValues.add(newCurrentValue);
+          genericRowValues.add(newCurrentValue);
 
-          } else if (timeFormatFromLong != null) {
-              Date date = new Date(System.currentTimeMillis());
-              if (timeFormatFromLong.equals("unix_long")) {
-                genericRowValues.add(date.getTime());
-              } else {
-                if (timeformatter == null) {
-                  timeformatter = new SimpleDateFormat(timeFormatFromLong);
-                }
-                genericRowValues.add(timeformatter.format(date));
-              }
+        } else if (timeFormatFromLong != null) {
+          Date date = new Date(System.currentTimeMillis());
+          if (timeFormatFromLong.equals("unix_long")) {
+            genericRowValues.add(date.getTime());
+          } else {
+            if (timeformatter == null) {
+              timeformatter = new SimpleDateFormat(timeFormatFromLong);
+            }
+            genericRowValues.add(timeformatter.format(date));
+          }
         } else {
-            genericRowValues.add(randomAvroMessage.get(field.name()));
+          genericRowValues.add(randomAvroMessage.get(field.name()));
         }
       }
 
@@ -166,11 +166,11 @@ public abstract class DataGenProducer {
     } else {
       value = sessionManager.recycleOldestExpired();
       if (value == null) {
-          new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
-        }
+        new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
+      }
 //        System.out.println("2-New [Recycle] Session:" + value + " Tokens:" + allTokens.size());
-        sessionManager.newSession(value);
-        return value;
+      sessionManager.newSession(value);
+      return value;
     }
     return currentValue;
 

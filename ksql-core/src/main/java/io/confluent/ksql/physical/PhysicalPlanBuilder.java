@@ -46,7 +46,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
@@ -417,8 +416,8 @@ public class PhysicalPlanBuilder {
                         Windowed<String> key, GenericRow row) {
                       if (row != null) {
                         row.getColumns().add(0,
-                                             String.format("%s : Window{start=%d end=%d}", key
-                                                 .key(), key.window().start(), key.window().end()));
+                                             String.format("%s : Window{start=%d end=-}", key
+                                                 .key(), key.window().start()));
 
                       }
                       return new KeyValue<>(key, row);

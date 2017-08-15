@@ -15,30 +15,8 @@ KSQL lowers the barriers for using real-time data in your applications. It is po
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
-## Features
-
-## Concepts
-KSQL queries are issued from the KSQL CLI client and operated on a server. The CLI executes the continuous query by converting it into a Kafka Streams DSL and runs it.
-
-
-**Topics**
-
-**Streams**
-
-**Tables**
-
-**Catalog**
-
-
 ## Getting Started
 <!-- What do you users need to get started -->
 
-* Beginners can try the [interactive quickstart](/quickstart/).
-* Advanced users can try a more realistic [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
-
-To learn more about KSQL see our [documentation](https://github.com/confluentinc/ksql) including the [KSQL Syntax Guide](https://github.com/confluentinc/ksql).
-
-
-
-
-
+* Beginners: Try the [interactive quickstart](/quickstart/).
+* Advanced users: Try the [end-to-end KSQL demo](https://github.com/confluentinc/ksql).

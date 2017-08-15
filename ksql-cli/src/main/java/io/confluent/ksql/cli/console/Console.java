@@ -193,7 +193,7 @@ public abstract class Console implements Closeable {
       @Override
       public void execute(String line) {
         writer().println("Description:");
-        writer().println("\tKSQL CLI provides a terminal-based interactive shell for running queries."
+        writer().println("\tThe KSQL CLI provides a terminal-based interactive shell for running queries. "
              + "Each command must be on a separate line:");
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {

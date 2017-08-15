@@ -1,5 +1,8 @@
 # Frequently Asked Questions
 
+| [Overview](/docs/overview.md) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | FAQ |
+|----------|--------------|-------------|------------------|------------------|------------------|
+
 **What are the benefits of KSQL?**
 
 KSQL allows you to query, read, write, and process data in Apache Kafka in real-time and at scale using intuitive SQL-like syntax. KSQL does not require proficiency with a programming language such as Java or Scala, and you don’t have to install a separate processing cluster technology.

@@ -1,5 +1,8 @@
 # Examples
 
+| [Overview](/docs/overview.md) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | Examples | [FAQ](/docs/faq.md)  |
+|----------|--------------|-------------|------------------|------------------|------------------|
+
 Here are some example queries to illustrate the look and feel of the KSQL syntax:
 
 Filter an inbound stream of page views to only show errors

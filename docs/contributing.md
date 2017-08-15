@@ -101,3 +101,7 @@ When submitting a pull request (PR), use the following guidelines:
    ```bash
    git push origin --force feature-xxx
    ```
+
+   ### Issues
+
+   Report issues in [this GitHub project](https://github.com/confluentinc/ksql/issues).

@@ -1,5 +1,12 @@
 # KSQL Documentation
 
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Concepts](#concepts)
+- [Installation](#installation)
+- [Limitations](#limitations)
+- [Syntax Reference](#syntax-reference)
+
 ## Overview
 
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL an SQL-like commands. KSQL interacts directly with the [Kafka Streams API](http://docs.confluent.io/current/streams/concepts.html), removing the requirement of building a Java app. Common KSQL use cases are:
@@ -21,18 +28,17 @@ KSQL lowers the barriers for using real-time data in your applications. It is po
 * Beginners: Try the [interactive quickstart](/quickstart/).
 * Advanced users: Try the [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
 
-# Concepts
-----
+## Concepts
 
 KSQL provides a structured query language to do stream processing on Kafka topics.  KSQL is built on top of Kafka and the Kafka [Streams API](https://kafka.apache.org/documentation/streams). 
 
-## Stream
+### Stream
 A stream is an unbounded sequence of structured values that are stored in a Kafka topic. The structure of the values is specified in a schema. In Kafka streams vocabulary, a KSQL stream is a [KStream](http://docs.confluent.io/current/streams/concepts.html?highlight=kstream#kstream) plus a schema. 
 
-## Table
+### Table
 A table in KSQL is finite, where the bounds are defined by the size of the key space. The key space is an evolving collection of structured values, where the structure of the values is specified in a schema. These values are stored in a changelog topic in Kafka. In Kafka Streams vocabulary, a KSQL table is a [KTable](http://docs.confluent.io/current/streams/concepts.html?highlight=ktable#ktable) plus a schema.
 
-## Topic
+### Topic
 A topic is a category or feed name where records are published. For more information, see the [Apache Kafka documentation](https://kafka.apache.org/documentation/#intro_topics).
 
 # Installation

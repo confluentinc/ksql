@@ -186,32 +186,33 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\thelp: Show this message");
+        writer().println("help:");
+        writer().println("\tShow this message.");
       }
 
       @Override
       public void execute(String line) {
-        writer().println("CLI-specific commands (EACH MUST BE ON THEIR OWN LINE):");
+        writer().println("CLI-specific commands. Each command must be on a separate line:");
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
           writer().println();
         }
         writer().println();
-        writer().println("default behavior:");
+        writer().println("Default behavior:");
         writer().println();
         writer().println("    Lines are read one at a time and are sent to the server as"
-            + "Ksql unless one of the following is true:"
+            + "KSQL unless one of the following is true:"
         );
         writer().println();
         writer().println("    1. The line is empty or entirely whitespace. In this case, "
             + "no request is made to the server."
         );
         writer().println();
-        writer().println("    2. The line ends with '\\'. In this case, lines are "
+        writer().println("    2. The line ends with backslash ('\\'). In this case, lines are "
             + "continuously read and stripped of their trailing newline and '\\' until one is "
             + "encountered that does not end with '\\'; then, the concatenation of all lines read "
-            + "during this time is sent to the server as Ksql."
+            + "during this time is sent to the server as KSQL."
         );
         writer().println();
       }
@@ -225,7 +226,8 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\tclear: Clear the current terminal");
+        writer().println("clear:");
+        writer().println("\tClear the current terminal.");
       }
 
       @Override
@@ -244,12 +246,18 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\toutput:          View the current output format");
+        writer().println("output:");
+        writer().println("\tView the current output format.");
+        writer().println("");
         writer() .printf(
-            "\toutput <format>: Set the output format to <format> (valid formats: %s)%n",
+            "output <format>:",
             OutputFormat.VALID_FORMATS
         );
-        writer().println("\t                 example: \"output JSON\"");
+        writer() .printf(
+            "\tSet the output format to <format> (valid formats: %s)%n",
+            OutputFormat.VALID_FORMATS
+        );
+        writer().println("\tFor example: \"output JSON\"");
       }
 
       @Override
@@ -272,7 +280,9 @@ public abstract class Console implements Closeable {
       @Override
       public void printHelp() {
         writer().println(
-            "\thistory: Show previous lines entered during the current CLI session. You can use "
+            "history:");
+        writer().println(
+            "\tShow previous lines entered during the current CLI session. You can use "
                 + "up and down arrow keys to navigate to the previous lines too."
         );
       }
@@ -294,7 +304,8 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
-        writer().println("\tversion: Get the current KSQL version");
+        writer().println("version:");
+        writer().println("\tGet the current KSQL version.");
       }
 
       @Override
@@ -313,8 +324,9 @@ public abstract class Console implements Closeable {
 
       @Override
       public void printHelp() {
+        writer().println("exit:");
         writer().println(
-            "\texit: Exit the CLI; EOF (i.e., ^D) works as well"
+            "\tExit the CLI."
         );
       }
 

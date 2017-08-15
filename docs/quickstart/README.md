@@ -5,17 +5,16 @@
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
+Welcome to the quick start guide for KSQL!
+
+The goal of this quick start guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
+
 **Table of Contents**
 
 - [Setup](#setup)
 - [Create a STREAM and TABLE](#create-a-stream-and-table)
 - [Write Queries](#write-queries)
 - [Terminate and Exit](#terminate-and-exit)
-
-Welcome to the quick start guide for KSQL!
-
-The goal of this quick start guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
-
 
 ## Setup
 

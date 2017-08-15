@@ -7,6 +7,14 @@
 
 The KSQL CLI provides a terminal-based interactive shell for running queries. The CLI is a self-executing JAR file, which means it acts like a normal UNIX executable.
 
+**Table of Contents**
+
+- [CLI-specific commands](##cli-specific-commands)
+- [KSQL commands](#ksql-commands)
+  - [DDL statements](#ddl-statements)
+  - [DML statements](#dml-statements)
+  - [Scalar functions](#scalar-functions)
+  - [Aggregate functions](#aggregate-functions)
 
 # CLI-specific commands
 These commands are non-KSQL statements such as setting a property or adding a resource. Run the CLI with the --help option to see the available options.
@@ -208,7 +216,7 @@ The WITH section can be used to set the properties for the result KSQL topic. Th
 * REPLICATIONS: The replication factor for the sink stream.
 
 
-## Scalar Functions
+## Scalar functions
 KSQL provides a set of internal functions that can use used in query expressions. Here are the available functions:
 
 | Function | Example | Description |
@@ -225,7 +233,7 @@ KSQL provides a set of internal functions that can use used in query expressions
 | ROUND      | `ROUND(col1)`             | Round a value to the nearest integral value |
 | RANDOM     | `RANDOM()`                | Return a random value between 0 and 1.0 |
 
-## Aggregate Functions
+## Aggregate functions
 KSQL provides a set of internal aggregate functions that can use used in query expressions. Here are the available aggregate functions:
 
 | Function | Example | Description |

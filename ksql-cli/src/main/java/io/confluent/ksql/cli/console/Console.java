@@ -203,7 +203,7 @@ public abstract class Console implements Closeable {
         writer().println();
         writer().println("Default behavior:");
         writer().println();
-        writer().println("    Lines are read one at a time and are sent to the server as"
+        writer().println("    Lines are read one at a time and are sent to the server as "
             + "KSQL unless one of the following is true:"
         );
         writer().println();

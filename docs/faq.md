@@ -3,6 +3,8 @@
 | [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/installation.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | FAQ |
 |----------|--------------|-------------|------------------|------------------|------------------|
 
+> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+
 **What are the benefits of KSQL?**
 
 KSQL allows you to query, read, write, and process data in Apache Kafka in real-time and at scale using intuitive SQL-like syntax. KSQL does not require proficiency with a programming language such as Java or Scala, and you don’t have to install a separate processing cluster technology.

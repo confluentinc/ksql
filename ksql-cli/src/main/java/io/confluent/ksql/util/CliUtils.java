@@ -137,7 +137,9 @@ public class CliUtils {
   public static boolean createFile(Path path) {
     try {
       Files.createDirectories(path.getParent());
-      Files.createFile(path);
+      if (Files.notExists(path)) {
+        Files.createFile(path);
+      }
       return true;
     } catch (Exception e) {
       LOGGER.error(ExceptionUtil.stackTraceToString(e));

@@ -90,6 +90,7 @@
                         </goals>
                         <configuration>
                             <buildArgs>
+                                <ARTIFACT_ID>${project.artifactId}</ARTIFACT_ID>
                                 <KSQL_VERSION>${project.version}</KSQL_VERSION>
                                 <DOCKER_REGISTRY>${docker.registry}</DOCKER_REGISTRY>
                             </buildArgs>

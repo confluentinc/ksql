@@ -101,20 +101,23 @@ public class KsqlConfig extends AbstractConfig {
     ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
 
     if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, props.get(DEFAULT_SINK_NUMBER_OF_PARTITIONS));
+      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, Integer.parseInt(props.get
+          (DEFAULT_SINK_NUMBER_OF_PARTITIONS).toString()));
     } else {
       ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
     }
 
     if (props.containsKey(DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, props.get(DEFAULT_SINK_NUMBER_OF_REPLICATIONS));
+      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, Short.parseShort(props.get
+          (DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString()));
     } else {
       ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
     }
 
     if (props.containsKey(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION)) {
       ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
-                          props.get(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION));
+                          Long.parseLong(props.get
+                              (DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION).toString()));
     } else {
       ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
                           defaultSinkWindowChangeLogAdditionalRetention);

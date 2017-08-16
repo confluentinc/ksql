@@ -4,7 +4,7 @@
         "type": "record",
         "fields": [
                 {"name": "ip", "type": {
-                  "ses_NOOO_sion" : "true",
+                  "session" : "true",
                     "type": "string",
                   "arg.properties": {
                     "options": [

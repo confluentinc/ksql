@@ -61,8 +61,17 @@ DROP TABLE ERRORS_PER_MIN_TS;
 CREATE TABLE ERRORS_PER_MIN_TS as select rowTime as event_ts, * from ERRORS_PER_MIN;
 
 -- VIEW - Enrich Codes with errors with Join to Status-Code definition
+DROP STREAM ENRICHED_ERROR_CODES;
+DROP TABLE ENRICHED_ERROR_CODES_COUNT;
 DROP STREAM ENRICHED_ERROR_CODES_TS;
-CREATE STREAM ENRICHED_ERROR_CODES_TS AS SELECT clickstream.rowTime as event_ts, status, definition FROM clickstream LEFT JOIN clickstream_codes ON clickstream.status = clickstream_codes.code;
+
+--Join using a STREAM
+CREATE STREAM ENRICHED_ERROR_CODES AS SELECT code, definition FROM clickstream LEFT JOIN clickstream_codes ON clickstream.status = clickstream_codes.code;
+-- Aggregate (count&groupBy) using a TABLE-Window
+CREATE TABLE ENRICHED_ERROR_CODES_COUNT AS SELECT code, definition, COUNT(*) AS count FROM ENRICHED_ERROR_CODES WINDOW TUMBLING (size 30 second) GROUP BY code, definition HAVING COUNT(*) > 1;
+-- Enrich w rowTime timestamp to suport timeseries search
+CREATE TABLE ENRICHED_ERROR_CODES_TS AS SELECT rowTime as EVENT_TS, * FROM ENRICHED_ERROR_CODES_COUNT;
+
 
 -- 5 Sessionisation using IP addresses - 300 seconds of inactivity expires the session
 DROP TABLE CLICK_USER_SESSIONS;

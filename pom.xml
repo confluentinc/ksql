@@ -32,7 +32,6 @@
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
-        <arg.version>0.1-SNAPSHOT</arg.version>
         <avro.version>1.8.1</avro.version>
         <csv.version>1.4</csv.version>
         <docker.registry></docker.registry>
@@ -99,11 +98,6 @@
                 <version>${confluent.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.confluent.avro</groupId>
-                <artifactId>avro-random-generator</artifactId>
-                <version>${arg.version}</version>
-            </dependency>
             <!-- End Confluent dependencies -->
 
             <dependency>

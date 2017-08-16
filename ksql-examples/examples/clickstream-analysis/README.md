@@ -58,18 +58,27 @@ ksql>
 4. Use DataGen to create the ClickStream
 ```
 :ksql user$ bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
-66.249.79.93 --> ([ '66.249.79.93' | '-' | '-' | '07/Aug/2017:17:02:37 -0700' | 1502150557891 | 'GET /index.html HTTP/1.1' | '407' | '4196' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
-54.173.165.103 --> ([ '54.173.165.103' | '-' | '-' | '07/Aug/2017:17:02:38 -0700' | 1502150558520 | 'GET /site/login.html HTTP/1.1' | '405' | '278' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
+111.168.57.122 --> ([ '111.168.57.122' | 12 | '-' | '15/Aug/2017:10:53:45 +0100' | 1502790825640 | 'GET /site/user_status.html HTTP/1.1' | '404' | '1289' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
+111.90.225.227 --> ([ '111.90.225.227' | 5 | '-' | '15/Aug/2017:10:53:46 +0100' | 1502790826930 | 'GET /images/logo-small.png HTTP/1.1' | '302' | '4006' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
+222.145.8.144 --> ([ '222.145.8.144' | 18 | '-' | '15/Aug/2017:10:53:47 +0100' | 1502790827645 | 'GET /site/user_status.html HTTP/1.1' | '200' | '4006' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
 ```
-
-5. Use DataGen to create the StatusCodes
+5. Use DataGen to create the status codes (one off to populate TABLE)
 ```
-:ksql user$ bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes_1 maxInterval=1000 iterations=5000
+:ksql user$ bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
 404 --> ([ 404 | 'Page not found' ])
 405 --> ([ 405 | 'Method not allowed' ])
 ```
 
-6. Load the clickstream.sql schema file that will run the demo app
+6. Use DataGen to create the set of Users (one off to populate TABLE)
+```
+:ksql user$ bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=20
+1 --> ([ 1 | 1427769490698 | 'Abdel' | 'Adicot' | 'Frankfurt' | 'Gold' ])
+2 --> ([ 2 | 1411540260097 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+3 --> ([ 3 | 1462725158453 | 'Antonio' | 'Adicot' | 'San Francisco' | 'Platinum' ])
+```
+
+
+7. Load the clickstream.sql schema file that will run the demo app
 ```
 ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';
 
@@ -79,9 +88,9 @@ ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema
 ksql>
 ```
 
-7. Check that TABLEs are created
+8. Check that TABLEs are created
 ```
-ksql> show TABLES;
+ksql> list TABLES;
 
  Table Name             | Kafka Topic            | Format | Windowed 
 ---------------------------------------------------------------------
@@ -94,9 +103,9 @@ ksql> show TABLES;
  EVENTS_PER_MIN         | EVENTS_PER_MIN         | JSON   | true  
 ```
 
-8. Check that STREAMs are created
+9. Check that STREAMs are created
 ```
-ksql> show STREAMS;
+ksql> list STREAMS;
 
  Stream Name               | Kafka Topic               | Format 
 ----------------------------------------------------------------
@@ -109,7 +118,7 @@ ksql> show STREAMS;
  CLICKSTREAM               | clickstream_1             | JSON   
 ```
 
-9. Ensure that data is being streamed through various TABLEs and STREAMs
+10. Ensure that data is being streamed through various TABLEs and STREAMs
 ```
 ksql> select * from CLICKSTREAM;
 1502152008511 | 104.152.45.45 | 1502152008511 | 07/Aug/2017:17:26:48 -0700 | 104.152.45.45 | GET /index.html HTTP/1.1 | 404 | - | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
@@ -123,14 +132,14 @@ ksql> select * from EVENTS_PER_MIN_TS;
 1502152020000 | -]�<�  | 1502152020000 | - | 6
 ^CQuery terminated
 ksql> select * from PAGES_PER_MIN;
-1502152040000 | - : Window{start=1502152040000 end=-} | - | 6
-1502152040000 | - : Window{start=1502152040000 end=-} | - | 7
-1502152045000 | - : Window{start=1502152045000 end=-} | - | 4
-1502152045000 | - : Window{start=1502152045000 end=-} | - | 5
+1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 6
+1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 7
+1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 4
+1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 5
 ^CQuery terminated
 ksql> 
 ```
-10. Send KSQL Tables=>Connect=>Elastic=>Grafana
+11. Send KSQL Tables=>Connect=>Elastic=>Grafana
 ```
 ksql user$ cd ksql-examples/examples/clickstream-analysis/
 user$ ./ksql-tables-to-grafana.sh
@@ -138,14 +147,14 @@ user$ ./ksql-tables-to-grafana.sh
 user$ 
 ```
 
-13. Load the dashboard into Grafana
+12. Load the dashboard into Grafana
 ```
 user$ ./clickstream-analysis-dashboard.sh
 {"slug":"click-stream-analysis","status":"success","version":5}
 user$ 
 ```
 
-14. View the ClickStream Dashboard
+13. View the ClickStream Dashboard
 ```
 Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 ```

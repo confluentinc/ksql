@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class KsqlEngine implements Closeable {
 
@@ -330,7 +331,7 @@ public class KsqlEngine implements Closeable {
     }
     liveQueries.remove(queryMetadata);
     if (closeStreams) {
-      queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
     }
     return true;
@@ -359,7 +360,7 @@ public class KsqlEngine implements Closeable {
   @Override
   public void close() throws IOException {
     for (QueryMetadata queryMetadata : liveQueries) {
-      queryMetadata.getKafkaStreams().close();
+      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
     }
     kafkaTopicClient.close();
@@ -374,7 +375,7 @@ public class KsqlEngine implements Closeable {
       for (QueryMetadata queryMetadata: liveQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().close();
+          persistentQueryMetadata.getKafkaStreams().close(100l, TimeUnit.MILLISECONDS);
           persistentQueryMetadata.getKafkaStreams().cleanUp();
         }
       }

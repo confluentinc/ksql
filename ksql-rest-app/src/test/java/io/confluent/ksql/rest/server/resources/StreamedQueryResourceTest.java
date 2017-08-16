@@ -27,6 +27,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.easymock.EasyMock.anyObject;
@@ -76,8 +77,7 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    mockKafkaStreams.close();
-    expectLastCall();
+    expect(mockKafkaStreams.close(100L, TimeUnit.MILLISECONDS)).andReturn(true);
     mockKafkaStreams.cleanUp();
     expectLastCall();
 

@@ -14,7 +14,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
 
   public LongMaxKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0L, Schema.INT64_SCHEMA,
+    super(argIndexInValue, Long.MIN_VALUE, Schema.INT64_SCHEMA,
           Arrays.asList(Schema.INT64_SCHEMA),
           "MAX", LongMaxKudaf.class);
   }

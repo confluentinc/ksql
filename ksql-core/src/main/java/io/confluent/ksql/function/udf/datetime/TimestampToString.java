@@ -13,7 +13,7 @@ import io.confluent.ksql.function.udf.Kudf;
 
 public class TimestampToString implements Kudf {
 
-  DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+  DateFormat dateFormat = null;
   @Override
   public void init() {
 
@@ -21,9 +21,18 @@ public class TimestampToString implements Kudf {
 
   @Override
   public Object evaluate(Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("LCase udf should have one input argument.");
+    if (args.length != 2) {
+      throw new KsqlFunctionException("TimestampToString udf should have two input argument:"
+                                      + " date value and format.");
     }
-    return dateFormat.format(new Date((long)args[0]));
+    try {
+      if(dateFormat == null) {
+        dateFormat = new SimpleDateFormat(args[1].toString());
+      }
+      return dateFormat.format(new Date((long)args[0]));
+    } catch (Exception e) {
+      throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] +" , " +
+                                      args[1] + ") : " + e.getMessage(), e);
+    }
   }
 }

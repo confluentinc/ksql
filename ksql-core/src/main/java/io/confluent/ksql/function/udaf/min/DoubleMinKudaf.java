@@ -14,7 +14,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
 
   public DoubleMinKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0.0, Schema.FLOAT64_SCHEMA,
+    super(argIndexInValue, Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
           Arrays.asList(Schema.FLOAT64_SCHEMA),
           "MIN", DoubleMinKudaf.class);
   }

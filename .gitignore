@@ -1,0 +1,23 @@
+# Build products
+target/
+docs/_build/
+dist/
+
+# IntelliJ data
+*.iml
+*.iws
+*.ipr
+.idea/
+
+# Other
+.DS_Store
+.dumbjump
+*classes
+*~
+*#
+.#*
+.classpath
+/.metadata
+.project
+.settings
+.tern-port

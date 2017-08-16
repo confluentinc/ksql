@@ -90,7 +90,7 @@ ksql>
 
 8. Check that TABLEs are created
 ```
-ksql> show TABLES;
+ksql> list TABLES;
 
  Table Name             | Kafka Topic            | Format | Windowed 
 ---------------------------------------------------------------------
@@ -105,7 +105,7 @@ ksql> show TABLES;
 
 9. Check that STREAMs are created
 ```
-ksql> show STREAMS;
+ksql> list STREAMS;
 
  Stream Name               | Kafka Topic               | Format 
 ----------------------------------------------------------------

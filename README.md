@@ -2,21 +2,21 @@
 
 *A Streaming SQL Engine for Apache Kafka from Confluent*
 
+> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster. * 
+
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands. 
 
 KSQL does not require proficiency with a programming language such as Java or Go, and it does not require you to install and manage a separate processing cluster technology. As such, it opens up the world of stream processing to a broader set of users and applications than ever before.
 
 KSQL consists of a client and a server component.  The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.* 
-
-- [Quick Start Guide](#quick-start-guide)
+- [Quick Start](#quick-start-guide)
 - [Documentation](#documentation)
 - [Join the Community](#join-the-community)
 - [Contributing](#contributing)
 - [License](#license)
 
-# Quick Start Guide
+# Quick Start
 If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart#quick-start-guide)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 # Documentation

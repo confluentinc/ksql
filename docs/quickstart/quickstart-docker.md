@@ -1,9 +1,11 @@
 # Docker Setup for KSQL
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
+
+ 
 
 **Table of Contents**
 
@@ -12,9 +14,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 - [Produce more topic data](#produce-more-topic-data)   
 
 **Prerequisites:**
-Do not run KSQL against a production cluster, since KSQL is in developer preview.
 - [Docker for Mac](https://docs.docker.com/docker-for-mac/install/). If you do not have macOS, you can install Docker on another [platform](https://docs.docker.com/engine/installation/#supported-platforms).
-- [Maven](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/downloads)
 - Java: Minimum version 1.8. 
 

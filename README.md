@@ -11,68 +11,13 @@ KSQL consists of a client and a server component.  The client is a command line 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.* 
 
 - [Quick Start Guide](#quick-start-guide)
-- [Installation](#installation)
 - [Documentation](#documentation)
 - [Join the Community](#join-the-community)
 - [Contributing](#contributing)
 - [License](#license)
 
 # Quick Start Guide
-If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart/)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-
-# Installation
-
-**Prerequisites:**
-
-- [Maven](https://maven.apache.org/install.html)
-- [Git](https://git-scm.com/downloads)
-- A Kafka cluster
-- Java: Minimum version 1.7. 
-
-1.  Clone the Confluent KSQL repository:
-
-	```bash
-	git clone https://github.com/confluentinc/ksql
-	```
-
-1.  Navigate to the KSQL directory:
-
-	```bash
-	cd ksql
-	```
-
-1.  Compile the KSQL code:
-
-	```bash
-	mvn clean install -Dmaven.test.skip=true
-	```
-
-1.  Start KSQL by running the compiled jar file ksql-cli/target/ksql-cli-4.0.0-SNAPSHOT-standalone.jar. Use the local argument for the developer preview. This starts the KSQL engine locally.
-
-	```bash
-	./bin/ksql-cli local
-	```
-
-	When this command completes, you should see the KSQL prompt:
-
-	```bash
-	                       ======================================
-	                       =      _  __ _____  ____  _          =
-	                       =     | |/ // ____|/ __ \| |         =
-	                       =     | ' /| (___ | |  | | |         =
-	                       =     |  <  \___ \| |  | | |         =
-	                       =     | . \ ____) | |__| | |____     =
-	                       =     |_|\_\_____/ \___\_\______|    =
-	                       =                                    =
-	                       = Streaming Query Language for Kafka =
-	Copyright 2017 Confluent Inc.                         
-
-	CLI v0.0.1, Server v0.0.1 located at http://localhost:9098
-
-	Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-
-	ksql> 
-	```
+If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart#quick-start-guide)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 # Documentation
 You can [find the KSQL documentation here](/docs/). 

@@ -78,7 +78,7 @@ Here's an overview of running KSQL in client-server mode:
   .bin/ksql-cli remote http://server:8090
   ```
 
-- All engines share the work, for example, instances of the same KStreams apps. You can scale up or down without restarting.
+- All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
 
 ## Application mode
 In application mode, you can put your KSQL queries in a file and share across your Kakfa Streams instances. 
@@ -98,7 +98,7 @@ Here's an overview of running KSQL in application mode:
   .bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
   ```
 - This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
-- All engines share the work, for example, instances of the same KStreams app. You can scale up or down without restarting.
+- All engines share the work, for example, instances of the same KSQL app. You can scale up or down without restarting.
  
 ## Embedded mode
 In embedded mode, you can write KSQL code inside of your streams Java app, using the KSQL context object inside of your application. The KSQL code will run inside the individual application instances. For more information, see [this example](/ksql-examples/src/main/java/io/confluent/ksql/embedded/EmbeddedKsql.java).

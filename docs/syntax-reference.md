@@ -209,7 +209,7 @@ List the tables in KSQL.
 List the queries in KSQL. 
 
 ### TERMINATE `query-id`
-End a query. Queries will run continuously as Kafka Streams applications until they are explicitly terminated.
+End a query. Queries will run continuously as KSQL applications until they are explicitly terminated.
 
 ## Scalar functions
 KSQL provides a set of internal functions that can use used in query expressions. Here are the available functions:

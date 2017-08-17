@@ -175,6 +175,7 @@
                             <goal>build</goal>
                         </goals>
                         <configuration>
+                            <skip>${docker.skip}</skip>
                             <buildArgs>
                                 <ARTIFACT_ID>${project.artifactId}</ARTIFACT_ID>
                                 <KSQL_VERSION>${project.version}</KSQL_VERSION>

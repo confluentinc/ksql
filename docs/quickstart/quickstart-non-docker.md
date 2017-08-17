@@ -53,7 +53,7 @@ connect is [UP]
 2.  Navigate to the `/ksql/docs/quickstart/` directory and compile the code.
 
     ```bash
-    mvn clean compile install -DskipTests -DskipDocker
+    mvn clean compile install -DskipTests
     ```
 
 4.  Start KSQL. The `local` argument starts the KSQL engine locally.

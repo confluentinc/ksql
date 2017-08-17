@@ -61,4 +61,4 @@ You can quickly install KSQL in your environment.
 
 
 # Next steps
-[Try the quickstart](#Quickstart-Guide)!
+[Try the quickstart](/docs/quickstart/)!

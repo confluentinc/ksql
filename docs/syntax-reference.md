@@ -11,8 +11,6 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 
 - [CLI-specific commands](##cli-specific-commands)
 - [KSQL statements](#ksql-commands)
-  - [DDL statements](#ddl-statements)
-  - [DML statements](#dml-statements)
   - [Scalar functions](#scalar-functions)
   - [Aggregate functions](#aggregate-functions)
 
@@ -56,8 +54,6 @@ Default behavior:
 ```
 
 **Tip:** You can search and browse your bash history in the KSQL CLI with `CTRL + R`.  After pressing `CTRL + R`, start typing the command or any part of the command and an autocomplete of a past commands is shown.
-
-## History 
 
 # KSQL statements
 KSQL statements should be terminated with a semicolon (`;`). If desired, use a back-slash ('\\') to indicate continuation on the next line. 

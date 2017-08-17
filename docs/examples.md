@@ -14,7 +14,7 @@ SELECT STREAM request, ip, status
  WHERE status >= 400
 ```
 
-###Create a new stream that contains the pageviews from female users only
+### Create a new stream that contains the pageviews from female users only
 
 ```sql
 CREATE STREAM pageviews_by_female_users AS

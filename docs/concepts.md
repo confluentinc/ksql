@@ -24,10 +24,10 @@ Enables an engine to receive instructions from the CLI.
 # Terminology 
 When using KSQL, the following terminology is used.
 
-**Stream**
+#### Stream
 A stream is an unbounded sequence of structured values that are stored in a [Kafka topic](https://kafka.apache.org/documentation/#intro_topics). The structure of the values is specified in a schema. In Kafka streams vocabulary, a KSQL stream is a [KStream](http://docs.confluent.io/current/streams/concepts.html?highlight=kstream#kstream) plus a schema. 
 
-**Table**
+#### Table
 A table in KSQL is finite, where the bounds are defined by the size of the key space. The key space is an evolving collection of structured values, where the structure of the values is specified in a schema. These values are stored in a changelog topic in Kafka. In Kafka Streams vocabulary, a KSQL table is a [KTable](http://docs.confluent.io/current/streams/concepts.html?highlight=ktable#ktable) plus a schema.
 
 # Modes of operation

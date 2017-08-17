@@ -62,9 +62,10 @@ public class CliUtils {
       JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
     } catch (JsonParseException e) {
-      throw new KsqlException("Could not parse the avro schema file.");
+      throw new KsqlException("Could not parse the avro schema file. Details: " + e.getMessage(),
+                              e);
     } catch (IOException e) {
-      throw new KsqlException("Could not read the avro schema file.");
+      throw new KsqlException("Could not read the avro schema file. Details: " + e.getMessage(), e);
     }
   }
 
@@ -80,7 +81,7 @@ public class CliUtils {
         line = br.readLine();
       }
     } catch (IOException e) {
-      throw new KsqlException("Could not read the query file.");
+      throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
     } finally {
       if (br != null) {
         br.close();

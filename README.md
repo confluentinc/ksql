@@ -10,14 +10,14 @@ KSQL does not require proficiency with a programming language such as Java or Go
 
 KSQL consists of a client and a server component.  The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
 
-- [Quick Start](#quick-start-guide)
+- [Quick Start](#quick-start)
 - [Documentation](#documentation)
 - [Join the Community](#join-the-community)
 - [Contributing](#contributing)
 - [License](#license)
 
 # Quick Start
-If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart#quick-start-guide)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
+If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart#quick-start)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 # Documentation
 You can [find the KSQL documentation here](/docs/). 

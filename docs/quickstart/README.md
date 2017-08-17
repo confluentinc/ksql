@@ -126,7 +126,7 @@ Before proceeding, please check:
     GENDER   | VARCHAR(STRING) 
     ```
 
-3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling KSQL application.
 
    ```bash
    ksql> SELECT * FROM pageviews_female;
@@ -188,7 +188,7 @@ Before proceeding, please check:
 
 ## Terminate and Exit
 
-1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
    ksql> terminate 2;

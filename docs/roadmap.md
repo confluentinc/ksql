@@ -1,6 +1,6 @@
 # Roadmap
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | Roadmap | [Demo](/docs/demo.md) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#faq)  | Roadmap | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
 Content TBD.

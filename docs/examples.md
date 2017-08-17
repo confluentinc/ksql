@@ -1,6 +1,6 @@
 # Examples
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | Examples | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | Examples | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*

@@ -10,7 +10,9 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class KsqlConfig extends AbstractConfig {
 
@@ -160,5 +162,16 @@ public class KsqlConfig extends AbstractConfig {
 
   public KsqlConfig clone() {
     return new KsqlConfig(this.ksqlConfigProps);
+  }
+
+  public static Set<String> getConfigVariableNames() {
+    Set<String> configVariables = new HashSet();
+
+    configVariables.add(SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
+    configVariables.add(SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    configVariables.add(SINK_NUMBER_OF_REPLICATIONS.toUpperCase());
+    configVariables.add(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION.toUpperCase());
+
+    return configVariables;
   }
 }

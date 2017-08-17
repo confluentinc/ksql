@@ -10,6 +10,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
@@ -17,8 +18,10 @@ import io.confluent.ksql.util.StringUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -43,6 +46,8 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;
+
+    validateWithClause(properties.keySet());
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
         !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
@@ -191,4 +196,25 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
     }
     return new RegisterTopicCommand(this.topicName, false, properties, overriddenProperties);
   }
+
+
+  private void validateWithClause(Set<String> withClauseVariables) {
+
+    Set<String> validSet = new HashSet<>();
+    validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.IS_WINDOWED_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
+
+
+    for (String withVariable: withClauseVariables) {
+      if (!validSet.contains(withVariable.toUpperCase())) {
+        throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
+      }
+    }
+  }
+
 }

@@ -92,8 +92,7 @@ Start KSQL
 
 .. sourcecode:: bash
 
-   $ docker-compose exec ksql-cli java -jar /usr/share/confluent/ksql-cli-0.1-SNAPSHOT-standalone
-   .jar local --bootstrap-server kafka:29092
+   $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
    ...
    ksql>
 

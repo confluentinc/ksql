@@ -1,6 +1,6 @@
 # Non-Docker Setup for KSQL
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start-guide) and use KSQL to query the Kafka cluster.

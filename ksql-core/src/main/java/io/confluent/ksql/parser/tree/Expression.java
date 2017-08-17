@@ -36,7 +36,7 @@ public abstract class Expression
     try {
       return CodegenExpressionFormatter.formatExpression(this, schema);
     } catch (Exception e) {
-      throw new KsqlException(e.getMessage());
+      throw new KsqlException(e.getMessage(), e);
     }
   }
 }

@@ -44,6 +44,7 @@ import io.confluent.ksql.util.Pair;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -429,6 +430,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoProperties(final StructuredDataSource into, final Table node) {
+
+    validateWithClause(node.getProperties().keySet());
+
     if (node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) != null) {
       setIntoTopicFormat(into, node);
     }
@@ -529,5 +533,22 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                                                                     .length() - 1);
     analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
                                      intoTimestampColumnName);
+  }
+
+  private void validateWithClause(Set<String> withClauseVariables) {
+
+    Set<String> validSet = new HashSet<>();
+    validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
+    validSet.add(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
+    validSet.add(KsqlConfig.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS.toUpperCase());
+
+    for (String withVariable: withClauseVariables) {
+      if (!validSet.contains(withVariable.toUpperCase())) {
+        throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
+      }
+    }
   }
 }

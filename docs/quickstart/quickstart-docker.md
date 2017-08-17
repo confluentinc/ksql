@@ -32,7 +32,7 @@ Do not run KSQL against a production cluster, since KSQL is in developer preview
 3. Optional: The next three steps are optional verification steps to ensure your
 environment is properly setup.
 
-    1.  Verify six Docker containers were created.
+    1.  Verify that six Docker containers were created.
 
         ```bash
         docker-compose ps
@@ -42,13 +42,13 @@ environment is properly setup.
 
         ```bash
                 Name                        Command               State                           Ports                          
-       -------------------------------------------------------------------------------------------------------------------------
-       quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-       quickstart_ksql-cli_1                 perl -e while(1){ sleep 99 ...   Up                                                             
-       quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
-       quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
-       quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
-       quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp         
+        -------------------------------------------------------------------------------------------------------------------------
+        quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
+        quickstart_ksql-cli_1                 perl -e while(1){ sleep 99 ...   Up                                                             
+        quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
+        quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
+        quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
+        quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp         
         ```
 
     1.  The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.

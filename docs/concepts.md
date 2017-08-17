@@ -4,9 +4,13 @@
 |---|----|-----|----|----|----|----|----|
 
 
+**Table of Contents**
+- [Components](#components)
+- [Terminology](#terminology)
+- [Modes of operation](#modes-of-operation)
 
 # Components
-The main components of KSQL are:
+The main components of KSQL are CLI, engine, and the REST interface.
 
 **CLI**
 Provides a familiar interface, designed users of MySQL, Postgres, etc.
@@ -28,28 +32,27 @@ A table in KSQL is finite, where the bounds are defined by the size of the key s
 
 # Modes of operation
 
-#### Application mode
-In application mode, you can put your KSQL queries in a file and share across your Kakfa Streams instances. 
+#### Standalone mode
+In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
 
-Here's an overview of running KSQL in application mode:
+Here's an overview of running KSQL in standalone mode:
 
-- Start an engine instance and pass a file of KSQL statements to run, for example:
+- Starts a CLI, an Engine, and a REST server all in the same JVM
+- Ideal for laptop development
+	-  Use with default settings:
 
-  ```bash
-  .bin/ksql-node --query-file=foo/bar.sql
-  ```
-  or
+	   ```bash
+	   .bin/ksql-cli local
+	   ```	
 
-  ```bash
-  .bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
-  ```
-- This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
-- All engines share the work, for example, instances of the same KStreams app. You can scale up or down without restarting.
+	-  Use with custom settings:
 
-![Application mode](/docs/img/application-mode.png)
+	   ```bash
+	   .bin/ksql-cli local --properties-file foo/bar/ksql.properties
+	   ```
 
-**Tip:** You can dedicate resources by joining engines to the same ‘service pool’ by using the k`sql.service.id` property. You must set a unique value for `ksql.command.topic.suffix` to avoid conflicts.
- 
+![Standalone mode](/docs/img/standalone-mode.png)
+
 #### Client-server mode
 In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers and the CLI connects to them over HTTP.
 
@@ -77,28 +80,26 @@ Here's an overview of running KSQL in client-server mode:
 
 ![Client-server mode](/docs/img/client-server.png)
 
-**Tip:** You can dedicate resources by joining engines to the same ‘service pool’ by using the k`sql.service.id` property. You must set a unique value for `ksql.command.topic.suffix` to avoid conflicts.
+#### Application mode
+In application mode, you can put your KSQL queries in a file and share across your Kakfa Streams instances. 
 
+Here's an overview of running KSQL in application mode:
+
+- Start an engine instance and pass a file of KSQL statements to run, for example:
+
+  ```bash
+  .bin/ksql-node --query-file=foo/bar.sql
+  ```
+  or
+
+  ```bash
+  .bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
+  ```
+- This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
+- All engines share the work, for example, instances of the same KStreams app. You can scale up or down without restarting.
+
+![Application mode](/docs/img/application-mode.png)
+ 
 #### Embedded mode
-In embedded mode, you can write KSQL code inside of your streams Java app, using the KSQL context object inside of your application. The KSQL code will run inside the individual application instances.
+In embedded mode, you can write KSQL code inside of your streams Java app, using the KSQL context object inside of your application. The KSQL code will run inside the individual application instances. For more information, see [this example](/ksql-examples/src/main/java/io/confluent/ksql/embedded/EmbeddedKsql.java).
 
-#### Standalone mode
-In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
-
-Here's an overview of running KSQL in standalone mode:
-
-- Starts a CLI, an Engine, and a REST server all in the same JVM
-- Ideal for laptop development
-	-  Use with default settings:
-
-	   ```bash
-	   .bin/ksql-cli local
-	   ```	
-
-	-  Use with custom settings:
-
-	   ```bash
-	   .bin/ksql-cli local --properties-file foo/bar/ksql.properties
-	   ```
-
-![Standalone mode](/docs/img/standalone-mode.png)

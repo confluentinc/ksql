@@ -66,7 +66,7 @@ Start KSQL
 
 .. sourcecode:: bash
 
-   $ mvn clean install
+   $ mvn clean install -Dmaven.test.skip=true
 
 4. Start KSQL. Use the ``local`` argument for the developer preview KSQL release because it starts the KSQL engine locally.
 

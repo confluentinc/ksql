@@ -199,7 +199,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     String commandTopic = restConfig.getCommandTopic();
 
     try {
-      client.createTopic(commandTopic, 1, (short) 1);
+      short replicationFactor = 1;
+      if(restConfig.getOriginals().containsKey(KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
+        replicationFactor = Short.parseShort(restConfig.getOriginals().get
+            (KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString());
+      }
+      client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: " + e.getMessage());
     }

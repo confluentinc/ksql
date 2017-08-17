@@ -1,7 +1,7 @@
 # Syntax Reference
 
-| [Overview](/docs/) | [Installation](/docs/installation.md) | [Quick Start Guide](/docs/quickstart/) | [Concepts](/docs/concepts.md) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
-|----------|--------------|-------------|------------------|------------------|------------------|------------------|
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | Syntax Reference | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+|---|----|-----|----|----|----|----|----|
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 
@@ -11,8 +11,6 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 
 - [CLI-specific commands](##cli-specific-commands)
 - [KSQL statements](#ksql-commands)
-  - [DDL statements](#ddl-statements)
-  - [DML statements](#dml-statements)
   - [Scalar functions](#scalar-functions)
   - [Aggregate functions](#aggregate-functions)
 
@@ -56,8 +54,6 @@ Default behavior:
 ```
 
 **Tip:** You can search and browse your bash history in the KSQL CLI with `CTRL + R`.  After pressing `CTRL + R`, start typing the command or any part of the command and an autocomplete of a past commands is shown.
-
-## History 
 
 # KSQL statements
 KSQL statements should be terminated with a semicolon (`;`). If desired, use a back-slash ('\\') to indicate continuation on the next line. 

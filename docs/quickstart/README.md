@@ -1,7 +1,7 @@
 # Quick Start Guide
 
-| [Overview](/docs/) | [Installation](/docs/installation.md) | Quick Start Guide | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
-|----------|--------------|-------------|------------------|------------------|------------------|
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+|---|----|-----|----|----|----|----|----|
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
 

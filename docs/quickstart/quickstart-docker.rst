@@ -1,9 +1,5 @@
 .. _ksql_quickstart:
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
-|---|----|-----|----|----|----|----|----|
-
-
 Docker Setup for KSQL
 =====================
 
@@ -21,7 +17,7 @@ Start a Kafka cluster
 
 Do not run KSQL against a production cluster, since KSQL is in developer preview.
 
-As a pre-requisite install `Docker for Mac <https://docs.docker.com/docker-for-mac/install/>`__. If you do not have MacOS, you can install Docker on another `platform <https://docs.docker.com/engine/installation/#supported-platforms>`__
+As a prerequisite install `Docker for Mac <https://docs.docker.com/docker-for-mac/install/>`__. If you do not have macOS, you can install Docker on another `platform <https://docs.docker.com/engine/installation/#supported-platforms>`__
 
 
 1. Clone the Confluent KSQL repository:

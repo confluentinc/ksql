@@ -47,7 +47,7 @@ If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quic
 	mvn clean install -Dmaven.test.skip=true
 	```
 
-1.  Start KSQL by running the compiled jar file ksql-cli/target/ksql-cli-1.0-SNAPSHOT-standalone.jar. Use the local argument for the developer preview. This starts the KSQL engine locally.
+1.  Start KSQL by running the compiled jar file ksql-cli/target/ksql-cli-0.1-SNAPSHOT-standalone.jar. Use the local argument for the developer preview. This starts the KSQL engine locally.
 
 	```bash
 	./bin/ksql-cli local

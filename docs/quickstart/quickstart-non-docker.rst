@@ -86,25 +86,25 @@ Produce topic data
 The `main KSQL quickstart page <quickstart.rst>` assumes you have run at least the following three steps to produce data to two Kafka topics ``pageviews`` and ``users`` in your Kafka cluster. So if you're not using Docker, when automatically generates this data, you have to do these steps manually
 
 1. Assuming you have already completed the steps above to compile the KSQL code, verify that you
-have a compiled ``jar`` file ``ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar``
+have a compiled ``jar`` file ``ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar``
 for data generation.
 
 .. sourcecode:: bash
 
-   $ ls ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar
+   $ ls ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
 
 2. Produce Kafka data to a topic ``pageviews`` using the provided data generator. The following example continuously generates data with a value in DELIMITED format
 
 .. sourcecode:: bash
 
-   $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar
+   $ java -jar ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
    quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
 
 3. Produce Kafka data to a topic ``users`` using the provided data generator. The following example continuously generates data with a value in Json format
 
    .. sourcecode:: bash
 
-   $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar quickstart=users
+   $ java -jar ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar quickstart=users
    format=json topic=users maxInterval=10000
 
 At this point you may return to the `main KSQL quickstart page <quickstart.rst#create-a-stream-and-table>`__ to start querying the Kafka cluster. If you would like to do additional testing with topic data produced from the commandline tools: 

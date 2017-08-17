@@ -1,5 +1,8 @@
 # Non-Docker Setup for KSQL
 
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+|---|----|-----|----|----|----|----|----|
+
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start-guide) and use KSQL to query the Kafka cluster.
 
 **Table of Contents**
@@ -47,10 +50,10 @@ connect is [UP]
     git clone https://github.com/confluentinc/ksql
     ```
 
-2.  Navigate to the KSQL directory and compile the code.
+2.  Navigate to the `/ksql/docs/quickstart/` directory and compile the code.
 
     ```bash
-    mvn clean install -Dmaven.test.skip=true
+    mvn clean compile install -DskipTests -DskipDocker
     ```
 
 4.  Start KSQL. The `local` argument starts the KSQL engine locally.

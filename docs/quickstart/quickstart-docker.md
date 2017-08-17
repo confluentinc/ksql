@@ -1,12 +1,15 @@
 # Docker Setup for KSQL
 
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  | [Roadmap](/docs/roadmap.md) | [Demo](/docs/demo.md) |
+|---|----|-----|----|----|----|----|----|
+
+This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
+
 **Table of Contents**
 
 - [Start a Kafka cluster](#start-a-kafka-cluster)   
 - [Start KSQL](#start-ksql)   
 - [Produce more topic data](#produce-more-topic-data)   
-
-This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
 
 **Prerequisites:**
 Do not run KSQL against a production cluster, since KSQL is in developer preview.

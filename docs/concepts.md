@@ -51,7 +51,7 @@ Here's an overview of running KSQL in standalone mode:
 	   .bin/ksql-cli local --properties-file foo/bar/ksql.properties
 	   ```
 
-![Standalone mode](/docs/img/standalone-mode.png)
+![Standalone mode](/docs/img/standalone-mode.png  =100x20)
 
 #### Client-server mode
 In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers and the CLI connects to them over HTTP.

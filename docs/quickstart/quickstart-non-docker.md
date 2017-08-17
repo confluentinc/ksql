@@ -1,15 +1,15 @@
 # Non-Docker Setup for KSQL
 
+This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start-guide) and use KSQL to query the Kafka cluster.
+
 **Table of Contents**
 
 - [Start a Kafka cluster](#start-a-kafka-cluster) 
 - [Start KSQL](#start-ksql) 
 - [Produce topic data](#produce-topic-data) 
 
-This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
-
 **Prerequisites:**
-Do not run KSQL against a production cluster, since KSQL is in developer preview.
+- KSQL is in developer preview. Do not run KSQL against a production cluster.
 - [Confluent Platform 3.3.0](http://docs.confluent.io/current/installation.html) is installed. This installation includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
   - If you installed Confluent Platform via tar or zip, navigate into the installation directory. The paths and commands used throughout this quick start assume that your are in this installation directory. 
 - [Maven](https://maven.apache.org/install.html)

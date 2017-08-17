@@ -29,10 +29,9 @@ Do not run KSQL against a production cluster, since KSQL is in developer preview
     docker-compose up -d
     ```
 
-3. Optional: The next three steps are optional verification steps to ensure your
-environment is properly setup.
+3. Optional: The next three steps are optional verification steps to ensure your environment is properly setup. You can [skip to starting KSQL](#start-ksql).
 
-    1.  Verify that six Docker containers were created.
+    -   Verify that six Docker containers were created.
 
         ```bash
         docker-compose ps
@@ -51,7 +50,7 @@ environment is properly setup.
         quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp         
         ```
 
-    1.  The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.
+    -   The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.
 
         ```bash
         docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
@@ -70,7 +69,7 @@ environment is properly setup.
         users
         ```
 
-    1.  Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock timestamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user id and a value that is in `Json` format.
+    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock timestamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user id and a value that is in `Json` format.
 
         ```bash
         docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true

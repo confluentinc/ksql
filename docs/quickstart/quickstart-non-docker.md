@@ -72,7 +72,7 @@ See the steps below to generate data to the Kafka cluster.
 To use the [quick start exercises](/docs/quickstart#quick-start-guide), you must minimally run the following three steps to produce data to the Kafka topics `pageviews` and `users`. 
 
 ​1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
-
+ 
     ```bash
     java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar
     quickstart=pageviews format=delimited topic=pageviews maxInterval=10000

@@ -1,9 +1,9 @@
-# Quick Start Guide
+# Quick Start
 
-| [Overview](/docs/) | [Installation](/docs/installation.md) | Quick Start Guide | [Concepts](/docs/concepts.md) | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
-|----------|--------------|-------------|------------------|------------------|------------------|------------------|
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+|---|----|-----|----|----|----|----|----|
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+ 
 
 **Table of Contents**
 
@@ -12,9 +12,9 @@
 - [Write Queries](#write-queries)
 - [Terminate and Exit](#terminate-and-exit)
 
-Welcome to the quick start guide for KSQL!
+Welcome to the quick start for KSQL!
 
-The goal of this quick start guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
+The goal of this quick start is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 
 ## Setup
@@ -192,7 +192,7 @@ Before proceeding, please check:
 Terminate and Exit
 ------------------
 
-1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
 .. sourcecode:: bash
 

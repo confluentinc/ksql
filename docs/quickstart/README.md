@@ -1,13 +1,11 @@
-# Quick Start Guide
+# Quick Start
 
-| [Overview](/docs/) | [Installation](/docs/installation.md) | Quick Start Guide | [Syntax Reference](/docs/syntax-reference.md) | [Examples](/docs/examples.md) | [FAQ](/docs/faq.md)  |
-|----------|--------------|-------------|------------------|------------------|------------------|
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+|---|----|-----|----|----|----|----|----|
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+Welcome to the quick start for KSQL!
 
-Welcome to the quick start guide for KSQL!
-
-The goal of this quick start guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
+The goal of this quick start is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 **Table of Contents**
 
@@ -22,8 +20,8 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 1.  Bring up a Kafka cluster and start KSQL.
 
-	* [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.rst)  (we recommend Docker for simplicity)
-	* [Follow these instructions if you are not using Docker](quickstart-non-docker.rst)
+	* [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.md#docker-setup-for-ksql)  (we recommend Docker for simplicity)
+	* [Follow these instructions if you are not using Docker](quickstart-non-docker.md#non-docker-setup-for-ksql)
 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
@@ -34,7 +32,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 3.  KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quick start, you will produce mock streams to the Kafka cluster.
 
 	* If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
-	* If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.rst#produce-topic-data) to generate data to the Kafka cluster
+	* If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster
 
 ## Create a STREAM and TABLE
 
@@ -128,7 +126,7 @@ Before proceeding, please check:
     GENDER   | VARCHAR(STRING) 
     ```
 
-3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling KSQL application.
 
    ```bash
    ksql> SELECT * FROM pageviews_female;
@@ -190,7 +188,7 @@ Before proceeding, please check:
 
 ## Terminate and Exit
 
-1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
    ksql> terminate 2;

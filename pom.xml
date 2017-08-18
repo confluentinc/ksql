@@ -36,6 +36,7 @@
         <csv.version>1.4</csv.version>
         <docker.registry></docker.registry>
         <docker.tag>${project.version}</docker.tag>
+        <docker.skip>true</docker.skip>
         <guava.version>21.0</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>

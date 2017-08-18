@@ -294,7 +294,8 @@ public class MetastoreUtil {
       randomAccessFile.writeBytes(avroSchema);
       randomAccessFile.close();
     } catch (IOException e) {
-      throw new KsqlException("Could not write result avro schema file: " + filePath);
+      throw new KsqlException("Could not write result avro schema file: " + filePath + ". "
+                              + "Details: " + e.getMessage(), e);
     }
   }
 

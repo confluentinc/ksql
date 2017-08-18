@@ -20,8 +20,6 @@ Common KSQL use cases are:
 
 KSQL lowers the barriers for using real-time data in your applications. It is powered by a scalable streaming platform without the learning curve or additional management complexity of other stream processing solutions.
 
-
-
 ## Modes of operation
 
 You can use KSQL in standalone, client-server, application, and embedded modes. See this [document](/docs/concepts/) for more information.

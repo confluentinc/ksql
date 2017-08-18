@@ -25,7 +25,7 @@ No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) 
 
 KSQL is complementary to the Kafka Streams API, and indeed executes queries through Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. 
 This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
-As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skillset.
+As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skill set.
 
 **Is KSQL ready for production?**
 

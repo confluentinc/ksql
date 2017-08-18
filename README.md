@@ -27,7 +27,7 @@ Whether you need help, want to contribute, or are just looking for the latest ne
 
 * Ask a question in the #ksql channel in our public [Confluent Community Slack](https://confluent.typeform.com/to/GxTHUD). Account registration is free and self-service.
 * Create a [ticket](https://github.com/confluentinc/ksql) in our issue [tracker](https://github.com/confluentinc/ksql).
-* Join the [Confluent google group](https://groups.google.com/forum/#!forum/confluent-platform).
+* Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 # Contributing
 Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).

@@ -53,7 +53,7 @@ Default behavior:
     2. The line ends with backslash ('\'). In this case, lines are continuously read and stripped of their trailing newline and '\' until one is encountered that does not end with '\'; then, the concatenation of all lines read during this time is sent to the server as KSQL.
 ```
 
-**Tip:** You can search and browse your bash history in the KSQL CLI with `CTRL + R`.  After pressing `CTRL + R`, start typing the command or any part of the command and an autocomplete of a past commands is shown.
+**Tip:** You can search and browse your bash history in the KSQL CLI with `CTRL + R`.  After pressing `CTRL + R`, start typing the command or any part of the command and an auto-complete of a past commands is shown.
 
 # KSQL statements
 KSQL statements should be terminated with a semicolon (`;`). If desired, use a back-slash ('\\') to indicate continuation on the next line. 

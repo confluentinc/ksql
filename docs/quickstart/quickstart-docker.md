@@ -72,7 +72,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
         users
         ```
 
-    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock timestamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user id and a value that is in `Json` format.
+    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
 
         ```bash
         docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true

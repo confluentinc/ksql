@@ -255,12 +255,20 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               (CreateStream) statement, overriddenProperties, kafkaTopicClient),
           tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(
+          new CreateStreamCommand(
+              (CreateStream) statement, overriddenProperties, kafkaTopicClient),
+          tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
               (CreateTable) statement, overriddenProperties, kafkaTopicClient),
           tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(
+          new CreateTableCommand(
+              (CreateTable) statement, overriddenProperties, kafkaTopicClient),
+          tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);

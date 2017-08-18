@@ -1,9 +1,9 @@
 # Non-Docker Setup for KSQL
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
-This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start-guide) and use KSQL to query the Kafka cluster.
+This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start) and use KSQL to query the Kafka cluster.
 
 **Table of Contents**
 
@@ -71,7 +71,7 @@ connect is [UP]
 See the steps below to generate data to the Kafka cluster.
 
 ## Produce topic data
-Minimimally, to use the [quick start exercises](/docs/quickstart#quick-start-guide), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
+Minimimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
 
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
@@ -87,7 +87,7 @@ Minimimally, to use the [quick start exercises](/docs/quickstart#quick-start-gui
     format=json topic=users maxInterval=10000
     ```
 
-Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start-guide) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the commandline tools.
+Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the commandline tools.
 
 1.  You can produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
 

@@ -14,11 +14,15 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -251,22 +255,26 @@ public class KsqlEngine implements Closeable {
           new CreateStreamCommand(
               (CreateStream) statement, overriddenProperties, kafkaTopicClient),
           tempMetaStoreForParser);
-      ddlCommandExec.tryExecute(
-          new CreateStreamCommand(
-              (CreateStream) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
               (CreateTable) statement, overriddenProperties, kafkaTopicClient),
           tempMetaStoreForParser);
-      ddlCommandExec.tryExecute(
-          new CreateTableCommand(
-              (CreateTable) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStore);
+      return new Pair<>(statementString, statement);
+    } else if (statement instanceof DropStream) {
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);
+      return new Pair<>(statementString, statement);
+    } else if (statement instanceof DropTable) {
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStore);
+      return new Pair<>(statementString, statement);
+    } else if (statement instanceof DropTopic) {
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
+      return new Pair<>(statementString, statement);
+    } else if (statement instanceof SetProperty) {
       return new Pair<>(statementString, statement);
     }
+
     return null;
   }
 

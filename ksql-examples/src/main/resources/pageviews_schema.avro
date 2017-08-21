@@ -5,11 +5,9 @@
         "fields": [
                 {"name": "viewtime", "type": {
                     "type": "long",
+                    "format_as_time" : "unix_long",
                     "arg.properties": {
-                        "range": {
-                            "min": 1487715775521,
-                            "max": 1519273364600
-                        }
+                       "iteration": { "start": 1, "step": 10}
                     }
                 }},
                 {"name": "userid", "type": {

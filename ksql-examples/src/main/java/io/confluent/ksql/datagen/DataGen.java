@@ -157,6 +157,7 @@ public class DataGen {
         CLICKSTREAM_USERS("clickstream_users_schema.avro", "webusers", "user_id"),
         ORDERS("orders_schema.avro", "orders", "orderid"),
         USERS("users_schema.avro", "users", "userid"),
+        USERS_("users_array_map_schema.avro", "users", "userid"),
         PAGEVIEWS("pageviews_schema.avro", "pageviews", "viewtime");
 
         private final String schemaFileName;

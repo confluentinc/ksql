@@ -99,12 +99,12 @@ CREATE STREAM customer_clickstream WITH (PARTITIONS=2) as SELECT userid, u.first
 --create stream platinum_customers_with_errors WITH (PARTITIONS=2) as seLECT * FROM customer_clickstream WHERE status > 400 AND level = 'Platinum';
 
 -- Find error views by important users in one shot
-DROP STREAM platinum_errors;
-CREATE STREAM platinum_errors WITH (PARTITIONS=2) as SELECT userid, u.first_name, u.last_name, u.city, u.level, time, ip, request, status, agent FROM clickstream c LEFT JOIN web_users u ON c.userid = u.user_id WHERE status > 400 AND level = 'Platinum';
-
--- Trend of errors from important users
-DROP TABLE platinum_page_errors_per_5_min;
-CREATE TABLE platinum_errors_per_5_min AS SELECT userid, first_name, last_name, city, count(*) as running_count FROM platinum_errors WINDOW TUMBLING (SIZE 5 MINUTE) WHERE request LIKE '%html%' GROUP BY userid, first_name, last_name, city;
+--DROP STREAM platinum_errors;
+--CREATE STREAM platinum_errors WITH (PARTITIONS=2) as SELECT userid, u.first_name, u.last_name, u.city, u.level, time, ip, request, status, agent FROM clickstream c LEFT JOIN web_users u ON c.userid = u.user_id WHERE status > 400 AND level = 'Platinum';
+--
+---- Trend of errors from important users
+--DROP TABLE platinum_errors_per_5_min;
+--CREATE TABLE platinum_errors_per_5_min AS SELECT userid, first_name, last_name, city, count(*) as running_count FROM platinum_errors WINDOW TUMBLING (SIZE 5 MINUTE) WHERE request LIKE '%html%' GROUP BY userid, first_name, last_name, city;
 
 
 ----------------------------------------------------------------------------------------------------------------------------

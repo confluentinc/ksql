@@ -205,15 +205,11 @@
         "7d",
         "30d"
       ]
-    },
-    "timezone": "",
-    "title": "Malicious User Sessions",
-    "version": 2
   },
   "timezone": "",
   "title": "Malicious User Sessions",
   "version": 1
 },
-"overwrite": false
+"overwrite": true
 }
 

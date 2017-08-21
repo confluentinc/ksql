@@ -1,6 +1,17 @@
-# ClickStream Analysis
+# Clickstream Analysis
 
+### Introduction:
+Clickstream analysis is the process of collecting, analyzing and reporting aggregate data about which pages a website visitor visits -- and in what order. The path the visitor takes though a website is called the clickstream.
 
+This application focuses on building realtime analytics of users to determine:
+* general website analytics such as hit count & visitors.
+* bandwidth use
+* mapping user-ip addresses to actual users and their location
+* detection of high-bandwidth user sessions
+* error-code occurrence and enrichment
+* sessionization to track user-sessions and understand behavior (such as per-user-session-bandwidth, per-user-session-hits etc)
+
+The application makes use of standard streaming functions (i.e. min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
 ### Prerequisites:
 - Confluent 3.3.0 installed locally (default settings port:8083)

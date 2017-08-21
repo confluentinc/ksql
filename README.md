@@ -2,7 +2,7 @@
 
 *A Streaming SQL Engine for Apache Kafka from Confluent*
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster. * 
+> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
 
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands. 
 

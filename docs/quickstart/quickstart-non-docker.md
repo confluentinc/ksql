@@ -50,7 +50,7 @@ connect is [UP]
     git clone https://github.com/confluentinc/ksql
     ```
 
-2.  Change directory to the ksql directory and compile the code.
+2.  Change directory to the `ksql` directory and compile the code.
 
     ```bash
     cd ksql

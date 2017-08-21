@@ -20,7 +20,7 @@ KSQL consists of a client and a server component.  The client is a command line 
 If you are ready to see the power of KSQL, try the [KSQL Quick Start](/docs/quickstart#quick-start)! The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 # Documentation
-You can [find the KSQL documentation here](/docs/). 
+You can [find the KSQL documentation here](/docs#ksql-documentation). 
 
 # Join the Community
 Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).

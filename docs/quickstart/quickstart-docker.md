@@ -26,9 +26,10 @@ This part of the quick start will guide you through the steps to setup a Kafka c
     git clone https://github.com/confluentinc/ksql
     ```
 
-2.  Navigate to the `/ksql/docs/quickstart/` directory and launch the KSQL quick start in Docker.
+2.  Change directory to the quickstart and launch the KSQL quick start in Docker.
 
     ```bash
+    cd ksql/docs/quickstart/
     docker-compose up -d
     ```
 
@@ -57,22 +58,20 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
         ```bash
         docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
-        _confluent-metrics
-        _schemas
-        pageviews
-        users
         ```
 
         Your output should resemble this.
 
         ```bash
+        __consumer_offsets
         _confluent-metrics
         _schemas
+        ksql__commands
         pageviews
         users
         ```
 
-    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock timestamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user id and a value that is in `Json` format.
+    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
 
         ```bash
         docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
@@ -106,21 +105,21 @@ This part of the quick start will guide you through the steps to setup a Kafka c
     docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
     ```
 
-3.  Return to the [main KSQL quick start](quickstart.rst#create-a-stream-and-table) to start querying the data in the Kafka cluster.
+3.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.
 
 ## Produce more topic data
 
-The docker-compose file automatically runs a data generator that continuously produces data to two Kafka topics `pageviews` and `users`. No further action is required if you want to use just the data available. You can return to the [main KSQL quick start](quickstart.rst#create-a-stream-and-table) to start querying the data in these two topics.
+The docker-compose file automatically runs a data generator that continuously produces data to two Kafka topics `pageviews` and `users`. No further action is required if you want to use just the data available. You can return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in these two topics.
 
 However, if you want to produce additional data, you can use any of the following methods.
 
--   Produce Kafka data with the Kafka command line kafka-console-producer`. The following example generates data with a value in DELIMITED format.
+-   Produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
 
     ```bash
     docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
     ```
 
-    Your output should resemble this.
+    Your data input should resemble this.
 
     ```bash
     key1:v1,v2,v3
@@ -133,13 +132,9 @@ However, if you want to produce additional data, you can use any of the followin
 
     ```bash
     docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
-    key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
-    key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
-    key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
-    key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
     ```
 
-    Your output should resemble this.
+    Your data input should resemble this.
 
     ```bash
     key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}

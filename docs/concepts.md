@@ -81,7 +81,7 @@ Here's an overview of running KSQL in client-server mode:
 - All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
 
 ## Application mode
-In application mode, you can put your KSQL queries in a file and share across your Kakfa Streams instances. 
+In application mode, you can put your KSQL queries in a file and share across your Kafka Streams instances.
 
 ![Application mode](/docs/img/application-mode.png)
 

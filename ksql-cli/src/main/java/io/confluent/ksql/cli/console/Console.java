@@ -194,23 +194,35 @@ public abstract class Console implements Closeable {
       public void execute(String line) {
         writer().println();
         writer().println("Description:");
-        writer().println("\tThe KSQL CLI provides a terminal-based interactive shell for running queries. "
-             + "Each command must be on a separate line. "
-             + "For KSQL command syntax, see the documentation at https://github.com/confluentinc/ksql/docs/.");
+        writer().println("\tThe KSQL CLI provides a terminal-based interactive shell"
+             + " for running queries. Each command must be on a separate line. "
+             + "For KSQL command syntax, see the documentation at "
+             + "https://github.com/confluentinc/ksql/docs/.");
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
-          writer().println();
-        }
+          writer().println();      
+      }
         writer().println();
+        writer().println("Keyboard shortcuts:");
+        writer().println();
+        writer().println("    The KSQL CLI supports these keyboard shorcuts:");
+        writer().println();
+        writer().println("CTRL+D:");
+        writer().println("\tEnd your KSQL CLI session.");
+        writer().println("CTRL+R:");
+        writer().println("\tSearch your command history.");
+        writer().println("Up and Down arrow keys:");
+        writer().println("\tScroll up or down through your command history.");
+        writer().println();        
         writer().println("Default behavior:");
         writer().println();
-        writer().println("    Lines are read one at a time and are sent to the server as "
-            + "KSQL unless one of the following is true:"
+        writer().println("    Lines are read one at a time and are sent to the "
+            + "server as KSQL unless one of the following is true:"
         );
         writer().println();
-        writer().println("    1. The line is empty or entirely whitespace. In this case, "
-            + "no request is made to the server."
+        writer().println("    1. The line is empty or entirely whitespace. In this"
+            + " case, no request is made to the server."
         );
         writer().println();
         writer().println("    2. The line ends with backslash ('\\'). In this case, lines are "
@@ -287,8 +299,8 @@ public abstract class Console implements Closeable {
         writer().println(
             "history:");
         writer().println(
-            "\tShow previous lines entered during the current CLI session. You can use "
-                + "up and down arrow keys to navigate to the previous lines too."
+            "\tShow previous lines entered during the current CLI session. You can"
+                + " use up and down arrow keys to view previous lines."
         );
       }
 

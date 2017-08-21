@@ -4,7 +4,7 @@
 echo "Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource"
 ./elastic-dynamic-template.sh
 
-declare -a tables=('click_user_sessions_ts' 'clickstream_status_codes_ts' 'enriched_error_codes_ts' 'errors_per_min_alert_ts' 'errors_per_min_ts' 'events_per_min_max_avg_ts' 'events_per_min_ts' 'pages_per_min_ts');
+declare -a tables=('click_user_sessions_ts' 'user_ip_activity_ts' 'clickstream_status_codes_ts' 'enriched_error_codes_ts' 'errors_per_min_alert_ts' 'errors_per_min_ts' 'events_per_min_max_avg_ts' 'events_per_min_ts' 'pages_per_min_ts');
 for i in "${tables[@]}"
 do
 

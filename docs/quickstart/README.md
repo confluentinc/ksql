@@ -173,7 +173,7 @@ Before proceeding, please check:
    ksql> 
    ```
 
-7. Show all queries.
+7. Show all persistent queries.
 
    ```bash
    ksql> SHOW QUERIES;

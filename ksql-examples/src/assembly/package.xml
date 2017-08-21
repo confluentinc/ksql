@@ -33,6 +33,13 @@
                 <include>*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/examples/clickstream-analysis</directory>
+            <outputDirectory>share/doc/ksql-examples/examples/clickstream-analysis/</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>

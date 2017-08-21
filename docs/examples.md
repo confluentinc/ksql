@@ -17,7 +17,7 @@ The above statement creates a stream with three columns on the kafka topic that 
 'pageviews'. We should also tell KSQL in what format the values are stored in the topic. In this
 example, the values format is 'DELIMITED'. The above statement does not make any assumption about
  the message key. However, if the value of message key is the same as one of the columns defined
- in the stream, we can provide such information in the WITH clasue. For instance, if the kafka
+ in the stream, we can provide such information in the WITH clause. For instance, if the kafka
  message key has the same value as the 'pageid' column we can write the CREATE STREAM statement
  as follows:
 
@@ -55,8 +55,8 @@ exists in your kafka cluster.
 
 Now that we have the 'pageviews_original' stream and 'users_original' table, lets see some
 example queries that you can write in KSQL. We focus on two types of KSQL statements, CREATE
-STREAM AS SELECT and CREATE TABLE AS SELECT. For these statements KSQ
-prsists the results of the query in a new stream or table which is backed by a Kafka topic.
+STREAM AS SELECT and CREATE TABLE AS SELECT. For these statements KSQL
+persists the results of the query in a new stream or table which is backed by a Kafka topic.
 Consider the following examples.
 
 ### Stream transformation

@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
@@ -312,6 +313,11 @@ public class QueryEngine {
   public DDLCommandResult handleDdlStatement(
       final Statement statement,
       final Map<String, Object> overriddenProperties) {
+    if (statement instanceof SetProperty) {
+      SetProperty setProperty = (SetProperty) statement;
+      overriddenProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+      return null;
+    }
     DDLCommand command = generateDDLCommand(statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
   }

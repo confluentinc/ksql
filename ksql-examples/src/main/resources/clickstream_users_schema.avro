@@ -11,6 +11,33 @@
                         }
                     }
                 }},
+          {"name": "username", "type": {
+            "type": "string",
+            "arg.properties": {
+              "options": [
+                "akatz1022",
+                "bobk_43",
+                "alison_99",
+                "k_robertz_88",
+                "Ferd88",
+                "Reeva43",
+                "Antonio_0966",
+                "ArlyneW8ter",
+                "DimitriSchenz88",
+                "Oriana_70",
+                "AbdelKable_86",
+                "Roberto_123",
+                "AlanGreta_GG66",
+                "Nathan_126",
+                "AndySims_345324",
+                "GlenAlan_23344",
+                "LukeWaters_23",
+                "BenSteins_235"
+
+              ]
+            }
+          }},
+
                 {"name": "registered_at", "type": {
                     "type": "long",
                     "arg.properties": {

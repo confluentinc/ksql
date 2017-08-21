@@ -50,9 +50,10 @@ connect is [UP]
     git clone https://github.com/confluentinc/ksql
     ```
 
-2.  Navigate to the `/ksql/docs/quickstart/` directory and compile the code.
+2.  Change directory to the ksql directory and compile the code.
 
     ```bash
+    cd ksql
     mvn clean compile install -DskipTests
     ```
 

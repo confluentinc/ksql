@@ -62,7 +62,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     cd ksql
     ```
 
-1.  From your terminal, create the ClickStream data using DataGen.
+1.  From your terminal, create the clickStream data using the ksql-datagen utility.
 
     ```bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
     111.168.57.122 --> ([ '111.168.57.122' | 12 | '-' | '15/Aug/2017:10:53:45 +0100' | 1502790825640 | 'GET /site/user_status.html HTTP/1.1' | '404' | '1289' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
@@ -70,7 +70,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     222.145.8.144 --> ([ '222.145.8.144' | 18 | '-' | '15/Aug/2017:10:53:47 +0100' | 1502790827645 | 'GET /site/user_status.html HTTP/1.1' | '200' | '4006' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
     ```
 
-1.  From your terminal, create the status codes using DataGen (run once to populate TABLE).
+1.  From your terminal, create the status codes using the ksql-datagen utility (run once to populate TABLE).
 
     ```
     bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes_1 maxInterval=100 iterations=100
@@ -86,7 +86,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ...
     ```
 
-1.  From your terminal, create a set of users using DataGen (run once to populate TABLE).
+1.  From your terminal, create a set of users using ksql-datagen utility (run once to populate TABLE).
 
     ```
     bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=20
@@ -123,6 +123,8 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ``` 
 
 1.  From the the KSQL CLI, load the `clickstream.sql` schema file that will run the demo app.
+
+    **Important:** Before running this step, you must have already run ksql-datagen utility to create the clickstream data, status codes, and set of users.
 
     ```
     ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';

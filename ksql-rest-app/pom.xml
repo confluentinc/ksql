@@ -89,7 +89,7 @@
 
     <profiles>
         <profile>
-            <id>licenses</id>
+            <id>packaging</id>
             <activation>
                 <property>
                     <name>env.BUILD_NUMBER</name>

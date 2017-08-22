@@ -1,9 +1,9 @@
 # Non-Docker Setup for KSQL
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
-This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start-guide) and use KSQL to query the Kafka cluster.
+This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start) and use KSQL to query the Kafka cluster.
 
 **Table of Contents**
 
@@ -21,7 +21,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 ## Start Kafka
 
-Navigate to the `confluent-3.3.0` directoy and start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on `localhost:2181`, Kafka broker is listening on `localhost:9092`, and Confluent Schema Registry is listening on `localhost:8081`.
+Navigate to the `confluent-3.3.0` directory and start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on `localhost:2181`, Kafka broker is listening on `localhost:9092`, and Confluent Schema Registry is listening on `localhost:8081`.
 
 ```bash
 ./bin/confluent start
@@ -47,12 +47,13 @@ connect is [UP]
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone https://github.com/confluentinc/ksql
+    git clone git@github.com:confluentinc/ksql.git
     ```
 
-2.  Navigate to the `/ksql/docs/quickstart/` directory and compile the code.
+2.  Change directory to the ksql directory and compile the code.
 
     ```bash
+    cd ksql
     mvn clean compile install -DskipTests
     ```
 
@@ -71,7 +72,7 @@ connect is [UP]
 See the steps below to generate data to the Kafka cluster.
 
 ## Produce topic data
-Minimimally, to use the [quick start exercises](/docs/quickstart#quick-start-guide), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
+Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
 
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
@@ -87,7 +88,7 @@ Minimimally, to use the [quick start exercises](/docs/quickstart#quick-start-gui
     format=json topic=users maxInterval=10000
     ```
 
-Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start-guide) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the commandline tools.
+Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the command line tools.
 
 1.  You can produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
 

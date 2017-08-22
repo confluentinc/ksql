@@ -1,6 +1,17 @@
-# ClickStream Analysis
+# Clickstream Analysis
 
+### Introduction:
+Clickstream analysis is the process of collecting, analyzing and reporting aggregate data about which pages a website visitor visits -- and in what order. The path the visitor takes though a website is called the clickstream.
 
+This application focuses on building realtime analytics of users to determine:
+* general website analytics such as hit count & visitors.
+* bandwidth use
+* mapping user-ip addresses to actual users and their location
+* detection of high-bandwidth user sessions
+* error-code occurrence and enrichment
+* sessionization to track user-sessions and understand behavior (such as per-user-session-bandwidth, per-user-session-hits etc)
+
+The application makes use of standard streaming functions (i.e. min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
 ### Prerequisites:
 - Confluent 3.3.0 installed locally (default settings port:8083)
@@ -55,14 +66,14 @@ Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 ksql>
 ``` 
 
-4. Use DataGen to create the ClickStream
+4. Switch out of KSQL and to a cmd shell where you run the DataGen to create the Web traffic
 ```
-:ksql user$ bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
+:ksql user$ bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream maxInterval=1000 iterations=5000
 111.168.57.122 --> ([ '111.168.57.122' | 12 | '-' | '15/Aug/2017:10:53:45 +0100' | 1502790825640 | 'GET /site/user_status.html HTTP/1.1' | '404' | '1289' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
 111.90.225.227 --> ([ '111.90.225.227' | 5 | '-' | '15/Aug/2017:10:53:46 +0100' | 1502790826930 | 'GET /images/logo-small.png HTTP/1.1' | '302' | '4006' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
 222.145.8.144 --> ([ '222.145.8.144' | 18 | '-' | '15/Aug/2017:10:53:47 +0100' | 1502790827645 | 'GET /site/user_status.html HTTP/1.1' | '200' | '4006' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
 ```
-5. Use DataGen to create the status codes (one off to populate TABLE)
+5. Use DataGen to create the Status codes (one off to populate TABLE)
 ```
 :ksql user$ bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
 404 --> ([ 404 | 'Page not found' ])
@@ -78,7 +89,7 @@ ksql>
 ```
 
 
-7. Load the clickstream.sql schema file that will run the demo app
+7. Switch back to the KSQL prompt. Then load the clickstream.sql schema file that will run the demo app
 ```
 ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';
 

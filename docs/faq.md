@@ -1,9 +1,9 @@
 # Frequently Asked Questions
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+ 
 
 **What are the benefits of KSQL?**
 
@@ -25,7 +25,7 @@ No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) 
 
 KSQL is complementary to the Kafka Streams API, and indeed executes queries through Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. 
 This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
-As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skillset.
+As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skill set.
 
 **Is KSQL ready for production?**
 

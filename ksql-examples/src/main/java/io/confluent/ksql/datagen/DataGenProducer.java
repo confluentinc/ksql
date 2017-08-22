@@ -63,16 +63,23 @@ public abstract class DataGenProducer {
       /**
        * Populate the record entries
        */
+      String sessionisationValue = null;
       for (Schema.Field field : avroSchema.getFields()) {
 
-        String isSession = field.schema().getProp("session");
+        boolean isSession = field.schema().getProp("session") != null;
+        boolean isSessionSiblingIntHash = field.schema().getProp("session-sibling-int-hash") != null;
         String timeFormatFromLong = field.schema().getProp("format_as_time");
-        if (isSession != null) {
+
+        if (isSession) {
           String currentValue = (String) randomAvroMessage.get(field.name());
           String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
-
+          sessionisationValue = newCurrentValue;
 
           genericRowValues.add(newCurrentValue);
+        } else if (isSessionSiblingIntHash && sessionisationValue != null) {
+
+          // super cheeky hack to link int-ids to session-values - if anything fails then we use the 'avro-gen' randomised version
+          handleSessionSiblingField(randomAvroMessage, genericRowValues, sessionisationValue, field);
 
         } else if (timeFormatFromLong != null) {
           Date date = new Date(System.currentTimeMillis());
@@ -104,6 +111,52 @@ public abstract class DataGenProducer {
     }
     producer.flush();
     producer.close();
+  }
+
+  private void handleSessionSiblingField(GenericRecord randomAvroMessage, List<Object> genericRowValues, String sessionisationValue, Schema.Field field) {
+    try {
+      Schema.Type type = field.schema().getType();
+      if (type == Schema.Type.INT) {
+        genericRowValues.add(mapSessionValueToSibling(sessionisationValue, field));
+      } else {
+        genericRowValues.add(randomAvroMessage.get(field.name()));
+      }
+    } catch (Exception err) {
+        genericRowValues.add(randomAvroMessage.get(field.name()));
+    }
+  }
+
+  Map<String, Integer> sessionMap = new HashMap<>();
+  Set<Integer> allocatedIds = new HashSet<>();
+  private int mapSessionValueToSibling(String sessionisationValue, Schema.Field field) {
+
+    if (!sessionMap.containsKey(sessionisationValue)) {
+
+      LinkedHashMap properties = (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
+      Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
+
+      int hash = Math.abs(sessionisationValue.hashCode());
+      int vvalue = hash % max.intValue();
+
+      int foundValue = -1;
+      // used - search for another
+      if (allocatedIds.contains(vvalue)) {
+        for (int i = 0; i < max; i++) {
+          if (!allocatedIds.contains(i)) {
+            foundValue = i;
+          }
+        }
+        if (foundValue == -1) {
+          System.out.println("Failed to allocate Id :" + sessionisationValue + ", reusing " + vvalue);
+          foundValue = vvalue;
+        }
+        vvalue = foundValue;
+      }
+      allocatedIds.add(vvalue);
+      sessionMap.put(sessionisationValue, vvalue);
+    }
+    return sessionMap.get(sessionisationValue);
+
   }
 
 

@@ -1,9 +1,9 @@
 # Examples
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start-guide) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | Examples | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+ 
 
 Here are some example queries to illustrate the look and feel of the KSQL syntax.
 For the following examples we use 'pageviews' stream and 'users' table similar to the quickstart.
@@ -17,7 +17,7 @@ The above statement creates a stream with three columns on the kafka topic that 
 'pageviews'. We should also tell KSQL in what format the values are stored in the topic. In this
 example, the values format is 'DELIMITED'. The above statement does not make any assumption about
  the message key. However, if the value of message key is the same as one of the columns defined
- in the stream, we can provide such information in the WITH clasue. For instance, if the kafka
+ in the stream, we can provide such information in the WITH clause. For instance, if the kafka
  message key has the same value as the 'pageid' column we can write the CREATE STREAM statement
  as follows:
 
@@ -53,10 +53,10 @@ varchar(string). KSQL also supports array type with primitive elements and map t
 Note that the above statements require the kafka topic that you define stream or table already
 exists in your kafka cluster.
 
-Now that we have the 'pageviews_original' stream and 'users_original' table, lets see some
+Now that we have the 'pageviews_original' stream and 'users_original' table, let's see some
 example queries that you can write in KSQL. We focus on two types of KSQL statements, CREATE
-STREAM AS SELECT and CREATE TABLE AS SELECT. For these statements KSQ
-prsists the results of the query in a new stream or table which is backed by a Kafka topic.
+STREAM AS SELECT and CREATE TABLE AS SELECT. For these statements KSQL
+persists the results of the query in a new stream or table which is backed by a Kafka topic.
 Consider the following examples.
 
 ### Stream transformation
@@ -78,34 +78,82 @@ properties:
 
 ```
 
-
-
-
-
-
-
-### Filter an inbound stream of page views to only show errors
+The following query creates a new stream by joining pageview_transformed stream with
+the users_original table:
 
 ```sql
-SELECT STREAM request, ip, status 
- WHERE status >= 400
+ CREATE STREAM pageview_enriched AS SELECT viewtime, pv.userid, pageid , timestring,
+  gender, regionid, userid, interests, contactinfo FROM
+ pageview_transformed pv LEFT JOIN users_original ON pv.userid = users_original.userid;
+
 ```
 
-### Create a new stream that contains the pageviews from female users only
+### Window Aggregat
+
+Now let's assume we want to count the number of pageviews per region. Here is the query that
+would perform this count.
+
 
 ```sql
-CREATE STREAM pageviews_by_female_users AS
-  SELECT users.userid AS userid, pageid, regionid, gender FROM pageviews
-  LEFT JOIN users ON pageview.userid = users.userid
-  WHERE gender = 'FEMALE';
+ CREATE TABLE pageview_per_region AS SELECT regionid, count(*) FROM
+ pageview_enriched pv GROUP BY regionid;
+
 ```
 
-### Continuously compute the number of pageviews for each page with 5-second tumbling windows
+The above query counts the pageview from the query start time until we terminate the query. Note
+that we used CREATE TABLE AS SELECT statement here since the result of the query is a KSQL table.
+ The results of aggregate queries in KSQL are always a table since we compute the aggregate for
+ each key, and possibily window and update these results as we process new tuples.
+KSQL supports aggregation over WINDOW too. Let's rewrite the above query so that we compute the
+pageview count per region every 1 minute.
 
 ```sql
-CREATE TABLE pageview_counts AS
-  SELECT pageid, count(*) FROM pageviews
-  WINDOW TUMBLING (size 5 second)
-  GROUP BY pageid;
-```	
+ CREATE TABLE pageview_per_region_perminute AS SELECT regionid, count(*) FROM
+ pageview_enriched pv WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY regionid;
 
+```
+
+If we want to count the pageviews for only Region_6 from the female users for every 30 seconds we
+ can change the above query as the following:
+
+ ```sql
+  CREATE TABLE pageview_per_region_per30sec AS SELECT regionid, count(*) FROM pageview_enriched pv
+  WINDOW TUMBLING (SIZE 30 SECONDS) WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6' GROUP BY regionid;
+
+ ```
+
+As you can see we used UCASE and LCASE functions in KSQL to convert the values of gender and
+regionid columns to upper and lower case respectively so we can match them correctly.
+
+KSQL supports HOPPING and SESSION windows too. The following query is the same query as above
+that computes the count for hopping window of 30 seconds that advances by 10 seconds:
+
+ ```sql
+  CREATE TABLE pageview_per_region_per30sec AS SELECT regionid, count(*) FROM pageview_enriched pv
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) WHERE UCASE(gender)='FEMALE' AND LCASE
+  (regionid)='region_6'
+  GROUP BY regionid;
+
+ ```
+
+The following queries show how to access array items and map values in KSQL. The 'interest'
+column in the user table is an array of string with size two that represents the first and second
+ interest of each user. The contactinfo column is a string to string map that represents the
+ following contact information for each user: phone, city, state and zipcode.  The following
+ query will create a new stream from pageview_enriched that includes the first interrest of each
+ user along with the city and zipcode for each user.
+
+ ```sql
+   CREATE STREAM pageview_interest_contact AS SELECT interests[0] as firstinterest,
+   contactinfo['zipcode'] as zipcode, contactinfo['city'] as city, viewtime, PV_USERID,
+   pageid , timestring, gender, regionid FROM pageview_enriched;
+
+  ```
+We can use the newly created pageview_interest_contact stream and count the number of pageview
+from each city for window sessions with session inactivity gap of 60 seconds.
+
+ ```sql
+   CREATE TABLE pageview_count_city_session AS SELECT city, count(*) FROM pageview_interest_contact
+   WINDOW SESSION (60 SECONDS) GROUP BY city;
+
+  ```

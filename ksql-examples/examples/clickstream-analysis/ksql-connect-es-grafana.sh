@@ -53,10 +53,6 @@ curl -X "POST" "http://localhost:3000/api/datasources" \
 	     -d $'{"id":1,"orgId":1,"name":"'$table_name'","type":"elasticsearch","typeLogoUrl":"public/app/plugins/datasource/elasticsearch/img/elasticsearch.svg","access":"proxy","url":"http://localhost:9200","password":"","user":"","database":"'$table_name'","basicAuth":false,"isDefault":false,"jsonData":{"timeField":"EVENT_TS"}}'
 
 
-echo ""
-echo "Navigate to Grafana and create a Dashboard Panel: http://localhost:3000/dashboard/new"
-echo "Add the datasource: " $1
-
 
 
 

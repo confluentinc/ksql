@@ -1,13 +1,11 @@
-# Quick Start Guide
+# Quick Start
 
-| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#faq)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
-> *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license.*
+Welcome to the quick start for KSQL!
 
-Welcome to the quick start guide for KSQL!
-
-The goal of this quick start guide is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
+The goal of this quick start is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
 
 **Table of Contents**
 
@@ -128,7 +126,7 @@ Before proceeding, please check:
     GENDER   | VARCHAR(STRING) 
     ```
 
-3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling Kafka Streams application.
+3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling KSQL application.
 
    ```bash
    ksql> SELECT * FROM pageviews_female;
@@ -175,7 +173,7 @@ Before proceeding, please check:
    ksql> 
    ```
 
-7. Show all queries.
+7. Show all persistent queries.
 
    ```bash
    ksql> SHOW QUERIES;
@@ -190,7 +188,7 @@ Before proceeding, please check:
 
 ## Terminate and Exit
 
-1. Until you terminate a query, it will run continuously as a Kafka Streams application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
    ksql> terminate 2;

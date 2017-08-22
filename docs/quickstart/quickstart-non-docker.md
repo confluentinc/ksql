@@ -47,7 +47,7 @@ connect is [UP]
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone https://github.com/confluentinc/ksql
+    git clone git@github.com:confluentinc/ksql.git
     ```
 
 2.  Change directory to the ksql directory and compile the code.

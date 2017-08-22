@@ -58,7 +58,7 @@
                 <!-- Workaround to help with public builds, remove after we release a build-tools artifact. -->
                 <groupId>io.confluent</groupId>
                 <artifactId>build-tools</artifactId>
-                <version>3.3.0</version>
+                <version>4.0.0-SNAPSHOT</version>
             </dependency>
 
             <!-- Cross-submodule dependencies -->

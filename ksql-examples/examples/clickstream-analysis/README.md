@@ -15,14 +15,11 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 #### Prerequisites
 - [Confluent 3.3.0 installed](http://docs.confluent.io/current/installation.html) locally
-- ElasticSearch installed
-- Grafana installed 
-
-  **macOS:** `brew install elasticsearch grafana`
-
+- [ElasticSearch installed](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
+- [Grafana installed](http://docs.grafana.org/installation/)
 - [Git](https://git-scm.com/downloads)
 
-1.  Start the Confluent Platform. It should be running on default port 8083.
+1.  From your terminal, start the Confluent Platform. It should be running on default port 8083.
 
     ```
     ./bin/confluent start
@@ -30,7 +27,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
     The output should resemble:
 
-    ```
+    ```bash
     Starting zookeeper
     zookeeper is [UP]
     Starting kafka
@@ -43,12 +40,10 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     connect is [UP]
     ```
 
-1.  Run the Elastic and Grafana-Server. ElasticSearch should be running on the default port 9200. Grafana should be running on the default port 3000.
+1.  From your terminal, start the Elastic and Grafana servers. ElasticSearch should be running on the default port 9200. Grafana should be running on the default port 3000. <!-- http://docs.grafana.org/installation/ -->
 
-    ``` 
-    user% elasticsearch
-    user% run-grafana.sh&
-    ```
+    - [Start Elastic](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
+    - [Start Grafana](http://docs.grafana.org/installation/)
 
 1.  Clone the Confluent KSQL repository.
 
@@ -62,15 +57,16 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     cd ksql
     ```
 
-1.  From your terminal, create the clickStream data using the ksql-datagen utility.
+1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
-    ```bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
+    ```
+    bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
     111.168.57.122 --> ([ '111.168.57.122' | 12 | '-' | '15/Aug/2017:10:53:45 +0100' | 1502790825640 | 'GET /site/user_status.html HTTP/1.1' | '404' | '1289' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
     111.90.225.227 --> ([ '111.90.225.227' | 5 | '-' | '15/Aug/2017:10:53:46 +0100' | 1502790826930 | 'GET /images/logo-small.png HTTP/1.1' | '302' | '4006' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
     222.145.8.144 --> ([ '222.145.8.144' | 18 | '-' | '15/Aug/2017:10:53:47 +0100' | 1502790827645 | 'GET /site/user_status.html HTTP/1.1' | '200' | '4006' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
     ```
 
-1.  From your terminal, create the status codes using the ksql-datagen utility (run once to populate TABLE).
+1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```
     bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes_1 maxInterval=100 iterations=100
@@ -86,7 +82,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ...
     ```
 
-1.  From your terminal, create a set of users using ksql-datagen utility (run once to populate TABLE).
+1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```
     bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=20
@@ -135,7 +131,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ```
      Message                            
     ------------------------------------
-     Statement written to command topic 
+     Executing statement
     ksql>
     ```
 
@@ -179,7 +175,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
      CLICKSTREAM               | clickstream_1             | JSON   
     ```
 
-1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams.
+1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. This will run continuously until you terminate (CTRL+C).
 
     ```
     ksql> select * from CLICKSTREAM;
@@ -212,7 +208,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     1.  Navigate to the examples directory:
 
         ```
-        ksql user$ cd ksql-examples/examples/clickstream-analysis/
+        cd ksql-examples/examples/clickstream-analysis/
         ```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
@@ -233,7 +229,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, load the dashboard into Grafana.
 
     ```
-    user$ ./clickstream-analysis-dashboard.sh
+    ./clickstream-analysis-dashboard.sh
     ```
 
     Your output should resemble:
@@ -243,7 +239,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     {"slug":"click-stream-analysis","status":"success","version":1}
     ```
 
-1.  Go to your browser and view the Grafana output at [http://localhost:3000/dashboard/db/click-stream-analysis](http://localhost:3000/dashboard/db/click-stream-analysis). 
+1.  Go to your browser and view the Grafana output at [http://localhost:3000/dashboard/db/click-stream-analysis](http://localhost:3000/dashboard/db/click-stream-analysis). You can login with user ID `admin` and password `admin`.
 
     <!-- Add screenshot -->
 

@@ -74,7 +74,7 @@ CREATE STREAM stream_name (  { column_name data_type} [, ...] ) WITH ( property_
 ```
 Create a new stream with the specified columns and properties.
 
-The supported column data types are BOOELAN(BOOL), INTEGER(INT), BIGINT(LONG), DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
+The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
 
 In addition to the defined columns in the statement, KSQL adds two implicit columns to every stream, ROWKEY and ROWTIME, which represent the corresponding Kafka message key and message timestamp.
 
@@ -96,7 +96,7 @@ Example:
 CREATE TABLE table_name (  { column_name data_type} [, ...] ) WITH ( property_name = expression [, ...] );
 ```
 
-Create a new KSQL table with the specified columns and properties. The supported column data types are BOOELAN(BOOL), INTEGER(INT), BIGINT(LONG), DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
+Create a new KSQL table with the specified columns and properties. The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
 
 In addition to the defined columns in the statement, KSQL adds two implicit columns to every table, ROWKEY and ROWTIME, which represent the corresponding Kafka message key and message timestamp.
 

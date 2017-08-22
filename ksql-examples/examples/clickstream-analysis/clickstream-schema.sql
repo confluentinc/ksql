@@ -5,7 +5,7 @@ set 'cache.max.bytes.buffering'='10000000';
 
 -- 1. SOURCE of ClickStream
 DROP STREAM clickstream;
-CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream_1', value_format = 'json');
+CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');
 
 
 ----------------------------------------------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ create table events_per_min_max_avg_ts as select rowTime as event_ts, * from eve
 -- 3. BUILD STATUS_CODES
 -- static table
 DROP TABLE clickstream_codes;
-CREATE TABLE clickstream_codes (code int, definition varchar) with (key='code', kafka_topic = 'clickstream_codes_1', value_format = 'json');
+CREATE TABLE clickstream_codes (code int, definition varchar) with (key='code', kafka_topic = 'clickstream_codes', value_format = 'json');
 
 -- Add _TS for Timeseries storage
 DROP TABLE clickstream_codes_ts;

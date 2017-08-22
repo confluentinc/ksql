@@ -78,6 +78,7 @@ properties:
 
 ```
 
+### Stream-Table Join
 The following query creates a new stream by joining pageview_transformed stream with
 the users_original table:
 
@@ -87,6 +88,8 @@ the users_original table:
  pageview_transformed pv LEFT JOIN users_original ON pv.userid = users_original.userid;
 
 ```
+Note that by default all the Kafka topic will be read from the current offset, however, in
+Stream-Table join, the table topic will be read from the begining.
 
 ### Window Aggregat
 
@@ -157,3 +160,34 @@ from each city for window sessions with session inactivity gap of 60 seconds.
    WINDOW SESSION (60 SECONDS) GROUP BY city;
 
   ```
+
+### SET session properties
+Using SET statement you can set different config properties for your queries. You can set streams
+ config properties along with proerties for Kafka consumer and producer.
+
+  ```sql
+    SET '<property-name>'='<property-value>';
+
+   ```
+Note that both property name and property value should be enclosed in single quote.
+A property that is set using the SET statement will remain the same for the rest of the session
+until you issue another SET statement to change it.
+Here are some of the common config properties that you could change from their default values
+using SET statement:
+
+- auto.offset.reset: The default value in KSQL is latest meaning all the Kafka topics will be read
+from the current offset. You can change
+ it using the following
+statement:
+
+```sql
+SET 'auto.offset.reset'='earliest';
+
+```
+- commit.interval.ms: The default value is 2000. Here is an example to change the value to 5000.
+
+```sql
+SET 'commit.interval.ms'='5000';
+
+```
+- cache.max.bytes.buffering: The default value is 10,000,000;

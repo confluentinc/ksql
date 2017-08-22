@@ -12,9 +12,11 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 - [Produce more topic data](#produce-more-topic-data)   
 
 **Prerequisites:**
-- [Docker](https://docs.docker.com/engine/installation/). 
+- Docker 
+    - [macOS](https://docs.docker.com/docker-for-mac/install/)
+    - [All platforms](https://docs.docker.com/engine/installation/)
 - [Git](https://git-scm.com/downloads)
-- Java: Minimum version 1.8. 
+- Java: Minimum version 1.8
 
 ## Start a Kafka cluster
 

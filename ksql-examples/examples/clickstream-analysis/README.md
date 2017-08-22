@@ -183,6 +183,11 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
     ```
     ksql> select * from CLICKSTREAM;
+    ```
+
+    Your output should resemble:
+
+    ```
     1502152008511 | 104.152.45.45 | 1502152008511 | 07/Aug/2017:17:26:48 -0700 | 104.152.45.45 | GET /index.html HTTP/1.1 | 404 | - | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
     1502152008691 | 54.173.165.103 | 1502152008691 | 07/Aug/2017:17:26:48 -0700 | 54.173.165.103 | GET /index.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
     1502152009077 | 66.249.79.93 | 1502152009077 | 07/Aug/2017:17:26:49 -0700 | 66.249.79.93 | GET /site/user_status.html HTTP/1.1 | 200 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
@@ -204,29 +209,46 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  From your terminal, send the KSQL Tables=>Connect=>Elastic=>Grafana.
 
-    ```
-    ksql user$ cd ksql-examples/examples/clickstream-analysis/
-    user$ ./ksql-tables-to-grafana.sh
-    {<<JSON RESPONSE>>} 
-    user$ 
-    ```
+    1.  Navigate to the examples directory:
+
+        ```
+        ksql user$ cd ksql-examples/examples/clickstream-analysis/
+        ```
+
+    1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
+
+        ```
+        ./ksql-tables-to-grafana.sh
+        ```
+
+        Your output should resemble:
+
+        ```
+        Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+        Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp
+        {"acknowledged":true}{"error":{"root_cause":[{"type":"index_not_found_exception","reason":"no such index","resource.type":"index_or_alias","resource.id":"click_user_sessions_ts","index_uuid":"_na_","index":"click_user_sessions_ts"}],"type":"index_not_found_exception","reason":"no such index","resource.type":
+        ...
+        ```
 
 1.  From your terminal, load the dashboard into Grafana.
 
     ```
     user$ ./clickstream-analysis-dashboard.sh
-    {"slug":"click-stream-analysis","status":"success","version":5}
-    user$ 
     ```
 
-1.  From your terminal, view the ClickStream Dashboard.
+    Your output should resemble:
 
     ```
-    Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
+    Loading Grafana ClickStream Dashboard
+    {"slug":"click-stream-analysis","status":"success","version":1}
     ```
+
+1.  Go to your browser and view the Grafana output at [http://localhost:3000/dashboard/db/click-stream-analysis](http://localhost:3000/dashboard/db/click-stream-analysis). 
+
+    <!-- Add screenshot -->
 
 Interesting things to try:
-* Understand how the clickstream-schema.sql file is structured. We use a DataGen.KafkaTopic.clickstream_1 -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
+* Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream_1 -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
 * Try `list topics` to see where data is persisted
 * Try `list tables`
 * Try `list streams`

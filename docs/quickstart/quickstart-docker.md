@@ -5,8 +5,6 @@
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
 
- 
-
 **Table of Contents**
 
 - [Start a Kafka cluster](#start-a-kafka-cluster)   
@@ -14,7 +12,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 - [Produce more topic data](#produce-more-topic-data)   
 
 **Prerequisites:**
-- [Docker for Mac](https://docs.docker.com/docker-for-mac/install/). If you do not have macOS, you can install Docker on another [platform](https://docs.docker.com/engine/installation/#supported-platforms).
+- [Docker](https://docs.docker.com/engine/installation/). 
 - [Git](https://git-scm.com/downloads)
 - Java: Minimum version 1.8. 
 
@@ -99,7 +97,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 ## Start KSQL
 
-1.  From the host machine, start KSQL on the container.
+1.  From the host machine, start KSQL CLI on the container.
 
     ```bash
     docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
@@ -109,7 +107,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 ## Produce more topic data
 
-The docker-compose file automatically runs a data generator that continuously produces data to two Kafka topics `pageviews` and `users`. No further action is required if you want to use just the data available. You can return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in these two topics.
+The Compose file automatically runs a data generator that continuously produces data to two Kafka topics `pageviews` and `users`. No further action is required if you want to use just the data available. You can return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in these two topics.
 
 However, if you want to produce additional data, you can use any of the following methods.
 

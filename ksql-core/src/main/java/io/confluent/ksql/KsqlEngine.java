@@ -272,12 +272,15 @@ public class KsqlEngine implements Closeable {
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
       ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
       ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof SetProperty) {
       return new Pair<>(statementString, statement);

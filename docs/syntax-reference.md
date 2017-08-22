@@ -62,7 +62,7 @@ Default behavior:
 KSQL statements should be terminated with a semicolon (`;`). If desired, in CLI use a back-slash
 (`\`) to indicate continuation on the next line.
 
-###DESCRIBE
+### DESCRIBE
 ```
 DESCRIBE (stream_name|table_name);
 ```

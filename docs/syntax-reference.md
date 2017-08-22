@@ -59,7 +59,7 @@ Default behavior:
 
 # KSQL statements
 
-KSQL statements should be terminated with a semicolon (`;`). If desired, in CLI use a back-slash
+KSQL statements should be terminated with a semicolon (`;`). If desired, in the CLI use a back-slash
 (`\`) to indicate continuation on the next line.
 
 
@@ -77,13 +77,14 @@ Create a new stream with the specified columns and properties.
 
 The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
 
-In addition to the defined columns in the statement, KSQL adds two implicit columns to every stream, ROWKEY and ROWTIME, which represent the corresponding Kafka message key and message timestamp.
+KSQL adds the implicit columns ROWTIME and ROWKEY to every stream and table, which represent the
+corresponding Kafka message timestamp and message key.
 
-The possible properties to set in the WITH clause:
+These are the supported WITH clause properties:
 * KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
 * VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL supports JSON, delimited. This is a required property.
-* KEY: The name of the column that is the key.
-* TIMESTAMP: The name of the column that will be used as the timestamp. This can be used to define the event time.
+* KEY: The name of the key column.
+* TIMESTAMP: The name of the timestamp column. This can be used to define the event time.
 
 Example:
 
@@ -104,8 +105,8 @@ In addition to the defined columns in the statement, KSQL adds two implicit colu
 The possible properties to set in the WITH clause:
 * KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
 * VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL supports JSON, delimited. This is a required property.
-* KEY: The name of the column that is the key.
-* TIMESTAMP: The name of the column that will be used as the timestamp.
+* KEY: The name of the key column.
+* TIMESTAMP: The name of the timestamp column.
 
 Example:
 
@@ -182,7 +183,7 @@ Drops an existing table.
 ### SELECT
 
 Selects rows from a KSQL stream or table. The result of this statement will not be persisted in a
- kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
+ Kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
   press Ctrl+C.
 
 ```

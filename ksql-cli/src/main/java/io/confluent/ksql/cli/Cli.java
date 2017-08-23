@@ -167,7 +167,7 @@ public class Cli implements Closeable, AutoCloseable {
       terminal.writer().printf("%s=     | . \\ ____) | |__| | |____     =%n", leftPadding);
       terminal.writer().printf("%s=     |_|\\_\\_____/ \\___\\_\\______|    =%n", leftPadding);
       terminal.writer().printf("%s=                                    =%n", leftPadding);
-      terminal.writer().printf("%s= Streaming Query Language for Kafka =%n", leftPadding);
+      terminal.writer().printf("%s=   Streaming SQL Engine for Kafka   =%n", leftPadding);
       terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
     } else {
       terminal.writer().printf("KSQL, %s%n", copyrightMessage);

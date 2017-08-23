@@ -210,7 +210,7 @@ Before proceeding, please check:
    ksql> terminate 2;
    ```
 
-2. To exit from KSQL application, from the KSQL prompt `ksql>`, type 'exit'.
+2. To exit from KSQL, type 'exit'.
 
    ```bash
    ksql> exit

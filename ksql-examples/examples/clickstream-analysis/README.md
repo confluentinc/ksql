@@ -19,6 +19,24 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 - [Grafana installed](http://docs.grafana.org/installation/)
 - [Git](https://git-scm.com/downloads)
 
+1.  Clone the Confluent KSQL repository.
+
+    ```bash
+    git clone https://github.com/confluentinc/ksql
+    ```
+
+2.  Change directory to the root `ksql` directory.
+
+    ```bash
+    cd ksql
+    ```
+
+1.  Copy the Kafka Connect Elasticsearch configuration file (`ksql/ksql-examples/examples/clickstream-analysis/connect-confignull-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/kafka-connect-elasticsearch/`). 
+
+    ```
+    cp null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
+    ```
+
 1.  From your terminal, start the Confluent Platform. It should be running on default port 8083.
 
     ```
@@ -45,31 +63,22 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     - [Start Elastic](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
     - [Start Grafana](http://docs.grafana.org/installation/)
 
-1.  Clone the Confluent KSQL repository.
-
-    ```bash
-    git clone https://github.com/confluentinc/ksql
-    ```
-
-2.  Change directory to the root `ksql` directory.
-
-    ```bash
-    cd ksql
-    ```
-
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream format=json topic=clickstream_1 maxInterval=1000 iterations=5000
-    111.168.57.122 --> ([ '111.168.57.122' | 12 | '-' | '15/Aug/2017:10:53:45 +0100' | 1502790825640 | 'GET /site/user_status.html HTTP/1.1' | '404' | '1289' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
-    111.90.225.227 --> ([ '111.90.225.227' | 5 | '-' | '15/Aug/2017:10:53:46 +0100' | 1502790826930 | 'GET /images/logo-small.png HTTP/1.1' | '302' | '4006' | '-' | 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36' ])
-    222.145.8.144 --> ([ '222.145.8.144' | 18 | '-' | '15/Aug/2017:10:53:47 +0100' | 1502790827645 | 'GET /site/user_status.html HTTP/1.1' | '200' | '4006' | '-' | 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ])
+    bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ```
+
+    Your output should resemble:
+
+    ```
+    Writing console output to /tmp/ksql-logs/ksql.out
     ```
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes_1 maxInterval=100 iterations=100
+    bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
     ```
 
     Your output should resemble:
@@ -85,10 +94,16 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=20
-    1 --> ([ 1 | 1427769490698 | 'Abdel' | 'Adicot' | 'Frankfurt' | 'Gold' ])
-    2 --> ([ 2 | 1411540260097 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
-    3 --> ([ 3 | 1462725158453 | 'Antonio' | 'Adicot' | 'San Francisco' | 'Platinum' ])
+    bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ```
+
+    Your output should resemble:
+
+    ```
+    1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
+    2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
+    3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+    ...
     ```
 
 1.  Launch the KSQL CLI in local mode.
@@ -144,15 +159,19 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     Your output should resemble:
 
     ```
-     Table Name             | Kafka Topic            | Format | Windowed 
-    ---------------------------------------------------------------------
-     ERRORS_PER_MIN_ALERT   | ERRORS_PER_MIN_ALERT   | JSON   | true     
-     CLICKSTREAM_CODES_TS   | CLICKSTREAM_CODES_TS   | JSON   | false    
-     CLICKSTREAM_CODES      | clickstream_codes_1    | JSON   | false    
-     PAGES_PER_MIN          | PAGES_PER_MIN          | JSON   | true     
-     EVENTS_PER_MIN_MAX_AVG | EVENTS_PER_MIN_MAX_AVG | JSON   | true     
-     ERRORS_PER_MIN         | ERRORS_PER_MIN         | JSON   | true     
-     EVENTS_PER_MIN         | EVENTS_PER_MIN         | JSON   | true  
+     Table Name                 | Kafka Topic                | Format | Windowed 
+    -----------------------------------------------------------------------------
+     WEB_USERS                  | clickstream_users          | JSON   | false    
+     ERRORS_PER_MIN_ALERT       | ERRORS_PER_MIN_ALERT       | JSON   | true     
+     CLICKSTREAM_CODES_TS       | CLICKSTREAM_CODES_TS       | JSON   | false    
+     USER_IP_ACTIVITY           | USER_IP_ACTIVITY           | JSON   | true     
+     CLICKSTREAM_CODES          | clickstream_codes          | JSON   | false    
+     PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true     
+     CLICK_USER_SESSIONS        | CLICK_USER_SESSIONS        | JSON   | true     
+     ENRICHED_ERROR_CODES_COUNT | ENRICHED_ERROR_CODES_COUNT | JSON   | true     
+     EVENTS_PER_MIN_MAX_AVG     | EVENTS_PER_MIN_MAX_AVG     | JSON   | true     
+     ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true     
+     EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
     ```
 
 1.  From the the KSQL CLI, verify that the streams are created.
@@ -166,16 +185,23 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ```
      Stream Name               | Kafka Topic               | Format 
     ----------------------------------------------------------------
+     USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON   
      EVENTS_PER_MIN_MAX_AVG_TS | EVENTS_PER_MIN_MAX_AVG_TS | JSON   
      ERRORS_PER_MIN_TS         | ERRORS_PER_MIN_TS         | JSON   
      EVENTS_PER_MIN_TS         | EVENTS_PER_MIN_TS         | JSON   
+     ENRICHED_ERROR_CODES      | ENRICHED_ERROR_CODES      | JSON   
      ERRORS_PER_MIN_ALERT_TS   | ERRORS_PER_MIN_ALERT_TS   | JSON   
+     CLICK_USER_SESSIONS_TS    | CLICK_USER_SESSIONS_TS    | JSON   
      PAGES_PER_MIN_TS          | PAGES_PER_MIN_TS          | JSON   
      ENRICHED_ERROR_CODES_TS   | ENRICHED_ERROR_CODES_TS   | JSON   
-     CLICKSTREAM               | clickstream_1             | JSON   
+     USER_IP_ACTIVITY_TS       | USER_IP_ACTIVITY_TS       | JSON   
+     CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON   
+     CLICKSTREAM               | clickstream               | JSON 
     ```
 
-1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. This will run continuously until you terminate (CTRL+C).
+1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. These commands will run continuously until you terminate (CTRL+C).
+
+    **View clickstream data**
 
     ```
     ksql> select * from CLICKSTREAM;
@@ -190,22 +216,41 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     1502152009575 | 89.203.236.146 | 1502152009575 | 07/Aug/2017:17:26:49 -0700 | 89.203.236.146 | GET /site/user_status.html HTTP/1.1 | 302 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
     1502152009679 | 172.245.174.248 | 1502152009679 | 07/Aug/2017:17:26:49 -0700 | 172.245.174.248 | GET /site/user_status.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
     ^CQuery terminated
+    ```
+    
+    **View the events per minute**
+
+    ```
     ksql> select * from EVENTS_PER_MIN_TS;
+    ```
+
+    Your output should resemble:
+
+    ```
     1502152015000 | -]�<�� | 1502152015000 | - | 13
     1502152020000 | -]�<�  | 1502152020000 | - | 6
     ^CQuery terminated
+    ```
+
+    **View pages per minute**
+
+    ```
     ksql> select * from PAGES_PER_MIN;
+    ```
+
+    Your output should resemble:
+
+    ```
     1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 6
     1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 7
     1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 4
     1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 5
     ^CQuery terminated
-    ksql> 
     ```
 
-1.  From your terminal, send the KSQL Tables=>Connect=>Elastic=>Grafana.
+1.  Send the KSQL tables to Elasticsearch and Grafana.
 
-    1.  Navigate to the examples directory:
+    1.  From your terminal,, navigate to the examples directory:
 
         ```
         cd ksql-examples/examples/clickstream-analysis/
@@ -221,31 +266,48 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
         ```
         Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
-        Loading Elastic Dynamic Template to ensure _TS fields are used for TimeStamp
-        {"acknowledged":true}{"error":{"root_cause":[{"type":"index_not_found_exception","reason":"no such index","resource.type":"index_or_alias","resource.id":"click_user_sessions_ts","index_uuid":"_na_","index":"click_user_sessions_ts"}],"type":"index_not_found_exception","reason":"no such index","resource.type":
-        ...
+        Logging to: /tmp/ksql-connect.log
+        Charting  CLICK_USER_SESSIONS_TS
+        Charting  USER_IP_ACTIVITY_TS
+        Charting  CLICKSTREAM_STATUS_CODES_TS
+        Charting  ENRICHED_ERROR_CODES_TS
+        Charting  ERRORS_PER_MIN_ALERT_TS
+        Charting  ERRORS_PER_MIN_TS
+        Charting  EVENTS_PER_MIN_MAX_AVG_TS
+        Charting  EVENTS_PER_MIN_TS
+        Charting  PAGES_PER_MIN_TS
+        Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
         ```
 
-1.  From your terminal, load the dashboard into Grafana.
+    1.  From your terminal, load the dashboard into Grafana.
 
-    ```
-    ./clickstream-analysis-dashboard.sh
-    ```
+        ```
+        ./clickstream-analysis-dashboard.sh
+        ```
 
-    Your output should resemble:
+        Your output should resemble:
 
-    ```
-    Loading Grafana ClickStream Dashboard
-    {"slug":"click-stream-analysis","status":"success","version":1}
-    ```
+        ```
+        Loading Grafana ClickStream Dashboard
+        {"slug":"click-stream-analysis","status":"success","version":1}
+        ``` 
 
 1.  Go to your browser and view the Grafana output at [http://localhost:3000/dashboard/db/click-stream-analysis](http://localhost:3000/dashboard/db/click-stream-analysis). You can login with user ID `admin` and password `admin`.
 
-    <!-- Add screenshot -->
+    **Important:** If you already have Grafana UI open, you may need to enter the specific clickstream URL: [http://localhost:3000/dashboard/db/click-stream-analysis](http://localhost:3000/dashboard/db/click-stream-analysis).
+
+    ![Grafana UI success](grafana-success.png)
 
 Interesting things to try:
-* Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream_1 -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
+* Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
 * Try `list topics` to see where data is persisted
 * Try `list tables`
 * Try `list streams`
 * Type: `history`
+
+### Troubleshooting
+
+- Check that Elasticsearch is running: http://localhost:9200/.
+- Check the Data Sources page in Grafana.
+    - If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will indicate whether your data source is valid.
+    - If your data source is not shown, go to `/ksql/ksql-examples/examples/clickstream-analysis/` and run `./ksql-tables-to-grafana.sh`.

@@ -12,6 +12,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 - [Start a Kafka cluster](#start-a-kafka-cluster)   
 - [Start KSQL](#start-ksql)   
 - [Produce more topic data](#produce-more-topic-data)   
+- [Verify your environment](#verify-your-environment)
 
 **Prerequisites:**
 - [Docker for Mac](https://docs.docker.com/docker-for-mac/install/). If you do not have macOS, you can install Docker on another [platform](https://docs.docker.com/engine/installation/#supported-platforms).
@@ -33,69 +34,8 @@ This part of the quick start will guide you through the steps to setup a Kafka c
     docker-compose up -d
     ```
 
-3. Optional: The next three steps are optional verification steps to ensure your environment is properly setup. You can [skip to starting KSQL](#start-ksql).
+Proceed to [starting KSQL](#start-ksql).
 
-    -   Verify that six Docker containers were created.
-
-        ```bash
-        docker-compose ps
-        ```
-
-        Your output should resemble this. Take note of the `Up` state.
-
-        ```bash
-                Name                        Command               State                           Ports                          
-        -------------------------------------------------------------------------------------------------------------------------
-        quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
-        quickstart_ksql-cli_1                 perl -e while(1){ sleep 99 ...   Up                                                             
-        quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
-        quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
-        quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
-        quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp         
-        ```
-
-    -   The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.
-
-        ```bash
-        docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
-        ```
-
-        Your output should resemble this.
-
-        ```bash
-        __consumer_offsets
-        _confluent-metrics
-        _schemas
-        ksql__commands
-        pageviews
-        users
-        ```
-
-    -   Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
-
-        ```bash
-        docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
-        ```
-
-        Your output should resemble this.
-
-        ```bash
-        1491040409254    1491040409254,User_5,Page_70
-        1488611895904    1488611895904,User_8,Page_76
-        1504052725192    1504052725192,User_8,Page_92
-        ```
-
-        ```bash
-        docker-compose exec zookeeper kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
-        ```
-
-        Your output should resemble this.
-
-        ```bash
-        User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
-        User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}
-        User_8   {"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
-        ```
 
 ## Start KSQL
 
@@ -105,7 +45,8 @@ This part of the quick start will guide you through the steps to setup a Kafka c
     docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
     ```
 
-3.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.
+2.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.
+
 
 ## Produce more topic data
 
@@ -145,3 +86,70 @@ However, if you want to produce additional data, you can use any of the followin
 
 -   If advanced Docker users want to run the data generator with different options, edit the Docker compile file and modify how the containers `ksql-datagen-users` and `ksql-datagen-pageviews` invoke the data generator.
 
+
+
+## Verify your environment
+
+The next three steps are optional verification steps to ensure your environment is properly setup.
+
+1. Verify that six Docker containers were created.
+
+   ```bash
+   docker-compose ps
+   ```
+
+   Your output should resemble this. Take note of the `Up` state.
+
+   ```bash
+           Name                        Command               State                           Ports                          
+   -------------------------------------------------------------------------------------------------------------------------
+   quickstart_kafka_1                    /etc/confluent/docker/run        Up      0.0.0.0:29092->29092/tcp, 0.0.0.0:9092->9092/tcp       
+   quickstart_ksql-cli_1                 perl -e while(1){ sleep 99 ...   Up                                                             
+   quickstart_ksql-datagen-pageviews_1   bash -c echo Waiting for K ...   Up                                                             
+   quickstart_ksql-datagen-users_1       bash -c echo Waiting for K ...   Up                                                             
+   quickstart_schema-registry_1          /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp                                 
+   quickstart_zookeeper_1                /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 0.0.0.0:32181->32181/tcp, 3888/tcp         
+   ```
+
+2. The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.
+
+   ```bash
+   docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+   ```
+
+   Your output should resemble this.
+
+   ```bash
+   __consumer_offsets
+   _confluent-metrics
+   _schemas
+   ksql__commands
+   pageviews
+   users
+   ```
+
+3. Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
+
+   ```bash
+   docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   ```
+
+   Your output should resemble this.
+
+   ```bash
+   1491040409254    1491040409254,User_5,Page_70
+   1488611895904    1488611895904,User_8,Page_76
+   1504052725192    1504052725192,User_8,Page_92
+   ```
+
+   ```bash
+   docker-compose exec zookeeper kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   ```
+
+   Your output should resemble this.
+
+   ```bash
+   User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
+   User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}
+   User_8   {"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
+   ```

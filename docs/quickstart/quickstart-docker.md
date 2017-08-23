@@ -120,10 +120,8 @@ The next three steps are optional verification steps to ensure your environment 
    Your output should resemble this.
 
    ```bash
-   __consumer_offsets
    _confluent-metrics
    _schemas
-   ksql__commands
    pageviews
    users
    ```
@@ -131,7 +129,7 @@ The next three steps are optional verification steps to ensure your environment 
 3. Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
 
    ```bash
-   docker-compose exec zookeeper kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   docker-compose exec kafka kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
    ```
 
    Your output should resemble this.
@@ -143,7 +141,7 @@ The next three steps are optional verification steps to ensure your environment 
    ```
 
    ```bash
-   docker-compose exec zookeeper kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   docker-compose exec kafka kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
    ```
 
    Your output should resemble this.

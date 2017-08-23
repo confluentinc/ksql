@@ -222,12 +222,14 @@ Until you terminate a query, it will run continuously as a KSQL application.
 ### Docker
 If you are running Docker Compose, you must explicitly shut down Docker Compose. For more information, see the [docker-compose down](https://docs.docker.com/compose/reference/down/) documentation.
 
+**Important:** This command will delete all KSQL queries and topic data.
+
 ```
 docker-compose down
 ```
 
 ### Confluent Platform
-If you want to shut down Confluent, run this command.
+If you are running the Confluent Platform, you can stop it with this command. 
 
 ```
 confluent stop

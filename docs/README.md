@@ -27,6 +27,6 @@ You can use KSQL in standalone, client-server, application, and embedded modes. 
 ## Getting Started
 
 * Beginners: Try the [interactive quick start](/docs/quickstart/). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-* Advanced users: Try the [end-to-end KSQL demo](https://github.com/confluentinc/ksql).
+* Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis).
 
 

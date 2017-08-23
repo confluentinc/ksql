@@ -26,6 +26,22 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
     ```bash
+    
+                           ======================================
+                           =      _  __ _____  ____  _          =
+                           =     | |/ // ____|/ __ \| |         =
+                           =     | ' /| (___ | |  | | |         =
+                           =     |  <  \___ \| |  | | |         =
+                           =     | . \ ____) | |__| | |____     =
+                           =     |_|\_\_____/ \___\_\______|    =
+                           =                                    =
+                           = Streaming Query Language for Kafka =
+    Copyright 2017 Confluent Inc.
+
+    CLI v0.1, Server v0.1 located at http://localhost:9098
+    
+    Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+    
     ksql>
     ```
 
@@ -46,7 +62,7 @@ Before proceeding, please check:
 * If you are not using Docker, you must manually have run the data generator to produce topics called `pageviews` and `users`. If you haven't done this, please follow these [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data. (Docker compose file automatically runs the data generator)
 
 
-1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message logstamp time, and `ROWKEY`, which corresponds to the Kafka message key.
+1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
 
    ```bash
    ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
@@ -194,7 +210,7 @@ Before proceeding, please check:
    ksql> terminate 2;
    ```
 
-2. To exit from KSQL application, from the KSQL prompt `ksql>`, type 'exit'.
+2. To exit from KSQL, type 'exit'.
 
    ```bash
    ksql> exit

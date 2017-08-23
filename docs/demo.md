@@ -9,4 +9,4 @@
 
 This demo shows how to build an application that performs real-time analytics of users about which pages a website visitor visits and in what order.
 
-- [Get started now!(/ksql-examples/examples/clickstream-analysis/)
+- [Get started now!](/ksql-examples/examples/clickstream-analysis/)

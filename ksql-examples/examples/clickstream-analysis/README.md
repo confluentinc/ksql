@@ -14,33 +14,37 @@ This application focuses on building real-time analytics of users to determine:
 The application makes use of standard streaming functions (i.e. min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
 #### Prerequisites
-- [Confluent 3.3.0 installed](http://docs.confluent.io/current/installation.html) locally
-- [ElasticSearch installed](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
-- [Grafana installed](http://docs.grafana.org/installation/)
+- [Confluent 3.3.0](http://docs.confluent.io/current/installation.html) locally
+    - Make sure you only have one broker running on the host
+- [ElasticSearch](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
+- [Grafana](http://docs.grafana.org/installation/)
 - [Git](https://git-scm.com/downloads)
+- [Maven](https://maven.apache.org/install.html)
+- Java: Minimum version 1.8. Install Oracle Java JRE or JDK \>= 1.8 on your local machine
 
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone https://github.com/confluentinc/ksql
+    git clone git@github.com:confluentinc/ksql.git
     ```
 
-2.  Change directory to the root `ksql` directory.
+1.  Change directory to the `ksql` directory and compile the KSQL code.
 
     ```bash
     cd ksql
+    mvn clean compile install -DskipTests
     ```
 
-1.  Copy the Kafka Connect Elasticsearch configuration file (`ksql/ksql-examples/examples/clickstream-analysis/connect-confignull-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/kafka-connect-elasticsearch/`). 
+1.  Copy the Kafka Connect Elasticsearch configuration file (`null-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/`). 
 
     ```
-    cp null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
+    cp ksql-examples/examples/clickstream-analysis/connect-config/null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
     ```
 
 1.  From your terminal, start the Confluent Platform. It should be running on default port 8083.
 
     ```
-    ./bin/confluent start
+    confluent start
     ```
 
     The output should resemble:
@@ -66,7 +70,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
     ```
-    bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ./bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -78,7 +82,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    ./bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
     ```
 
     Your output should resemble:
@@ -94,7 +98,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ./bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -248,9 +252,9 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     ^CQuery terminated
     ```
 
-1.  Send the KSQL tables to Elasticsearch and Grafana.
+1.  Go to your terminal and send the KSQL tables to Elasticsearch and Grafana.
 
-    1.  From your terminal,, navigate to the examples directory:
+    1.  From your terminal, navigate to the examples directory:
 
         ```
         cd ksql-examples/examples/clickstream-analysis/
@@ -300,13 +304,12 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 Interesting things to try:
 * Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
-* Try `list topics` to see where data is persisted
-* Try `list tables`
-* Try `list streams`
-* Type: `history`
+* Run the `LIST TOPICS;` command to see where data is persisted
+* Run the KSQL CLI `history` command
 
 ### Troubleshooting
 
+- Docker must not be running on the host machine.
 - Check that Elasticsearch is running: http://localhost:9200/.
 - Check the Data Sources page in Grafana.
     - If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will indicate whether your data source is valid.

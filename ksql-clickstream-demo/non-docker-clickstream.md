@@ -72,8 +72,10 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
+    **Tip:** Because of shell redirection, the previous command does not print a newline and so it mightlook like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+
     ```bash
-    $ <path-to-ksql>/bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    $ <path-to-ksql>/bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -281,6 +283,8 @@ These steps will guide you through how to setup your environment and run the cli
         Charting  PAGES_PER_MIN_TS
         Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
         ```
+
+        **Important:** The `http://localhost:3000/` URL is only available inside the container. We will access the dashboard with a slightly different URL, after running the next command.
 
     1.  From your terminal, load the dashboard into Grafana.
 

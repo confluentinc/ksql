@@ -11,7 +11,7 @@ These steps will guide you through how to setup your environment and run the cli
     - [All platforms](https://docs.docker.com/engine/installation/)
 - [Git](https://git-scm.com/downloads)
 
-1.  Download and start the KSQL clickstream container. This container image is large and contains Confluent, Grafana, and Elasticsearch. Depending on your network speed, this may take 10-15 minutes.
+1.  Download and start the KSQL clickstream container. This container image is large and contains Confluent, Grafana, and Elasticsearch. Depending on your network speed, this may take up to 10-15 minutes. The `-p` flag will forward the Grafana dashboard to port 33000 on your local host.
 
 	```bash
 	$ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo bash
@@ -79,10 +79,12 @@ These steps will guide you through how to setup your environment and run the cli
     Writing console output to /tmp/ksql-logs/ksql.out
     ```
 
-1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
+1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table. 
+
+    **Tip:** Because of shell redirection, the previous command does not print a newline and so it mightlook like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```
-    ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:

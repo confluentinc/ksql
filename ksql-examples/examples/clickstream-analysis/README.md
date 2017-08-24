@@ -25,26 +25,26 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone git@github.com:confluentinc/ksql.git
+    $ git clone git@github.com:confluentinc/ksql.git
     ```
 
 1.  Change directory to the `ksql` directory and compile the KSQL code.
 
     ```bash
-    cd ksql
-    mvn clean compile install -DskipTests
+    $ cd ksql
+    $ mvn clean compile install -DskipTests
     ```
 
 1.  Copy the Kafka Connect Elasticsearch configuration file (`null-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/`). 
 
-    ```
-    cp ksql-examples/examples/clickstream-analysis/connect-config/null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
+    ```bash
+    $ cp ksql-examples/examples/clickstream-analysis/connect-config/null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
     ```
 
 1.  From your terminal, start the Confluent Platform. It should be running on default port 8083.
 
-    ```
-    confluent start
+    ```bash
+    $ confluent start
     ```
 
     The output should resemble:
@@ -69,25 +69,25 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
-    ```
-    ./bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ```bash
+    $ ./bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
 
-    ```
+    ```bash
     Writing console output to /tmp/ksql-logs/ksql.out
     ```
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
-    ```
-    ./bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    ```bash
+    $ ./bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
     ```
 
     Your output should resemble:
 
-    ```
+    ```bash
     200 --> ([ 200 | 'Successful' ])
     302 --> ([ 302 | 'Redirect' ])
     200 --> ([ 200 | 'Successful' ])
@@ -97,13 +97,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
-    ```
-    ./bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ```bash
+    $ ./bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
 
-    ```
+    ```bash
     1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
     2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
     3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
@@ -112,13 +112,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  Launch the KSQL CLI in local mode.
 
-    ```
-    ./bin/ksql-cli local
+    ```bash
+    $ ./bin/ksql-cli local
     ```
 
     You should see the KSQL CLI welcome screen.
 
-    ```
+    ```bash
                            ======================================
                            =      _  __ _____  ____  _          =
                            =     | |/ // ____|/ __ \| |         =
@@ -141,13 +141,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
     **Important:** Before running this step, you must have already run ksql-datagen utility to create the clickstream data, status codes, and set of users.
 
-    ```
+    ```bash
     ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';
     ```
 
     The output should resemble:
 
-    ```
+    ```bash
      Message                            
     ------------------------------------
      Executing statement
@@ -156,13 +156,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  From the the KSQL CLI, verify that the tables are created.
 
-    ```
+    ```bash
     ksql> list TABLES;
     ```
 
     Your output should resemble:
 
-    ```
+    ```bash
      Table Name                 | Kafka Topic                | Format | Windowed 
     -----------------------------------------------------------------------------
      WEB_USERS                  | clickstream_users          | JSON   | false    
@@ -180,13 +180,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  From the the KSQL CLI, verify that the streams are created.
 
-    ```
+    ```bash
     ksql> list STREAMS;
     ```
 
     Your output should resemble:
 
-    ```
+    ```bash
      Stream Name               | Kafka Topic               | Format 
     ----------------------------------------------------------------
      USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON   
@@ -207,68 +207,75 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
     **View clickstream data**
 
-    ```
-    ksql> select * from CLICKSTREAM;
+    ```bash
+    ksql> select * from CLICKSTREAM LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152008511 | 104.152.45.45 | 1502152008511 | 07/Aug/2017:17:26:48 -0700 | 104.152.45.45 | GET /index.html HTTP/1.1 | 404 | - | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-    1502152008691 | 54.173.165.103 | 1502152008691 | 07/Aug/2017:17:26:48 -0700 | 54.173.165.103 | GET /index.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009077 | 66.249.79.93 | 1502152009077 | 07/Aug/2017:17:26:49 -0700 | 66.249.79.93 | GET /site/user_status.html HTTP/1.1 | 200 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009575 | 89.203.236.146 | 1502152009575 | 07/Aug/2017:17:26:49 -0700 | 89.203.236.146 | GET /site/user_status.html HTTP/1.1 | 302 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009679 | 172.245.174.248 | 1502152009679 | 07/Aug/2017:17:26:49 -0700 | 172.245.174.248 | GET /site/user_status.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    ^CQuery terminated
+    ```bash
+    1503585407989 | 222.245.174.248 | 1503585407989 | 24/Aug/2017:07:36:47 -0700 | 233.90.225.227 | GET /site/login.html HTTP/1.1 | 407 | 19 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585407999 | 233.168.257.122 | 1503585407999 | 24/Aug/2017:07:36:47 -0700 | 233.173.215.103 | GET /site/user_status.html HTTP/1.1 | 200 | 15 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+    LIMIT reached for the partition.
+    Query terminated
     ```
     
     **View the events per minute**
 
-    ```
-    ksql> select * from EVENTS_PER_MIN_TS;
+    ```bash
+    ksql> select * from EVENTS_PER_MIN_TS LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152015000 | -]�<�� | 1502152015000 | - | 13
-    1502152020000 | -]�<�  | 1502152020000 | - | 6
-    ^CQuery terminated
+    ```bash
+    1503585450000 | 29^�8 | 1503585450000 | 29 | 19
+    1503585450000 | 37^�8 | 1503585450000 | 37 | 25
+    1503585450000 | 8^�8 | 1503585450000 | 8 | 35
+    1503585450000 | 36^�8 | 1503585450000 | 36 | 14
+    1503585450000 | 24^�8 | 1503585450000 | 24 | 22
+    LIMIT reached for the partition.
+    Query terminated
     ```
 
     **View pages per minute**
 
-    ```
-    ksql> select * from PAGES_PER_MIN;
+    ```bash
+    ksql> select * from PAGES_PER_MIN LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 6
-    1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 7
-    1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 4
-    1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 5
-    ^CQuery terminated
+    ```bash
+    1503585475000 | 4 : Window{start=1503585475000 end=-} | 4 | 14
+    1503585480000 | 25 : Window{start=1503585480000 end=-} | 25 | 9
+    1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
+    1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
+    1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
+    LIMIT reached for the partition.
+    Query terminated    
     ```
 
 1.  Go to your terminal and send the KSQL tables to Elasticsearch and Grafana.
 
     1.  From your terminal, navigate to the examples directory:
 
-        ```
-        cd ksql-examples/examples/clickstream-analysis/
+        ```bash
+        $ cd ksql-examples/examples/clickstream-analysis/
         ```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
 
-        ```
-        ./ksql-tables-to-grafana.sh
+        ```bash
+        $ ./ksql-tables-to-grafana.sh
         ```
 
         Your output should resemble:
 
-        ```
+        ```bash
         Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
         Logging to: /tmp/ksql-connect.log
         Charting  CLICK_USER_SESSIONS_TS
@@ -285,13 +292,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
     1.  From your terminal, load the dashboard into Grafana.
 
-        ```
-        ./clickstream-analysis-dashboard.sh
+        ```bash
+        $ ./clickstream-analysis-dashboard.sh
         ```
 
         Your output should resemble:
 
-        ```
+        ```bash
         Loading Grafana ClickStream Dashboard
         {"slug":"click-stream-analysis","status":"success","version":1}
         ``` 

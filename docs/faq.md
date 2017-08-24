@@ -28,13 +28,18 @@ KSQL is complementary to the Kafka Streams API, and indeed executes queries thro
 This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
 As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skill set.
 
+**Does KSQL support Kafka's exactly-once processing semantics?**
+
+Yes, KSQL supports exactly-once processing, which means it will compute correct results even in the face of failures
+such as machine crashes.
+
 **Is KSQL ready for production?**
 
 KSQL is a technical preview at this point in time.  We do not yet recommend its use for production purposes.
 
 **Can I use KSQL with my favorite data format (e.g. JSON, Avro)?**
 
-KSQL currently supports formats: 
+KSQL currently supports formats:
 
 * DELIMITED (e.g. CSV)
 * JSON

@@ -328,7 +328,5 @@ Interesting things to try:
 
 ### Troubleshooting
 
-- Docker must not be running on the host machine.
 - Check the Data Sources page in Grafana.
     - If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will indicate whether your data source is valid.
-    - If your data source is not shown, go to `/ksql/ksql-clickstream-demo/demo/` and run `./ksql-tables-to-grafana.sh`.

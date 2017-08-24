@@ -52,7 +52,7 @@ operations in KSQL and the feature provides event time processing in KSQL. For i
          timestamp='viewtime');
   ```
 
-To create a table we use CREATE TABLE statament. Here is the statement to create a user table
+To create a table we use CREATE TABLE statement. Here is the statement to create a user table
 with four columns:
 
 ```sql
@@ -125,7 +125,7 @@ FROM pageview_transformed pv       \
      ON pv.userid = u.userid;
 ```
 Note that by default all the Kafka topic will be read from the current offset, however, in
-Stream-Table join, the table topic will be read from the begining.
+Stream-Table join, the table topic will be read from the beginning.
 
 ### Window Aggregation
 
@@ -144,7 +144,7 @@ GROUP BY regionid;
 The above query counts the pageview from the query start time until we terminate the query. Note
 that we used CREATE TABLE AS SELECT statement here since the result of the query is a KSQL table.
  The results of aggregate queries in KSQL are always a table since we compute the aggregate for
- each key, and possibily window and update these results as we process new tuples.
+ each key, and possibly window and update these results as we process new tuples.
 KSQL supports aggregation over WINDOW too. Let's rewrite the above query so that we compute the
 pageview count per region every 1 minute.
 
@@ -223,7 +223,7 @@ GROUP BY city;
 
 ### SET session properties
 Using SET statement you can set different config properties for your queries. You can set streams
- config properties along with proerties for Kafka consumer and producer.
+ config properties along with properties for Kafka consumer and producer.
 
   ```sql
     SET '<property-name>'='<property-value>';

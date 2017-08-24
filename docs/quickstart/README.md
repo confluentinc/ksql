@@ -207,7 +207,8 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 ## Terminate and Exit
 
 ### KSQL
-Until you terminate a query, it will run continuously as a KSQL application. 
+
+**Important:** Queries will continuously run as KSQL applications until they are manually terminated. Exiting KSQL does not terminate persistent queries.
 
 1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 

@@ -4,7 +4,7 @@
 
 KSQL is an open source streaming SQL engine that implements continuous, interactive queries against Apache Kafka™. It allows you to query, read, write, and process data in Apache Kafka in real-time, at scale using SQL commands.
 
-KSQL does not require proficiency with a programming language such as Java or Go, and it does not require you to install and manage a separate processing cluster technology. As such, it opens up the world of stream processing to a broader set of users and applications than ever before.
+KSQL lowers the entry bar to the world of stream processing by providing you with a simple and completely interactive SQL interface with which you can process your data in Kafka most easily.  No longer do you need to write code in a programming language such as Java or Python! KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time.  It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
 KSQL consists of a client and a server component.  The client is a command line interface (CLI) similar to the CLIs of MySQL or PostgreSQL. The server, of which you can run one or many instances, executes those queries for you.
 

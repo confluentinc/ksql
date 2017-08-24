@@ -70,7 +70,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
     ```
-    bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -82,7 +82,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
     ```
 
     Your output should resemble:
@@ -98,7 +98,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -211,56 +211,63 @@ These steps will guide you through how to setup your environment and run the cli
      CLICKSTREAM               | clickstream               | JSON 
     ```
 
-1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. These commands will run continuously until you terminate (CTRL+C).
+1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. 
 
     **View clickstream data**
 
-    ```
-    ksql> select * from CLICKSTREAM;
+    ```bash
+    ksql> select * from CLICKSTREAM LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152008511 | 104.152.45.45 | 1502152008511 | 07/Aug/2017:17:26:48 -0700 | 104.152.45.45 | GET /index.html HTTP/1.1 | 404 | - | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-    1502152008691 | 54.173.165.103 | 1502152008691 | 07/Aug/2017:17:26:48 -0700 | 54.173.165.103 | GET /index.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009077 | 66.249.79.93 | 1502152009077 | 07/Aug/2017:17:26:49 -0700 | 66.249.79.93 | GET /site/user_status.html HTTP/1.1 | 200 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009575 | 89.203.236.146 | 1502152009575 | 07/Aug/2017:17:26:49 -0700 | 89.203.236.146 | GET /site/user_status.html HTTP/1.1 | 302 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    1502152009679 | 172.245.174.248 | 1502152009679 | 07/Aug/2017:17:26:49 -0700 | 172.245.174.248 | GET /site/user_status.html HTTP/1.1 | 406 | - | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-    ^CQuery terminated
+    ```bash
+    1503585407989 | 222.245.174.248 | 1503585407989 | 24/Aug/2017:07:36:47 -0700 | 233.90.225.227 | GET /site/login.html HTTP/1.1 | 407 | 19 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585407999 | 233.168.257.122 | 1503585407999 | 24/Aug/2017:07:36:47 -0700 | 233.173.215.103 | GET /site/user_status.html HTTP/1.1 | 200 | 15 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+    1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+    LIMIT reached for the partition.
+    Query terminated
     ```
     
     **View the events per minute**
 
-    ```
-    ksql> select * from EVENTS_PER_MIN_TS;
+    ```bash
+    ksql> select * from EVENTS_PER_MIN_TS LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152015000 | -]�<�� | 1502152015000 | - | 13
-    1502152020000 | -]�<�  | 1502152020000 | - | 6
-    ^CQuery terminated
+    ```bash
+    1503585450000 | 29^�8 | 1503585450000 | 29 | 19
+    1503585450000 | 37^�8 | 1503585450000 | 37 | 25
+    1503585450000 | 8^�8 | 1503585450000 | 8 | 35
+    1503585450000 | 36^�8 | 1503585450000 | 36 | 14
+    1503585450000 | 24^�8 | 1503585450000 | 24 | 22
+    LIMIT reached for the partition.
+    Query terminated
     ```
 
     **View pages per minute**
 
-    ```
-    ksql> select * from PAGES_PER_MIN;
+    ```bash
+    ksql> select * from PAGES_PER_MIN LIMIT 5;
     ```
 
     Your output should resemble:
 
-    ```
-    1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 6
-    1502152040000 | - : Window{start=1502152040000 end=9223372036854775807} | - | 7
-    1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 4
-    1502152045000 | - : Window{start=1502152045000 end=9223372036854775807} | - | 5
-    ^CQuery terminated
+    ```bash
+    1503585475000 | 4 : Window{start=1503585475000 end=-} | 4 | 14
+    1503585480000 | 25 : Window{start=1503585480000 end=-} | 25 | 9
+    1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
+    1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
+    1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
+    LIMIT reached for the partition.
+    Query terminated    
     ```
 
-1.  Send the KSQL tables to Elasticsearch and Grafana.
+1.  Go to your terminal and send the KSQL tables to Elasticsearch and Grafana.
 
 	1.  Exit the KSQL CLI with `CTRL+D`.
 
@@ -314,14 +321,12 @@ These steps will guide you through how to setup your environment and run the cli
 
 Interesting things to try:
 * Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
-* Try `list topics` to see where data is persisted
-* Try `list tables`
-* Try `list streams`
-* Type: `history`
+* Run the `LIST TOPICS;` command to see where data is persisted
+* Run the KSQL CLI `history` command
 
 ### Troubleshooting
 
-- Check that Elasticsearch is running: http://localhost:9200/.
+- Docker must not be running on the host machine.
 - Check the Data Sources page in Grafana.
     - If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will indicate whether your data source is valid.
     - If your data source is not shown, go to `/ksql/ksql-clickstream-demo/demo/` and run `./ksql-tables-to-grafana.sh`.

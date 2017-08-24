@@ -195,7 +195,7 @@ These steps will guide you through how to setup your environment and run the cli
      CLICKSTREAM               | clickstream               | JSON 
     ```
 
-1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. These commands will run continuously until you terminate (CTRL+C).
+1.  From the the KSQL CLI, verify that data is being streamed through various tables and streams. 
 
     **View clickstream data**
 

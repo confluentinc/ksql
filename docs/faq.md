@@ -38,7 +38,7 @@ KSQL currently supports formats:
 * DELIMITED (e.g. CSV)
 * JSON
 
-_Support for AVRO is expected soon._
+_Support for Apache Avro is expected soon._
 
 **Is KSQL fully compliant to ANSI SQL?**
 

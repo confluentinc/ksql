@@ -1,6 +1,4 @@
-# KSQL - The Streaming SQL Engine for Apache Kafka
-
-*A Streaming SQL Engine for Apache Kafka from Confluent*
+# KSQL - Streaming SQL for Apache Kafka
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
 
@@ -37,5 +35,5 @@ Contributions to the code, examples, documentation, etc, are very much appreciat
 # License
 The project is licensed under the Apache License, version 2.0.
 
-*Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/)*
+*Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/).*
 

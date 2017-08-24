@@ -3,7 +3,6 @@
 | [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
 |---|----|-----|----|----|----|----|----|
 
- 
 
 **What are the benefits of KSQL?**
 
@@ -11,9 +10,11 @@ KSQL allows you to query, read, write, and process data in Apache Kafka in real-
 
 **What are the technical requirements of KSQL?**
 
-KSQL only requires 
+KSQL only requires:
+
 1. a Java runtime environment
-2. access to an Apache Kafka cluster for reading and writing data in real-time. The cluster can be on-premises or in the cloud.
+2. access to an Apache Kafka cluster for reading and writing data in real-time. The cluster can be on-premises or in
+   the cloud.
 
 We recommend the use of [Confluent Platform](https://www.confluent.io/product/confluent-platform/) or [Confluent Cloud](https://www.confluent.io/confluent-cloud/) for running Apache Kafka.
 
@@ -23,9 +24,14 @@ No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) 
 
 **How does KSQL compare to Apache Kafka’s Streams API?**
 
-KSQL is complementary to the Kafka Streams API, and indeed executes queries through Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. 
+KSQL is complementary to the Kafka Streams API, and indeed executes queries through Kafka Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala.
 This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
 As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skill set.
+
+**Does KSQL support Kafka's exactly-once processing semantics?**
+
+Yes, KSQL supports exactly-once processing, which means it will compute correct results even in the face of failures
+such as machine crashes.
 
 **Is KSQL ready for production?**
 
@@ -33,12 +39,12 @@ KSQL is a technical preview at this point in time.  We do not yet recommend its 
 
 **Can I use KSQL with my favorite data format (e.g. JSON, Avro)?**
 
-KSQL currently supports formats: 
+KSQL currently supports formats:
 
 * DELIMITED (e.g. CSV)
 * JSON
 
-_Support for AVRO is expected soon._
+_Support for Apache Avro is expected soon._
 
 **Is KSQL fully compliant to ANSI SQL?**
 

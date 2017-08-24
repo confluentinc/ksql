@@ -128,22 +128,22 @@ These steps will guide you through how to setup your environment and run the cli
 	You should now be in the KSQL CLI.
 
 	```bash
-	                       ======================================
-	                       =      _  __ _____  ____  _          =
-	                       =     | |/ // ____|/ __ \| |         =
-	                       =     | ' /| (___ | |  | | |         =
-	                       =     |  <  \___ \| |  | | |         =
-	                       =     | . \ ____) | |__| | |____     =
-	                       =     |_|\_\_____/ \___\_\______|    =
-	                       =                                    =
-	                       = Streaming Query Language for Kafka =
-	Copyright 2017 Confluent Inc.                         
+                       ======================================
+                       =      _  __ _____  ____  _          =
+                       =     | |/ // ____|/ __ \| |         =
+                       =     | ' /| (___ | |  | | |         =
+                       =     |  <  \___ \| |  | | |         =
+                       =     | . \ ____) | |__| | |____     =
+                       =     |_|\_\_____/ \___\_\______|    =
+                       =                                    =
+                       =   Streaming SQL Engine for Kafka   =
+    Copyright 2017 Confluent Inc.                         
 
-	CLI v0.1, Server v0.1 located at http://localhost:8080
+    CLI v0.1, Server v0.1 located at http://localhost:9098
 
-	Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+    Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
-	ksql> 
+    ksql>
 	```
 1.  From the the KSQL CLI, load the `clickstream.sql` schema file that will run the demo app.
 

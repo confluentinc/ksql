@@ -1,6 +1,6 @@
-# Non-Dockerized Clickstream Analysis
+# Clickstream Analysis
 
-
+These steps will guide you through how to setup your environment and run the clickstream analysis demo. For instructions using Docker, see [this documentation](/ksql-clickstream-demo/docker-clickstream.md).
 
 #### Prerequisites
 - [Confluent 3.3.0 installed](http://docs.confluent.io/current/installation.html) locally
@@ -239,7 +239,7 @@
 
 1.  Send the KSQL tables to Elasticsearch and Grafana.
 
-    1.  From your terminal,, navigate to the demo directory:
+    1.  From your terminal, navigate to the demo directory:
 
         ```
         cd ksql-clickstream-demo/demo/

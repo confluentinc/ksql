@@ -31,7 +31,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     cd ksql
     ```
 
-1.  Copy the Kafka Connect Elasticsearch configuration file (`ksql/ksql-examples/examples/clickstream-analysis/connect-confignull-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/kafka-connect-elasticsearch/`). 
+1.  Copy the Kafka Connect Elasticsearch configuration file (`ksql/ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/kafka-connect-elasticsearch/`).
 
     ```
     cp null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
@@ -138,7 +138,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
     **Important:** Before running this step, you must have already run ksql-datagen utility to create the clickstream data, status codes, and set of users.
 
     ```
-    ksql> run script 'ksql-examples/examples/clickstream-analysis/clickstream-schema.sql';
+    ksql> run script 'ksql-clickstream-demo/demo/clickstream-schema.sql';
     ```
 
     The output should resemble:
@@ -250,10 +250,10 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  Send the KSQL tables to Elasticsearch and Grafana.
 
-    1.  From your terminal,, navigate to the examples directory:
+    1.  From your terminal,, navigate to the demo directory:
 
         ```
-        cd ksql-examples/examples/clickstream-analysis/
+        cd ksql-clickstream-demo/demo/
         ```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
@@ -310,4 +310,4 @@ Interesting things to try:
 - Check that Elasticsearch is running: http://localhost:9200/.
 - Check the Data Sources page in Grafana.
     - If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will indicate whether your data source is valid.
-    - If your data source is not shown, go to `/ksql/ksql-examples/examples/clickstream-analysis/` and run `./ksql-tables-to-grafana.sh`.
+    - If your data source is not shown, go to `/ksql/ksql-clickstream-demo/demo/` and run `./ksql-tables-to-grafana.sh`.

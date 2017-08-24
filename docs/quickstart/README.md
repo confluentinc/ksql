@@ -20,13 +20,13 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 1.  Bring up a Kafka cluster and start KSQL.
 
-	* [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.md#docker-setup-for-ksql)  (we recommend Docker for simplicity)
-	* [Follow these instructions if you are not using Docker](quickstart-non-docker.md#non-docker-setup-for-ksql)
+  * [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.md#docker-setup-for-ksql)  (we recommend Docker for simplicity)
+  * [Follow these instructions if you are not using Docker](quickstart-non-docker.md#non-docker-setup-for-ksql)
 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
     ```bash
-    
+
                            ======================================
                            =      _  __ _____  ____  _          =
                            =     | |/ // ____|/ __ \| |         =
@@ -35,34 +35,37 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
                            =     | . \ ____) | |__| | |____     =
                            =     |_|\_\_____/ \___\_\______|    =
                            =                                    =
-                           = Streaming Query Language for Kafka =
+                           =   Streaming SQL Engine for Kafka   =
     Copyright 2017 Confluent Inc.
 
     CLI v0.1, Server v0.1 located at http://localhost:9098
-    
+
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-    
+
     ksql>
     ```
 
 3.  KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quick start, you will produce mock streams to the Kafka cluster.
 
-	* If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
-	* If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster
+    * If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required.
+    * If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster.
 
-## Create a STREAM and TABLE
+## Create a Stream and Table
 
 This KSQL quick start shows examples querying data from Kafka topics called `pageviews` and `users` using the following schemas:
 
 ![image](/docs/quickstart/ksql-quickstart-schemas.jpg)
-    
-Before proceeding, please check:
 
-* In the terminal window where you started KSQL, you see the `ksql>` prompt
-* If you are not using Docker, you must manually have run the data generator to produce topics called `pageviews` and `users`. If you haven't done this, please follow these [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data. (Docker compose file automatically runs the data generator)
+> **Before proceeding, please confirm:**
+>
+> * In the terminal window where you started KSQL, you see the `ksql>` prompt.
+> * If you *are not* using Docker, you must have manually run the data generator to produce topics called `pageviews`
+>   and `users`. If you haven't done this, please follow these
+>   [instructions to manually generate data](/docs/quickstart/quickstart-non-docker.md#produce-topic-data).
+>   (If you *are* using Docker this is done automatically for you.)
 
 
-1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
+1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Then `DESCRIBE` the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
 
    ```bash
    ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
@@ -78,7 +81,7 @@ Before proceeding, please check:
     PAGEID   | VARCHAR(STRING) 
     ```
 
-2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
+2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Then `DESCRIBE` the new TABLE.
 
    ```bash
    ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
@@ -204,7 +207,10 @@ Before proceeding, please check:
 
 ## Terminate and Exit
 
-1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+### KSQL
+Until you terminate a query, it will run continuously as a KSQL application. 
+
+1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
    ksql> terminate 2;
@@ -215,3 +221,19 @@ Before proceeding, please check:
    ```bash
    ksql> exit
    ```
+
+### Docker
+If you are running Docker Compose, you must explicitly shut down Docker Compose. For more information, see the [docker-compose down](https://docs.docker.com/compose/reference/down/) documentation.
+
+**Important:** This command will delete all KSQL queries and topic data.
+
+```
+docker-compose down
+```
+
+### Confluent Platform
+If you are running the Confluent Platform, you can stop it with this command. 
+
+```
+confluent stop
+```

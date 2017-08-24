@@ -50,14 +50,14 @@ connect is [UP]
     git clone git@github.com:confluentinc/ksql.git
     ```
 
-2.  Change directory to the `ksql` directory and compile the code.
+1.  Change directory to the `ksql` directory and compile the code.
 
     ```bash
     cd ksql
     mvn clean compile install -DskipTests
     ```
 
-4.  Start KSQL. The `local` argument starts the KSQL engine locally.
+1.  Start KSQL. The `local` argument starts the KSQL engine locally.
 
     ```bash
     ./bin/ksql-cli local

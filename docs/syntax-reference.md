@@ -75,10 +75,18 @@ CREATE STREAM stream_name (  { column_name data_type} [, ...] ) WITH ( property_
 ```
 Create a new stream with the specified columns and properties.
 
-The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
+The supported column data types are:
 
-KSQL adds the implicit columns ROWTIME and ROWKEY to every stream and table, which represent the
-corresponding Kafka message timestamp and message key.
+* `BOOLEAN`
+* `INTEGER`
+* `BIGINT`
+* `DOUBLE`
+* `VARCHAR` (or `STRING`)
+* `ARRAY<ArrayType>` (JSON only)
+* `MAP<VARCHAR, ValueType>` (JSON only)
+
+KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
+corresponding Kafka message timestamp and message key, respectively.
 
 These are the supported WITH clause properties:
 * KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
@@ -98,11 +106,23 @@ Example:
 CREATE TABLE table_name (  { column_name data_type} [, ...] ) WITH ( property_name = expression [, ...] );
 ```
 
-Create a new KSQL table with the specified columns and properties. The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
+Create a new KSQL table with the specified columns and properties.
 
-In addition to the defined columns in the statement, KSQL adds two implicit columns to every table, ROWKEY and ROWTIME, which represent the corresponding Kafka message key and message timestamp.
+The supported column data types are:
+
+* `BOOLEAN`
+* `INTEGER`
+* `BIGINT`
+* `DOUBLE`
+* `VARCHAR` (or `STRING`)
+* `ARRAY<ArrayType>` (JSON only)
+* `MAP<VARCHAR, ValueType>` (JSON only)
+
+KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
+corresponding Kafka message timestamp and message key, respectively.
 
 The possible properties to set in the WITH clause:
+
 * KAFKA_TOPIC: The name of the Kafka topic that this streams is built upon. The topic should already exist in Kafka. This is a required property.
 * VALUE_FORMAT: Specifies the format in which the value in the topic that data is serialized in. Currently, KSQL supports JSON, delimited. This is a required property.
 * KEY: The name of the key column.

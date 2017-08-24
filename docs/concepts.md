@@ -16,7 +16,7 @@ The main components of KSQL are CLI, engine, and the REST interface.
 Provides a familiar interface, designed users of MySQL, Postgres, etc.
 
 #### Engine
-Runs the Kafka Streams topologies.
+Performs the actual data processing.
 
 #### REST interface
 Enables an engine to receive instructions from the CLI.

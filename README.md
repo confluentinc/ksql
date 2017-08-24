@@ -1,5 +1,5 @@
-# KSQL - Streaming SQL for Apache Kafka 
 ![KSQL rocket](ksq-lrocket.png) 
+# KSQL - Streaming SQL for Apache Kafka 
 
 > *Important: This release is a *developer preview* and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
 

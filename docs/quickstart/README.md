@@ -20,8 +20,8 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 1.  Bring up a Kafka cluster and start KSQL.
 
-	* [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.md#docker-setup-for-ksql)  (we recommend Docker for simplicity)
-	* [Follow these instructions if you are not using Docker](quickstart-non-docker.md#non-docker-setup-for-ksql)
+  * [Follow these instructions if you are using Docker](/docs/quickstart/quickstart-docker.md#docker-setup-for-ksql)  (we recommend Docker for simplicity)
+  * [Follow these instructions if you are not using Docker](quickstart-non-docker.md#non-docker-setup-for-ksql)
 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
@@ -47,10 +47,10 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
 3.  KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quick start, you will produce mock streams to the Kafka cluster.
 
-	* If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
-	* If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster
+  * If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
+  * If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster
 
-## Create a STREAM and TABLE
+## Create a Stream and Table
 
 This KSQL quick start shows examples querying data from Kafka topics called `pageviews` and `users` using the following schemas:
 
@@ -204,7 +204,10 @@ Before proceeding, please check:
 
 ## Terminate and Exit
 
-1. Until you terminate a query, it will run continuously as a KSQL application. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+### KSQL
+Until you terminate a query, it will run continuously as a KSQL application. 
+
+1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
    ksql> terminate 2;
@@ -215,3 +218,19 @@ Before proceeding, please check:
    ```bash
    ksql> exit
    ```
+
+### Docker
+If you are running Docker Compose, you must explicitly shut down Docker Compose. For more information, see the [docker-compose down](https://docs.docker.com/compose/reference/down/) documentation.
+
+**Important:** This command will delete all KSQL queries and topic data.
+
+```
+docker-compose down
+```
+
+### Confluent Platform
+If you are running the Confluent Platform, you can stop it with this command. 
+
+```
+confluent stop
+```

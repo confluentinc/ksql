@@ -1,5 +1,8 @@
 # Clickstream Analysis
 
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | Roadmap | [Demo](/docs/demo.md#demo) |
+|---|----|-----|----|----|----|----|----|
+
 ### Introduction
 Clickstream analysis is the process of collecting, analyzing and reporting aggregate data about which pages a website visitor visits -- and in what order. The path the visitor takes though a website is called the clickstream.
 

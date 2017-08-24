@@ -78,7 +78,6 @@
     <profiles>
         <profile>
             <id>packaging</id>
-
             <build>
                 <plugins>
                     <plugin>

@@ -65,7 +65,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 >   (If you *are* using Docker this is done automatically for you.)
 
 
-1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
+1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Then `DESCRIBE` the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
 
    ```bash
    ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
@@ -81,7 +81,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
     PAGEID   | VARCHAR(STRING) 
     ```
 
-2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
+2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Then `DESCRIBE` the new TABLE.
 
    ```bash
    ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');

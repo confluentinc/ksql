@@ -59,9 +59,9 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 > **Before proceeding, please confirm:**
 >
 > * In the terminal window where you started KSQL, you see the `ksql>` prompt.
-> * If you *are not* using Docker, you must manually have run the data generator to produce topics called `pageviews`
+> * If you *are not* using Docker, you must have manually run the data generator to produce topics called `pageviews`
 >   and `users`. If you haven't done this, please follow these
->   [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data.
+>   [instructions to manually generate data](/docs/quickstart/quickstart-non-docker.md#produce-topic-data).
 >   (If you *are* using Docker this is done automatically for you.)
 
 

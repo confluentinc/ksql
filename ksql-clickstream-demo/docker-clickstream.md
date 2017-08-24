@@ -1,7 +1,11 @@
 # Dockerized Clickstream Demo
 
 
-
+#### Prerequisites
+- [Confluent 3.3.0 installed](http://docs.confluent.io/current/installation.html) locally
+- [ElasticSearch installed](https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html)
+- [Grafana installed](http://docs.grafana.org/installation/)
+- []()
 
 
 

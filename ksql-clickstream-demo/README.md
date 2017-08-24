@@ -38,13 +38,13 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  Copy the Kafka Connect Elasticsearch configuration file (`ksql/ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar`) to your Confluent installation `share` directory (`confluent-3.3.0/share/java/kafka-connect-elasticsearch/`).
 
     ```bash
-    $ cp ksql/ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar /confluent-3.3.0/share/java/kafka-connect-elasticsearch/
+    cp ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar <path-to-confluent-3.3.0>/share/java/kafka-connect-elasticsearch/
     ```
 
 1.  From your terminal, start the Confluent Platform. It should be running on default port 8083.
 
     ```bash
-    $ confluent start
+    $ <path-to-confluent-3.3.0>/bin/confluent start
     ```
 
     The output should resemble:
@@ -70,7 +70,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
     ```bash
-    $ ./bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    $ <path-to-ksql>/bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -82,7 +82,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```bash
-    $ ./bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
+    $ <path-to-ksql>/bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=100 iterations=100
     ```
 
     Your output should resemble:
@@ -98,7 +98,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```bash
-    $ ./bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    $ <path-to-ksql>/bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -113,7 +113,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 1.  Launch the KSQL CLI in local mode.
 
     ```bash
-    $ ./bin/ksql-cli local
+    $ <path-to-ksql>/bin/ksql-cli local
     ```
 
     You should see the KSQL CLI welcome screen.
@@ -262,7 +262,7 @@ The application makes use of standard streaming functions (i.e. min, max, etc), 
 
 1.  Go to your terminal and send the KSQL tables to Elasticsearch and Grafana.
 
-    1.  From your terminal,, navigate to the demo directory:
+    1.  From your terminal, navigate to the demo directory:
 
         ```
         cd ksql-clickstream-demo/demo/

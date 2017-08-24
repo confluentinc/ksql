@@ -150,7 +150,7 @@ These steps will guide you through how to setup your environment and run the cli
     **Important:** Before running this step, you must have already run ksql-datagen utility to create the clickstream data, status codes, and set of users.
 
     ```
-    ksql> run script 'ksql-clickstream-demo/demo/clickstream-schema.sql';
+    ksql> run script '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
     ```
 
     The output should resemble:

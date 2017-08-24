@@ -55,11 +55,14 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 This KSQL quick start shows examples querying data from Kafka topics called `pageviews` and `users` using the following schemas:
 
 ![image](/docs/quickstart/ksql-quickstart-schemas.jpg)
-    
-Before proceeding, please check:
 
-* In the terminal window where you started KSQL, you see the `ksql>` prompt
-* If you are not using Docker, you must manually have run the data generator to produce topics called `pageviews` and `users`. If you haven't done this, please follow these [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data. (Docker compose file automatically runs the data generator)
+> **Before proceeding, please confirm:**
+>
+> * In the terminal window where you started KSQL, you see the `ksql>` prompt.
+> * If you *are not* using Docker, you must manually have run the data generator to produce topics called `pageviews`
+>   and `users`. If you haven't done this, please follow these
+>   [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data.
+>   (If you *are* using Docker this is done automatically for you.)
 
 
 1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.

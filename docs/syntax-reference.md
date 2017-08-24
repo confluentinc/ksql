@@ -231,6 +231,13 @@ The WINDOW clause is used to define a window for aggregate queries. KSQL support
   SELECT ITEMID, SUM(arraycol[0]) FROM ORDERS window SESSION (20 second) GROUP BY ITEMID;
   ```
 
+### CAST
+You can cast an expression type in KSQL using CAST. Here is an example of converting a BIGINT
+into a VARCHAR type:
+
+```sql
+SELECT pageid, CONCAT(CAST(count(*) AS VARCHAR), '__HI') from enrichedpv window tumbling (size 5 second) group by pageid;
+```
 
 ### SHOW | LIST TOPICS
 

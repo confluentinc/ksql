@@ -156,12 +156,12 @@ Example:
 **Synopsis** 
 
 ```sql
-CREATE STREAM `stream_name`
-[WITH ( `property_name = expression` [, ...] )]
-AS SELECT  `select_expr` [, ...]
-FROM `from_item` [, ...]
-[ WHERE `condition` ]
-[PARTITION BY `column_name`];
+CREATE STREAM stream_name
+[WITH ( property_name = expression [, ...] )]
+AS SELECT  select_expr [, ...]
+FROM from_item [, ...]
+[ WHERE condition ]
+[PARTITION BY column_name];
 ```
 
 **Description**
@@ -188,14 +188,14 @@ You can use the WITH section to set the properties for the result KSQL stream. T
 **Synopsis**
 
 ```
-CREATE TABLE `stream_name`
-[WITH ( `property_name = expression` [, ...] )]
-AS SELECT  `select_expr` [, ...]
-FROM `from_item` [, ...]
-[ WINDOW `window_expression` ]
-[ WHERE `condition` ]
-[ GROUP BY `grouping expression` ]
-[ HAVING `having_expression` ];
+CREATE TABLE stream_name
+[WITH ( property_name = expression [, ...] )]
+AS SELECT  select_expr [, ...]
+FROM from_item [, ...]
+[ WINDOW window_expression ]
+[ WHERE condition ]
+[ GROUP BY grouping expression ]
+[ HAVING having_expression ];
 ```
 **Description**
 
@@ -244,12 +244,12 @@ Drops an existing table.
 **Synopsis**
 
 ```
-SELECT `select_expr` [, ...]
-FROM `from_item` [, ...]
-[ WINDOW `window_expression` ]
-[ WHERE `condition` ]
-[ GROUP BY `grouping expression` ]
-[ HAVING `having_expression` ];
+SELECT select_expr [, ...]
+FROM from_item [, ...]
+[ WINDOW window_expression ]
+[ WHERE condition ]
+[ GROUP BY grouping expression ]
+[ HAVING having_expression ];
 ```
 
 **Description**
@@ -258,7 +258,7 @@ Selects rows from a KSQL stream or table. The result of this statement will not 
  Kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
   press `Ctrl+C`.
 
-In the above statements `from_item` is one of the following:
+In the above statements from_item is one of the following:
 
 - `table_name [ [ AS ] alias]`
 

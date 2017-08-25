@@ -250,4 +250,4 @@ SET 'auto.offset.reset'='earliest';
 SET 'commit.interval.ms'='5000';
 
 ```
-- cache.max.bytes.buffering: The default value is 10,000,000;
+- cache.max.bytes.buffering: The default value is 10485760 (10 MB).

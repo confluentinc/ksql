@@ -18,7 +18,7 @@ The goal of this quick start is to demonstrate a simple workflow using KSQL to w
 
 Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka cluster, including ZooKeeper and a Kafka broker. Do not run KSQL against a production Kafka cluster while KSQL is in developer preview.
 
-**Important:** The 
+<!-- Add auto.offset.reset info here. -->
 
 1.  Bring up a Kafka cluster and start KSQL.
 

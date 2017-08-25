@@ -4,6 +4,8 @@
 
 KSQL lowers the entry bar to the world of stream processing by providing you with a simple and completely interactive SQL interface with which you can process your data in Kafka most easily.  No longer do you need to write code in a programming language such as Java or Python! KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time.  It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
+<!-- Add KSQL screencast link here -->
+
 # Quick Start
 If you are ready to see the power of KSQL, try out these:
 

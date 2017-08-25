@@ -69,8 +69,8 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
-    ```
-    $ ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ```bash
+    $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -83,8 +83,8 @@ These steps will guide you through how to setup your environment and run the cli
 
     **Tip:** Because of shell redirection, the previous command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
-    ```
-    $ ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+    ```bash
+    $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -99,8 +99,8 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
-    ```
-    $ ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ```bash
+    $ ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:

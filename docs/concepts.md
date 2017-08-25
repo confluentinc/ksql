@@ -1,6 +1,6 @@
 # Concepts
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | Concepts | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | Concepts | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 
@@ -47,13 +47,13 @@ Here's an overview of running KSQL in standalone mode:
 	-  Use with default settings:
 
 	   ```bash
-	   .bin/ksql-cli local
+	   ./bin/ksql-cli local
 	   ```	
 
 	-  Use with custom settings:
 
 	   ```bash
-	   .bin/ksql-cli local --properties-file foo/bar/ksql.properties
+	   ./bin/ksql-cli local --properties-file foo/bar/ksql.properties
 	   ```
 
 ## Client-server mode
@@ -67,18 +67,18 @@ Here's an overview of running KSQL in client-server mode:
 	-  Use with default settings:
 
 	   ```bash
-	   .bin/ksql-server-start
+	   ./bin/ksql-server-start
 	   ```	
 
 	-  Use with custom settings:
 
 	   ```bash
-	   .bin/ksql-server-start --properties-file foo.properties
+	   ./bin/ksql-server-start --properties-file foo.properties
 	   ```
 - Start any number of CLIs, specifying a server address as `remote` endpoint
   
   ```bash
-  .bin/ksql-cli remote http://server:8090
+  ./bin/ksql-cli remote http://server:8090
   ```
 
 - All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
@@ -94,12 +94,12 @@ Here's an overview of running KSQL in application mode:
 - Start an engine instance and pass a file of KSQL statements to run, for example:
 
   ```bash
-  .bin/ksql-node --query-file=foo/bar.sql
+  ./bin/ksql-node --query-file=foo/bar.sql
   ```
   or
 
   ```bash
-  .bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
+  ./bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
   ```
 - This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
 - All engines share the work, for example, instances of the same KSQL app. You can scale up or down without restarting.

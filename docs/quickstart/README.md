@@ -1,6 +1,6 @@
 # Quick Start
 
-| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 Welcome to the quick start for KSQL!
@@ -116,6 +116,8 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 
 ## Write Queries
 
+**Note:** By default KSQL reads the topics for streams and tables from the latest offset.
+
 1. Use `SELECT` to create a query that returns data from a STREAM. To stop viewing the data, press `<ctrl-c>`. You may optionally include the `LIMIT` keyword to limit the number of rows returned in the query result. Note that exact data output may vary because of the randomness of the data generation.
 
    ```bash
@@ -213,7 +215,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
-   ksql> terminate 2;
+   ksql> TERMINATE 2;
    ```
 
 2. To exit from KSQL, type 'exit'.
@@ -237,3 +239,6 @@ If you are running the Confluent Platform, you can stop it with this command.
 ```
 confluent stop
 ```
+
+## Next steps
+Try the end-to-end [Clickstream Analysis demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.

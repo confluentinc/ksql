@@ -1,6 +1,6 @@
 # Syntax Reference
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
 |---|----|-----|----|----|----|----|----|
 
 
@@ -231,7 +231,7 @@ The WINDOW clause is used to define a window for aggregate queries. KSQL support
   SELECT ITEMID, SUM(arraycol[0]) FROM ORDERS window SESSION (20 second) GROUP BY ITEMID;
   ```
 
-### CAST
+#### CAST
 You can cast an expression type in KSQL using CAST. Here is an example of converting a BIGINT
 into a VARCHAR type:
 

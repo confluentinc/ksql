@@ -1,6 +1,6 @@
 # Concepts
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | Concepts | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | Concepts | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
 |---|----|-----|----|----|----|----|----|
 
 
@@ -83,6 +83,7 @@ Here's an overview of running KSQL in client-server mode:
 
 - All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
 
+<!-- 
 ## Application mode
 In application mode, you can put your KSQL queries in a file and share across your Kafka Streams instances.
 
@@ -105,4 +106,6 @@ Here's an overview of running KSQL in application mode:
  
 ## Embedded mode
 In embedded mode, you can write KSQL code inside of your streams Java app, using the KSQL context object inside of your application. The KSQL code will run inside the individual application instances. For more information, see [this example](/ksql-examples/src/main/java/io/confluent/ksql/embedded/EmbeddedKsql.java).
+
+-->
 

@@ -1,6 +1,6 @@
 # Quick Start
 
-| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/docs/demo.md#demo) |
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
 |---|----|-----|----|----|----|----|----|
 
 Welcome to the quick start for KSQL!
@@ -26,17 +26,16 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 2.  After you have successfully started the Kafka cluster and started KSQL, you will see the KSQL prompt:
 
     ```bash
-    
-                           ======================================
-                           =      _  __ _____  ____  _          =
-                           =     | |/ // ____|/ __ \| |         =
-                           =     | ' /| (___ | |  | | |         =
-                           =     |  <  \___ \| |  | | |         =
-                           =     | . \ ____) | |__| | |____     =
-                           =     |_|\_\_____/ \___\_\______|    =
-                           =                                    =
-                           = Streaming Query Language for Kafka =
-    Copyright 2017 Confluent Inc.
+                       ======================================
+                       =      _  __ _____  ____  _          =
+                       =     | |/ // ____|/ __ \| |         =
+                       =     | ' /| (___ | |  | | |         =
+                       =     |  <  \___ \| |  | | |         =
+                       =     | . \ ____) | |__| | |____     =
+                       =     |_|\_\_____/ \___\_\______|    =
+                       =                                    =
+                       =   Streaming SQL Engine for Kafka   =
+    Copyright 2017 Confluent Inc.                         
 
     CLI v0.1, Server v0.1 located at http://localhost:9098
     
@@ -205,7 +204,8 @@ Before proceeding, please check:
 ## Terminate and Exit
 
 ### KSQL
-Until you terminate a query, it will run continuously as a KSQL application. 
+
+**Important:** Queries will continuously run as KSQL applications until they are manually terminated. Exiting KSQL does not terminate persistent queries.
 
 1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 

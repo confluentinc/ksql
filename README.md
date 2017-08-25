@@ -13,7 +13,7 @@ If you are ready to see the power of KSQL, try out these:
 - [Clickstream Analysis Demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.
 
 # Documentation
-You can [find the KSQL documentation here](/docs/).
+You can [find the KSQL documentation here](/docs#ksql-documentation).
 
 # Join the Community
 Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).

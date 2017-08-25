@@ -378,7 +378,7 @@
                 "timeField": "EVENT_TS"
               }
             ],
-            "title": "Table Stream JOIN on Web_Users and ClickStream",
+            "title": "Stream-Table JOIN on Clickstream and Web_Users",
             "transform": "json",
             "type": "table"
           }

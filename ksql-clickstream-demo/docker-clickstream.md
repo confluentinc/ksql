@@ -69,8 +69,8 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
-    ```
-    ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ```bash
+    $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -81,10 +81,10 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table. 
 
-    **Tip:** Because of shell redirection, the previous command does not print a newline and so it mightlook like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+    **Tip:** Because of shell redirection, the previous command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
-    ```
-    ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+    ```bash
+    $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -99,8 +99,8 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
-    ```
-    ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ```bash
+    $ ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -118,7 +118,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Start the KSQL server.
 
 	```bash
-	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-server.log 2>&1 &
 	```
 
 1.  Start the CLI on port 8080.
@@ -276,13 +276,13 @@ These steps will guide you through how to setup your environment and run the cli
 	1.  From your terminal, navigate to the demo directory:
 
 		```bash
-		cd /usr/share/doc/ksql-clickstream-demo/
+		$ cd /usr/share/doc/ksql-clickstream-demo/
 		```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
 
 		```bash
-		./ksql-tables-to-grafana.sh
+		$ ./ksql-tables-to-grafana.sh
 		```
 
         Your output should resemble:
@@ -305,7 +305,7 @@ These steps will guide you through how to setup your environment and run the cli
     1.  From your terminal, load the dashboard into Grafana.
 
     	```bash
-		./clickstream-analysis-dashboard.sh
+		$ ./clickstream-analysis-dashboard.sh
 	    ```
 
 	    Your output should resemble:
@@ -321,7 +321,10 @@ These steps will guide you through how to setup your environment and run the cli
 
     ![Grafana UI success](grafana-success.png)	    
 
-Interesting things to try:
+**About:** This dashboard demonstrates a series of streaming functionality where the title of each panel describes the type of stream processing required to generate the data. For example, the large chart in the middle is showing web-resource requests on a per-username basis using a Session window - where a sessions expire after 300 seconds of inactivity. Editing the panel allows you to view the datasource - which is named after the streams and tables captured in the clickstream-schema.sql file. 
+
+
+**Interesting things to try:**
 * Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
 * Run the `LIST TOPICS;` command to see where data is persisted
 * Run the KSQL CLI `history` command

@@ -1,6 +1,6 @@
 # Roadmap
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | Roadmap | 
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | Roadmap | 
 |---|----|-----|----|----|----|----|----|
 
 * Improved quality, stability, and operations: We will continue to focus on refining the overall experience of working with KSQL. As such this will involve streamlining processes, further expand our testing efforts and improving visibility and feedback mechanisms.

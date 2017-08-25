@@ -321,7 +321,11 @@ These steps will guide you through how to setup your environment and run the cli
 
     ![Grafana UI success](grafana-success.png)	    
 
-Interesting things to try:
+**About:** This dashboard demonstrates a series of streaming functionality where the title of each panel describes the type of stream processing required to generate the data. For example, the large chart in the middle is showing web-resource requests on a per-username basis using a Session window - where a sessions expire after 300 seconds of inactivity. Editing the panel allows you to view the datasource - which is named after the streams and tables captured in the clickstream-schema.sql file. Take some time to trace through the .sql file, ksql-cli (list tables), to the datasources behind each panel.
+ 
+ 
+
+**Interesting things to try:**
 * Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
 * Run the `LIST TOPICS;` command to see where data is persisted
 * Run the KSQL CLI `history` command

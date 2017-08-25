@@ -299,7 +299,7 @@ The WINDOW clause is used to define a window for aggregate queries. KSQL support
 **Synopsis**
 
 ```
-CAST ([(length)] expression AS data_type);
+CAST (expression AS data_type);
 ```
 
 You can cast an expression type in KSQL using CAST. Here is an example of converting a BIGINT

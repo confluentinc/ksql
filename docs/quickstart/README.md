@@ -7,8 +7,6 @@ Welcome to the quick start for KSQL!
 
 The goal of this quick start is to demonstrate a simple workflow using KSQL to write streaming queries against data in Kafka.
 
-By default KSQL reads the topics for streams and tables from the latest offset.
-
 **Table of Contents**
 
 - [Setup](#setup)
@@ -117,6 +115,8 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 
 
 ## Write Queries
+
+**Note:** By default KSQL reads the topics for streams and tables from the latest offset.
 
 1. Use `SELECT` to create a query that returns data from a STREAM. To stop viewing the data, press `<ctrl-c>`. You may optionally include the `LIMIT` keyword to limit the number of rows returned in the query result. Note that exact data output may vary because of the randomness of the data generation.
 

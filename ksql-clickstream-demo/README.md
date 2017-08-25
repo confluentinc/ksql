@@ -16,5 +16,5 @@ This application focuses on building real-time analytics of users to determine:
 
 The application makes use of standard streaming functions (i.e. min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
-- [Follow these instructions if you are using Docker](/ksql-clickstream-demo/docker-clickstream.md)
-- [Follow these instructions if you are not using Docker](/ksql-clickstream-demo/non-docker-clickstream.md)
+- [Follow these instructions if you are using Docker](/ksql-clickstream-demo/docker-clickstream.md#clickstream-analysis-using-docker)
+- [Follow these instructions if you are not using Docker](/ksql-clickstream-demo/non-docker-clickstream.md#clickstream-analysis)

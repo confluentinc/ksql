@@ -1,6 +1,6 @@
 # Clickstream Analysis using Docker
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo/) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. For instructions without using Docker, see [this documentation](/ksql-clickstream-demo/non-docker-clickstream.md).
@@ -69,6 +69,8 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
+    **Tip:** Because of shell redirection, this command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+
     ```bash
     $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
@@ -80,8 +82,6 @@ These steps will guide you through how to setup your environment and run the cli
     ```
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table. 
-
-    **Tip:** Because of shell redirection, the previous command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```bash
     $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
@@ -114,39 +114,39 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  Launch the KSQL CLI in local mode.
 
+    1.  Start the KSQL server.
 
-1.  Start the KSQL server.
+    	```bash
+    	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+    	```
 
-	```bash
-	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
-	```
+    1.  Start the CLI on port 8080.
 
-1.  Start the CLI on port 8080.
+    	```bash
+    	$ ksql-cli remote http://localhost:8080
+    	```
 
-	```bash
-	$ ksql-cli remote http://localhost:8080
-	```
+    	You should now be in the KSQL CLI.
 
-	You should now be in the KSQL CLI.
+    	```bash
+                           ======================================
+                           =      _  __ _____  ____  _          =
+                           =     | |/ // ____|/ __ \| |         =
+                           =     | ' /| (___ | |  | | |         =
+                           =     |  <  \___ \| |  | | |         =
+                           =     | . \ ____) | |__| | |____     =
+                           =     |_|\_\_____/ \___\_\______|    =
+                           =                                    =
+                           =   Streaming SQL Engine for Kafka   =
+        Copyright 2017 Confluent Inc.                         
 
-	```bash
-                       ======================================
-                       =      _  __ _____  ____  _          =
-                       =     | |/ // ____|/ __ \| |         =
-                       =     | ' /| (___ | |  | | |         =
-                       =     |  <  \___ \| |  | | |         =
-                       =     | . \ ____) | |__| | |____     =
-                       =     |_|\_\_____/ \___\_\______|    =
-                       =                                    =
-                       =   Streaming SQL Engine for Kafka   =
-    Copyright 2017 Confluent Inc.                         
+        CLI v0.1, Server v0.1 located at http://localhost:9098
 
-    CLI v0.1, Server v0.1 located at http://localhost:9098
+        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
-    Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-
-    ksql>
-	```
+        ksql>
+    	```
+        
 1.  From the the KSQL CLI, load the `clickstream.sql` schema file that will run the demo app.
 
     **Important:** Before running this step, you must have already run ksql-datagen utility to create the clickstream data, status codes, and set of users.
@@ -218,7 +218,7 @@ These steps will guide you through how to setup your environment and run the cli
     **View clickstream data**
 
     ```bash
-    ksql> select * from CLICKSTREAM LIMIT 5;
+    ksql> SELECT * FROM CLICKSTREAM LIMIT 5;
     ```
 
     Your output should resemble:
@@ -236,7 +236,7 @@ These steps will guide you through how to setup your environment and run the cli
     **View the events per minute**
 
     ```bash
-    ksql> select * from EVENTS_PER_MIN_TS LIMIT 5;
+    ksql> SELECT * FROM EVENTS_PER_MIN_TS LIMIT 5;
     ```
 
     Your output should resemble:
@@ -254,7 +254,7 @@ These steps will guide you through how to setup your environment and run the cli
     **View pages per minute**
 
     ```bash
-    ksql> select * from PAGES_PER_MIN LIMIT 5;
+    ksql> SELECT * FROM PAGES_PER_MIN LIMIT 5;
     ```
 
     Your output should resemble:

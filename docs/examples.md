@@ -1,6 +1,6 @@
 # Examples
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo/) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
  
@@ -189,7 +189,7 @@ GROUP BY regionid;
  ```
 
 The following queries show how to access array items and map values in KSQL. The 'interest'
-column in the user table is an array of string with size two that represents the first and second
+column in the user table is an array of string that represents the
  interest of each user. The contactinfo column is a string to string map that represents the
  following contact information for each user: phone, city, state and zipcode.  The following
  query will create a new stream from pageview_enriched that includes the first interrest of each

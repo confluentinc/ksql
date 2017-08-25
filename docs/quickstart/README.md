@@ -1,6 +1,6 @@
 # Quick Start
 
-| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo/) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 Welcome to the quick start for KSQL!
@@ -17,6 +17,8 @@ The goal of this quick start is to demonstrate a simple workflow using KSQL to w
 ## Setup
 
 Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka cluster, including ZooKeeper and a Kafka broker. Do not run KSQL against a production Kafka cluster while KSQL is in developer preview.
+
+**Important:** The 
 
 1.  Bring up a Kafka cluster and start KSQL.
 
@@ -213,7 +215,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
 1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
-   ksql> terminate 2;
+   ksql> TERMINATE 2;
    ```
 
 2. To exit from KSQL, type 'exit'.
@@ -237,3 +239,6 @@ If you are running the Confluent Platform, you can stop it with this command.
 ```
 confluent stop
 ```
+
+## Next steps
+Try the end-to-end [Clickstream Analysis demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.

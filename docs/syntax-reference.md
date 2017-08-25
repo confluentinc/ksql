@@ -1,6 +1,6 @@
 # Syntax Reference
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 
@@ -64,15 +64,27 @@ KSQL statements should be terminated with a semicolon (`;`). If desired, in the 
 
 
 ### DESCRIBE
+
+**Synopsis** 
+
 ```
 DESCRIBE (stream_name|table_name);
 ```
+
+**Description**
+
 List the columns in a stream or table along with their data type and other attributes.
 
 ### CREATE STREAM
+
+**Synopsis** 
+
 ```
 CREATE STREAM stream_name (  { column_name data_type} [, ...] ) WITH ( property_name = expression [, ...] );
 ```
+
+**Description**
+
 Create a new stream with the specified columns and properties.
 
 The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
@@ -94,9 +106,13 @@ Example:
 
 ### CREATE TABLE
 
+**Synopsis** 
+
 ```
 CREATE TABLE table_name (  { column_name data_type} [, ...] ) WITH ( property_name = expression [, ...] );
 ```
+
+**Description**
 
 Create a new KSQL table with the specified columns and properties. The supported column data types are BOOELAN, INTEGER, BIGINT, DOUBLE, VARCHAR (STRING), ARRAY<ArrayType> (JSON only) and MAP<VARCHAR, ValueType> (JSON only).
 
@@ -117,7 +133,7 @@ Example:
 
 ### CREATE STREAM AS SELECT
 
-Create a new KSQL stream along with the corresponding Kafka topic and stream the result of the SELECT query into the topic.
+**Synopsis** 
 
 ```sql
 CREATE STREAM `stream_name`
@@ -125,8 +141,12 @@ CREATE STREAM `stream_name`
 AS SELECT  `select_expr` [, ...]
 FROM `from_item` [, ...]
 [ WHERE `condition` ]
-[PARTITION BY `column_name`]
+[PARTITION BY `column_name`];
 ```
+
+**Description**
+
+Create a new KSQL stream along with the corresponding Kafka topic and stream the result of the SELECT query into the topic.
 
 You can use the WITH section to set the properties for the result KSQL stream. The properties that
  can be set are:
@@ -145,8 +165,7 @@ You can use the WITH section to set the properties for the result KSQL stream. T
 
 ### CREATE TABLE AS SELECT
 
-Create a new KSQL table along with the corresponding Kafka topic and stream the result of the
-SELECT query as a changelog into the topic.
+**Synopsis**
 
 ```
 CREATE TABLE `stream_name`
@@ -156,8 +175,12 @@ FROM `from_item` [, ...]
 [ WINDOW `window_expression` ]
 [ WHERE `condition` ]
 [ GROUP BY `grouping expression` ]
-[ HAVING `having_expression` ]
+[ HAVING `having_expression` ];
 ```
+**Description**
+
+Create a new KSQL table along with the corresponding Kafka topic and stream the result of the
+SELECT query as a changelog into the topic.
 
 The WITH section can be used to set the properties for the result KSQL topic. The properties that can be set are as the following:
 
@@ -170,21 +193,35 @@ The WITH section can be used to set the properties for the result KSQL topic. Th
 * REPLICATIONS: The replication factor for the sink stream.
 
 
-###  DROP STREAM <stream-name>
+###  DROP STREAM
+
+**Synopsis**
+
+```
+DROP STREAM "stream_name";
+```
+
+**Description**
 
 Drops an existing stream.
 
 
-### DROP TABLE <table-name>
+### DROP TABLE
+
+**Synopsis**
+
+```
+DROP TABLE "table_name";
+```
+
+**Description**
 
 Drops an existing table.
 
 
 ### SELECT
 
-Selects rows from a KSQL stream or table. The result of this statement will not be persisted in a
- Kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
-  press Ctrl+C.
+**Synopsis**
 
 ```
 SELECT `select_expr` [, ...]
@@ -192,8 +229,14 @@ FROM `from_item` [, ...]
 [ WINDOW `window_expression` ]
 [ WHERE `condition` ]
 [ GROUP BY `grouping expression` ]
-[ HAVING `having_expression` ]
+[ HAVING `having_expression` ];
 ```
+
+**Description**
+
+Selects rows from a KSQL stream or table. The result of this statement will not be persisted in a
+ Kafka topic and will only be printed out in the console. To stop the continuous query in the CLI
+  press `Ctrl+C`.
 
 In the above statements `from_item` is one of the following:
 
@@ -232,6 +275,13 @@ The WINDOW clause is used to define a window for aggregate queries. KSQL support
   ```
 
 #### CAST
+
+**Synopsis**
+
+```
+CAST ([(length)] expression AS data_type);
+```
+
 You can cast an expression type in KSQL using CAST. Here is an example of converting a BIGINT
 into a VARCHAR type:
 
@@ -241,25 +291,65 @@ SELECT pageid, CONCAT(CAST(count(*) AS VARCHAR), '__HI') from enrichedpv window 
 
 ### SHOW | LIST TOPICS
 
+**Synopsis**
+
+```
+SHOW | LIST TOPICS;
+```
+
+**Description**
+
 The list of available topics in Kafka cluster.
 
 
 ### SHOW | LIST STREAMS
+
+**Synopsis**
+
+```
+SHOW | LIST STREAMS;
+```
+
+**Description**
 
 List the streams in KSQL.
 
 
 ### SHOW | LIST TABLES
 
+**Synopsis**
+
+```
+SHOW | LIST TABLES;
+```
+
+**Description**
+
 List the tables in KSQL.
 
 
 ### SHOW QUERIES
 
+**Synopsis**
+
+```
+SHOW QUERIES;
+```
+
+**Description**
+
 List the queries in KSQL.
 
 
-### TERMINATE [QUERY] `query-id`
+### TERMINATE 
+
+**Synopsis**
+
+```
+TERMINATE query_id;
+```
+
+**Description**
 
 End a query. Queries will run continuously as KSQL applications until they are explicitly terminated.
 

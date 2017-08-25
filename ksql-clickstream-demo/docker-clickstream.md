@@ -118,7 +118,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Start the KSQL server.
 
 	```bash
-	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-server.log 2>&1 &
 	```
 
 1.  Start the CLI on port 8080.

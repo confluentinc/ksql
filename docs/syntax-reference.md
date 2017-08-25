@@ -218,7 +218,7 @@ The WITH section can be used to set the properties for the result KSQL topic. Th
 **Synopsis**
 
 ```
-DROP STREAM "stream_name";
+DROP STREAM stream_name;
 ```
 
 **Description**
@@ -231,7 +231,7 @@ Drops an existing stream.
 **Synopsis**
 
 ```
-DROP TABLE "table_name";
+DROP TABLE table_name;
 ```
 
 **Description**

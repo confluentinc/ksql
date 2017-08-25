@@ -10,7 +10,7 @@ KSQL lowers the entry bar to the world of stream processing by providing you wit
 If you are ready to see the power of KSQL, try out these:
 
 - [KSQL Quick Start](/docs/quickstart#quick-start), which demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-- [Clickstream Analysis Demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.
+- [Clickstream Analysis Demo](/ksql-clickstream-demo#clickstream-analysis), which shows how to build an application that performs real-time user analytics.
 
 # Documentation
 You can [find the KSQL documentation here](/docs#ksql-documentation).

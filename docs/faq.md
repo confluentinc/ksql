@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo/) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo/README.md#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 

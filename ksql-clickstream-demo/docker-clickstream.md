@@ -81,7 +81,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table. 
 
-    **Tip:** Because of shell redirection, the previous command does not print a newline and so it mightlook like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+    **Tip:** Because of shell redirection, the previous command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```
     ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100

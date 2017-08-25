@@ -1,253 +1,279 @@
 # Examples
 
 | [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
 
- 
+**Table of Contents**
 
-Here are some example queries to illustrate the look and feel of the KSQL syntax.
-For the following examples we use 'pageviews' stream and 'users' table similar to the quickstart.
- The first step is to create stream and table in KSQL.
+- [Overview](#overview)
+- [Creating streams](#creating-streams)
+- [Creating tables](#creating-tables)
+- [Working with streams and tables](#working-with-streams-and-tables)
+  - [Transforming](#transforming)
+  - [Joining](#joining)
+  - [Aggregating, windowing, and sessionization](#aggregating)
+  - [Working with arrays and maps](#working-with-arrays-and-maps)
+- [Configuring KSQL](#configuring-ksql)
 
-```sql
- CREATE STREAM pageviews_original \
-              (viewtime bigint,   \
-              userid varchar,     \
-              pageid varchar)     \
- WITH (kafka_topic='pageviews',   \
-       value_format='DELIMITED');
-```
+## Overview
 
-The above statement creates a stream with three columns on the kafka topic that is named
-'pageviews'. We should also tell KSQL in what format the values are stored in the topic. In this
-example, the values format is 'DELIMITED'. The above statement does not make any assumption about
- the message key. However, if the value of message key is the same as one of the columns defined
- in the stream, we can provide such information in the WITH clause. For instance, if the Kafka
- message key has the same value as the 'pageid' column we can write the CREATE STREAM statement
- as follows:
+This documents lists example queries to illustrate the look and feel of the KSQL syntax.
+The following examples use a `pageviews` stream and a `users` table similar to the
+[quick start](/docs/quickstart#quick-start), but slightly adapted to showcase more functionality.
 
- ```sql
- CREATE STREAM pageviews_original \
-              (viewtime bigint,   \
-              userid varchar,     \
-              pageid varchar)     \
- WITH (kafka_topic='pageviews',   \
-       value_format='DELIMITED',  \
-       key='pageid');
- ```
 
-If we want to use the value of one of the columns as the message timestamp, we can provide
-such information to KSQL in the WITH clause. The message timestamp is used in window based
-operations in KSQL and the feature provides event time processing in KSQL. For instance, if we want
- to use the value of 'viewtime' columns as the message timestamp we can rewrite the above statement as follows:
+## Creating streams
 
-  ```sql
-   CREATE STREAM pageviews_original \
-                (viewtime bigint,   \
-                userid varchar,     \
-                pageid varchar)     \
-   WITH (kafka_topic='pageviews',   \
-         value_format='DELIMITED',  \
-         key='pageid',              \
-         timestamp='viewtime');
-  ```
+> *Note: The following statements require that the corresponding Kafka topic already exists in your Kafka cluster.*
 
-To create a table we use CREATE TABLE statement. Here is the statement to create a user table
-with four columns:
+You can start with creating a stream:
 
 ```sql
- CREATE TABLE users_original                     \
-             (registertime bigint,               \
-             gender varchar,                     \
-             regionid varchar,                   \
-             userid varchar,                     \
-             interests array<varchar>,           \
-             contactinfo map<varchar, varchar>)  \
- WITH (kafka_topic='users',                      \
-       value_format='JSON');
+CREATE STREAM pageviews \
+  (viewtime BIGINT, \
+   userid VARCHAR, \
+   pageid VARCHAR) \
+  WITH (kafka_topic='pageviews-topic', \
+        value_format='DELIMITED');
 ```
 
-As you can see the above table has a column with array type and another column with map type.
-Currently, KSQL supports the following primitive data types: boolean, integer, bigint, double and
-varchar(string). KSQL also supports array type with primitive elements and map type with varchar
-(string) key and primitive type values.
+The above statement creates a stream with three columns on the Kafka topic that is named `pageviews`.  You should also
+tell KSQL the format of the values that are stored in the topic.  In this example, the values format is `DELIMITED`.
 
-Note that the above statements require the kafka topic that you define stream or table already
-exists in your kafka cluster.
-
-Now that we have the 'pageviews_original' stream and 'users_original' table, let's see some
-example queries that you can write in KSQL. We focus on two types of KSQL statements, CREATE
-STREAM AS SELECT and CREATE TABLE AS SELECT. For these statements KSQL
-persists the results of the query in a new stream or table which is backed by a Kafka topic.
-Consider the following examples.
-
-### Stream transformation
-Let's say we want to create a new stream by transforming 'pageviews_original' in the following way:
-- We want to add a new column that shows the timestamp in human readable string format.
-- We want to have 'userid' column to be the key for the resulted stream.
-- We want the kafka topic for the result stream have 5 partitions.
-- We want to have 'viewtime' column value as the message timestamp in kafka topic.
-- We want to have the results in JSON format.
-
-The following statement will generate a new stream, 'pageview_transformed' with the above
-properties:
+**Associating Kafka message keys:**
+The above statement does not make any assumptions about the Kafka message key in the underlying Kafka topic. However,
+if the value of the message key in Kafka is the same as one of the columns defined in the stream in KSQL, you can
+provide such information in the WITH clause.  For instance, if the Kafka message key has the same value as the `pageid`
+column, you can write the CREATE STREAM statement as follows:
 
 ```sql
-CREATE STREAM pageview_transformed                                             \
-WITH (partitions=5,                                                            \
-      timestamp='viewtime',                                                    \
-      value_format='JSON') AS                                                  \
-SELECT viewtime,                                                               \
-       userid,                                                                 \
-       pageid ,                                                                \
-       TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring    \
-FROM pageviews_original                                                        \
-PARTITION BY userid;
+CREATE STREAM pageviews \
+  (viewtime BIGINT, \
+   userid VARCHAR, \
+   pageid VARCHAR) \
+  WITH (kafka_topic='pageviews-topic', \
+        value_format='DELIMITED', \
+        key='pageid');
 ```
 
-### Stream-Table Join
-The following query creates a new stream by joining pageview_transformed stream with
-the users_original table:
+**Associating Kafka message timestamps:**
+If you want to use the value of one of the columns as the Kafka message timestamp, you can provide
+such information to KSQL in the WITH clause. The message timestamp is used in window-based
+operations in KSQL (such as windowed aggregations) and to support event-time based processing in KSQL.
+For instance, if you want to use the value of the `viewtime` column as the message timestamp, you can rewrite the above
+statement as follows:
 
 ```sql
-CREATE STREAM pageview_enriched AS \
-SELECT pv.viewtime,                \
-       pv.userid as userid,        \
-       pv.pageid ,                 \
-       pv.timestring,              \
-       u.gender,                   \
-       u.regionid,                 \
-       u.interests,                \
-       u.contactinfo               \
-FROM pageview_transformed pv       \
-     LEFT OUTER JOIN               \
-     users_original u              \
-     ON pv.userid = u.userid;
+CREATE STREAM pageviews \
+  (viewtime BIGINT, \
+   userid VARCHAR, \
+   pageid VARCHAR) \
+  WITH (kafka_topic='pageviews-topic', \
+        value_format='DELIMITED', \
+        key='pageid', \
+        timestamp='viewtime');
 ```
-Note that by default all the Kafka topic will be read from the current offset, however, in
-Stream-Table join, the table topic will be read from the beginning.
 
-### Window Aggregation
 
-Now let's assume we want to count the number of pageviews per region. Here is the query that
-would perform this count.
+## Creating tables
 
+> *Note: The following statements require that the corresponding Kafka topic already exists in your Kafka cluster.*
+
+Here's how you can create a table with several columns:
 
 ```sql
-CREATE TABLE pageview_per_region AS \
-SELECT regionid,                    \
-       count(*)                     \
-FROM pageview_enriched pv           \
-GROUP BY regionid;
+CREATE TABLE users \
+  (registertime BIGINT, \
+   gender VARCHAR, \
+   regionid VARCHAR, \
+   userid VARCHAR, \
+   interests array<VARCHAR>, \
+   contact_info map<VARCHAR, VARCHAR>) \
+  WITH (kafka_topic='users-topic', \
+        value_format='JSON');
 ```
 
-The above query counts the pageview from the query start time until we terminate the query. Note
+As you can see the above table has, next to columns with primitive data types, a column of `array` type and another
+column of `map` type.  We will look at working with arrays and maps later on.
+
+
+## Working with streams and tables
+
+Now that you have the `pageviews` stream and `users` table, take a look at some example queries that you can write
+in KSQL. The focus is on two types of KSQL statements: CREATE STREAM AS SELECT and CREATE TABLE AS SELECT. For these
+statements KSQL persists the results of the query in a new stream or table, which is backed by a Kafka topic.
+
+
+### Transforming
+
+For this example, imagine you want to create a new stream by transforming `pageviews` in the following way:
+
+- The `viewtime` column value is used as the Kafka message timestamp in the new stream's underlying Kafka topic.
+- The new stream's Kafka topic has 5 partitions.
+- The data in the new stream is in JSON format.
+- Add a new column that shows the message timestamp in human-readable string format.
+- The `userid` column is the key for the new stream.
+
+The following statement will generate a new stream, `pageviews_transformed` with the above properties:
+
+```sql
+CREATE STREAM pageviews_transformed \
+  WITH (timestamp='viewtime', \
+        partitions=5, \
+        value_format='JSON') AS \
+  SELECT viewtime, \
+         userid, \
+         pageid, \
+         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
+  FROM pageviews \
+  PARTITION BY userid;
+```
+
+
+### Joining
+
+The following query creates a new stream by joining the `pageviews_transformed` stream with
+the `users` table:
+
+```sql
+CREATE STREAM pageviews_enriched AS \
+  SELECT pv.viewtime, \
+         pv.userid AS userid, \
+         pv.pageid, \
+         pv.timestring, \
+         u.gender, \
+         u.regionid, \
+         u.interests, \
+         u.contact_info \
+  FROM pageviews_transformed pv \
+  LEFT JOIN users u ON pv.userid = users.userid;
+```
+
+Note that by default all the Kafka topics will be read from the current offset (aka the latest available data);
+however, in a stream-table join, the table topic will be read from the beginning.
+
+
+<a name="aggregating"></a>
+### Aggregating, windowing, and sessionization
+
+Now assume that you want to count the number of pageviews per region.  Here is the query that would perform this count:
+
+```sql
+CREATE TABLE pageviews_per_region AS \
+  SELECT regionid, \
+         count(*) \
+  FROM pageviews_enriched \
+  GROUP BY regionid;
+```
+
+The above query counts the pageviews from the time you start the query until you terminate the query. Note
 that we used CREATE TABLE AS SELECT statement here since the result of the query is a KSQL table.
- The results of aggregate queries in KSQL are always a table since we compute the aggregate for
- each key, and possibly window and update these results as we process new tuples.
+The results of aggregate queries in KSQL are always a table because it computes the aggregate for
+each key (and possibly for each window per key) and *updates* these results as it processes new input data.
+
 KSQL supports aggregation over WINDOW too. Let's rewrite the above query so that we compute the
-pageview count per region every 1 minute.
+pageview count per region every 1 minute:
 
 ```sql
-CREATE TABLE pageview_per_region_perminute AS \
-SELECT regionid,                              \
-       count(*)                               \
-FROM pageview_enriched pv                     \
-     WINDOW TUMBLING (SIZE 1 MINUTE)          \
-GROUP BY regionid;
+CREATE TABLE pageviews_per_region_per_minute AS \
+  SELECT regionid, \
+         count(*) \
+  FROM pageviews_enriched \
+  WINDOW TUMBLING (SIZE 1 MINUTE) \
+  GROUP BY regionid;
 ```
 
-If we want to count the pageviews for only Region_6 from the female users for every 30 seconds we
- can change the above query as the following:
+If you want to count the pageviews for only "Region_6" by female users for every 30 seconds,
+you can change the above query as the following:
 
- ```sql
-CREATE TABLE pageview_per_region_per30sec AS \
-SELECT regionid,                             \
-       count(*)                              \
-FROM pageview_enriched pv                    \
-     WINDOW TUMBLING (SIZE 30 SECONDS)       \
-WHERE UCASE(gender)='FEMALE'                 \
-  AND LCASE(regionid)='Region_6'             \
-GROUP BY regionid;
+```sql
+CREATE TABLE pageviews_per_region_per_30secs AS \
+  SELECT regionid, \
+         count(*) \
+  FROM pageviews_enriched \
+  WINDOW TUMBLING (SIZE 30 SECONDS) \
+  WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6' \
+  GROUP BY regionid;
 ```
 
 As you can see we used UCASE and LCASE functions in KSQL to convert the values of gender and
-regionid columns to upper and lower case respectively so we can match them correctly.
+regionid columns to upper and lower case, respectively, so you can match them correctly.
 
-KSQL supports HOPPING and SESSION windows too. The following query is the same query as above
+KSQL supports HOPPING windows and SESSION windows too. The following query is the same query as above
 that computes the count for hopping window of 30 seconds that advances by 10 seconds:
 
- ```sql
-CREATE TABLE pageview_per_region_per30sec AS            \
-SELECT regionid,                                        \
-       count(*)                                         \
-FROM pageview_enriched pv                               \
-WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-WHERE UCASE(gender)='FEMALE'                            \
-  AND LCASE(regionid)='region_6'                        \
-GROUP BY regionid;
- ```
+```sql
+CREATE TABLE pageviews_per_region_per_30secs10secs AS \
+  SELECT regionid, \
+         count(*) \
+  FROM pageviews_enriched \
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid)='region_6' \
+  GROUP BY regionid;
+```
 
-The following queries show how to access array items and map values in KSQL. The 'interest'
-column in the user table is an array of string that represents the
- interest of each user. The contactinfo column is a string to string map that represents the
- following contact information for each user: phone, city, state and zipcode.  The following
- query will create a new stream from pageview_enriched that includes the first interrest of each
- user along with the city and zipcode for each user.
+The next statement counts the number of pageviews per region for session windows with a session inactivity gap of 60
+seconds.  In other words, you are *sessionizing* the input data and then perform the counting/aggregation step per
+region.
 
- ```sql
-CREATE STREAM pageview_interest_contact AS \
-SELECT interests[0] as firstinterest,      \
-       contactinfo['zipcode'] AS zipcode,  \
-       contactinfo['city'] AS city,        \
-       viewtime,                           \
-       userid,                             \
-       pageid,                             \
-       timestring,                         \
-       gender,                             \
-       regionid                            \
-FROM pageview_enriched;
+```sql
+CREATE TABLE pageviews_per_region_per_session AS \
+  SELECT regionid, \
+         count(*) \
+  FROM pageviews_enriched \
+  WINDOW SESSION (60 SECONDS) \
+  GROUP BY regionid;
+```
 
-  ```
-We can use the newly created pageview_interest_contact stream and count the number of pageview
-from each city for window sessions with session inactivity gap of 60 seconds.
 
- ```sql
-CREATE TABLE pageview_count_city_session AS \
-SELECT city,                                \
-       count(*)                             \
-FROM pageview_interest_contact              \
-     WINDOW SESSION (60 SECONDS)            \
-GROUP BY city;
-  ```
+### Working with arrays and maps
 
-### SET session properties
-Using SET statement you can set different config properties for your queries. You can set streams
- config properties along with properties for Kafka consumer and producer.
+The `interests` column in the `users` table is an `array` of strings that represents the interest of each user. The `contact_info` column is a string-to-string `map` that represents the following
+contact information for each user: phone, city, state, and zipcode.
 
-  ```sql
-    SET '<property-name>'='<property-value>';
+The following query will create a new stream from `pageviews_enriched` that includes the first interest of each
+user along with the city and zipcode for each user:
 
-   ```
-Note that both property name and property value should be enclosed in single quote.
-A property that is set using the SET statement will remain the same for the rest of the session
+```sql
+CREATE STREAM pageviews_interest_contact AS \
+  SELECT interests[0] AS first_interest, \
+         contact_info['zipcode'] AS zipcode, \
+         contact_info['city'] AS city, \
+         viewtime, \
+         userid, \
+         pageid, \
+         timestring, \
+         gender, \
+         regionid \
+  FROM pageviews_enriched;
+```
+
+
+## Configuring KSQL
+
+You can set config properties for KSQL and your queries with the SET statement.  This includes configuring settings
+relating to Kafka's Streams API as well as settings for Kafka's producer and consumer clients.
+
+```sql
+SET '<property-name>'='<property-value>';
+```
+
+Both property name and property value should be enclosed in single quotes.
+A property that is set using the SET statement will remain in effect for the remainder of the KSQL CLI session
 until you issue another SET statement to change it.
-Here are some of the common config properties that you could change from their default values
-using SET statement:
 
-- auto.offset.reset: The default value in KSQL is latest meaning all the Kafka topics will be read
-from the current offset. You can change
- it using the following
-statement:
+Here are some of the common config properties that you might want to change from their default values:
 
-```sql
-SET 'auto.offset.reset'='earliest';
+- `auto.offset.reset`: The default value in KSQL is `latest` meaning all the Kafka topics will be read
+  from the current offset (aka latest available data). You can change it using the following statement:
 
-```
-- commit.interval.ms: The default value is 2000. Here is an example to change the value to 5000.
+    ```sql
+    SET 'auto.offset.reset'='earliest';
+    ```
 
-```sql
-SET 'commit.interval.ms'='5000';
+- `commit.interval.ms`: The default value is `2000`. Here is an example to change the value to `5000`:
 
-```
-- cache.max.bytes.buffering: The default value is 10485760 (10 MB).
+    ```sql
+    SET 'commit.interval.ms'='5000';
+    ```
+
+- `cache.max.bytes.buffering`: The default value is `10485760` (10 MB);

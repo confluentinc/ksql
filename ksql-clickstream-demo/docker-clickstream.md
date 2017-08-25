@@ -70,7 +70,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
     ```
-    ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    $ ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -84,7 +84,7 @@ These steps will guide you through how to setup your environment and run the cli
     **Tip:** Because of shell redirection, the previous command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```
-    ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+    $ ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -100,7 +100,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```
-    ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    $ ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -276,13 +276,13 @@ These steps will guide you through how to setup your environment and run the cli
 	1.  From your terminal, navigate to the demo directory:
 
 		```bash
-		cd /usr/share/doc/ksql-clickstream-demo/
+		$ cd /usr/share/doc/ksql-clickstream-demo/
 		```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
 
 		```bash
-		./ksql-tables-to-grafana.sh
+		$ ./ksql-tables-to-grafana.sh
 		```
 
         Your output should resemble:
@@ -305,7 +305,7 @@ These steps will guide you through how to setup your environment and run the cli
     1.  From your terminal, load the dashboard into Grafana.
 
     	```bash
-		./clickstream-analysis-dashboard.sh
+		$ ./clickstream-analysis-dashboard.sh
 	    ```
 
 	    Your output should resemble:

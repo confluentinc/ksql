@@ -1,6 +1,6 @@
 # Quick Start
 
-| [Overview](/docs/) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs#ksql-documentation) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 Welcome to the quick start for KSQL!
@@ -241,4 +241,4 @@ confluent stop
 ```
 
 ## Next steps
-Try the end-to-end [Clickstream Analysis demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.
+Try the end-to-end [Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis), which shows how to build an application that performs real-time user analytics.

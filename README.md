@@ -10,7 +10,7 @@ Click here to watch the KSQL [demo](/ksql-clickstream-demo#clickstream-analysis)
 If you are ready to see the power of KSQL, try out these:
 
 - [KSQL Quick Start](/docs/quickstart#quick-start): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-- [Clickstream Analysis Demo](/ksql-clickstream-demo#clickstream-analysis); Shows how to build an application that performs real-time user analytics.
+- [Clickstream Analysis Demo](/ksql-clickstream-demo#clickstream-analysis): Shows how to build an application that performs real-time user analytics.
 
 # Documentation
 You can [find the KSQL documentation here](/docs#ksql-documentation).

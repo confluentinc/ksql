@@ -1,6 +1,6 @@
 # Examples
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 **Table of Contents**
@@ -228,8 +228,7 @@ CREATE TABLE pageviews_per_region_per_session AS \
 
 ### Working with arrays and maps
 
-The `interests` column in the `users` table is an `array` of strings with size two that represents the first
-and second interest of each user. The `contact_info` column is a string-to-string `map` that represents the following
+The `interests` column in the `users` table is an `array` of strings that represents the interest of each user. The `contact_info` column is a string-to-string `map` that represents the following
 contact information for each user: phone, city, state, and zipcode.
 
 The following query will create a new stream from `pageviews_enriched` that includes the first interest of each

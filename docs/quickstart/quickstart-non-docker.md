@@ -1,13 +1,13 @@
 # Non-Docker Setup for KSQL
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start) and use KSQL to query the Kafka cluster.
 
 **Table of Contents**
 
-- [Start a Kafka cluster](#start-a-kafka-cluster) 
+- [Start Kafka](#start-kafka) 
 - [Start KSQL](#start-ksql) 
 - [Produce topic data](#produce-topic-data) 
 
@@ -24,7 +24,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 Navigate to the `confluent-3.3.0` directory and start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on `localhost:2181`, Kafka broker is listening on `localhost:9092`, and Confluent Schema Registry is listening on `localhost:8081`.
 
 ```bash
-./bin/confluent start
+$ ./bin/confluent start
 ```
 
 Your output should resemble this.
@@ -47,20 +47,20 @@ connect is [UP]
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone git@github.com:confluentinc/ksql.git
+    $ git clone git@github.com:confluentinc/ksql.git
     ```
 
 1.  Change directory to the `ksql` directory and compile the code.
 
     ```bash
-    cd ksql
-    mvn clean compile install -DskipTests
+    $ cd ksql
+    $ mvn clean compile install -DskipTests
     ```
 
 1.  Start KSQL. The `local` argument starts the KSQL engine locally.
 
     ```bash
-    ./bin/ksql-cli local
+    $ ./bin/ksql-cli local
     ```
 
     After KSQL is started, your terminal should resemble this.
@@ -77,15 +77,15 @@ Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
     ```bash
-    java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar
-    quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
+    $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar \
+        quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
     ```
 
 1.  Produce Kafka data to the `users` topic using the data generator. The following example continuously generates data with a value in JSON format.
 
     ```bash
-    java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar quickstart=users
-    format=json topic=users maxInterval=10000
+    $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar \
+        quickstart=users format=json topic=users maxInterval=10000
     ```
 
 Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the command line tools.
@@ -93,7 +93,10 @@ Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#
 1.  You can produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
 
     ```bash
-    kafka-console-producer --topic t1 --broker-list localhost:9092  --property parse.key=true --property key.separator=:
+    $ kafka-console-producer --broker-list localhost:9092  \
+                             --topic t1 \
+                             --property parse.key=true \
+                             --property key.separator=:
     ```
 
     Your output should resemble this.
@@ -108,7 +111,10 @@ Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#
 1.  This example generates data with a value in JSON format.
 
     ```bash
-    kafka-console-producer --topic t2 --broker-list localhost:9092  --property parse.key=true --property key.separator=:
+    $ kafka-console-producer --broker-list localhost:9092 \
+                             --topic t2 \
+                             --property parse.key=true \
+                             --property key.separator=:
     ```
 
     Your output should resemble this.

@@ -1,12 +1,12 @@
 # Roadmap
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | Roadmap | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | Roadmap | 
 |---|----|-----|----|----|----|----|----|
 
 * Improved quality, stability, and operations: We will continue to focus on refining the overall experience of working with KSQL. As such this will involve streamlining processes, further expand our testing efforts and improving visibility and feedback mechanisms.
 
 
-* Support for ‘point-in-time’ SELECT. This feature will introduce the ability to retrieve a snapshot of the current state of a Table. In doing so making it possible to retrieve data snapshots at various times throughout the day. This would support the need for audits, adhoc requests, reference tables and other use-cases.
+* Support for ‘point-in-time’ SELECT. This feature will introduce the ability to retrieve a snapshot of the current state of a Table. In doing so making it possible to retrieve data snapshots at various times throughout the day. This would support the need for audits, ad hoc requests, reference tables and other use-cases.
 
 
 * Support INSERT into STREAM. Inserting data directly into Streams will continue to lower the barrier to entry and complete the data-in, data-out semantics.

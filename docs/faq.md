@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 
@@ -49,3 +49,31 @@ _Support for Apache Avro is expected soon._
 **Is KSQL fully compliant to ANSI SQL?**
 
 KSQL is a dialect inspired by ANSI SQL. It has some differences because it is geared at processing streaming data. For example, ANSI SQL has no notion of “windowing” for use cases such as performing aggregations on data grouped into 5-minute windows, which is a commonly required functionality in the streaming world.
+
+**How do I shutdown a KSQL environment?**
+
+-  To stop DataGen tasks that were started with the `-daemon` flag.
+
+   ```
+   % jps | grep DataGen
+   25379 DataGen
+   % kill 25379
+   ```
+
+-  Exit KSQL.
+
+   ```
+   ksql> exit
+   ```
+
+-  Stop confluent platform.
+
+   ```
+   % confluent stop
+   ```
+
+-  To remove all data, topics and streams by shutting down all processes.
+
+   ```
+   % confluent destroy
+   ```

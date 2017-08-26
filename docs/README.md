@@ -1,6 +1,6 @@
 # KSQL Documentation
 
-| [Overview](/docs/) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | [Demo](/ksql-clickstream-demo/) |
+| Overview |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
 |---|----|-----|----|----|----|----|----|
 
 > *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
@@ -22,11 +22,11 @@ KSQL lowers the barriers for using real-time data in your applications. It is po
 
 ## Modes of operation
 
-You can use KSQL in standalone, client-server, application, and embedded modes. See [Concepts](concepts.md) for more information.
+You can use KSQL in standalone, client-server, application, and embedded modes. See [Concepts](/docs/concepts.md#concepts) for more information.
 
 ## Getting Started
 
-* Beginners: Try the [interactive quick start](/docs/quickstart/). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-* Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo).
+* Beginners: Try the [interactive quick start](/docs/quickstart#quick-start). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
+* Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis).
 
 

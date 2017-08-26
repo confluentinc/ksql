@@ -72,7 +72,7 @@ connect is [UP]
 See the steps below to generate data to the Kafka cluster.
 
 ## Produce topic data
-Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
+Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps in your terminal to produce data to the Kafka topics `pageviews` and `users`. 
 
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
@@ -97,11 +97,6 @@ Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#
                              --topic t1 \
                              --property parse.key=true \
                              --property key.separator=:
-    ```
-
-    Your output should resemble this.
-
-    ```bash
     key1:v1,v2,v3
     key2:v4,v5,v6
     key3:v7,v8,v9
@@ -115,11 +110,6 @@ Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#
                              --topic t2 \
                              --property parse.key=true \
                              --property key.separator=:
-    ```
-
-    Your output should resemble this.
-
-    ```bash
     key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
     key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
     key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}

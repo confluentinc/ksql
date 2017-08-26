@@ -230,14 +230,14 @@ If you are running Docker Compose, you must explicitly shut down Docker Compose.
 **Important:** This command will delete all KSQL queries and topic data.
 
 ```
-docker-compose down
+$ docker-compose down
 ```
 
 ### Confluent Platform
 If you are running the Confluent Platform, you can stop it with this command. 
 
 ```
-confluent stop
+$ confluent stop
 ```
 
 ## Next steps

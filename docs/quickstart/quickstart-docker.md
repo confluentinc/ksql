@@ -23,14 +23,14 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    git clone git@github.com:confluentinc/ksql.git
+    $ git clone git@github.com:confluentinc/ksql.git
     ```
 
 2.  Change directory to the quickstart and launch the KSQL quick start in Docker.
 
     ```bash
-    cd ksql/docs/quickstart/
-    docker-compose up -d
+    $ cd ksql/docs/quickstart/
+    $ docker-compose up -d
     ```
 
 Proceed to [starting KSQL](#start-ksql).
@@ -41,7 +41,7 @@ Proceed to [starting KSQL](#start-ksql).
 1.  From the host machine, start KSQL CLI on the container.
 
     ```bash
-    docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
+    $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
     ```
 
 2.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.
@@ -60,7 +60,7 @@ However, if you want to produce additional data, you can use any of the followin
 -   Produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
 
     ```bash
-    docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+    $ docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
     ```
 
     Your data input should resemble this.
@@ -75,7 +75,7 @@ However, if you want to produce additional data, you can use any of the followin
 -   Produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in JSON format.
 
     ```bash
-    docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+    $ docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
     ```
 
     Your data input should resemble this.
@@ -95,7 +95,7 @@ The next three steps are optional verification steps to ensure your environment 
 1. Verify that six Docker containers were created.
 
    ```bash
-   docker-compose ps
+   $ docker-compose ps
    ```
 
    Your output should resemble this. Take note of the `Up` state.
@@ -114,7 +114,7 @@ The next three steps are optional verification steps to ensure your environment 
 2. The docker-compose file already runs a data generator that pre-populates two Kafka topics `pageviews` and `users` with mock data. Verify that the data generator created two Kafka topics, including `pageviews` and `users`.
 
    ```bash
-   docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+   $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
    ```
 
    Your output should resemble this.
@@ -129,7 +129,7 @@ The next three steps are optional verification steps to ensure your environment 
 3. Use the `kafka-console-consumer` to view a few messages from each topic. The topic `pageviews` has a key that is a mock time stamp and a value that is in `DELIMITED` format. The topic `users` has a key that is the user ID and a value that is in `Json` format.
 
    ```bash
-   docker-compose exec kafka kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   $ docker-compose exec kafka kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
    ```
 
    Your output should resemble this.
@@ -141,7 +141,7 @@ The next three steps are optional verification steps to ensure your environment 
    ```
 
    ```bash
-   docker-compose exec kafka kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+   $ docker-compose exec kafka kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
    ```
 
    Your output should resemble this.

@@ -2,7 +2,7 @@
 
 > *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
 
-KSQL lowers the entry bar to the world of stream processing by providing you with a simple and completely interactive SQL interface with which you can process your data in Kafka most easily.  No longer do you need to write code in a programming language such as Java or Python! KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time.  It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
+KSQL is an open source streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
 Click here to watch the KSQL [demo](/ksql-clickstream-demo#clickstream-analysis).
 

@@ -18,7 +18,7 @@ You can [find the KSQL documentation here](/docs#ksql-documentation).
 # Join the Community
 Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).
 
-* Ask a question in the #ksql channel in our public [Confluent Community Slack](https://confluent.typeform.com/to/GxTHUD). Account registration is free and self-service.
+* Ask a question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity). Account registration is free and self-service.
 * Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 # Contributing

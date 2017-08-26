@@ -241,4 +241,4 @@ confluent stop
 ```
 
 ## Next steps
-Try the end-to-end [Clickstream Analysis demo](/ksql-examples/examples/clickstream-analysis#clickstream-analysis), which shows how to build an application that performs real-time user analytics.
+Try the end-to-end [Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis), which shows how to build an application that performs real-time user analytics.

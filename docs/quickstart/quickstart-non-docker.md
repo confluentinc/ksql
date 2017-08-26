@@ -7,7 +7,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 **Table of Contents**
 
-- [Start a Kafka cluster](#start-a-kafka-cluster) 
+- [Start Kafka](#start-kafka) 
 - [Start KSQL](#start-ksql) 
 - [Produce topic data](#produce-topic-data) 
 

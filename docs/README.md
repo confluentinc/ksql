@@ -22,11 +22,11 @@ KSQL lowers the barriers for using real-time data in your applications. It is po
 
 ## Modes of operation
 
-You can use KSQL in standalone, client-server, application, and embedded modes. See [Concepts](concepts.md) for more information.
+You can use KSQL in standalone, client-server, application, and embedded modes. See [Concepts](/docs/concepts.md#concepts) for more information.
 
 ## Getting Started
 
-* Beginners: Try the [interactive quick start](/docs/quickstart/). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-* Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo).
+* Beginners: Try the [interactive quick start](/docs/quickstart#quick-start). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
+* Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis).
 
 

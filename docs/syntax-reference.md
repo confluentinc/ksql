@@ -9,7 +9,7 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 **Table of Contents**
 
 - [CLI-specific commands](#cli-specific-commands)
-- [KSQL statements](#ksql-commands)
+- [KSQL statements](#ksql-statements)
   - [Scalar functions](#scalar-functions)
   - [Aggregate functions](#aggregate-functions)
 

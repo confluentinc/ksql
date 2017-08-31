@@ -318,10 +318,11 @@ column_name LIKE pattern;
 ```
 
 LIKE operator is used for prefix or suffix matching. Currently we support '%' that represents
-zero or more charachters.
+zero or more characters.
 
 ```sql
-SELECT pageid, regionid from enrichedpv where regionid LIKE '%_8' AND gender LIKE '%MAIL%' AND
+SELECT pageid, regionid from enrichedpv where regionid LIKE '%_8'
+AND gender LIKE '%MAIL%' AND
 userid LIKE 'user_%';
 ```
 

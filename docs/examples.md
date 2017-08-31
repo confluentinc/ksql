@@ -196,8 +196,9 @@ CREATE TABLE pageviews_per_region_per_30secs AS \
   GROUP BY regionid;
 ```
 
-As you can see we used UCASE and LCASE functions in KSQL to convert the values of gender and
-regionid columns to upper and lower case, respectively, so you can match them correctly.
+UCASE and LCASE functions in KSQL are used to convert the values of gender and regionid columns to
+upper and lower case, so that you can match them correctly. KSQL also
+ supports LIKE operator for prefix, suffix and substring matching.
 
 KSQL supports HOPPING windows and SESSION windows too. The following query is the same query as above
 that computes the count for hopping window of 30 seconds that advances by 10 seconds:
@@ -208,7 +209,7 @@ CREATE TABLE pageviews_per_region_per_30secs10secs AS \
          count(*) \
   FROM pageviews_enriched \
   WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid)='region_6' \
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
   GROUP BY regionid;
 ```
 

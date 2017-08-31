@@ -309,6 +309,24 @@ into a VARCHAR type:
 SELECT pageid, CONCAT(CAST(count(*) AS VARCHAR), '__HI') from enrichedpv window tumbling (size 5 second) group by pageid;
 ```
 
+#### LIKE
+
+**Synopsis**
+
+```
+column_name LIKE pattern;
+```
+
+LIKE operator is used for prefix or suffix matching. Currently we support '%' that represents
+zero or more charachters.
+
+```sql
+SELECT pageid, regionid from enrichedpv where regionid LIKE '%_8' AND gender LIKE '%MAIL%' AND
+userid LIKE 'user_%';
+```
+
+
+
 ### SHOW | LIST TOPICS
 
 **Synopsis**

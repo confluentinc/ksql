@@ -185,7 +185,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       return;
     }
 
-    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
+    KsqlRestConfig restConfig = new KsqlRestConfig(cliOptions.getStandaloneProperties());
     KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart());
 
     log.info("Starting server");

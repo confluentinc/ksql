@@ -10,8 +10,8 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 
 - [CLI-specific commands](#cli-specific-commands)
 - [KSQL statements](#ksql-statements)
-  - [Scalar functions](#scalar-functions)
-  - [Aggregate functions](#aggregate-functions)
+- [Scalar functions](#scalar-functions)
+- [Aggregate functions](#aggregate-functions)
 
 
 # CLI-specific commands
@@ -447,7 +447,7 @@ Terminate a persistent query. Persistent queries run continuously until they are
 (To terminate a non-persistent query use `Ctrl-C` in the CLI.)
 
 
-## Scalar functions
+# Scalar functions
 
 | Function            | Example                                                 | Description                          |
 |---------------------|---------------------------------------------------------|--------------------------------------|
@@ -467,7 +467,7 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | UCASE               | `UCASE(col1)`                                           | Convert a string to uppercase        |
 
 
-## Aggregate functions
+# Aggregate functions
 
 | Function   | Example                   | Description                                            |
 |------------|---------------------------|--------------------------------------------------------|

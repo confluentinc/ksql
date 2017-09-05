@@ -200,9 +200,9 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
-| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
+If PARTITION BY clause is present the resulting stream will have the specified column as it's key.
 
 ### CREATE TABLE AS SELECT
 
@@ -232,7 +232,6 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
-| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 

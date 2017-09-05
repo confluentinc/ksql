@@ -21,7 +21,7 @@ import java.util.List;
 public class StringUtil {
 
   public static String cleanQuotes(final String stringWithQuotes) {
-    // TODO: move check to grammer
+    // TODO: move check to grammar
     if (stringWithQuotes.startsWith("'") && stringWithQuotes.endsWith("'")) {
       return stringWithQuotes.substring(1, stringWithQuotes.length() - 1);
     } else {

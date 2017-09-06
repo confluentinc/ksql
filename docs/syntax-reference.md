@@ -192,6 +192,8 @@ CREATE STREAM stream_name
 Create a new stream along with the corresponding Kafka topic, and continuously write the result of the SELECT query into
 the stream and its corresponding topic.
 
+If the PARTITION BY clause is present, then the resulting stream will have the specified column as its key.
+
 The WITH clause supports the following properties:
 
 | Property                | Description                                                                                |
@@ -202,7 +204,8 @@ The WITH clause supports the following properties:
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
-If PARTITION BY clause is present the resulting stream will have the specified column as it's key.
+Note: The `KEY` property is not supported -- use PARTITION BY instead.
+
 
 ### CREATE TABLE AS SELECT
 

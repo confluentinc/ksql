@@ -36,7 +36,7 @@ KSQL is a good fit for identifying patterns or anomalies on real-time data. By p
 you can identify and properly surface out of the ordinary events with millisecond latency.
 
 ```sql
-CREATE STREAM possible_fraud AS
+CREATE TABLE possible_fraud AS
   SELECT card_number, count(*)
   FROM authorization_attempts
   WINDOW TUMBLING (SIZE 5 SECONDS)

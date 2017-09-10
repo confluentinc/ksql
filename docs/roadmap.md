@@ -12,7 +12,7 @@
 * Support INSERT into STREAM. Inserting data directly into Streams will continue to lower the barrier to entry and complete the data-in, data-out semantics.
 
 
-* Additional aggregate functions. We will continue to expand the set of analytics functions. If you have suggestions that you would like to see, please send them to the mailing list or create a [GitHub](https://github.com/confluentinc/ksql/issues).
+* Additional aggregate functions. We will continue to expand the set of analytics functions. If you have suggestions that you would like to see, please send them to the mailing list or create a [GitHub issue](https://github.com/confluentinc/ksql/issues).
 
 
 * Testing tools. Many data-platforms suffer from an inherent inability to test. With KSQL testing capability is a primary focus and we will provide frameworks to support continuous integration and unit test.

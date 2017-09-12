@@ -1,20 +1,20 @@
 # Non-Docker Setup for KSQL
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) |
 |---|----|-----|----|----|----|----|----|
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for non-Docker environments. After you complete these steps, you can return to the [main Quick Start](/docs/quickstart#quick-start) and use KSQL to query the Kafka cluster.
 
 **Table of Contents**
 
-- [Start Kafka](#start-kafka) 
-- [Start KSQL](#start-ksql) 
-- [Produce topic data](#produce-topic-data) 
+- [Start Kafka](#start-kafka)
+- [Start KSQL](#start-ksql)
+- [Produce topic data](#produce-topic-data)
 
 **Prerequisites:**
 - KSQL is in developer preview. Do not run KSQL against a production cluster.
 - [Confluent Platform 3.3.0](http://docs.confluent.io/current/installation.html) is installed. This installation includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
-  - If you installed Confluent Platform via tar or zip, navigate into the installation directory. The paths and commands used throughout this quick start assume that your are in this installation directory. 
+  - If you installed Confluent Platform via tar or zip, navigate into the installation directory. The paths and commands used throughout this quick start assume that your are in this installation directory.
 - [Maven](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/downloads)
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK \>= 1.8 on your local machine
@@ -72,7 +72,7 @@ connect is [UP]
 See the steps below to generate data to the Kafka cluster.
 
 ## Produce topic data
-Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`. 
+Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you must run the following steps to produce data to the Kafka topics `pageviews` and `users`.
 
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 

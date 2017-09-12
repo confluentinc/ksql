@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) |
 |---|----|-----|----|----|----|----|----|
 
 
@@ -52,12 +52,13 @@ KSQL is a dialect inspired by ANSI SQL. It has some differences because it is ge
 
 **How do I shutdown a KSQL environment?**
 
--  To stop DataGen tasks that were started with the `-daemon` flag.
+-  To stop DataGen tasks that were started with the `-daemon` flag
+   (cf. [Demo](/ksql-clickstream-demo#clickstream-analysis)).
 
    ```
-   % jps | grep DataGen
+   $ jps | grep DataGen
    25379 DataGen
-   % kill 25379
+   $ kill 25379
    ```
 
 -  Exit KSQL.
@@ -66,14 +67,14 @@ KSQL is a dialect inspired by ANSI SQL. It has some differences because it is ge
    ksql> exit
    ```
 
--  Stop confluent platform.
+-  Stop Confluent Platform by shutting down all services including Kafka.
 
    ```
-   % confluent stop
+   $ confluent stop
    ```
 
--  To remove all data, topics and streams by shutting down all processes.
+-  To remove all data, topics, and streams:
 
    ```
-   % confluent destroy
+   $ confluent destroy
    ```

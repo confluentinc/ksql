@@ -1,6 +1,6 @@
 # Syntax Reference
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) |
+| [Overview](/docs#ksql-documentation) | [Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) |
 |---|----|-----|----|----|----|----|----|
 
 
@@ -12,6 +12,7 @@ The KSQL CLI provides a terminal-based interactive shell for running queries.
 - [KSQL statements](#ksql-statements)
 - [Scalar functions](#scalar-functions)
 - [Aggregate functions](#aggregate-functions)
+- [Configuring KSQL](#configuring-ksql)
 
 
 # CLI-specific commands
@@ -428,6 +429,19 @@ SHOW QUERIES;
 List the running persistent queries.
 
 
+### SHOW PROPERTIES
+
+**Synopsis**
+
+```sql
+SHOW PROPERTIES;
+```
+
+**Description**
+
+List the [configuration settings](#configuring-ksql) that are currently in effect.
+
+
 ### TERMINATE
 
 **Synopsis**
@@ -477,3 +491,47 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | MAX        | `MAX(col1)`               | Return the maximum value for a given column and window |
 | MIN        | `MIN(col1)`               | Return the minimum value for a given column and window |
 | SUM        | `SUM(col1)`               | Sums the column values                                 |
+
+
+# Configuring KSQL
+
+You can set configuration properties for KSQL and your queries with the SET statement.  This includes
+[settings for Kafka's Streams API](https://kafka.apache.org/documentation/#streamsconfigs)
+(e.g., `cache.max.bytes.buffering`) as well as
+settings for Kafka's [producer client](https://kafka.apache.org/documentation/#producerconfigs) and
+[consumer client](https://kafka.apache.org/documentation/#newconsumerconfigs) (e.g., `auto.offset.reset`).
+
+```sql
+SET '<property-name>'='<property-value>';
+```
+
+Examples:
+
+```
+ksql> SET 'auto.offset.reset'='earliest';
+ksql> SET 'commit.interval.ms'='5000';
+```
+
+Both property name and property value should be enclosed in single quotes.
+
+Once a property has been set, it will remain in effect for the remainder of the KSQL CLI session until you issue another
+SET statement to change it.
+
+You can also use a *properties file* instead of the SET statement.  The syntax of properties files follow Java
+conventions, which are slightly different to the syntax of the SET statement above.
+
+```bash
+# Show the example contents of a properties file
+$ cat ksql.properties
+auto.offset.reset=earliest
+
+# Start KSQL in standalone mode with the custom properties above
+$ ksql-cli local --properties-file ./ksql.properties
+
+# Start a KSQL server node (for client-server mode) with the custom properties above
+$ ksql-server-start --properties-file ./ksql.properties
+```
+
+Note: Be careful when you are using KSQL in Docker because the properties file must be available inside the Docker
+container.  If you don't want to customize your Docker setup so that it contains an appropriate properties file, you
+should not use a properties file but the SET statement.

@@ -514,6 +514,8 @@ ksql> SET 'commit.interval.ms'='5000';
 
 Both property name and property value should be enclosed in single quotes.
 
+> Tip: `SHOW PROPERTIES` shows the current settings.
+
 Once a property has been set, it will remain in effect for the remainder of the KSQL CLI session until you issue another
 SET statement to change it.
 

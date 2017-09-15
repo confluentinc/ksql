@@ -591,10 +591,10 @@ public final class SqlFormatterQueryRewrite {
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
         Joiner.on(", ").appendTo(builder,
-                      transform(node.getProperties().entrySet(),
-                                         entry -> entry.getKey() + " = "
-                                                  + ExpressionFormatterQueryRewrite
-                                                      .formatExpression(entry.getValue())));
+                      transform(node.getProperties().entrySet(), entry -> entry.getKey()
+                              + " = "
+                              + ExpressionFormatterQueryRewrite
+                              .formatExpression(entry.getValue())));
         builder.append(")");
       }
 

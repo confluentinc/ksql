@@ -156,7 +156,7 @@ public class CommandStore implements Closeable {
           for (ConsumerRecord<CommandId, Command> record : records) {
             result.add(record);
             TopicPartition recordTopicPartition =
-                new TopicPartition(record.topic(), record.partition());
+                    new TopicPartition(record.topic(), record.partition());
             Long currentOffset = currentOffsets.get(recordTopicPartition);
             if (currentOffset == null || currentOffset < record.offset()) {
               currentOffsets.put(recordTopicPartition, record.offset());

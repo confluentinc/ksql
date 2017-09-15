@@ -53,14 +53,13 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   }
 
   public JLineReader(Terminal terminal) {
-    Expander expander = new NoOpExpander();
-
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
     parser.setEscapeChars(new char[] {'\\'});
 
+    final Expander expander = new NoOpExpander();
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
     this.lineReader = LineReaderBuilder.builder()
         .appName("KSQL")

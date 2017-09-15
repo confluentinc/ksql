@@ -65,7 +65,7 @@ The CLI then connects to these remote KSQL servers over HTTP.
 
 ![Client-server mode](/docs/img/client-server.png)
 
-Here's an overview of running KSQL in client-server mode:
+To run KSQL in client-server mode:
 
 - Start any number of server nodes:
     -  Start with default settings:

@@ -62,9 +62,9 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
 
     this.streamsException = new AtomicReference<>(null);
-    this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
 
-    queryMetadata.getKafkaStreams().start();
+    this.queryMetadata.start();
   }
 
   @Override
@@ -128,8 +128,7 @@ class QueryStreamWriter implements StreamingOutput {
       }
 
     } finally {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.closeAndCleanUp(100L, TimeUnit.MILLISECONDS);
     }
   }
 

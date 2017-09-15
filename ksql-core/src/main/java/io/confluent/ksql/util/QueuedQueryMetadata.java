@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metrics.KsqlMetrics;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
@@ -28,17 +29,22 @@ import java.util.concurrent.SynchronousQueue;
 public class QueuedQueryMetadata extends QueryMetadata {
 
   private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final long id;
 
   public QueuedQueryMetadata(
       String statementString,
       KafkaStreams kafkaStreams,
       OutputNode outputNode,
       String executionPlan,
+      long id,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
-      DataSource.DataSourceType dataSourceType
+      DataSource.DataSourceType dataSourceType,
+      KsqlMetrics ksqlMetrics
   ) {
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType);
+    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType, ksqlMetrics,
+        "QueuedQuery-" + id);
     this.rowQueue = rowQueue;
+    this.id = id;
   }
 
   public SynchronousQueue<KeyValue<String, GenericRow>> getRowQueue() {

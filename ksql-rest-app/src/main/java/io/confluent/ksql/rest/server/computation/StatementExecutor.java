@@ -189,7 +189,7 @@ public class StatementExecutor {
 
   /**
    * Attempt to execute a single statement.
-//   * @param statementString The string containing the statement to be executed
+   //   * @param statementString The string containing the statement to be executed
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
    * @param terminatedQueries An optional map from terminated query IDs to the commands that
@@ -284,11 +284,11 @@ public class StatementExecutor {
         String queries =
             (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
         List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
-                                            command.getStreamsProperties());
+            command.getStreamsProperties());
         for (QueryMetadata queryMetadata : queryMetadataList) {
           if (queryMetadata instanceof PersistentQueryMetadata) {
             PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-            persistentQueryMetadata.getKafkaStreams().start();
+            persistentQueryMetadata.start();
           }
         }
       } else {
@@ -348,7 +348,7 @@ public class StatementExecutor {
         ksqlEngine.terminateQuery(queryId, false);
         return false;
       } else {
-        persistentQueryMetadata.getKafkaStreams().start();
+        persistentQueryMetadata.start();
         return true;
       }
 

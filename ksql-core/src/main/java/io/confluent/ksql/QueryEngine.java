@@ -259,9 +259,11 @@ public class QueryEngine {
           streams,
           ksqlBareOutputNode,
           schemaKStream.getExecutionPlan(""),
+          getNextQueryId(),
           queuedSchemaKStream.getQueue(),
           (sourceSchemaKstream instanceof SchemaKTable)?
-          DataSource.DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM
+          DataSource.DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM,
+          ksqlEngine.getKsqlMetrics()
       ));
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
@@ -283,7 +285,8 @@ public class QueryEngine {
                                       streams, kafkaTopicOutputNode, schemaKStream
                                           .getExecutionPlan(""), queryId,
                                       (schemaKStream instanceof SchemaKTable)? DataSource
-                                          .DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM)
+                                          .DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM,
+                                      ksqlEngine.getKsqlMetrics())
       );
 
       MetaStore metaStore = ksqlEngine.getMetaStore();

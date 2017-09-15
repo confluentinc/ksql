@@ -53,7 +53,7 @@ Here's an overview of running KSQL in standalone mode:
 	-  Use with custom settings:
 
 	   ```bash
-	   $ ./bin/ksql-cli local --properties-file foo/bar/ksql.properties
+	   $ ./bin/ksql-cli local --properties-file path/to/ksql-cli.properties
 	   ```
 
 ## Client-server mode
@@ -73,7 +73,7 @@ Here's an overview of running KSQL in client-server mode:
 	-  Use with custom settings:
 
 	   ```bash
-	   $ ./bin/ksql-server-start --properties-file foo.properties
+	   $ ./bin/ksql-server-start --properties-file ksql-server.properties
 	   ```
 - Start any number of CLIs, specifying a server address as `remote` endpoint
 
@@ -98,12 +98,12 @@ Here's an overview of running KSQL in application mode:
 - Start an engine instance and pass a file of KSQL statements to run, for example:
 
   ```bash
-  $ ./bin/ksql-node --query-file=foo/bar.sql
+  $ ./bin/ksql-node --query-file=path/to/queries.sql
   ```
   or
 
   ```bash
-  $ ./bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
+  $ ./bin/ksql-node --properties-file ksql.properties --query-file=path/to/queries.sql
   ```
 - This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
 - All engines share the work, for example, instances of the same KSQL app. You can scale up or down without restarting.

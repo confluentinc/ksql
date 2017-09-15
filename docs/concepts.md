@@ -48,7 +48,7 @@ Here's an overview of running KSQL in standalone mode:
 
 	   ```bash
 	   $ ./bin/ksql-cli local
-	   ```	
+	   ```
 
 	-  Use with custom settings:
 
@@ -56,8 +56,11 @@ Here's an overview of running KSQL in standalone mode:
 	   $ ./bin/ksql-cli local --properties-file path/to/ksql-cli.properties
 	   ```
 
+
 ## Client-server mode
-In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers.  The CLI then connects to these remote KSQL servers over HTTP.
+
+In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers.
+The CLI then connects to these remote KSQL servers over HTTP.
 
 ![Client-server mode](/docs/img/client-server.png)
 
@@ -75,10 +78,10 @@ Here's an overview of running KSQL in client-server mode:
 	   ```bash
 	   $ ./bin/ksql-server-start --properties-file ksql-server.properties
 	   ```
-- Start any number of CLIs, specifying a server address as `remote` endpoint
+- Start any number of CLIs, specifying a KSQL server address as the `remote` endpoint:
 
   ```bash
-  $ ./bin/ksql-cli remote http://server:8090
+  $ ./bin/ksql-cli remote http://my-ksql-server:8090
   ```
 
 - All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them.

@@ -84,8 +84,8 @@ Here's an overview of running KSQL in client-server mode:
 - All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them.
     - To add processing capacity, start more KSQL servers (scale out).  You can do this during live operations.
     - To remove processing capacity, stop some of the running KSQL servers.  You can do this during live operations.
-      The remaining KSQL servers will take over the processing work of the stopped servers.  Make sure that at least
-      one KSQL server is running, otherwise your queries will not be executed any longer.
+      The remaining KSQL servers will automatically take over the processing work of the stopped servers.  Make sure
+      that at least one KSQL server is running, otherwise your queries will not be executed any longer.
 
 <!--
 ## Application mode

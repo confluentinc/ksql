@@ -36,25 +36,26 @@ A table is a view of a stream, or another table, and represents a collection of 
 # Modes of operation
 
 ## Standalone mode
-In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
+
+In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM,
+and are started together.  This make standalone mode very convenient for local development and testing.
 
 ![Standalone mode](/docs/img/standalone-mode.png)
 
-Here's an overview of running KSQL in standalone mode:
+To run KSQL in standalone mode:
 
-- Starts a CLI, an Engine, and a REST server all in the same JVM
-- Ideal for laptop development
-	-  Use with default settings:
+- Start the KSQL CLI and the server components all in the same JVM:
+    -  Start with default settings:
 
-	   ```bash
-	   $ ./bin/ksql-cli local
-	   ```
+        ```bash
+        $ ./bin/ksql-cli local
+        ```
 
-	-  Use with custom settings:
+    -  Start with custom settings:
 
-	   ```bash
-	   $ ./bin/ksql-cli local --properties-file path/to/ksql-cli.properties
-	   ```
+        ```bash
+        $ ./bin/ksql-cli local --properties-file path/to/ksql-cli.properties
+        ```
 
 
 ## Client-server mode
@@ -66,18 +67,18 @@ The CLI then connects to these remote KSQL servers over HTTP.
 
 Here's an overview of running KSQL in client-server mode:
 
-- Start any number of server nodes
-	-  Use with default settings:
+- Start any number of server nodes:
+    -  Start with default settings:
 
-	   ```bash
-	   $ ./bin/ksql-server-start
-	   ```
+        ```bash
+        $ ./bin/ksql-server-start
+        ```
 
-	-  Use with custom settings:
+    -  Start with custom settings:
 
-	   ```bash
-	   $ ./bin/ksql-server-start --properties-file ksql-server.properties
-	   ```
+        ```bash
+        $ ./bin/ksql-server-start --properties-file ksql-server.properties
+        ```
 - Start any number of CLIs, specifying a KSQL server address as the `remote` endpoint:
 
   ```bash

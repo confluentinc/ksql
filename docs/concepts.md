@@ -85,11 +85,11 @@ To run KSQL in client-server mode:
   $ ./bin/ksql-cli remote http://my-ksql-server:8090
   ```
 
-- All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them.
-    - To add processing capacity, start more KSQL servers (scale out).  You can do this during live operations.
-    - To remove processing capacity, stop some of the running KSQL servers.  You can do this during live operations.
-      The remaining KSQL servers will automatically take over the processing work of the stopped servers.  Make sure
-      that at least one KSQL server is running, otherwise your queries will not be executed any longer.
+All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them:
+- To add processing capacity, start more KSQL servers (scale out).  You can do this during live operations.
+- To remove processing capacity, stop some of the running KSQL servers.  You can do this during live operations.
+  The remaining KSQL servers will automatically take over the processing work of the stopped servers.  Make sure
+  that at least one KSQL server is running, otherwise your queries will not be executed any longer.
 
 <!--
 ## Application mode

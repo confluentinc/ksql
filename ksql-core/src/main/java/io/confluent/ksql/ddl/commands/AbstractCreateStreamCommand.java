@@ -53,12 +53,12 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
                                      Map<String, Object> overriddenProperties,
                                      KafkaTopicClient kafkaTopicClient) {
-    // TODO: get rid of toUpperCase in following code
-    Map<String, Expression> properties = statement.getProperties();
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;
 
+    // TODO: get rid of toUpperCase in following code
+    Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&

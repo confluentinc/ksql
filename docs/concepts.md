@@ -36,54 +36,62 @@ A table is a view of a stream, or another table, and represents a collection of 
 # Modes of operation
 
 ## Standalone mode
-In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM, and are started together which makes it convenient for local development and testing.
+
+In stand-alone mode, both the KSQL client and server components are co-located on the same machine, in the same JVM,
+and are started together.  This make standalone mode very convenient for local development and testing.
 
 ![Standalone mode](/docs/img/standalone-mode.png)
 
-Here's an overview of running KSQL in standalone mode:
+To run KSQL in standalone mode:
 
-- Starts a CLI, an Engine, and a REST server all in the same JVM
-- Ideal for laptop development
-	-  Use with default settings:
+- Start the KSQL CLI and the server components all in the same JVM:
+    -  Start with default settings:
 
-	   ```bash
-	   ./bin/ksql-cli local
-	   ```	
+        ```bash
+        $ ./bin/ksql-cli local
+        ```
 
-	-  Use with custom settings:
+    -  Start with custom settings:
 
-	   ```bash
-	   ./bin/ksql-cli local --properties-file foo/bar/ksql.properties
-	   ```
+        ```bash
+        $ ./bin/ksql-cli local --properties-file path/to/ksql-cli.properties
+        ```
+
 
 ## Client-server mode
-In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers and the CLI connects to them over HTTP.
+
+In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers.
+The CLI then connects to these remote KSQL servers over HTTP.
 
 ![Client-server mode](/docs/img/client-server.png)
 
-Here's an overview of running KSQL in client-server mode:
+To run KSQL in client-server mode:
 
-- Start any number of server nodes
-	-  Use with default settings:
+- Start any number of server nodes:
+    -  Start with default settings:
 
-	   ```bash
-	   ./bin/ksql-server-start
-	   ```	
+        ```bash
+        $ ./bin/ksql-server-start
+        ```
 
-	-  Use with custom settings:
+    -  Start with custom settings:
 
-	   ```bash
-	   ./bin/ksql-server-start --properties-file foo.properties
-	   ```
-- Start any number of CLIs, specifying a server address as `remote` endpoint
-  
+        ```bash
+        $ ./bin/ksql-server-start --properties-file ksql-server.properties
+        ```
+- Start any number of CLIs, specifying a KSQL server address as the `remote` endpoint:
+
   ```bash
-  ./bin/ksql-cli remote http://server:8090
+  $ ./bin/ksql-cli remote http://my-ksql-server:8090
   ```
 
-- All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
+All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them:
+- To add processing capacity, start more KSQL servers (scale out).  You can do this during live operations.
+- To remove processing capacity, stop some of the running KSQL servers.  You can do this during live operations.
+  The remaining KSQL servers will automatically take over the processing work of the stopped servers.  Make sure
+  that at least one KSQL server is running, otherwise your queries will not be executed any longer.
 
-<!-- 
+<!--
 ## Application mode
 In application mode, you can put your KSQL queries in a file and share across your Kafka Streams instances.
 
@@ -94,12 +102,12 @@ Here's an overview of running KSQL in application mode:
 - Start an engine instance and pass a file of KSQL statements to run, for example:
 
   ```bash
-  ./bin/ksql-node --query-file=foo/bar.sql
+  $ ./bin/ksql-node --query-file=path/to/queries.sql
   ```
   or
 
   ```bash
-  ./bin/ksql-node --properties-file ksql.properties --query-file=foo/bar.sql
+  $ ./bin/ksql-node --properties-file ksql.properties --query-file=path/to/queries.sql
   ```
 - This mode is ideal for streaming-ETL application deployment, for example, you can version-control your queries as code.
 - All engines share the work, for example, instances of the same KSQL app. You can scale up or down without restarting.

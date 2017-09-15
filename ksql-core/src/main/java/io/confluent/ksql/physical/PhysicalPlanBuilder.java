@@ -450,25 +450,16 @@ public class PhysicalPlanBuilder {
               builder
                   .stream(autoOffsetReset, Serdes.String(), genericRowSerde,
                       ksqlTable.getKsqlTopic().getKafkaTopicName())
-                  .map(new KeyValueMapper<String, GenericRow, KeyValue<String,
-                      GenericRow>>() {
-                    @Override
-                    public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-                      if (row != null) {
-                        row.getColumns().add(0, key);
+                  .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+                    if (row != null) {
+                      row.getColumns().add(0, key);
 
-                      }
-                      return new KeyValue<>(key, row);
                     }
+                    return new KeyValue<>(key, row);
                   });
           kstream = addTimestampColumn(kstream);
           ktable = kstream.groupByKey(Serdes.String(), genericRowSerdeAfterRead)
-                          .reduce(new Reducer<GenericRow>() {
-                            @Override
-                            public GenericRow apply(GenericRow aggValue, GenericRow newValue) {
-                              return newValue;
-                            }
-          }, ksqlTable.getStateStoreName());
+                  .reduce((Reducer<GenericRow>) (aggValue, newValue) -> newValue, ksqlTable.getStateStoreName());
         }
 
         return new SchemaKTable(sourceNode.getSchema(), ktable,
@@ -482,16 +473,12 @@ public class PhysicalPlanBuilder {
           builder
               .stream(Serdes.String(), genericRowSerde,
                   ksqlStream.getKsqlTopic().getKafkaTopicName())
-              .map(new KeyValueMapper<String, GenericRow, KeyValue<String,
-                  GenericRow>>() {
-                @Override
-                public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-                  if (row != null) {
-                    row.getColumns().add(0, key);
+              .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+                if (row != null) {
+                  row.getColumns().add(0, key);
 
-                  }
-                  return new KeyValue<>(key, row);
                 }
+                return new KeyValue<>(key, row);
               });
       kstream = addTimestampColumn(kstream);
       return new SchemaKStream(sourceNode.getSchema(), kstream,

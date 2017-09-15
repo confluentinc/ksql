@@ -406,7 +406,7 @@ public class KsqlEngine implements Closeable {
       for (QueryMetadata queryMetadata: liveQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().close(100l, TimeUnit.MILLISECONDS);
+          persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
           persistentQueryMetadata.getKafkaStreams().cleanUp();
         }
       }

@@ -236,12 +236,12 @@ public class QueryEngine {
     }
     String serviceId = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
-    String persistence_query_prefix = ksqlEngine.getKsqlConfig()
+    String persistenceQueryPrefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
-    String transient_query_prefix = ksqlEngine.getKsqlConfig()
+    String transientQueryPrefix = ksqlEngine.getKsqlConfig()
         .get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
     if (isBareQuery) {
-      String applicationId = getBareQueryApplicationId(serviceId, transient_query_prefix);
+      String applicationId = getBareQueryApplicationId(serviceId, transientQueryPrefix);
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);
       }
@@ -267,7 +267,7 @@ public class QueryEngine {
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
       long queryId = getNextQueryId();
 
-      String applicationId =  serviceId + persistence_query_prefix +
+      String applicationId =  serviceId + persistenceQueryPrefix +
                              queryId;
       if (addUniqueTimeSuffix) {
         applicationId = addTimeSuffix(applicationId);

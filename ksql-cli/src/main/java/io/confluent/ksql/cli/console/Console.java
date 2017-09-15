@@ -214,7 +214,7 @@ public abstract class Console implements Closeable {
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
           writer().println();      
-      }
+        }
         writer().println();
         writer().println("Keyboard shortcuts:");
         writer().println();

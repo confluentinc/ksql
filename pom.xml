@@ -15,13 +15,12 @@
     <packaging>pom</packaging>
     <version>4.0.0-SNAPSHOT</version>
     <modules>
-        <module>build-tools</module> <!-- Remove after build-tools artifact gets published from common -->
         <module>ksql-core</module>
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
     </modules>
-    
+
     <repositories>
         <repository>
             <id>confluent</id>
@@ -51,6 +50,14 @@
         <dockerfile-maven-plugin.version>1.3.4</dockerfile-maven-plugin.version>
         <generext.version>1.0.2</generext.version>
     </properties>
+
+    <!-- Temporarily needed for build-tools artifact until Confluent 3.3.1 is released. -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -200,13 +207,13 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-                
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <configuration>
-                        <failsOnError>false</failsOnError>
-                        <failOnViolation>false</failOnViolation>
+                        <failsOnError>true</failsOnError>
+                        <failOnViolation>true</failOnViolation>
                     </configuration>
                 </plugin>
 

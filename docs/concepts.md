@@ -57,7 +57,7 @@ Here's an overview of running KSQL in standalone mode:
 	   ```
 
 ## Client-server mode
-In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers and the CLI connects to them over HTTP.
+In client-server mode, you can run a pool of KSQL servers on remote machines, VMs, or containers.  The CLI then connects to these remote KSQL servers over HTTP.
 
 ![Client-server mode](/docs/img/client-server.png)
 
@@ -68,7 +68,7 @@ Here's an overview of running KSQL in client-server mode:
 
 	   ```bash
 	   ./bin/ksql-server-start
-	   ```	
+	   ```
 
 	-  Use with custom settings:
 
@@ -76,14 +76,18 @@ Here's an overview of running KSQL in client-server mode:
 	   ./bin/ksql-server-start --properties-file foo.properties
 	   ```
 - Start any number of CLIs, specifying a server address as `remote` endpoint
-  
+
   ```bash
   ./bin/ksql-cli remote http://server:8090
   ```
 
-- All engines share the work, for example, instances of the same KSQL apps. You can scale up or down without restarting.
+- All KSQL servers (and their engines) share the work of processing KSQL queries that are submitted to them.
+    - To add processing capacity, start more KSQL servers (scale out).  You can do this during live operations.
+    - To remove processing capacity, stop some of the running KSQL servers.  You can do this during live operations.
+      The remaining KSQL servers will take over the processing work of the stopped servers.  Make sure that at least
+      one KSQL server is running, otherwise your queries will not be executed any longer.
 
-<!-- 
+<!--
 ## Application mode
 In application mode, you can put your KSQL queries in a file and share across your Kafka Streams instances.
 

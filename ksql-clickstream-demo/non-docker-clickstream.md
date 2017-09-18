@@ -306,7 +306,7 @@ These steps will guide you through how to setup your environment and run the cli
     ![Grafana UI success](grafana-success.png)
 
 Interesting things to try:
-* Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElastiSearch/Connect topic  
+* Understand how the `clickstream-schema.sql` file is structured. We use a DataGen.KafkaTopic.clickstream -> Stream -> Table (for window & analytics with group-by) -> Table (to Add EVENT_TS for time-index) -> ElasticSearch/Connect topic  
 * Run the `LIST TOPICS;` command to see where data is persisted
 * Run the KSQL CLI `history` command
 

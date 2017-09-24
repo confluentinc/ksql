@@ -276,8 +276,7 @@ public class MetastoreUtil {
     addSchemas(stringBuilder, metaStore.getAllStructuredDataSources());
     stringBuilder.append("}");
 
-    try {
-      RandomAccessFile raf = new RandomAccessFile(filePath, "rw");
+    try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
       raf.writeBytes(stringBuilder.toString());
       raf.close();
     } catch (IOException e) {
@@ -301,8 +300,7 @@ public class MetastoreUtil {
 
   public void writeAvroSchemaFile(final String avroSchema, final String filePath) {
 
-    try {
-      RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw");
+    try (RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw")) {
       randomAccessFile.writeBytes(avroSchema);
       randomAccessFile.close();
     } catch (IOException e) {

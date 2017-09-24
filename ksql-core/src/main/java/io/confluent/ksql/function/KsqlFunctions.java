@@ -169,10 +169,7 @@ public class KsqlFunctions {
   }
 
   public static boolean isAnAggregateFunction(String functionName) {
-    if (ksqlAggregateFunctionMap.get(functionName) != null) {
-      return true;
-    }
-    return false;
+    return ksqlAggregateFunctionMap.get(functionName) != null;
   }
 
   public static KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>

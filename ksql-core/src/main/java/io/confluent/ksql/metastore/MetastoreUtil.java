@@ -154,8 +154,6 @@ public class MetastoreUtil {
       return "STRING";
     } else if (schemaType == Schema.FLOAT64_SCHEMA) {
       return "DOUBLE";
-    } else if (schemaType == Schema.INT64_SCHEMA) {
-      return "INTEGER";
     } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
       return "BOOL";
     }

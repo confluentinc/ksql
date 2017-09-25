@@ -153,12 +153,12 @@ public class MetastoreUtilTest {
   @Test
   public void testBuildAvroSchemaOne() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.map(schemaBuilder, schemaBuilder);
-    schemaBuilder.field("", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderStruct = SchemaBuilder.struct();
+    SchemaBuilder schemaBuilder = SchemaBuilder.map(schemaBuilderStruct, schemaBuilderStruct);
+    schemaBuilderStruct.field("", schemaBuilder);
 
     try {
-      metastoreUtil.buildAvroSchema(schemaBuilder, "timestamp");
+      metastoreUtil.buildAvroSchema(schemaBuilderStruct, "timestamp");
       fail("Expecting exception: KsqlException");
     } catch (KsqlException e) {
       assertEquals(MetastoreUtil.class.getName(), e.getStackTrace()[0].getClassName());
@@ -168,9 +168,9 @@ public class MetastoreUtilTest {
   @Test
   public void testBuildAvroSchemaTwo() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.array(schemaBuilder);
-    SchemaBuilder schemaBuilderThree = schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderStruct = SchemaBuilder.struct();
+    SchemaBuilder schemaBuilder = SchemaBuilder.array(schemaBuilderStruct);
+    SchemaBuilder schemaBuilderThree = schemaBuilderStruct.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilder);
 
     try {
       metastoreUtil.buildAvroSchema(schemaBuilderThree, "$cpi_7vj9Q(:`'K7n:,");
@@ -183,14 +183,14 @@ public class MetastoreUtilTest {
   @Test
   public void testBuildAvroSchemaAndBuildAvroSchemaOne() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.float64();
-    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderStruct = SchemaBuilder.struct();
+    SchemaBuilder schemaBuilderFloat64 = SchemaBuilder.float64();
+    schemaBuilderStruct.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderFloat64);
 
     assertEquals("{\n\t\"namespace\": \"ksql\",\n\t\"name\": \"{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":" +
                     "[],\n\t\"schemas\" :[]\n}\",\n\t\"type\": \"record\",\n\t\"fields\": [\n\t\t{\"name\": \"{\n\t\"name\": " +
                     "\"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}\", \"type\": \"double\"}\n\t]\n}",
-            metastoreUtil.buildAvroSchema(schemaBuilder, "{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}")
+            metastoreUtil.buildAvroSchema(schemaBuilderStruct, "{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}")
     );
   }
 
@@ -198,8 +198,8 @@ public class MetastoreUtilTest {
   public void testBuildAvroSchemaAndBuildAvroSchemaTwo() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.int32();
-    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderInt32 = SchemaBuilder.int32();
+    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderInt32);
 
     assertEquals("{\n\t\"namespace\": \"ksql\",\n\t\"name\": \"{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":" +
                     "[],\n\t\"schemas\" :[]\n}\",\n\t\"type\": \"record\",\n\t\"fields\": [\n\t\t{\"name\": \"{\n\t\"name\": " +
@@ -212,8 +212,8 @@ public class MetastoreUtilTest {
   public void testBuildAvroSchemaAndBuildAvroSchemaThree() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.bool();
-    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderBool = SchemaBuilder.bool();
+    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderBool);
 
     assertEquals("{\n\t\"namespace\": \"ksql\",\n\t\"name\": \"{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":" +
                     "[],\n\t\"schemas\" :[]\n}\",\n\t\"type\": \"record\",\n\t\"fields\": [\n\t\t{\"name\": \"{\n\t\"name\": " +
@@ -226,8 +226,8 @@ public class MetastoreUtilTest {
   public void testBuildAvroSchemaFour() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.string();
-    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderString = SchemaBuilder.string();
+    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderString);
 
     assertEquals("{\n\t\"namespace\": \"ksql\",\n\t\"name\": \"{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":" +
                     "[],\n\t\"schemas\" :[]\n}\",\n\t\"type\": \"record\",\n\t\"fields\": [\n\t\t{\"name\": \"{\n\t\"name\": " +
@@ -240,9 +240,9 @@ public class MetastoreUtilTest {
   public void testBuildAvroSchemaFive() {
     MetastoreUtil metastoreUtil = new MetastoreUtil();
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    SchemaBuilder schemaBuilderTwo = SchemaBuilder.int64();
-    schemaBuilder.field("\"int\"", schemaBuilderTwo);
-    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderTwo);
+    SchemaBuilder schemaBuilderInt64 = SchemaBuilder.int64();
+    schemaBuilder.field("\"int\"", schemaBuilderInt64);
+    schemaBuilder.field("{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}", schemaBuilderInt64);
 
     assertEquals("{\n\t\"namespace\": \"ksql\",\n\t\"name\": \"{\n\t\"name\": " +
                     "\"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}\",\n\t\"type\": \"record\",\n\t\"fields\": " +

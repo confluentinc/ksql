@@ -15,7 +15,6 @@
     <packaging>pom</packaging>
     <version>0.1-SNAPSHOT</version>
     <modules>
-        <module>build-tools</module> <!-- Remove after build-tools artifact gets published from common -->
         <module>ksql-core</module>
         <module>ksql-cli</module>
         <module>ksql-examples</module>
@@ -46,21 +45,22 @@
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
-        <licenses.version>3.3.0</licenses.version>
+        <licenses.version>3.3.0-SNAPSHOT</licenses.version>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <dockerfile-maven-plugin.version>1.3.4</dockerfile-maven-plugin.version>
         <generext.version>1.0.2</generext.version>
     </properties>
 
+    <!-- Temporarily needed for build-tools artifact until Confluent 3.3.1 is released. -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <!-- Workaround to help with public builds, remove after we release a build-tools artifact. -->
-                <groupId>io.confluent</groupId>
-                <artifactId>build-tools</artifactId>
-                <version>4.0.0-SNAPSHOT</version>
-            </dependency>
-
             <!-- Cross-submodule dependencies -->
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
@@ -205,8 +205,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <configuration>
-                        <failsOnError>false</failsOnError>
-                        <failOnViolation>false</failOnViolation>
+                        <failsOnError>true</failsOnError>
+                        <failOnViolation>true</failOnViolation>
                     </configuration>
                 </plugin>
 

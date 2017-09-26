@@ -13,7 +13,7 @@
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>0.1-SNAPSHOT</version>
     <modules>
         <module>build-tools</module> <!-- Remove after build-tools artifact gets published from common -->
         <module>ksql-core</module>

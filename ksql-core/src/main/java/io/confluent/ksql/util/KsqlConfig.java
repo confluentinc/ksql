@@ -51,7 +51,7 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_SERVICE_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   public static final String
       KSQL_SERVICE_ID_DOC =
-      "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queries in "
+      "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queires in "
       + "this service.";
 
   public static final String

@@ -111,7 +111,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   }
 
   private void checkTopicNameNotNull(Map<String, Expression> properties) {
-    // TODO: move the check to grammar
+    // TODO: move the check to grammer
     KsqlPreconditions.checkNotNull(
         properties.get(DdlConfig.TOPIC_NAME_PROPERTY),
         "Topic name should be set in WITH clause.");

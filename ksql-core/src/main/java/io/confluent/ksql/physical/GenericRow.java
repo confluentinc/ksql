@@ -67,7 +67,7 @@ public class GenericRow {
 
     if (columns.size() != that.columns.size()) return false;
 
-    // For now string matching is used to compare the rows as double comparison will cause issues
+    // For now string matching is used to compare the rows as double comparision will cause issues
     return this.toString().equals(that.toString());
   }
 

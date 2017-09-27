@@ -130,6 +130,7 @@ public class CommandStore implements Closeable {
     private List<ConsumerRecord<CommandId, Command>> getAllPriorCommandRecords() {
         Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
+        // Have to poll to make sure subscription has taken effect (subscribe() is lazy)
         commandConsumer.poll(0);
         commandConsumer.seekToBeginning(commandTopicPartitions);
 

@@ -60,7 +60,7 @@ connect is [UP]
 1.  Start KSQL. The `local` argument starts the KSQL engine locally.
 
     ```bash
-    $ ./bin/ksql-cli local
+    $ ./bin/ksql-cli local --bootstrap-server=localhost:9092
     ```
 
     After KSQL is started, your terminal should resemble this.

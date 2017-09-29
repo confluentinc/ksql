@@ -20,6 +20,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
 import io.confluent.ksql.exception.ParseFailedException;
 import io.confluent.ksql.metastore.*;
+import io.confluent.ksql.metrics.KsqlMetrics;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -76,7 +77,9 @@ public class KsqlEngine implements Closeable {
   private final QueryEngine queryEngine;
 
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> liveQueries;
+  private final Set<PersistentQueryMetadata> liveQueries;
+
+  private final KsqlMetrics ksqlMetrics;
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient kafkaTopicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
@@ -90,6 +93,8 @@ public class KsqlEngine implements Closeable {
 
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
+    // TODO: Get the actual server id from config file
+    this.ksqlMetrics = new KsqlMetrics(1);
   }
 
   /**
@@ -119,8 +124,7 @@ public class KsqlEngine implements Closeable {
 
     MetaStore tempMetaStore = metaStore.clone();
     // Build query AST from the query string
-    List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties,
-                                                         tempMetaStore);
+    List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties, tempMetaStore);
 
     return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore);
 
@@ -146,8 +150,8 @@ public class KsqlEngine implements Closeable {
 
     for (QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        liveQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+        liveQueries.add(persistentQueryMetadata);
         persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
       }
     }
@@ -356,14 +360,13 @@ public class KsqlEngine implements Closeable {
   }
 
   public boolean terminateQuery(final long queryId, final boolean closeStreams) {
-    QueryMetadata queryMetadata = persistentQueries.remove(queryId);
+    PersistentQueryMetadata queryMetadata = persistentQueries.remove(queryId);
     if (queryMetadata == null) {
       return false;
     }
     liveQueries.remove(queryMetadata);
     if (closeStreams) {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.closeAndCleanUp(100L, TimeUnit.MILLISECONDS);
     }
     return true;
   }
@@ -372,7 +375,7 @@ public class KsqlEngine implements Closeable {
     return new HashMap<>(persistentQueries);
   }
 
-  public Set<QueryMetadata> getLiveQueries() {
+  public Set<PersistentQueryMetadata> getLiveQueries() {
     return new HashSet<>(liveQueries);
   }
 
@@ -388,11 +391,14 @@ public class KsqlEngine implements Closeable {
     return ksqlConfig;
   }
 
+  public KsqlMetrics getKsqlMetrics() {
+    return ksqlMetrics;
+  }
+
   @Override
   public void close() throws IOException {
-    for (QueryMetadata queryMetadata : liveQueries) {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+    for (PersistentQueryMetadata persistentQueryMetadata : liveQueries) {
+      persistentQueryMetadata.closeAndCleanUp(100L, TimeUnit.MILLISECONDS);
     }
     kafkaTopicClient.close();
   }
@@ -403,12 +409,8 @@ public class KsqlEngine implements Closeable {
 
   public boolean terminateAllQueries() {
     try {
-      for (QueryMetadata queryMetadata: liveQueries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-          persistentQueryMetadata.getKafkaStreams().cleanUp();
-        }
+      for (PersistentQueryMetadata persistentQueryMetadata: liveQueries) {
+        persistentQueryMetadata.closeAndCleanUp(100L, TimeUnit.MILLISECONDS);
       }
     } catch (Exception e) {
       return false;

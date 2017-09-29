@@ -74,7 +74,7 @@ public class KsqlContext {
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.getKafkaStreams().start();
+        persistentQueryMetadata.start();
         ksqlEngine.getPersistentQueries()
             .put(persistentQueryMetadata.getId(), persistentQueryMetadata);
       } else {
@@ -98,7 +98,7 @@ public class KsqlContext {
     }
     PersistentQueryMetadata persistentQueryMetadata = ksqlEngine
         .getPersistentQueries().get(queryId);
-    persistentQueryMetadata.getKafkaStreams().close();
+    persistentQueryMetadata.closeAndCleanUp();
     ksqlEngine.getPersistentQueries().remove(queryId);
   }
 

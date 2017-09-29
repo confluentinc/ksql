@@ -145,7 +145,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -165,7 +165,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -228,7 +228,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -264,8 +264,8 @@ public class JsonFormatTest {
     PersistentQueryMetadata query1Metadata = (PersistentQueryMetadata) queryMetadataList.get(0);
     PersistentQueryMetadata query2Metadata = (PersistentQueryMetadata) queryMetadataList.get(1);
 
-    query1Metadata.getKafkaStreams().start();
-    query2Metadata.getKafkaStreams().start();
+    query1Metadata.start();
+    query2Metadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(stream2Name).getSchema());
@@ -300,7 +300,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -343,7 +343,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -379,7 +379,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -414,7 +414,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -448,7 +448,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -470,8 +470,8 @@ public class JsonFormatTest {
 
     final String selectColumns =
         "(ORDERTIME+1500962514806) , TIMESTAMPTOSTRING(ORDERTIME+1500962514806, "
-        + "'yyyy-MM-dd HH:mm:ss.SSS'), "
-        + "STRINGTOTIMESTAMP"
+            + "'yyyy-MM-dd HH:mm:ss.SSS'), "
+            + "STRINGTOTIMESTAMP"
             + "(TIMESTAMPTOSTRING"
             + "(ORDERTIME+1500962514806, 'yyyy-MM-dd HH:mm:ss.SSS'), 'yyyy-MM-dd HH:mm:ss.SSS')";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
@@ -486,7 +486,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -528,7 +528,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
 
@@ -561,7 +561,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     KafkaTopicClient kafkaTopicClient = ksqlEngine.getKafkaTopicClient();
 
@@ -588,7 +588,7 @@ public class JsonFormatTest {
 
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
+    queryMetadata.start();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());

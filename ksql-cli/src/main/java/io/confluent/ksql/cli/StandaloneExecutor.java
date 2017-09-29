@@ -48,14 +48,14 @@ public class StandaloneExecutor {
   public void executeStatements(String queries) throws Exception {
     MetaStore tempMetaStore = ksqlEngine.getMetaStore().clone();
     List<Pair<String, Statement>> queryList = ksqlEngine.parseQueries(queries,
-                                                                      Collections.emptyMap(),
-                                                                      tempMetaStore);
+        Collections.emptyMap(),
+        tempMetaStore);
     List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
         false, queryList, new HashMap<>(), tempMetaStore);
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.getKafkaStreams().start();
+        persistentQueryMetadata.start();
       } else {
         System.err.println("Ignoring statemenst: " + queryMetadata.getStatementString());
         System.err.println("Only CREATE statements can run in KSQL embedded mode.");

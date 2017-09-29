@@ -17,10 +17,16 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.metrics.KsqlMetrics;
+import io.confluent.ksql.metrics.QueryMetric;
 import io.confluent.ksql.planner.plan.OutputNode;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Measurable;
+import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.streams.KafkaStreams;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class QueryMetadata {
   private final String statementString;
@@ -28,23 +34,108 @@ public class QueryMetadata {
   private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
+  private final String queryDescription;
 
-  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
+  private final QueryMetric queryMetric;
+  private final MetricName startTimeMetric;
+  private final MetricName runningTimeMetric;
+  private final MetricName executedTimeMetric;
+
+  private long startTime;
+  private boolean started;
+
+  private static final String metricGroupName = "query-metrics";
+
+  public QueryMetadata(String statementString,
+                       KafkaStreams kafkaStreams,
+                       OutputNode outputNode,
                        String executionPlan,
-                       DataSource.DataSourceType dataSourceType) {
+                       DataSource.DataSourceType dataSourceType,
+                       KsqlMetrics ksqlMetrics,
+                       String queryDescription) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
     this.dataSourceType = dataSourceType;
+    this.queryDescription = queryDescription;
+
+    this.queryMetric = ksqlMetrics.addQueryMetric(queryDescription);
+    this.startTimeMetric = queryMetric.metricName("start-timestamp", metricGroupName, "Start time in millis");
+    this.runningTimeMetric = queryMetric.metricName("running-seconds", metricGroupName, "Running time in seconds");
+    this.executedTimeMetric = queryMetric.metricName("executed-seconds", metricGroupName, "Execute time in seconds");
+  }
+
+  /**
+   * Start the Compiled Query (Kafka Streams)
+   */
+  public void start() {
+    if (started) {
+      throw new KsqlException(queryDescription + " already started!");
+    }
+    kafkaStreams.start();
+    started = true;
+    startTime = System.currentTimeMillis();
+    if (queryMetric != null) {
+      addStartTimeMetric();
+      addRunningTimeMetric();
+    }
+  }
+
+  private void addStartTimeMetric() {
+    queryMetric.addMeasurableMetric(
+        startTimeMetric,
+        new Measurable() {
+          public double measure(MetricConfig config, long now) {
+            return startTime;
+          }
+        }
+    );
+  }
+
+  private void addRunningTimeMetric() {
+    queryMetric.addMeasurableMetric(
+        runningTimeMetric,
+        new Measurable() {
+          public double measure(MetricConfig config, long now) {
+            return (System.currentTimeMillis() - startTime) / 1000;
+          }
+        }
+    );
+  }
+
+  private void addFinishTimeMetric() {
+    long finishTime = (System.currentTimeMillis() - startTime) / 1000;
+    queryMetric.addMeasurableMetric(
+        executedTimeMetric,
+        new Measurable() {
+          public double measure(MetricConfig config, long now) {
+            return finishTime;
+          }
+        }
+    );
+  }
+
+  public void closeAndCleanUp() {
+    closeAndCleanUp(0, TimeUnit.SECONDS);
+  }
+
+  public void closeAndCleanUp(long timeout, TimeUnit timeUnit) {
+    if (started) {
+      kafkaStreams.close(timeout, timeUnit);
+      kafkaStreams.cleanUp();
+      queryMetric.removeMetric(runningTimeMetric);
+      addFinishTimeMetric();
+      started = false;
+    }
+  }
+
+  public void setUncaughtExceptionHandler(Thread.UncaughtExceptionHandler streamsExceptionHandler) {
+    kafkaStreams.setUncaughtExceptionHandler(streamsExceptionHandler);
   }
 
   public String getStatementString() {
     return statementString;
-  }
-
-  public KafkaStreams getKafkaStreams() {
-    return kafkaStreams;
   }
 
   public OutputNode getOutputNode() {

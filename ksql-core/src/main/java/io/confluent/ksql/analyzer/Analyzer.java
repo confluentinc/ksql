@@ -17,7 +17,7 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;

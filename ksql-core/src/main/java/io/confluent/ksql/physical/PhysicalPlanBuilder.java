@@ -26,7 +26,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -73,7 +73,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -295,7 +294,7 @@ public class PhysicalPlanBuilder {
       KsqlAggregateFunction aggregateFunctionInfo = KsqlFunctions.getAggregateFunction(functionCall
               .getName()
               .toString(),
-                                                                                       functionCall
+              functionCall
               .getArguments(), aggregateArgExpanded.getSchema());
       int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
       KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()

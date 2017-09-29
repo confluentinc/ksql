@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;

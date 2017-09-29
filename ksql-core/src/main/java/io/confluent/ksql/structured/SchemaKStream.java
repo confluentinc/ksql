@@ -21,7 +21,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.ExpressionUtil;
+import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -46,7 +46,6 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -138,7 +137,7 @@ public class SchemaKStream {
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
       throws Exception {
-    ExpressionUtil expressionUtil = new ExpressionUtil();
+    CodeGenRunner codeGenRunner = new CodeGenRunner();
     // TODO: Optimize to remove the code gen for constants and single columns references
     // TODO: and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -147,7 +146,7 @@ public class SchemaKStream {
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          expressionUtil.getExpressionEvaluator(expressionPair.getRight(), schema);
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }

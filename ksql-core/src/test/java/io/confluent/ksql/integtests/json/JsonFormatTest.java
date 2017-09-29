@@ -52,8 +52,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.confluent.ksql.util.KsqlTestUtil.assertExpectedResults;
-import static io.confluent.ksql.util.KsqlTestUtil.assertExpectedWindowedResults;
+import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
+import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedWindowedResults;
 
 public class JsonFormatTest {
 

@@ -31,7 +31,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,7 +47,7 @@ public class LogicalPlannerTest {
 
   @Before
   public void init() {
-    metaStore = KsqlTestUtil.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore();
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {

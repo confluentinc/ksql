@@ -30,7 +30,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.KStream;
@@ -52,7 +52,7 @@ public class SqlPredicateTest {
 
   @Before
   public void init() {
-    metaStore = KsqlTestUtil.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     KStreamBuilder builder = new KStreamBuilder();
     kStream = builder.stream(Serdes.String(),

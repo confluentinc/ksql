@@ -46,7 +46,7 @@ import java.util.Properties;
 
 import static io.confluent.ksql.TestResult.*;
 import static io.confluent.ksql.util.KsqlConfig.*;
-import static io.confluent.ksql.util.KsqlTestUtil.assertExpectedResults;
+import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.

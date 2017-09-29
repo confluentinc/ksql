@@ -20,7 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class AnalyzerTest {
 
   @Before
   public void init() {
-    metaStore = KsqlTestUtil.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore();
   }
 
   private Analysis analyze(String queryStr) {

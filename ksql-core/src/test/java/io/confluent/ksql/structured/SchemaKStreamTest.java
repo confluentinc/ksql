@@ -31,7 +31,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -55,7 +55,7 @@ public class SchemaKStreamTest {
 
   @Before
   public void init() {
-    metaStore = KsqlTestUtil.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     KStreamBuilder builder = new KStreamBuilder();
     kStream = builder.stream(Serdes.String(), SerDeUtil.getRowSerDe(ksqlStream.getKsqlTopic()

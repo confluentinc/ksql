@@ -38,7 +38,7 @@ public class ExpressionTypeManagerTest {
 
     @Before
     public void init() {
-        metaStore = KsqlTestUtil.getNewMetaStore();
+        metaStore = MetaStoreFixture.getNewMetaStore();
         schema = SchemaBuilder.struct()
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)

@@ -34,7 +34,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;

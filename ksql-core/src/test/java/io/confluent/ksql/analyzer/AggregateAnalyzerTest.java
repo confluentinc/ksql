@@ -18,12 +18,12 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class AggregateAnalyzerTest {
 
   @Before
   public void init() {
-    metaStore = KsqlTestUtil.getNewMetaStore();
+    metaStore = MetaStoreFixture.getNewMetaStore();
   }
 
   private Analysis analyze(final String queryStr) {

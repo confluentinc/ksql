@@ -18,7 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
-import io.confluent.ksql.exception.ParseFailedException;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -65,7 +65,7 @@ public class KsqlEngine implements Closeable {
 
   // TODO: Decide if any other properties belong in here
   private static final Set<String> IMMUTABLE_PROPERTIES = new HashSet<>(Arrays.asList(
-      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
+          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
   ));
 
   private KsqlConfig ksqlConfig;
@@ -101,14 +101,14 @@ public class KsqlEngine implements Closeable {
    * @throws Exception Any exception thrown here!
    */
   public List<QueryMetadata> buildMultipleQueries(
-      final boolean createNewAppId,
-      final String queriesString,
-      final Map<String, Object> overriddenProperties
+          final boolean createNewAppId,
+          final String queriesString,
+          final Map<String, Object> overriddenProperties
   ) throws Exception {
     for (String property : overriddenProperties.keySet()) {
       if (IMMUTABLE_PROPERTIES.contains(property)) {
         throw new IllegalArgumentException(
-            String.format("Cannot override property '%s'", property)
+                String.format("Cannot override property '%s'", property)
         );
       }
     }
@@ -119,8 +119,7 @@ public class KsqlEngine implements Closeable {
 
     MetaStore tempMetaStore = metaStore.clone();
     // Build query AST from the query string
-    List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties,
-                                                         tempMetaStore);
+    List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties, tempMetaStore);
 
     return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore);
 
@@ -130,18 +129,18 @@ public class KsqlEngine implements Closeable {
                                          final List<Pair<String, Statement>> statementList,
                                          final Map<String, Object> overriddenProperties,
                                          final MetaStore tempMetaStore)
-      throws Exception {
+          throws Exception {
 
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
-        createNewAppId,
-        logicalPlans,
-        statementList,
-        overriddenProperties,
-        true
+            createNewAppId,
+            logicalPlans,
+            statementList,
+            overriddenProperties,
+            true
     );
 
     for (QueryMetadata queryMetadata : runningQueries) {
@@ -158,16 +157,15 @@ public class KsqlEngine implements Closeable {
   public QueryMetadata getQueryExecutionPlan(final Query query) throws Exception {
 
     // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays
-        .asList(new Pair<>("", query)));
+    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays.asList(new Pair<>("", query)));
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
-        false,
-        logicalPlans,
-        Arrays.asList(new Pair<>("", query)),
-        Collections.emptyMap(),
-        false
+            false,
+            logicalPlans,
+            Arrays.asList(new Pair<>("", query)),
+            Collections.emptyMap(),
+            false
     );
     return runningQueries.get(0);
   }
@@ -180,21 +178,22 @@ public class KsqlEngine implements Closeable {
       MetaStore tempMetaStoreForParser = tempMetaStore.clone();
       // Parse and AST creation
       KsqlParser ksqlParser = new KsqlParser();
-      List<SqlBaseParser.SingleStatementContext>
-          parsedStatements =
-          ksqlParser.getStatements(queriesString);
+
+
+      List<SqlBaseParser.SingleStatementContext> parsedStatements = ksqlParser.getStatements(queriesString);
       List<Pair<String, Statement>> queryList = new ArrayList<>();
+
       for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-        Pair<Statement, DataSourceExtractor> statementInfo =
-            ksqlParser.prepareStatement(singleStatementContext, tempMetaStoreForParser);
+        Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(singleStatementContext, tempMetaStoreForParser);
         Statement statement = statementInfo.getLeft();
+
         Pair<String, Statement> queryPair =
-            buildSingleQueryAst(
-                statement,
-                getStatementString(singleStatementContext),
-                tempMetaStore,
-                tempMetaStoreForParser,
-                overriddenProperties);
+                buildSingleQueryAst(
+                        statement,
+                        getStatementString(singleStatementContext),
+                        tempMetaStore,
+                        tempMetaStoreForParser,
+                        overriddenProperties);
         if (queryPair != null) {
           queryList.add(queryPair);
         }
@@ -209,78 +208,77 @@ public class KsqlEngine implements Closeable {
                                                       final String statementString,
                                                       final MetaStore tempMetaStore,
                                                       final MetaStore tempMetaStoreForParser,
-                                                      final Map<String,Object> overriddenProperties
+                                                      final Map<String, Object> overriddenProperties
   ) {
 
     log.info("Building AST for {}.", statementString);
 
     if (statement instanceof Query) {
-      return  new Pair<>(statementString, (Query) statement);
+      return new Pair<>(statementString, (Query) statement);
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      QuerySpecification querySpecification =
-          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+      QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
       Query query = addInto(
-          createStreamAsSelect.getQuery(),
-          querySpecification,
-          createStreamAsSelect.getName().getSuffix(),
-          createStreamAsSelect.getProperties(),
-          createStreamAsSelect.getPartitionByColumn()
+              createStreamAsSelect.getQuery(),
+              querySpecification,
+              createStreamAsSelect.getName().getSuffix(),
+              createStreamAsSelect.getProperties(),
+              createStreamAsSelect.getPartitionByColumn()
       );
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
-          querySpecification.getSelect(),
-          createStreamAsSelect.getName().getSuffix()
+              querySpecification.getSelect(),
+              createStreamAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof CreateTableAsSelect) {
       CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
       QuerySpecification querySpecification =
-          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
+              (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
 
       Query query = addInto(
-          createTableAsSelect.getQuery(),
-          querySpecification,
-          createTableAsSelect.getName().getSuffix(),
-          createTableAsSelect.getProperties(),
-          Optional.empty()
+              createTableAsSelect.getQuery(),
+              querySpecification,
+              createTableAsSelect.getName().getSuffix(),
+              createTableAsSelect.getProperties(),
+              Optional.empty()
       );
 
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
-          querySpecification.getSelect(),
-          createTableAsSelect.getName().getSuffix()
+              querySpecification.getSelect(),
+              createTableAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.tryExecute(
-          new RegisterTopicCommand(
-              (RegisterTopic) statement,
-              overriddenProperties),
-          tempMetaStoreForParser);
+              new RegisterTopicCommand(
+                      (RegisterTopic) statement,
+                      overriddenProperties),
+              tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
-          new RegisterTopicCommand(
-              (RegisterTopic) statement,
-              overriddenProperties),
-          tempMetaStore);
+              new RegisterTopicCommand(
+                      (RegisterTopic) statement,
+                      overriddenProperties),
+              tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStream) {
       ddlCommandExec.tryExecute(
-          new CreateStreamCommand(
-              (CreateStream) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStoreForParser);
+              new CreateStreamCommand(
+                      (CreateStream) statement, overriddenProperties, kafkaTopicClient),
+              tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
-          new CreateStreamCommand(
-              (CreateStream) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStore);
+              new CreateStreamCommand(
+                      (CreateStream) statement, overriddenProperties, kafkaTopicClient),
+              tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
-          new CreateTableCommand(
-              (CreateTable) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStoreForParser);
+              new CreateTableCommand(
+                      (CreateTable) statement, overriddenProperties, kafkaTopicClient),
+              tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
-          new CreateTableCommand(
-              (CreateTable) statement, overriddenProperties, kafkaTopicClient),
-          tempMetaStore);
+              new CreateTableCommand(
+                      (CreateTable) statement, overriddenProperties, kafkaTopicClient),
+              tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);
@@ -302,11 +300,11 @@ public class KsqlEngine implements Closeable {
   }
 
   public static String getStatementString(
-      final SqlBaseParser.SingleStatementContext singleStatementContext) {
+          final SqlBaseParser.SingleStatementContext singleStatementContext) {
     CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(new Interval(
-        singleStatementContext.start.getStartIndex(),
-        singleStatementContext.stop.getStopIndex()
+            singleStatementContext.start.getStartIndex(),
+            singleStatementContext.stop.getStopIndex()
     ));
   }
 
@@ -330,15 +328,15 @@ public class KsqlEngine implements Closeable {
     }
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
-        querySpecification.getSelect(),
-        Optional.of(intoTable),
-        querySpecification.getFrom(),
-        querySpecification.getWindowExpression(),
-        querySpecification.getWhere(),
-        querySpecification.getGroupBy(),
-        querySpecification.getHaving(),
-        querySpecification.getOrderBy(),
-        querySpecification.getLimit()
+            querySpecification.getSelect(),
+            Optional.of(intoTable),
+            querySpecification.getFrom(),
+            querySpecification.getWindowExpression(),
+            querySpecification.getWhere(),
+            querySpecification.getGroupBy(),
+            querySpecification.getHaving(),
+            querySpecification.getOrderBy(),
+            querySpecification.getLimit()
     );
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
@@ -403,7 +401,7 @@ public class KsqlEngine implements Closeable {
 
   public boolean terminateAllQueries() {
     try {
-      for (QueryMetadata queryMetadata: liveQueries) {
+      for (QueryMetadata queryMetadata : liveQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
           persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);

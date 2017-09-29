@@ -15,6 +15,9 @@
     <packaging>pom</packaging>
     <version>0.1-SNAPSHOT</version>
     <modules>
+        <module>ksql-common</module>
+        <module>ksql-metastore</module>
+        <module>ksql-parser</module>
         <module>ksql-core</module>
         <module>ksql-cli</module>
         <module>ksql-examples</module>
@@ -62,6 +65,19 @@
     <dependencyManagement>
         <dependencies>
             <!-- Cross-submodule dependencies -->
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-metastore</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-cli</artifactId>
@@ -71,6 +87,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

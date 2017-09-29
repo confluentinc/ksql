@@ -23,7 +23,7 @@ import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.rewrite.AggregateExpressionRewriter;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Statement;
@@ -33,7 +33,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlTestUtil;
+import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
@@ -56,7 +56,7 @@ public class PhysicalPlanBuilderTest {
     public void before() {
         kStreamBuilder = new KStreamBuilder();
         ksqlParser = new KsqlParser();
-        metaStore = KsqlTestUtil.getNewMetaStore();
+        metaStore = MetaStoreFixture.getNewMetaStore();
         Map<String, Object> configMap = new HashMap<>();
         configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configMap.put("application.id", "KSQL");

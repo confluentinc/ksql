@@ -14,6 +14,19 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-parser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-metastore</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
         </dependency>

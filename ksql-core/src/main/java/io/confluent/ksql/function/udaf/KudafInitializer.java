@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.function.udaf;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.Initializer;
 
 import java.util.ArrayList;

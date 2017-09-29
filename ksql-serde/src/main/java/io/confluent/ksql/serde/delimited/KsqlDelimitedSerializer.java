@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 
 import org.apache.kafka.common.serialization.Serializer;

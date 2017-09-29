@@ -17,7 +17,7 @@
 package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;

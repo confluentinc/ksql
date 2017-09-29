@@ -17,15 +17,13 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class KudafAggregator implements Aggregator<String, GenericRow, GenericRow> {

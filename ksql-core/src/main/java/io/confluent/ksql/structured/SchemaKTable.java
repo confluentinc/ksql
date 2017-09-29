@@ -18,7 +18,7 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.KafkaTopicClient;

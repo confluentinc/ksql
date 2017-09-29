@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;

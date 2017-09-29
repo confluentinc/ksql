@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctions;

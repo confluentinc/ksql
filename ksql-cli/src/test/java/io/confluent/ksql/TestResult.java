@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.util.StringUtil;
 
 import java.util.ArrayList;

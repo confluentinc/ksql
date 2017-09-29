@@ -17,7 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.*;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;

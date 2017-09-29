@@ -19,7 +19,7 @@ package io.confluent.ksql.cli.console;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;

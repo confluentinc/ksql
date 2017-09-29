@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;

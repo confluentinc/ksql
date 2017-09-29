@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 

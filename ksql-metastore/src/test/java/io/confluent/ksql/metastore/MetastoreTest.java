@@ -17,6 +17,7 @@
 package io.confluent.ksql.metastore;
 
 
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;

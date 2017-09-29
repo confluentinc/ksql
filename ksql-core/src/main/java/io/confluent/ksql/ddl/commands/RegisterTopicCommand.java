@@ -17,7 +17,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;

@@ -17,6 +17,10 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-serde</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -31,11 +35,6 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
         </dependency>
 
         <dependency>
@@ -104,24 +103,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>${antlr.version}</version>
-                <configuration>
-                    <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
-                    <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
-                    <visitor>true</visitor>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

@@ -14,20 +14,18 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.serde;
 
-public interface DataSource {
 
-  public static enum DataSourceType { KTOPIC, KSTREAM, KTABLE }
+public abstract class KsqlTopicSerDe {
 
-  public static enum DataSourceSerDe { JSON, AVRO, DELIMITED }
+  private final DataSource.DataSourceSerDe serDe;
 
-  public static final String AVRO_SERDE_NAME = "AVRO";
-  public static final String JSON_SERDE_NAME = "JSON";
-  public static final String DELIMITED_SERDE_NAME = "DELIMITED";
+  protected KsqlTopicSerDe(DataSource.DataSourceSerDe serDe) {
+    this.serDe = serDe;
+  }
 
-  public String getName();
-
-  public DataSourceType getDataSourceType();
-
+  public DataSource.DataSourceSerDe getSerDe() {
+    return serDe;
+  }
 }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

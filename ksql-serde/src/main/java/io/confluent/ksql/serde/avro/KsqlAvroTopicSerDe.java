@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.serde.avro;
 
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
@@ -24,7 +24,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   private final String schemaString;
 
   public KsqlAvroTopicSerDe(final String schemaString) {
-    super(StructuredDataSource.DataSourceSerDe.AVRO);
+    super(DataSource.DataSourceSerDe.AVRO);
     this.schemaString = schemaString;
   }
 

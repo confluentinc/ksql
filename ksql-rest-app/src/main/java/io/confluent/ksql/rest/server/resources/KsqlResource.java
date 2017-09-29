@@ -24,7 +24,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -87,12 +87,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -119,6 +114,7 @@ public class KsqlResource {
     this.commandStore = commandStore;
     this.statementExecutor = statementExecutor;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
+    registerDdlCommandTasks();
   }
 
   @POST
@@ -295,10 +291,8 @@ public class KsqlResource {
       KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
       schemaString = ksqlAvroTopicSerDe.getSchemaString();
     }
-    TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic
-        .getKafkaTopicName(),
-                                ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(),
-                                schemaString
+    TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic.getKafkaTopicName(),
+        ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(), schemaString
     );
     return topicDescription;
   }
@@ -333,75 +327,87 @@ public class KsqlResource {
   private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText,
                                                   Map<String, Object> properties)
       throws Exception {
-    String executionPlan;
-    if (statement instanceof Query) {
-      executionPlan = ksqlEngine.getQueryExecutionPlan((Query) statement).getExecutionPlan();
-    } else if (statement instanceof CreateStreamAsSelect) {
-      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(createStreamAsSelect
-                                                                         .getQuery());
+
+    DDLCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
+    if (ddlCommandTask != null) {
+      try {
+        return new ExecutionPlan(ddlCommandTask.execute(statement, statementText, properties));
+      } catch (Throwable t) {
+        throw new KsqlException("Cannot RUN execution plan for this statement, " + statement + " ex:" + t.toString());
+      }
+    }
+    throw new KsqlException("Cannot FIND execution plan for this statement:" + statement);
+  }
+
+  private interface DDLCommandTask {
+    String execute(Statement statement, String statementText, Map<String, Object> properties) throws Exception;
+  }
+  private Map<Class, DDLCommandTask> ddlCommandTasks = new HashMap<>();
+
+  private void registerDdlCommandTasks() {
+    ddlCommandTasks.put(Query.class, (statement, statementText, properties) -> ksqlEngine.getQueryExecutionPlan((Query) statement).getExecutionPlan());
+
+    ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
+      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your select query produces a TABLE. Please "
-                                + "use CREATE TABLE AS SELECT statement instead.");
+                + "use CREATE TABLE AS SELECT statement instead.");
       }
-      executionPlan = queryMetadata.getExecutionPlan();
-    } else if (statement instanceof CreateTableAsSelect) {
-      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(createTableAsSelect
-                                                                         .getQuery());
+      return queryMetadata.getExecutionPlan();
+    });
+
+    ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
+      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your select query produces a STREAM. Please "
-                                + "use CREATE STREAM AS SELECT statement instead.");
+                + "use CREATE STREAM AS SELECT statement instead.");
       }
-      executionPlan = queryMetadata.getExecutionPlan();
-    } else if (statement instanceof RegisterTopic) {
-      RegisterTopic registerTopic = (RegisterTopic) statement;
-      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand(registerTopic,
-                                                                           properties);
+      return queryMetadata.getExecutionPlan();
+    });
+
+    ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
+      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand((RegisterTopic) statement, properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
-      executionPlan = registerTopic.toString();
-    } else if (statement instanceof CreateStream) {
-      CreateStream createStream = (CreateStream) statement;
+      return statement.toString();
+    });
+
+    ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
-          new CreateStreamCommand(createStream, properties,
-                                  ksqlEngine.getKafkaTopicClient());
+              new CreateStreamCommand((CreateStream) statement, properties, ksqlEngine.getKafkaTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
-      executionPlan = createStream.toString();
-    } else if (statement instanceof CreateTable) {
-      CreateTable createTable = (CreateTable) statement;
+      return statement.toString();
+    });
+
+    ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
-          new CreateTableCommand(createTable, properties, ksqlEngine.getKafkaTopicClient());
+          new CreateTableCommand((CreateTable) statement, properties, ksqlEngine.getKafkaTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
-      executionPlan = createTable.toString();
-    } else if (statement instanceof DropTopic) {
-      DropTopic dropTopic = (DropTopic) statement;
-      DropTopicCommand dropTopicCommand = new DropTopicCommand(dropTopic);
+      return statement.toString();
+    });
+
+    ddlCommandTasks.put(DropTopic.class, (statement, statementText, properties) -> {
+      DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
-      executionPlan = dropTopic.toString();
-    } else if (statement instanceof DropStream) {
-      DropStream dropStream = (DropStream) statement;
-      DropSourceCommand dropSourceCommand = new DropSourceCommand(dropStream);
+      return statement.toString();
+
+    });
+
+    ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
-      executionPlan = dropStream.toString();
-    } else if (statement instanceof DropTable) {
-      DropTable dropTable = (DropTable) statement;
-      DropSourceCommand dropSourceCommand = new DropSourceCommand(dropTable);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
-      executionPlan = dropTable.toString();
-    } else if (statement instanceof TerminateQuery) {
-      executionPlan = statement.toString();
-    } else {
-      throw new KsqlException("Cannot build execution plan for this statement.");
-    }
-    return new ExecutionPlan(executionPlan);
+      return statement.toString();
+    });
+
+    ddlCommandTasks.put(TerminateQuery.class, (statement, statementText, properties) -> statement.toString());
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {
     return ksqlEngine.getMetaStore().getAllStructuredDataSources().values().stream()
-        .filter(dataSourceClass::isInstance)
-        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
-            KsqlRestApplication.getCommandsStreamName()))
-        .map(dataSourceClass::cast)
-        .collect(Collectors.toList());
+            .filter(dataSourceClass::isInstance)
+            .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+                    KsqlRestApplication.getCommandsStreamName()))
+            .map(dataSourceClass::cast)
+            .collect(Collectors.toList());
   }
+
 }

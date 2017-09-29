@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import org.apache.kafka.connect.data.Field;

@@ -14,19 +14,15 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 
-public abstract class KsqlTopicSerDe {
 
-  private final StructuredDataSource.DataSourceSerDe serDe;
+public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
 
-  protected KsqlTopicSerDe(StructuredDataSource.DataSourceSerDe serDe) {
-    this.serDe = serDe;
-  }
-
-  public StructuredDataSource.DataSourceSerDe getSerDe() {
-    return serDe;
+  public KsqlDelimitedTopicSerDe() {
+    super(DataSource.DataSourceSerDe.DELIMITED);
   }
 }

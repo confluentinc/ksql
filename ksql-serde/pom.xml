@@ -10,9 +10,14 @@
         <version>0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-common</artifactId>
+    <artifactId>ksql-serde</artifactId>
 
     <dependencies>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-common</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -95,7 +100,6 @@
 
     <build>
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

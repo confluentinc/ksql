@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;

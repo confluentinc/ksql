@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql;
 
 import java.util.ArrayList;
 import java.util.Arrays;

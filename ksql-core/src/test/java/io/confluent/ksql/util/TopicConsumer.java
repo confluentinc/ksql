@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

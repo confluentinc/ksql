@@ -18,7 +18,6 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;

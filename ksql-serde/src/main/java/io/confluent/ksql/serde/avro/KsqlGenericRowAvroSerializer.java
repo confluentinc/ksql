@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.serde.avro;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;

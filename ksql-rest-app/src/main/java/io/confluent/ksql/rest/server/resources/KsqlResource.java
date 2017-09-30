@@ -398,6 +398,12 @@ public class KsqlResource {
       return statement.toString();
     });
 
+    ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
+      return statement.toString();
+    });
+
     ddlCommandTasks.put(TerminateQuery.class, (statement, statementText, properties) -> statement.toString());
   }
 

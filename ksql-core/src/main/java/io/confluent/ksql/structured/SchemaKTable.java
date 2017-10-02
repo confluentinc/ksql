@@ -111,9 +111,7 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
-    SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
-    ktable.toStream().foreach(new QueuePopulator(rowQueue, limit));
-    return new QueuedSchemaKStream(this, rowQueue, Type.SINK);
+    return new QueuedSchemaKStream(this, limit);
   }
 
   @Override
@@ -125,8 +123,7 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList)
-      throws Exception {
+  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
     CodeGenRunner codeGenRunner = new CodeGenRunner();
     // TODO: Optimize to remove the code gen for constants and single
     // TODO: columns references and use them directly.

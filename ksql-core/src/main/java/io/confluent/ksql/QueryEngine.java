@@ -216,8 +216,7 @@ public class QueryEngine {
     KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder =
-        new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getKafkaTopicClient());
+    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getKafkaTopicClient());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -234,93 +233,128 @@ public class QueryEngine {
           schemaKStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = ksqlEngine.getKsqlConfig()
-        .get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
-    String persistanceQueryPrefix = ksqlEngine.getKsqlConfig()
-        .get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
-    String transientQueryPrefix = ksqlEngine.getKsqlConfig()
-        .get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
+    String serviceId = ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String persistanceQueryPrefix = ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
+    String transientQueryPrefix = ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
+
     if (isBareQuery) {
-      String applicationId = getBareQueryApplicationId(serviceId, transientQueryPrefix);
-      if (addUniqueTimeSuffix) {
-        applicationId = addTimeSuffix(applicationId);
-      }
 
-      KafkaStreams streams =
-          buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
-
-      QueuedSchemaKStream queuedSchemaKStream = (QueuedSchemaKStream) schemaKStream;
-      KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
-
-      SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
-
-      physicalPlans.add(new QueuedQueryMetadata(
-          statementPlanPair.getLeft(),
-          streams,
-          ksqlBareOutputNode,
-          schemaKStream.getExecutionPlan(""),
-          queuedSchemaKStream.getQueue(),
-          (sourceSchemaKstream instanceof SchemaKTable)?
-          DataSource.DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM
-      ));
+      physicalPlans.add(buildPlanForBareQuery(addUniqueTimeSuffix, statementPlanPair, overriddenStreamsProperties,
+              builder, ksqlConfigClone, (QueuedSchemaKStream) schemaKStream, (KsqlBareOutputNode) outputNode,
+              serviceId, transientQueryPrefix));
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
-      long queryId = getNextQueryId();
 
-      String applicationId =  serviceId + persistanceQueryPrefix +
-                             queryId;
-      if (addUniqueTimeSuffix) {
-        applicationId = addTimeSuffix(applicationId);
-      }
+      physicalPlans.add(buildPlanForStructuredOutputNode(addUniqueTimeSuffix, statementPlanPair,
+              overriddenStreamsProperties, updateMetastore, builder, ksqlConfigClone, schemaKStream,
+              (KsqlStructuredDataOutputNode) outputNode, serviceId, persistanceQueryPrefix));
 
-      KafkaStreams streams =
-          buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
-
-      KsqlStructuredDataOutputNode kafkaTopicOutputNode =
-          (KsqlStructuredDataOutputNode) outputNode;
-      physicalPlans.add(
-          new PersistentQueryMetadata(statementPlanPair.getLeft(),
-                                      streams, kafkaTopicOutputNode, schemaKStream
-                                          .getExecutionPlan(""), queryId,
-                                      (schemaKStream instanceof SchemaKTable)? DataSource
-                                          .DataSourceType.KTABLE: DataSource.DataSourceType.KSTREAM)
-      );
-
-      MetaStore metaStore = ksqlEngine.getMetaStore();
-      if (metaStore.getTopic(kafkaTopicOutputNode.getKafkaTopicName()) == null) {
-        metaStore.putTopic(kafkaTopicOutputNode.getKsqlTopic());
-      }
-      StructuredDataSource sinkDataSource;
-      if (schemaKStream instanceof SchemaKTable) {
-        SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
-        sinkDataSource =
-            new KsqlTable(kafkaTopicOutputNode.getId().toString(),
-                          kafkaTopicOutputNode.getSchema(),
-                          schemaKStream.getKeyField(),
-                          kafkaTopicOutputNode.getTimestampField(),
-                          kafkaTopicOutputNode.getKsqlTopic(),
-                          kafkaTopicOutputNode.getId().toString() +
-                          ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
-                          schemaKTable.isWindowed());
-      } else {
-        sinkDataSource =
-            new KsqlStream(kafkaTopicOutputNode.getId().toString(),
-                           kafkaTopicOutputNode.getSchema(),
-                           schemaKStream.getKeyField(),
-                           kafkaTopicOutputNode.getTimestampField(),
-                           kafkaTopicOutputNode.getKsqlTopic());
-      }
-
-      if (updateMetastore) {
-        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
-      }
     } else {
       throw new KsqlException("Sink data source is not correct.");
     }
+
     log.info("Build physical plan for {}.", statementPlanPair.getLeft());
     log.info(" Execution plan: \n");
     log.info(schemaKStream.getExecutionPlan(""));
   }
+
+  /**
+   *
+   * @param addUniqueTimeSuffix
+   * @param statementPlanPair
+   * @param overriddenStreamsProperties
+   * @param builder
+   * @param ksqlConfigClone
+   * @param bareOutputNode
+   * @param serviceId
+   * @param transientQueryPrefix
+   */
+  private QueryMetadata buildPlanForBareQuery(boolean addUniqueTimeSuffix,
+                                              Pair<String, PlanNode> statementPlanPair, Map<String, Object> overriddenStreamsProperties,
+                                              KStreamBuilder builder, KsqlConfig ksqlConfigClone, QueuedSchemaKStream schemaKStream,
+                                              KsqlBareOutputNode bareOutputNode, String serviceId, String transientQueryPrefix) {
+
+    String applicationId = getBareQueryApplicationId(serviceId, transientQueryPrefix);
+    if (addUniqueTimeSuffix) {
+      applicationId = addTimeSuffix(applicationId);
+    }
+
+    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
+
+    SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
+
+    return new QueuedQueryMetadata(
+            statementPlanPair.getLeft(),
+            streams,
+            bareOutputNode,
+            schemaKStream.getExecutionPlan(""),
+            schemaKStream.getQueue(),
+            (sourceSchemaKstream instanceof SchemaKTable) ?
+                    DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
+    );
+  }
+
+  /**
+   *
+   * @param addUniqueTimeSuffix
+   * @param statementPlanPair
+   * @param overriddenStreamsProperties
+   * @param updateMetastore
+   * @param builder
+   * @param ksqlConfigClone
+   * @param schemaKStream
+   * @param serviceId
+   * @param persistanceQueryPrefix
+   */
+  private QueryMetadata buildPlanForStructuredOutputNode(boolean addUniqueTimeSuffix,
+                                                         Pair<String, PlanNode> statementPlanPair, Map<String, Object> overriddenStreamsProperties,
+                                                         boolean updateMetastore, KStreamBuilder builder, KsqlConfig ksqlConfigClone, SchemaKStream schemaKStream,
+                                                         KsqlStructuredDataOutputNode outputNode, String serviceId, String persistanceQueryPrefix) {
+
+    long queryId = getNextQueryId();
+
+    String applicationId = serviceId + persistanceQueryPrefix + queryId;
+    if (addUniqueTimeSuffix) {
+      applicationId = addTimeSuffix(applicationId);
+    }
+
+    MetaStore metaStore = ksqlEngine.getMetaStore();
+    if (metaStore.getTopic(outputNode.getKafkaTopicName()) == null) {
+      metaStore.putTopic(outputNode.getKsqlTopic());
+    }
+    StructuredDataSource sinkDataSource;
+    if (schemaKStream instanceof SchemaKTable) {
+      SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
+      sinkDataSource =
+              new KsqlTable(outputNode.getId().toString(),
+                      outputNode.getSchema(),
+                      schemaKStream.getKeyField(),
+                      outputNode.getTimestampField(),
+                      outputNode.getKsqlTopic(),
+                      outputNode.getId().toString() +
+                              ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+                      schemaKTable.isWindowed());
+    } else {
+      sinkDataSource =
+              new KsqlStream(outputNode.getId().toString(),
+                      outputNode.getSchema(),
+                      schemaKStream.getKeyField(),
+                      outputNode.getTimestampField(),
+                      outputNode.getKsqlTopic());
+    }
+
+    if (updateMetastore) {
+      metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+    }
+    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
+
+    return new PersistentQueryMetadata(statementPlanPair.getLeft(),
+            streams, outputNode, schemaKStream
+            .getExecutionPlan(""), queryId,
+            (schemaKStream instanceof SchemaKTable) ? DataSource
+                    .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
+  }
+
 
   public DDLCommandResult handleDdlStatement(
       final Statement statement,

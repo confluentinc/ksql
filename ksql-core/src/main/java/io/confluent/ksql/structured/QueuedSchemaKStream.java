@@ -21,40 +21,46 @@ import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Windowed;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 
 public class QueuedSchemaKStream extends SchemaKStream {
 
-  private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
 
   public QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                              final List<SchemaKStream> sourceSchemaKStreams,
-                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
-                             Type type) {
+                             Type type,
+                             Optional<Integer> limit
+  ) {
     super(schema, kstream, keyField, sourceSchemaKStreams, type);
-    this.rowQueue = rowQueue;
+    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
 
   public QueuedSchemaKStream(SchemaKStream schemaKStream,
-                             SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
-                             Type type) {
+                             Optional<Integer> limit
+  ) {
     this(
-        schemaKStream.schema,
-        schemaKStream.kstream,
-        schemaKStream.keyField,
-        schemaKStream.sourceSchemaKStreams,
-        rowQueue,
-        type
+            schemaKStream.schema,
+            schemaKStream.getKstream(),
+            schemaKStream.keyField,
+            schemaKStream.sourceSchemaKStreams,
+            Type.SINK,
+            limit
     );
   }
 
@@ -122,5 +128,42 @@ public class QueuedSchemaKStream extends SchemaKStream {
   @Override
   public List<SchemaKStream> getSourceSchemaKStreams() {
     return super.getSourceSchemaKStreams();
+  }
+
+  protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
+    private final SynchronousQueue<KeyValue<String, GenericRow>> queue;
+    private final Optional<Integer> limit;
+    private int counter = 0;
+
+    public QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue,
+                          Optional<Integer> limit) {
+      this.queue = queue;
+      this.limit = limit;
+    }
+
+    @Override
+    public void apply(K key, GenericRow row) {
+      try {
+        if (row == null) {
+          return;
+        }
+        if (limit.isPresent()) {
+          counter++;
+          if (counter > limit.get()) {
+            throw new KsqlException("LIMIT reached for the partition.");
+          }
+        }
+        String keyString;
+        if (key instanceof Windowed) {
+          Windowed windowedKey = (Windowed) key;
+          keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
+        } else {
+          keyString = Objects.toString(key);
+        }
+        queue.put(new KeyValue<>(keyString, row));
+      } catch (InterruptedException exception) {
+        throw new KsqlException("InterruptedException while enqueueing:" + key);
+      }
+    }
   }
 }

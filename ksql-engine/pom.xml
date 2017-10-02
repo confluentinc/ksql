@@ -10,7 +10,7 @@
         <version>0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-core</artifactId>
+    <artifactId>ksql-engine</artifactId>
 
     <dependencies>
         <dependency>

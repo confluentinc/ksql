@@ -231,11 +231,10 @@ public class PhysicalPlanBuilder {
       this.planSink = ksqlStructuredDataOutputNodeWithRowkey;
       return resultSchemaStream;
     } else if (outputNode instanceof KsqlBareOutputNode) {
-      SchemaKStream resultSchemaStream = schemaKStream.toQueue(outputNode.getLimit());
-      KsqlBareOutputNode ksqlBareOutputNode = (KsqlBareOutputNode) outputNode;
-      this.planSink = ksqlBareOutputNode;
-      return resultSchemaStream;
+      this.planSink = outputNode;
+      return schemaKStream.toQueue(outputNode.getLimit());
     }
+
     throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
   }
 
@@ -586,8 +585,7 @@ public class PhysicalPlanBuilder {
       newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
     }
 
-    KStream rekeyedKStream = sourceSchemaKStream.getKstream().selectKey(new KeyValueMapper<String,
-        GenericRow, String>() {
+    KStream rekeyedKStream = sourceSchemaKStream.getKstream().selectKey(new KeyValueMapper<String, GenericRow, String>() {
 
       @Override
       public String apply(String key, GenericRow value) {

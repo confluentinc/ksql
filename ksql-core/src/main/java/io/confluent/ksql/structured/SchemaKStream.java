@@ -78,9 +78,7 @@ public class SchemaKStream {
   }
 
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
-    SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
-    kstream.foreach(new QueuePopulator(rowQueue, limit));
-    return new QueuedSchemaKStream(this, rowQueue, Type.SINK);
+    return new QueuedSchemaKStream(this, limit);
   }
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
@@ -279,44 +277,6 @@ public class SchemaKStream {
 
   public List<SchemaKStream> getSourceSchemaKStreams() {
     return sourceSchemaKStreams;
-  }
-
-  protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-    private final SynchronousQueue<KeyValue<String, GenericRow>> queue;
-    private final Optional<Integer> limit;
-    private int counter = 0;
-
-    public QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue,
-                          Optional<Integer> limit) {
-      this.queue = queue;
-      this.limit = limit;
-    }
-
-    @Override
-    public void apply(K key, GenericRow row) {
-      try {
-        if (row == null) {
-          return;
-        }
-        if (limit.isPresent()) {
-          counter ++;
-          if (counter > limit.get()) {
-            throw new KsqlException("LIMIT reached for the partition.");
-          }
-        }
-        String keyString;
-        if (key instanceof Windowed) {
-          Windowed windowedKey = (Windowed) key;
-          keyString = String.format("%s : %s", windowedKey.key(), windowedKey.window());
-        } else {
-          keyString = Objects.toString(key);
-        }
-        queue.put(new KeyValue<>(keyString, row));
-      } catch (InterruptedException exception) {
-        log.error(" Exception while enqueuing the row: " + key + " : " + row);
-        log.error(" Exception: " + exception.getMessage());
-      }
-    }
   }
 
   public String getExecutionPlan(String indent) {

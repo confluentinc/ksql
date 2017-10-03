@@ -129,6 +129,36 @@ CREATE STREAM pageviews_transformed \
   PARTITION BY userid;
 ```
 
+Use a `[ WHERE condition ]` clause to select a subset of data.  If you want to route streams with different criteria to different streams backed by different underlying Kafka topics, e.g. content-based routing, write multiple KSQL statements as follows:
+
+```sql
+CREATE STREAM pageviews_transformed_priority_1 \
+  WITH (timestamp='viewtime', \
+        partitions=5, \
+        value_format='JSON') AS \
+  SELECT viewtime, \
+         userid, \
+         pageid, \
+         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
+  FROM pageviews \
+  WHERE userid='User_1' OR userid='User_2' \
+  PARTITION BY userid;
+```
+
+```sql
+CREATE STREAM pageviews_transformed_priority_2 \
+  WITH (timestamp='viewtime', \
+        partitions=5, \
+        value_format='JSON') AS \
+  SELECT viewtime, \
+         userid, \
+         pageid, \
+         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
+  FROM pageviews \
+  WHERE userid<>'User_1' AND userid<>'User_2' \
+  PARTITION BY userid;
+```
+
 
 ### Joining
 

@@ -28,7 +28,7 @@ import java.util.Set;
 
 public class KsqlConfig extends AbstractConfig {
 
-  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
+  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";

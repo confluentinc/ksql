@@ -162,13 +162,14 @@ public class PhysicalPlanBuilder {
 
       Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
           .getOutputProperties();
-      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)) {
-        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS,
-                       outputProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS));
+      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
+        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+                       outputProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
       }
-      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)) {
-        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS,
-                       outputProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS));
+      if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY)) {
+        ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY,
+                       outputProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY
+                       ));
       }
       SchemaKStream resultSchemaStream = schemaKStream;
       if (!(resultSchemaStream instanceof SchemaKTable)) {

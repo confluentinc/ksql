@@ -28,15 +28,23 @@ import java.util.Set;
 
 public class KsqlConfig extends AbstractConfig {
 
+  public static final String KSQL_CONFIG_PREPERTY_PREFIX = "ksql.";
+
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
+  public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
   public static final String DEFAULT_SINK_NUMBER_OF_PARTITIONS = "ksql.sink.partitions.default";
+
   public static final String SINK_NUMBER_OF_REPLICATIONS = "REPLICATIONS";
+  public static final String SINK_NUMBER_OF_REPLICATIONS_PROPERTY = "ksql.sink.replications";
   public static final String DEFAULT_SINK_NUMBER_OF_REPLICATIONS = "ksql.sink.replications.default";
+
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
+  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY =
+      "ksql.sink.window.change.log.additional.retention";
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
 
@@ -102,87 +110,87 @@ public class KsqlConfig extends AbstractConfig {
   public int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
+  Map<String, Object> ksqlStreamConfigProps;
 
-  private static final ConfigDef CONFIG_DEF = new ConfigDef(StreamsConfig.configDef());
+  private static final ConfigDef CONFIG_DEF = new ConfigDef();
 
   public KsqlConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
 
     ksqlConfigProps = new HashMap<>();
+    ksqlStreamConfigProps = new HashMap<>();
     ksqlConfigProps.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
     ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
 
     if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS,
+      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
                           Integer.parseInt(props.get(DEFAULT_SINK_NUMBER_OF_PARTITIONS).toString()));
     } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS, defaultSinkNumberOfPartitions);
+      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, defaultSinkNumberOfPartitions);
     }
 
     if (props.containsKey(DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS,
+      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY,
                           Short.parseShort(props.get(DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString()));
     } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS, defaultSinkNumberOfReplications);
+      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, defaultSinkNumberOfReplications);
     }
 
     if (props.containsKey(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION)) {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
                           Long.parseLong(props.get(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION).toString()));
     } else {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
                           defaultSinkWindowChangeLogAdditionalRetention);
     }
 
-    ksqlConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
-    ksqlConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
-    ksqlConfigProps.put(
+    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
+    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
+    ksqlStreamConfigProps.put(
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
-    ksqlConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
-
-
-
+    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
 
     for (Object propKey: props.keySet()) {
-      ksqlConfigProps.put(propKey.toString(), props.get(propKey));
+      if (propKey.toString().toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+        ksqlConfigProps.put(propKey.toString(), props.get(propKey));
+      } else {
+        ksqlStreamConfigProps.put(propKey.toString(), props.get(propKey));
+      }
     }
 
-  }
-
-  protected KsqlConfig(ConfigDef config, Map<?, ?> props) {
-    super(config, props);
-  }
-
-  public Map<String, Object> getStreamsProperties() {
-    return (Map<String, Object>) new StreamsConfig(originals()).values();
   }
 
   public Map<String, Object> getKsqlConfigProps() {
     return ksqlConfigProps;
   }
 
+  public Map<String, Object> getKsqlStreamConfigProps() {
+    return ksqlStreamConfigProps;
+  }
+
   public Object get(String propertyName) {
-    return ksqlConfigProps.get(propertyName);
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+      return ksqlConfigProps.get(propertyName);
+    } else {
+      return ksqlStreamConfigProps.get(propertyName);
+    }
   }
 
   public void put(String propertyName, Object propertyValue) {
-    ksqlConfigProps.put(propertyName, propertyValue);
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+      ksqlConfigProps.put(propertyName, propertyValue);
+    } else {
+      ksqlStreamConfigProps.put(propertyName, propertyValue);
+    }
   }
 
   public KsqlConfig clone() {
-    return new KsqlConfig(this.ksqlConfigProps);
+    Map<String, Object> clonedProperties = new HashMap<>();
+    clonedProperties.putAll(ksqlConfigProps);
+    clonedProperties.putAll(ksqlStreamConfigProps);
+    return new KsqlConfig(clonedProperties);
   }
 
-  public static Set<String> getConfigVariableNames() {
-    Set<String> configVariables = new HashSet();
-
-    configVariables.add(SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
-    configVariables.add(SINK_NUMBER_OF_PARTITIONS.toUpperCase());
-    configVariables.add(SINK_NUMBER_OF_REPLICATIONS.toUpperCase());
-    configVariables.add(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION.toUpperCase());
-
-    return configVariables;
-  }
 }

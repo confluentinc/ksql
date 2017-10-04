@@ -379,7 +379,10 @@ public class KsqlEngine implements Closeable {
   }
 
   public Map<String, Object> getKsqlConfigProperties() {
-    return ksqlConfig.getKsqlConfigProps();
+    Map<String, Object> configProperties = new HashMap<>();
+    configProperties.putAll(ksqlConfig.getKsqlConfigProps());
+    configProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
+    return configProperties;
   }
 
   public KsqlConfig getKsqlConfig() {

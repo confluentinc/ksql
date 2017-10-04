@@ -57,7 +57,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
-      AdminClient.create(ksqlConfig.getKsqlConfigProps())
+      AdminClient.create(ksqlConfig.getKsqlStreamConfigProps())
           .createTopics(Collections.singleton(newTopic)).all().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
@@ -72,7 +72,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Set<String> listTopicNames() {
     try {
-      return AdminClient.create(ksqlConfig.getKsqlConfigProps())
+      return AdminClient.create(ksqlConfig.getKsqlStreamConfigProps())
           .listTopics().names().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve kafka topic names", e);
@@ -81,7 +81,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
-      return AdminClient.create(ksqlConfig.getKsqlConfigProps())
+      return AdminClient.create(ksqlConfig.getKsqlStreamConfigProps())
           .describeTopics(topicNames).all().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);

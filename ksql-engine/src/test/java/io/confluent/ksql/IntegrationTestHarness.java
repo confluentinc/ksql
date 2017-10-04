@@ -165,7 +165,7 @@ public class IntegrationTestHarness {
     integrationTestHarness.produceData(topicName, orderDataProvider.data(), orderDataProvider.schema());
 
 
-    KsqlContext ksqlContext = new KsqlContext(ksqlConfig.getKsqlConfigProps());
+    KsqlContext ksqlContext = new KsqlContext(ksqlConfig.getKsqlStreamConfigProps());
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
                     + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
     ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");

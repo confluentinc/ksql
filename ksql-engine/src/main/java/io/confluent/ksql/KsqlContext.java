@@ -16,12 +16,15 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,8 @@ public class KsqlContext {
   final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
+  private final AdminClient adminClient;
+  private final KafkaTopicClientImpl topicClient;
 
   public KsqlContext() {
     this(null);
@@ -59,7 +64,15 @@ public class KsqlContext {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+
+    adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
+    topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+  }
+
+
+  public MetaStore getMetaStore() {
+    return ksqlEngine.getMetaStore();
   }
 
   /**
@@ -69,8 +82,7 @@ public class KsqlContext {
    * @throws Exception
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
-        false, sql, Collections.emptyMap());
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(true, sql, Collections.emptyMap());
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -84,6 +96,12 @@ public class KsqlContext {
         log.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
+  }
+
+  public void close() throws IOException {
+    ksqlEngine.close();
+    topicClient.close();
+    adminClient.close();
   }
 
   /**

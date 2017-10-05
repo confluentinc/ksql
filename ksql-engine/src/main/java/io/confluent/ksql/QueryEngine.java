@@ -216,7 +216,7 @@ public class QueryEngine {
     KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getKafkaTopicClient());
+    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getTopicClient());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -375,10 +375,10 @@ public class QueryEngine {
       return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
     } else if (statement instanceof CreateStream) {
       return new CreateStreamCommand((CreateStream) statement, overriddenProperties,
-                                     ksqlEngine.getKafkaTopicClient());
+                                     ksqlEngine.getTopicClient());
     } else if (statement instanceof CreateTable) {
       return new CreateTableCommand((CreateTable) statement, overriddenProperties,
-                                    ksqlEngine.getKafkaTopicClient());
+                                    ksqlEngine.getTopicClient());
     } else if (statement instanceof DropStream) {
       return new DropSourceCommand((DropStream) statement);
     } else if (statement instanceof DropTable) {

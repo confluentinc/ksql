@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -168,6 +169,17 @@ public class KsqlConfig extends AbstractConfig {
 
   public Map<String, Object> getKsqlStreamConfigProps() {
     return ksqlStreamConfigProps;
+  }
+
+  public Map<String, Object> getKsqlAdminClientConfigProps() {
+    Set<String> adminClientConfigProperties = AdminClientConfig.configNames();
+    Map<String, Object> adminClientConfigs = new HashMap<>();
+    for (String propertyName: ksqlStreamConfigProps.keySet()) {
+      if (adminClientConfigProperties.contains(propertyName)) {
+        adminClientConfigs.put(propertyName, ksqlStreamConfigProps.get(propertyName));
+      }
+    }
+    return adminClientConfigs;
   }
 
   public Object get(String propertyName) {

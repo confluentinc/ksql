@@ -25,8 +25,8 @@ import java.util.Optional;
 
 public class KsqlTable extends StructuredDataSource {
 
-  final String stateStoreName;
-  final boolean isWindowed;
+  private final String stateStoreName;
+  private final boolean isWindowed;
 
   public KsqlTable(final String datasourceName, final Schema schema, final Field keyField,
                    final Field timestampField,

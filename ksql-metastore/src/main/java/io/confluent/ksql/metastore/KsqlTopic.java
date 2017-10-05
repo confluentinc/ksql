@@ -22,9 +22,9 @@ import io.confluent.ksql.util.KsqlException;
 
 public class KsqlTopic implements DataSource {
 
-  final String topicName;
-  final String kafkaTopicName;
-  final KsqlTopicSerDe ksqlTopicSerDe;
+  private final String topicName;
+  private final String kafkaTopicName;
+  private final KsqlTopicSerDe ksqlTopicSerDe;
 
   public KsqlTopic(final String topicName, final String kafkaTopicName, final KsqlTopicSerDe
       ksqlTopicSerDe) {
@@ -43,19 +43,6 @@ public class KsqlTopic implements DataSource {
 
   public String getTopicName() {
     return topicName;
-  }
-
-  public static DataSourceSerDe getDataSpDataSourceSerDe(String dataSourceSerdeName) {
-    switch (dataSourceSerdeName) {
-      case "JSON":
-        return DataSourceSerDe.JSON;
-      case "AVRO":
-        return DataSourceSerDe.AVRO;
-      case "DELIMITED":
-        return DataSourceSerDe.DELIMITED;
-      default:
-        throw new KsqlException("DataSource Type is not supported: " + dataSourceSerdeName);
-    }
   }
 
   @Override

@@ -19,18 +19,13 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.annotation.JsonView;
 
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

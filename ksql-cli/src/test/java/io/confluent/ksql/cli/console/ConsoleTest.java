@@ -18,8 +18,8 @@ package io.confluent.ksql.cli.console;
 
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.TestTerminal;
-import io.confluent.ksql.metastore.DataSource;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -38,7 +38,6 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Test;
@@ -52,7 +51,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class ConsoleTest {

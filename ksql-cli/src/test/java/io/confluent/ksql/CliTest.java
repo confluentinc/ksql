@@ -107,7 +107,7 @@ public class CliTest extends TestRunner {
     testListOrShowCommands();
 
     orderDataProvider = new OrderDataProvider();
-    restServer.getKsqlEngine().getKafkaTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
+    restServer.getKsqlEngine().getTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
     produceInputStream(orderDataProvider);
   }
 

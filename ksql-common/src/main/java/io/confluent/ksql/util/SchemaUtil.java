@@ -104,7 +104,7 @@ public class SchemaUtil {
     }
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
-      int dotIndex = field.name().indexOf(".");
+      int dotIndex = field.name().indexOf('.');
       if (dotIndex == -1) {
         if (field.name().equals(fieldName)) {
           return i;
@@ -189,7 +189,7 @@ public class SchemaUtil {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       String fieldName = field.name();
-      fieldName = fieldName.substring(fieldName.indexOf(".") + 1);
+      fieldName = fieldName.substring(fieldName.indexOf('.') + 1);
       if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
           && !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         schemaBuilder.field(fieldName, field.schema());

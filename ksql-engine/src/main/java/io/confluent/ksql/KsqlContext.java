@@ -82,7 +82,8 @@ public class KsqlContext {
    * @throws Exception
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(true, sql, Collections.emptyMap());
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
+        .emptyMap());
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

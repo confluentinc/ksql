@@ -216,7 +216,7 @@ public class QueryEngine {
     KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getKafkaTopicClient());
+    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getTopicClient());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -240,14 +240,14 @@ public class QueryEngine {
     if (isBareQuery) {
 
       physicalPlans.add(buildPlanForBareQuery(addUniqueTimeSuffix, statementPlanPair, overriddenStreamsProperties,
-              builder, ksqlConfigClone, (QueuedSchemaKStream) schemaKStream, (KsqlBareOutputNode) outputNode,
-              serviceId, transientQueryPrefix));
+                                              builder, ksqlConfigClone, (QueuedSchemaKStream) schemaKStream, (KsqlBareOutputNode) outputNode,
+                                              serviceId, transientQueryPrefix));
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
 
       physicalPlans.add(buildPlanForStructuredOutputNode(addUniqueTimeSuffix, statementPlanPair,
-              overriddenStreamsProperties, updateMetastore, builder, ksqlConfigClone, schemaKStream,
-              (KsqlStructuredDataOutputNode) outputNode, serviceId, persistanceQueryPrefix));
+                                                         overriddenStreamsProperties, updateMetastore, builder, ksqlConfigClone, schemaKStream,
+                                                         (KsqlStructuredDataOutputNode) outputNode, serviceId, persistanceQueryPrefix));
 
     } else {
       throw new KsqlException("Sink data source is not correct.");
@@ -284,13 +284,13 @@ public class QueryEngine {
     SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
     return new QueuedQueryMetadata(
-            statementPlanPair.getLeft(),
-            streams,
-            bareOutputNode,
-            schemaKStream.getExecutionPlan(""),
-            schemaKStream.getQueue(),
-            (sourceSchemaKstream instanceof SchemaKTable) ?
-                    DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
+        statementPlanPair.getLeft(),
+        streams,
+        bareOutputNode,
+        schemaKStream.getExecutionPlan(""),
+        schemaKStream.getQueue(),
+        (sourceSchemaKstream instanceof SchemaKTable) ?
+        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
     );
   }
 
@@ -326,21 +326,21 @@ public class QueryEngine {
     if (schemaKStream instanceof SchemaKTable) {
       SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
-              new KsqlTable(outputNode.getId().toString(),
-                      outputNode.getSchema(),
-                      schemaKStream.getKeyField(),
-                      outputNode.getTimestampField(),
-                      outputNode.getKsqlTopic(),
-                      outputNode.getId().toString() +
-                              ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
-                      schemaKTable.isWindowed());
+          new KsqlTable(outputNode.getId().toString(),
+                        outputNode.getSchema(),
+                        schemaKStream.getKeyField(),
+                        outputNode.getTimestampField(),
+                        outputNode.getKsqlTopic(),
+                        outputNode.getId().toString() +
+                        ksqlEngine.getKsqlConfig().get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+                        schemaKTable.isWindowed());
     } else {
       sinkDataSource =
-              new KsqlStream(outputNode.getId().toString(),
-                      outputNode.getSchema(),
-                      schemaKStream.getKeyField(),
-                      outputNode.getTimestampField(),
-                      outputNode.getKsqlTopic());
+          new KsqlStream(outputNode.getId().toString(),
+                         outputNode.getSchema(),
+                         schemaKStream.getKeyField(),
+                         outputNode.getTimestampField(),
+                         outputNode.getKsqlTopic());
     }
 
     if (updateMetastore) {
@@ -349,10 +349,10 @@ public class QueryEngine {
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfigClone, overriddenStreamsProperties);
 
     return new PersistentQueryMetadata(statementPlanPair.getLeft(),
-            streams, outputNode, schemaKStream
-            .getExecutionPlan(""), queryId,
-            (schemaKStream instanceof SchemaKTable) ? DataSource
-                    .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
+                                       streams, outputNode, schemaKStream
+                                           .getExecutionPlan(""), queryId,
+                                       (schemaKStream instanceof SchemaKTable) ? DataSource
+                                           .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
   }
 
 
@@ -375,10 +375,10 @@ public class QueryEngine {
       return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
     } else if (statement instanceof CreateStream) {
       return new CreateStreamCommand((CreateStream) statement, overriddenProperties,
-                                     ksqlEngine.getKafkaTopicClient());
+                                     ksqlEngine.getTopicClient());
     } else if (statement instanceof CreateTable) {
       return new CreateTableCommand((CreateTable) statement, overriddenProperties,
-                                    ksqlEngine.getKafkaTopicClient());
+                                    ksqlEngine.getTopicClient());
     } else if (statement instanceof DropStream) {
       return new DropSourceCommand((DropStream) statement);
     } else if (statement instanceof DropTable) {
@@ -443,7 +443,7 @@ public class QueryEngine {
   // TODO: This should probably be changed
   private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {
     return  serviceId + transientQueryPrefix +
-           Math.abs(ThreadLocalRandom.current().nextLong());
+            Math.abs(ThreadLocalRandom.current().nextLong());
   }
 
   private String addTimeSuffix(String original) {

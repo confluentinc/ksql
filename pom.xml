@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>3.3.1-SNAPSHOT</version>
+        <version>3.3.0</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -24,7 +24,7 @@
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
     </modules>
-    
+
     <repositories>
         <repository>
             <id>confluent</id>
@@ -33,6 +33,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <kafka.version>0.11.0.1</kafka.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
@@ -49,7 +51,7 @@
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
-        <licenses.version>3.3.1-SNAPSHOT</licenses.version>
+        <licenses.version>3.3.0-SNAPSHOT</licenses.version>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <dockerfile-maven-plugin.version>1.3.4</dockerfile-maven-plugin.version>
         <generext.version>1.0.2</generext.version>
@@ -229,7 +231,7 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-                
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>

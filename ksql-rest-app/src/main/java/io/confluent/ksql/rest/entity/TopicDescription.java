@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
 
-import io.confluent.ksql.metastore.StructuredDataSource;
 
 @JsonTypeName("topic_description")
 public class TopicDescription extends KsqlEntity {

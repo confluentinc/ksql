@@ -71,20 +71,20 @@ public class KsqlEngine implements Closeable {
   private KsqlConfig ksqlConfig;
 
   private final MetaStore metaStore;
-  private final KafkaTopicClient kafkaTopicClient;
+  private final KafkaTopicClient topicClient;
   private final DDLCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
 
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
-  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient kafkaTopicClient) {
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
     this.ksqlConfig = ksqlConfig;
 
     this.metaStore = new MetaStoreImpl();
-    this.kafkaTopicClient = kafkaTopicClient;
+    this.topicClient = topicClient;
     this.ddlCommandExec = new DDLCommandExec(metaStore);
     this.queryEngine = new QueryEngine(this);
 
@@ -263,21 +263,21 @@ public class KsqlEngine implements Closeable {
     } else if (statement instanceof CreateStream) {
       ddlCommandExec.tryExecute(
               new CreateStreamCommand(
-                      (CreateStream) statement, overriddenProperties, kafkaTopicClient),
+                      (CreateStream) statement, overriddenProperties, topicClient),
               tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
               new CreateStreamCommand(
-                      (CreateStream) statement, overriddenProperties, kafkaTopicClient),
+                      (CreateStream) statement, overriddenProperties, topicClient),
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
               new CreateTableCommand(
-                      (CreateTable) statement, overriddenProperties, kafkaTopicClient),
+                      (CreateTable) statement, overriddenProperties, topicClient),
               tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
               new CreateTableCommand(
-                      (CreateTable) statement, overriddenProperties, kafkaTopicClient),
+                      (CreateTable) statement, overriddenProperties, topicClient),
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
@@ -345,8 +345,8 @@ public class KsqlEngine implements Closeable {
     return metaStore;
   }
 
-  public KafkaTopicClient getKafkaTopicClient() {
-    return kafkaTopicClient;
+  public KafkaTopicClient getTopicClient() {
+    return topicClient;
   }
 
   public DDLCommandExec getDDLCommandExec() {
@@ -392,7 +392,7 @@ public class KsqlEngine implements Closeable {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
     }
-    kafkaTopicClient.close();
+    topicClient.close();
   }
 
   public QueryEngine getQueryEngine() {

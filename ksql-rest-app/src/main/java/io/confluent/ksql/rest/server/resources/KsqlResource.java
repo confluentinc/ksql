@@ -247,7 +247,7 @@ public class KsqlResource {
   }
 
   private KafkaTopicsList listTopics(String statementText) {
-    KafkaTopicClient client = ksqlEngine.getKafkaTopicClient();
+    KafkaTopicClient client = ksqlEngine.getTopicClient();
     return KafkaTopicsList.build(statementText, getKsqlTopics(),
                                  client.describeTopics(client.listTopicNames()),
                                  ksqlEngine.getKsqlConfig());
@@ -373,14 +373,14 @@ public class KsqlResource {
 
     ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
-              new CreateStreamCommand((CreateStream) statement, properties, ksqlEngine.getKafkaTopicClient());
+              new CreateStreamCommand((CreateStream) statement, properties, ksqlEngine.getTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
-          new CreateTableCommand((CreateTable) statement, properties, ksqlEngine.getKafkaTopicClient());
+          new CreateTableCommand((CreateTable) statement, properties, ksqlEngine.getTopicClient());
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
       return statement.toString();
     });

@@ -21,7 +21,4 @@ public class KafkaTopicException extends KafkaTopicClientException {
     super(message);
   }
 
-  public KafkaTopicException(String message, Throwable throwable) {
-    super(message, throwable);
-  }
 }

@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
-  String stateStoreName;
+  private String stateStoreName;
 
   public CreateTableCommand(CreateTable createTable, Map<String, Object> overriddenProperties,
                             KafkaTopicClient kafkaTopicClient) {

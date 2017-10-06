@@ -27,13 +27,4 @@ public class ExceptionUtil {
     return sw.toString();
   }
 
-  public static String getCurrentStackTraceToString() {
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    StringBuilder sb = new StringBuilder();
-    for (StackTraceElement element : stackTraceElements) {
-      sb.append(element.toString());
-      sb.append("\n");
-    }
-    return sb.toString();
-  }
 }

@@ -40,15 +40,12 @@ public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public Merger getMerger() {
-    return new Merger<String, Double>() {
-      @Override
-      public Double apply(final String aggKey, final Double aggOne, final Double aggTwo) {
-        if (aggOne < aggTwo) {
-          return aggOne;
-        }
-        return aggTwo;
+  public Merger<String, Double> getMerger() {
+    return (aggKey, aggOne, aggTwo) -> {
+      if (aggOne < aggTwo) {
+        return aggOne;
       }
+      return aggTwo;
     };
   }
 }

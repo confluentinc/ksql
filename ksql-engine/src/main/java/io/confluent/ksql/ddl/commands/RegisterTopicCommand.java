@@ -52,9 +52,9 @@ public class RegisterTopicCommand implements DDLCommand {
     );
   }
 
-  public RegisterTopicCommand(String topicName, boolean notExist,
-                              Map<String, Expression> properties,
-                              Map<String, Object> overriddenProperties) {
+  RegisterTopicCommand(String topicName, boolean notExist,
+                       Map<String, Expression> properties,
+                       Map<String, Object> overriddenProperties) {
     this.topicName = topicName;
     // TODO: find a way to merge overriddenProperties
     enforceTopicProperties(properties);

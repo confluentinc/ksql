@@ -46,7 +46,7 @@ public class AggregateAnalyzerTest {
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null, null));
+    analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }
 
@@ -54,10 +54,10 @@ public class AggregateAnalyzerTest {
     System.out.println("Test query:" + queryStr);
     Analysis analysis = analyze(queryStr);
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
     AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
     for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+      aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.getNonAggResultColumns().add(expression);
       }
@@ -67,7 +67,7 @@ public class AggregateAnalyzerTest {
     }
 
     if (analysis.getHavingExpression() != null) {
-      aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null, null));
+      aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
       }

@@ -30,7 +30,7 @@ public class KsqlTimestampExtractor implements TimestampExtractor, Configurable 
 
   private static final Logger log = LoggerFactory.getLogger(KsqlTimestampExtractor.class);
 
-  int timestampColumnindex = -1;
+  private int timestampColumnindex = -1;
 
   @Override
   public void configure(Map<String, ?> map) {

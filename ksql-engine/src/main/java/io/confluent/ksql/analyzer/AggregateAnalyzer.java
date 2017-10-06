@@ -17,7 +17,6 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.KsqlFunctions;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -30,7 +29,6 @@ import io.confluent.ksql.util.SchemaUtil;
 public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   private AggregateAnalysis aggregateAnalysis;
-  private MetaStore metaStore;
   private Analysis analysis;
 
   private boolean hasAggregateFunction = false;
@@ -43,10 +41,9 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
     this.hasAggregateFunction = hasAggregateFunction;
   }
 
-  public AggregateAnalyzer(AggregateAnalysis aggregateAnalysis, MetaStore metaStore,
+  public AggregateAnalyzer(AggregateAnalysis aggregateAnalysis,
                            Analysis analysis) {
     this.aggregateAnalysis = aggregateAnalysis;
-    this.metaStore = metaStore;
     this.analysis = analysis;
   }
 

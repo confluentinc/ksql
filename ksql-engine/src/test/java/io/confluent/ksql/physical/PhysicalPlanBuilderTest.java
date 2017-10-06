@@ -71,14 +71,14 @@ public class PhysicalPlanBuilderTest {
         // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis, metaStore);
-        analyzer.process(statements.get(0), new AnalysisContext(null, null));
+        analyzer.process(statements.get(0), new AnalysisContext(null));
 
         AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-        AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore,
-                                                                    analysis);
+        AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
+            analysis);
         AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
         for (Expression expression: analysis.getSelectExpressions()) {
-            aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+            aggregateAnalyzer.process(expression, new AnalysisContext(null));
             if (!aggregateAnalyzer.isHasAggregateFunction()) {
                 aggregateAnalysis.getNonAggResultColumns().add(expression);
             }

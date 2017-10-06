@@ -22,13 +22,13 @@ import java.util.List;
 
 public class KsqlFunction {
 
-  final Schema returnType;
-  final List<Schema> arguments;
-  final String functionName;
-  final Class kudfClass;
+  private final Schema returnType;
+  private final List<Schema> arguments;
+  private final String functionName;
+  private final Class kudfClass;
 
-  public KsqlFunction(Schema returnType, List<Schema> arguments, String functionName,
-                      Class kudfClass) {
+  KsqlFunction(Schema returnType, List<Schema> arguments, String functionName,
+               Class kudfClass) {
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;
@@ -43,7 +43,7 @@ public class KsqlFunction {
     return arguments;
   }
 
-  public String getFunctionName() {
+  String getFunctionName() {
     return functionName;
   }
 

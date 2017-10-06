@@ -58,24 +58,19 @@ public class LogicalPlanner {
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();
     } else {
-      SourceNode sourceNode = buildSourceNode();
-      currentNode = sourceNode;
+      currentNode = buildSourceNode();
     }
     if (analysis.getWhereExpression() != null) {
-      FilterNode filterNode = buildFilterNode(currentNode.getSchema(), currentNode);
-      currentNode = filterNode;
+      currentNode = buildFilterNode(currentNode.getSchema(), currentNode);
     }
     if ((analysis.getGroupByExpressions() != null) && (!analysis.getGroupByExpressions()
         .isEmpty())) {
-      AggregateNode aggregateNode = buildAggregateNode(currentNode.getSchema(), currentNode);
-      currentNode = aggregateNode;
+      currentNode = buildAggregateNode(currentNode.getSchema(), currentNode);
     } else {
-      ProjectNode projectNode = buildProjectNode(currentNode.getSchema(), currentNode);
-      currentNode = projectNode;
+      currentNode = buildProjectNode(currentNode.getSchema(), currentNode);
     }
 
-    OutputNode outputNode = buildOutputNode(currentNode.getSchema(), currentNode);
-    return outputNode;
+    return buildOutputNode(currentNode.getSchema(), currentNode);
   }
 
   private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
@@ -84,9 +79,7 @@ public class LogicalPlanner {
     if (intoDataSource instanceof KsqlStdOut) {
       return new KsqlBareOutputNode(new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME), sourcePlanNode,
                                       inputSchema, analysis.getLimitClause());
-    } else if (intoDataSource instanceof StructuredDataSource) {
-      StructuredDataSource intoStructuredDataSource = (StructuredDataSource) intoDataSource;
-
+    } else if (intoDataSource != null) {
       Field timestampField = null;
       if (analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
         timestampField =
@@ -100,8 +93,8 @@ public class LogicalPlanner {
                                              sourcePlanNode,
                                              inputSchema, timestampField, sourcePlanNode
                                                   .getKeyField(),
-                                              intoStructuredDataSource.getKsqlTopic(),
-                                             intoStructuredDataSource.getKsqlTopic()
+                                              intoDataSource.getKsqlTopic(),
+                                             intoDataSource.getKsqlTopic()
                                                  .getTopicName(), analysis.getIntoProperties(),
                                               analysis.getLimitClause());
 

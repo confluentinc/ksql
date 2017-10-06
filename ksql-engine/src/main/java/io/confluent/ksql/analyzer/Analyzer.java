@@ -78,29 +78,29 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                                          final AnalysisContext context) {
 
     process(node.getFrom().get(),
-            new AnalysisContext(null, AnalysisContext.ParentType.FROM));
+            new AnalysisContext(AnalysisContext.ParentType.FROM));
 
-    process(node.getInto().get(), new AnalysisContext(null,
-                                                      AnalysisContext.ParentType.INTO));
+    process(node.getInto().get(), new AnalysisContext(
+        AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
       analyzeNonStdOutSink();
     }
 
-    process(node.getSelect(), new AnalysisContext(null,
-                                                  AnalysisContext.ParentType.SELECT));
+    process(node.getSelect(), new AnalysisContext(
+        AnalysisContext.ParentType.SELECT));
     if (node.getWhere().isPresent()) {
-      analyzeWhere(node.getWhere().get(), context);
+      analyzeWhere(node.getWhere().get());
     }
     if (node.getGroupBy().isPresent()) {
-      analyzeGroupBy(node.getGroupBy().get(), context);
+      analyzeGroupBy(node.getGroupBy().get());
     }
 
     if (node.getWindowExpression().isPresent()) {
-      analyzeWindowExpression(node.getWindowExpression().get(), context);
+      analyzeWindowExpression(node.getWindowExpression().get());
     }
 
     if (node.getHaving().isPresent()) {
-      analyzeHaving(node.getHaving().get(), context);
+      analyzeHaving(node.getHaving().get());
     }
 
     if (node.getLimit().isPresent()) {
@@ -116,7 +116,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   private void analyzeNonStdOutSink() {
     List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
-    StructuredDataSource intoStructuredDataSource = (StructuredDataSource) analysis.getInto();
+    StructuredDataSource intoStructuredDataSource = analysis.getInto();
     String intoKafkaTopicName = analysis.getIntoKafkaTopicName();
     if (intoKafkaTopicName == null) {
       intoKafkaTopicName = intoStructuredDataSource.getName();
@@ -408,28 +408,22 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private StructuredDataSource analyzeFrom(final QuerySpecification node,
-                                           final AnalysisContext context) {
-    return null;
-  }
-
-  private void analyzeWhere(final Node node, final AnalysisContext context) {
+  private void analyzeWhere(final Node node) {
     analysis.setWhereExpression((Expression) node);
   }
 
-  private void analyzeGroupBy(final GroupBy groupBy, final AnalysisContext context) {
+  private void analyzeGroupBy(final GroupBy groupBy) {
     for (GroupingElement groupingElement : groupBy.getGroupingElements()) {
       Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
       analysis.getGroupByExpressions().addAll(groupingSet);
     }
   }
 
-  private void analyzeWindowExpression(final WindowExpression windowExpression,
-                                       final AnalysisContext context) {
+  private void analyzeWindowExpression(final WindowExpression windowExpression) {
     analysis.setWindowExpression(windowExpression);
   }
 
-  private void analyzeHaving(final Node node, final AnalysisContext context) {
+  private void analyzeHaving(final Node node) {
     analysis.setHavingExpression((Expression) node);
   }
 
@@ -526,7 +520,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         }
         avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
       }
-      analysis.setIntoAvroSchemaFilePath(avroSchemaFilePath);
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
     }
   }

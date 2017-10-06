@@ -38,7 +38,7 @@ import java.util.Set;
 /**
  * Base class of create table/stream command
  */
-public abstract class AbstractCreateStreamCommand implements DDLCommand {
+abstract class AbstractCreateStreamCommand implements DDLCommand {
 
   String sourceName;
   String topicName;
@@ -47,11 +47,11 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   String timestampColumnName;
   boolean isWindowed;
   RegisterTopicCommand registerTopicCommand;
-  KafkaTopicClient kafkaTopicClient;
+  private KafkaTopicClient kafkaTopicClient;
 
-  public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
-                                     Map<String, Object> overriddenProperties,
-                                     KafkaTopicClient kafkaTopicClient) {
+  AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
+                              Map<String, Object> overriddenProperties,
+                              KafkaTopicClient kafkaTopicClient) {
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;

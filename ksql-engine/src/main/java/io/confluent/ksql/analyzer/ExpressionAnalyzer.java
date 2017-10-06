@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KsqlFunctions;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -39,15 +37,15 @@ import java.util.Optional;
 
 
 public class ExpressionAnalyzer {
-  final Schema schema;
-  final boolean isJoinSchema;
+  private final Schema schema;
+  private final boolean isJoinSchema;
 
-  public ExpressionAnalyzer(Schema schema, boolean isJoinSchema) {
+  ExpressionAnalyzer(Schema schema, boolean isJoinSchema) {
     this.schema = schema;
     this.isJoinSchema = isJoinSchema;
   }
 
-  public void analyzeExpression(Expression expression) {
+  void analyzeExpression(Expression expression) {
     Visitor visitor = new Visitor(schema);
     visitor.process(expression, null);
   }
@@ -67,8 +65,6 @@ public class ExpressionAnalyzer {
     }
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
-      String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(functionName);
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }

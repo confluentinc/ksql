@@ -42,7 +42,7 @@ public class SqlToJavaVisitor {
     return formatExpression(expression, true);
   }
 
-  public String formatExpression(final Expression expression, final boolean unmangleNames) {
+  private String formatExpression(final Expression expression, final boolean unmangleNames) {
     Pair<String, Schema>
         expressionFormatterResult =
         new SqlToJavaVisitor.Formatter().process(expression, unmangleNames);

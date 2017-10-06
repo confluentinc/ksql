@@ -56,7 +56,7 @@ public class CodeGenRunnerTest {
         // Analyze the query to resolve the references and extract oeprations
         Analysis analysis = new Analysis();
         Analyzer analyzer = new Analyzer(analysis, metaStore);
-        analyzer.process(statements.get(0), new AnalysisContext(null, null));
+        analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
     }
 

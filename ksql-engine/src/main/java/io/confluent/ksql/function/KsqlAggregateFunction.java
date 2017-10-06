@@ -23,12 +23,12 @@ import java.util.List;
 
 public abstract class KsqlAggregateFunction<V, A> {
 
-  final int argIndexInValue;
-  public final A intialValue;
-  final Schema returnType;
-  final List<Schema> arguments;
-  final String functionName;
-  final Class kudafClass;
+  private final int argIndexInValue;
+  private final A intialValue;
+  private final Schema returnType;
+  private final List<Schema> arguments;
+  private final String functionName;
+  private final Class kudafClass;
 
   public KsqlAggregateFunction(Integer argIndexInValue) {
     this.argIndexInValue = argIndexInValue;
@@ -68,13 +68,5 @@ public abstract class KsqlAggregateFunction<V, A> {
     return arguments;
   }
 
-  public String getFunctionName() {
-    return functionName;
-  }
-
-  public Class getKudafClass() {
-    return kudafClass;
-  }
-
-  public abstract Merger getMerger();
+  public abstract Merger<String, A> getMerger();
 }

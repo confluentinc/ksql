@@ -20,14 +20,12 @@ import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
 
 public class StreamsSelectAndProjectIntTest {
 
-
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> recordMetadataMap;
 
   @Before
   public void before() throws Exception {
-
     testHarness = new IntegrationTestHarness();
     testHarness.start();
     ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());

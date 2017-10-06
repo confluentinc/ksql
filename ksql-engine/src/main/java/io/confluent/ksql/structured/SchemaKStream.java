@@ -57,8 +57,8 @@ public class SchemaKStream {
   protected final Schema schema;
   protected final KStream kstream;
   protected final Field keyField;
-  protected final List<SchemaKStream> sourceSchemaKStreams;
-  protected final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  final List<SchemaKStream> sourceSchemaKStreams;
+  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   protected final Type type;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
@@ -83,20 +83,17 @@ public class SchemaKStream {
     createSinkTopic(kafkaTopicName, ksqlConfig, kafkaTopicClient);
 
     kstream
-        .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-          @Override
-          public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-            if (row == null) {
-              return new KeyValue<>(key, null);
-            }
-            List columns = new ArrayList();
-            for (int i = 0; i < row.getColumns().size(); i++) {
-              if (!rowkeyIndexes.contains(i)) {
-                columns.add(row.getColumns().get(i));
-              }
-            }
-            return new KeyValue<>(key, new GenericRow(columns));
+        .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+          if (row == null) {
+            return new KeyValue<>(key, null);
           }
+          List columns = new ArrayList();
+          for (int i = 0; i < row.getColumns().size(); i++) {
+            if (!rowkeyIndexes.contains(i)) {
+              columns.add(row.getColumns().get(i));
+            }
+          }
+          return new KeyValue<>(key, new GenericRow(columns));
         }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     return this;
   }
@@ -112,17 +109,14 @@ public class SchemaKStream {
 
     KStream
         projectedKStream =
-        kstream.map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-          @Override
-          public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-            List<Object> newColumns = new ArrayList();
-            for (Field schemaField : selectSchema.fields()) {
-              newColumns.add(
-                  row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name())));
-            }
-            GenericRow newRow = new GenericRow(newColumns);
-            return new KeyValue<String, GenericRow>(key, newRow);
+        kstream.map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+          List<Object> newColumns = new ArrayList();
+          for (Field schemaField : selectSchema.fields()) {
+            newColumns.add(
+                row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name())));
           }
+          GenericRow newRow = new GenericRow(newColumns);
+          return new KeyValue<>(key, newRow);
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this),
@@ -146,42 +140,39 @@ public class SchemaKStream {
     }
     KStream
         projectedKStream =
-        kstream.mapValues(new ValueMapper<GenericRow, GenericRow>() {
-          @Override
-          public GenericRow apply(GenericRow row) {
-            try {
-              List<Object> newColumns = new ArrayList();
-              for (int i = 0; i < expressionPairList.size(); i++) {
-                try {
-                  int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-                  Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-                  Object[] parameterObjects = new Object[parameterIndexes.length];
-                  for (int j = 0; j < parameterIndexes.length; j++) {
-                    if (parameterIndexes[j] < 0) {
-                      parameterObjects[j] = kudfs[j];
-                    } else {
-                      parameterObjects[j] = genericRowValueTypeEnforcer
-                          .enforceFieldType(parameterIndexes[j],
-                                            row.getColumns().get(parameterIndexes[j]));
-                    }
+        kstream.mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
+          try {
+            List<Object> newColumns = new ArrayList();
+            for (int i = 0; i < expressionPairList.size(); i++) {
+              try {
+                int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+                Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+                Object[] parameterObjects = new Object[parameterIndexes.length];
+                for (int j = 0; j < parameterIndexes.length; j++) {
+                  if (parameterIndexes[j] < 0) {
+                    parameterObjects[j] = kudfs[j];
+                  } else {
+                    parameterObjects[j] = genericRowValueTypeEnforcer
+                        .enforceFieldType(parameterIndexes[j],
+                                          row.getColumns().get(parameterIndexes[j]));
                   }
-                  Object columnValue = null;
-                  columnValue = expressionEvaluators
-                      .get(i).getExpressionEvaluator().evaluate(parameterObjects);
-                  newColumns.add(columnValue);
-                } catch (Exception ex) {
-                  log.error("Error calculating column with index " + i + " : " +
-                            expressionPairList.get(i).getLeft());
-                  newColumns.add(null);
                 }
+                Object columnValue = null;
+                columnValue = expressionEvaluators
+                    .get(i).getExpressionEvaluator().evaluate(parameterObjects);
+                newColumns.add(columnValue);
+              } catch (Exception ex) {
+                log.error("Error calculating column with index " + i + " : " +
+                          expressionPairList.get(i).getLeft());
+                newColumns.add(null);
               }
-              GenericRow newRow = new GenericRow(newColumns);
-              return newRow;
-            } catch (Exception e) {
-              log.error("Projection exception for row: " + row.toString());
-              log.error(e.getMessage(), e);
-              throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
             }
+            GenericRow newRow = new GenericRow(newColumns);
+            return newRow;
+          } catch (Exception e) {
+            log.error("Projection exception for row: " + row.toString());
+            log.error(e.getMessage(), e);
+            throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
           }
         });
 
@@ -196,23 +187,20 @@ public class SchemaKStream {
 
     KStream joinedKStream =
         kstream.leftJoin(
-            schemaKTable.getKtable(), new ValueJoiner<GenericRow, GenericRow, GenericRow>() {
-              @Override
-              public GenericRow apply(GenericRow leftGenericRow, GenericRow rightGenericRow) {
-                List<Object> columns = new ArrayList<>();
-                columns.addAll(leftGenericRow.getColumns());
-                if (rightGenericRow == null) {
-                  for (int i = leftGenericRow.getColumns().size();
-                       i < joinSchema.fields().size(); i++) {
-                    columns.add(null);
-                  }
-                } else {
-                  columns.addAll(rightGenericRow.getColumns());
+            schemaKTable.getKtable(), (ValueJoiner<GenericRow, GenericRow, GenericRow>) (leftGenericRow, rightGenericRow) -> {
+              List<Object> columns = new ArrayList<>();
+              columns.addAll(leftGenericRow.getColumns());
+              if (rightGenericRow == null) {
+                for (int i = leftGenericRow.getColumns().size();
+                     i < joinSchema.fields().size(); i++) {
+                  columns.add(null);
                 }
-
-                GenericRow joinGenericRow = new GenericRow(columns);
-                return joinGenericRow;
+              } else {
+                columns.addAll(rightGenericRow.getColumns());
               }
+
+              GenericRow joinGenericRow = new GenericRow(columns);
+              return joinGenericRow;
             }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
@@ -225,32 +213,20 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kstream.selectKey(new KeyValueMapper<String, GenericRow, String>() {
-      @Override
-      public String apply(String key, GenericRow value) {
+    KStream keyedKStream = kstream.selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
 
-        String
-            newKey =
-            value.getColumns().get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
-                .toString();
-        return newKey;
-      }
-    }).map(new KeyValueMapper<String, GenericRow, KeyValue<String,
-        GenericRow>>() {
-      @Override
-      public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
-        return new KeyValue<>(key, row);
-      }
+      String
+          newKey =
+          value.getColumns().get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
+              .toString();
+      return newKey;
+    }).map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+      row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+      return new KeyValue<>(key, row);
     });
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this),
                              Type.REKEY);
-  }
-
-  public SchemaKGroupedStream groupByKey() {
-    KGroupedStream kgroupedStream = kstream.groupByKey();
-    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
   }
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
@@ -285,7 +261,7 @@ public class SchemaKStream {
     return stringBuilder.toString();
   }
 
-  protected void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+  void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
     int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS);
     short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS);
     kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);

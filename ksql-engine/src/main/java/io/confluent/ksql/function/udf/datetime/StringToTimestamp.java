@@ -25,7 +25,7 @@ import io.confluent.ksql.function.udf.Kudf;
 
 public class StringToTimestamp implements Kudf {
 
-  DateFormat dateFormat = null;
+  private DateFormat dateFormat = null;
 
   @Override
   public void init() {

@@ -48,8 +48,8 @@ import java.util.Map;
 
 public class KsqlFunctions {
 
-  public static Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
-  public static Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
+  private static Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
+  private static Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
 
   static {
 
@@ -164,7 +164,7 @@ public class KsqlFunctions {
     return ksqlFunctionMap.get(functionName);
   }
 
-  public static void addFunction(KsqlFunction ksqlFunction) {
+  private static void addFunction(KsqlFunction ksqlFunction) {
     ksqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
   }
 
@@ -181,9 +181,7 @@ public class KsqlFunctions {
     }
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    KsqlAggregateFunction aggregateFunction =
-        ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
-    return aggregateFunction;
+    return ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
   }
 
   public static void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer

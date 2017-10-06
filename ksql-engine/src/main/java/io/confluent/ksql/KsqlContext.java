@@ -30,14 +30,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
-  final KsqlEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
   private final AdminClient adminClient;
@@ -53,7 +52,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  public KsqlContext(Map<String, Object> streamsProperties) {
+  KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -103,25 +102,5 @@ public class KsqlContext {
     ksqlEngine.close();
     topicClient.close();
     adminClient.close();
-  }
-
-  /**
-   * Terminate a query with the given id.
-   *
-   * @param queryId
-   */
-  public void terminateQuery(long queryId) {
-    if (!ksqlEngine.getPersistentQueries().containsKey(queryId)) {
-      throw new KsqlException(String.format("Invalid query id. Query id, %d, does not exist.",
-                                            queryId));
-    }
-    PersistentQueryMetadata persistentQueryMetadata = ksqlEngine
-        .getPersistentQueries().get(queryId);
-    persistentQueryMetadata.getKafkaStreams().close();
-    ksqlEngine.getPersistentQueries().remove(queryId);
-  }
-
-  public Map<Long, PersistentQueryMetadata> getRunningQueries() {
-    return ksqlEngine.getPersistentQueries();
   }
 }

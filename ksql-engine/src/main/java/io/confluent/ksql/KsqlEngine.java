@@ -370,10 +370,6 @@ public class KsqlEngine implements Closeable {
     return new HashMap<>(persistentQueries);
   }
 
-  public Set<QueryMetadata> getLiveQueries() {
-    return new HashSet<>(liveQueries);
-  }
-
   public static List<String> getImmutableProperties() {
     return new ArrayList<>(IMMUTABLE_PROPERTIES);
   }

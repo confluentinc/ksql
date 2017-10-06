@@ -21,10 +21,6 @@ public class DDLCommandResult {
   private final boolean success;
   private final String message;
 
-  public DDLCommandResult(boolean success) {
-    this(success, "");
-  }
-
   public DDLCommandResult(boolean success, String message) {
     this.success = success;
     this.message = message;

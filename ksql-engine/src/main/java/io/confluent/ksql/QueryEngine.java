@@ -88,13 +88,13 @@ public class QueryEngine {
   private final KsqlEngine ksqlEngine;
 
 
-  public QueryEngine(final KsqlEngine ksqlEngine) {
+  QueryEngine(final KsqlEngine ksqlEngine) {
     this.queryIdCounter = new AtomicLong(1);
     this.ksqlEngine = ksqlEngine;
   }
 
 
-  public List<Pair<String, PlanNode>> buildLogicalPlans(
+  List<Pair<String, PlanNode>> buildLogicalPlans(
       final MetaStore metaStore,
       final List<Pair<String, Statement>> statementList) {
 
@@ -116,20 +116,20 @@ public class QueryEngine {
     return logicalPlansList;
   }
 
-  public PlanNode buildQueryLogicalPlan(final Query query, final MetaStore tempMetaStore) {
+  private PlanNode buildQueryLogicalPlan(final Query query, final MetaStore tempMetaStore) {
 
     // Analyze the query to resolve the references and extract operations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
-    analyzer.process(query, new AnalysisContext(null, null));
+    analyzer.process(query, new AnalysisContext(null));
 
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, tempMetaStore, analysis);
+        AggregateAnalyzer(aggregateAnalysis, analysis);
     AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer
-          .process(expression, new AnalysisContext(null, null));
+          .process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.getNonAggResultColumns().add(expression);
       }
@@ -145,7 +145,7 @@ public class QueryEngine {
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       aggregateAnalyzer.process(analysis.getHavingExpression(),
-                                new AnalysisContext(null, null));
+                                new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
       }

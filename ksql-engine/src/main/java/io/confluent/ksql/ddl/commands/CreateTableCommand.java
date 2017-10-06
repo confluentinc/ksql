@@ -22,7 +22,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.StringUtil;
 
 import java.util.Map;

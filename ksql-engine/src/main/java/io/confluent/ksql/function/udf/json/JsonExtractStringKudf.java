@@ -29,9 +29,8 @@ import java.io.IOException;
 public class JsonExtractStringKudf implements Kudf {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  String path = null;
-  JsonPathTokenizer jsonPathTokenizer = null;
-  ImmutableList<String> tokens = null;
+  private String path = null;
+  private ImmutableList<String> tokens = null;
 
   @Override
   public void init() {
@@ -45,10 +44,10 @@ public class JsonExtractStringKudf implements Kudf {
     String jsonString = args[0].toString();
     if (path == null) {
       path = args[1].toString();
-      jsonPathTokenizer = new JsonPathTokenizer(path);
+      JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer(path);
       tokens = ImmutableList.copyOf(jsonPathTokenizer);
     }
-    JsonNode jsonNode = null;
+    JsonNode jsonNode;
     try {
       jsonNode = OBJECT_MAPPER.readTree(jsonString);
     } catch (IOException e) {

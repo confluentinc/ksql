@@ -16,27 +16,31 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
-  final KsqlEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
+  private final AdminClient adminClient;
+  private final KafkaTopicClientImpl topicClient;
 
   public KsqlContext() {
     this(null);
@@ -48,7 +52,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  public KsqlContext(Map<String, Object> streamsProperties) {
+  KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -59,7 +63,15 @@ public class KsqlContext {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+
+    adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
+    topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+  }
+
+
+  public MetaStore getMetaStore() {
+    return ksqlEngine.getMetaStore();
   }
 
   /**
@@ -69,8 +81,8 @@ public class KsqlContext {
    * @throws Exception
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
-        false, sql, Collections.emptyMap());
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
+        .emptyMap());
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -86,23 +98,9 @@ public class KsqlContext {
     }
   }
 
-  /**
-   * Terminate a query with the given id.
-   *
-   * @param queryId
-   */
-  public void terminateQuery(long queryId) {
-    if (!ksqlEngine.getPersistentQueries().containsKey(queryId)) {
-      throw new KsqlException(String.format("Invalid query id. Query id, %d, does not exist.",
-                                            queryId));
-    }
-    PersistentQueryMetadata persistentQueryMetadata = ksqlEngine
-        .getPersistentQueries().get(queryId);
-    persistentQueryMetadata.getKafkaStreams().close();
-    ksqlEngine.getPersistentQueries().remove(queryId);
-  }
-
-  public Map<Long, PersistentQueryMetadata> getRunningQueries() {
-    return ksqlEngine.getPersistentQueries();
+  public void close() throws IOException {
+    ksqlEngine.close();
+    topicClient.close();
+    adminClient.close();
   }
 }

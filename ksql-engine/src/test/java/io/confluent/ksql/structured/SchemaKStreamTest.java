@@ -71,7 +71,7 @@ public class SchemaKStreamTest {
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null, null));
+    analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }
 
@@ -80,11 +80,11 @@ public class SchemaKStreamTest {
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null, null));
+    analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, metaStore, analysis);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
     for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null, null));
+      aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
     PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();

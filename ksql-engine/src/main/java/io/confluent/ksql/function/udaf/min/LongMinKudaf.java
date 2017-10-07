@@ -40,15 +40,12 @@ public class LongMinKudaf extends KsqlAggregateFunction<Long, Long> {
   }
 
   @Override
-  public Merger getMerger() {
-    return new Merger<String, Long>() {
-      @Override
-      public Long apply(final String aggKey, final Long aggOne, final Long aggTwo) {
-        if (aggOne < aggTwo) {
-          return aggOne;
-        }
-        return aggTwo;
+  public Merger<String, Long> getMerger() {
+    return (aggKey, aggOne, aggTwo) -> {
+      if (aggOne < aggTwo) {
+        return aggOne;
       }
+      return aggTwo;
     };
   }
 }

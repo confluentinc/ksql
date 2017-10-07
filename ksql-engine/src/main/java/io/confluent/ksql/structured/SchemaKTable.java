@@ -45,7 +45,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.SynchronousQueue;
 
 public class SchemaKTable extends SchemaKStream {
 
@@ -70,39 +69,31 @@ public class SchemaKTable extends SchemaKStream {
 
     if (isWindowed) {
       ktable.toStream()
-          .map(new KeyValueMapper<Windowed<String>, GenericRow,
-              KeyValue<Windowed<String>, GenericRow>>() {
-            @Override
-            public KeyValue<Windowed<String>,
-                GenericRow> apply(Windowed<String> key, GenericRow row) {
-              if (row == null) {
-                return new KeyValue<>(key, null);
-              }
-              List columns = new ArrayList();
-              for (int i = 0; i < row.getColumns().size(); i++) {
-                if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.getColumns().get(i));
-                }
-              }
-              return new KeyValue<>(key, new GenericRow(columns));
+          .map((KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>) (key, row) -> {
+            if (row == null) {
+              return new KeyValue<>(key, null);
             }
+            List columns = new ArrayList();
+            for (int i = 0; i < row.getColumns().size(); i++) {
+              if (!rowkeyIndexes.contains(i)) {
+                columns.add(row.getColumns().get(i));
+              }
+            }
+            return new KeyValue<>(key, new GenericRow(columns));
           }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
     } else {
       ktable.toStream()
-          .map(new KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>() {
-            @Override
-            public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
-              if (row == null) {
-                return new KeyValue<>(key, null);
-              }
-              List columns = new ArrayList();
-              for (int i = 0; i < row.getColumns().size(); i++) {
-                if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.getColumns().get(i));
-                }
-              }
-              return new KeyValue<>(key, new GenericRow(columns));
+          .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+            if (row == null) {
+              return new KeyValue<>(key, null);
             }
+            List columns = new ArrayList();
+            for (int i = 0; i < row.getColumns().size(); i++) {
+              if (!rowkeyIndexes.contains(i)) {
+                columns.add(row.getColumns().get(i));
+              }
+            }
+            return new KeyValue<>(key, new GenericRow(columns));
           }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
     }
 
@@ -138,43 +129,40 @@ public class SchemaKTable extends SchemaKStream {
       expressionEvaluators.add(expressionEvaluator);
     }
 
-    KTable projectedKTable = ktable.mapValues(new ValueMapper<GenericRow, GenericRow>() {
-      @Override
-      public GenericRow apply(GenericRow row) {
-        try {
-          List<Object> newColumns = new ArrayList();
-          for (int i = 0; i < expressionPairList.size(); i++) {
-            try {
-              int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-              Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-              Object[] parameterObjects = new Object[parameterIndexes.length];
-              for (int j = 0; j < parameterIndexes.length; j++) {
-                if (parameterIndexes[j] < 0) {
-                  parameterObjects[j] = kudfs[j];
-                } else {
-                  parameterObjects[j] =
-                      genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
-                                                                   row.getColumns()
-                                                                       .get(parameterIndexes[j]));
-                }
+    KTable projectedKTable = ktable.mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
+      try {
+        List<Object> newColumns = new ArrayList();
+        for (int i = 0; i < expressionPairList.size(); i++) {
+          try {
+            int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+            Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+            Object[] parameterObjects = new Object[parameterIndexes.length];
+            for (int j = 0; j < parameterIndexes.length; j++) {
+              if (parameterIndexes[j] < 0) {
+                parameterObjects[j] = kudfs[j];
+              } else {
+                parameterObjects[j] =
+                    genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
+                                                                 row.getColumns()
+                                                                     .get(parameterIndexes[j]));
               }
-              Object columnValue = null;
-              columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
-                  .evaluate(parameterObjects);
-              newColumns.add(columnValue);
-            } catch (Exception e) {
-              log.error("Error calculating column with index " + i + " : " +
-                        expressionPairList.get(i).getLeft());
-              newColumns.add(null);
             }
+            Object columnValue = null;
+            columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
+                .evaluate(parameterObjects);
+            newColumns.add(columnValue);
+          } catch (Exception e) {
+            log.error("Error calculating column with index " + i + " : " +
+                      expressionPairList.get(i).getLeft());
+            newColumns.add(null);
           }
-          GenericRow newRow = new GenericRow(newColumns);
-          return newRow;
-        } catch (Exception e) {
-          log.error("Projection exception for row: " + row.toString());
-          log.error(e.getMessage(), e);
-          throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
         }
+        GenericRow newRow = new GenericRow(newColumns);
+        return newRow;
+      } catch (Exception e) {
+        log.error("Projection exception for row: " + row.toString());
+        log.error(e.getMessage(), e);
+        throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
       }
     });
 
@@ -185,11 +173,6 @@ public class SchemaKTable extends SchemaKStream {
   @Override
   public KStream getKstream() {
     return ktable.toStream();
-  }
-
-  public SchemaKStream toStream() {
-    return new SchemaKStream(schema, ktable.toStream(), keyField, sourceSchemaKStreams,
-                             Type.TOSTREAM);
   }
 
   public KTable getKtable() {

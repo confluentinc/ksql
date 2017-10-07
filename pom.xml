@@ -33,6 +33,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <kafka.version>0.11.0.1</kafka.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>

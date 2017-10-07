@@ -36,13 +36,8 @@ public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
   }
 
   @Override
-  public Merger getMerger() {
-    return new Merger<String, Double>() {
-      @Override
-      public Double apply(final String aggKey, final Double aggOne, final Double aggTwo) {
-        return aggOne + aggTwo;
-      }
-    };
+  public Merger<String, Double> getMerger() {
+    return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 
 

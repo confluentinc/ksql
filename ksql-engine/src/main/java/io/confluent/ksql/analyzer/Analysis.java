@@ -34,7 +34,6 @@ public class Analysis {
   private Map<String, Object> intoProperties = new HashMap<>();
   private String intoFormat = null;
   // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
-  private String intoAvroSchemaFilePath = null;
   private String intoKafkaTopicName = null;
   private List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   private JoinNode join;
@@ -50,7 +49,7 @@ public class Analysis {
   private Optional<Integer> limitClause = Optional.empty();
 
 
-  public void addSelectItem(final Expression expression, final String alias) {
+  void addSelectItem(final Expression expression, final String alias) {
     selectExpressions.add(expression);
     selectExpressionAlias.add(alias);
   }
@@ -68,10 +67,6 @@ public class Analysis {
     return fromDataSources;
   }
 
-  public void setFromDataSources(List<Pair<StructuredDataSource, String>> fromDataSources) {
-    this.fromDataSources = fromDataSources;
-  }
-
   public Expression getWhereExpression() {
     return whereExpression;
   }
@@ -84,16 +79,8 @@ public class Analysis {
     return selectExpressions;
   }
 
-  public void setSelectExpressions(List<Expression> selectExpressions) {
-    this.selectExpressions = selectExpressions;
-  }
-
   public List<String> getSelectExpressionAlias() {
     return selectExpressionAlias;
-  }
-
-  public void setSelectExpressionAlias(List<String> selectExpressionAlias) {
-    this.selectExpressionAlias = selectExpressionAlias;
   }
 
   public JoinNode getJoin() {
@@ -120,20 +107,8 @@ public class Analysis {
     return intoKafkaTopicName;
   }
 
-  public String getIntoAvroSchemaFilePath() {
-    return intoAvroSchemaFilePath;
-  }
-
-  public void setIntoAvroSchemaFilePath(String intoAvroSchemaFilePath) {
-    this.intoAvroSchemaFilePath = intoAvroSchemaFilePath;
-  }
-
   public List<Expression> getGroupByExpressions() {
     return groupByExpressions;
-  }
-
-  public void setGroupByExpressions(List<Expression> groupByExpressions) {
-    this.groupByExpressions = groupByExpressions;
   }
 
   public WindowExpression getWindowExpression() {

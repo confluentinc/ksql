@@ -24,7 +24,7 @@ import java.util.List;
 
 public class KudafInitializer implements Initializer<GenericRow> {
 
-  final List initialGenericRowColumns;
+  private final List initialGenericRowColumns;
 
   public KudafInitializer(List initialGenericRowColumns) {
     this.initialGenericRowColumns = initialGenericRowColumns;

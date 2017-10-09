@@ -46,6 +46,10 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
 public class KsqlParserTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
@@ -464,11 +468,11 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
                                                                .getWindowExpression().isPresent());
     Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
-        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECOND ) "));
+        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
   }
 
   @Test
-  public void testSelectHuppingWindow() throws Exception {
+  public void testSelectHoppingWindow() throws Exception {
 
     String
         queryStr =
@@ -478,18 +482,17 @@ public class KsqlParserTest {
         + "orderunits"
         + " > 5 group by itemid;";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
-    Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof Query);
+    assertThat(statement, instanceOf(Query.class));
     Query query = (Query) statement;
-    Assert.assertTrue("testSelectTumblingWindow failed.", query.getQueryBody() instanceof QuerySpecification);
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems
-        ().size() == 2);
-    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
-    Assert.assertTrue("testSelectTumblingWindow failed.", ((AliasedRelation)querySpecification.getFrom().get()).getAlias().equalsIgnoreCase("ORDERS"));
-    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
+    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
+    assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)querySpecification.getFrom().get()).getAlias().toUpperCase(), equalTo("ORDERS"));
+    Assert.assertTrue("window expression isn't present", querySpecification
         .getWindowExpression().isPresent());
-    Assert.assertTrue("testSelectTumblingWindow failed.", querySpecification
-        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECOND , ADVANCE BY 5 SECOND ) "));
+    assertThat(querySpecification.getWindowExpression().get().toString().toUpperCase(),
+        equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
   @Test
@@ -512,7 +515,7 @@ public class KsqlParserTest {
         .getWindowExpression().isPresent());
     Assert.assertTrue("testSelectSessionWindow failed.", querySpecification
         .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  SESSION "
-                                                                 + "( 30 SECOND ) "));
+                                                                 + "( 30 SECONDS ) "));
   }
 
   @Test

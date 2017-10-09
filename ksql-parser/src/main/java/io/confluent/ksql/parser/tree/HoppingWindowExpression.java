@@ -18,29 +18,30 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class HoppingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
-  private final WindowExpression.WindowUnit sizeUnit;
+  private final TimeUnit sizeUnit;
   private final long advanceBy;
-  private final WindowExpression.WindowUnit advanceByUnit;
+  private final TimeUnit advanceByUnit;
 
-  public HoppingWindowExpression(long size, WindowExpression.WindowUnit sizeUnit,
-                                  long advanceBy, WindowExpression.WindowUnit advanceByUnit) {
+  public HoppingWindowExpression(long size, TimeUnit sizeUnit,
+                                  long advanceBy, TimeUnit advanceByUnit) {
     this(Optional.empty(), "", size, sizeUnit, advanceBy, advanceByUnit);
   }
 
   public HoppingWindowExpression(NodeLocation location, String windowName, long size,
-                                 WindowExpression.WindowUnit
+                                 TimeUnit
       sizeUnit,
-                                   long advanceBy, WindowExpression.WindowUnit advanceByUnit) {
+                                   long advanceBy, TimeUnit advanceByUnit) {
     this(Optional.of(location), windowName, size, sizeUnit, advanceBy, advanceByUnit);
   }
 
   private HoppingWindowExpression(Optional<NodeLocation> location, String windowName, long size,
-                                   WindowExpression.WindowUnit sizeUnit,
-                             long advanceBy, WindowExpression.WindowUnit advanceByUnit) {
+                                   TimeUnit sizeUnit,
+                             long advanceBy, TimeUnit advanceByUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
@@ -52,7 +53,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     return size;
   }
 
-  public WindowExpression.WindowUnit getSizeUnit() {
+  public TimeUnit getSizeUnit() {
     return sizeUnit;
   }
 
@@ -60,7 +61,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     return advanceBy;
   }
 
-  public WindowExpression.WindowUnit getAdvanceByUnit() {
+  public TimeUnit getAdvanceByUnit() {
     return advanceByUnit;
   }
 

@@ -41,7 +41,6 @@ public class SchemaKGroupedStream {
   private  final Schema schema;
   private final KGroupedStream kgroupedStream;
   private final Field keyField;
-  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final List<SchemaKStream> sourceSchemaKStreams;
 
   public SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
@@ -50,7 +49,6 @@ public class SchemaKGroupedStream {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
-    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.sourceSchemaKStreams = sourceSchemaKStreams;
   }
 
@@ -69,11 +67,7 @@ public class SchemaKGroupedStream {
         aggKtable =
             kgroupedStream
                 .aggregate(initializer, aggregator,
-                                     TimeWindows.of(
-                                         getWindowUnitInMillisecond(
-                                             tumblingWindowExpression.getSize(),
-                                                                     tumblingWindowExpression
-                                                                         .getSizeUnit())),
+                                     TimeWindows.of(tumblingWindowExpression.getSizeUnit().toMillis(tumblingWindowExpression.getSize())),
                            topicValueSerDe,
                            storeName);
       } else if (windowExpression.getKsqlWindowExpression() instanceof HoppingWindowExpression) {
@@ -83,11 +77,9 @@ public class SchemaKGroupedStream {
             kgroupedStream
                 .aggregate(initializer, aggregator,
                            TimeWindows.of(
-                               getWindowUnitInMillisecond(hoppingWindowExpression.getSize(),
-                                                          hoppingWindowExpression.getSizeUnit()))
-                                         .advanceBy(getWindowUnitInMillisecond(
-                                             hoppingWindowExpression.getAdvanceBy(),
-                                             hoppingWindowExpression.getAdvanceByUnit())),
+                               hoppingWindowExpression.getSizeUnit().toMillis(hoppingWindowExpression.getSize()))
+                                         .advanceBy(
+                                             hoppingWindowExpression.getAdvanceByUnit().toMillis(hoppingWindowExpression.getAdvanceBy())),
                                      topicValueSerDe, storeName);
       } else if (windowExpression.getKsqlWindowExpression() instanceof SessionWindowExpression) {
         SessionWindowExpression sessionWindowExpression =
@@ -96,11 +88,7 @@ public class SchemaKGroupedStream {
             kgroupedStream
                 .aggregate(initializer, aggregator,
                            aggregator.getMerger(),
-                           SessionWindows.with(
-                               getWindowUnitInMillisecond(
-                                   sessionWindowExpression.getGap(),
-                                   sessionWindowExpression
-                                       .getSizeUnit())),
+                           SessionWindows.with(sessionWindowExpression.getSizeUnit().toMillis(sessionWindowExpression.getGap())),
                            topicValueSerDe,
                            storeName);
       } else {
@@ -112,24 +100,6 @@ public class SchemaKGroupedStream {
     }
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, isWindowed,
                             SchemaKStream.Type.AGGREGATE);
-  }
-
-  private long getWindowUnitInMillisecond(long value, WindowExpression.WindowUnit windowUnit) {
-
-    switch (windowUnit) {
-      case DAY:
-        return value * 24 * 60 * 60 * 1000;
-      case HOUR:
-        return value * 60 * 60 * 1000;
-      case MINUTE:
-        return value * 60 * 1000;
-      case SECOND:
-        return value * 1000;
-      case MILLISECOND:
-        return value;
-      default:
-        return -1;
-    }
   }
 
 }

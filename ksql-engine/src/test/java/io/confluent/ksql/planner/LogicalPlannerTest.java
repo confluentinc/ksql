@@ -139,7 +139,7 @@ public class LogicalPlannerTest {
     Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECONDS ) "));
     Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
     Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
     Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
@@ -162,7 +162,7 @@ public class LogicalPlannerTest {
     Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
     Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
                           .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECOND , ADVANCE BY 1 SECOND ) "));
+    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
     Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
     Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
     Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);

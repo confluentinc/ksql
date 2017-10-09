@@ -35,7 +35,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private final AdminClient adminClient;
 
-  public KafkaTopicClientImpl(final KsqlConfig ksqlConfig, AdminClient adminClient) {
+  public KafkaTopicClientImpl(AdminClient adminClient) {
     this.adminClient = adminClient;
   }
 

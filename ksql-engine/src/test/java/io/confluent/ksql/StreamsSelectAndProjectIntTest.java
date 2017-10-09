@@ -28,7 +28,7 @@ public class StreamsSelectAndProjectIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
-    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
   }
 
   @After

@@ -65,7 +65,7 @@ public class KsqlContext {
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    topicClient = new KafkaTopicClientImpl(adminClient);
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
   }
 

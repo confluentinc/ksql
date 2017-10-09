@@ -154,7 +154,7 @@ public class IntegrationTestHarness {
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    this.topicClient = new KafkaTopicClientImpl(adminClient);
   }
 
   public void stop() {

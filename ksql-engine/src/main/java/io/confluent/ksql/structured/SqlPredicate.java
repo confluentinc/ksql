@@ -45,8 +45,8 @@ public class SqlPredicate {
   private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
 
-  public SqlPredicate(final Expression filterExpression, final Schema schema,
-                      boolean isWindowedKey) throws Exception {
+  SqlPredicate(final Expression filterExpression, final Schema schema,
+               boolean isWindowedKey) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -81,7 +81,7 @@ public class SqlPredicate {
     ee.cook(expressionStr);
   }
 
-  public Predicate getPredicate() throws Exception {
+  Predicate getPredicate() throws Exception {
     if (isWindowedKey) {
       return getWindowedKeyPredicate();
     } else {
@@ -94,28 +94,25 @@ public class SqlPredicate {
     ExpressionMetadata expressionEvaluator =
         codeGenRunner.buildCodeGenFromParseTree(filterExpression, schema);
 
-    return new Predicate<String, GenericRow>() {
-      @Override
-      public boolean test(String key, GenericRow row) {
-        try {
-          Kudf[] kudfs = expressionEvaluator.getUdfs();
-          Object[] values = new Object[columnIndexes.length];
-          for (int i = 0; i < values.length; i++) {
-            if (columnIndexes[i] < 0) {
-              values[i] = kudfs[i];
-            } else {
-              values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                  .getColumns().get(columnIndexes[i]));
-            }
+    return (Predicate<String, GenericRow>) (key, row) -> {
+      try {
+        Kudf[] kudfs = expressionEvaluator.getUdfs();
+        Object[] values = new Object[columnIndexes.length];
+        for (int i = 0; i < values.length; i++) {
+          if (columnIndexes[i] < 0) {
+            values[i] = kudfs[i];
+          } else {
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
+                .getColumns().get(columnIndexes[i]));
           }
-          boolean result = (Boolean) ee.evaluate(values);
-          return result;
-        } catch (Exception e) {
-          log.error(e.getMessage(), e);
         }
-        log.error("Invalid format: " + key + " : " + row);
-        return false;
+        boolean result = (Boolean) ee.evaluate(values);
+        return result;
+      } catch (Exception e) {
+        log.error(e.getMessage(), e);
       }
+      log.error("Invalid format: " + key + " : " + row);
+      return false;
     };
   }
 
@@ -124,28 +121,25 @@ public class SqlPredicate {
     ExpressionMetadata
         expressionEvaluator =
         codeGenRunner.buildCodeGenFromParseTree(filterExpression, schema);
-    return new Predicate<Windowed<String>, GenericRow>() {
-      @Override
-      public boolean test(Windowed<String> key, GenericRow row) {
-        try {
-          Kudf[] kudfs = expressionEvaluator.getUdfs();
-          Object[] values = new Object[columnIndexes.length];
-          for (int i = 0; i < values.length; i++) {
-            if (columnIndexes[i] < 0) {
-              values[i] = kudfs[i];
-            } else {
-              values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                  .getColumns().get(columnIndexes[i]));
-            }
+    return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
+      try {
+        Kudf[] kudfs = expressionEvaluator.getUdfs();
+        Object[] values = new Object[columnIndexes.length];
+        for (int i = 0; i < values.length; i++) {
+          if (columnIndexes[i] < 0) {
+            values[i] = kudfs[i];
+          } else {
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
+                .getColumns().get(columnIndexes[i]));
           }
-          boolean result = (Boolean) ee.evaluate(values);
-          return result;
-        } catch (Exception e) {
-          log.error(e.getMessage(), e);
         }
-        log.error("Invalid format: " + key + " : " + row);
-        return false;
+        boolean result = (Boolean) ee.evaluate(values);
+        return result;
+      } catch (Exception e) {
+        log.error(e.getMessage(), e);
       }
+      log.error("Invalid format: " + key + " : " + row);
+      return false;
     };
   }
 
@@ -161,11 +155,4 @@ public class SqlPredicate {
     return columnIndexes;
   }
 
-  public boolean isWindowedKey() {
-    return isWindowedKey;
-  }
-
-  public GenericRowValueTypeEnforcer getGenericRowValueTypeEnforcer() {
-    return genericRowValueTypeEnforcer;
-  }
 }

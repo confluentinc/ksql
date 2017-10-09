@@ -26,18 +26,14 @@ import java.util.Map;
 
 public class AggregateAnalysis {
 
+  private List<Expression> requiredColumnsList = new ArrayList<>();
+  private Expression havingExpression = null;
+  private Map<String, Expression> requiredColumnsMap = new HashMap<>();
+  private List<Expression> nonAggResultColumns = new ArrayList<>();
+  private List<Expression> finalSelectExpressions = new ArrayList<>();
   List<Expression> aggregateFunctionArguments = new ArrayList<>();
-  List<Expression> requiredColumnsList = new ArrayList<>();
-
-  Expression havingExpression = null;
-
-  Map<String, Expression> requiredColumnsMap = new HashMap<>();
-
   List<FunctionCall> functionList = new ArrayList<>();
 
-  List<Expression> nonAggResultColumns = new ArrayList<>();
-
-  List<Expression> finalSelectExpressions = new ArrayList<>();
 
   public List<Expression> getAggregateFunctionArguments() {
     return aggregateFunctionArguments;

@@ -24,7 +24,7 @@
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
     </modules>
-    
+
     <repositories>
         <repository>
             <id>confluent</id>
@@ -33,6 +33,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <kafka.version>0.11.0.1</kafka.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
@@ -229,7 +231,7 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-                
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>

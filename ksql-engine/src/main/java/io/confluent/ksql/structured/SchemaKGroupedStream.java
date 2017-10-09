@@ -22,7 +22,6 @@ import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
@@ -38,19 +37,17 @@ import java.util.List;
 
 public class SchemaKGroupedStream {
 
-  private  final Schema schema;
+  private final Schema schema;
   private final KGroupedStream kgroupedStream;
   private final Field keyField;
-  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final List<SchemaKStream> sourceSchemaKStreams;
 
-  public SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
-                              final Field keyField,
-                              final List<SchemaKStream> sourceSchemaKStreams) {
+  SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
+                       final Field keyField,
+                       final List<SchemaKStream> sourceSchemaKStreams) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
-    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.sourceSchemaKStreams = sourceSchemaKStreams;
   }
 

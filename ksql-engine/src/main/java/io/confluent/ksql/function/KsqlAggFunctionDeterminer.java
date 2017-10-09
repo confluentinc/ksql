@@ -17,7 +17,6 @@
 package io.confluent.ksql.function;
 
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
 
@@ -35,11 +34,7 @@ public abstract class KsqlAggFunctionDeterminer {
 
   public abstract KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
 
-  public String getFunctionName() {
-    return functionName;
-  }
-
-  public List<KsqlAggregateFunction> getAggregateFunctionList() {
+  protected List<KsqlAggregateFunction> getAggregateFunctionList() {
     return aggregateFunctionList;
   }
 }

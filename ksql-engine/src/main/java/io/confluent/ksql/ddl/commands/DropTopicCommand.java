@@ -28,7 +28,7 @@ public class DropTopicCommand implements DDLCommand {
     this.topicName = dropTopic.getTopicName().getSuffix();
   }
 
-  public DropTopicCommand(String topicName) {
+  DropTopicCommand(String topicName) {
     this.topicName = topicName;
   }
 

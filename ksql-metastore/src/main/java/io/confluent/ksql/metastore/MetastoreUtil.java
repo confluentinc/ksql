@@ -47,12 +47,10 @@ public class MetastoreUtil {
       throws
       IOException {
 
-    KsqlTopicSerDe topicSerDe;
-
     String name = node.get("name").asText();
     String topicname = node.get("topic").asText();
 
-    KsqlTopic ksqlTopic = (KsqlTopic) metaStore.getTopic(topicname);
+    KsqlTopic ksqlTopic = metaStore.getTopic(topicname);
     if (ksqlTopic == null) {
       throw new KsqlException("Unable to add the structured data source. The corresponding topic "
           + "does not exist: " + topicname);
@@ -66,8 +64,7 @@ public class MetastoreUtil {
 
     if ("STREAM".equals(type)) {
       return new KsqlStream(name, dataSource, dataSource.field(keyFieldName),
-                            (dataSource.field(timestampFieldName) != null)
-                            ? dataSource.field(timestampFieldName) : null, ksqlTopic);
+                            dataSource.field(timestampFieldName), ksqlTopic);
     } else if ("TABLE".equals(type)) {
       boolean isWindowed = false;
       if (node.get("iswindowed") != null) {
@@ -76,14 +73,12 @@ public class MetastoreUtil {
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
         return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
-                             (dataSource.field(timestampFieldName) != null)
-                             ? dataSource.field(timestampFieldName) : null,
+                             dataSource.field(timestampFieldName),
                              ksqlTopic, ksqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
       return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
-                           (dataSource.field(timestampFieldName) != null)
-                           ? dataSource.field(timestampFieldName) : null,
+                           dataSource.field(timestampFieldName),
           ksqlTopic, stateStore, isWindowed);
     }
     throw new KsqlException(String.format("Type not supported: '%s'", type));
@@ -155,15 +150,13 @@ public class MetastoreUtil {
       return "STRING";
     } else if (schemaType == Schema.FLOAT64_SCHEMA) {
       return "DOUBLE";
-    } else if (schemaType == Schema.INT64_SCHEMA) {
-      return "INTEGER";
     } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
       return "BOOL";
     }
     throw new KsqlException("Unsupported type: " + schemaType);
   }
 
-  public MetaStore loadMetaStoreFromJsonFile(final String metaStoreJsonFilePath)
+  MetaStore loadMetaStoreFromJsonFile(final String metaStoreJsonFilePath)
       throws KsqlException {
 
     try {
@@ -208,9 +201,6 @@ public class MetastoreUtil {
           .append("\t\t\t \"kafkatopicname\": \"" + ksqlTopic.getKafkaTopicName() + "\", \n");
       stringBuilder.append("\t\t\t \"serde\": \"" + ksqlTopic.getKsqlTopicSerDe().getSerDe()
                            + "\"");
-      if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
-        KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-      }
       stringBuilder.append("\n\t\t}\n");
     }
     stringBuilder.append("\t\t]\n");
@@ -269,7 +259,7 @@ public class MetastoreUtil {
     stringBuilder.append("\t ]\n");
   }
 
-  public void writeMetastoreToFile(String filePath, MetaStore metaStore) {
+  void writeMetastoreToFile(String filePath, MetaStore metaStore) {
     StringBuilder stringBuilder = new StringBuilder("{ \n \"name\": \"ksql_catalog\",\n ");
 
     addTopics(stringBuilder, metaStore.getAllKsqlTopics());
@@ -277,8 +267,7 @@ public class MetastoreUtil {
     addSchemas(stringBuilder, metaStore.getAllStructuredDataSources());
     stringBuilder.append("}");
 
-    try {
-      RandomAccessFile raf = new RandomAccessFile(filePath, "rw");
+    try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
       raf.writeBytes(stringBuilder.toString());
       raf.close();
     } catch (IOException e) {
@@ -286,30 +275,11 @@ public class MetastoreUtil {
     }
   }
 
-
-  public static final String DEFAULT_METASTORE_SCHEMA = "{\n"
-      + "\t\"name\": \"ksql_catalog\",\n"
-      + "\t\"topics\":[],\n"
-      + "\t\"schemas\" :[]\n"
-      + "}";
-
   private String getAvroSchema(final String schemaFilePath) throws IOException {
     byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode root = objectMapper.readTree(jsonData);
     return root.toString();
-  }
-
-  public void writeAvroSchemaFile(final String avroSchema, final String filePath) {
-
-    try {
-      RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw");
-      randomAccessFile.writeBytes(avroSchema);
-      randomAccessFile.close();
-    } catch (IOException e) {
-      throw new KsqlException("Could not write result avro schema file: " + filePath + ". "
-                              + "Details: " + e.getMessage(), e);
-    }
   }
 
   public String buildAvroSchema(final Schema schema, String name) {

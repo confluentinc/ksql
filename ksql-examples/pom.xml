@@ -18,7 +18,7 @@
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
     </properties>
-    
+
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -44,7 +44,7 @@
         </dependency>
 
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>

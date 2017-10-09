@@ -84,7 +84,6 @@ public class SerDeUtil {
 
   public static Serde<GenericRow> getRowSerDe(final KsqlTopicSerDe topicSerDe, Schema schema) {
     if (topicSerDe instanceof KsqlAvroTopicSerDe) {
-      KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) topicSerDe;
       return SerDeUtil.getGenericRowAvroSerde(schema);
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJsonSerde(schema);

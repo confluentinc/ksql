@@ -30,7 +30,7 @@ import java.util.List;
 public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
 
   public static final String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
-  int aggVariableIndex = 0;
+  private int aggVariableIndex = 0;
 
   @Override
   public Expression rewriteFunctionCall(FunctionCall node, Void context,

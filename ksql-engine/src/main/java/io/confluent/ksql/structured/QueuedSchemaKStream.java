@@ -42,17 +42,17 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
 
-  public QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
-                             final List<SchemaKStream> sourceSchemaKStreams,
-                             Type type,
-                             Optional<Integer> limit
+  private QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
+                              final List<SchemaKStream> sourceSchemaKStreams,
+                              Type type,
+                              Optional<Integer> limit
   ) {
     super(schema, kstream, keyField, sourceSchemaKStreams, type);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
 
-  public QueuedSchemaKStream(SchemaKStream schemaKStream,
-                             Optional<Integer> limit
+  QueuedSchemaKStream(SchemaKStream schemaKStream,
+                      Optional<Integer> limit
   ) {
     this(
             schemaKStream.schema,
@@ -101,11 +101,6 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKGroupedStream groupByKey() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public SchemaKGroupedStream groupByKey(Serde keySerde, Serde valSerde) {
     throw new UnsupportedOperationException();
   }
@@ -135,8 +130,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
     private final Optional<Integer> limit;
     private int counter = 0;
 
-    public QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue,
-                          Optional<Integer> limit) {
+    QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue,
+                   Optional<Integer> limit) {
       this.queue = queue;
       this.limit = limit;
     }

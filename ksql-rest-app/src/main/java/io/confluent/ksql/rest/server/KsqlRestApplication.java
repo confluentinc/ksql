@@ -52,6 +52,7 @@ import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -77,6 +78,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -206,8 +208,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ksqlConfProperties.putAll(restConfig.getOriginals());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
-    KafkaTopicClient client = ksqlEngine.getKafkaTopicClient();
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig, adminClient));
+    KafkaTopicClient client = ksqlEngine.getTopicClient();
 
     String commandTopic = restConfig.getCommandTopic();
 
@@ -244,7 +247,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             Collections.singletonMap(
                     DdlConfig.TOPIC_NAME_PROPERTY,
                     new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            )), Collections.emptyMap(), ksqlEngine.getKafkaTopicClient()));
+            )), Collections.emptyMap(), ksqlEngine.getTopicClient()));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(

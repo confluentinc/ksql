@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.Node;
-
 public class AnalysisContext {
 
   public enum ParentType {
@@ -38,16 +36,10 @@ public class AnalysisContext {
     }
   }
 
-  final Node parentNode;
-  final ParentType parentType;
+  private final ParentType parentType;
 
-  public AnalysisContext(final Node parentNode, final ParentType parentType) {
-    this.parentNode = parentNode;
+  public AnalysisContext(final ParentType parentType) {
     this.parentType = parentType;
-  }
-
-  public Node getParentNode() {
-    return parentNode;
   }
 
   public ParentType getParentType() {

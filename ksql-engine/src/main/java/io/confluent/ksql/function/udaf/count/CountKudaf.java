@@ -35,12 +35,7 @@ public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
   }
 
   @Override
-  public Merger getMerger() {
-    return new Merger<String, Long>() {
-      @Override
-      public Long apply(final String aggKey, final Long aggOne, final Long aggTwo) {
-        return aggOne + aggTwo;
-      }
-    };
+  public Merger<String, Long> getMerger() {
+    return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 }

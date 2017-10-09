@@ -36,7 +36,7 @@ public class GenericRowValueTypeEnforcer {
     return enforceFieldType(field.schema(), value);
   }
 
-  public Object enforceFieldType(Schema schema, final Object value) {
+  private Object enforceFieldType(Schema schema, final Object value) {
     if (schema == Schema.FLOAT64_SCHEMA) {
       return enforceDouble(value);
     } else if (schema == Schema.INT64_SCHEMA) {
@@ -56,7 +56,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Double enforceDouble(final Object value) {
+  private Double enforceDouble(final Object value) {
     if (value instanceof Double) {
       return (Double) value;
     } else if (value instanceof Integer) {
@@ -78,13 +78,11 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Long enforceLong(final Object value) {
+  private Long enforceLong(final Object value) {
     if (value instanceof Long) {
       return (Long) value;
     } else if (value instanceof Integer) {
       return ((Integer) value).longValue();
-    } else if (value instanceof Long) {
-      return ((Long) value).longValue();
     } else if (value instanceof Float) {
       return ((Float) value).longValue();
     } else if (value instanceof Short) {
@@ -100,7 +98,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Integer enforceInteger(final Object value) {
+  private Integer enforceInteger(final Object value) {
 
     if (value instanceof Integer) {
       return (Integer) value;
@@ -121,7 +119,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  String enforceString(final Object value) {
+  private String enforceString(final Object value) {
     if (value instanceof String || value instanceof CharSequence) {
       return value.toString();
     } else if (value == null) {
@@ -131,7 +129,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  Boolean enforceBoolean(final Object value) {
+  private Boolean enforceBoolean(final Object value) {
     if (value instanceof Boolean) {
       return (Boolean) value;
     } else if (value instanceof String) {

@@ -18,7 +18,7 @@ package io.confluent.ksql.function.udf;
 
 public interface Kudf {
 
-  public void init();
+  void init();
 
-  public Object evaluate(Object... args);
+  Object evaluate(Object... args);
 }

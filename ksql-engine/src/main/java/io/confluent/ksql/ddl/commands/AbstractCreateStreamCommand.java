@@ -22,7 +22,6 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
@@ -39,7 +38,7 @@ import java.util.Set;
 /**
  * Base class of create table/stream command
  */
-public abstract class AbstractCreateStreamCommand implements DDLCommand {
+abstract class AbstractCreateStreamCommand implements DDLCommand {
 
   String sourceName;
   String topicName;
@@ -48,11 +47,11 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   String timestampColumnName;
   boolean isWindowed;
   RegisterTopicCommand registerTopicCommand;
-  KafkaTopicClient kafkaTopicClient;
+  private KafkaTopicClient kafkaTopicClient;
 
-  public AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
-                                     Map<String, Object> overriddenProperties,
-                                     KafkaTopicClient kafkaTopicClient) {
+  AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
+                              Map<String, Object> overriddenProperties,
+                              KafkaTopicClient kafkaTopicClient) {
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -111,7 +110,7 @@ public abstract class AbstractCreateStreamCommand implements DDLCommand {
   }
 
   private void checkTopicNameNotNull(Map<String, Expression> properties) {
-    // TODO: move the check to grammer
+    // TODO: move the check to grammar
     KsqlPreconditions.checkNotNull(
         properties.get(DdlConfig.TOPIC_NAME_PROPERTY),
         "Topic name should be set in WITH clause.");

@@ -88,8 +88,8 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     KsqlConfig ksqlConfig = new KsqlConfig(configMap);
-    adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig, adminClient));
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     metaStore = ksqlEngine.getMetaStore();
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);

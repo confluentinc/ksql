@@ -153,8 +153,8 @@ public class IntegrationTestHarness {
     configMap.put("auto.offset.reset", "earliest");
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicClient = new KafkaTopicClientImpl(adminClient);
   }
 
   public void stop() {
@@ -188,7 +188,7 @@ public class IntegrationTestHarness {
     testHarness.produceData(topicName, orderDataProvider.data(), orderDataProvider.schema());
 
 
-    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
                     + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
     ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");

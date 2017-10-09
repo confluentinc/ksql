@@ -412,7 +412,7 @@ public class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlConfigProps();
+    Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlStreamConfigProps();
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(

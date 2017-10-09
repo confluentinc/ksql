@@ -463,7 +463,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         int numberOfPartitions = Integer.parseInt(node.getProperties()
                                                       .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
                                                       .toString());
-        analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS,
+        analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
                                          numberOfPartitions);
 
       } catch (NumberFormatException e) {
@@ -479,7 +479,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
                                  .toString());
         analysis.getIntoProperties()
-            .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS, numberOfReplications);
+            .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY, numberOfReplications);
       } catch (NumberFormatException e) {
         throw new KsqlException("Invalid number of replications in WITH clause: " + node
             .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());

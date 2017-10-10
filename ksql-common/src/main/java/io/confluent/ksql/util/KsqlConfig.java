@@ -49,6 +49,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
 
+  public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
@@ -86,7 +87,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DOC =
       "Second part of the prefix for transient queries.";
-
 
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";

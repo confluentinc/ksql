@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class WindowExpression extends Node {
 
@@ -65,25 +66,24 @@ public class WindowExpression extends Node {
     return " WINDOW " + windowName + " " + ksqlWindowExpression.toString();
   }
 
-  public static enum WindowUnit { DAY, HOUR, MINUTE, SECOND, MILLISECOND }
 
-  public static WindowUnit getWindowUnit(String windowUnitString) {
+  public static TimeUnit getWindowUnit(String windowUnitString) {
     switch (windowUnitString) {
       case "DAY":
       case "DAYS":
-        return WindowUnit.DAY;
+        return TimeUnit.DAYS;
       case "HOUR":
       case "HOURS":
-        return WindowUnit.HOUR;
+        return TimeUnit.HOURS;
       case "MINUTE":
       case "MINUTES":
-        return WindowUnit.MINUTE;
+        return TimeUnit.MINUTES;
       case "SECOND":
       case "SECONDS":
-        return WindowUnit.SECOND;
+        return TimeUnit.SECONDS;
       case "MILLISECOND":
       case "MILLISECONDS":
-        return WindowUnit.MILLISECOND;
+        return TimeUnit.MILLISECONDS;
       default:
         return null;
     }

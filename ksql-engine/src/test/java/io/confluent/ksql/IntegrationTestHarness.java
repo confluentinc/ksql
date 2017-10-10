@@ -44,7 +44,6 @@ public class IntegrationTestHarness {
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
-  private AdminClient adminClient;
 
   public IntegrationTestHarness() {
   }
@@ -71,10 +70,7 @@ public class IntegrationTestHarness {
    */
   public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
       throws InterruptedException, TimeoutException, ExecutionException {
-    Properties producerConfig = new Properties();
-    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+    Properties producerConfig = properties();
     KafkaProducer<String, GenericRow> producer =
         new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
@@ -89,6 +85,21 @@ public class IntegrationTestHarness {
     producer.close();
 
     return result;
+  }
+
+  private Properties properties() {
+    Properties producerConfig = new Properties();
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+    return producerConfig;
+  }
+
+  void produceRecord(final String topicName, final String key, final String jsonData) {
+    try(final KafkaProducer<String, String> producer
+            = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
+      producer.send(new ProducerRecord<>(topicName, key, jsonData));
+    }
   }
 
   /**
@@ -153,14 +164,12 @@ public class IntegrationTestHarness {
     configMap.put("auto.offset.reset", "earliest");
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
   }
 
   public void stop() {
 
     this.topicClient.close();
-    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 
@@ -188,7 +197,7 @@ public class IntegrationTestHarness {
     testHarness.produceData(topicName, orderDataProvider.data(), orderDataProvider.schema());
 
 
-    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
                     + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
     ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");

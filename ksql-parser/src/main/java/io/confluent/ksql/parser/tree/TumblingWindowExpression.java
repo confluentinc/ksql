@@ -18,23 +18,24 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
-  private final WindowExpression.WindowUnit sizeUnit;
+  private final TimeUnit sizeUnit;
 
-  public TumblingWindowExpression(long size, WindowExpression.WindowUnit sizeUnit) {
+  public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
     this(Optional.empty(), "", size, sizeUnit);
   }
 
   public TumblingWindowExpression(NodeLocation location, String windowName,
-                                  long size, WindowExpression.WindowUnit sizeUnit) {
+                                  long size, TimeUnit sizeUnit) {
     this(Optional.of(location), windowName, size, sizeUnit);
   }
 
   private TumblingWindowExpression(Optional<NodeLocation> location, String windowName, long size,
-                                  WindowExpression.WindowUnit sizeUnit) {
+                                  TimeUnit sizeUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
@@ -44,7 +45,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     return size;
   }
 
-  public WindowExpression.WindowUnit getSizeUnit() {
+  public TimeUnit getSizeUnit() {
     return sizeUnit;
   }
 

@@ -183,185 +183,10 @@ public class JsonFormatTest {
         expectedResults.size());
 
     Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
+    assertExpectedResults(expectedResults, results);
 
     ksqlEngine.terminateQuery(query1Metadata.getId(), true);
     ksqlEngine.terminateQuery(query2Metadata.getId(), true);
-  }
-
-  @Test
-  public void testSelectFilter() throws Exception {
-    final String streamName = "SelectFilterStream".toUpperCase();
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT * FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
-        streamName,
-        inputStream
-    );
-
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    Map<String, Double> mapField = new HashMap<>();
-    mapField.put("key1", 1.0);
-    mapField.put("key2", 2.0);
-    mapField.put("key3", 3.0);
-    expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0, new
-            Double[]{1100.0,
-            1110.99,
-            970.0 },
-        mapField)));
-
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
-
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
-  }
-
-  @Test
-  public void testSelectExpression() throws Exception {
-    final String streamName = "SelectExpressionStream".toUpperCase();
-
-    final String selectColumns =
-        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
-    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
-
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        streamName,
-        selectColumns,
-        inputStream,
-        whereClause
-    );
-
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
-
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
-
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
-  }
-
-
-  @Test
-  public void testCastExpression() throws Exception {
-    final String streamName = "CastExpressionStream".toUpperCase();
-
-    final String selectColumns =
-        " CAST (ORDERUNITS AS INTEGER), CAST( PRICEARRAY[1]>1000 AS STRING), CAST (SUBSTRING"
-            + "(ITEMID, 5) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
-    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
-
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        streamName,
-        selectColumns,
-        inputStream,
-        whereClause
-    );
-
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(80, "true", 8.0, "80.0")));
-
-
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
-
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
-  }
-
-  @Test
-  public void testSelectUDFs() throws Exception {
-    final String streamName = "SelectUDFsStream".toUpperCase();
-
-    final String selectColumns =
-        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
-    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
-
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        streamName,
-        selectColumns,
-        inputStream,
-        whereClause
-    );
-
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
-
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
-
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
-  }
-
-  @Test
-  public void testSelectUDFLogicalExpression() throws Exception {
-    final String streamName = "SelectUDFLogicalExpressionStream".toUpperCase();
-
-    final String selectColumns =
-        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
-    final String whereClause = "UCASE(ITEMID) = 'ITEM_8' AND ORDERUNITS > 20";
-
-    final String queryString = String.format(
-        "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        streamName,
-        selectColumns,
-        inputStream,
-        whereClause
-    );
-
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-
-    Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)));
-
-    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
-
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   //@Test
@@ -399,7 +224,7 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
+    assertExpectedResults(expectedResults, results);
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
@@ -432,18 +257,15 @@ public class JsonFormatTest {
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(ksqlEngine.getMetaStore().getSource(streamName).getSchema());
 
-    long firstItem8Window  = inputRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
-    long secondItem8Window =   newRecordsMetadata.get("8").timestamp() / windowSizeMilliseconds;
-
     Map<Windowed<String>, GenericRow> expectedResults = new HashMap<>();
-    if (firstItem8Window == secondItem8Window) {
       expectedResults.put(
           new Windowed<>("ITEM_8",new TimeWindow(0, 1)),
           new GenericRow(Arrays.asList("ITEM_8", 2, 160.0, 80.0, 2220.0))
       );
-    }
 
     Map<Windowed<String>, GenericRow> results = readWindowedResults(streamName, resultSchema, expectedResults.size());
+
+    System.out.println("GOTTTTT:" + results);
 
     Assert.assertEquals(expectedResults.size(), results.size());
     assertExpectedWindowedResults(results, expectedResults);
@@ -499,7 +321,7 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
+    assertExpectedResults(expectedResults, results);
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }

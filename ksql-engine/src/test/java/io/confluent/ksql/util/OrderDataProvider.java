@@ -48,6 +48,10 @@ public class OrderDataProvider extends TestDataProvider {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
+  public static Schema getSchema() {
+    return schema;
+  }
+
   private Map<String, GenericRow> buildData() {
 
     Map<String, Double> mapField = new HashMap<>();
@@ -98,14 +102,14 @@ public class OrderDataProvider extends TestDataProvider {
             900.0 },
         mapField)));
 
-    dataMap.put("7", new GenericRow(Arrays.asList(7, "ORDER_6",
+    dataMap.put("7", new GenericRow(Arrays.asList(7, "ORDER_7",
         "ITEM_7", 70.0, new
             Double[]{1100.0,
             1110.99,
             190.0 },
         mapField)));
 
-    dataMap.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
+    dataMap.put("8", new GenericRow(Arrays.asList(8, "ORDER_8",
         "ITEM_8", 80.0, new
             Double[]{1100.0,
             1110.99,

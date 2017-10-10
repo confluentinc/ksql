@@ -1,6 +1,7 @@
 package io.confluent.ksql;
 
 
+import io.confluent.ksql.util.TopicConsumer;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -45,6 +46,7 @@ public class IntegrationTestHarness {
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
   private AdminClient adminClient;
+  private TopicConsumer topicConsumer;
 
   public IntegrationTestHarness() {
   }
@@ -71,12 +73,7 @@ public class IntegrationTestHarness {
    */
   public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
       throws InterruptedException, TimeoutException, ExecutionException {
-    Properties producerConfig = new Properties();
-    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
-    KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
+    KafkaProducer<String, GenericRow> producer = getProducer(schema);
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
@@ -89,6 +86,14 @@ public class IntegrationTestHarness {
     producer.close();
 
     return result;
+  }
+
+  KafkaProducer<String, GenericRow> getProducer(Schema schema) {
+    Properties producerConfig = new Properties();
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+    return new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
   }
 
   /**
@@ -133,6 +138,11 @@ public class IntegrationTestHarness {
     return result;
   }
 
+  public <K> Map<K, GenericRow> readRow(String topic, Deserializer<K> keyDeserializer, Schema schema, int expectedResults) {
+    return topicConsumer.readResults(topic, schema, expectedResults, keyDeserializer);
+  };
+
+
   private static boolean continueConsuming(int messagesConsumed, int maxMessages) {
     return maxMessages < 0 || messagesConsumed < maxMessages;
   }
@@ -155,6 +165,7 @@ public class IntegrationTestHarness {
     this.ksqlConfig = new KsqlConfig(configMap);
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    this.topicConsumer = new TopicConsumer(embeddedKafkaCluster);
   }
 
   public void stop() {

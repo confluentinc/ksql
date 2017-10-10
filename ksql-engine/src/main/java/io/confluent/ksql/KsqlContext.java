@@ -39,7 +39,6 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-  private final AdminClient adminClient;
   private final KafkaTopicClientImpl topicClient;
 
   public KsqlContext() {
@@ -64,8 +63,7 @@ public class KsqlContext {
     }
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
 
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(adminClient);
+    topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
   }
 
@@ -101,6 +99,5 @@ public class KsqlContext {
   public void close() throws IOException {
     ksqlEngine.close();
     topicClient.close();
-    adminClient.close();
   }
 }

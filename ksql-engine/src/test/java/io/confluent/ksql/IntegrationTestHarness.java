@@ -72,14 +72,16 @@ public class IntegrationTestHarness {
    * @throws ExecutionException
    */
   public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
-      throws InterruptedException, TimeoutException, ExecutionException {
-    KafkaProducer<String, GenericRow> producer = getProducer(schema);
+          throws InterruptedException, TimeoutException, ExecutionException {
+    Properties producerConfig = properties();
+    KafkaProducer<String, GenericRow> producer =
+            new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
       String key = recordEntry.getKey();
       ProducerRecord<String, GenericRow>
-          producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
+              producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
       Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
@@ -88,13 +90,28 @@ public class IntegrationTestHarness {
     return result;
   }
 
-  KafkaProducer<String, GenericRow> getProducer(Schema schema) {
+  private Properties properties() {
     Properties producerConfig = new Properties();
     producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
-    return new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
+    return producerConfig;
   }
+
+  void produceRecord(final String topicName, final String key, final String jsonData) {
+    try(final KafkaProducer<String, String> producer
+                = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
+      producer.send(new ProducerRecord<>(topicName, key, jsonData));
+    }
+  }
+
+//  KafkaProducer<String, GenericRow> getProducer(Schema schema) {
+//    Properties producerConfig = new Properties();
+//    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+//    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+//    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+//    return new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
+//  }
 
   /**
    *
@@ -164,7 +181,7 @@ public class IntegrationTestHarness {
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig, adminClient);
+    this.topicClient = new KafkaTopicClientImpl(adminClient);
     this.topicConsumer = new TopicConsumer(embeddedKafkaCluster);
   }
 

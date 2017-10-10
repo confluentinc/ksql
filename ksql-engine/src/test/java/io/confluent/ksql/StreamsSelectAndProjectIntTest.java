@@ -26,12 +26,14 @@ public class StreamsSelectAndProjectIntTest {
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> recordMetadataMap;
+  private final String topicName = "TestTopic";
 
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
-    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    testHarness.createTopic(topicName);
   }
 
   @After
@@ -229,6 +231,12 @@ public class StreamsSelectAndProjectIntTest {
     Assert.assertEquals(4, results.size());
   }
 
+  @Test
+  public void shouldSkipBadData() throws Exception {
+    testHarness.createTopic(topicName);
+    testHarness.produceRecord(topicName, "bad", "something that is not json");
+    testSelectWithFilter();
+  }
 
   private void createOrdersStream() throws Exception {
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
@@ -236,9 +244,6 @@ public class StreamsSelectAndProjectIntTest {
 
   private OrderDataProvider publishOrdersTopicData() throws InterruptedException, TimeoutException, ExecutionException {
     OrderDataProvider dataProvider = new OrderDataProvider();
-
-    String topicName = "TestTopic";
-    testHarness.createTopic(topicName);
     recordMetadataMap = testHarness.produceData(topicName, dataProvider.data(), dataProvider.schema());
     return dataProvider;
   }

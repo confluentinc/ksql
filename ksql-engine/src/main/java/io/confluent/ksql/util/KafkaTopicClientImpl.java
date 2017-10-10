@@ -35,7 +35,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private final AdminClient adminClient;
 
-  public KafkaTopicClientImpl(final KsqlConfig ksqlConfig, AdminClient adminClient) {
+  public KafkaTopicClientImpl(AdminClient adminClient) {
     this.adminClient = adminClient;
   }
 
@@ -58,6 +58,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
+
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
                                                 topic, e);

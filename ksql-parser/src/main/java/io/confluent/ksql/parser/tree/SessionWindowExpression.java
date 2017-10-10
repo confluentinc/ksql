@@ -18,23 +18,24 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class SessionWindowExpression extends KsqlWindowExpression {
 
   private final long gap;
-  private final WindowExpression.WindowUnit sizeUnit;
+  private final TimeUnit sizeUnit;
 
-  public SessionWindowExpression(long gap, WindowExpression.WindowUnit sizeUnit) {
+  public SessionWindowExpression(long gap, TimeUnit sizeUnit) {
     this(Optional.empty(), "", gap, sizeUnit);
   }
 
   public SessionWindowExpression(NodeLocation location, String windowName,
-                                 long gap, WindowExpression.WindowUnit sizeUnit) {
+                                 long gap, TimeUnit sizeUnit) {
     this(Optional.of(location), windowName, gap, sizeUnit);
   }
 
   private SessionWindowExpression(Optional<NodeLocation> location, String windowName, long gap,
-                                  WindowExpression.WindowUnit sizeUnit) {
+                                  TimeUnit sizeUnit) {
     super(location);
     this.gap = gap;
     this.sizeUnit = sizeUnit;
@@ -44,7 +45,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return gap;
   }
 
-  public WindowExpression.WindowUnit getSizeUnit() {
+  public TimeUnit getSizeUnit() {
     return sizeUnit;
   }
 

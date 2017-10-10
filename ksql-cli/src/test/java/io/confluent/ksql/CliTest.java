@@ -168,9 +168,9 @@ public class CliTest extends TestRunner {
     Map<String, Object> startConfigs = genDefaultConfigMap();
     startConfigs.put("num.stream.threads", 4);
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS, 1);
-    startConfigs.put(SINK_NUMBER_OF_PARTITIONS, 4);
-    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION, 1000000);
+    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, 1);
+    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
+    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY, 1000000);
 
     startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);

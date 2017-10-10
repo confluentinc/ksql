@@ -43,7 +43,7 @@ public class StandaloneExecutor {
 
   public StandaloneExecutor(Map streamProperties) {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig, AdminClient.create(ksqlConfig.getKsqlConfigProps())));
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
   }
 
   public void executeStatements(String queries) throws Exception {

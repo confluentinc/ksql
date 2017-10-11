@@ -14,7 +14,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Download and start the KSQL clickstream container. This container image is large and contains Confluent, Grafana, and Elasticsearch. Depending on your network speed, this may take up to 10-15 minutes. The `-p` flag will forward the Grafana dashboard to port 33000 on your local host.
 
 	```bash
-	$ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo bash
+	docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo bash
 	```
 
 	Your output should resemble:
@@ -52,19 +52,19 @@ These steps will guide you through how to setup your environment and run the cli
 	- Elasticsearch
 
 	  ```bash
-	  $ /etc/init.d/elasticsearch start
+	  /etc/init.d/elasticsearch start
 	  ```
 
 	- Grafana
 
 	  ```bash
-	  $ /etc/init.d/grafana-server start
+	  /etc/init.d/grafana-server start
 	  ```
 
 	- Confluent Platform
 
 	  ```bash
-	  $ confluent start
+	  confluent start
       ```
 
 1.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
@@ -72,7 +72,7 @@ These steps will guide you through how to setup your environment and run the cli
     **Tip:** Because of shell redirection, this command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```bash
-    $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -84,7 +84,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table. 
 
     ```bash
-    $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+    ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -100,7 +100,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```bash
-    $ ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -117,13 +117,13 @@ These steps will guide you through how to setup your environment and run the cli
     1.  Start the KSQL server.
 
     	```bash
-    	$ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+    	ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
     	```
 
     1.  Start the CLI on port 8080.
 
     	```bash
-    	$ ksql-cli remote http://localhost:8080
+    	ksql-cli remote http://localhost:8080
     	```
 
     	You should now be in the KSQL CLI.
@@ -276,13 +276,13 @@ These steps will guide you through how to setup your environment and run the cli
 	1.  From your terminal, navigate to the demo directory:
 
 		```bash
-		$ cd /usr/share/doc/ksql-clickstream-demo/
+		cd /usr/share/doc/ksql-clickstream-demo/
 		```
 
     1.  Run this command to send the KSQL tables to Elasticsearch and Grafana:
 
 		```bash
-		$ ./ksql-tables-to-grafana.sh
+		./ksql-tables-to-grafana.sh
 		```
 
         Your output should resemble:
@@ -305,7 +305,7 @@ These steps will guide you through how to setup your environment and run the cli
     1.  From your terminal, load the dashboard into Grafana.
 
     	```bash
-		$ ./clickstream-analysis-dashboard.sh
+		./clickstream-analysis-dashboard.sh
 	    ```
 
 	    Your output should resemble:

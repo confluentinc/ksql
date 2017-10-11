@@ -22,6 +22,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.parser.tree.Expression;
@@ -63,7 +64,7 @@ public class PhysicalPlanBuilderTest {
         configMap.put("commit.interval.ms", 0);
         configMap.put("cache.max.bytes.buffering", 0);
         configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient());
+        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient(), new MetastoreUtil());
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {

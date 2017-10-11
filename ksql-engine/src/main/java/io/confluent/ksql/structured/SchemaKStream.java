@@ -167,8 +167,7 @@ public class SchemaKStream {
                 newColumns.add(null);
               }
             }
-            GenericRow newRow = new GenericRow(newColumns);
-            return newRow;
+            return new GenericRow(newColumns);
           } catch (Exception e) {
             log.error("Projection exception for row: " + row.toString());
             log.error(e.getMessage(), e);

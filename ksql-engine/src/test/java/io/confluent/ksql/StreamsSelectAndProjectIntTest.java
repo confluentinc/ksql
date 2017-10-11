@@ -68,7 +68,7 @@ public class StreamsSelectAndProjectIntTest {
     expectedResults.put("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8")
                     .timestamp() + 10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
             recordMetadataMap.get("8").timestamp
-                    () + 100, "ORDER_8", "ITEM_8")));
+                    () + 100, "ORDER_6", "ITEM_8")));
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 

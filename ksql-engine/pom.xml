@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>4.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-engine</artifactId>
@@ -63,11 +63,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-json</artifactId>
         </dependency>
 
         <dependency>

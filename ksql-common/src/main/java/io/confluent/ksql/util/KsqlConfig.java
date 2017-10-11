@@ -23,7 +23,6 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 

@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.sql.rowset.serial.SerialException;
+
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlDelimitedDeserializer.class);

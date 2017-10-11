@@ -1,6 +1,8 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -10,9 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -23,12 +23,14 @@ public class UdfIntTest {
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> recordMetadataMap;
+  String topicName = "TestTopic";
 
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
-    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    testHarness.createTopic(topicName);
   }
 
   @After
@@ -100,6 +102,45 @@ public class UdfIntTest {
   }
 
 
+
+  @Test
+  public void testTimestampColumnSelection() throws Exception {
+
+    publishOrdersTopicData();
+    createOrdersStream();
+
+    final String stream1Name = "ORIGINALSTREAM";
+    final String stream2Name = "TIMESTAMPSTREAM";
+    final String query1String =
+            String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
+                            + "ROWTIME+10000 AS "
+                            + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+                            + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
+                            + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
+                            + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                            + "FROM %s ;", stream1Name,
+                    "ORDERS", stream2Name, stream1Name);
+
+    ksqlContext.sql(query1String);
+
+    Schema resultSchema = SchemaUtil
+            .removeImplicitRowTimeRowKeyFromSchema(ksqlContext.getMetaStore().getSource(stream2Name).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("8", new GenericRow(Arrays.asList("8", recordMetadataMap.get("8").timestamp() +
+                    10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
+            recordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
+
+    Map<String, GenericRow> results1 = testHarness.consumeData(stream1Name, resultSchema,expectedResults.size(), new StringDeserializer());
+
+    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer());
+
+    Assert.assertEquals(expectedResults.size(), results.size());
+    assertExpectedResults(expectedResults, results);
+
+  }
+
+
   private void createOrdersStream() throws Exception {
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
   }
@@ -107,8 +148,6 @@ public class UdfIntTest {
   private OrderDataProvider publishOrdersTopicData() throws InterruptedException, TimeoutException, ExecutionException {
     OrderDataProvider dataProvider = new OrderDataProvider();
 
-    String topicName = "TestTopic";
-    testHarness.createTopic(topicName);
     recordMetadataMap = testHarness.produceData(topicName, dataProvider.data(), dataProvider.schema());
     return dataProvider;
   }

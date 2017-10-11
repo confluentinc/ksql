@@ -45,7 +45,7 @@ public class IntegrationTestHarness {
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
-  private AdminClient adminClient;
+
   private TopicConsumer topicConsumer;
 
   public IntegrationTestHarness() {
@@ -73,6 +73,9 @@ public class IntegrationTestHarness {
    */
   public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
           throws InterruptedException, TimeoutException, ExecutionException {
+
+    createTopic(topicName);
+
     Properties producerConfig = properties();
     KafkaProducer<String, GenericRow> producer =
             new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
@@ -104,14 +107,6 @@ public class IntegrationTestHarness {
       producer.send(new ProducerRecord<>(topicName, key, jsonData));
     }
   }
-
-//  KafkaProducer<String, GenericRow> getProducer(Schema schema) {
-//    Properties producerConfig = new Properties();
-//    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-//    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-//    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
-//    return new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
-//  }
 
   /**
    *
@@ -180,20 +175,18 @@ public class IntegrationTestHarness {
     configMap.put("auto.offset.reset", "earliest");
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.adminClient = AdminClient.create(ksqlConfig.getKsqlConfigProps());
-    this.topicClient = new KafkaTopicClientImpl(adminClient);
+    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
     this.topicConsumer = new TopicConsumer(embeddedKafkaCluster);
   }
 
   public void stop() {
 
     this.topicClient.close();
-    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 
   public void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                           Map<String, GenericRow> expectedResult) {
+                                    Map<String, GenericRow> expectedResult) {
     Assert.assertEquals(actualResult.size(), expectedResult.size());
 
     for (String k: expectedResult.keySet()) {
@@ -216,15 +209,15 @@ public class IntegrationTestHarness {
     testHarness.produceData(topicName, orderDataProvider.data(), orderDataProvider.schema());
 
 
-    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlConfigProps());
+    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
-                    + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
+            + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
     ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");
 
     Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS",
-                                                                         orderDataProvider.schema
-                                                                             (), 4,
-                                                                         new StringDeserializer());
+            orderDataProvider.schema
+                    (), 4,
+            new StringDeserializer());
 
     System.out.println();
     testHarness.stop();

@@ -87,8 +87,9 @@ public class MetaStoreFixture {
     return metaStore;
   }
 
-  public static void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                        Map<String, GenericRow> expectedResult) {
+  public static void assertExpectedResults(Map<String, GenericRow> expectedResult,
+                                           Map<String, GenericRow> actualResult
+                                        ) {
     Assert.assertEquals(actualResult.size(), expectedResult.size());
 
     for (String k: expectedResult.keySet()) {

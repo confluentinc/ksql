@@ -194,7 +194,7 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultTopicName, resultSchema, expectedResults.size(), new StringDeserializer());
     Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
+    assertExpectedResults(expectedResults, results);
 
     /* Get first column of the first row in the result set to obtain the queryID */
     String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);

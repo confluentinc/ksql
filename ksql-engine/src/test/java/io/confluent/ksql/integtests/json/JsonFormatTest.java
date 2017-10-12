@@ -75,6 +75,7 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
+  private AdminClient adminClient;
 
 
   @Before
@@ -88,7 +89,8 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     KsqlConfig ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     metaStore = ksqlEngine.getMetaStore();
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
@@ -137,6 +139,7 @@ public class JsonFormatTest {
 
   @After
   public void after() throws Exception {
+    adminClient.close();
     ksqlEngine.close();
   }
 

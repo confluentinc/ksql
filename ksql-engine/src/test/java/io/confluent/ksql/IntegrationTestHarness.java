@@ -44,6 +44,7 @@ public class IntegrationTestHarness {
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
+  private AdminClient adminClient;
 
   public IntegrationTestHarness() {
   }
@@ -164,12 +165,14 @@ public class IntegrationTestHarness {
     configMap.put("auto.offset.reset", "earliest");
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicClient = new KafkaTopicClientImpl(adminClient);
   }
 
   public void stop() {
 
     this.topicClient.close();
+    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 

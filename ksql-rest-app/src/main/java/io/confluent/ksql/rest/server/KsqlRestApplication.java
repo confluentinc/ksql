@@ -208,7 +208,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ksqlConfProperties.putAll(restConfig.getOriginals());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient client = ksqlEngine.getTopicClient();
 
     String commandTopic = restConfig.getCommandTopic();

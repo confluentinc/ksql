@@ -37,10 +37,10 @@ import java.util.concurrent.TimeUnit;
 
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
-  private final Map<String, Object> adminClientConfig;
+  private final AdminClient adminClient;
 
-  public KafkaTopicClientImpl(Map<String, Object> adminClientConfig) {
-    this.adminClientConfig = adminClientConfig;
+  public KafkaTopicClientImpl(AdminClient adminClient) {
+    this.adminClient = adminClient;
   }
 
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
@@ -61,9 +61,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
-      AdminClient adminClient = AdminClient.create(adminClientConfig);
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
-      adminClient.close();
 
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
@@ -78,10 +76,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Set<String> listTopicNames() {
     try {
-      AdminClient adminClient = AdminClient.create(adminClientConfig);
-      Set<String> topicNames =  adminClient.listTopics().names().get();
-      adminClient.close();
-      return topicNames;
+      return adminClient.listTopics().names().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve kafka topic names", e);
     }
@@ -89,11 +84,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
-      AdminClient adminClient = AdminClient.create(adminClientConfig);
-      Map<String, TopicDescription> topicInfos =  adminClient.describeTopics(topicNames).all()
+      return adminClient.describeTopics(topicNames).all()
           .get();
-      adminClient.close();
-      return topicInfos;
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);
     }
@@ -101,7 +93,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public void deleteTopics(List<String> topicsToDelete) {
     boolean hasDeleteErrors = false;
-    AdminClient adminClient = AdminClient.create(adminClientConfig);
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
 

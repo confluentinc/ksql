@@ -24,7 +24,7 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-engine</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-json-serializer</artifactId>

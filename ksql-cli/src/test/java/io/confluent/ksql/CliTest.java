@@ -132,12 +132,7 @@ public class CliTest extends TestRunner {
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-
-  @Test
-  public void shouldListStreams() {
-    testListOrShow("streams", OrderedResult.build("ORDER_KSTREAM, ORDER_TOPIC, JSON"));
-  }
-
+  
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.

@@ -111,6 +111,7 @@ public class CliTest extends TestRunner {
     produceInputStream(orderDataProvider);
   }
 
+
   private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
     topicProducer.produceInputData(dataProvider);
@@ -130,6 +131,11 @@ public class CliTest extends TestRunner {
     testListOrShow("streams", EMPTY_RESULT);
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
+  }
+
+  @Test
+  public void shouldListStreams() {
+    testListOrShow("streams", OrderedResult.build("ORDER_KSTREAM, ORDER_TOPIC, JSON"));
   }
 
   @AfterClass

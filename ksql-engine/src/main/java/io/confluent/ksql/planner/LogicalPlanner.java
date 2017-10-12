@@ -20,7 +20,6 @@ import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -31,7 +30,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConfig;
@@ -39,9 +37,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.kafka.streams.kstream.KTable;
 
 public class LogicalPlanner {
 
@@ -61,7 +57,7 @@ public class LogicalPlanner {
       currentNode = buildSourceNode();
     }
     if (analysis.getWhereExpression() != null) {
-      currentNode = buildFilterNode(currentNode.getSchema(), currentNode);
+      currentNode = buildFilterNode(currentNode);
     }
     if ((analysis.getGroupByExpressions() != null) && (!analysis.getGroupByExpressions()
         .isEmpty())) {
@@ -129,9 +125,6 @@ public class LogicalPlanner {
   }
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
-    List<Field> projectionFields = new ArrayList<>();
-    List<String> fieldNames = new ArrayList<>();
-
     SchemaBuilder projectionSchema = SchemaBuilder.struct();
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
@@ -148,36 +141,22 @@ public class LogicalPlanner {
                            analysis.getSelectExpressions());
   }
 
-  private FilterNode buildFilterNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
+  private FilterNode buildFilterNode(final PlanNode sourcePlanNode) {
 
     Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private SourceNode buildSourceNode() {
+  private StructuredDataSourceNode buildSourceNode() {
 
     StructuredDataSource fromDataSource = analysis.getFromDataSources().get(0).getLeft();
     String alias = analysis.getFromDataSources().get(0).getRight();
     Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
 
-    if (fromDataSource instanceof KsqlStream) {
-      KsqlStream fromStream = (KsqlStream) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromSchema,
-                                          fromDataSource.getKeyField(),
-                                          fromDataSource.getTimestampField(),
-                                          fromStream.getKsqlTopic().getTopicName(),
-                                          alias, fromStream.getDataSourceType(),
-                                          fromStream);
-    } else if (fromDataSource instanceof KsqlTable) {
-      KsqlTable fromTable = (KsqlTable) fromDataSource;
-      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromSchema,
-                                          fromDataSource.getKeyField(),
-                                          fromDataSource.getTimestampField(),
-                                          fromTable.getKsqlTopic().getTopicName(),
-                                          alias, fromTable.getDataSourceType(),
-                                          fromTable);
+    if (fromDataSource instanceof KsqlStream
+        || fromDataSource instanceof KTable) {
+      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromDataSource, fromSchema);
     }
-
     throw new RuntimeException("Data source is not supported yet.");
   }
 

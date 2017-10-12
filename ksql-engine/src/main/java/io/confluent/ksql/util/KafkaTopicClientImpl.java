@@ -19,17 +19,21 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.KafkaFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
@@ -92,6 +96,26 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return topicInfos;
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);
+    }
+  }
+
+  public void deleteTopics(List<String> topicsToDelete) {
+    boolean hasDeleteErrors = false;
+    AdminClient adminClient = AdminClient.create(adminClientConfig);
+    final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
+    final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
+
+    for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
+      try {
+        entry.getValue().get(30, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        System.err.println("ERROR: deleting topic " + entry.getKey());
+        e.printStackTrace(System.err);
+        hasDeleteErrors = true;
+      }
+    }
+    if (hasDeleteErrors) {
+      throw new RuntimeException("Encountered an error deleting one or more topics");
     }
   }
 

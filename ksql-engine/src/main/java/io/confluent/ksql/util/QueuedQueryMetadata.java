@@ -35,9 +35,11 @@ public class QueuedQueryMetadata extends QueryMetadata {
       OutputNode outputNode,
       String executionPlan,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
-      DataSource.DataSourceType dataSourceType
+      DataSource.DataSourceType dataSourceType,
+      String queryApplicationId
   ) {
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType);
+    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
+          queryApplicationId);
     this.rowQueue = rowQueue;
   }
 

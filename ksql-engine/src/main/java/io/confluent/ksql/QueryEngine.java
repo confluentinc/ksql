@@ -290,7 +290,8 @@ public class QueryEngine {
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable) ?
-        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
+        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        applicationId
     );
   }
 
@@ -352,7 +353,9 @@ public class QueryEngine {
                                        streams, outputNode, schemaKStream
                                            .getExecutionPlan(""), queryId,
                                        (schemaKStream instanceof SchemaKTable) ? DataSource
-                                           .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
+                                           .DataSourceType.KTABLE : DataSource.DataSourceType
+                                           .KSTREAM,
+                                       applicationId);
   }
 
 

@@ -362,6 +362,7 @@ public class KsqlEngine implements Closeable {
     if (closeStreams) {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
+      new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
     }
     return true;
   }
@@ -390,6 +391,7 @@ public class KsqlEngine implements Closeable {
     for (QueryMetadata queryMetadata : liveQueries) {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
+      new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
     }
     topicClient.close();
   }
@@ -405,6 +407,7 @@ public class KsqlEngine implements Closeable {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
           persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
           persistentQueryMetadata.getKafkaStreams().cleanUp();
+          new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
         }
       }
     } catch (Exception e) {

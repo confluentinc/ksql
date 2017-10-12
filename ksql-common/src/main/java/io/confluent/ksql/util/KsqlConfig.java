@@ -48,6 +48,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
 
+  public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+
+  public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
+
   public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
 
   public static final String

@@ -19,6 +19,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.CleanUpUtil;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -41,6 +43,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final QueuedQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;
   private final AtomicReference<Throwable> streamsException;
+  private final KafkaTopicClient kafkaTopicClient;
 
   QueryStreamWriter(
       KsqlEngine ksqlEngine,
@@ -49,6 +52,7 @@ class QueryStreamWriter implements StreamingOutput {
       Map<String, Object> overriddenProperties
   )
       throws Exception {
+    this.kafkaTopicClient = ksqlEngine.getTopicClient();
     QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties).get(0);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
@@ -130,6 +134,7 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
+      new CleanUpUtil(kafkaTopicClient).cleanUpQuery(queryMetadata);
     }
   }
 

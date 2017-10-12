@@ -1,7 +1,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TopicProducer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -16,10 +15,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
 import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedWindowedResults;
 
 public class WindowingIntTest {
@@ -28,6 +24,7 @@ public class WindowingIntTest {
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> recordMetadataMap;
   private final String topicName = "TestTopic";
+  private OrderDataProvider dataProvider;
 
   @Before
   public void before() throws Exception {
@@ -35,6 +32,14 @@ public class WindowingIntTest {
     testHarness.start();
     ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);
+
+    /**
+     * Setup test data
+     */
+    testHarness.createTopic("ORDERS");
+    dataProvider = new OrderDataProvider();
+    recordMetadataMap = testHarness.publishTestData(topicName, dataProvider);
+    createOrdersStream();
   }
 
   @After
@@ -43,16 +48,10 @@ public class WindowingIntTest {
     testHarness.stop();
   }
 
-
   @Test
   public void testAggSelectStar() throws Exception {
 
-    OrderDataProvider orderDataProvider = publishOrdersTopicData();
-    createOrdersStream();
-
-    TopicProducer topicProducer = new TopicProducer(testHarness.embeddedKafkaCluster);
-
-    Map<String, RecordMetadata> secondSetOfRecords = topicProducer.produceInputData(topicName, orderDataProvider.data(), orderDataProvider.schema());
+      Map<String, RecordMetadata> secondSetOfRecords = testHarness.publishTestData(topicName, dataProvider);
 
     final String streamName = "AGGTEST";
     final long windowSizeMilliseconds = 2000;
@@ -84,8 +83,6 @@ public class WindowingIntTest {
 
     Map<Windowed<String>, GenericRow> results = testHarness.consumeData(streamName, resultSchema, expectedResults.size(), new WindowedDeserializer<>(new StringDeserializer()));
 
-    System.out.println("Results:" + results + " size:" + results.size());
-
     Assert.assertEquals(expectedResults.size(), results.size());
     assertExpectedWindowedResults(results, expectedResults);
   }
@@ -94,10 +91,4 @@ public class WindowingIntTest {
     ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
   }
 
-  private OrderDataProvider publishOrdersTopicData() throws InterruptedException, TimeoutException, ExecutionException {
-    OrderDataProvider dataProvider = new OrderDataProvider();
-    testHarness.createTopic("ORDERS");
-    recordMetadataMap = testHarness.produceData(topicName, dataProvider.data(), dataProvider.schema());
-    return dataProvider;
-  }
 }

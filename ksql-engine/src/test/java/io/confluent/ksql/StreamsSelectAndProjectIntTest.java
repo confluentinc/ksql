@@ -1,25 +1,22 @@
 package io.confluent.ksql;
 
-import io.confluent.ksql.util.*;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedWindowedResults;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 
 public class StreamsSelectAndProjectIntTest {
 
@@ -27,6 +24,7 @@ public class StreamsSelectAndProjectIntTest {
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> recordMetadataMap;
   private final String topicName = "TestTopic";
+  private OrderDataProvider dataProvider;
 
   @Before
   public void before() throws Exception {
@@ -34,6 +32,13 @@ public class StreamsSelectAndProjectIntTest {
     testHarness.start();
     ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);
+
+    /**
+     * Setup test data
+     */
+    dataProvider = new OrderDataProvider();
+    recordMetadataMap = testHarness.publishTestData(topicName, dataProvider);
+    createOrdersStream();
   }
 
   @After
@@ -44,10 +49,6 @@ public class StreamsSelectAndProjectIntTest {
 
   @Test
   public void testTimestampColumnSelection() throws Exception {
-
-    publishOrdersTopicData();
-
-    createOrdersStream();
 
     final String stream1Name = "ORIGINALSTREAM";
     final String stream2Name = "TIMESTAMPSTREAM";
@@ -72,22 +73,14 @@ public class StreamsSelectAndProjectIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
-    Map<String, GenericRow> results1 = testHarness.consumeData(stream1Name, resultSchema , expectedResults.size(), new StringDeserializer());
     Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema , expectedResults.size(), new StringDeserializer());
 
-    System.out.println("Results:" + results1);
-
-    Assert.assertEquals(expectedResults.size(), results2.size());
-    assertExpectedResults(expectedResults, results2);
+    assertThat(results2, equalTo(expectedResults));
   }
 
 
   @Test
   public void testSelectProjectKeyTimestamp() throws Exception {
-
-    OrderDataProvider dataProvider = publishOrdersTopicData();
-
-    createOrdersStream();
 
     ksqlContext.sql("CREATE STREAM PROJECT_KEY_TIMESTAMP AS SELECT ROWKEY AS RKEY, ROWTIME AS RTIME, ITEMID FROM ORDERS WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';");
 
@@ -95,18 +88,13 @@ public class StreamsSelectAndProjectIntTest {
 
     Map<String, GenericRow> results = testHarness.consumeData("PROJECT_KEY_TIMESTAMP", resultSchema , dataProvider.data().size(), new StringDeserializer());
 
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8").timestamp(), "ITEM_8")));
+    Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8").timestamp(), "ITEM_8")));
 
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(expectedResults, results);
+    assertThat(results, equalTo(expectedResults));
   }
 
   @Test
   public void testSelectProject() throws Exception {
-
-    OrderDataProvider dataProvider = publishOrdersTopicData();
-    createOrdersStream();
 
     ksqlContext.sql("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM ORDERS;");
 
@@ -123,26 +111,20 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void testSelectStar() throws Exception {
 
-    OrderDataProvider dataProvider = publishOrdersTopicData();
-    createOrdersStream();
     ksqlContext.sql("CREATE STREAM EASYORDERS AS SELECT * FROM orders;");
 
     Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider.schema(), dataProvider.data().size(), new StringDeserializer());
 
-    testHarness.assertExpectedResults(dataProvider.data(), easyOrdersData);
+    assertThat(easyOrdersData, equalTo(dataProvider.data()));
   }
 
 
   @Test
   public void testSelectWithFilter() throws Exception {
 
-    OrderDataProvider orderDataProvider = publishOrdersTopicData();
-
-    createOrdersStream();
-
     ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");
 
-    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS", orderDataProvider.schema(), 4, new StringDeserializer());
+    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS", dataProvider.schema(), 4, new StringDeserializer());
 
     Assert.assertEquals(4, results.size());
   }
@@ -158,9 +140,4 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
   }
 
-  private OrderDataProvider publishOrdersTopicData() throws InterruptedException, TimeoutException, ExecutionException {
-    OrderDataProvider dataProvider = new OrderDataProvider();
-    recordMetadataMap = testHarness.produceData(topicName, dataProvider.data(), dataProvider.schema());
-    return dataProvider;
-  }
 }

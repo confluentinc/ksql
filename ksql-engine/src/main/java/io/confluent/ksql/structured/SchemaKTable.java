@@ -35,6 +35,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public class SchemaKTable extends SchemaKStream {
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));
-          }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+          }).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
     } else {
       ktable.toStream()
           .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
@@ -94,7 +95,7 @@ public class SchemaKTable extends SchemaKStream {
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));
-          }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+          }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     }
 
     return this;

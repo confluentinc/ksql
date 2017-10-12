@@ -36,9 +36,12 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.slf4j.Logger;
@@ -94,7 +97,7 @@ public class SchemaKStream {
             }
           }
           return new KeyValue<>(key, new GenericRow(columns));
-        }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+        }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     return this;
   }
 
@@ -167,8 +170,7 @@ public class SchemaKStream {
                 newColumns.add(null);
               }
             }
-            GenericRow newRow = new GenericRow(newColumns);
-            return newRow;
+            return new GenericRow(newColumns);
           } catch (Exception e) {
             log.error("Projection exception for row: " + row.toString());
             log.error(e.getMessage(), e);
@@ -201,7 +203,7 @@ public class SchemaKStream {
 
               GenericRow joinGenericRow = new GenericRow(columns);
               return joinGenericRow;
-            }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
+            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
                              Arrays.asList(this, schemaKTable), Type.JOIN);
@@ -231,7 +233,7 @@ public class SchemaKStream {
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
                                          final Serde valSerde) {
-    KGroupedStream kgroupedStream = kstream.groupByKey(keySerde, valSerde);
+    KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
     return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
   }
 

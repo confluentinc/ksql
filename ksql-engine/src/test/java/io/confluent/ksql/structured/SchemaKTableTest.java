@@ -35,7 +35,8 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,11 +58,10 @@ public class SchemaKTableTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
-    KStreamBuilder builder = new KStreamBuilder();
+    StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
-            .table(Serdes.String(), SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe
-                       (), null), ksqlTable.getKsqlTopic().getKafkaTopicName(),
-                   ksqlTable.getStateStoreName());
+            .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(), SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe
+                       (), null)));
 
   }
 

@@ -34,7 +34,7 @@ public class WindowingIntTest {
     testHarness.createTopic(topicName);
 
     /**
-     * Setup test data
+     * Setup test data 
      */
     testHarness.createTopic("ORDERS");
     dataProvider = new OrderDataProvider();

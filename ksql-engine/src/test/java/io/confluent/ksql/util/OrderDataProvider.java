@@ -48,6 +48,10 @@ public class OrderDataProvider extends TestDataProvider {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
+  public static Schema getSchema() {
+    return schema;
+  }
+
   private Map<String, GenericRow> buildData() {
 
     Map<String, Double> mapField = new HashMap<>();

@@ -37,7 +37,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,14 +48,14 @@ import java.util.Map;
 
 public class PhysicalPlanBuilderTest {
 
-    KStreamBuilder kStreamBuilder;
+    StreamsBuilder streamsBuilder;
     KsqlParser ksqlParser;
     PhysicalPlanBuilder physicalPlanBuilder;
     MetaStore metaStore;
 
     @Before
     public void before() {
-        kStreamBuilder = new KStreamBuilder();
+        streamsBuilder = new StreamsBuilder();
         ksqlParser = new KsqlParser();
         metaStore = MetaStoreFixture.getNewMetaStore();
         Map<String, Object> configMap = new HashMap<>();
@@ -64,7 +64,7 @@ public class PhysicalPlanBuilderTest {
         configMap.put("commit.interval.ms", 0);
         configMap.put("cache.max.bytes.buffering", 0);
         configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(kStreamBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient(), new MetastoreUtil());
+        physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient(), new MetastoreUtil());
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {

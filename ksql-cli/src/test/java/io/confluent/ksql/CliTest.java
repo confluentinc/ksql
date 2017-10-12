@@ -22,30 +22,22 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
+import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
-import static io.confluent.ksql.TestResult.*;
+import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.util.KsqlConfig.*;
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -193,8 +185,8 @@ public class CliTest extends TestRunner {
 
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultTopicName, resultSchema, expectedResults.size(), new StringDeserializer());
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(expectedResults, results);
+
+    assertThat(results, equalTo(expectedResults));
 
     /* Get first column of the first row in the result set to obtain the queryID */
     String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);

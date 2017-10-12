@@ -16,20 +16,11 @@
 
 package io.confluent.ksql.integtests.json;
 
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.clients.admin.AdminClient;
+import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -37,24 +28,18 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedWindowedResults;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class JsonFormatTest {
 
@@ -176,8 +161,7 @@ public class JsonFormatTest {
 
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(expectedResults, results);
+    assertThat(results, equalTo(expectedResults));
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
@@ -229,8 +213,7 @@ public class JsonFormatTest {
 
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(expectedResults, results);
+    assertThat(results, equalTo(expectedResults));
 
     ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }

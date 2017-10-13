@@ -1,5 +1,8 @@
-package io.confluent.ksql;
+package io.confluent.ksql.integration;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;

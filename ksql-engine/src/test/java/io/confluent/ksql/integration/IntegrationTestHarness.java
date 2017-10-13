@@ -1,6 +1,7 @@
-package io.confluent.ksql;
+package io.confluent.ksql.integration;
 
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;

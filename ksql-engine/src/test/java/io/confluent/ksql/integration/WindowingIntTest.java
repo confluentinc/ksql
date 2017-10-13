@@ -1,5 +1,7 @@
-package io.confluent.ksql;
+package io.confluent.ksql.integration;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -9,7 +11,6 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

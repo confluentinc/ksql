@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -55,17 +55,24 @@ public class SchemaKTable extends SchemaKStream {
   private final KTable ktable;
   private final boolean isWindowed;
 
-  public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
-                      final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
-                      Type type, final KsqlFunctionRegistry ksqlFunctionRegistry) {
-    super(schema, null, keyField, sourceSchemaKStreams, type, ksqlFunctionRegistry);
+  public SchemaKTable(final Schema schema,
+                      final KTable ktable,
+                      final Field keyField,
+                      final List<SchemaKStream> sourceSchemaKStreams,
+                      boolean isWindowed,
+                      Type type,
+                      final FunctionRegistry functionRegistry) {
+    super(schema, null, keyField, sourceSchemaKStreams, type, functionRegistry);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
 
   @Override
-  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                           Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+  public SchemaKTable into(final String kafkaTopicName,
+                           final Serde<GenericRow> topicValueSerDe,
+                           Set<Integer> rowkeyIndexes,
+                           KsqlConfig ksqlConfig,
+                           KafkaTopicClient kafkaTopicClient) {
 
     createSinkTopic(kafkaTopicName, ksqlConfig, kafkaTopicClient);
 
@@ -109,15 +116,16 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed, ksqlFunctionRegistry);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed,
+                                              functionRegistry);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            Type.FILTER, ksqlFunctionRegistry);
+                            Type.FILTER, functionRegistry);
   }
 
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     // TODO: Optimize to remove the code gen for constants and single
     // TODO: columns references and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -126,7 +134,7 @@ public class SchemaKTable extends SchemaKStream {
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema, ksqlFunctionRegistry);
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
@@ -169,7 +177,7 @@ public class SchemaKTable extends SchemaKStream {
     });
 
     return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed, Type.PROJECT, ksqlFunctionRegistry);
+                            Arrays.asList(this), isWindowed, Type.PROJECT, functionRegistry);
   }
 
   @Override

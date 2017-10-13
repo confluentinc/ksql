@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
@@ -46,17 +46,17 @@ public class SchemaKGroupedStream {
   private final KGroupedStream kgroupedStream;
   private final Field keyField;
   private final List<SchemaKStream> sourceSchemaKStreams;
-  private final KsqlFunctionRegistry ksqlFunctionRegistry;
+  private final FunctionRegistry functionRegistry;
 
   SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
                        final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams,
-                       final KsqlFunctionRegistry ksqlFunctionRegistry) {
+                       final FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
-    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
+    this.functionRegistry = functionRegistry;
   }
 
   @SuppressWarnings("unchecked")
@@ -103,7 +103,7 @@ public class SchemaKGroupedStream {
           kgroupedStream.aggregate(initializer, aggregator, Materialized.with(null, topicValueSerDe));
     }
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, isWindowed,
-                            SchemaKStream.Type.AGGREGATE, ksqlFunctionRegistry);
+                            SchemaKStream.Type.AGGREGATE, functionRegistry);
   }
 
 }

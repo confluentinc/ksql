@@ -21,6 +21,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class QueryMetadata {
   private final String statementString;
@@ -64,6 +65,11 @@ public class QueryMetadata {
 
   public String getQueryApplicationId() {
     return queryApplicationId;
+  }
+
+  public void close() {
+    kafkaStreams.close(100L, TimeUnit.MILLISECONDS);
+    kafkaStreams.cleanUp();
   }
 
   @Override

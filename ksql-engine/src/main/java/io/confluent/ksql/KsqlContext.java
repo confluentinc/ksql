@@ -17,6 +17,7 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 
@@ -41,9 +42,18 @@ public class KsqlContext {
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
   private final AdminClient adminClient;
-  private final KafkaTopicClientImpl topicClient;
+  private final KafkaTopicClient topicClient;
 
-  public KsqlContext() {
+
+  public static KsqlContext create() {
+    return new KsqlContext();
+  }
+
+  public static KsqlContext create(Map<String, Object> streamsProperties) {
+    return new KsqlContext(streamsProperties);
+  }
+
+  private KsqlContext() {
     this(null);
   }
 
@@ -53,7 +63,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  private KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -69,6 +79,12 @@ public class KsqlContext {
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
   }
 
+  protected KsqlContext(KsqlEngine ksqlEngin, AdminClient adminClient, KafkaTopicClient
+      topicClient) {
+    this.ksqlEngine = ksqlEngin;
+    this.adminClient = adminClient;
+    this.topicClient = topicClient;
+  }
 
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();

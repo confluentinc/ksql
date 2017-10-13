@@ -26,6 +26,7 @@ import org.apache.kafka.common.KafkaFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,12 +35,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private final AdminClient adminClient;
 
-  public KafkaTopicClientImpl(AdminClient adminClient) {
+  public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = adminClient;
   }
 
@@ -95,18 +97,18 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     boolean hasDeleteErrors = false;
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
+    List<String> failList = new ArrayList<>();
 
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
       } catch (Exception e) {
-        System.err.println("ERROR: deleting topic " + entry.getKey());
-        e.printStackTrace(System.err);
-        hasDeleteErrors = true;
+        failList.add(entry.getKey());
       }
     }
-    if (hasDeleteErrors) {
-      throw new RuntimeException("Encountered an error deleting one or more topics");
+    if (!failList.isEmpty()) {
+      throw new KsqlException("Failed to clean up topics: " + failList.stream().collect(Collectors
+                                                                                          .joining(",")));
     }
   }
 

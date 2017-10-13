@@ -31,7 +31,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -131,8 +130,7 @@ class QueryStreamWriter implements StreamingOutput {
       }
 
     } finally {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.close();
     }
   }
 

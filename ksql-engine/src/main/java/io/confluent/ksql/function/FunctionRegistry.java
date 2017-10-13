@@ -46,12 +46,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KsqlFunctionRegistry {
+public class FunctionRegistry {
 
   private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
   private Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
 
-  public KsqlFunctionRegistry() {
+  public FunctionRegistry() {
     init();
   }
 

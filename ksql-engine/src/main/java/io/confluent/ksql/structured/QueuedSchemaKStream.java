@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -46,10 +46,10 @@ public class QueuedSchemaKStream extends SchemaKStream {
   private QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                               final List<SchemaKStream> sourceSchemaKStreams,
                               Type type,
-                              final KsqlFunctionRegistry ksqlFunctionRegistry,
+                              final FunctionRegistry functionRegistry,
                               Optional<Integer> limit
   ) {
-    super(schema, kstream, keyField, sourceSchemaKStreams, type, ksqlFunctionRegistry);
+    super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
 
@@ -62,7 +62,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
             schemaKStream.keyField,
             schemaKStream.sourceSchemaKStreams,
             Type.SINK,
-            schemaKStream.ksqlFunctionRegistry,
+            schemaKStream.functionRegistry,
             limit
     );
   }

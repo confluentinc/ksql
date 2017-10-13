@@ -18,7 +18,7 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -48,13 +48,13 @@ public class LogicalPlanner {
 
   private Analysis analysis;
   private AggregateAnalysis aggregateAnalysis;
-  private final KsqlFunctionRegistry ksqlFunctionRegistry;
+  private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(Analysis analysis, AggregateAnalysis aggregateAnalysis,
-                        final KsqlFunctionRegistry ksqlFunctionRegistry) {
+                        final FunctionRegistry functionRegistry) {
     this.analysis = analysis;
     this.aggregateAnalysis = aggregateAnalysis;
-    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
+    this.functionRegistry = functionRegistry;
   }
 
   public PlanNode buildPlan() {
@@ -110,7 +110,8 @@ public class LogicalPlanner {
                                            final PlanNode sourcePlanNode) {
 
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema, ksqlFunctionRegistry);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema,
+                                                                            functionRegistry);
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
@@ -121,8 +122,11 @@ public class LogicalPlanner {
 
     }
 
-    return new AggregateNode(new PlanNodeId("Aggregate"), sourcePlanNode, aggregateSchema,
-                             analysis.getSelectExpressions(), analysis.getGroupByExpressions(),
+    return new AggregateNode(new PlanNodeId("Aggregate"),
+                             sourcePlanNode,
+                             aggregateSchema,
+                             analysis.getSelectExpressions(),
+                             analysis.getGroupByExpressions(),
                              analysis.getWindowExpression(),
                              aggregateAnalysis.getAggregateFunctionArguments(),
                              aggregateAnalysis.getFunctionList(),
@@ -137,7 +141,8 @@ public class LogicalPlanner {
     List<String> fieldNames = new ArrayList<>();
 
     SchemaBuilder projectionSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema, ksqlFunctionRegistry);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema,
+                                                                            functionRegistry);
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);

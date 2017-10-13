@@ -21,7 +21,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
@@ -54,12 +54,12 @@ public class SchemaKTableTest {
   MetaStore metaStore;
   KTable kTable;
   KsqlTable ksqlTable;
-  KsqlFunctionRegistry ksqlFunctionRegistry;
+  FunctionRegistry functionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
-    ksqlFunctionRegistry = new KsqlFunctionRegistry();
+    functionRegistry = new FunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
@@ -87,12 +87,12 @@ public class SchemaKTableTest {
     analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, analysis, ksqlFunctionRegistry);
+        new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlFunctionRegistry).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
     return logicalPlan;
   }
 
@@ -105,7 +105,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, ksqlFunctionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -137,7 +137,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(),
                                            new ArrayList<>(), false,
-                                           SchemaKStream.Type.SOURCE, ksqlFunctionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -171,7 +171,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, ksqlFunctionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);

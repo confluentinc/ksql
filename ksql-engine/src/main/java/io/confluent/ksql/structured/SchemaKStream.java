@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -64,28 +64,34 @@ public class SchemaKStream {
   final List<SchemaKStream> sourceSchemaKStreams;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   protected final Type type;
-  protected final KsqlFunctionRegistry ksqlFunctionRegistry;
+  protected final FunctionRegistry functionRegistry;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
-  public SchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
-                       final List<SchemaKStream> sourceSchemaKStreams, Type type,
-                       final KsqlFunctionRegistry ksqlFunctionRegistry) {
+  public SchemaKStream(final Schema schema,
+                       final KStream kstream,
+                       final Field keyField,
+                       final List<SchemaKStream> sourceSchemaKStreams,
+                       Type type,
+                       final FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.kstream = kstream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.type = type;
-    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
+    this.functionRegistry = functionRegistry;
   }
 
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
     return new QueuedSchemaKStream(this, limit);
   }
 
-  public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                            final Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+  public SchemaKStream into(final String kafkaTopicName,
+                            final Serde<GenericRow> topicValueSerDe,
+                            final Set<Integer> rowkeyIndexes,
+                            KsqlConfig ksqlConfig,
+                            KafkaTopicClient kafkaTopicClient) {
 
     createSinkTopic(kafkaTopicName, ksqlConfig, kafkaTopicClient);
 
@@ -106,10 +112,10 @@ public class SchemaKStream {
   }
 
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, ksqlFunctionRegistry);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, functionRegistry);
     KStream filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
-                             Type.FILTER, ksqlFunctionRegistry);
+                             Type.FILTER, functionRegistry);
   }
 
   public SchemaKStream select(final Schema selectSchema) {
@@ -127,12 +133,12 @@ public class SchemaKStream {
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this),
-                             Type.PROJECT, ksqlFunctionRegistry);
+                             Type.PROJECT, functionRegistry);
   }
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
       throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     // TODO: Optimize to remove the code gen for constants and single columns references
     // TODO: and use them directly.
     // TODO: Only use code get when we have real expression.
@@ -141,7 +147,7 @@ public class SchemaKStream {
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema, ksqlFunctionRegistry);
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
@@ -184,10 +190,11 @@ public class SchemaKStream {
 
     return new SchemaKStream(schemaBuilder.build(),
                              projectedKStream, keyField, Arrays.asList(this),
-                             Type.PROJECT, ksqlFunctionRegistry);
+                             Type.PROJECT, functionRegistry);
   }
 
-  public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
+  public SchemaKStream leftJoin(final SchemaKTable schemaKTable,
+                                final Schema joinSchema,
                                 final Field joinKey,
                                 KsqlTopicSerDe joinSerDe) {
 
@@ -210,7 +217,7 @@ public class SchemaKStream {
             }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
-                             Arrays.asList(this, schemaKTable), Type.JOIN, ksqlFunctionRegistry);
+                             Arrays.asList(this, schemaKTable), Type.JOIN, functionRegistry);
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
@@ -232,13 +239,14 @@ public class SchemaKStream {
     });
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this),
-                             Type.REKEY, ksqlFunctionRegistry);
+                             Type.REKEY, functionRegistry);
   }
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
                                          final Serde valSerde) {
     KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
-    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this), ksqlFunctionRegistry);
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this),
+                                    functionRegistry);
   }
 
   public Field getKeyField() {

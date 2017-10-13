@@ -19,7 +19,7 @@ package io.confluent.ksql.physical;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -82,7 +82,7 @@ public class PhysicalPlanBuilder {
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
   private final MetastoreUtil metastoreUtil;
-  private final KsqlFunctionRegistry ksqlFunctionRegistry;
+  private final FunctionRegistry functionRegistry;
 
   private static final KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> nonWindowedMapper = (key, row) -> {
     if (row != null) {
@@ -109,12 +109,12 @@ public class PhysicalPlanBuilder {
                              final KsqlConfig ksqlConfig,
                              final KafkaTopicClient kafkaTopicClient,
                              final MetastoreUtil metastoreUtil,
-                             final KsqlFunctionRegistry ksqlFunctionRegistry) {
+                             final FunctionRegistry functionRegistry) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
     this.metastoreUtil = metastoreUtil;
-    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
+    this.functionRegistry = functionRegistry;
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
@@ -214,11 +214,11 @@ public class PhysicalPlanBuilder {
     }
 
     final SchemaKStream result = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
-        schemaKStream.getKstream(),
-        ksqlStructuredDataOutputNode
+                                                   schemaKStream.getKstream(),
+                                                   ksqlStructuredDataOutputNode
             .getKeyField(),
-        Collections.singletonList(schemaKStream),
-        SchemaKStream.Type.SINK, ksqlFunctionRegistry
+                                                   Collections.singletonList(schemaKStream),
+                                                   SchemaKStream.Type.SINK, functionRegistry
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -293,7 +293,7 @@ public class PhysicalPlanBuilder {
                                                       schemaKTable.getSourceSchemaKStreams(),
                                                       schemaKTable.isWindowed(),
                                                       SchemaKStream.Type.AGGREGATE,
-                                           ksqlFunctionRegistry);
+                                           functionRegistry);
 
 
     if (aggregateNode.getHavingExpressions() != null) {
@@ -314,8 +314,8 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KsqlAggregateFunction aggregateFunction = ksqlFunctionRegistry.getAggregateFunction(udafName,
-                                                                                          aggregateNode
+      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
+                                                                                      aggregateNode
               .getFunctionList()
               .get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
       fieldSchema = aggregateFunction.getReturnType();
@@ -336,7 +336,7 @@ public class PhysicalPlanBuilder {
     int udafIndexInAggSchema = resultColumns.size();
     final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
-      KsqlAggregateFunction aggregateFunctionInfo = ksqlFunctionRegistry
+      KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
           .getAggregateFunction(functionCall
               .getName()
               .toString(),
@@ -425,19 +425,19 @@ public class PhysicalPlanBuilder {
                 structuredDataSourceNode.getSchema())
         );
         return new SchemaKTable(sourceNode.getSchema(), kTable,
-            sourceNode.getKeyField(), new ArrayList<>(),
-            table.isWindowed(),
-            SchemaKStream.Type.SOURCE, ksqlFunctionRegistry);
+                                sourceNode.getKeyField(), new ArrayList<>(),
+                                table.isWindowed(),
+                                SchemaKStream.Type.SOURCE, functionRegistry);
       }
 
       return new SchemaKStream(sourceNode.getSchema(),
-          builder
+                               builder
               .stream(structuredDataSourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
                   Consumed.with(Serdes.String(), genericRowSerde))
               .map(nonWindowedMapper)
               .transformValues(new AddTimestampColumnValueTransformerSupplier()),
-          sourceNode.getKeyField(), new ArrayList<>(),
-          SchemaKStream.Type.SOURCE, ksqlFunctionRegistry);
+                               sourceNode.getKeyField(), new ArrayList<>(),
+                               SchemaKStream.Type.SOURCE, functionRegistry);
     }
     throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
   }
@@ -589,7 +589,8 @@ public class PhysicalPlanBuilder {
     Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
-        Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY, ksqlFunctionRegistry);
+                             Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY,
+                             functionRegistry);
   }
 
   private int getIndexInSchema(final String fieldName, final Schema schema) {

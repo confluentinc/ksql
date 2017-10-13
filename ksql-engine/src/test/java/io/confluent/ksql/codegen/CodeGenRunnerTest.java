@@ -19,7 +19,7 @@ package io.confluent.ksql.codegen;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.function.KsqlFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
@@ -40,18 +40,18 @@ public class CodeGenRunnerTest {
     private MetaStore metaStore;
     private Schema schema;
     private CodeGenRunner codeGenRunner;
-    private KsqlFunctionRegistry ksqlFunctionRegistry;
+    private FunctionRegistry functionRegistry;
 
     @Before
     public void init() {
         metaStore = MetaStoreFixture.getNewMetaStore();
-        ksqlFunctionRegistry = new KsqlFunctionRegistry();
+      functionRegistry = new FunctionRegistry();
         schema = SchemaBuilder.struct()
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
                 .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
                 .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA);
-        codeGenRunner = new CodeGenRunner();
+        codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     }
 
     private Analysis analyzeQuery(String queryStr) {
@@ -69,7 +69,7 @@ public class CodeGenRunnerTest {
         Analysis analysis = analyzeQuery(simpleQuery);
 
         ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0),schema, ksqlFunctionRegistry);
+            (analysis.getSelectExpressions().get(0));
         Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
         Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 3);
         Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 0);
@@ -79,7 +79,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(((Double)result0) == 15.0);
 
         ExpressionMetadata expressionEvaluatorMetadata1 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(3),schema, ksqlFunctionRegistry);
+            (analysis.getSelectExpressions().get(3));
         Assert.assertTrue(expressionEvaluatorMetadata1.getIndexes().length == 1);
         Assert.assertTrue(expressionEvaluatorMetadata1.getIndexes()[0] == 0);
         Assert.assertTrue(expressionEvaluatorMetadata1.getUdfs().length == 1);
@@ -88,7 +88,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(((Long)result1) == 125l);
 
         ExpressionMetadata expressionEvaluatorMetadata2 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(4),schema, ksqlFunctionRegistry);
+            (analysis.getSelectExpressions().get(4));
         Assert.assertTrue(expressionEvaluatorMetadata2.getIndexes().length == 0);
         Assert.assertTrue(expressionEvaluatorMetadata2.getUdfs().length == 0);
         Object result2 = expressionEvaluatorMetadata2.getExpressionEvaluator().evaluate(new Object[]{});
@@ -104,7 +104,7 @@ public class CodeGenRunnerTest {
 
         ExpressionMetadata expressionEvaluator0 = codeGenRunner.buildCodeGenFromParseTree(analysis
                                                                          .getSelectExpressions()
-                                                                                              .get(0),schema, ksqlFunctionRegistry);
+                                                                                              .get(0));
         Object argObj0 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
         Object result0 = expressionEvaluator0.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator0.getUdfs()
@@ -114,7 +114,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(((Double)result0) == 1.0);
 
         ExpressionMetadata expressionEvaluator1 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(1),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(1));
         Object argObj1 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
         Object result1 = expressionEvaluator1.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator1.getUdfs()
@@ -125,7 +125,7 @@ public class CodeGenRunnerTest {
 
 
         ExpressionMetadata expressionEvaluator2 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(2),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(2));
         Object argObj2 = genericRowValueTypeEnforcer.enforceFieldType(0, 15);
         Object result2 = expressionEvaluator2.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator2.getUdfs()
@@ -135,14 +135,14 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(((Double)result2) == 16.34);
 
         ExpressionMetadata expressionEvaluator3 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(3),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(3));
         Object result3 = expressionEvaluator3.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator3.getUdfs()[0]});
         Assert.assertTrue(result3 instanceof Double);
         Assert.assertTrue(((Double)result3).intValue() == 10);
 
         ExpressionMetadata expressionEvaluator4 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(4),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(4));
         Object argObj4 = genericRowValueTypeEnforcer.enforceFieldType(3, 1.5);
         Object result4 = expressionEvaluator4.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator4.getUdfs()
@@ -161,7 +161,7 @@ public class CodeGenRunnerTest {
 
 
         ExpressionMetadata expressionEvaluator0 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(0),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(0));
         Object argObj0 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
         Object result0 = expressionEvaluator0.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator0.getUdfs()
@@ -170,7 +170,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(result0.equals("hello"));
 
         ExpressionMetadata expressionEvaluator1 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(1),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(1));
         Object argObj1 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
         Object result1 = expressionEvaluator1.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator1.getUdfs()
@@ -179,7 +179,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(result1.equals("HELLO"));
 
         ExpressionMetadata expressionEvaluator2 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(2),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(2));
         Object argObj2 = genericRowValueTypeEnforcer.enforceFieldType(2, " Hello ");
         Object result2 = expressionEvaluator2.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator2.getUdfs()
@@ -188,7 +188,7 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(result2.equals("Hello"));
 
         ExpressionMetadata expressionEvaluator3 = codeGenRunner.buildCodeGenFromParseTree(analysis
-                                                                                            .getSelectExpressions().get(3),schema, ksqlFunctionRegistry);
+                                                                                            .getSelectExpressions().get(3));
         Object argObj3 = genericRowValueTypeEnforcer.enforceFieldType(2, "Hello");
         Object result3 = expressionEvaluator3.getExpressionEvaluator().evaluate(new
                                                              Object[]{expressionEvaluator3.getUdfs()

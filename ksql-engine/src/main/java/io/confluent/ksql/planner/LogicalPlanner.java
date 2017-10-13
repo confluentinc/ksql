@@ -20,6 +20,7 @@ import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -33,11 +34,11 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.KTable;
 
 public class LogicalPlanner {
 
@@ -149,13 +150,12 @@ public class LogicalPlanner {
 
   private StructuredDataSourceNode buildSourceNode() {
 
-    StructuredDataSource fromDataSource = analysis.getFromDataSources().get(0).getLeft();
-    String alias = analysis.getFromDataSources().get(0).getRight();
-    Schema fromSchema = SchemaUtil.buildSchemaWithAlias(fromDataSource.getSchema(), alias);
+    Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
+    Schema fromSchema = SchemaUtil.buildSchemaWithAlias(dataSource.left.getSchema(), dataSource.right);
 
-    if (fromDataSource instanceof KsqlStream
-        || fromDataSource instanceof KTable) {
-      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), fromDataSource, fromSchema);
+    if (dataSource.left instanceof KsqlStream
+        || dataSource.left instanceof KsqlTable) {
+      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), dataSource.left, fromSchema);
     }
     throw new RuntimeException("Data source is not supported yet.");
   }

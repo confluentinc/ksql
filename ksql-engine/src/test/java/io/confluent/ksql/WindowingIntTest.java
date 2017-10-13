@@ -62,7 +62,7 @@ public class WindowingIntTest {
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
 
-    // not really required - but lets mess with ms
+    // not really required - but lets mess with  ms
     Thread.sleep(100);
     testHarness.publishTestData(topicName, dataProvider);
 

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -56,8 +57,8 @@ public class SchemaKTable extends SchemaKStream {
 
   public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
                       final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
-                      Type type) {
-    super(schema, null, keyField, sourceSchemaKStreams, type);
+                      Type type, final KsqlFunctionRegistry ksqlFunctionRegistry) {
+    super(schema, null, keyField, sourceSchemaKStreams, type, ksqlFunctionRegistry);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
@@ -108,10 +109,10 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed, ksqlFunctionRegistry);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            Type.FILTER);
+                            Type.FILTER, ksqlFunctionRegistry);
   }
 
   @Override
@@ -125,7 +126,7 @@ public class SchemaKTable extends SchemaKStream {
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema, ksqlFunctionRegistry);
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
@@ -168,7 +169,7 @@ public class SchemaKTable extends SchemaKStream {
     });
 
     return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed, Type.PROJECT);
+                            Arrays.asList(this), isWindowed, Type.PROJECT, ksqlFunctionRegistry);
   }
 
   @Override

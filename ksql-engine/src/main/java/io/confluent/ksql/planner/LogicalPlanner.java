@@ -18,6 +18,7 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -47,10 +48,13 @@ public class LogicalPlanner {
 
   private Analysis analysis;
   private AggregateAnalysis aggregateAnalysis;
+  private final KsqlFunctionRegistry ksqlFunctionRegistry;
 
-  public LogicalPlanner(Analysis analysis, AggregateAnalysis aggregateAnalysis) {
+  public LogicalPlanner(Analysis analysis, AggregateAnalysis aggregateAnalysis,
+                        final KsqlFunctionRegistry ksqlFunctionRegistry) {
     this.analysis = analysis;
     this.aggregateAnalysis = aggregateAnalysis;
+    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
   }
 
   public PlanNode buildPlan() {
@@ -106,7 +110,7 @@ public class LogicalPlanner {
                                            final PlanNode sourcePlanNode) {
 
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema, ksqlFunctionRegistry);
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);
@@ -133,7 +137,7 @@ public class LogicalPlanner {
     List<String> fieldNames = new ArrayList<>();
 
     SchemaBuilder projectionSchema = SchemaBuilder.struct();
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(inputSchema, ksqlFunctionRegistry);
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       Expression expression = analysis.getSelectExpressions().get(i);
       String alias = analysis.getSelectExpressionAlias().get(i);

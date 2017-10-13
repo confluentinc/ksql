@@ -21,6 +21,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
@@ -44,10 +45,12 @@ public class LogicalPlannerTest {
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
+  private KsqlFunctionRegistry ksqlFunctionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+    ksqlFunctionRegistry = new KsqlFunctionRegistry();
   }
 
   private PlanNode buildLogicalPlan(String queryStr) {
@@ -57,12 +60,12 @@ public class LogicalPlannerTest {
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, ksqlFunctionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlFunctionRegistry).buildPlan();
     return logicalPlan;
   }
 

@@ -21,6 +21,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.KsqlParser;
@@ -52,19 +53,23 @@ public class PhysicalPlanBuilderTest {
     KsqlParser ksqlParser;
     PhysicalPlanBuilder physicalPlanBuilder;
     MetaStore metaStore;
+    KsqlFunctionRegistry ksqlFunctionRegistry;
 
     @Before
     public void before() {
         streamsBuilder = new StreamsBuilder();
         ksqlParser = new KsqlParser();
         metaStore = MetaStoreFixture.getNewMetaStore();
+        ksqlFunctionRegistry = new KsqlFunctionRegistry();
         Map<String, Object> configMap = new HashMap<>();
         configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configMap.put("application.id", "KSQL");
         configMap.put("commit.interval.ms", 0);
         configMap.put("cache.max.bytes.buffering", 0);
         configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder, new KsqlConfig(configMap), new FakeKafkaTopicClient(), new MetastoreUtil());
+        physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder, new KsqlConfig(configMap),
+                                                      new FakeKafkaTopicClient(), new
+                                                          MetastoreUtil(), ksqlFunctionRegistry);
     }
 
     private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
@@ -76,8 +81,9 @@ public class PhysicalPlanBuilderTest {
 
         AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
         AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-            analysis);
-        AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+            analysis, ksqlFunctionRegistry);
+        AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
+            (ksqlFunctionRegistry);
         for (Expression expression: analysis.getSelectExpressions()) {
             aggregateAnalyzer.process(expression, new AnalysisContext(null));
             if (!aggregateAnalyzer.isHasAggregateFunction()) {
@@ -88,7 +94,7 @@ public class PhysicalPlanBuilderTest {
             aggregateAnalyzer.setHasAggregateFunction(false);
         }
         // Build a logical plan
-        PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+        PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlFunctionRegistry).buildPlan();
         SchemaKStream schemaKStream =  physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
         return schemaKStream;
     }

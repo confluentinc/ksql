@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
@@ -78,6 +79,8 @@ public class KsqlEngine implements Closeable {
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
+  public final KsqlFunctionRegistry ksqlFunctionRegistry;
+
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
@@ -90,6 +93,7 @@ public class KsqlEngine implements Closeable {
 
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
+    this.ksqlFunctionRegistry = new KsqlFunctionRegistry();
   }
 
   /**
@@ -125,12 +129,7 @@ public class KsqlEngine implements Closeable {
 
   }
 
-  public List<QueryMetadata> planQueries(final boolean createNewAppId,
-                                         final List<Pair<String, Statement>> statementList,
-                                         final Map<String, Object> overriddenProperties,
-                                         final MetaStore tempMetaStore)
-          throws Exception {
-
+  public List<QueryMetadata> planQueries(final boolean createNewAppId, final List<Pair<String, Statement>> statementList, final Map<String, Object> overriddenProperties, final MetaStore tempMetaStore) throws Exception {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
@@ -345,6 +344,10 @@ public class KsqlEngine implements Closeable {
     return metaStore;
   }
 
+  public KsqlFunctionRegistry getKsqlFunctionRegistry() {
+    return ksqlFunctionRegistry;
+  }
+
   public KafkaTopicClient getTopicClient() {
     return topicClient;
   }
@@ -362,7 +365,6 @@ public class KsqlEngine implements Closeable {
     if (closeStreams) {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
-      new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
     }
     return true;
   }
@@ -391,7 +393,6 @@ public class KsqlEngine implements Closeable {
     for (QueryMetadata queryMetadata : liveQueries) {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
-      new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
     }
     topicClient.close();
   }
@@ -405,9 +406,9 @@ public class KsqlEngine implements Closeable {
       for (QueryMetadata queryMetadata : liveQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
+          persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit
+              .MILLISECONDS);
           persistentQueryMetadata.getKafkaStreams().cleanUp();
-          new CleanUpUtil(topicClient).cleanUpQuery(queryMetadata);
         }
       }
     } catch (Exception e) {

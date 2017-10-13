@@ -46,12 +46,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KsqlFunctions {
+public class KsqlFunctionRegistry {
 
-  private static Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
-  private static Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
+  private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
+  private Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
 
-  static {
+  public KsqlFunctionRegistry() {
+    init();
+  }
+
+  private void init() {
 
     /***************************************
      * String functions                     *
@@ -160,31 +164,31 @@ public class KsqlFunctions {
 
   }
 
-  public static KsqlFunction getFunction(String functionName) {
+  public KsqlFunction getFunction(String functionName) {
     return ksqlFunctionMap.get(functionName);
   }
 
-  private static void addFunction(KsqlFunction ksqlFunction) {
+  private void addFunction(KsqlFunction ksqlFunction) {
     ksqlFunctionMap.put(ksqlFunction.getFunctionName().toUpperCase(), ksqlFunction);
   }
 
-  public static boolean isAnAggregateFunction(String functionName) {
+  public boolean isAnAggregateFunction(String functionName) {
     return ksqlAggregateFunctionMap.get(functionName) != null;
   }
 
-  public static KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
+  public KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
       functionArgs, Schema schema) {
     KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap
         .get(functionName);
     if (ksqlAggFunctionDeterminer == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema, this);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
     return ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
   }
 
-  public static void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer
+  public void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer
                                                         ksqlAggFunctionDeterminer) {
     ksqlAggregateFunctionMap.put(ksqlAggFunctionDeterminer.functionName, ksqlAggFunctionDeterminer);
   }

@@ -19,7 +19,7 @@ package io.confluent.ksql.codegen;
 import com.google.common.base.Joiner;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -36,22 +36,29 @@ import static java.lang.String.format;
 public class SqlToJavaVisitor {
 
   static Schema schema;
+  KsqlFunctionRegistry ksqlFunctionRegistry;
 
-  public String process(final Expression expression, final Schema schema) {
+  public String process(final Expression expression, final Schema schema, final KsqlFunctionRegistry ksqlFunctionRegistry) {
     SqlToJavaVisitor.schema = schema;
+    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
     return formatExpression(expression, true);
   }
 
   private String formatExpression(final Expression expression, final boolean unmangleNames) {
     Pair<String, Schema>
         expressionFormatterResult =
-        new SqlToJavaVisitor.Formatter().process(expression, unmangleNames);
+        new SqlToJavaVisitor.Formatter(ksqlFunctionRegistry).process(expression, unmangleNames);
     return expressionFormatterResult.getLeft();
   }
 
 
   public static class Formatter
       extends AstVisitor<Pair<String, Schema>, Boolean> {
+
+    KsqlFunctionRegistry ksqlFunctionRegistry;
+    public Formatter(KsqlFunctionRegistry ksqlFunctionRegistry) {
+      this.ksqlFunctionRegistry = ksqlFunctionRegistry;
+    }
 
     @Override
     protected Pair<String, Schema> visitNode(final Node node, Boolean unmangleNames) {
@@ -165,7 +172,7 @@ public class SqlToJavaVisitor {
                                                      Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder("(");
       String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(name);
+      KsqlFunction ksqlFunction = ksqlFunctionRegistry.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
       boolean addComma = false;

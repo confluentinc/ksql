@@ -17,7 +17,7 @@
 package io.confluent.ksql.codegen;
 
 import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Expression;
@@ -36,17 +36,20 @@ import java.util.Optional;
 
 public class CodeGenRunner {
 
-  public Map<String, Class> getParameterInfo(final Expression expression, final Schema schema) {
-    Visitor visitor = new Visitor(schema);
+  public Map<String, Class> getParameterInfo(final Expression expression, final Schema schema,
+                                             final KsqlFunctionRegistry ksqlFunctionRegistry) {
+    Visitor visitor = new Visitor(schema, ksqlFunctionRegistry);
     visitor.process(expression, null);
     return visitor.parameterMap;
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
       final Expression expression,
-      final Schema schema) throws Exception {
+      final Schema schema,
+      final KsqlFunctionRegistry ksqlFunctionRegistry) throws Exception {
     CodeGenRunner codeGenRunner = new CodeGenRunner();
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression, schema);
+    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression, schema,
+                                                                     ksqlFunctionRegistry);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
@@ -66,7 +69,7 @@ public class CodeGenRunner {
       index++;
     }
 
-    String javaCode = new SqlToJavaVisitor().process(expression, schema);
+    String javaCode = new SqlToJavaVisitor().process(expression, schema, ksqlFunctionRegistry);
 
     IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
@@ -74,7 +77,7 @@ public class CodeGenRunner {
     ee.setParameters(parameterNames, parameterTypes);
 
     // And the expression (i.e. "result") type is also "int".
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema, ksqlFunctionRegistry);
     Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
@@ -89,10 +92,12 @@ public class CodeGenRunner {
 
     final Schema schema;
     final Map<String, Class> parameterMap;
+    final KsqlFunctionRegistry ksqlFunctionRegistry;
 
-    Visitor(Schema schema) {
+    Visitor(Schema schema, KsqlFunctionRegistry ksqlFunctionRegistry) {
       this.schema = schema;
       this.parameterMap = new HashMap<>();
+      this.ksqlFunctionRegistry = ksqlFunctionRegistry;
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -102,7 +107,7 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(functionName);
+      KsqlFunction ksqlFunction = ksqlFunctionRegistry.getFunction(functionName);
       parameterMap.put(node.getName().getSuffix(),
                        ksqlFunction.getKudfClass());
       for (Expression argExpr : node.getArguments()) {

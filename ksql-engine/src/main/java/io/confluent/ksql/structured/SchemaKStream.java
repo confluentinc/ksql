@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -63,17 +64,20 @@ public class SchemaKStream {
   final List<SchemaKStream> sourceSchemaKStreams;
   final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   protected final Type type;
+  protected final KsqlFunctionRegistry ksqlFunctionRegistry;
 
   private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
   public SchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
-                       final List<SchemaKStream> sourceSchemaKStreams, Type type) {
+                       final List<SchemaKStream> sourceSchemaKStreams, Type type,
+                       final KsqlFunctionRegistry ksqlFunctionRegistry) {
     this.schema = schema;
     this.kstream = kstream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.type = type;
+    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
   }
 
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
@@ -102,10 +106,10 @@ public class SchemaKStream {
   }
 
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, ksqlFunctionRegistry);
     KStream filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
-                             Type.FILTER);
+                             Type.FILTER, ksqlFunctionRegistry);
   }
 
   public SchemaKStream select(final Schema selectSchema) {
@@ -123,7 +127,7 @@ public class SchemaKStream {
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this),
-                             Type.PROJECT);
+                             Type.PROJECT, ksqlFunctionRegistry);
   }
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
@@ -137,7 +141,7 @@ public class SchemaKStream {
     for (Pair<String, Expression> expressionPair : expressionPairList) {
       ExpressionMetadata
           expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema, ksqlFunctionRegistry);
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
@@ -180,7 +184,7 @@ public class SchemaKStream {
 
     return new SchemaKStream(schemaBuilder.build(),
                              projectedKStream, keyField, Arrays.asList(this),
-                             Type.PROJECT);
+                             Type.PROJECT, ksqlFunctionRegistry);
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
@@ -206,7 +210,7 @@ public class SchemaKStream {
             }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
-                             Arrays.asList(this, schemaKTable), Type.JOIN);
+                             Arrays.asList(this, schemaKTable), Type.JOIN, ksqlFunctionRegistry);
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
@@ -228,13 +232,13 @@ public class SchemaKStream {
     });
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this),
-                             Type.REKEY);
+                             Type.REKEY, ksqlFunctionRegistry);
   }
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
                                          final Serde valSerde) {
     KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
-    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this), ksqlFunctionRegistry);
   }
 
   public Field getKeyField() {

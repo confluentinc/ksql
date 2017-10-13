@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.CleanUpUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
@@ -134,7 +133,6 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
       queryMetadata.getKafkaStreams().cleanUp();
-      new CleanUpUtil(kafkaTopicClient).cleanUpQuery(queryMetadata);
     }
   }
 

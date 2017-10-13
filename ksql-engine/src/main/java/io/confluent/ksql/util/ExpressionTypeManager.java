@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
@@ -31,9 +31,11 @@ public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
   private final Schema schema;
+  private final KsqlFunctionRegistry ksqlFunctionRegistry;
 
-  public ExpressionTypeManager(Schema schema) {
+  public ExpressionTypeManager(Schema schema, final KsqlFunctionRegistry ksqlFunctionRegistry) {
     this.schema = schema;
+    this.ksqlFunctionRegistry = ksqlFunctionRegistry;
   }
 
   public Schema getExpressionType(final Expression expression) {
@@ -160,12 +162,12 @@ public class ExpressionTypeManager
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
 
-    KsqlFunction ksqlFunction = KsqlFunctions.getFunction(node.getName().getSuffix());
+    KsqlFunction ksqlFunction = ksqlFunctionRegistry.getFunction(node.getName().getSuffix());
     if (ksqlFunction != null) {
       expressionTypeContext.setSchema(ksqlFunction.getReturnType());
-    } else if (KsqlFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
+    } else if (ksqlFunctionRegistry.isAnAggregateFunction(node.getName().getSuffix())) {
       KsqlAggregateFunction ksqlAggregateFunction =
-          KsqlFunctions.getAggregateFunction(
+          ksqlFunctionRegistry.getAggregateFunction(
               node.getName().getSuffix(), node.getArguments(), schema);
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {

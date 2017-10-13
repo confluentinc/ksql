@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.function.KsqlFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -34,10 +35,12 @@ public class AggregateAnalyzerTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
+  private KsqlFunctionRegistry ksqlFunctionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+    ksqlFunctionRegistry = new KsqlFunctionRegistry();
   }
 
   private Analysis analyze(final String queryStr) {
@@ -54,8 +57,8 @@ public class AggregateAnalyzerTest {
     System.out.println("Test query:" + queryStr);
     Analysis analysis = analyze(queryStr);
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, ksqlFunctionRegistry);
+    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(ksqlFunctionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {

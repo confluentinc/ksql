@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import java.util.Objects;
 
@@ -41,7 +40,6 @@ public class ErrorMessageEntity extends KsqlEntity {
     this(statementText, new ErrorMessage(exception));
   }
 
-  @JsonUnwrapped
   public ErrorMessage getErrorMessage() {
     return errorMessage;
   }

@@ -62,11 +62,11 @@ public class RegisterTopicCommand implements DDLCommand {
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     final String serde = StringUtil.cleanQuotes(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(properties, serde);
+    this.topicSerDe = extractTopicSerDe(overriddenProperties, serde);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(Map<String, Expression> overriddenProperties, String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(Map<String, Object> overriddenProperties, String serde) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {

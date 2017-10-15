@@ -61,10 +61,14 @@ public class EmbeddedKsqlTest {
         GenericRecord order = createOrderObject(schema, key, "foo1234", 100);
         harness.produceRecord(ORDERS, key, order, String().serializer(), avroSerializer(schema));
 
+        //And a context with slightly hacky injected properties
+        Map<String, Object> overriddenProperties = new HashMap<>();
+        overriddenProperties.put("AVROSCHEMA", schemaStr);
+        KsqlContext ksqlContext = ksqlContext(overriddenProperties);
+
         //When we run a query that pushes messages into a different topic
-        KsqlContext ksqlContext = ksqlContext();
         ksqlContext.sql("CREATE STREAM orders (ORDERID string, ORDERTIME bigint, DESCRIPTION varchar, UNITS bigint) " +
-                "WITH (kafka_topic='orders', value_format='AVRO', AVROSCHEMA='" + schemaStr + "');");
+                "WITH (kafka_topic='orders', value_format='AVRO');");
         ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE UNITS > 40;");
 
         //Then we should see an avro encoded message in the new topic
@@ -72,14 +76,16 @@ public class EmbeddedKsqlTest {
                 harness.consumeMessages("BIGORDERS", 1, String().deserializer(), avroDeserializer(schema)).get(key));
     }
 
-    private KsqlContext ksqlContext() {
-        Map<String, Object> configMap = new HashMap<>();
-        configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, harness.embeddedKafkaCluster.bootstrapServers());
-        configMap.put("application.id", "KSQL");
-        configMap.put("commit.interval.ms", 0);
-        configMap.put("cache.max.bytes.buffering", 0);
-        configMap.put("auto.offset.reset", "earliest");
-        return new KsqlContext(configMap);
+    private KsqlContext ksqlContext(Map<String, Object> overriddenProperties) {
+        Map<String, Object> streamsProperties = new HashMap<>();
+
+        streamsProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, harness.embeddedKafkaCluster.bootstrapServers());
+        streamsProperties.put("application.id", "KSQL");
+        streamsProperties.put("commit.interval.ms", 0);
+        streamsProperties.put("cache.max.bytes.buffering", 0);
+        streamsProperties.put("auto.offset.reset", "earliest");
+
+        return new KsqlContext(streamsProperties, overriddenProperties);
     }
 
     private GenericRecord createOrderObject(Schema schema, String id, String desc, int units) {

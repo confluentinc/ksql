@@ -52,7 +52,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  public KsqlContext(Map<String, Object> streamsProperties) {
     this(streamsProperties, Collections.emptyMap());
   }
 
@@ -64,7 +64,7 @@ public class KsqlContext {
    * @param overriddenProperties properties set in the CLI
    *
    */
-  KsqlContext(Map<String, Object> streamsProperties, Map<String, Object> overriddenProperties) {
+  public KsqlContext(Map<String, Object> streamsProperties, Map<String, Object> overriddenProperties) {
     this.overriddenProperties = overriddenProperties;
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();

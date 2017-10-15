@@ -1,7 +1,6 @@
 package io.confluent.ksql;
 
 
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -10,6 +9,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
@@ -32,15 +32,11 @@ import io.confluent.ksql.util.OrderDataProvider;
 import org.junit.Assert;
 
 public class IntegrationTestHarness {
-
-
-
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
-
   public static final long RESULTS_POLL_MAX_TIME_MS = 30000;
   public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
-
   public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Iintegration_Test_Consumer_";
+  private static int consumerIdCounter = 0;
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
@@ -96,51 +92,53 @@ public class IntegrationTestHarness {
   }
 
   void produceRecord(final String topicName, final String key, final String jsonData) {
-    try(final KafkaProducer<String, String> producer
-            = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
-      producer.send(new ProducerRecord<>(topicName, key, jsonData));
+    produceRecord(topicName, key, jsonData, new StringSerializer(), new StringSerializer());
+  }
+
+  public <K, V> void produceRecord(String topicName, K key, V value, Serializer<K> keySerialiser, Serializer<V> valueSerialiser) {
+    final KafkaProducer<K, V> producer = new KafkaProducer<>(properties(), keySerialiser, valueSerialiser);
+    try {
+        producer.send(new ProducerRecord<>(topicName, key, value)).get();
+      } catch (InterruptedException|ExecutionException e) {
+        e.printStackTrace();
+      } finally{
+        producer.close();
     }
   }
 
-  /**
-   *
-   * @param topic
-   * @param schema
-   * @param expectedNumMessages
-   * @param keyDeserializer
-   * @param <K>
-   * @return
-   */
   public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer) {
+    return consumeMessages(topic, expectedNumMessages, keyDeserializer, new KsqlJsonDeserializer(schema));
+  }
+
+  public <K,V> Map<K, V> consumeMessages(String topic, int expectedNumMessages, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
 
     topic = topic.toUpperCase();
-
-    Map<K, GenericRow> result = new HashMap<>();
+    Map<K, V> result = new HashMap<>();
 
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + consumerIdCounter++);
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, new KsqlJsonDeserializer(schema))) {
-
+    KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, valueDeserializer);
+    try {
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
       long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
       while (System.currentTimeMillis() < pollEnd && continueConsuming(result.size(), expectedNumMessages)) {
-        for (ConsumerRecord<K, GenericRow> record : consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+        for (ConsumerRecord<K, V> record : consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
           }
         }
       }
 
-      for (ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (ConsumerRecord<K, V> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
         if (record.value() != null) {
           result.put(record.key(), record.value());
         }
       }
-    }
+    } finally {consumer.close();}
     return result;
   }
 
@@ -211,6 +209,5 @@ public class IntegrationTestHarness {
     testHarness.stop();
 
   }
-
 
 }

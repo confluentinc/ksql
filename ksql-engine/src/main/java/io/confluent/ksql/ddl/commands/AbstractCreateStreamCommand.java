@@ -219,6 +219,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.AVRO_SCHEMA.toUpperCase());
 
 
     for (String withVariable: withClauseVariables) {

@@ -40,7 +40,6 @@ public class KsqlContext {
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
   private final KafkaTopicClientImpl topicClient;
-  private Map<String, Object> streamsProperties;
 
   public KsqlContext() {
     this(null);
@@ -52,8 +51,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  public KsqlContext(Map<String, Object> streamsProperties) {
-    this.streamsProperties = streamsProperties;
+  KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }

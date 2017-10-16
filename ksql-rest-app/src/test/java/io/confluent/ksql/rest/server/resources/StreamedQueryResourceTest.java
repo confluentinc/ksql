@@ -27,10 +27,13 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.easymock.EasyMock;
+import org.easymock.Mock;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
@@ -48,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -102,14 +106,17 @@ public class StreamedQueryResourceTest {
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.INT32_SCHEMA));
 
-    final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
-                                rowQueue, DataSource.DataSourceType.KSTREAM, "");
-
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    expect(mockKsqlEngine.getTopicClient()).andReturn(mock(KafkaTopicClient.class));
+    KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+
+    final QueuedQueryMetadata queuedQueryMetadata =
+        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
+                                rowQueue, DataSource.DataSourceType.KSTREAM, "",
+                                mockKafkaTopicClient
+                                );
     expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 

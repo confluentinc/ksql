@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 
@@ -36,10 +37,11 @@ public class QueuedQueryMetadata extends QueryMetadata {
       String executionPlan,
       SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
       DataSource.DataSourceType dataSourceType,
-      String queryApplicationId
+      String queryApplicationId,
+      KafkaTopicClient kafkaTopicClient
   ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId);
+          queryApplicationId, kafkaTopicClient);
     this.rowQueue = rowQueue;
   }
 

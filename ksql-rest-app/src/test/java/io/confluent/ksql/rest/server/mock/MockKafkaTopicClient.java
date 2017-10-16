@@ -55,6 +55,11 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public void deleteInternalTopics(String applicationId) {
+    throw new UnsupportedOperationException("Calling method on FakeObject");
+  }
+
+  @Override
   public void close() {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }

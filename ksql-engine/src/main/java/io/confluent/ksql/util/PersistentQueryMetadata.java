@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
+
 import org.apache.kafka.streams.KafkaStreams;
 
 import java.util.Objects;
@@ -30,9 +31,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams,
                                  OutputNode outputNode, String executionPlan, long id,
                                  DataSource.DataSourceType dataSourceType,
-                                 String queryApplicationId) {
+                                 String queryApplicationId, KafkaTopicClient kafkaTopicClient) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId);
+          queryApplicationId, kafkaTopicClient);
     this.id = id;
 
   }

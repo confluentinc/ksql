@@ -58,6 +58,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     init();
   }
 
+  @Override
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
     log.info("Creating topic '{}'", topic);
     if (isTopicExists(topic)) {
@@ -84,11 +85,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  @Override
   public boolean isTopicExists(String topic) {
     log.debug("Checking for existence of topic '{}'", topic);
     return listTopicNames().contains(topic);
   }
 
+  @Override
   public Set<String> listTopicNames() {
     try {
       return adminClient.listTopics().names().get();
@@ -97,6 +100,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
       return adminClient.describeTopics(topicNames).all()
@@ -106,6 +110,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  @Override
   public void deleteTopics(List<String> topicsToDelete) {
     if (!isDeleteTopicEnabled) {
       log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
@@ -125,6 +130,24 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (!failList.isEmpty()) {
       throw new KsqlException("Failed to clean up topics: " + failList.stream()
           .collect(Collectors.joining(",")));
+    }
+  }
+
+  @Override
+  public void deleteInternalTopics(String applicationId) {
+    if (!isDeleteTopicEnabled) {
+      log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      return;
+    }
+    Set<String> topicNames = listTopicNames();
+    List<String> internalTopics = new ArrayList<>();
+    for (String topicName: topicNames) {
+      if (isInternalTopic(topicName, applicationId)) {
+        internalTopics.add(topicName);
+      }
+    }
+    if (!internalTopics.isEmpty()) {
+      deleteTopics(internalTopics);
     }
   }
 
@@ -154,6 +177,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
                               + "AdminCLient.");
     }
 
+  }
+
+  private boolean isInternalTopic(final String topicName, String applicationId) {
+    return topicName.startsWith(applicationId + "-")
+           && (topicName.endsWith("-changelog") || topicName.endsWith("-repartition"));
   }
 
   public void close() {

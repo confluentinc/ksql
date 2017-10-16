@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
+
 import org.apache.kafka.streams.KafkaStreams;
 
 import java.util.Objects;
@@ -30,17 +31,20 @@ public class QueryMetadata {
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
+  private final KafkaTopicClient kafkaTopicClient;
 
   public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
                        String executionPlan,
                        DataSource.DataSourceType dataSourceType,
-                       String queryApplicationId) {
+                       String queryApplicationId,
+                       KafkaTopicClient kafkaTopicClient) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
     this.dataSourceType = dataSourceType;
     this.queryApplicationId = queryApplicationId;
+    this.kafkaTopicClient = kafkaTopicClient;
   }
 
   public String getStatementString() {
@@ -70,6 +74,7 @@ public class QueryMetadata {
   public void close() {
     kafkaStreams.close(100L, TimeUnit.MILLISECONDS);
     kafkaStreams.cleanUp();
+    kafkaTopicClient.deleteInternalTopics(queryApplicationId);
   }
 
   @Override

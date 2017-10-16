@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.integtests.json;
+package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;

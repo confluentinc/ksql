@@ -1,0 +1,11 @@
+{
+	"namespace": "ksql",
+	"name": "orders",
+	"type": "record",
+	"fields": [
+		{"name": "ORDERTIME", "type": "long"},
+		{"name": "ORDERID", "type": "string"},
+		{"name": "ITEMID", "type": "string"},
+		{"name": "ORDERUNITS", "type": "double"}
+	]
+}

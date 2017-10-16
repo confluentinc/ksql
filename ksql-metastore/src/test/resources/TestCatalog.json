@@ -1,0 +1,92 @@
+{
+  "name": "ksql_catalog",
+  "topics" :[
+    {
+      "namespace": "ksql-topics",
+      "topicname": "ORDERS_TOPIC_AVRO",
+      "kafkatopicname": "orders_kafka_topic_avro",
+      "serde": "avro",
+      "avroschemafile": "src/test/resources/avro_order_schema.avro"
+    }
+  ,
+    {
+      "namespace": "ksql-topics",
+      "topicname": "PAGEVIEW_TOPIC",
+      "kafkatopicname": "pageview_kafka_topic_json",
+      "serde": "json"
+    }
+  ,
+    {
+      "namespace": "ksql-topics",
+      "topicname": "ORDERS_TOPIC",
+      "kafkatopicname": "orders_kafka_topic",
+      "serde": "json"
+    }
+  ,
+    {
+      "namespace": "ksql-topics",
+      "topicname": "USERS_TOPIC",
+      "kafkatopicname": "users_kafka_topic_json",
+      "serde": "json"
+    }
+  ]
+
+,
+  "schemas" :[
+    {
+      "namespace": "ksql",
+      "type": "STREAM",
+      "name": "ORDERS",
+      "key": "ORDERTIME",
+      "timestamp": "null",
+      "topic": "ORDERS_TOPIC",
+      "fields": [
+        {"name": "ORDERTIME", "type": "long"} ,
+        {"name": "ORDERID", "type": "string"} ,
+        {"name": "ITEMID", "type": "string"} ,
+        {"name": "ORDERUNITS", "type": "double"} 			 ]
+    }
+  ,
+    {
+      "namespace": "ksql",
+      "type": "STREAM",
+      "name": "PAGEVIEW",
+      "key": "VIEWTIME",
+      "timestamp": "null",
+      "topic": "PAGEVIEW_TOPIC",
+      "fields": [
+        {"name": "VIEWTIME", "type": "long"} ,
+        {"name": "USERID", "type": "string"} ,
+        {"name": "PAGEID", "type": "string"} 			 ]
+    }
+  ,
+    {
+      "namespace": "ksql",
+      "type": "TABLE",
+      "name": "USERS",
+      "key": "USERID",
+      "timestamp": "null",
+      "topic": "USERS_TOPIC",
+      "statestore": "users_statestore",
+      "fields": [
+        {"name": "USERTIME", "type": "long"} ,
+        {"name": "USERID", "type": "string"} ,
+        {"name": "REGIONID", "type": "string"} ,
+        {"name": "GENDER", "type": "string"} 			 ]
+    }
+  ,
+    {
+      "namespace": "ksql",
+      "type": "STREAM",
+      "name": "ORDERS_AVRO",
+      "key": "ORDERTIME",
+      "timestamp": "null",
+      "topic": "ORDERS_TOPIC_AVRO",
+      "fields": [
+        {"name": "ORDERTIME", "type": "long"} ,
+        {"name": "ORDERID", "type": "string"} ,
+        {"name": "ITEMID", "type": "string"} ,
+        {"name": "ORDERUNITS", "type": "double"} 			 ]
+    }
+  ]
+}

@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

@@ -15,12 +15,16 @@
     <packaging>pom</packaging>
     <version>0.1-SNAPSHOT</version>
     <modules>
-        <module>ksql-core</module>
+        <module>ksql-common</module>
+        <module>ksql-serde</module>
+        <module>ksql-metastore</module>
+        <module>ksql-parser</module>
+        <module>ksql-engine</module>
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
     </modules>
-    
+
     <repositories>
         <repository>
             <id>confluent</id>
@@ -29,6 +33,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <!--<kafka.version>0.11.0.1</kafka.version>-->
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
@@ -62,6 +68,25 @@
     <dependencyManagement>
         <dependencies>
             <!-- Cross-submodule dependencies -->
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-metastore</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-cli</artifactId>
@@ -70,7 +95,13 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-core</artifactId>
+                <artifactId>ksql-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -200,7 +231,7 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-                
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>

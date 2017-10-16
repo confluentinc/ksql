@@ -26,12 +26,12 @@ When using KSQL, the following terminology is used.
 
 #### Stream
 
-A stream is an unbounded sequence of structured data ("facts").  For example, we could have a stream of financial transactions such as "Alice sent $100 to Bob, then Charlie sent $50 to Bob".  Facts in a stream are immutable, which means new facts can be inserted to a stream, but existing facts can never be updated or deleted.  Streams can be created from a Kafka topic or derived from existing streams and tables.
+A stream is an unbounded sequence of structured data ("facts").  For example, we could have a stream of financial transactions such as "Alice sent $100 to Bob, then Charlie sent $50 to Bob".  Facts in a stream are immutable, which means new facts can be inserted to a stream, but existing facts can never be updated or deleted.  Streams can be created from a Kafka topic or derived from existing streams and tables.  In both cases, a stream's underlying data is durably stored (persisted) within a Kafka topic on the Kafka brokers.
 
 #### Table
 
-A table is a view of a stream, or another table, and represents a collection of evolving facts.  For example, we could have a table that contains the latest financial information such as "Bob’s current account balance is $150".  It is the equivalent of a traditional database table but enriched by streaming semantics such as windowing.  Facts in a table are mutable, which means new facts can be inserted to the table, and existing facts can be updated or deleted.  Tables can be created from a Kafka topic or derived from existing streams and tables.
-
+A table is a view of a stream, or another table, and represents a collection of evolving facts.  For example, we could have a table that contains the latest financial information such as "Bob’s current account balance is $150".  It is the equivalent of a traditional database table but enriched by streaming semantics such as windowing.  Facts in a table are mutable, which means new facts can be inserted to the table, and existing facts can be updated or deleted.  Tables can be created from a Kafka topic or derived from existing streams and tables.  In both cases, a table's underlying data is
+durably stored (persisted) within a Kafka topic on the Kafka brokers.
 
 # Modes of operation
 

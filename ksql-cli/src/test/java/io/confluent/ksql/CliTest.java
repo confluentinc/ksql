@@ -18,7 +18,6 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -46,7 +45,7 @@ import java.util.Properties;
 
 import static io.confluent.ksql.TestResult.*;
 import static io.confluent.ksql.util.KsqlConfig.*;
-import static io.confluent.ksql.util.KsqlTestUtil.assertExpectedResults;
+import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedResults;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -108,7 +107,7 @@ public class CliTest extends TestRunner {
     testListOrShowCommands();
 
     orderDataProvider = new OrderDataProvider();
-    restServer.getKsqlEngine().getKafkaTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
+    restServer.getKsqlEngine().getTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
     produceInputStream(orderDataProvider);
   }
 
@@ -169,9 +168,9 @@ public class CliTest extends TestRunner {
     Map<String, Object> startConfigs = genDefaultConfigMap();
     startConfigs.put("num.stream.threads", 4);
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS, 1);
-    startConfigs.put(SINK_NUMBER_OF_PARTITIONS, 4);
-    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION, 1000000);
+    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, 1);
+    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
+    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY, 1000000);
 
     startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);

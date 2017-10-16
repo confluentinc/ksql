@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import org.apache.kafka.streams.KeyValue;
 

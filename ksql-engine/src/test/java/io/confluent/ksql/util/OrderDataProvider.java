@@ -56,8 +56,7 @@ public class OrderDataProvider extends TestDataProvider {
     mapField.put("key3", 3.0);
 
     Map<String, GenericRow> dataMap = new HashMap<>();
-    dataMap.put("1", new GenericRow(Arrays.asList(1,
-        "ORDER_1",
+    dataMap.put("1", new GenericRow(Arrays.asList(1, "ORDER_1",
         "ITEM_1", 10.0, new
             Double[]{100.0,
             110.99,

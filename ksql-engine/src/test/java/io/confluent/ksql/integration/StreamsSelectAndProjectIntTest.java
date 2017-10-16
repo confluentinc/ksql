@@ -1,13 +1,18 @@
-package io.confluent.ksql;
+package io.confluent.ksql.integration;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +23,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 
+@Category({IntegrationTest.class})
 public class StreamsSelectAndProjectIntTest {
 
   private IntegrationTestHarness testHarness;

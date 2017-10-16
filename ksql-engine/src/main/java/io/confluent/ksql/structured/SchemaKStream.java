@@ -23,12 +23,10 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -81,9 +79,7 @@ public class SchemaKStream {
   }
 
   public SchemaKStream into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                            final Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
-
-    createSinkTopic(kafkaTopicName, ksqlConfig, kafkaTopicClient);
+                            final Set<Integer> rowkeyIndexes) {
 
     kstream
         .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
@@ -264,9 +260,4 @@ public class SchemaKStream {
     return stringBuilder.toString();
   }
 
-  protected void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
-    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY);
-    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
-  }
 }

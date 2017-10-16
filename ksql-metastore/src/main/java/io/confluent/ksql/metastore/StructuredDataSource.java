@@ -84,4 +84,8 @@ public abstract class StructuredDataSource implements DataSource {
   public abstract StructuredDataSource cloneWithTimeKeyColumns();
 
   public abstract StructuredDataSource cloneWithTimeField(String timestampfieldName);
+
+  public String getTopicName() {
+    return ksqlTopic.getTopicName();
+  }
 }

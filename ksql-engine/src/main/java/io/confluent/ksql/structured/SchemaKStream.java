@@ -16,15 +16,13 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.codegen.CodeGenRunner;
+import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
@@ -36,16 +34,17 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
-import org.apache.kafka.streams.kstream.ValueMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -56,12 +55,10 @@ public class SchemaKStream {
 
   protected final Schema schema;
   protected final KStream kstream;
-  protected final Field keyField;
+  final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
-  final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   protected final Type type;
-
-  private static final Logger log = LoggerFactory.getLogger(SchemaKStream.class);
 
   public SchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams, Type type) {
@@ -94,7 +91,7 @@ public class SchemaKStream {
             }
           }
           return new KeyValue<>(key, new GenericRow(columns));
-        }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+        }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     return this;
   }
 
@@ -125,60 +122,27 @@ public class SchemaKStream {
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
       throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
-    // TODO: Optimize to remove the code gen for constants and single columns references
-    // TODO: and use them directly.
-    // TODO: Only use code get when we have real expression.
-    List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
+
+    return new SchemaKStream(schemaAndMapper.left,
+        kstream.mapValues(schemaAndMapper.right), keyField, Collections.singletonList(this),
+                             Type.PROJECT);
+  }
+
+  Pair<Schema, SelectValueMapper> createSelectValueMapperAndSchema(final List<Pair<String, Expression>> expressionPairList) throws Exception {
+    final CodeGenRunner codeGenRunner = new CodeGenRunner();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
     for (Pair<String, Expression> expressionPair : expressionPairList) {
-      ExpressionMetadata
+      final ExpressionMetadata
           expressionEvaluator =
           codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
       schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
       expressionEvaluators.add(expressionEvaluator);
     }
-    KStream
-        projectedKStream =
-        kstream.mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
-          try {
-            List<Object> newColumns = new ArrayList();
-            for (int i = 0; i < expressionPairList.size(); i++) {
-              try {
-                int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-                Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-                Object[] parameterObjects = new Object[parameterIndexes.length];
-                for (int j = 0; j < parameterIndexes.length; j++) {
-                  if (parameterIndexes[j] < 0) {
-                    parameterObjects[j] = kudfs[j];
-                  } else {
-                    parameterObjects[j] = genericRowValueTypeEnforcer
-                        .enforceFieldType(parameterIndexes[j],
-                                          row.getColumns().get(parameterIndexes[j]));
-                  }
-                }
-                Object columnValue = null;
-                columnValue = expressionEvaluators
-                    .get(i).getExpressionEvaluator().evaluate(parameterObjects);
-                newColumns.add(columnValue);
-              } catch (Exception ex) {
-                log.error("Error calculating column with index " + i + " : " +
-                          expressionPairList.get(i).getLeft());
-                newColumns.add(null);
-              }
-            }
-            GenericRow newRow = new GenericRow(newColumns);
-            return newRow;
-          } catch (Exception e) {
-            log.error("Projection exception for row: " + row.toString());
-            log.error(e.getMessage(), e);
-            throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
-          }
-        });
-
-    return new SchemaKStream(schemaBuilder.build(),
-                             projectedKStream, keyField, Arrays.asList(this),
-                             Type.PROJECT);
+    return new Pair<>(schemaBuilder.build(), new SelectValueMapper(genericRowValueTypeEnforcer,
+        expressionPairList,
+        expressionEvaluators));
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,
@@ -201,7 +165,7 @@ public class SchemaKStream {
 
               GenericRow joinGenericRow = new GenericRow(columns);
               return joinGenericRow;
-            }, Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()));
+            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
                              Arrays.asList(this, schemaKTable), Type.JOIN);
@@ -231,7 +195,7 @@ public class SchemaKStream {
 
   public SchemaKGroupedStream groupByKey(final Serde keySerde,
                                          final Serde valSerde) {
-    KGroupedStream kgroupedStream = kstream.groupByKey(keySerde, valSerde);
+    KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
     return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this));
   }
 

@@ -16,39 +16,32 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
-import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 public class SchemaKTable extends SchemaKStream {
 
-  private static final Logger log = LoggerFactory.getLogger(SchemaKTable.class);
 
   private final KTable ktable;
   private final boolean isWindowed;
@@ -80,7 +73,7 @@ public class SchemaKTable extends SchemaKStream {
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));
-          }).to(new WindowedSerde(), topicValueSerDe, kafkaTopicName);
+          }).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
     } else {
       ktable.toStream()
           .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
@@ -94,7 +87,7 @@ public class SchemaKTable extends SchemaKStream {
               }
             }
             return new KeyValue<>(key, new GenericRow(columns));
-          }).to(Serdes.String(), topicValueSerDe, kafkaTopicName);
+          }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     }
 
     return this;
@@ -115,59 +108,12 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
-    // TODO: Optimize to remove the code gen for constants and single
-    // TODO: columns references and use them directly.
-    // TODO: Only use code get when we have real expression.
-    List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Pair<String, Expression> expressionPair : expressionPairList) {
-      ExpressionMetadata
-          expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
-      schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
-      expressionEvaluators.add(expressionEvaluator);
-    }
+    final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 
-    KTable projectedKTable = ktable.mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
-      try {
-        List<Object> newColumns = new ArrayList();
-        for (int i = 0; i < expressionPairList.size(); i++) {
-          try {
-            int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-            Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-            Object[] parameterObjects = new Object[parameterIndexes.length];
-            for (int j = 0; j < parameterIndexes.length; j++) {
-              if (parameterIndexes[j] < 0) {
-                parameterObjects[j] = kudfs[j];
-              } else {
-                parameterObjects[j] =
-                    genericRowValueTypeEnforcer.enforceFieldType(parameterIndexes[j],
-                                                                 row.getColumns()
-                                                                     .get(parameterIndexes[j]));
-              }
-            }
-            Object columnValue = null;
-            columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
-                .evaluate(parameterObjects);
-            newColumns.add(columnValue);
-          } catch (Exception e) {
-            log.error("Error calculating column with index " + i + " : " +
-                      expressionPairList.get(i).getLeft());
-            newColumns.add(null);
-          }
-        }
-        GenericRow newRow = new GenericRow(newColumns);
-        return newRow;
-      } catch (Exception e) {
-        log.error("Projection exception for row: " + row.toString());
-        log.error(e.getMessage(), e);
-        throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
-      }
-    });
+    KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
 
-    return new SchemaKTable(schemaBuilder.build(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed, Type.PROJECT);
+    return new SchemaKTable(schemaAndMapper.left, projectedKTable, keyField,
+        Collections.singletonList(this), isWindowed, Type.PROJECT);
   }
 
   @Override
@@ -182,4 +128,5 @@ public class SchemaKTable extends SchemaKStream {
   public boolean isWindowed() {
     return isWindowed;
   }
+
 }

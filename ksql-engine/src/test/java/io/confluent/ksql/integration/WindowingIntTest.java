@@ -50,7 +50,7 @@ public class WindowingIntTest {
 
     testHarness.createTopic("ORDERS");
     dataProvider = new OrderDataProvider();
-    datasetOneMetaData = testHarness.publishTestData(topicName, dataProvider);
+    datasetOneMetaData = testHarness.publishTestData(topicName, dataProvider, null);
     createOrdersStream();
   }
 
@@ -65,7 +65,7 @@ public class WindowingIntTest {
 
     // not really required - but lets mess with  ms
     Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider);
+    testHarness.publishTestData(topicName, dataProvider, null);
 
 
     final String streamName = "TUMBLING_AGGTEST";
@@ -97,7 +97,7 @@ public class WindowingIntTest {
 
     // not really required - but lets mess with ms
     Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider);
+    testHarness.publishTestData(topicName, dataProvider, null);
 
 
     final String streamName = "HOPPING_AGGTEST";
@@ -129,7 +129,7 @@ public class WindowingIntTest {
 
     // not really required - but lets mess with ms
     Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider);
+    testHarness.publishTestData(topicName, dataProvider, null);
 
 
     final String streamName = "SESSION_AGGTEST";

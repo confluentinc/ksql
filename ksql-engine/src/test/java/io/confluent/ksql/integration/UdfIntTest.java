@@ -41,7 +41,7 @@ public class UdfIntTest {
      * Setup test data
      */
     dataProvider = new OrderDataProvider();
-    recordMetadataMap = testHarness.publishTestData(topicName, dataProvider);
+    recordMetadataMap = testHarness.publishTestData(topicName, dataProvider, null);
     createOrdersStream();
   }
 

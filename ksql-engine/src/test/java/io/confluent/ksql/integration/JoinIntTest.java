@@ -50,13 +50,14 @@ public class JoinIntTest {
      */
     testHarness.createTopic(itemTableTopic);
     itemDataProvider = new ItemDataProvider();
-    itemRecordMetadataMap = testHarness.publishTestData(itemTableTopic, itemDataProvider);
 
-    Thread.sleep(100);
+    long now = System.currentTimeMillis();
+    itemRecordMetadataMap = testHarness.publishTestData(itemTableTopic, itemDataProvider, now-500);
+
 
     testHarness.createTopic(orderStreamTopic);
     orderDataProvider = new OrderDataProvider();
-    orderRecordMetadataMap = testHarness.publishTestData(orderStreamTopic, orderDataProvider);
+    orderRecordMetadataMap = testHarness.publishTestData(orderStreamTopic, orderDataProvider, now );
 
     createStreams();
   }

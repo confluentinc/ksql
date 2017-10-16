@@ -16,6 +16,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.test.TestUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -162,6 +164,7 @@ public class IntegrationTestHarness {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
+    configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());

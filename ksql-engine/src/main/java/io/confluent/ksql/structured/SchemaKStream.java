@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.codegen.CodeGenRunner;
+import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -31,6 +32,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -120,18 +122,27 @@ public class SchemaKStream {
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
       throws Exception {
-    final SelectValueMapper valueMapper = createSelectValueMapper(expressionPairList);
+    final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 
-    return new SchemaKStream(valueMapper.schema(),
-        kstream.mapValues(valueMapper), keyField, Collections.singletonList(this),
+    return new SchemaKStream(schemaAndMapper.left,
+        kstream.mapValues(schemaAndMapper.right), keyField, Collections.singletonList(this),
                              Type.PROJECT);
   }
 
-  SelectValueMapper createSelectValueMapper(List<Pair<String, Expression>> expressionPairList) throws Exception {
-    return new SelectValueMapper(genericRowValueTypeEnforcer,
+  Pair<Schema, SelectValueMapper> createSelectValueMapperAndSchema(final List<Pair<String, Expression>> expressionPairList) throws Exception {
+    final CodeGenRunner codeGenRunner = new CodeGenRunner();
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
+    for (Pair<String, Expression> expressionPair : expressionPairList) {
+      final ExpressionMetadata
+          expressionEvaluator =
+          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
+      schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
+      expressionEvaluators.add(expressionEvaluator);
+    }
+    return new Pair<>(schemaBuilder.build(), new SelectValueMapper(genericRowValueTypeEnforcer,
         expressionPairList,
-        new CodeGenRunner(),
-        schema);
+        expressionEvaluators));
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable, final Schema joinSchema,

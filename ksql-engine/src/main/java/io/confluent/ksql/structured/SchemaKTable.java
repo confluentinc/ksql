@@ -35,6 +35,7 @@ import org.apache.kafka.streams.kstream.Windowed;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -107,12 +108,12 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
-    final SelectValueMapper valueMapper = createSelectValueMapper(expressionPairList);
+    final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 
-    KTable projectedKTable = ktable.mapValues(valueMapper);
+    KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
 
-    return new SchemaKTable(valueMapper.schema(), projectedKTable, keyField,
-                            Arrays.asList(this), isWindowed, Type.PROJECT);
+    return new SchemaKTable(schemaAndMapper.left, projectedKTable, keyField,
+        Collections.singletonList(this), isWindowed, Type.PROJECT);
   }
 
   @Override

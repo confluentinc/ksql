@@ -15,8 +15,6 @@
  **/
 package io.confluent.ksql.structured;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -39,35 +36,25 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   private final GenericRowValueTypeEnforcer typeEnforcer;
   private final List<Pair<String, Expression>> expressionPairList;
   private final List<ExpressionMetadata> expressionEvaluators;
-  private final Schema schema;
 
   SelectValueMapper(final GenericRowValueTypeEnforcer typeEnforcer,
                     final List<Pair<String, Expression>> expressionPairList,
-                    final CodeGenRunner codeGenRunner,
-                    final Schema schema) throws Exception {
+                    final List<ExpressionMetadata> expressionEvaluators
+                    ) throws Exception {
     this.typeEnforcer = typeEnforcer;
     this.expressionPairList = expressionPairList;
-    expressionEvaluators = new ArrayList<>();
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Pair<String, Expression> expressionPair : expressionPairList) {
-      final ExpressionMetadata
-          expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight(), schema);
-      schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
-      expressionEvaluators.add(expressionEvaluator);
-    }
-    this.schema = schemaBuilder.build();
+    this.expressionEvaluators = expressionEvaluators;
   }
 
   @Override
   public GenericRow apply(final GenericRow row) {
     try {
-      List<Object> newColumns = new ArrayList<>();
+      final List<Object> newColumns = new ArrayList<>();
       for (int i = 0; i < expressionPairList.size(); i++) {
         try {
-          int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-          Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-          Object[] parameterObjects = new Object[parameterIndexes.length];
+          final int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+          final Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+          final Object[] parameterObjects = new Object[parameterIndexes.length];
           for (int j = 0; j < parameterIndexes.length; j++) {
             if (parameterIndexes[j] < 0) {
               parameterObjects[j] = kudfs[j];
@@ -78,10 +65,8 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
                           .get(parameterIndexes[j]));
             }
           }
-          Object columnValue = null;
-          columnValue = expressionEvaluators.get(i).getExpressionEvaluator()
-              .evaluate(parameterObjects);
-          newColumns.add(columnValue);
+          newColumns.add(expressionEvaluators.get(i).getExpressionEvaluator()
+              .evaluate(parameterObjects));
         } catch (Exception e) {
           log.error("Error calculating column with index " + i + " : " +
               expressionPairList.get(i).getLeft());
@@ -94,9 +79,5 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
       log.error(e.getMessage(), e);
       throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
     }
-  }
-
-  public Schema schema() {
-    return schema;
   }
 }

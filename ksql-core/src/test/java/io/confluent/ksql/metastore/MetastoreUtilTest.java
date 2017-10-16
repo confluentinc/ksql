@@ -251,20 +251,4 @@ public class MetastoreUtilTest {
             metastoreUtil.buildAvroSchema(schemaBuilder, "{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}")
     );
   }
-
-  @Test
-  public void testWriteAvroSchemaFile() throws IOException {
-    String testFileName = System.getProperty("java.io.tmpdir") + System.getProperty("file.separator") + "test_AvroSchemaFileName.test";
-    MetastoreUtil metastoreUtil = new MetastoreUtil();
-
-    try {
-      metastoreUtil.writeAvroSchemaFile("Unsupported type: ", testFileName);
-
-      assertTrue(Files.exists(Paths.get(testFileName)) );
-    }
-    finally {
-      Files.delete(Paths.get(testFileName));
-    }
-
-  }
 }

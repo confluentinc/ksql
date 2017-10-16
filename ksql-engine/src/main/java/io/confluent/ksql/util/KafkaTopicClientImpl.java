@@ -19,10 +19,16 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.config.ConfigResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +47,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private final AdminClient adminClient;
 
-  public KafkaTopicClientImpl(final AdminClient adminClient) {
+  private boolean isDeleteTopicEnabled = false;
+
+  private List<Node> nodes;
+  private Map<ConfigResource, Config> config;
+
+  public KafkaTopicClientImpl(final AdminClient adminClient)
+      throws ExecutionException, InterruptedException {
     this.adminClient = adminClient;
+    init();
   }
 
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
@@ -94,7 +107,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   public void deleteTopics(List<String> topicsToDelete) {
-    boolean hasDeleteErrors = false;
+    if (!isDeleteTopicEnabled) {
+      log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      return;
+    }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
     List<String> failList = new ArrayList<>();
@@ -107,9 +123,37 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     }
     if (!failList.isEmpty()) {
-      throw new KsqlException("Failed to clean up topics: " + failList.stream().collect(Collectors
-                                                                                          .joining(",")));
+      throw new KsqlException("Failed to clean up topics: " + failList.stream()
+          .collect(Collectors.joining(",")));
     }
+  }
+
+  private void init() throws ExecutionException, InterruptedException {
+    DescribeClusterResult describeClusterResult = adminClient.describeCluster();
+    this.nodes = new ArrayList<>(describeClusterResult.nodes().get());
+    if (!nodes.isEmpty()) {
+      ConfigResource resource = new ConfigResource(ConfigResource.Type.BROKER,
+                                                   String.valueOf(nodes.get(0).id()));
+      DescribeConfigsResult
+          describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
+      this.config = describeConfigsResult.all().get();
+      List<ConfigEntry> configEntries = config.get(resource)
+          .entries()
+          .stream()
+          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
+          .collect(Collectors.toList());
+      if (!configEntries.isEmpty()) {
+        if (configEntries.get(0).value().equalsIgnoreCase("true")) {
+          this.isDeleteTopicEnabled = true;
+        } else {
+          this.isDeleteTopicEnabled = false;
+        }
+      }
+    } else {
+      throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
+                              + "AdminCLient.");
+    }
+
   }
 
   public void close() {

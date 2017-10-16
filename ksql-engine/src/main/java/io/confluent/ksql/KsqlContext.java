@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -45,15 +46,16 @@ public class KsqlContext {
   private final KafkaTopicClient topicClient;
 
 
-  public static KsqlContext create() {
+  public static KsqlContext create() throws ExecutionException, InterruptedException {
     return new KsqlContext();
   }
 
-  public static KsqlContext create(Map<String, Object> streamsProperties) {
+  public static KsqlContext create(Map<String, Object> streamsProperties)
+      throws ExecutionException, InterruptedException {
     return new KsqlContext(streamsProperties);
   }
 
-  private KsqlContext() {
+  private KsqlContext() throws ExecutionException, InterruptedException {
     this(null);
   }
 
@@ -63,7 +65,8 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  private KsqlContext(Map<String, Object> streamsProperties) {
+  private KsqlContext(Map<String, Object> streamsProperties)
+      throws ExecutionException, InterruptedException {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }

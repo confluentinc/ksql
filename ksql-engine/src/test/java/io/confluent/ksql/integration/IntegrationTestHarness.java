@@ -87,13 +87,7 @@ public class IntegrationTestHarness {
   }
 
   private ProducerRecord<String, GenericRow> buildRecord(String topicName, Long timestamp, Map.Entry<String, GenericRow> recordEntry, String key) {
-    ProducerRecord<String, GenericRow> producerRecord;
-    if (timestamp == null) {
-      producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
-    } else {
-      producerRecord = new ProducerRecord<>(topicName, null, timestamp,  key, recordEntry.getValue());
-    }
-    return producerRecord;
+    return new ProducerRecord<>(topicName, null, timestamp,  key, recordEntry.getValue());
   }
 
   private Properties properties() {

@@ -35,6 +35,7 @@ public class WindowingIntTest {
   private Map<String, RecordMetadata> datasetOneMetaData;
   private final String topicName = "TestTopic";
   private OrderDataProvider dataProvider;
+  private long now;
 
   @Before
   public void before() throws Exception {
@@ -48,9 +49,11 @@ public class WindowingIntTest {
      */
     alignTimeToWindowSize(WINDOW_SIZE_SEC);
 
+    now = System.currentTimeMillis()+500;
+
     testHarness.createTopic("ORDERS");
     dataProvider = new OrderDataProvider();
-    datasetOneMetaData = testHarness.publishTestData(topicName, dataProvider, null);
+    datasetOneMetaData = testHarness.publishTestData(topicName, dataProvider, now - 500);
     createOrdersStream();
   }
 
@@ -64,8 +67,7 @@ public class WindowingIntTest {
   public void shouldAggregateTumblingWindow() throws Exception {
 
     // not really required - but lets mess with  ms
-    Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider, null);
+    testHarness.publishTestData(topicName, dataProvider, now);
 
 
     final String streamName = "TUMBLING_AGGTEST";
@@ -96,8 +98,7 @@ public class WindowingIntTest {
   public void shouldAggregateHoppingWindow() throws Exception {
 
     // not really required - but lets mess with ms
-    Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider, null);
+    testHarness.publishTestData(topicName, dataProvider, now);
 
 
     final String streamName = "HOPPING_AGGTEST";
@@ -127,9 +128,7 @@ public class WindowingIntTest {
   @Test
   public void shouldAggregateSessionWindow() throws Exception {
 
-    // not really required - but lets mess with ms
-    Thread.sleep(100);
-    testHarness.publishTestData(topicName, dataProvider, null);
+    testHarness.publishTestData(topicName, dataProvider, now);
 
 
     final String streamName = "SESSION_AGGTEST";

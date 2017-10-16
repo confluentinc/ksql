@@ -21,7 +21,9 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
@@ -31,13 +33,19 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class LogicalPlannerTest {
 
@@ -62,8 +70,23 @@ public class LogicalPlannerTest {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-    return logicalPlan;
+    return new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+  }
+
+  @Test
+  public void shouldCreatePlanWithTableAsSource() {
+    PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
+    assertThat(planNode.getSources().size(), equalTo(1));
+    StructuredDataSource structuredDataSource = ((StructuredDataSourceNode) planNode
+        .getSources()
+        .get(0)
+        .getSources()
+        .get(0))
+        .getStructuredDataSource();
+    assertThat(structuredDataSource
+            .getDataSourceType(),
+        equalTo(DataSource.DataSourceType.KTABLE));
+    assertThat(structuredDataSource.getName(), equalTo("TEST2"));
   }
 
   @Test

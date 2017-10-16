@@ -25,46 +25,30 @@ import org.apache.kafka.connect.data.Schema;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 @Immutable
 public class StructuredDataSourceNode
-    extends SourceNode {
+    extends PlanNode {
 
+  private final StructuredDataSource structuredDataSource;
   private final Schema schema;
-  private final String topicName;
-  private final Field keyField;
-  private final String alias;
-  StructuredDataSource structuredDataSource;
 
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
   public StructuredDataSourceNode(@JsonProperty("id") final PlanNodeId id,
-                                  @JsonProperty("schema") final Schema schema,
-                                  @JsonProperty("keyField") final Field keyField,
-                                  @JsonProperty("timestampField") final Field timestampField,
-                                  @JsonProperty("topicName") final String topicName,
-                                  @JsonProperty("alias") final String alias,
-                                  @JsonProperty("dataSourceType")
-                                    final StructuredDataSource.DataSourceType
-                                      dataSourceType,
-                                  @JsonProperty("structuredDataSource")
-                                    final StructuredDataSource structuredDataSource) {
-    super(id, timestampField, dataSourceType);
-
+                                  @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
+                                  @JsonProperty("schema") Schema schema) {
+    super(id);
+    Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
+    Objects.requireNonNull(schema, "schema can't be null");
     this.schema = schema;
-    requireNonNull(topicName, "topicName is null");
-
-    this.topicName = topicName;
-    this.keyField = keyField;
-    this.alias = alias;
     this.structuredDataSource = structuredDataSource;
   }
 
   public String getTopicName() {
-    return topicName;
+    return structuredDataSource.getTopicName();
   }
 
   @Override
@@ -74,11 +58,7 @@ public class StructuredDataSourceNode
 
   @Override
   public Field getKeyField() {
-    return keyField;
-  }
-
-  public String getAlias() {
-    return alias;
+    return structuredDataSource.getKeyField();
   }
 
   public StructuredDataSource getStructuredDataSource() {
@@ -93,5 +73,13 @@ public class StructuredDataSourceNode
   @Override
   public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
     return visitor.visitStructuredDataSourceNode(this, context);
+  }
+
+  public StructuredDataSource.DataSourceType getDataSourceType() {
+    return structuredDataSource.getDataSourceType();
+  }
+
+  public Field getTimestampField() {
+    return structuredDataSource.getTimestampField();
   }
 }

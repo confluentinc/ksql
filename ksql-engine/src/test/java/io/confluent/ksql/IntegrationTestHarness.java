@@ -1,7 +1,10 @@
 package io.confluent.ksql;
 
 
-import org.apache.kafka.clients.admin.AdminClient;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -10,7 +13,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 
@@ -23,27 +25,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.OrderDataProvider;
-import org.junit.Assert;
 
 public class IntegrationTestHarness {
 
 
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
-
-  public static final long RESULTS_POLL_MAX_TIME_MS = 30000;
+  public static final long RESULTS_POLL_MAX_TIME_MS = 10000;
   public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
 
   public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Iintegration_Test_Consumer_";
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
+
+  private TopicConsumer topicConsumer;
 
   public IntegrationTestHarness() {
   }
@@ -69,16 +65,19 @@ public class IntegrationTestHarness {
    * @throws ExecutionException
    */
   public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
-      throws InterruptedException, TimeoutException, ExecutionException {
+          throws InterruptedException, TimeoutException, ExecutionException {
+
+    createTopic(topicName);
+
     Properties producerConfig = properties();
     KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
+            new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
       String key = recordEntry.getKey();
       ProducerRecord<String, GenericRow>
-          producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
+              producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
       Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
@@ -97,7 +96,7 @@ public class IntegrationTestHarness {
 
   void produceRecord(final String topicName, final String key, final String jsonData) {
     try(final KafkaProducer<String, String> producer
-            = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
+                = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
       producer.send(new ProducerRecord<>(topicName, key, jsonData));
     }
   }
@@ -165,52 +164,16 @@ public class IntegrationTestHarness {
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicConsumer = new TopicConsumer(embeddedKafkaCluster);
   }
 
   public void stop() {
-
     this.topicClient.close();
     this.embeddedKafkaCluster.stop();
   }
 
-  public void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                           Map<String, GenericRow> expectedResult) {
-    Assert.assertEquals(actualResult.size(), expectedResult.size());
-
-    for (String k: expectedResult.keySet()) {
-      Assert.assertTrue(actualResult.containsKey(k));
-      Assert.assertEquals(expectedResult.get(k), actualResult.get(k));
-    }
+  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider) throws InterruptedException, ExecutionException, TimeoutException {
+    createTopic(topicName);
+    return produceData(topicName, dataProvider.data(), dataProvider.schema());
   }
-
-  public static void main(String args[]) throws Exception {
-
-    IntegrationTestHarness testHarness = new IntegrationTestHarness();
-
-    testHarness.start();
-
-
-    OrderDataProvider orderDataProvider = new OrderDataProvider();
-
-    String topicName = "TestTopic";
-    testHarness.createTopic(topicName, 1, (short)1);
-    testHarness.produceData(topicName, orderDataProvider.data(), orderDataProvider.schema());
-
-
-    KsqlContext ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
-                    + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
-    ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");
-
-    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS",
-                                                                         orderDataProvider.schema
-                                                                             (), 4,
-                                                                         new StringDeserializer());
-
-    System.out.println();
-    testHarness.stop();
-
-  }
-
-
 }

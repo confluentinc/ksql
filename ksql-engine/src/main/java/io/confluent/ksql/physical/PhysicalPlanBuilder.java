@@ -37,7 +37,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -124,8 +123,8 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream kafkaStreamsDsl(final PlanNode planNode, Map<String, Object> propsMap) throws
                                                                                    Exception {
-    if (planNode instanceof SourceNode) {
-      return buildSource((SourceNode) planNode, propsMap);
+    if (planNode instanceof StructuredDataSourceNode) {
+      return buildSource((StructuredDataSourceNode) planNode, propsMap);
     } else if (planNode instanceof JoinNode) {
       return buildJoin((JoinNode) planNode, propsMap);
     } else if (planNode instanceof AggregateNode) {
@@ -388,53 +387,47 @@ public class PhysicalPlanBuilder {
   }
 
 
-  private SchemaKStream buildSource(final SourceNode sourceNode, Map<String, Object> props) {
+  private SchemaKStream buildSource(final StructuredDataSourceNode sourceNode, Map<String, Object> props) {
+    if (sourceNode.getTimestampField() != null) {
+      int timestampColumnIndex = getTimeStampColumnIndex(sourceNode
+              .getSchema(),
+          sourceNode
+              .getTimestampField());
+      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+    }
 
-    if (sourceNode instanceof StructuredDataSourceNode) {
-      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
+    Serde<GenericRow>
+        genericRowSerde =
+        SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+                .getKsqlTopic().getKsqlTopicSerDe(),
+            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+                sourceNode.getSchema()));
 
-      if (structuredDataSourceNode.getTimestampField() != null) {
-        int timestampColumnIndex = getTimeStampColumnIndex(structuredDataSourceNode
-                                                                      .getSchema(),
-                                                                  structuredDataSourceNode
-                                                                      .getTimestampField());
-        ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
-      }
+    if (sourceNode.getDataSourceType()
+        == StructuredDataSource.DataSourceType.KTABLE) {
+      final KsqlTable table = (KsqlTable) sourceNode.getStructuredDataSource();
 
-      Serde<GenericRow>
-          genericRowSerde =
-          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                    .getKsqlTopic().getKsqlTopicSerDe(),
-                                SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                                    structuredDataSourceNode.getSchema()));
-
-      if (structuredDataSourceNode.getDataSourceType()
-          == StructuredDataSource.DataSourceType.KTABLE) {
-        final KsqlTable table = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
-
-        final KTable kTable = createKTable(
-            getAutoOffsetReset(props),
-            table,
-            genericRowSerde,
-            SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
-                structuredDataSourceNode.getSchema())
-        );
-        return new SchemaKTable(sourceNode.getSchema(), kTable,
-            sourceNode.getKeyField(), new ArrayList<>(),
-            table.isWindowed(),
-            SchemaKStream.Type.SOURCE);
-      }
-
-      return new SchemaKStream(sourceNode.getSchema(),
-          builder
-              .stream(structuredDataSourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-                  Consumed.with(Serdes.String(), genericRowSerde))
-              .map(nonWindowedMapper)
-              .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+      final KTable kTable = createKTable(
+          getAutoOffsetReset(props),
+          table,
+          genericRowSerde,
+          SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
+              sourceNode.getSchema())
+      );
+      return new SchemaKTable(sourceNode.getSchema(), kTable,
           sourceNode.getKeyField(), new ArrayList<>(),
+          table.isWindowed(),
           SchemaKStream.Type.SOURCE);
     }
-    throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
+
+    return new SchemaKStream(sourceNode.getSchema(),
+        builder
+            .stream(sourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+                Consumed.with(Serdes.String(), genericRowSerde))
+            .map(nonWindowedMapper)
+            .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+        sourceNode.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE);
   }
 
   private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {

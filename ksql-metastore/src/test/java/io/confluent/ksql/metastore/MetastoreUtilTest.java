@@ -27,12 +27,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class MetastoreUtilTest {
@@ -252,5 +248,4 @@ public class MetastoreUtilTest {
             metastoreUtil.buildAvroSchema(schemaBuilder, "{\n\t\"name\": \"ksql_catalog\",\n\t\"topics\":[],\n\t\"schemas\" :[]\n}")
     );
   }
-
 }

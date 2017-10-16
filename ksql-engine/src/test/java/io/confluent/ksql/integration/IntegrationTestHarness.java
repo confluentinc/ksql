@@ -122,6 +122,7 @@ public class IntegrationTestHarness {
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+    System.out.println(">>>> GETTING DATA");
     try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, new KsqlJsonDeserializer(schema))) {
 
       consumer.subscribe(Collections.singleton(topic));
@@ -133,6 +134,7 @@ public class IntegrationTestHarness {
             result.put(record.key(), record.value());
           }
         }
+        System.out.println(">>>> GETTING DATA: size:" + result.size() + "  continue:" + continueConsuming(result.size(), expectedNumMessages));
       }
 
       for (ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {

@@ -66,7 +66,6 @@ public class WindowingIntTest {
   @Test
   public void shouldAggregateTumblingWindow() throws Exception {
 
-    // not really required - but lets mess with  ms
     testHarness.publishTestData(topicName, dataProvider, now);
 
 
@@ -97,7 +96,6 @@ public class WindowingIntTest {
   @Test
   public void shouldAggregateHoppingWindow() throws Exception {
 
-    // not really required - but lets mess with ms
     testHarness.publishTestData(topicName, dataProvider, now);
 
 

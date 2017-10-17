@@ -23,25 +23,25 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 
 import java.util.Objects;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class QueuedQueryMetadata extends QueryMetadata {
 
-  private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
 
   public QueuedQueryMetadata(
       String statementString,
       KafkaStreams kafkaStreams,
       OutputNode outputNode,
       String executionPlan,
-      SynchronousQueue<KeyValue<String, GenericRow>> rowQueue,
+      BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
       DataSource.DataSourceType dataSourceType
   ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType);
     this.rowQueue = rowQueue;
   }
 
-  public SynchronousQueue<KeyValue<String, GenericRow>> getRowQueue() {
+  public BlockingQueue<KeyValue<String, GenericRow>> getRowQueue() {
     return rowQueue;
   }
 

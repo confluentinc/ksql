@@ -69,14 +69,13 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
               .evaluate(parameterObjects));
         } catch (Exception e) {
           log.error("Error calculating column with index " + i + " : " +
-              expressionPairList.get(i).getLeft());
+              expressionPairList.get(i).getLeft(), e);
           newColumns.add(null);
         }
       }
       return new GenericRow(newColumns);
     } catch (Exception e) {
-      log.error("Projection exception for row: " + row.toString());
-      log.error(e.getMessage(), e);
+      log.error("Projection exception for row: " + row.toString(), e);
       throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
     }
   }

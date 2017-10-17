@@ -31,6 +31,7 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -49,9 +50,9 @@ public class SchemaKStreamTest {
   private SchemaKStream initialSchemaKStream;
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
-  MetaStore metaStore;
-  KStream kStream;
-  KsqlStream ksqlStream;
+  private MetaStore metaStore;
+  private KStream kStream;
+  private KsqlStream ksqlStream;
 
   @Before
   public void init() {
@@ -75,8 +76,7 @@ public class SchemaKStreamTest {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
-    return logicalPlan;
+    return new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
   }
 
   @Test
@@ -87,7 +87,8 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
                                              SchemaKStream.Type.SOURCE);
-    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
+    List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
+    SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));

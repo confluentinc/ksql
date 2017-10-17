@@ -167,7 +167,6 @@ public class SchemaKStream {
               } catch (Exception ex) {
                 log.error("Error calculating column with index " + i + " : " +
                           expressionPairList.get(i).getLeft(), ex);
-                ex.printStackTrace();
                 newColumns.add(null);
               }
             }

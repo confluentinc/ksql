@@ -103,6 +103,7 @@ public class CliTest extends TestRunner {
     produceInputStream(orderDataProvider);
   }
 
+
   private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
     topicProducer.produceInputData(dataProvider);
@@ -123,7 +124,7 @@ public class CliTest extends TestRunner {
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-
+  
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.

@@ -82,12 +82,11 @@ public class StreamedQueryResource {
     }
   }
 
-  private TopicStreamWriter getTopicStreamWriter(Map<String, Object> clientLocalProperties, PrintTopic statement) {
-    PrintTopic printTopic = statement;
+  private TopicStreamWriter getTopicStreamWriter(final Map<String, Object> clientLocalProperties, final PrintTopic printTopic) {
     String topicName = printTopic.getTopic().toString();
     Long interval =
         Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
-    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(printTopic.getTopic().toString());
+    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(topicName);
     Objects.requireNonNull(
         ksqlTopic,
         String.format("Could not find topic '%s' in the metastore", topicName)

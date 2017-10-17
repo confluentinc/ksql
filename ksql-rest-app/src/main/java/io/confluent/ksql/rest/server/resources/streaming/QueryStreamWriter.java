@@ -89,6 +89,7 @@ class QueryStreamWriter implements StreamingOutput {
       }
     } catch (EOFException exception) {
       // The user has terminated the connection; we can stop writing
+      log.warn("Query terminated due to exception:" + exception.toString());
     } catch (InterruptedException exception) {
       // The most likely cause of this is the server shutting down. Should just try to close
       // gracefully, without writing any more to the connection stream.
@@ -97,9 +98,9 @@ class QueryStreamWriter implements StreamingOutput {
       log.error("Exception occurred while writing to connection stream: ", exception);
       out.write("\n".getBytes());
       if (exception.getCause() instanceof KsqlException) {
-        new ObjectMapper().writeValue(out, new StreamedRow(exception.getCause()));
+        objectMapper.writeValue(out, new StreamedRow(exception.getCause()));
       } else {
-        new ObjectMapper().writeValue(out, new StreamedRow(exception));
+        objectMapper.writeValue(out, new StreamedRow(exception));
       }
       out.write("\n".getBytes());
       out.flush();

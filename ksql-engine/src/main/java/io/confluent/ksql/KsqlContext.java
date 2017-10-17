@@ -51,7 +51,7 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  public KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }

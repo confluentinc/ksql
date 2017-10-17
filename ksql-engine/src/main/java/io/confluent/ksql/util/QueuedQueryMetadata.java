@@ -24,7 +24,6 @@ import org.apache.kafka.streams.KeyValue;
 
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 
 public class QueuedQueryMetadata extends QueryMetadata {
 

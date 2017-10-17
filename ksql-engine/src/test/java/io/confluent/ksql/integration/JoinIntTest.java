@@ -58,7 +58,6 @@ public class JoinIntTest {
     testHarness.createTopic(orderStreamTopic);
     orderDataProvider = new OrderDataProvider();
     orderRecordMetadataMap = testHarness.publishTestData(orderStreamTopic, orderDataProvider, now );
-
     createStreams();
   }
 

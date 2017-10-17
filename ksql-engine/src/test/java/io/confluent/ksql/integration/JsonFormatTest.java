@@ -21,6 +21,8 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -60,6 +62,7 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
+  private AdminClient adminClient;
 
 
   @Before
@@ -73,7 +76,8 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     KsqlConfig ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     metaStore = ksqlEngine.getMetaStore();
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
@@ -122,6 +126,7 @@ public class JsonFormatTest {
 
   @After
   public void after() throws Exception {
+    adminClient.close();
     ksqlEngine.close();
   }
 

@@ -19,7 +19,7 @@ package io.confluent.ksql.codegen;
 import com.google.common.base.Joiner;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -35,23 +35,34 @@ import static java.lang.String.format;
 
 public class SqlToJavaVisitor {
 
-  static Schema schema;
+  Schema schema;
+  FunctionRegistry functionRegistry;
 
-  public String process(final Expression expression, final Schema schema) {
-    SqlToJavaVisitor.schema = schema;
+  public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
+    this.schema = schema;
+    this.functionRegistry = functionRegistry;
+  }
+
+  public String process(final Expression expression) {
+
     return formatExpression(expression, true);
   }
 
   private String formatExpression(final Expression expression, final boolean unmangleNames) {
     Pair<String, Schema>
         expressionFormatterResult =
-        new SqlToJavaVisitor.Formatter().process(expression, unmangleNames);
+        new SqlToJavaVisitor.Formatter(functionRegistry).process(expression, unmangleNames);
     return expressionFormatterResult.getLeft();
   }
 
 
-  public static class Formatter
+  public class Formatter
       extends AstVisitor<Pair<String, Schema>, Boolean> {
+
+    FunctionRegistry functionRegistry;
+    public Formatter(FunctionRegistry functionRegistry) {
+      this.functionRegistry = functionRegistry;
+    }
 
     @Override
     protected Pair<String, Schema> visitNode(final Node node, Boolean unmangleNames) {
@@ -141,7 +152,7 @@ public class SqlToJavaVisitor {
       return new Pair<>(fieldName.replace(".", "_"), schemaField.get().schema());
     }
 
-    private static String formatQualifiedName(QualifiedName name) {
+    private String formatQualifiedName(QualifiedName name) {
       List<String> parts = new ArrayList<>();
       for (String part : name.getParts()) {
         parts.add(formatIdentifier(part));
@@ -165,7 +176,7 @@ public class SqlToJavaVisitor {
                                                      Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder("(");
       String name = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(name);
+      KsqlFunction ksqlFunction = functionRegistry.getFunction(name);
       String javaReturnType = SchemaUtil.getJavaType(ksqlFunction.getReturnType()).getSimpleName();
       builder.append("(" + javaReturnType + ") " + name + ".evaluate(");
       boolean addComma = false;
@@ -381,7 +392,7 @@ public class SqlToJavaVisitor {
              + process(right, unmangleNames).getLeft() + ")";
     }
 
-    private static String formatIdentifier(String s) {
+    private String formatIdentifier(String s) {
       // TODO: handle escaping properly
       return s;
     }

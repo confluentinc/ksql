@@ -6,6 +6,8 @@ import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -41,6 +43,7 @@ public class IntegrationTestHarness {
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
+  private AdminClient adminClient;
 
   private TopicConsumer topicConsumer;
 
@@ -170,12 +173,14 @@ public class IntegrationTestHarness {
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
 
     this.ksqlConfig = new KsqlConfig(configMap);
-    this.topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
-    this.topicConsumer = new TopicConsumer(embeddedKafkaCluster);
+    this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.topicClient = new KafkaTopicClientImpl(adminClient);
+
   }
 
   public void stop() {
     this.topicClient.close();
+    this.adminClient.close();
     this.embeddedKafkaCluster.stop();
   }
 

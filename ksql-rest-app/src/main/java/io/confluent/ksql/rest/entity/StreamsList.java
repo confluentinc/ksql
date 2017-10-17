@@ -50,7 +50,6 @@ public class StreamsList extends KsqlEntity {
     return new StreamsList(statementText, streamInfos);
   }
 
-
   public List<StreamInfo> getStreams() {
     return new ArrayList<>(streams);
   }

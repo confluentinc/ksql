@@ -21,6 +21,7 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
@@ -53,10 +54,13 @@ public class SchemaKStreamTest {
   private MetaStore metaStore;
   private KStream kStream;
   private KsqlStream ksqlStream;
+  private FunctionRegistry functionRegistry;
+
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+    functionRegistry = new FunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
@@ -71,12 +75,14 @@ public class SchemaKStreamTest {
     Analyzer analyzer = new Analyzer(analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
+                                                                functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    return new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
+    return logicalPlan;
   }
 
   @Test
@@ -86,7 +92,8 @@ public class SchemaKStreamTest {
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
+
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -113,7 +120,7 @@ public class SchemaKStreamTest {
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -141,7 +148,7 @@ public class SchemaKStreamTest {
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
@@ -170,7 +177,7 @@ public class SchemaKStreamTest {
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
                                                                             .get(1));

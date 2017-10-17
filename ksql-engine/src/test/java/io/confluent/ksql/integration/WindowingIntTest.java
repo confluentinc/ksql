@@ -41,7 +41,7 @@ public class WindowingIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
-    ksqlContext = new KsqlContext(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);
 
     /**

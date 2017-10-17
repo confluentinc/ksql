@@ -48,7 +48,7 @@ public class JoinIntTest {
     Map<String, Object> ksqlStreamConfigProps = testHarness.ksqlConfig.getKsqlStreamConfigProps();
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
-    ksqlContext = new KsqlContext(ksqlStreamConfigProps);
+    ksqlContext = KsqlContext.create(ksqlStreamConfigProps);
 
     /**
      * Setup test data

@@ -126,8 +126,9 @@ public class QueryEngine {
 
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+        AggregateAnalyzer(aggregateAnalysis, analysis, ksqlEngine.getFunctionRegistry());
+    AggregateExpressionRewriter aggregateExpressionRewriter =
+        new AggregateExpressionRewriter(ksqlEngine.getFunctionRegistry());
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer
           .process(expression, new AnalysisContext(null));
@@ -160,7 +161,7 @@ public class QueryEngine {
 
 
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
     if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) logicalPlan;
@@ -217,7 +218,9 @@ public class QueryEngine {
     KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getTopicClient(), new MetastoreUtil());
+    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone,
+                                                                      ksqlEngine.getTopicClient(),
+                                                                      new MetastoreUtil(), ksqlEngine.getFunctionRegistry());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -291,7 +294,8 @@ public class QueryEngine {
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable) ?
-        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
+        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        applicationId
     );
   }
 
@@ -308,9 +312,15 @@ public class QueryEngine {
    * @param persistanceQueryPrefix
    */
   private QueryMetadata buildPlanForStructuredOutputNode(boolean addUniqueTimeSuffix,
-                                                         Pair<String, PlanNode> statementPlanPair, Map<String, Object> overriddenStreamsProperties,
-                                                         boolean updateMetastore, StreamsBuilder builder, KsqlConfig ksqlConfigClone, SchemaKStream schemaKStream,
-                                                         KsqlStructuredDataOutputNode outputNode, String serviceId, String persistanceQueryPrefix) {
+                                                         Pair<String, PlanNode> statementPlanPair,
+                                                         Map<String, Object> overriddenStreamsProperties,
+                                                         boolean updateMetastore,
+                                                         StreamsBuilder builder,
+                                                         KsqlConfig ksqlConfigClone,
+                                                         SchemaKStream schemaKStream,
+                                                         KsqlStructuredDataOutputNode outputNode,
+                                                         String serviceId,
+                                                         String persistanceQueryPrefix) {
 
     long queryId = getNextQueryId();
 
@@ -353,7 +363,9 @@ public class QueryEngine {
                                        streams, outputNode, schemaKStream
                                            .getExecutionPlan(""), queryId,
                                        (schemaKStream instanceof SchemaKTable) ? DataSource
-                                           .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
+                                           .DataSourceType.KTABLE : DataSource.DataSourceType
+                                           .KSTREAM,
+                                       applicationId);
   }
 
 

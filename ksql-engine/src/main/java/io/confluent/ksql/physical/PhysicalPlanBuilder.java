@@ -19,7 +19,7 @@ package io.confluent.ksql.physical;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -81,6 +81,7 @@ public class PhysicalPlanBuilder {
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
   private final MetastoreUtil metastoreUtil;
+  private final FunctionRegistry functionRegistry;
 
   private static final KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> nonWindowedMapper = (key, row) -> {
     if (row != null) {
@@ -106,11 +107,13 @@ public class PhysicalPlanBuilder {
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
                              final KafkaTopicClient kafkaTopicClient,
-                             final MetastoreUtil metastoreUtil) {
+                             final MetastoreUtil metastoreUtil,
+                             final FunctionRegistry functionRegistry) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
     this.metastoreUtil = metastoreUtil;
+    this.functionRegistry = functionRegistry;
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
@@ -216,11 +219,11 @@ public class PhysicalPlanBuilder {
     }
 
     final SchemaKStream result = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
-        schemaKStream.getKstream(),
-        ksqlStructuredDataOutputNode
+                                                   schemaKStream.getKstream(),
+                                                   ksqlStructuredDataOutputNode
             .getKeyField(),
-        Collections.singletonList(schemaKStream),
-        SchemaKStream.Type.SINK
+                                                   Collections.singletonList(schemaKStream),
+                                                   SchemaKStream.Type.SINK, functionRegistry
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -294,7 +297,8 @@ public class PhysicalPlanBuilder {
                                                       schemaKTable.getKeyField(),
                                                       schemaKTable.getSourceSchemaKStreams(),
                                                       schemaKTable.isWindowed(),
-                                                      SchemaKStream.Type.AGGREGATE);
+                                                      SchemaKStream.Type.AGGREGATE,
+                                           functionRegistry);
 
 
     if (aggregateNode.getHavingExpressions() != null) {
@@ -315,8 +319,8 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KsqlAggregateFunction aggregateFunction = KsqlFunctions.getAggregateFunction(udafName,
-                                                                                   aggregateNode
+      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
+                                                                                      aggregateNode
               .getFunctionList()
               .get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
       fieldSchema = aggregateFunction.getReturnType();
@@ -337,10 +341,11 @@ public class PhysicalPlanBuilder {
     int udafIndexInAggSchema = resultColumns.size();
     final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
     for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
-      KsqlAggregateFunction aggregateFunctionInfo = KsqlFunctions.getAggregateFunction(functionCall
+      KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+          .getAggregateFunction(functionCall
               .getName()
               .toString(),
-              functionCall
+                                functionCall
               .getArguments(), aggregateArgExpanded.getSchema());
       int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
       KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
@@ -392,7 +397,6 @@ public class PhysicalPlanBuilder {
     return kafkaStreamsDsl(filterNode.getSource()).filter(filterNode.getPredicate());
   }
 
-
   private SchemaKStream buildSource(final StructuredDataSourceNode sourceNode, Map<String, Object> props) {
     if (sourceNode.getTimestampField() != null) {
       int timestampColumnIndex = getTimeStampColumnIndex(sourceNode
@@ -423,7 +427,7 @@ public class PhysicalPlanBuilder {
       return new SchemaKTable(sourceNode.getSchema(), kTable,
           sourceNode.getKeyField(), new ArrayList<>(),
           table.isWindowed(),
-          SchemaKStream.Type.SOURCE);
+          SchemaKStream.Type.SOURCE, functionRegistry);
     }
 
     return new SchemaKStream(sourceNode.getSchema(),
@@ -433,7 +437,7 @@ public class PhysicalPlanBuilder {
             .map(nonWindowedMapper)
             .transformValues(new AddTimestampColumnValueTransformerSupplier()),
         sourceNode.getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE);
+        SchemaKStream.Type.SOURCE, functionRegistry);
   }
 
   private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {
@@ -583,7 +587,8 @@ public class PhysicalPlanBuilder {
     Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
-        Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY);
+                             Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY,
+                             functionRegistry);
   }
 
   private int getIndexInSchema(final String fieldName, final Schema schema) {

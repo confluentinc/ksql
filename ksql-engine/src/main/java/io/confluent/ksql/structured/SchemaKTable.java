@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.Pair;
@@ -44,17 +45,23 @@ public class SchemaKTable extends SchemaKStream {
   private final KTable ktable;
   private final boolean isWindowed;
 
-  public SchemaKTable(final Schema schema, final KTable ktable, final Field keyField,
-                      final List<SchemaKStream> sourceSchemaKStreams, boolean isWindowed,
-                      Type type) {
-    super(schema, null, keyField, sourceSchemaKStreams, type);
+  public SchemaKTable(final Schema schema,
+                      final KTable ktable,
+                      final Field keyField,
+                      final List<SchemaKStream> sourceSchemaKStreams,
+                      boolean isWindowed,
+                      Type type,
+                      final FunctionRegistry functionRegistry) {
+    super(schema, null, keyField, sourceSchemaKStreams, type, functionRegistry);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
 
   @Override
-  public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
+  public SchemaKTable into(final String kafkaTopicName,
+                           final Serde<GenericRow> topicValueSerDe,
                            Set<Integer> rowkeyIndexes) {
+
 
     if (isWindowed) {
       ktable.toStream()
@@ -96,20 +103,22 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable filter(final Expression filterExpression) throws Exception {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed);
+    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed,
+                                              functionRegistry);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            Type.FILTER);
+                            Type.FILTER, functionRegistry);
   }
 
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
+
     final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 
     KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
 
     return new SchemaKTable(schemaAndMapper.left, projectedKTable, keyField,
-        Collections.singletonList(this), isWindowed, Type.PROJECT);
+        Collections.singletonList(this), isWindowed, Type.PROJECT, functionRegistry);
   }
 
   @Override

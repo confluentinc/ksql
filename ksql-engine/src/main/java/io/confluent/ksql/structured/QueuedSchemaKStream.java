@@ -20,8 +20,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -33,15 +31,13 @@ import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.SynchronousQueue;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class QueuedSchemaKStream extends SchemaKStream {
 
-  private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue = new SynchronousQueue<>();
+  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = new LinkedBlockingQueue<>(100);
 
   private QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
                               final List<SchemaKStream> sourceSchemaKStreams,
@@ -67,13 +63,13 @@ public class QueuedSchemaKStream extends SchemaKStream {
     );
   }
 
-  public SynchronousQueue<KeyValue<String, GenericRow>> getQueue() {
+  public BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
     return rowQueue;
   }
 
   @Override
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe,
-                            Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+                            Set<Integer> rowkeyIndexes) {
     throw new UnsupportedOperationException();
   }
 
@@ -129,11 +125,11 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   protected static class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-    private final SynchronousQueue<KeyValue<String, GenericRow>> queue;
+    private final BlockingQueue<KeyValue<String, GenericRow>> queue;
     private final Optional<Integer> limit;
     private int counter = 0;
 
-    QueuePopulator(SynchronousQueue<KeyValue<String, GenericRow>> queue,
+    QueuePopulator(BlockingQueue<KeyValue<String, GenericRow>> queue,
                    Optional<Integer> limit) {
       this.queue = queue;
       this.limit = limit;

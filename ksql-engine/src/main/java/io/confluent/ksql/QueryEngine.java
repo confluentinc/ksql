@@ -444,8 +444,6 @@ public class QueryEngine {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-
-
     return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 

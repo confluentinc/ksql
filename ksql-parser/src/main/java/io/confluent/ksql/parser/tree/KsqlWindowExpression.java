@@ -16,11 +16,24 @@
 
 package io.confluent.ksql.parser.tree;
 
+import org.apache.kafka.streams.kstream.Initializer;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
+
 import java.util.Optional;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
 
 public abstract class KsqlWindowExpression extends Node {
 
   protected KsqlWindowExpression(Optional<NodeLocation> location) {
     super(location);
   }
+
+  public abstract KTable applyAggregate(final KGroupedStream groupedStream,
+                                        final Initializer initializer,
+                                        final UdafAggregator aggregator,
+                                        final Materialized<String, GenericRow, ?> materialized);
 }

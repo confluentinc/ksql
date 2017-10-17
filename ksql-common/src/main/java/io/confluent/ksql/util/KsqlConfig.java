@@ -21,6 +21,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
 
-  public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
+  public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = KSQL_CONFIG_PREPERTY_PREFIX + ".fail.on.deserialization.error";
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
@@ -159,7 +160,10 @@ public class KsqlConfig extends AbstractConfig {
         ksqlStreamConfigProps.put(propKey.toString(), props.get(propKey));
       }
     }
-
+    final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
+    if (fail == null || !Boolean.parseBoolean(fail.toString())) {
+      ksqlStreamConfigProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
+    }
   }
 
   public Map<String, Object> getKsqlConfigProps() {

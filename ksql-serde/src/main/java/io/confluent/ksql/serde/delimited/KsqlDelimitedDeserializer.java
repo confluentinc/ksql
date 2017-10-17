@@ -17,18 +17,14 @@
 package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,32 +32,14 @@ import java.util.Map;
 
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlDelimitedDeserializer.class);
-  private static ConfigDef configDef;
   private final Schema schema;
-  private Boolean failOnDeserializationError = Boolean.FALSE;
-
 
   public KsqlDelimitedDeserializer(Schema schema) {
     this.schema = schema;
   }
 
-  static {
-    configDef = new ConfigDef()
-        .define(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-            ConfigDef.Type.BOOLEAN,
-            false,
-            ConfigDef.Importance.MEDIUM,
-            "Whether or not KSQL should fail when there are deserialization errors." +
-                "The default is false, errors will be logged");
-  }
-
   @Override
   public void configure(Map<String, ?> map, boolean b) {
-    final Map<String, Object> config = configDef.parse(map);
-    failOnDeserializationError = (Boolean) config.getOrDefault(
-        KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-        Boolean.FALSE);
   }
 
   @Override
@@ -89,12 +67,8 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       return new GenericRow(columns);
     } catch (Exception e) {
-      if (failOnDeserializationError) {
-        throw new SerializationException("Exception in deserializing the delimited row: " + recordCsvString,
-            e);
-      }
-      log.warn("KsqlDelimitedDeserializer failed to deserialize data for topic: {}", topic, e);
-      return null;
+      throw new SerializationException("Exception in deserializing the delimited row: " + recordCsvString,
+          e);
     }
   }
 

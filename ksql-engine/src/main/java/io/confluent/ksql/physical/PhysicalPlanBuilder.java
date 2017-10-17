@@ -179,14 +179,14 @@ public class PhysicalPlanBuilder {
           outputProperties);
 
       final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
+      createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
       result.into(
           noRowKey.getKafkaTopicName(),
           SerDeUtil.getRowSerDe(
               noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
               noRowKey.getSchema()),
-          rowkeyIndexes,
-          ksqlConfig,
-          kafkaTopicClient);
+          rowkeyIndexes
+      );
 
 
       this.planSink = outputNodeBuilder.withSchema(SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
@@ -198,6 +198,12 @@ public class PhysicalPlanBuilder {
     }
 
     throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
+  }
+
+  private void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY);
+    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
   }
 
   private SchemaKStream createOutputStream(final SchemaKStream schemaKStream,

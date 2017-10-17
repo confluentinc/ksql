@@ -21,8 +21,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.codegen.CodeGenRunner;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.WindowedSerde;
@@ -64,9 +62,7 @@ public class SchemaKTable extends SchemaKStream {
 
   @Override
   public SchemaKTable into(final String kafkaTopicName, final Serde<GenericRow> topicValueSerDe,
-                           Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
-
-    createSinkTopic(kafkaTopicName, ksqlConfig, kafkaTopicClient);
+                           Set<Integer> rowkeyIndexes) {
 
     if (isWindowed) {
       ktable.toStream()

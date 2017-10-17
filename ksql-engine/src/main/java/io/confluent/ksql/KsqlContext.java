@@ -20,6 +20,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
@@ -33,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
@@ -47,25 +47,10 @@ public class KsqlContext {
 
 
   public static KsqlContext create() throws ExecutionException, InterruptedException {
-    return new KsqlContext();
+    return create(Collections.emptyMap());
   }
 
   public static KsqlContext create(Map<String, Object> streamsProperties)
-      throws ExecutionException, InterruptedException {
-    return new KsqlContext(streamsProperties);
-  }
-
-  private KsqlContext() throws ExecutionException, InterruptedException {
-    this(null);
-  }
-
-  /**
-   * Create a KSQL context object with the given properties.
-   * A KSQL context has it's own metastore valid during the life of the object.
-   *
-   * @param streamsProperties
-   */
-  private KsqlContext(Map<String, Object> streamsProperties)
       throws ExecutionException, InterruptedException {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
@@ -76,6 +61,18 @@ public class KsqlContext {
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
+    return new KsqlContext(streamsProperties);
+  }
+
+
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param streamsProperties
+   */
+  private KsqlContext(Map<String, Object> streamsProperties)
+      throws ExecutionException, InterruptedException {
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(adminClient);

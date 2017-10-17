@@ -18,7 +18,8 @@ package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.streams.kstream.Aggregator;
+import io.confluent.ksql.function.UdafAggregator;
+
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class KudafAggregator implements Aggregator<String, GenericRow, GenericRow> {
+public class KudafAggregator implements UdafAggregator {
 
   private Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
@@ -55,6 +56,7 @@ public class KudafAggregator implements Aggregator<String, GenericRow, GenericRo
     return aggRowValue;
   }
 
+  @Override
   public Merger<String, GenericRow> getMerger() {
     return (key, aggRowOne, aggRowTwo) -> {
 

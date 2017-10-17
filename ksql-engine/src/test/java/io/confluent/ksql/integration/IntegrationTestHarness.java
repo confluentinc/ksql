@@ -18,6 +18,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.test.TestUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,12 +65,13 @@ public class IntegrationTestHarness {
    * @param topicName
    * @param recordsToPublish
    * @param schema
+   * @param timestamp
    * @return
    * @throws InterruptedException
    * @throws TimeoutException
    * @throws ExecutionException
    */
-  public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema)
+  public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema, Long timestamp)
           throws InterruptedException, TimeoutException, ExecutionException {
 
     createTopic(topicName);
@@ -80,14 +83,16 @@ public class IntegrationTestHarness {
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
       String key = recordEntry.getKey();
-      ProducerRecord<String, GenericRow>
-              producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
-      Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
+      Future<RecordMetadata> recordMetadataFuture = producer.send(buildRecord(topicName, timestamp, recordEntry, key));
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
     producer.close();
 
     return result;
+  }
+
+  private ProducerRecord<String, GenericRow> buildRecord(String topicName, Long timestamp, Map.Entry<String, GenericRow> recordEntry, String key) {
+    return new ProducerRecord<>(topicName, null, timestamp,  key, recordEntry.getValue());
   }
 
   private Properties properties() {
@@ -165,6 +170,7 @@ public class IntegrationTestHarness {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
+    configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
 
     this.ksqlConfig = new KsqlConfig(configMap);
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
@@ -178,8 +184,8 @@ public class IntegrationTestHarness {
     this.embeddedKafkaCluster.stop();
   }
 
-  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider) throws InterruptedException, ExecutionException, TimeoutException {
+  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider, Long timestamp) throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
-    return produceData(topicName, dataProvider.data(), dataProvider.schema());
+    return produceData(topicName, dataProvider.data(), dataProvider.schema(), timestamp);
   }
 }

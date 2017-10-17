@@ -27,6 +27,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -103,6 +105,7 @@ public class CliTest extends TestRunner {
     produceInputStream(orderDataProvider);
   }
 
+
   private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
     topicProducer.produceInputData(dataProvider);
@@ -123,7 +126,7 @@ public class CliTest extends TestRunner {
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-
+  
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
@@ -168,7 +171,7 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-
+    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,  "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler");
     return startConfigs;
   }
 

@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 @JsonTypeName("streams")
 public class StreamsList extends KsqlEntity {
+
   private final Collection<StreamInfo> streams;
 
   @JsonCreator

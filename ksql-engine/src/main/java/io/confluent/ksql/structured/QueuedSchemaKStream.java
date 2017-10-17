@@ -19,8 +19,6 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -68,7 +66,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   @Override
   public SchemaKStream into(String kafkaTopicName, Serde<GenericRow> topicValueSerDe,
-                            Set<Integer> rowkeyIndexes, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+                            Set<Integer> rowkeyIndexes) {
     throw new UnsupportedOperationException();
   }
 

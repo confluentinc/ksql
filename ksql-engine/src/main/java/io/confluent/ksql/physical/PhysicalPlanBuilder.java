@@ -37,7 +37,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -56,14 +55,16 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.TopologyBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,7 +77,7 @@ import java.util.stream.IntStream;
 
 public class PhysicalPlanBuilder {
 
-  private final KStreamBuilder builder;
+  private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
   private final MetastoreUtil metastoreUtil;
@@ -102,7 +103,7 @@ public class PhysicalPlanBuilder {
 
   private OutputNode planSink = null;
 
-  public PhysicalPlanBuilder(final KStreamBuilder builder,
+  public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
                              final KafkaTopicClient kafkaTopicClient,
                              final MetastoreUtil metastoreUtil) {
@@ -122,8 +123,8 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream kafkaStreamsDsl(final PlanNode planNode, Map<String, Object> propsMap) throws
                                                                                    Exception {
-    if (planNode instanceof SourceNode) {
-      return buildSource((SourceNode) planNode, propsMap);
+    if (planNode instanceof StructuredDataSourceNode) {
+      return buildSource((StructuredDataSourceNode) planNode, propsMap);
     } else if (planNode instanceof JoinNode) {
       return buildJoin((JoinNode) planNode, propsMap);
     } else if (planNode instanceof AggregateNode) {
@@ -178,14 +179,14 @@ public class PhysicalPlanBuilder {
           outputProperties);
 
       final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
+      createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
       result.into(
           noRowKey.getKafkaTopicName(),
           SerDeUtil.getRowSerDe(
               noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
               noRowKey.getSchema()),
-          rowkeyIndexes,
-          ksqlConfig,
-          kafkaTopicClient);
+          rowkeyIndexes
+      );
 
 
       this.planSink = outputNodeBuilder.withSchema(SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
@@ -197,6 +198,12 @@ public class PhysicalPlanBuilder {
     }
 
     throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
+  }
+
+  private void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY);
+    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
   }
 
   private SchemaKStream createOutputStream(final SchemaKStream schemaKStream,
@@ -386,93 +393,88 @@ public class PhysicalPlanBuilder {
   }
 
 
-  private SchemaKStream buildSource(final SourceNode sourceNode, Map<String, Object> props) {
+  private SchemaKStream buildSource(final StructuredDataSourceNode sourceNode, Map<String, Object> props) {
+    if (sourceNode.getTimestampField() != null) {
+      int timestampColumnIndex = getTimeStampColumnIndex(sourceNode
+              .getSchema(),
+          sourceNode
+              .getTimestampField());
+      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+    }
 
-    if (sourceNode instanceof StructuredDataSourceNode) {
-      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
+    Serde<GenericRow>
+        genericRowSerde =
+        SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+                .getKsqlTopic().getKsqlTopicSerDe(),
+            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+                sourceNode.getSchema()));
 
-      if (structuredDataSourceNode.getTimestampField() != null) {
-        int timestampColumnIndex = getTimeStampColumnIndex(structuredDataSourceNode
-                                                                      .getSchema(),
-                                                                  structuredDataSourceNode
-                                                                      .getTimestampField());
-        ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
-      }
+    if (sourceNode.getDataSourceType()
+        == StructuredDataSource.DataSourceType.KTABLE) {
+      final KsqlTable table = (KsqlTable) sourceNode.getStructuredDataSource();
 
-      Serde<GenericRow>
-          genericRowSerde =
-          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                    .getKsqlTopic().getKsqlTopicSerDe(),
-                                SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                                    structuredDataSourceNode.getSchema()));
-
-      if (structuredDataSourceNode.getDataSourceType()
-          == StructuredDataSource.DataSourceType.KTABLE) {
-        final KsqlTable table = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
-
-        final KTable kTable = createKTable(
-            getAutoOffsetReset(props),
-            table,
-            genericRowSerde,
-            SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
-                structuredDataSourceNode.getSchema())
-        );
-        return new SchemaKTable(sourceNode.getSchema(), kTable,
-            sourceNode.getKeyField(), new ArrayList<>(),
-            table.isWindowed(),
-            SchemaKStream.Type.SOURCE);
-      }
-
-      return new SchemaKStream(sourceNode.getSchema(),
-          builder
-              .stream((TopologyBuilder.AutoOffsetReset) null, Serdes.String(), genericRowSerde,
-                  structuredDataSourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName())
-              .map(nonWindowedMapper)
-              .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+      final KTable kTable = createKTable(
+          getAutoOffsetReset(props),
+          table,
+          genericRowSerde,
+          SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
+              sourceNode.getSchema())
+      );
+      return new SchemaKTable(sourceNode.getSchema(), kTable,
           sourceNode.getKeyField(), new ArrayList<>(),
+          table.isWindowed(),
           SchemaKStream.Type.SOURCE);
     }
-    throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
+
+    return new SchemaKStream(sourceNode.getSchema(),
+        builder
+            .stream(sourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+                Consumed.with(Serdes.String(), genericRowSerde))
+            .map(nonWindowedMapper)
+            .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+        sourceNode.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE);
   }
 
-  private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde, final String stateStoreName) {
-    return stream.groupByKey(keySerde, valueSerde)
-        .reduce((genericRow, newValue) -> newValue, stateStoreName);
+  private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {
+    return stream.groupByKey(Serialized.with(keySerde, valueSerde))
+        .reduce((genericRow, newValue) -> newValue);
   }
 
   @SuppressWarnings("unchecked")
-  private KTable createKTable(final TopologyBuilder.AutoOffsetReset autoOffsetReset,
+  private KTable createKTable(final Topology.AutoOffsetReset autoOffsetReset,
                               final KsqlTable ksqlTable,
                               final Serde<GenericRow> genericRowSerde,
                               final Serde<GenericRow> genericRowSerdeAfterRead) {
     if (ksqlTable.isWindowed()) {
       return table(builder
-          .stream(autoOffsetReset, windowedSerde, genericRowSerde,
-              ksqlTable.getKsqlTopic().getKafkaTopicName())
+          .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+              Consumed.with(windowedSerde, genericRowSerde)
+                  .withOffsetResetPolicy(autoOffsetReset))
           .map(windowedMapper)
-          .transformValues(new AddTimestampColumnValueTransformerSupplier()), windowedSerde, genericRowSerdeAfterRead, ksqlTable.getStateStoreName());
+          .transformValues(new AddTimestampColumnValueTransformerSupplier()), windowedSerde, genericRowSerdeAfterRead);
     } else {
       return table(builder
-              .stream(autoOffsetReset, Serdes.String(), genericRowSerde,
-                  ksqlTable.getKsqlTopic().getKafkaTopicName())
+              .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                  Consumed.with(Serdes.String(), genericRowSerde)
+                      .withOffsetResetPolicy(autoOffsetReset))
               .map(nonWindowedMapper)
               .transformValues(new AddTimestampColumnValueTransformerSupplier()),
-          Serdes.String(), genericRowSerdeAfterRead, ksqlTable.getStateStoreName());
+          Serdes.String(), genericRowSerdeAfterRead);
     }
   }
 
-  private TopologyBuilder.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {
-    TopologyBuilder.AutoOffsetReset autoOffsetReset = null;
+  private Topology.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {
     if (props.containsKey(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)) {
       if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
           .equalsIgnoreCase("EARLIEST")) {
-        autoOffsetReset = TopologyBuilder.AutoOffsetReset.EARLIEST;
+        return Topology.AutoOffsetReset.EARLIEST;
       } else if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
           .equalsIgnoreCase("LATEST")) {
-        autoOffsetReset = TopologyBuilder.AutoOffsetReset.LATEST;
+        return Topology.AutoOffsetReset.LATEST;
       }
     }
-    return autoOffsetReset;
+    return null;
   }
 
   private SchemaKStream buildJoin(final JoinNode joinNode, final Map<String, Object> propsMap)
@@ -529,7 +531,7 @@ public class PhysicalPlanBuilder {
   }
 
 
-  public KStreamBuilder getBuilder() {
+  public StreamsBuilder getBuilder() {
     return builder;
   }
 

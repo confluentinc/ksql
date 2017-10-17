@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.KsqlConfig;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

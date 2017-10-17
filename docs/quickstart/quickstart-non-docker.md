@@ -77,14 +77,14 @@ Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
     ```bash
-    $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar \
+    $ java -jar ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar \
         quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
     ```
 
 1.  Produce Kafka data to the `users` topic using the data generator. The following example continuously generates data with a value in JSON format.
 
     ```bash
-    $ java -jar ksql-examples/target/ksql-examples-0.1-SNAPSHOT-standalone.jar \
+    $ java -jar ksql-examples/target/ksql-examples-4.0.0-SNAPSHOT-standalone.jar \
         quickstart=users format=json topic=users maxInterval=10000
     ```
 

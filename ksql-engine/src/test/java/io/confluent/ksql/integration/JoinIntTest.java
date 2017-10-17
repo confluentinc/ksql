@@ -9,6 +9,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,7 +17,10 @@ import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,6 +39,7 @@ public class JoinIntTest {
   private String itemTableTopic = "ItemTopic";
   private ItemDataProvider itemDataProvider;
   private Map<String, RecordMetadata> itemRecordMetadataMap;
+  private final long now = System.currentTimeMillis();
 
   @Before
   public void before() throws Exception {
@@ -51,13 +56,12 @@ public class JoinIntTest {
     testHarness.createTopic(itemTableTopic);
     itemDataProvider = new ItemDataProvider();
 
-    long now = System.currentTimeMillis();
-    itemRecordMetadataMap = testHarness.publishTestData(itemTableTopic, itemDataProvider, now-500);
+    itemRecordMetadataMap = testHarness.publishTestData(itemTableTopic, itemDataProvider, now -500);
 
 
     testHarness.createTopic(orderStreamTopic);
     orderDataProvider = new OrderDataProvider();
-    orderRecordMetadataMap = testHarness.publishTestData(orderStreamTopic, orderDataProvider, now );
+    orderRecordMetadataMap = testHarness.publishTestData(orderStreamTopic, orderDataProvider, now);
     createStreams();
   }
 
@@ -83,9 +87,22 @@ public class JoinIntTest {
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
 
-    Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer());
-
-    assertThat(results, equalTo(expectedResults));
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer()));
+      final boolean success = results.equals(expectedResults);
+      if (!success) {
+        try {
+          // The join may not be triggered fist time around due to order in which the
+          // consumer pulls the records back. So we publish again to make the stream
+          // trigger the join.
+          testHarness.publishTestData(orderStreamTopic, orderDataProvider, now);
+        } catch(Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return success;
+    }, 60000, "failed to complete join correctly");
   }
 
   private void createStreams() throws Exception {

@@ -46,24 +46,10 @@ public class KsqlContext {
 
 
   public static KsqlContext create() {
-    return new KsqlContext();
+    return create(Collections.emptyMap());
   }
 
   public static KsqlContext create(Map<String, Object> streamsProperties) {
-    return new KsqlContext(streamsProperties);
-  }
-
-  private KsqlContext() {
-    this(null);
-  }
-
-  /**
-   * Create a KSQL context object with the given properties.
-   * A KSQL context has it's own metastore valid during the life of the object.
-   *
-   * @param streamsProperties
-   */
-  private KsqlContext(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -73,6 +59,17 @@ public class KsqlContext {
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
+    return new KsqlContext(streamsProperties);
+  }
+
+
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param streamsProperties
+   */
+  private KsqlContext(Map<String, Object> streamsProperties) {
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(adminClient);

@@ -170,7 +170,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public boolean hasNext() {
       if (closed) {
-        throw new IllegalStateException("Cannot call hasNext() once closed");
+        throw closedClientException("hasNext()");
       }
 
       if (bufferedRow != null) {
@@ -197,7 +197,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public StreamedRow next() {
       if (closed) {
-        throw new IllegalStateException("Cannot call next() once closed");
+        throw closedClientException("next()");
       }
 
       if (!hasNext()) {
@@ -212,13 +212,18 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public void close() {
       if (closed) {
-        throw new IllegalStateException("Cannot call close() when already closed");
+        throw closedClientException("close()");
       }
 
       closed = true;
       responseScanner.close();
       response.close();
     }
+
+    private IllegalStateException closedClientException(String methodName) {
+      return new IllegalStateException("Cannot call " + methodName + " when client is closed");
+    }
+
   }
 
   public Map<String, Object> getLocalProperties() {

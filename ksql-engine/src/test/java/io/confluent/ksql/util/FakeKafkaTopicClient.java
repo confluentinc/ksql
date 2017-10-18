@@ -45,7 +45,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return Collections.EMPTY_MAP;
   }
 
   @Override

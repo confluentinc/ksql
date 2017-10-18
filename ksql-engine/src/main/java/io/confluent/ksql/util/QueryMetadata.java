@@ -80,15 +80,12 @@ public class QueryMetadata {
 
   public void close() {
     kafkaStreams.close();
-    long maxWaitTime = (long) ksqlConfig.get(KsqlConfig.KSQL_QUERY_CLOSE_WAIT_TIME_CONFIG);
-    long waitSoFar = 0;
-    while (kafkaStreams.state() != KafkaStreams.State.NOT_RUNNING) {
+    long pollStart = System.currentTimeMillis();
+    long pollEnd = pollStart + (long) ksqlConfig.get(KsqlConfig.KSQL_QUERY_CLOSE_WAIT_TIME_CONFIG);
+    while (System.currentTimeMillis() < pollEnd
+           && kafkaStreams.state() != KafkaStreams.State.NOT_RUNNING) {
       try {
         Thread.sleep(1000);
-        waitSoFar += 1000;
-        if (waitSoFar > maxWaitTime) {
-          break;
-        }
       } catch (InterruptedException e) {
         // Do nothing!
       }

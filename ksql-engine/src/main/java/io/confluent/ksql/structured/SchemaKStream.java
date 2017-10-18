@@ -53,7 +53,7 @@ public class SchemaKStream {
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
   protected final Schema schema;
-  protected final KStream kstream;
+  protected final KStream<String, GenericRow> kstream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
@@ -61,12 +61,11 @@ public class SchemaKStream {
   protected final FunctionRegistry functionRegistry;
 
   public SchemaKStream(final Schema schema,
-                       final KStream kstream,
+                       final KStream<String, GenericRow> kstream,
                        final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams,
-                       Type type,
+                       final Type type,
                        final FunctionRegistry functionRegistry) {
-
     this.schema = schema;
     this.kstream = kstream;
     this.keyField = keyField;
@@ -85,11 +84,11 @@ public class SchemaKStream {
                             final Set<Integer> rowkeyIndexes) {
 
     kstream
-        .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+        .map((key, row) -> {
           if (row == null) {
             return new KeyValue<>(key, null);
           }
-          List columns = new ArrayList();
+          List<Object> columns = new ArrayList<>();
           for (int i = 0; i < row.getColumns().size(); i++) {
             if (!rowkeyIndexes.contains(i)) {
               columns.add(row.getColumns().get(i));
@@ -100,19 +99,20 @@ public class SchemaKStream {
     return this;
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKStream filter(final Expression filterExpression) throws Exception {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, functionRegistry);
-    KStream filteredKStream = kstream.filter(predicate.getPredicate());
+    KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
                              Type.FILTER, functionRegistry);
   }
 
   public SchemaKStream select(final Schema selectSchema) {
 
-    KStream
+    final KStream<String, GenericRow>
         projectedKStream =
         kstream.map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
-          List<Object> newColumns = new ArrayList();
+          List<Object> newColumns = new ArrayList<>();
           for (Field schemaField : selectSchema.fields()) {
             newColumns.add(
                 row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name())));
@@ -121,7 +121,7 @@ public class SchemaKStream {
           return new KeyValue<>(key, newRow);
         });
 
-    return new SchemaKStream(selectSchema, projectedKStream, keyField, Arrays.asList(this),
+    return new SchemaKStream(selectSchema, projectedKStream, keyField, Collections.singletonList(this),
                              Type.PROJECT, functionRegistry);
   }
 
@@ -169,8 +169,7 @@ public class SchemaKStream {
                 columns.addAll(rightGenericRow.getColumns());
               }
 
-              GenericRow joinGenericRow = new GenericRow(columns);
-              return joinGenericRow;
+              return new GenericRow(columns);
             }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
@@ -183,7 +182,7 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kstream.selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
+    KStream keyedKStream = kstream.selectKey((key, value) -> {
 
       String
           newKey =
@@ -195,15 +194,14 @@ public class SchemaKStream {
       return new KeyValue<>(key, row);
     });
 
-    return new SchemaKStream(schema, keyedKStream, newKeyField, Arrays.asList(this),
+    return new SchemaKStream(schema, keyedKStream, newKeyField, Collections.singletonList(this),
                              Type.REKEY, functionRegistry);
   }
 
-  public SchemaKGroupedStream groupByKey(final Serde keySerde,
-                                         final Serde valSerde) {
+  public SchemaKGroupedStream groupByKey(final Serde<String> keySerde,
+                                         final Serde<GenericRow> valSerde) {
     KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
-    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Arrays.asList(this),
-                                    functionRegistry);
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Collections.singletonList(this), functionRegistry);
   }
 
   public Field getKeyField() {

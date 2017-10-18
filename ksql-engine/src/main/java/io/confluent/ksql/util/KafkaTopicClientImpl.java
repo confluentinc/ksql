@@ -103,8 +103,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
     try {
-      return adminClient.describeTopics(topicNames).all()
-          .get();
+      return adminClient.describeTopics(topicNames).all().get();
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);
     }

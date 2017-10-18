@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.rest.server.computation.CommandId;
 
 import java.util.Map;
@@ -80,13 +79,11 @@ public class CommandStatusEntity extends KsqlEntity {
     );
   }
 
-  @JsonUnwrapped
   public CommandId getCommandId() {
     return commandId;
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
-  @JsonUnwrapped
   public CommandStatus getCommandStatus() {
     return commandStatus;
   }

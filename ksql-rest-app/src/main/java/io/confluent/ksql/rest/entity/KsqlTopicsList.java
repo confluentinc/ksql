@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KsqlTopic;
 
 import java.util.ArrayList;
@@ -40,7 +39,6 @@ public class KsqlTopicsList extends KsqlEntity {
     this.topics = topics;
   }
 
-  @JsonUnwrapped
   public List<KsqlTopicInfo> getTopics() {
     return new ArrayList<>(topics);
   }

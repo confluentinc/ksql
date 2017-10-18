@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StringUtil;
@@ -50,7 +49,6 @@ public class KafkaTopicsList extends KsqlEntity {
     this.topics = topics;
   }
 
-  @JsonUnwrapped
   public List<KafkaTopicInfo> getTopics() {
     return new ArrayList<>(topics);
   }

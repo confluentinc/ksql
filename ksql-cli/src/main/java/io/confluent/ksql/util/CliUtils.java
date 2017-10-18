@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 public class CliUtils {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CliUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
                                                       registerTopicContext) {
@@ -154,7 +154,7 @@ public class CliUtils {
       }
       return true;
     } catch (Exception e) {
-      LOGGER.error("createFile failed, path:" + path, e);
+      log.warn("createFile failed, path: {%s}", path, e);
       return false;
     }
   }

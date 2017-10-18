@@ -61,7 +61,7 @@ public class DDLCommandExec {
       return ddlCommand.run(metaStore);
     } catch (Exception e) {
       String stackTrace = ExceptionUtil.stackTraceToString(e);
-      LOGGER.error("executeOnMetaStore:" + ddlCommand + " failed", e);
+      LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
       return new DDLCommandResult(false, stackTrace);
     }
   }

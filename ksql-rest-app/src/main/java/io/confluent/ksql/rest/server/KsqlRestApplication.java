@@ -26,14 +26,24 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicException;
-import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.computation.*;
+import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -41,6 +51,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -66,6 +78,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -153,7 +166,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   @Override
   public void configureBaseApplication(Configurable<?> config, Map<String, String> metricTags) {
     // Would call this but it registers additional, unwanted exception mappers
-    // super.configureBaseApplication( config, metricTags );
+    // super.configureBaseApplication(config, metricTags);
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     ObjectMapper jsonMapper = getJsonMapper();
     new SchemaMapper().registerToObjectMapper(jsonMapper);
@@ -208,7 +221,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {
-      log.info("Command Topic already exists: " + e.getMessage());
+      log.info("Command Topic Exists: " + e.getMessage());
     }
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();

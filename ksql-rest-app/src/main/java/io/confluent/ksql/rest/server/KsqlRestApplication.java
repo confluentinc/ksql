@@ -153,7 +153,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   @Override
   public void configureBaseApplication(Configurable<?> config, Map<String, String> metricTags) {
     // Would call this but it registers additional, unwanted exception mappers
-    // super.configureBaseApplication(config, metricTags);
+    // super.configureBaseApplication( config, metricTags );
     // Instead, just copy+paste the desired parts from Application.configureBaseApplication() here:
     ObjectMapper jsonMapper = getJsonMapper();
     new SchemaMapper().registerToObjectMapper(jsonMapper);

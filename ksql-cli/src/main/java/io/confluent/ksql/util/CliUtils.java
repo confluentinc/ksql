@@ -19,7 +19,6 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
@@ -155,7 +154,7 @@ public class CliUtils {
       }
       return true;
     } catch (Exception e) {
-      LOGGER.error(ExceptionUtil.stackTraceToString(e));
+      LOGGER.error("createFile failed, path:" + path, e);
       return false;
     }
   }

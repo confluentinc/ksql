@@ -79,7 +79,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       adminClient.close();
       return topicNames;
     } catch (InterruptedException | ExecutionException e) {
-      throw new KafkaResponseGetFailedException("Failed to retrieve kafka topic names", e);
+      throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
   }
 
@@ -91,7 +91,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       adminClient.close();
       return topicInfos;
     } catch (InterruptedException | ExecutionException e) {
-      throw new KafkaResponseGetFailedException("Failed to describe kafka topics", e);
+      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics", e);
     }
   }
 

@@ -78,7 +78,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
-  private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -221,7 +220,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {
-      log.info("Command Topic Exists: " + e.getMessage());
+      log.info("Command Topic already exists: " + e.getMessage());
     }
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();

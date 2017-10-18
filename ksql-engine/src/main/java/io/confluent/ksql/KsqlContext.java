@@ -45,11 +45,6 @@ public class KsqlContext {
   private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
 
-
-  public static KsqlContext create() throws ExecutionException, InterruptedException {
-    return create(Collections.emptyMap());
-  }
-
   public static KsqlContext create(Map<String, Object> streamsProperties)
       throws ExecutionException, InterruptedException {
     if (streamsProperties == null) {
@@ -71,19 +66,11 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  private KsqlContext(Map<String, Object> streamsProperties)
-      throws ExecutionException, InterruptedException {
+  private KsqlContext(Map<String, Object> streamsProperties) {
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(adminClient);
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
-  }
-
-  protected KsqlContext(KsqlEngine ksqlEngin, AdminClient adminClient, KafkaTopicClient
-      topicClient) {
-    this.ksqlEngine = ksqlEngin;
-    this.adminClient = adminClient;
-    this.topicClient = topicClient;
   }
 
   public MetaStore getMetaStore() {

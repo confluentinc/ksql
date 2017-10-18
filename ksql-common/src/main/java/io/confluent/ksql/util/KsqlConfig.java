@@ -104,6 +104,18 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DOC =
       "Suffix for state store names in Tables.";
 
+  public static final String
+      KSQL_QUERY_CLOSE_WAIT_TIME_CONFIG = "ksql.query.close.wait.ms";
+  public static final ConfigDef.Type
+      KSQL_QUERY_CLOSE_WAIT_TIME_TYPE = ConfigDef.Type.LONG;
+  public static final long
+      KSQL_QUERY_CLOSE_WAIT_TIME_DEFAULT = 10000;
+  public static final ConfigDef.Importance
+      KSQL_QUERY_CLOSE_WAIT_TIME_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  public static final String
+      KSQL_QUERY_CLOSE_WAIT_TIME_DOC =
+      "Max time to wait for KSQL query to close when it is terminated.";
+
   public int defaultSinkNumberOfPartitions = 4;
   public short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.
@@ -128,6 +140,7 @@ public class KsqlConfig extends AbstractConfig {
     ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
+    ksqlConfigProps.put(KSQL_QUERY_CLOSE_WAIT_TIME_CONFIG, KSQL_QUERY_CLOSE_WAIT_TIME_DEFAULT);
 
     if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
       ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY,

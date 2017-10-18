@@ -31,17 +31,18 @@ public class QueuedQueryMetadata extends QueryMetadata {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
 
   public QueuedQueryMetadata(
-      String statementString,
-      KafkaStreams kafkaStreams,
-      OutputNode outputNode,
-      String executionPlan,
-      BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
-      DataSource.DataSourceType dataSourceType,
-      String queryApplicationId,
-      KafkaTopicClient kafkaTopicClient
+      final String statementString,
+      final KafkaStreams kafkaStreams,
+      final OutputNode outputNode,
+      final String executionPlan,
+      final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
+      final DataSource.DataSourceType dataSourceType,
+      final String queryApplicationId,
+      final KafkaTopicClient kafkaTopicClient,
+      final KsqlConfig ksqlConfig
   ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient);
+          queryApplicationId, kafkaTopicClient, ksqlConfig);
     this.rowQueue = rowQueue;
   }
 

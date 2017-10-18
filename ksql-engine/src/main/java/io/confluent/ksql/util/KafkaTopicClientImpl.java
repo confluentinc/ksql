@@ -20,7 +20,6 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
@@ -49,17 +48,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isDeleteTopicEnabled = false;
 
-  private List<Node> nodes;
-  private Map<ConfigResource, Config> config;
-
-  public KafkaTopicClientImpl(final AdminClient adminClient)
-      throws ExecutionException, InterruptedException {
+  public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = adminClient;
     init();
   }
 
   @Override
-  public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+  public void createTopic(final String topic, final int numPartitions, final short
+      replicatonFactor) {
     log.info("Creating topic '{}'", topic);
     if (isTopicExists(topic)) {
       Map<String, TopicDescription> topicDescriptions = describeTopics(Arrays.asList(topic));
@@ -86,7 +82,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public boolean isTopicExists(String topic) {
+  public boolean isTopicExists(final String topic) {
     log.debug("Checking for existence of topic '{}'", topic);
     return listTopicNames().contains(topic);
   }
@@ -101,7 +97,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       return adminClient.describeTopics(topicNames).all().get();
     } catch (InterruptedException | ExecutionException e) {
@@ -110,7 +106,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteTopics(List<String> topicsToDelete) {
+  public void deleteTopics(final List<String> topicsToDelete) {
     if (!isDeleteTopicEnabled) {
       log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
@@ -133,49 +129,54 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteInternalTopics(String applicationId) {
+  public void deleteInternalTopics(final String applicationId) {
     if (!isDeleteTopicEnabled) {
-      log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      log.warn("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
     }
-    Set<String> topicNames = listTopicNames();
-    List<String> internalTopics = new ArrayList<>();
-    for (String topicName: topicNames) {
-      if (isInternalTopic(topicName, applicationId)) {
-        internalTopics.add(topicName);
+    try {
+      Set<String> topicNames = listTopicNames();
+      List<String> internalTopics = new ArrayList<>();
+      for (String topicName: topicNames) {
+        if (isInternalTopic(topicName, applicationId)) {
+          internalTopics.add(topicName);
+        }
       }
-    }
-    if (!internalTopics.isEmpty()) {
-      deleteTopics(internalTopics);
+      if (!internalTopics.isEmpty()) {
+        deleteTopics(internalTopics);
+      }
+    } catch (Exception e) {
+      log.error("Exception while trying to clean up internal topics for application id: {}.",
+                applicationId, e);
     }
   }
 
-  private void init() throws ExecutionException, InterruptedException {
-    DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-    this.nodes = new ArrayList<>(describeClusterResult.nodes().get());
-    if (!nodes.isEmpty()) {
-      ConfigResource resource = new ConfigResource(ConfigResource.Type.BROKER,
-                                                   String.valueOf(nodes.get(0).id()));
-      DescribeConfigsResult
-          describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
-      this.config = describeConfigsResult.all().get();
-      List<ConfigEntry> configEntries = config.get(resource)
-          .entries()
-          .stream()
-          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
-          .collect(Collectors.toList());
-      if (!configEntries.isEmpty()) {
-        if (configEntries.get(0).value().equalsIgnoreCase("true")) {
-          this.isDeleteTopicEnabled = true;
-        } else {
-          this.isDeleteTopicEnabled = false;
-        }
+  private void init() {
+    try {
+      DescribeClusterResult describeClusterResult = adminClient.describeCluster();
+      List<Node> nodes = new ArrayList<>(describeClusterResult.nodes().get());
+      if (!nodes.isEmpty()) {
+        ConfigResource resource = new ConfigResource(ConfigResource.Type.BROKER,
+                                                     String.valueOf(nodes.get(0).id()));
+        DescribeConfigsResult
+            describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
+        Map<ConfigResource, Config> config = describeConfigsResult.all().get();
+
+        this.isDeleteTopicEnabled = config.get(resource)
+            .entries()
+            .stream()
+            .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"));
+
+      } else {
+        log.warn("No available broker found to fetch config info.");
+        throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
+                                + "AdminCLient.");
       }
-    } else {
+    } catch (InterruptedException | ExecutionException ex) {
+      log.error("Failed to initialize TopicClient: {}", ex.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
                               + "AdminCLient.");
     }
-
   }
 
   private boolean isInternalTopic(final String topicName, String applicationId) {
@@ -184,6 +185,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   public void close() {
+    this.adminClient.close();
   }
 
 }

@@ -28,12 +28,17 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final long id;
 
 
-  public PersistentQueryMetadata(String statementString, KafkaStreams kafkaStreams,
-                                 OutputNode outputNode, String executionPlan, long id,
-                                 DataSource.DataSourceType dataSourceType,
-                                 String queryApplicationId, KafkaTopicClient kafkaTopicClient) {
+  public PersistentQueryMetadata(final String statementString,
+                                 final KafkaStreams kafkaStreams,
+                                 final OutputNode outputNode,
+                                 final String executionPlan,
+                                 final long id,
+                                 final DataSource.DataSourceType dataSourceType,
+                                 final String queryApplicationId,
+                                 final KafkaTopicClient kafkaTopicClient,
+                                 final KsqlConfig ksqlConfig) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient);
+          queryApplicationId, kafkaTopicClient, ksqlConfig);
     this.id = id;
 
   }

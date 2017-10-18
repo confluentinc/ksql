@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -98,7 +99,9 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.close(100L, TimeUnit.MILLISECONDS)).andReturn(true);
+    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).times(2);
+    mockKafkaStreams.close();
+    expectLastCall();
     mockKafkaStreams.cleanUp();
     expectLastCall();
 
@@ -115,7 +118,8 @@ public class StreamedQueryResourceTest {
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
                                 rowQueue, DataSource.DataSourceType.KSTREAM, "",
-                                mockKafkaTopicClient
+                                mockKafkaTopicClient,
+                                new KsqlConfig(Collections.EMPTY_MAP)
                                 );
     expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));

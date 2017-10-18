@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,17 +31,16 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
   public boolean isTopicExists(String topic) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return false;
   }
 
   @Override
   public Set<String> listTopicNames() {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return Collections.EMPTY_SET;
   }
 
   @Override
@@ -50,17 +50,13 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteTopics(List<String> topicsToDelete) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
   public void deleteInternalTopics(String applicationId) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 
   @Override
-  public void close() {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
-  }
+  public void close() {  }
 
 }

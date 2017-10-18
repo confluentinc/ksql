@@ -20,7 +20,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.metastore.DataSource;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -255,7 +255,7 @@ public class StatementExecutor {
           createStreamAsSelect.getProperties(),
           createStreamAsSelect.getPartitionByColumn()
       );
-      if (startQuery(statementStr, query, commandId, terminatedQueries)) {
+      if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
         successMessage = "Stream created and running";
       } else {
         return;
@@ -271,7 +271,7 @@ public class StatementExecutor {
           createTableAsSelect.getProperties(),
           Optional.empty()
       );
-      if (startQuery(statementStr, query, commandId, terminatedQueries)) {
+      if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
         successMessage = "Table created and running";
       } else {
         return;
@@ -312,7 +312,8 @@ public class StatementExecutor {
       String queryString,
       Query query,
       CommandId commandId,
-      Map<Long, CommandId> terminatedQueries
+      Map<Long, CommandId> terminatedQueries,
+      Map<String, Object> queryConfigProperties
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -329,7 +330,7 @@ public class StatementExecutor {
     }
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
-        false, queryString, Collections.emptyMap()).get(0);
+        false, queryString, queryConfigProperties).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

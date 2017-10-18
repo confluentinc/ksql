@@ -18,7 +18,6 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.physical.GenericRow;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import org.jline.terminal.Terminal;

@@ -18,7 +18,7 @@ package io.confluent.ksql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -134,7 +134,7 @@ public abstract class DataGenProducer {
         genericRowValues.add(randomAvroMessage.get(field.name()));
       }
     } catch (Exception err) {
-        genericRowValues.add(randomAvroMessage.get(field.name()));
+      genericRowValues.add(randomAvroMessage.get(field.name()));
     }
   }
 
@@ -226,14 +226,12 @@ public abstract class DataGenProducer {
     }
 
     if (value != null) {
-//      System.out.println("1-New Session:" + value + " Sessions: " + sessionManager.getActiveSessionCount());
       sessionManager.newSession(value);
     } else {
       value = sessionManager.recycleOldestExpired();
       if (value == null) {
-        new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
+        throw new RuntimeException("Ran out of tokens to rejuice - increase session-duration (300s), reduce-number of sessions(5), number of tokens in the avro template");
       }
-//        System.out.println("2-New [Recycle] Session:" + value + " Tokens:" + allTokens.size());
       sessionManager.newSession(value);
       return value;
     }

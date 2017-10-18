@@ -64,31 +64,15 @@ public class StreamedQueryResource {
     Map<String, Object> clientLocalProperties =
         Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     Statement statement = statementParser.parseSingleStatement(ksql);
+
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter =
           new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
+
     } else if (statement instanceof PrintTopic) {
-      PrintTopic printTopic = (PrintTopic) statement;
-      String topicName = printTopic.getTopic().toString();
-      Long interval =
-          Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
-      KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(printTopic.getTopic().toString());
-      Objects.requireNonNull(
-          ksqlTopic,
-          String.format("Could not find topic '%s' in the metastore", topicName)
-      );
-      Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
-      properties.putAll(clientLocalProperties);
-      TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-          properties,
-          ksqlTopic,
-          interval,
-          disconnectCheckInterval,
-          printTopic.getFromBeginning()
-      );
-      log.info("Printing topic '{}'", topicName);
+      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(clientLocalProperties, (PrintTopic) statement);
       return Response.ok().entity(topicStreamWriter).build();
     } else {
       throw new Exception(String.format(
@@ -96,5 +80,27 @@ public class StreamedQueryResource {
           statement.getClass().getName()
       ));
     }
+  }
+
+  private TopicStreamWriter getTopicStreamWriter(final Map<String, Object> clientLocalProperties, final PrintTopic printTopic) {
+    String topicName = printTopic.getTopic().toString();
+    Long interval =
+        Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
+    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(topicName);
+    Objects.requireNonNull(
+        ksqlTopic,
+        String.format("Could not find topic '%s' in the metastore", topicName)
+    );
+    Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
+    properties.putAll(clientLocalProperties);
+    TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+        properties,
+        ksqlTopic,
+        interval,
+        disconnectCheckInterval,
+        printTopic.getFromBeginning()
+    );
+    log.info("Printing topic '{}'", topicName);
+    return topicStreamWriter;
   }
 }

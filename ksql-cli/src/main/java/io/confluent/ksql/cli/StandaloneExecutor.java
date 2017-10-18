@@ -42,7 +42,7 @@ public class StandaloneExecutor {
 
   public StandaloneExecutor(Map streamProperties) {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig));
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
   }
 
   public void executeStatements(String queries) throws Exception {
@@ -64,5 +64,4 @@ public class StandaloneExecutor {
       }
     }
   }
-
 }

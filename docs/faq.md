@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) |
 |---|----|-----|----|----|----|----|----|
 
 
@@ -12,9 +12,10 @@ KSQL allows you to query, read, write, and process data in Apache Kafka in real-
 
 KSQL only requires:
 
-1. a Java runtime environment
-2. access to an Apache Kafka cluster for reading and writing data in real-time. The cluster can be on-premises or in
-   the cloud.
+1. A Java runtime environment
+2. Access to an Apache Kafka cluster for reading and writing data in real-time. The cluster can be on-premises or in
+   the cloud.  KSQL works with clusters running vanilla Apache Kafka as well as with clusters running the Kafka
+   versions included in Confluent Platform.
 
 We recommend the use of [Confluent Platform](https://www.confluent.io/product/confluent-platform/) or [Confluent Cloud](https://www.confluent.io/confluent-cloud/) for running Apache Kafka.
 
@@ -27,6 +28,12 @@ No, KSQL is owned and maintained by [Confluent Inc.](https://www.confluent.io/) 
 KSQL is complementary to the Kafka Streams API, and indeed executes queries through Kafka Streams applications. One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala.
 This enables users to use a SQL-like interface alone to construct streaming ETL pipelines, as well as responding to a real-time, continuous business requests. For full-fledged stream processing applications Kafka Streams remains a more appropriate choice.
 As with many technologies each has its sweet-spot based on technical requirements, mission-criticality, and user skill set.
+
+**Does KSQL work with vanilla Apache Kafka clusters, or does it require the Kafka version included in Confluent**
+**Platform?**
+
+KSQL works with both vanilla Apache Kafka clusters as well as with the Kafka versions included in Confluent Platform.
+
 
 **Does KSQL support Kafka's exactly-once processing semantics?**
 
@@ -52,12 +59,13 @@ KSQL is a dialect inspired by ANSI SQL. It has some differences because it is ge
 
 **How do I shutdown a KSQL environment?**
 
--  To stop DataGen tasks that were started with the `-daemon` flag.
+-  To stop DataGen tasks that were started with the `-daemon` flag
+   (cf. [Demo](/ksql-clickstream-demo#clickstream-analysis)).
 
    ```
-   % jps | grep DataGen
+   $ jps | grep DataGen
    25379 DataGen
-   % kill 25379
+   $ kill 25379
    ```
 
 -  Exit KSQL.
@@ -66,14 +74,14 @@ KSQL is a dialect inspired by ANSI SQL. It has some differences because it is ge
    ksql> exit
    ```
 
--  Stop confluent platform.
+-  Stop Confluent Platform by shutting down all services including Kafka.
 
    ```
-   % confluent stop
+   $ confluent stop
    ```
 
--  To remove all data, topics and streams by shutting down all processes.
+-  To remove all data, topics, and streams:
 
    ```
-   % confluent destroy
+   $ confluent destroy
    ```

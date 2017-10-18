@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.physical.GenericRow;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -24,10 +24,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
+import org.apache.kafka.streams.kstream.Printed;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,14 +69,14 @@ public class DelimitedConsumer {
     props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
     props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
-    KStreamBuilder builder = new KStreamBuilder();
+    StreamsBuilder builder = new StreamsBuilder();
 
     KStream<String, GenericRow>
-        source = builder.stream(Serdes.String(), getGenericRowSerde(), topicName);
+        source = builder.stream(topicName, Consumed.with(Serdes.String(), getGenericRowSerde()));
 
-    source.print();
+    source.print(Printed.toSysOut());
 
-    KafkaStreams streams = new KafkaStreams(builder, props);
+    KafkaStreams streams = new KafkaStreams(builder.build(), props);
     streams.start();
 
     // usually the stream application would be running forever,

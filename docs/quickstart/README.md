@@ -38,33 +38,30 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
     Copyright 2017 Confluent Inc.                         
 
     CLI v0.1, Server v0.1 located at http://localhost:9098
-
+    
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-
+    
     ksql>
     ```
 
 3.  KSQL provides a structured query language to query Kafka data, so you need some data to query. For this quick start, you will produce mock streams to the Kafka cluster.
 
-    * If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required.
-    * If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster.
+  * If you are using our Docker Compose files, a Docker container is already running with a data generator that is continuously producing Kafka messages to the Kafka cluster. No further action is required
+  * If you are not using our Docker environment, then follow these [instructions](quickstart-non-docker.md#produce-topic-data) to generate data to the Kafka cluster
 
 ## Create a Stream and Table
 
 This KSQL quick start shows examples querying data from Kafka topics called `pageviews` and `users` using the following schemas:
 
 ![image](/docs/quickstart/ksql-quickstart-schemas.jpg)
+    
+Before proceeding, please check:
 
-> **Before proceeding, please confirm:**
->
-> * In the terminal window where you started KSQL, you see the `ksql>` prompt.
-> * If you *are not* using Docker, you must have manually run the data generator to produce topics called `pageviews`
->   and `users`. If you haven't done this, please follow these
->   [instructions to manually generate data](/docs/quickstart/quickstart-non-docker.md#produce-topic-data).
->   (If you *are* using Docker this is done automatically for you.)
+* In the terminal window where you started KSQL, you see the `ksql>` prompt
+* If you are not using Docker, you must manually have run the data generator to produce topics called `pageviews` and `users`. If you haven't done this, please follow these [instructions](/docs/quickstart/quickstart-non-docker.md#produce-topic-data) to generate data. (Docker compose file automatically runs the data generator)
 
 
-1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Then `DESCRIBE` the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
+1. Create a STREAM `pageviews_original` from the Kafka topic `pageviews`, specifying the `value_format` of `DELIMITED`. Describe the new STREAM.  Notice that KSQL created additional columns called `ROWTIME`, which corresponds to the Kafka message timestamp, and `ROWKEY`, which corresponds to the Kafka message key.
 
    ```bash
    ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
@@ -80,7 +77,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
     PAGEID   | VARCHAR(STRING) 
     ```
 
-2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Then `DESCRIBE` the new TABLE.
+2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
 
    ```bash
    ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
@@ -146,7 +143,7 @@ This KSQL quick start shows examples querying data from Kafka topics called `pag
     GENDER   | VARCHAR(STRING) 
     ```
 
-3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underyling KSQL application.
+3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underlying KSQL application.
 
    ```bash
    ksql> SELECT * FROM pageviews_female;

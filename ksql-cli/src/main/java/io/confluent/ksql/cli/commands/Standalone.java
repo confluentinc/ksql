@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -74,7 +75,11 @@ public class Standalone extends AbstractCliCommands {
       standaloneExecutor.executeStatements(queries);
 
     } catch (Exception e) {
-      e.printStackTrace();
+      if (e.getCause() instanceof FileNotFoundException) {
+        System.err.println("Query file " + queryFile + " does not exist");
+      } else {
+        e.printStackTrace();
+      }
     }
   }
 

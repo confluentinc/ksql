@@ -18,35 +18,28 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.physical.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
+import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
-import static io.confluent.ksql.TestResult.*;
+import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.util.KsqlConfig.*;
-import static io.confluent.ksql.util.KsqlTestUtil.assertExpectedResults;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -108,9 +101,10 @@ public class CliTest extends TestRunner {
     testListOrShowCommands();
 
     orderDataProvider = new OrderDataProvider();
-    restServer.getKsqlEngine().getKafkaTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
+    restServer.getKsqlEngine().getTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
     produceInputStream(orderDataProvider);
   }
+
 
   private static void produceInputStream(TestDataProvider dataProvider) throws Exception {
     createKStream(dataProvider);
@@ -132,7 +126,7 @@ public class CliTest extends TestRunner {
     testListOrShow("tables", EMPTY_RESULT);
     testListOrShow("queries", EMPTY_RESULT);
   }
-
+  
   @AfterClass
   public static void tearDown() throws Exception {
     // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
@@ -169,15 +163,15 @@ public class CliTest extends TestRunner {
     Map<String, Object> startConfigs = genDefaultConfigMap();
     startConfigs.put("num.stream.threads", 4);
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS, 1);
-    startConfigs.put(SINK_NUMBER_OF_PARTITIONS, 4);
-    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION, 1000000);
+    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, 1);
+    startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
+    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY, 1000000);
 
     startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
     startConfigs.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-
+    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,  "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler");
     return startConfigs;
   }
 
@@ -194,8 +188,8 @@ public class CliTest extends TestRunner {
 
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultTopicName, resultSchema, expectedResults.size(), new StringDeserializer());
-    Assert.assertEquals(expectedResults.size(), results.size());
-    assertExpectedResults(results, expectedResults);
+
+    assertThat(results, equalTo(expectedResults));
 
     /* Get first column of the first row in the result set to obtain the queryID */
     String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);

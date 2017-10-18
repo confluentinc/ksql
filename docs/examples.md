@@ -1,6 +1,6 @@
 # Examples
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | Examples | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) |
 |---|----|-----|----|----|----|----|----|
 
 **Table of Contents**
@@ -129,6 +129,36 @@ CREATE STREAM pageviews_transformed \
   PARTITION BY userid;
 ```
 
+Use a `[ WHERE condition ]` clause to select a subset of data.  If you want to route streams with different criteria to different streams backed by different underlying Kafka topics, e.g. content-based routing, write multiple KSQL statements as follows:
+
+```sql
+CREATE STREAM pageviews_transformed_priority_1 \
+  WITH (timestamp='viewtime', \
+        partitions=5, \
+        value_format='JSON') AS \
+  SELECT viewtime, \
+         userid, \
+         pageid, \
+         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
+  FROM pageviews \
+  WHERE userid='User_1' OR userid='User_2' \
+  PARTITION BY userid;
+```
+
+```sql
+CREATE STREAM pageviews_transformed_priority_2 \
+  WITH (timestamp='viewtime', \
+        partitions=5, \
+        value_format='JSON') AS \
+  SELECT viewtime, \
+         userid, \
+         pageid, \
+         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
+  FROM pageviews \
+  WHERE userid<>'User_1' AND userid<>'User_2' \
+  PARTITION BY userid;
+```
+
 
 ### Joining
 
@@ -196,8 +226,9 @@ CREATE TABLE pageviews_per_region_per_30secs AS \
   GROUP BY regionid;
 ```
 
-As you can see we used UCASE and LCASE functions in KSQL to convert the values of gender and
-regionid columns to upper and lower case, respectively, so you can match them correctly.
+UCASE and LCASE functions in KSQL are used to convert the values of gender and regionid columns to
+upper and lower case, so that you can match them correctly. KSQL also
+ supports LIKE operator for prefix, suffix and substring matching.
 
 KSQL supports HOPPING windows and SESSION windows too. The following query is the same query as above
 that computes the count for hopping window of 30 seconds that advances by 10 seconds:
@@ -208,7 +239,7 @@ CREATE TABLE pageviews_per_region_per_30secs10secs AS \
          count(*) \
   FROM pageviews_enriched \
   WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid)='region_6' \
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
   GROUP BY regionid;
 ```
 
@@ -251,30 +282,22 @@ CREATE STREAM pageviews_interest_contact AS \
 
 ## Configuring KSQL
 
-You can set config properties for KSQL and your queries with the SET statement.  This includes configuring settings
-relating to Kafka's Streams API as well as settings for Kafka's producer and consumer clients.
+Common configuration properties that you might want to change from their default values include:
 
-```sql
-SET '<property-name>'='<property-value>';
-```
-
-Both property name and property value should be enclosed in single quotes.
-A property that is set using the SET statement will remain in effect for the remainder of the KSQL CLI session
-until you issue another SET statement to change it.
-
-Here are some of the common config properties that you might want to change from their default values:
-
-- `auto.offset.reset`: The default value in KSQL is `latest` meaning all the Kafka topics will be read
-  from the current offset (aka latest available data). You can change it using the following statement:
+- [auto.offset.reset](https://kafka.apache.org/documentation/#newconsumerconfigs):
+  The default value in KSQL is `latest` meaning all the Kafka topics will be read from the current offset (aka latest
+  available data). You can change it using the following statement:
 
     ```sql
     SET 'auto.offset.reset'='earliest';
     ```
 
-- `commit.interval.ms`: The default value is `2000`. Here is an example to change the value to `5000`:
+- [commit.interval.ms](https://kafka.apache.org/documentation/#streamsconfigs):
+  The default value in KSQL is `2000`. Here is an example to change the value to `5000`:
 
     ```sql
     SET 'commit.interval.ms'='5000';
     ```
 
-- `cache.max.bytes.buffering`: The default value is `10485760` (10 MB);
+- [cache.max.bytes.buffering](https://kafka.apache.org/documentation/#streamsconfigs):
+  The default value in KSQL is `10000000` (~ 10 MB);

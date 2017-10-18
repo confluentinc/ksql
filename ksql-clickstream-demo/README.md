@@ -15,10 +15,11 @@ This demo focuses on building real-time analytics of users to determine:
 
 The demo uses standard streaming functions (i.e., min, max, etc), as well as enrichment using child tables, table-stream joins and different types of windowing functionality.
 
-Click [here](https://youtu.be/A45uRzJiv7I) to watch a screencast of the KSQL demo or get started now with these instructions:
+Get started now with these instructions:
 
 - [Clickstream Analysis using Docker](/ksql-clickstream-demo/docker-clickstream.md#clickstream-analysis-using-docker)
 - [Clickstream Analysis not using Docker](/ksql-clickstream-demo/non-docker-clickstream.md#clickstream-analysis)
 
-<!-- <p align="center"><img src="screencast.png" alt="KSQL screencast"></p> -->
-[![KSQL screencast](screencast.png)](https://youtu.be/A45uRzJiv7I)
+Click here to watch a screencast of the KSQL demo on YouTube.
+<p><img src="../screencast.jpg" alt="KSQL screencast" target="_blank"></p>
+<!-- [![KSQL screencast](../screencast.jpg)](https://youtu.be/A45uRzJiv7I) -->

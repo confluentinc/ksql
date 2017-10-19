@@ -154,7 +154,7 @@ public class CliUtils {
       }
       return true;
     } catch (Exception e) {
-      log.warn("createFile failed, path: {%s}", path, e);
+      log.warn("createFile failed, path: {}", path, e);
       return false;
     }
   }

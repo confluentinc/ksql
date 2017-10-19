@@ -523,7 +523,7 @@ public abstract class Console implements Closeable {
       }
       o = newEntities;
     } else {
-      log.warn("Unexpected result class: '{%s}' found in printAsJson", o.getClass().getCanonicalName());
+      log.warn("Unexpected result class: '{}' found in printAsJson", o.getClass().getCanonicalName());
     }
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
     writer().println();

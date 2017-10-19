@@ -19,7 +19,6 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 public class CliUtils {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CliUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
                                                       registerTopicContext) {
@@ -155,7 +154,7 @@ public class CliUtils {
       }
       return true;
     } catch (Exception e) {
-      LOGGER.error(ExceptionUtil.stackTraceToString(e));
+      log.warn("createFile failed, path: {}", path, e);
       return false;
     }
   }

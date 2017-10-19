@@ -134,7 +134,8 @@ public class AggregateNode extends PlanNode {
   public List<Pair<String, Expression>> getFinalSelectExpressions() {
     List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
-      throw new KsqlException("Incompatible aggregate schema.");
+      throw new KsqlException("Incompatible aggregate schema, field count must match, "
+      + "selected field count:" +finalSelectExpressions.size() + " schema field count:" + schema.fields().size());
     }
     for (int i = 0; i < finalSelectExpressions.size(); i++) {
       finalSelectExpressionList.add(new Pair<>(schema.fields().get(i).name(),

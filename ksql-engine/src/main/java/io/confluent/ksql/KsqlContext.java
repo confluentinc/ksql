@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class KsqlContext {
@@ -105,6 +106,10 @@ public class KsqlContext {
         log.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
+  }
+
+  public Set<QueryMetadata> getRunningQueries() {
+    return ksqlEngine.getLiveQueries();
   }
 
   public void close() throws IOException {

@@ -80,16 +80,6 @@ public class QueryMetadata {
 
   public void close() {
     kafkaStreams.close();
-    long pollStart = System.currentTimeMillis();
-    long pollEnd = pollStart + (long) ksqlConfig.get(KsqlConfig.KSQL_QUERY_CLOSE_WAIT_TIME_CONFIG);
-    while (System.currentTimeMillis() < pollEnd
-           && kafkaStreams.state() != KafkaStreams.State.NOT_RUNNING) {
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        // Do nothing!
-      }
-    }
     if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
       kafkaStreams.cleanUp();
       kafkaTopicClient.deleteInternalTopics(queryApplicationId);

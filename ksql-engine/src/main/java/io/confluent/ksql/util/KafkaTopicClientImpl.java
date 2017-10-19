@@ -20,7 +20,6 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
@@ -163,19 +162,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
             describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
         Map<ConfigResource, Config> config = describeConfigsResult.all().get();
 
-        List<ConfigEntry> configEntries = config.get(resource)
+        this.isDeleteTopicEnabled = config.get(resource)
             .entries()
             .stream()
-            .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
-            .collect(Collectors.toList());
-        
-        if (!configEntries.isEmpty()) {
-          if (configEntries.get(0).value().equalsIgnoreCase("true")) {
-            this.isDeleteTopicEnabled = true;
-          } else {
-            this.isDeleteTopicEnabled = false;
-          }
-        }
+            .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
+                                     && configEntry.value().equalsIgnoreCase("true"));
+
 
       } else {
         log.warn("No available broker found to fetch config info.");

@@ -56,7 +56,11 @@ public class KsqlContext {
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
-    return new KsqlContext(streamsProperties);
+    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    return new KsqlContext(adminClient, topicClient, ksqlEngine);
   }
 
 
@@ -64,13 +68,14 @@ public class KsqlContext {
    * Create a KSQL context object with the given properties.
    * A KSQL context has it's own metastore valid during the life of the object.
    *
-   * @param streamsProperties
+   * @param adminClient
+   * @param topicClient
+   * @param ksqlEngine
    */
-  private KsqlContext(Map<String, Object> streamsProperties) {
-    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(adminClient);
-    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+  KsqlContext(final AdminClient adminClient, final KafkaTopicClient topicClient, final KsqlEngine ksqlEngine) {
+    this.adminClient = adminClient;
+    this.topicClient = topicClient;
+    this.ksqlEngine = ksqlEngine;
   }
 
   public MetaStore getMetaStore() {
@@ -86,6 +91,7 @@ public class KsqlContext {
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
         .emptyMap());
+
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

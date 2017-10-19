@@ -42,9 +42,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import io.confluent.ksql.exception.KafkaTopicException;
 
@@ -57,9 +55,9 @@ public class KafkaTopicClientTest {
 
   private Node node;
 
-  String topicName1 = "topic1";
-  String topicName2 = "ksql_query_2-KSTREAM-MAP-0000000012-repartition";
-  String topicName3 = "ksql_query_2-KSTREAM-REDUCE-STATE-STORE-0000000003-changelog";
+  private final String topicName1 = "topic1";
+  private final String topicName2 = "ksql_query_2-KSTREAM-MAP-0000000012-repartition";
+  private final String topicName3 = "ksql_query_2-KSTREAM-REDUCE-STATE-STORE-0000000003-changelog";
 
   @Before
   public void init() {
@@ -135,7 +133,7 @@ public class KafkaTopicClientTest {
   }
 
   @Test
-  public void testDeleteInteralTopics() {
+  public void testDeleteInternalTopics() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
@@ -143,7 +141,6 @@ public class KafkaTopicClientTest {
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    List<String> topics = Collections.singletonList(topicName2);
     kafkaTopicClient.deleteInternalTopics("ksql_query_2");
     verify(adminClient);
   }
@@ -171,7 +168,6 @@ public class KafkaTopicClientTest {
 
   private CreateTopicsResult getCreateTopicsResult() {
     CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
-    KafkaFutureImpl<Optional<Void>> voidKafkaFuture = new KafkaFutureImpl<Optional<Void>>();
     expect(createTopicsResult.all()).andReturn(KafkaFuture.allOf());
     replay(createTopicsResult);
     return createTopicsResult;

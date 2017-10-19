@@ -33,4 +33,6 @@ public abstract class GroupingElement
   protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
     return visitor.visitGroupingElement(this, context);
   }
+
+  public abstract String format();
 }

@@ -20,7 +20,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.WindowedSerde;
+import io.confluent.ksql.serde.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;

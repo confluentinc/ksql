@@ -23,6 +23,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,7 @@ public class StandaloneExecutor {
 
   public StandaloneExecutor(Map streamProperties) {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
   }
 
   public void executeStatements(String queries) throws Exception {

@@ -26,6 +26,7 @@ import java.util.List;
 
 public class JoinNode extends PlanNode {
 
+
   public enum Type {
     CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
   }
@@ -123,5 +124,9 @@ public class JoinNode extends PlanNode {
 
   public Type getType() {
     return type;
+  }
+
+  public boolean isLeftJoin() {
+    return type == Type.LEFT;
   }
 }

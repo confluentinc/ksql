@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KsqlTable;
 
 import java.util.ArrayList;
@@ -47,7 +46,6 @@ public class TablesList extends KsqlEntity {
     return new TablesList(statementText, tableInfos);
   }
 
-  @JsonUnwrapped
   public List<TableInfo> getTables() {
     return new ArrayList<>(tables);
   }

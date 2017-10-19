@@ -28,6 +28,7 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -70,8 +71,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,8 +126,9 @@ public class QueryEngine {
 
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+        AggregateAnalyzer(aggregateAnalysis, analysis, ksqlEngine.getFunctionRegistry());
+    AggregateExpressionRewriter aggregateExpressionRewriter =
+        new AggregateExpressionRewriter(ksqlEngine.getFunctionRegistry());
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer
           .process(expression, new AnalysisContext(null));
@@ -159,7 +161,7 @@ public class QueryEngine {
 
 
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
     if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) logicalPlan;
@@ -211,12 +213,14 @@ public class QueryEngine {
                                      final boolean updateMetastore) throws Exception {
 
     PlanNode logicalPlan = statementPlanPair.getRight();
-    KStreamBuilder builder = new KStreamBuilder();
+    StreamsBuilder builder = new StreamsBuilder();
 
     KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone, ksqlEngine.getTopicClient());
+    PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder, ksqlConfigClone,
+                                                                      ksqlEngine.getTopicClient(),
+                                                                      new MetastoreUtil(), ksqlEngine.getFunctionRegistry());
     SchemaKStream schemaKStream = physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
 
     OutputNode outputNode = physicalPlanBuilder.getPlanSink();
@@ -271,7 +275,7 @@ public class QueryEngine {
    */
   private QueryMetadata buildPlanForBareQuery(boolean addUniqueTimeSuffix,
                                               Pair<String, PlanNode> statementPlanPair, Map<String, Object> overriddenStreamsProperties,
-                                              KStreamBuilder builder, KsqlConfig ksqlConfigClone, QueuedSchemaKStream schemaKStream,
+                                              StreamsBuilder builder, KsqlConfig ksqlConfigClone, QueuedSchemaKStream schemaKStream,
                                               KsqlBareOutputNode bareOutputNode, String serviceId, String transientQueryPrefix) {
 
     String applicationId = getBareQueryApplicationId(serviceId, transientQueryPrefix);
@@ -290,7 +294,8 @@ public class QueryEngine {
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable) ?
-        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM
+        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        applicationId
     );
   }
 
@@ -307,9 +312,15 @@ public class QueryEngine {
    * @param persistanceQueryPrefix
    */
   private QueryMetadata buildPlanForStructuredOutputNode(boolean addUniqueTimeSuffix,
-                                                         Pair<String, PlanNode> statementPlanPair, Map<String, Object> overriddenStreamsProperties,
-                                                         boolean updateMetastore, KStreamBuilder builder, KsqlConfig ksqlConfigClone, SchemaKStream schemaKStream,
-                                                         KsqlStructuredDataOutputNode outputNode, String serviceId, String persistanceQueryPrefix) {
+                                                         Pair<String, PlanNode> statementPlanPair,
+                                                         Map<String, Object> overriddenStreamsProperties,
+                                                         boolean updateMetastore,
+                                                         StreamsBuilder builder,
+                                                         KsqlConfig ksqlConfigClone,
+                                                         SchemaKStream schemaKStream,
+                                                         KsqlStructuredDataOutputNode outputNode,
+                                                         String serviceId,
+                                                         String persistanceQueryPrefix) {
 
     long queryId = getNextQueryId();
 
@@ -352,7 +363,9 @@ public class QueryEngine {
                                        streams, outputNode, schemaKStream
                                            .getExecutionPlan(""), queryId,
                                        (schemaKStream instanceof SchemaKTable) ? DataSource
-                                           .DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM);
+                                           .DataSourceType.KTABLE : DataSource.DataSourceType
+                                           .KSTREAM,
+                                       applicationId);
   }
 
 
@@ -407,7 +420,7 @@ public class QueryEngine {
   }
 
   private KafkaStreams buildStreams(
-      final KStreamBuilder builder,
+      final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
@@ -429,11 +442,9 @@ public class QueryEngine {
           KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
           ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
       newStreamsProperties.put(
-          StreamsConfig.TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-
-
-    return new KafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+    return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 
   private long getNextQueryId() {

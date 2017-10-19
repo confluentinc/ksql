@@ -21,10 +21,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.Assert;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MetaStoreFixture {
 
@@ -87,15 +89,6 @@ public class MetaStoreFixture {
     return metaStore;
   }
 
-  public static void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                        Map<String, GenericRow> expectedResult) {
-    Assert.assertEquals(actualResult.size(), expectedResult.size());
-
-    for (String k: expectedResult.keySet()) {
-      Assert.assertTrue(actualResult.containsKey(k));
-      Assert.assertEquals(expectedResult.get(k), actualResult.get(k));
-    }
-  }
 
   public static void assertExpectedWindowedResults(Map<Windowed<String>, GenericRow> actualResult,
                                                 Map<Windowed<String>, GenericRow> expectedResult) {
@@ -111,7 +104,7 @@ public class MetaStoreFixture {
       }
 
     }
-    assertExpectedResults(actualResultSimplified, expectedResultSimplified);
+    assertThat(actualResultSimplified, equalTo(expectedResultSimplified));
   }
 
 }

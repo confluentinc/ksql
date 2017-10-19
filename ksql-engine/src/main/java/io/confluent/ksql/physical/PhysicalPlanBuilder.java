@@ -19,10 +19,9 @@ package io.confluent.ksql.physical;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -38,7 +37,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.SourceNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -51,45 +49,71 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
-import io.confluent.ksql.util.WindowedSerde;
+import io.confluent.ksql.serde.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
-import org.apache.kafka.streams.kstream.Reducer;
-import org.apache.kafka.streams.kstream.ValueTransformer;
-import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
+import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.TopologyBuilder;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class PhysicalPlanBuilder {
 
-  private final KStreamBuilder builder;
+  private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
+  private final MetastoreUtil metastoreUtil;
+  private final FunctionRegistry functionRegistry;
+
+  private static final KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> nonWindowedMapper = (key, row) -> {
+    if (row != null) {
+      row.getColumns().add(0, key);
+
+    }
+    return new KeyValue<>(key, row);
+  };
+
+  private static final KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>> windowedMapper = (key, row) -> {
+    if (row != null) {
+      row.getColumns().add(0,
+          String.format("%s : Window{start=%d end=-}", key
+              .key(), key.window().start()));
+
+    }
+    return new KeyValue<>(key, row);
+  };
+  private final WindowedSerde windowedSerde = new WindowedSerde();
 
   private OutputNode planSink = null;
 
-  public PhysicalPlanBuilder(final KStreamBuilder builder, final KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+  public PhysicalPlanBuilder(final StreamsBuilder builder,
+                             final KsqlConfig ksqlConfig,
+                             final KafkaTopicClient kafkaTopicClient,
+                             final MetastoreUtil metastoreUtil,
+                             final FunctionRegistry functionRegistry) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
+    this.metastoreUtil = metastoreUtil;
+    this.functionRegistry = functionRegistry;
   }
 
   public SchemaKStream buildPhysicalPlan(final PlanNode logicalPlanRoot) throws Exception {
@@ -102,55 +126,46 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream kafkaStreamsDsl(final PlanNode planNode, Map<String, Object> propsMap) throws
                                                                                    Exception {
-    if (planNode instanceof SourceNode) {
-      return buildSource((SourceNode) planNode, propsMap);
+    if (planNode instanceof StructuredDataSourceNode) {
+      return buildSource((StructuredDataSourceNode) planNode, propsMap);
     } else if (planNode instanceof JoinNode) {
       return buildJoin((JoinNode) planNode, propsMap);
     } else if (planNode instanceof AggregateNode) {
-      AggregateNode aggregateNode = (AggregateNode) planNode;
-      return buildAggregate(aggregateNode);
+      return buildAggregate((AggregateNode) planNode);
     } else if (planNode instanceof ProjectNode) {
-      ProjectNode projectNode = (ProjectNode) planNode;
-      return buildProject(projectNode);
+      return buildProject((ProjectNode) planNode);
     } else if (planNode instanceof FilterNode) {
-      FilterNode filterNode = (FilterNode) planNode;
-      return buildFilter(filterNode);
+      return buildFilter((FilterNode) planNode);
     } else if (planNode instanceof OutputNode) {
-      OutputNode outputNode = (OutputNode) planNode;
-      return buildOutput(outputNode, propsMap);
+      return buildOutput((OutputNode) planNode);
     }
     throw new KsqlException(
         "Unsupported logical plan node: " + planNode.getId() + " , Type: " + planNode.getClass()
             .getName());
   }
 
-  private SchemaKStream buildOutput(final OutputNode outputNode, Map<String, Object> propsMap)
+  private SchemaKStream buildOutput(final OutputNode outputNode)
       throws Exception {
-    SchemaKStream schemaKStream = kafkaStreamsDsl(outputNode.getSource());
-    Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
+    final SchemaKStream schemaKStream = kafkaStreamsDsl(outputNode.getSource());
+    final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(outputNode.getSchema());
+
     if (outputNode instanceof KsqlStructuredDataOutputNode) {
-      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
+      final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
           outputNode;
-      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeNoRowKey = new
-          KsqlStructuredDataOutputNode(
-              ksqlStructuredDataOutputNode.getId(),
-              ksqlStructuredDataOutputNode.getSource(),
-              SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                  ksqlStructuredDataOutputNode.getSchema()),
-              ksqlStructuredDataOutputNode.getTimestampField(),
-              ksqlStructuredDataOutputNode.getKeyField(),
-              ksqlStructuredDataOutputNode.getKsqlTopic(),
-              ksqlStructuredDataOutputNode.getKafkaTopicName(),
-              ksqlStructuredDataOutputNode.getOutputProperties(),
-              ksqlStructuredDataOutputNode.getLimit());
-      if (ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic()
-          .getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
-        ksqlStructuredDataOutputNodeNoRowKey =
-            addAvroSchemaToResultTopic(ksqlStructuredDataOutputNodeNoRowKey);
+
+      final KsqlStructuredDataOutputNode.Builder outputNodeBuilder
+          = KsqlStructuredDataOutputNode.Builder.from(ksqlStructuredDataOutputNode);
+      final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+          ksqlStructuredDataOutputNode.getSchema());
+      outputNodeBuilder.withSchema(schema);
+
+      if (ksqlStructuredDataOutputNode.getTopicSerde() instanceof KsqlAvroTopicSerDe) {
+        addAvroSchemaToResultTopic(outputNodeBuilder, ksqlStructuredDataOutputNode, schema);
       }
 
-      Map<String, Object> outputProperties = ksqlStructuredDataOutputNodeNoRowKey
+      final Map<String, Object> outputProperties = ksqlStructuredDataOutputNode
           .getOutputProperties();
+
       if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
         ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
                        outputProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
@@ -160,157 +175,142 @@ public class PhysicalPlanBuilder {
                        outputProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY
                        ));
       }
-      SchemaKStream resultSchemaStream = schemaKStream;
-      if (!(resultSchemaStream instanceof SchemaKTable)) {
-        resultSchemaStream = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
-                                               schemaKStream.getKstream(),
-                                               ksqlStructuredDataOutputNode
-                                                   .getKeyField(),
-                                               Arrays.asList(schemaKStream),
-                                               SchemaKStream.Type.SINK
-        );
 
-        if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
-          String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
-          Optional<Field> keyField = SchemaUtil.getFieldByName(
-              resultSchemaStream.getSchema(), keyFieldName);
-          if (!keyField.isPresent()) {
-            throw new KsqlException(String.format("Column %s does not exist in the result schema."
-                                                  + " Error in Partition By clause.",
-                                                  keyFieldName));
-          }
-          resultSchemaStream = resultSchemaStream.selectKey(keyField.get());
+      final SchemaKStream result = createOutputStream(schemaKStream,
+          ksqlStructuredDataOutputNode,
+          outputNodeBuilder,
+          outputProperties);
 
-          ksqlStructuredDataOutputNodeNoRowKey = new
-              KsqlStructuredDataOutputNode(
-              ksqlStructuredDataOutputNodeNoRowKey.getId(),
-              ksqlStructuredDataOutputNodeNoRowKey.getSource(),
-              ksqlStructuredDataOutputNodeNoRowKey.getSchema(),
-              ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
-              keyField.get(),
-              ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
-              ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
-              ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties(),
-              ksqlStructuredDataOutputNodeNoRowKey.getLimit());
-        }
-      }
-
-      resultSchemaStream = resultSchemaStream.into(
-          ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
+      final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
+      createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+      result.into(
+          noRowKey.getKafkaTopicName(),
           SerDeUtil.getRowSerDe(
-              ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-                       ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
-          rowkeyIndexes,
-          ksqlConfig,
-          kafkaTopicClient);
-
-
-      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNodeWithRowkey = new
-          KsqlStructuredDataOutputNode(
-          ksqlStructuredDataOutputNodeNoRowKey.getId(),
-          ksqlStructuredDataOutputNodeNoRowKey.getSource(),
-          SchemaUtil.addImplicitRowTimeRowKeyToSchema(
-              ksqlStructuredDataOutputNodeNoRowKey.getSchema()),
-          ksqlStructuredDataOutputNodeNoRowKey.getTimestampField(),
-          ksqlStructuredDataOutputNodeNoRowKey.getKeyField(),
-          ksqlStructuredDataOutputNodeNoRowKey.getKsqlTopic(),
-          ksqlStructuredDataOutputNodeNoRowKey.getKafkaTopicName(),
-          ksqlStructuredDataOutputNodeNoRowKey.getOutputProperties(),
-          ksqlStructuredDataOutputNodeNoRowKey.getLimit()
+              noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
+              noRowKey.getSchema()),
+          rowkeyIndexes
       );
-      this.planSink = ksqlStructuredDataOutputNodeWithRowkey;
-      return resultSchemaStream;
+
+
+      this.planSink = outputNodeBuilder.withSchema(SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
+          .build();
+      return result;
     } else if (outputNode instanceof KsqlBareOutputNode) {
       this.planSink = outputNode;
       return schemaKStream.toQueue(outputNode.getLimit());
     }
 
-    throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
+    throw new KsqlException("Unsupported OutputNode type: " + outputNode.getClass().getName());
+  }
+
+  private void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY);
+    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+  }
+
+  private SchemaKStream createOutputStream(final SchemaKStream schemaKStream,
+                                           final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode,
+                                           final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
+                                           final Map<String, Object> outputProperties) {
+
+    if (schemaKStream instanceof SchemaKTable) {
+      return schemaKStream;
+    }
+
+    final SchemaKStream result = new SchemaKStream(ksqlStructuredDataOutputNode.getSchema(),
+                                                   schemaKStream.getKstream(),
+                                                   ksqlStructuredDataOutputNode
+            .getKeyField(),
+                                                   Collections.singletonList(schemaKStream),
+                                                   SchemaKStream.Type.SINK, functionRegistry
+    );
+
+    if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
+      String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
+      Field keyField = SchemaUtil.getFieldByName(
+          result.getSchema(), keyFieldName)
+          .orElseThrow(() -> new KsqlException(String.format("Column %s does not exist in the result schema."
+                  + " Error in Partition By clause.",
+              keyFieldName)));
+
+      outputNodeBuilder.withKeyField(keyField);
+      return result.selectKey(keyField);
+    }
+    return result;
   }
 
   private SchemaKStream buildAggregate(final AggregateNode aggregateNode) throws Exception {
 
-    StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
-
-    SchemaKStream sourceSchemaKStream = kafkaStreamsDsl(aggregateNode.getSource());
-
-    SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
+    final StructuredDataSourceNode streamSourceNode = aggregateNode.getTheSourceNode();
+    final SchemaKStream sourceSchemaKStream = kafkaStreamsDsl(aggregateNode.getSource());
+    final SchemaKStream rekeyedSchemaKStream = aggregateReKey(aggregateNode, sourceSchemaKStream);
 
     // Pre aggregate computations
-    List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
-    Map<String, Integer> expressionNames = new HashMap<>();
-    for (Expression expression: aggregateNode.getRequiredColumnList()) {
-      if (!expressionNames.containsKey(expression.toString())) {
-        expressionNames.put(expression.toString(), aggArgExpansionList.size());
-        aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
-      }
-    }
-    for (Expression expression: aggregateNode.getAggregateFunctionArguments()) {
-      if (!expressionNames.containsKey(expression.toString())) {
-        expressionNames.put(expression.toString(), aggArgExpansionList.size());
-        aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
-      }
-    }
+    final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
+    final Map<String, Integer> expressionNames = new HashMap<>();
+    collectAggregateArgExpressions(aggregateNode.getRequiredColumnList(), aggArgExpansionList, expressionNames);
+    collectAggregateArgExpressions(aggregateNode.getAggregateFunctionArguments(), aggArgExpansionList, expressionNames);
 
-    SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
+    final SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
-    Serde<GenericRow> genericRowSerde =
+    final Serde<GenericRow> genericRowSerde =
         SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
             .getKsqlTopic()
             .getKsqlTopicSerDe(),
         aggregateArgExpanded.getSchema());
-    SchemaKGroupedStream schemaKGroupedStream =
+
+    final SchemaKGroupedStream schemaKGroupedStream =
         aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
 
     // Aggregate computations
-    Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
-    Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
-    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
 
-    List<Object> resultColumns = new ArrayList<>();
-    int nonAggColumnIndex = 0;
-    for (Expression expression: aggregateNode.getRequiredColumnList()) {
-      String exprStr = expression.toString();
-      int index = getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
-      aggValToValColumnMap.put(nonAggColumnIndex, index);
-      nonAggColumnIndex++;
-      resultColumns.add("");
-      Field field = aggregateArgExpanded.getSchema().fields().get(index);
-      aggregateSchema.field(field.name(), field.schema());
-    }
-    int udafIndexInAggSchema = resultColumns.size();
-    for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
-      KsqlAggregateFunction aggregateFunctionInfo = KsqlFunctions.getAggregateFunction(functionCall
-              .getName()
-              .toString(),
-              functionCall
-              .getArguments(), aggregateArgExpanded.getSchema());
-      int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
-      KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
-          .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
-      aggValToAggFunctionMap.put(udafIndexInAggSchema, aggregateFunction);
-      resultColumns.add(aggregateFunction.getIntialValue());
+    final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
+        aggregateNode,
+        aggregateArgExpanded,
+        aggregateSchema);
 
-      udafIndexInAggSchema++;
-      aggregateSchema.field("AGG_COL_"
-                            + udafIndexInAggSchema, aggregateFunction.getReturnType());
-    }
+    final List<Object> resultColumns = IntStream.range(0,
+        aggValToValColumnMap.size()).mapToObj(value -> "").collect(Collectors.toList());
 
-    Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
+    final Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
             .getStructuredDataSource()
             .getKsqlTopic()
             .getKsqlTopicSerDe(),
         aggregateSchema);
 
-    SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
+    final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KudafInitializer(resultColumns),
-        new KudafAggregator(aggValToAggFunctionMap,
-                            aggValToValColumnMap), aggregateNode.getWindowExpression(),
+        new KudafAggregator(createAggValToFunctionMap(
+            aggregateNode,
+            expressionNames,
+            aggregateArgExpanded,
+            aggregateSchema,
+            resultColumns),
+            aggValToValColumnMap), aggregateNode.getWindowExpression(),
         aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
 
-    // Post aggregate computations
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    List<Field> fields = schemaKTable.getSchema().fields();
+    final Schema aggStageSchema = buildAggregateSchema(aggregateNode, schemaKTable);
+
+    SchemaKTable result = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
+                                                      schemaKTable.getKeyField(),
+                                                      schemaKTable.getSourceSchemaKStreams(),
+                                                      schemaKTable.isWindowed(),
+                                                      SchemaKStream.Type.AGGREGATE,
+                                           functionRegistry);
+
+
+    if (aggregateNode.getHavingExpressions() != null) {
+      result = result.filter(aggregateNode.getHavingExpressions());
+    }
+
+    return result.select(aggregateNode.getFinalSelectExpressions());
+  }
+
+  private Schema buildAggregateSchema(AggregateNode aggregateNode, SchemaKTable schemaKTable) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final List<Field> fields = schemaKTable.getSchema().fields();
     for (int i = 0; i < aggregateNode.getRequiredColumnList().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
@@ -319,8 +319,8 @@ public class PhysicalPlanBuilder {
       Schema fieldSchema;
       String udafName = aggregateNode.getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
-      KsqlAggregateFunction aggregateFunction = KsqlFunctions.getAggregateFunction(udafName,
-                                                                                   aggregateNode
+      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
+                                                                                      aggregateNode
               .getFunctionList()
               .get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
       fieldSchema = aggregateFunction.getReturnType();
@@ -328,19 +328,62 @@ public class PhysicalPlanBuilder {
           + aggFunctionVarSuffix, fieldSchema);
     }
 
-    Schema aggStageSchema = schemaBuilder.build();
+    return schemaBuilder.build();
+  }
 
-    SchemaKTable finalSchemaKTable = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
-                                                      schemaKTable.getKeyField(),
-                                                      schemaKTable.getSourceSchemaKStreams(),
-                                                      schemaKTable.isWindowed(),
-                                                      SchemaKStream.Type.AGGREGATE);
+  private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(final AggregateNode aggregateNode,
+                                                                        final Map<String, Integer> expressionNames,
+                                                                        final SchemaKStream aggregateArgExpanded,
+                                                                        final SchemaBuilder aggregateSchema,
+                                                                        final List<Object> resultColumns)
+      throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException, NoSuchMethodException {
 
-    if (aggregateNode.getHavingExpressions() != null) {
-      finalSchemaKTable = finalSchemaKTable.filter(aggregateNode.getHavingExpressions());
+    int udafIndexInAggSchema = resultColumns.size();
+    final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
+    for (FunctionCall functionCall: aggregateNode.getFunctionList()) {
+      KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+          .getAggregateFunction(functionCall
+              .getName()
+              .toString(),
+                                functionCall
+              .getArguments(), aggregateArgExpanded.getSchema());
+      int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
+      KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
+          .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
+      aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
+      resultColumns.add(aggregateFunction.getIntialValue());
+
+      aggregateSchema.field("AGG_COL_"
+                            + udafIndexInAggSchema, aggregateFunction.getReturnType());
     }
+    return aggValToAggFunctionMap;
+  }
 
-    return finalSchemaKTable.select(aggregateNode.getFinalSelectExpressions());
+  private Map<Integer, Integer> createAggregateValueToValueColumnMap(final AggregateNode aggregateNode,
+                                                                     final SchemaKStream aggregateArgExpanded,
+                                                                     final SchemaBuilder aggregateSchema) {
+    Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
+    int nonAggColumnIndex = 0;
+    for (Expression expression: aggregateNode.getRequiredColumnList()) {
+      String exprStr = expression.toString();
+      int index = getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+      aggValToValColumnMap.put(nonAggColumnIndex, index);
+      nonAggColumnIndex++;
+      Field field = aggregateArgExpanded.getSchema().fields().get(index);
+      aggregateSchema.field(field.name(), field.schema());
+    }
+    return aggValToValColumnMap;
+  }
+
+  private void collectAggregateArgExpressions(final List<Expression> expressions,
+                                              final List<Pair<String, Expression>> aggArgExpansionList,
+                                              final Map<String, Integer> expressionNames) {
+    expressions.stream()
+        .filter(e -> !expressionNames.containsKey(e.toString()))
+        .forEach(expression -> {
+          expressionNames.put(expression.toString(), aggArgExpansionList.size());
+          aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
+        });
   }
 
   private SchemaKStream buildProject(final ProjectNode projectNode)
@@ -351,153 +394,132 @@ public class PhysicalPlanBuilder {
 
   private SchemaKStream buildFilter(final FilterNode filterNode)
       throws Exception {
-    SchemaKStream
-        filteredSchemaKStream =
-        kafkaStreamsDsl(filterNode.getSource()).filter(filterNode.getPredicate());
-    return filteredSchemaKStream;
+    return kafkaStreamsDsl(filterNode.getSource()).filter(filterNode.getPredicate());
   }
 
-  private SchemaKStream buildSource(final SourceNode sourceNode, Map<String, Object> props) {
+  private SchemaKStream buildSource(final StructuredDataSourceNode sourceNode, Map<String, Object> props) {
+    if (sourceNode.getTimestampField() != null) {
+      int timestampColumnIndex = getTimeStampColumnIndex(sourceNode
+              .getSchema(),
+          sourceNode
+              .getTimestampField());
+      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+    }
 
-    TopologyBuilder.AutoOffsetReset autoOffsetReset = null;
+    Serde<GenericRow>
+        genericRowSerde =
+        SerDeUtil.getRowSerDe(sourceNode.getStructuredDataSource()
+                .getKsqlTopic().getKsqlTopicSerDe(),
+            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+                sourceNode.getSchema()));
+
+    if (sourceNode.getDataSourceType()
+        == StructuredDataSource.DataSourceType.KTABLE) {
+      final KsqlTable table = (KsqlTable) sourceNode.getStructuredDataSource();
+
+      final KTable kTable = createKTable(
+          getAutoOffsetReset(props),
+          table,
+          genericRowSerde,
+          SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
+              sourceNode.getSchema())
+      );
+      return new SchemaKTable(sourceNode.getSchema(), kTable,
+          sourceNode.getKeyField(), new ArrayList<>(),
+          table.isWindowed(),
+          SchemaKStream.Type.SOURCE, functionRegistry);
+    }
+
+    return new SchemaKStream(sourceNode.getSchema(),
+        builder
+            .stream(sourceNode.getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+                Consumed.with(Serdes.String(), genericRowSerde))
+            .map(nonWindowedMapper)
+            .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+        sourceNode.getKeyField(), new ArrayList<>(),
+        SchemaKStream.Type.SOURCE, functionRegistry);
+  }
+
+  private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {
+    return stream.groupByKey(Serialized.with(keySerde, valueSerde))
+        .reduce((genericRow, newValue) -> newValue);
+  }
+
+  @SuppressWarnings("unchecked")
+  private KTable createKTable(final Topology.AutoOffsetReset autoOffsetReset,
+                              final KsqlTable ksqlTable,
+                              final Serde<GenericRow> genericRowSerde,
+                              final Serde<GenericRow> genericRowSerdeAfterRead) {
+    if (ksqlTable.isWindowed()) {
+      return table(builder
+          .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+              Consumed.with(windowedSerde, genericRowSerde)
+                  .withOffsetResetPolicy(autoOffsetReset))
+          .map(windowedMapper)
+          .transformValues(new AddTimestampColumnValueTransformerSupplier()), windowedSerde, genericRowSerdeAfterRead);
+    } else {
+      return table(builder
+              .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                  Consumed.with(Serdes.String(), genericRowSerde)
+                      .withOffsetResetPolicy(autoOffsetReset))
+              .map(nonWindowedMapper)
+              .transformValues(new AddTimestampColumnValueTransformerSupplier()),
+          Serdes.String(), genericRowSerdeAfterRead);
+    }
+  }
+
+  private Topology.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {
     if (props.containsKey(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)) {
       if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
           .equalsIgnoreCase("EARLIEST")) {
-        autoOffsetReset = TopologyBuilder.AutoOffsetReset.EARLIEST;
+        return Topology.AutoOffsetReset.EARLIEST;
       } else if (props.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG).toString()
           .equalsIgnoreCase("LATEST")) {
-        autoOffsetReset = TopologyBuilder.AutoOffsetReset.LATEST;
+        return Topology.AutoOffsetReset.LATEST;
       }
     }
-
-
-    if (sourceNode instanceof StructuredDataSourceNode) {
-      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) sourceNode;
-
-      if (structuredDataSourceNode.getTimestampField() != null) {
-        int timestampColumnIndex = getTimeStampColumnIndex(structuredDataSourceNode
-                                                                      .getSchema(),
-                                                                  structuredDataSourceNode
-                                                                      .getTimestampField());
-        ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
-      }
-
-      Serde<GenericRow>
-          genericRowSerde =
-          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                                    .getKsqlTopic().getKsqlTopicSerDe(),
-                                SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                                    structuredDataSourceNode.getSchema()));
-
-      Serde<GenericRow> genericRowSerdeAfterRead =
-          SerDeUtil.getRowSerDe(structuredDataSourceNode.getStructuredDataSource()
-                  .getKsqlTopic().getKsqlTopicSerDe(),
-              structuredDataSourceNode.getSchema());
-
-      if (structuredDataSourceNode.getDataSourceType()
-          == StructuredDataSource.DataSourceType.KTABLE) {
-
-        KsqlTable ksqlTable = (KsqlTable) structuredDataSourceNode.getStructuredDataSource();
-        KTable ktable;
-        if (ksqlTable.isWindowed()) {
-          KStream
-              kstream =
-              builder
-                  .stream(autoOffsetReset, new WindowedSerde(), genericRowSerde,
-                      ksqlTable.getKsqlTopic().getKafkaTopicName())
-                  .map((KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>) (key, row) -> {
-                    if (row != null) {
-                      row.getColumns().add(0,
-                                           String.format("%s : Window{start=%d end=-}", key
-                                               .key(), key.window().start()));
-
-                    }
-                    return new KeyValue<>(key, row);
-                  });
-          kstream = addTimestampColumn(kstream);
-          ktable = kstream
-              .groupByKey(new WindowedSerde(), genericRowSerdeAfterRead)
-              .reduce((Reducer<GenericRow>) (aggValue, newValue) -> newValue, ksqlTable.getStateStoreName());
-        } else {
-          KStream
-              kstream =
-              builder
-                  .stream(autoOffsetReset, Serdes.String(), genericRowSerde,
-                      ksqlTable.getKsqlTopic().getKafkaTopicName())
-                  .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
-                    if (row != null) {
-                      row.getColumns().add(0, key);
-
-                    }
-                    return new KeyValue<>(key, row);
-                  });
-          kstream = addTimestampColumn(kstream);
-          ktable = kstream.groupByKey(Serdes.String(), genericRowSerdeAfterRead)
-                  .reduce((Reducer<GenericRow>) (aggValue, newValue) -> newValue, ksqlTable.getStateStoreName());
-        }
-
-        return new SchemaKTable(sourceNode.getSchema(), ktable,
-                                sourceNode.getKeyField(), new ArrayList<>(),
-                                ksqlTable.isWindowed(),
-                                SchemaKStream.Type.SOURCE);
-      }
-      KsqlStream ksqlStream = (KsqlStream) structuredDataSourceNode.getStructuredDataSource();
-      KStream
-          kstream =
-          builder
-              .stream(Serdes.String(), genericRowSerde,
-                  ksqlStream.getKsqlTopic().getKafkaTopicName())
-              .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
-                if (row != null) {
-                  row.getColumns().add(0, key);
-
-                }
-                return new KeyValue<>(key, row);
-              });
-      kstream = addTimestampColumn(kstream);
-      return new SchemaKStream(sourceNode.getSchema(), kstream,
-                               sourceNode.getKeyField(), new ArrayList<>(),
-                               SchemaKStream.Type.SOURCE);
-    }
-    throw new KsqlException("Unsupported source logical node: " + sourceNode.getClass().getName());
+    return null;
   }
 
-  private SchemaKStream buildJoin(final JoinNode joinNode, Map<String, Object> propsMap)
+  private SchemaKStream buildJoin(final JoinNode joinNode, final Map<String, Object> propsMap)
       throws Exception {
-    SchemaKStream leftSchemaKStream = kafkaStreamsDsl(joinNode.getLeft());
 
-    propsMap.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-              TopologyBuilder.AutoOffsetReset.EARLIEST.toString());
-    SchemaKStream rightSchemaKStream = kafkaStreamsDsl(joinNode.getRight(), propsMap);
-    if (rightSchemaKStream instanceof SchemaKTable) {
-      SchemaKTable rightSchemaKTable = (SchemaKTable) rightSchemaKStream;
-
-      if (
-          leftSchemaKStream.getKeyField() == null ||
-          !leftSchemaKStream.getKeyField().name().equals(joinNode.getLeftKeyFieldName())) {
-        leftSchemaKStream =
-            leftSchemaKStream.selectKey(SchemaUtil.getFieldByName(leftSchemaKStream.getSchema(),
-                joinNode.getLeftKeyFieldName()).get());
-      }
-      SchemaKStream joinSchemaKStream;
-      switch (joinNode.getType()) {
-        case LEFT:
-          KsqlTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
-          String joinKeyFieldName = (joinNode.getLeftAlias() + "." + leftSchemaKStream
-              .getKeyField().name());
-          joinSchemaKStream =
-              leftSchemaKStream.leftJoin(rightSchemaKTable, joinNode.getSchema(),
-                  joinNode.getSchema().field(joinKeyFieldName), joinSerDe);
-          break;
-        default:
-          throw new KsqlException("Join type is not supportd yet: " + joinNode.getType());
-      }
-      return joinSchemaKStream;
+    if (!joinNode.isLeftJoin()) {
+      throw new KsqlException("Join type is not supported yet: " + joinNode.getType());
     }
 
-    throw new KsqlException("Unsupported join logical node: Left: "
-                            + joinNode.getLeft() + " , Right: " + joinNode.getRight());
+    final SchemaKTable table = tableForJoin(joinNode, propsMap);
+    final SchemaKStream stream = streamForJoin(kafkaStreamsDsl(joinNode.getLeft()), joinNode.getLeftKeyFieldName());
+
+    final KsqlTopicSerDe joinSerDe = getResultTopicSerde(joinNode);
+    return stream.leftJoin(table,
+        joinNode.getSchema(),
+        joinNode.getSchema().field(joinNode.getLeftAlias() + "." + stream.getKeyField().name()),
+        joinSerDe);
+
   }
+
+  private SchemaKTable tableForJoin(JoinNode joinNode, Map<String, Object> propsMap) throws Exception {
+    final SchemaKStream rightStream = kafkaStreamsDsl(joinNode.getRight(), propsMap);
+
+    if (!(rightStream instanceof SchemaKTable)) {
+      throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
+          + joinNode.getLeft() + "-" + joinNode.getRight());
+    }
+
+    return (SchemaKTable) rightStream;
+  }
+
+  private SchemaKStream streamForJoin(final SchemaKStream stream, final String leftKeyFieldName) {
+    if (stream.getKeyField() == null
+        || !stream.getKeyField().name().equals(leftKeyFieldName)) {
+      return
+          stream.selectKey(SchemaUtil.getFieldByName(stream.getSchema(),
+              leftKeyFieldName).get());
+    }
+    return stream;
+  }
+
 
   private KsqlTopicSerDe getResultTopicSerde(final PlanNode node) {
     if (node instanceof StructuredDataSourceNode) {
@@ -513,7 +535,7 @@ public class PhysicalPlanBuilder {
   }
 
 
-  public KStreamBuilder getBuilder() {
+  public StreamsBuilder getBuilder() {
     return builder;
   }
 
@@ -521,61 +543,52 @@ public class PhysicalPlanBuilder {
     return planSink;
   }
 
-  private KsqlStructuredDataOutputNode addAvroSchemaToResultTopic(
-      final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode) {
-    MetastoreUtil metastoreUtil = new MetastoreUtil();
-    String
-        avroSchema =
-        metastoreUtil.buildAvroSchema(ksqlStructuredDataOutputNode.getSchema(),
-            ksqlStructuredDataOutputNode.getKsqlTopic().getName());
-    KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(avroSchema);
-    KsqlTopic newKsqlTopic = new KsqlTopic(ksqlStructuredDataOutputNode.getKsqlTopic()
-        .getName(), ksqlStructuredDataOutputNode
-        .getKsqlTopic().getKafkaTopicName(), ksqlAvroTopicSerDe);
-
-    return new KsqlStructuredDataOutputNode(
-        ksqlStructuredDataOutputNode.getId(), ksqlStructuredDataOutputNode.getSource(),
-        ksqlStructuredDataOutputNode.getSchema(), ksqlStructuredDataOutputNode.getTimestampField(),
-        ksqlStructuredDataOutputNode.getKeyField(), newKsqlTopic,
-        ksqlStructuredDataOutputNode.getKafkaTopicName(),
-        ksqlStructuredDataOutputNode.getOutputProperties(),
-        ksqlStructuredDataOutputNode.getLimit());
+  private void addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode.Builder builder,
+                                          final KsqlStructuredDataOutputNode outputNode,
+                                          final Schema schema) {
+    final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
+        new KsqlAvroTopicSerDe(metastoreUtil.buildAvroSchema(schema,
+            outputNode.getKsqlTopic().getName()));
+    builder.withKsqlTopic(new KsqlTopic(outputNode.getKsqlTopic()
+        .getName(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        ksqlAvroTopicSerDe));
   }
 
   private SchemaKStream aggregateReKey(final AggregateNode aggregateNode,
                                        final SchemaKStream sourceSchemaKStream) {
-    String aggregateKeyName = "";
+    StringBuilder aggregateKeyName = new StringBuilder();
     List<Integer> newKeyIndexes = new ArrayList<>();
     boolean addSeparator = false;
     for (Expression groupByExpr : aggregateNode.getGroupByExpressions()) {
       if (addSeparator) {
-        aggregateKeyName += "|+|";
+        aggregateKeyName.append("|+|");
       } else {
         addSeparator = true;
       }
-      aggregateKeyName += groupByExpr.toString();
+      aggregateKeyName.append(groupByExpr.toString());
       newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
     }
 
     KStream rekeyedKStream = sourceSchemaKStream.getKstream().selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
-      String newKey = "";
+      StringBuilder newKey = new StringBuilder();
       boolean addSeparator1 = false;
       for (int index : newKeyIndexes) {
         if (addSeparator1) {
-          newKey += "|+|";
+          newKey.append("|+|");
         } else {
           addSeparator1 = true;
         }
-        newKey += String.valueOf(value.getColumns().get(index));
+        newKey.append(String.valueOf(value.getColumns().get(index)));
       }
-      return newKey;
+      return newKey.toString();
     });
 
-    Field newKeyField = new Field(aggregateKeyName, -1, Schema.STRING_SCHEMA);
+    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
-                             Arrays.asList(sourceSchemaKStream), SchemaKStream.Type.REKEY);
+                             Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY,
+                             functionRegistry);
   }
 
   private int getIndexInSchema(final String fieldName, final Schema schema) {
@@ -586,41 +599,10 @@ public class PhysicalPlanBuilder {
         return i;
       }
     }
-    return -1;
-  }
-
-  private KStream addTimestampColumn(final KStream kstream) {
-    return kstream.transformValues(new ValueTransformerSupplier<GenericRow, GenericRow>() {
-      @Override
-      public ValueTransformer<GenericRow, GenericRow> get() {
-        return new ValueTransformer<GenericRow, GenericRow>() {
-          ProcessorContext processorContext;
-          @Override
-          public void init(ProcessorContext processorContext) {
-            this.processorContext = processorContext;
-          }
-
-          @Override
-          public GenericRow transform(GenericRow row) {
-            if (row != null) {
-              row.getColumns().add(0, processorContext.timestamp());
-
-            }
-            return row;
-          }
-
-          @Override
-          public GenericRow punctuate(long l) {
-            return null;
-          }
-
-          @Override
-          public void close() {
-
-          }
-        };
-      }
-    });
+    throw new KsqlException("Couldn't find field with name="
+        + fieldName
+        + " in schema. fields="
+        + fields);
   }
 
   private int getTimeStampColumnIndex(final Schema schema, final Field timestampField) {
@@ -655,5 +637,6 @@ public class PhysicalPlanBuilder {
     }
     return -1;
   }
+
 }
 

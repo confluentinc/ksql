@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -103,11 +104,12 @@ public class StreamedQueryResourceTest {
 
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
-                                rowQueue, DataSource.DataSourceType.KSTREAM);
+                                rowQueue, DataSource.DataSourceType.KSTREAM, "");
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    expect(mockKsqlEngine.getTopicClient()).andReturn(mock(KafkaTopicClient.class));
     expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 

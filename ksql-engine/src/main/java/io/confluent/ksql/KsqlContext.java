@@ -17,8 +17,13 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -30,28 +35,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
   private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-  private final KafkaTopicClientImpl topicClient;
+  private final AdminClient adminClient;
+  private final KafkaTopicClient topicClient;
 
-  public KsqlContext() {
-    this(null);
+
+  public static KsqlContext create() {
+    return create(Collections.emptyMap());
   }
 
-  /**
-   * Create a KSQL context object with the given properties.
-   * A KSQL context has it's own metastore valid during the life of the object.
-   *
-   * @param streamsProperties
-   */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  public static KsqlContext create(Map<String, Object> streamsProperties) {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -61,12 +59,29 @@ public class KsqlContext {
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
-    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    return new KsqlContext(streamsProperties);
+  }
 
-    topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
+
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param streamsProperties
+   */
+  private KsqlContext(Map<String, Object> streamsProperties) {
+    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    topicClient = new KafkaTopicClientImpl(adminClient);
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
   }
 
+  protected KsqlContext(KsqlEngine ksqlEngin, AdminClient adminClient, KafkaTopicClient
+      topicClient) {
+    this.ksqlEngine = ksqlEngin;
+    this.adminClient = adminClient;
+    this.topicClient = topicClient;
+  }
 
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();
@@ -99,5 +114,6 @@ public class KsqlContext {
   public void close() throws IOException {
     ksqlEngine.close();
     topicClient.close();
+    adminClient.close();
   }
 }

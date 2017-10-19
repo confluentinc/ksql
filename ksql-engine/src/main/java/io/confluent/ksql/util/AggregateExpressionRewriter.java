@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionRewriter;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
@@ -31,12 +31,17 @@ public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
 
   public static final String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
   private int aggVariableIndex = 0;
+  final FunctionRegistry functionRegistry;
+
+  public AggregateExpressionRewriter(final FunctionRegistry functionRegistry) {
+    this.functionRegistry = functionRegistry;
+  }
 
   @Override
   public Expression rewriteFunctionCall(FunctionCall node, Void context,
                                         ExpressionTreeRewriter<Void> treeRewriter) {
     String functionName = node.getName().getSuffix();
-    if (KsqlFunctions.isAnAggregateFunction(functionName)) {
+    if (functionRegistry.isAnAggregateFunction(functionName)) {
       String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;
       return new QualifiedNameReference(QualifiedName.of(aggVarName));

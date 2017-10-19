@@ -20,6 +20,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,6 +46,11 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
+    throw new UnsupportedOperationException("Calling method on FakeObject");
+  }
+
+  @Override
+  public void deleteTopics(List<String> topicsToDelete) {
     throw new UnsupportedOperationException("Calling method on FakeObject");
   }
 

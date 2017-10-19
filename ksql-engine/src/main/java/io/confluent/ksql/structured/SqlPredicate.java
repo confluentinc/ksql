@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -41,19 +42,23 @@ public class SqlPredicate {
   private IExpressionEvaluator ee;
   private int[] columnIndexes;
   private boolean isWindowedKey;
+  private final FunctionRegistry functionRegistry;
 
   private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
 
-  SqlPredicate(final Expression filterExpression, final Schema schema,
-               boolean isWindowedKey) throws Exception {
+  SqlPredicate(final Expression filterExpression,
+               final Schema schema,
+               boolean isWindowedKey,
+               final FunctionRegistry functionRegistry) throws Exception {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.isWindowedKey = isWindowedKey;
+    this.functionRegistry = functionRegistry;
 
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(filterExpression, schema);
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(filterExpression);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
@@ -75,7 +80,7 @@ public class SqlPredicate {
     // And the expression (i.e. "result") type is also "int".
     ee.setExpressionType(boolean.class);
 
-    String expressionStr = new SqlToJavaVisitor().process(filterExpression, schema);
+    String expressionStr = new SqlToJavaVisitor(schema, functionRegistry).process(filterExpression);
 
     // And now we "cook" (scan, parse, compile and load) the fabulous expression.
     ee.cook(expressionStr);
@@ -89,12 +94,12 @@ public class SqlPredicate {
     }
   }
 
-  private Predicate getStringKeyPredicate() throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
+  private Predicate<String, GenericRow> getStringKeyPredicate() throws Exception {
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     ExpressionMetadata expressionEvaluator =
-        codeGenRunner.buildCodeGenFromParseTree(filterExpression, schema);
+        codeGenRunner.buildCodeGenFromParseTree(filterExpression);
 
-    return (Predicate<String, GenericRow>) (key, row) -> {
+    return (key, row) -> {
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();
         Object[] values = new Object[columnIndexes.length];
@@ -117,10 +122,10 @@ public class SqlPredicate {
   }
 
   private Predicate getWindowedKeyPredicate() throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     ExpressionMetadata
         expressionEvaluator =
-        codeGenRunner.buildCodeGenFromParseTree(filterExpression, schema);
+        codeGenRunner.buildCodeGenFromParseTree(filterExpression);
     return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();

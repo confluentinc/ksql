@@ -1415,7 +1415,6 @@ public class AstBuilder
       if (selectItem instanceof SingleColumn) {
         SingleColumn singleColumn = (SingleColumn) selectItem;
         String fieldName = singleColumn.getAlias().get();
-        String fieldType = null;
         dataSource = dataSource.field(fieldName, Schema.BOOLEAN_SCHEMA);
       }
     }

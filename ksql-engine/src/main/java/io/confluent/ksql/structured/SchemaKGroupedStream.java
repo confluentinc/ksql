@@ -16,22 +16,20 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.udaf.KudafAggregator;
-import io.confluent.ksql.parser.tree.HoppingWindowExpression;
-import io.confluent.ksql.parser.tree.SessionWindowExpression;
-import io.confluent.ksql.parser.tree.TumblingWindowExpression;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.SessionWindows;
-import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.List;
 
@@ -41,64 +39,39 @@ public class SchemaKGroupedStream {
   private final KGroupedStream kgroupedStream;
   private final Field keyField;
   private final List<SchemaKStream> sourceSchemaKStreams;
+  private final FunctionRegistry functionRegistry;
 
   SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
                        final Field keyField,
-                       final List<SchemaKStream> sourceSchemaKStreams) {
+                       final List<SchemaKStream> sourceSchemaKStreams,
+                       final FunctionRegistry functionRegistry) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
+    this.functionRegistry = functionRegistry;
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(final Initializer initializer,
-                                final KudafAggregator aggregator,
+                                final UdafAggregator aggregator,
                                 final WindowExpression windowExpression,
                                 final Serde<GenericRow> topicValueSerDe,
                                 final String storeName) {
-    boolean isWindowed = false;
-    KTable<Windowed<String>, GenericRow> aggKtable;
+    final KTable aggKtable;
     if (windowExpression != null) {
-      isWindowed = true;
-      if (windowExpression.getKsqlWindowExpression() instanceof TumblingWindowExpression) {
-        TumblingWindowExpression tumblingWindowExpression =
-            (TumblingWindowExpression) windowExpression.getKsqlWindowExpression();
-        aggKtable =
-            kgroupedStream
-                .aggregate(initializer, aggregator,
-                                     TimeWindows.of(tumblingWindowExpression.getSizeUnit().toMillis(tumblingWindowExpression.getSize())),
-                           topicValueSerDe,
-                           storeName);
-      } else if (windowExpression.getKsqlWindowExpression() instanceof HoppingWindowExpression) {
-        HoppingWindowExpression hoppingWindowExpression =
-            (HoppingWindowExpression) windowExpression.getKsqlWindowExpression();
-        aggKtable =
-            kgroupedStream
-                .aggregate(initializer, aggregator,
-                           TimeWindows.of(
-                               hoppingWindowExpression.getSizeUnit().toMillis(hoppingWindowExpression.getSize()))
-                                         .advanceBy(
-                                             hoppingWindowExpression.getAdvanceByUnit().toMillis(hoppingWindowExpression.getAdvanceBy())),
-                                     topicValueSerDe, storeName);
-      } else if (windowExpression.getKsqlWindowExpression() instanceof SessionWindowExpression) {
-        SessionWindowExpression sessionWindowExpression =
-            (SessionWindowExpression) windowExpression.getKsqlWindowExpression();
-        aggKtable =
-            kgroupedStream
-                .aggregate(initializer, aggregator,
-                           aggregator.getMerger(),
-                           SessionWindows.with(sessionWindowExpression.getSizeUnit().toMillis(sessionWindowExpression.getGap())),
-                           topicValueSerDe,
-                           storeName);
-      } else {
-        throw new KsqlException("Could not set the window expression for aggregate.");
-      }
+      final Materialized<String, GenericRow, ?> materialized
+          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>as(storeName)
+          .withValueSerde(topicValueSerDe);
+
+      final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
+      aggKtable = ksqlWindowExpression.applyAggregate(kgroupedStream, initializer, aggregator, materialized);
     } else {
-      aggKtable =
-          kgroupedStream.aggregate(initializer, aggregator, topicValueSerDe, storeName);
+      aggKtable = kgroupedStream.aggregate(initializer, aggregator, Materialized.with(null, topicValueSerDe));
     }
-    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, isWindowed,
-                            SchemaKStream.Type.AGGREGATE);
+    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, windowExpression != null,
+                            SchemaKStream.Type.AGGREGATE, functionRegistry);
+
   }
 
 }

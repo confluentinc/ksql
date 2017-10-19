@@ -21,6 +21,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class QueryMetadata {
   private final String statementString;
@@ -28,15 +29,18 @@ public class QueryMetadata {
   private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
+  private final String queryApplicationId;
 
   public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
                        String executionPlan,
-                       DataSource.DataSourceType dataSourceType) {
+                       DataSource.DataSourceType dataSourceType,
+                       String queryApplicationId) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
     this.dataSourceType = dataSourceType;
+    this.queryApplicationId = queryApplicationId;
   }
 
   public String getStatementString() {
@@ -59,6 +63,15 @@ public class QueryMetadata {
     return dataSourceType;
   }
 
+  public String getQueryApplicationId() {
+    return queryApplicationId;
+  }
+
+  public void close() {
+    kafkaStreams.close(100L, TimeUnit.MILLISECONDS);
+    kafkaStreams.cleanUp();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof QueryMetadata)) {
@@ -69,11 +82,12 @@ public class QueryMetadata {
 
     return Objects.equals(this.statementString, that.statementString)
         && Objects.equals(this.kafkaStreams, that.kafkaStreams)
-        && Objects.equals(this.outputNode, that.outputNode);
+        && Objects.equals(this.outputNode, that.outputNode)
+        && Objects.equals(this.queryApplicationId, that.queryApplicationId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(kafkaStreams, outputNode);
+    return Objects.hash(kafkaStreams, outputNode, queryApplicationId);
   }
 }

@@ -22,7 +22,7 @@ public class EmbeddedKsql {
 
   public static void main(String[] args) throws Exception {
 
-    KsqlContext ksqlContext = new KsqlContext();
+    KsqlContext ksqlContext = KsqlContext.create();
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

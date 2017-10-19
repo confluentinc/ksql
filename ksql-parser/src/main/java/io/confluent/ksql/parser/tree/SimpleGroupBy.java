@@ -24,17 +24,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import io.confluent.ksql.parser.ExpressionFormatter;
+
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
 public class SimpleGroupBy
     extends GroupingElement {
 
   private final List<Expression> columns;
-
-  public SimpleGroupBy(List<Expression> simpleGroupByExpressions) {
-    this(Optional.empty(), simpleGroupByExpressions);
-  }
 
   public SimpleGroupBy(NodeLocation location, List<Expression> simpleGroupByExpressions) {
     this(Optional.of(location), simpleGroupByExpressions);
@@ -58,6 +57,17 @@ public class SimpleGroupBy
   @Override
   protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
     return visitor.visitSimpleGroupBy(this, context);
+  }
+
+  @Override
+  public String format() {
+    final Set<Expression>
+        columns =
+        ImmutableSet.copyOf(this.columns);
+    if (columns.size() == 1) {
+      return ExpressionFormatter.formatExpression(getOnlyElement(columns));
+    }
+    return ExpressionFormatter.formatGroupingSet(columns);
   }
 
   @Override

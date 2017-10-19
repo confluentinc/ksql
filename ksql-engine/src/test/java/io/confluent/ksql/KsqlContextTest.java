@@ -67,6 +67,8 @@ public class KsqlContextTest {
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
     ksqlContext.sql(statement3);
+
+    verify(ksqlEngine);
   }
 
   private List<QueryMetadata> getQueryMetadata(long queryid, DataSource.DataSourceType type) {

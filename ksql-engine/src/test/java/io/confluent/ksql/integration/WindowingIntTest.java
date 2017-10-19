@@ -7,9 +7,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,12 +17,9 @@ import org.junit.experimental.categories.Category;
 
 import java.time.LocalTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.confluent.ksql.util.MetaStoreFixture.assertExpectedWindowedResults;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -30,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class WindowingIntTest {
 
   public static final int WINDOW_SIZE_SEC = 5;
+  private static final int MAX_POLL_PER_ITERATION = 100;
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> datasetOneMetaData;
@@ -82,15 +80,21 @@ public class WindowingIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
 
-    Map<Windowed<String>, GenericRow> expectedResults = Collections.singletonMap(
-              new Windowed<>("ITEM_1",new TimeWindow(0, 1)),
-              new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0))
-      );
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new WindowedDeserializer<>(new StringDeserializer()), MAX_POLL_PER_ITERATION);
+      updateResults(results, windowedResults);
+      final GenericRow actual = results.get("ITEM_1");
+      return expected.equals(actual);
+    }, 60000, "didn't receive correct results within timeout");
+  }
 
-    Map<Windowed<String>, GenericRow> results = testHarness.consumeData(streamName, resultSchema, expectedResults.size(), new WindowedDeserializer<>(new StringDeserializer()));
-
-    assertExpectedWindowedResults(results, expectedResults);
+  private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
+    for (Windowed<String> key : windowedResults.keySet()) {
+      results.put(key.key(), windowedResults.get(key));
+    }
   }
 
   @Test
@@ -113,14 +117,15 @@ public class WindowingIntTest {
     Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 
 
-    Map<Windowed<String>, GenericRow> expectedResults = Collections.singletonMap(
-            new Windowed<>("ITEM_1",new TimeWindow(0, 1)),
-            new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0))
-    );
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
 
-    Map<Windowed<String>, GenericRow> results = testHarness.consumeData(streamName, resultSchema, expectedResults.size(), new WindowedDeserializer<>(new StringDeserializer()));
-
-    assertExpectedWindowedResults(results, expectedResults);
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, 1, new WindowedDeserializer<>(new StringDeserializer()), 1000);
+      updateResults(results, windowedResults);
+      final GenericRow actual = results.get("ITEM_1");
+      return expected.equals(actual);
+    }, 60000, "didn't receive correct results within timeout");
   }
 
   @Test
@@ -145,24 +150,15 @@ public class WindowingIntTest {
 
     GenericRow expectedResults = new GenericRow(Arrays.asList(null, null, "ORDER_6", 6 /** 2 x items **/, 420.0));
 
-    Map<Windowed<String>, GenericRow> results = testHarness.consumeData(streamName, resultSchema, datasetOneMetaData.size(), new WindowedDeserializer<>(new StringDeserializer()));
+    final Map<String, GenericRow> results = new HashMap<>();
 
-    GenericRow order6Result = null;
-    for (Windowed<String> stringWindowed : results.keySet()) {
-      if (stringWindowed.toString().startsWith("[ORDER_6")) {
-        order6Result = results.get(stringWindowed);
-      }
-    }
+    TestUtils.waitForCondition(() -> {
+      final Map<Windowed<String>, GenericRow> windowedResults = testHarness.consumeData(streamName, resultSchema, datasetOneMetaData.size(), new WindowedDeserializer<>(new StringDeserializer()), 1000);
+      updateResults(results, windowedResults);
+      final GenericRow actual = results.get("ORDER_6");
+      return expectedResults.equals(actual) && results.size() == 6;
+    }, 60000, "didn't receive correct results within timeout");
 
-    assertThat("Expected to get ORDER_6, instead got:" + results.keySet(), notNullValue().matches(order6Result));
-
-    Map<String, GenericRow> results2 = new HashMap<>();
-    for (GenericRow genericRow : results.values()) {
-      results2.put(genericRow.getColumns().get(2).toString(), genericRow);
-    }
-
-    assertThat("Expecting sessions for all ORDERS_1 -> _6, got:" + results.keySet(), results.size(), equalTo(6 ));
-    assertThat(order6Result, equalTo(expectedResults));
   }
 
   private int alignTimeToWindowSize(int secondOfMinuteModulus) throws InterruptedException {

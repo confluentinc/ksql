@@ -40,6 +40,8 @@ import java.util.Set;
  */
 abstract class AbstractCreateStreamCommand implements DDLCommand {
 
+  public static final String ARRAY = "ARRAY";
+  public static final String MAP = "MAP";
   String sourceName;
   String topicName;
   Schema schema;
@@ -158,12 +160,10 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
   }
 
   private Schema getKsqlComplexType(final String sqlType) {
-    if (sqlType.startsWith("ARRAY")) {
-      return SchemaBuilder
-          .array(getKsqlType(sqlType.substring("ARRAY".length() + 1, sqlType.length() - 1)));
-    } else if (sqlType.startsWith("MAP")) {
-      //TODO: For now only primitive data types for map are supported. Will have to add
-      // nested types.
+    if (sqlType.startsWith(ARRAY)) {
+      return SchemaBuilder.array(getKsqlType(sqlType.substring(ARRAY.length() + 1, sqlType.length() - 1)));
+    } else if (sqlType.startsWith(MAP)) {
+      //TODO: For now only primitive data types for map are supported. Will have to add nested types.
       String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
           .trim().split(",");
       if (mapTypesStrs.length != 2) {

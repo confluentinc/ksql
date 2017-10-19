@@ -32,8 +32,8 @@ public class KsqlTopicsList extends KsqlEntity {
 
   @JsonCreator
   public KsqlTopicsList(
-      @JsonProperty("statementText") String statementText,
-      @JsonProperty("ksql_topics")   Collection<KsqlTopicInfo> topics
+          @JsonProperty("statementText") String statementText,
+          @JsonProperty("ksql_topics")   Collection<KsqlTopicInfo> topics
   ) {
     super(statementText);
     this.topics = topics;

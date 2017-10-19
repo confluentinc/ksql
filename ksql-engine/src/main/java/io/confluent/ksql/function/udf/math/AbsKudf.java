@@ -30,6 +30,7 @@ public class AbsKudf implements Kudf {
     if (args.length != 1) {
       throw new KsqlFunctionException("Abs udf should have one input argument.");
     }
-    return Math.abs((Double) args[0]);
+
+    return Math.abs(((Number) args[0]).doubleValue());
   }
 }

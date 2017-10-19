@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
@@ -39,7 +38,6 @@ import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupingElement;
-import io.confluent.ksql.parser.tree.GroupingSets;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
@@ -58,7 +56,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
-import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SortItem;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
@@ -75,7 +72,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
@@ -478,11 +474,11 @@ public final class ExpressionFormatter {
     }
   }
 
-  static String formatStringLiteral(String s) {
+  public static String formatStringLiteral(String s) {
     return "'" + s.replace("'", "''") + "'";
   }
 
-  static String formatSortItems(List<SortItem> sortItems) {
+  public static String formatSortItems(List<SortItem> sortItems) {
     return formatSortItems(sortItems, true);
   }
 
@@ -492,39 +488,19 @@ public final class ExpressionFormatter {
             .iterator());
   }
 
-  static String formatGroupBy(List<GroupingElement> groupingElements) {
+  public static String formatGroupBy(List<GroupingElement> groupingElements) {
     ImmutableList.Builder<String> resultStrings = ImmutableList.builder();
 
     for (GroupingElement groupingElement : groupingElements) {
-      String result = "";
-      if (groupingElement instanceof SimpleGroupBy) {
-        Set<Expression>
-                columns =
-                ImmutableSet.copyOf(((SimpleGroupBy) groupingElement).getColumnExpressions());
-        if (columns.size() == 1) {
-          result = formatExpression(getOnlyElement(columns));
-        } else {
-          result = formatGroupingSet(columns);
-        }
-      } else if (groupingElement instanceof GroupingSets) {
-        result = format("GROUPING SETS (%s)", Joiner.on(", ").join(
-                groupingElement.enumerateGroupingSets().stream()
-                        .map(ExpressionFormatter::formatGroupingSet)
-                        .iterator()));
-      }
-      resultStrings.add(result);
+      resultStrings.add(groupingElement.format());
     }
     return Joiner.on(", ").join(resultStrings.build());
   }
 
-  private static String formatGroupingSet(Set<Expression> groupingSet) {
+  public static String formatGroupingSet(Set<Expression> groupingSet) {
     return format("(%s)", Joiner.on(", ").join(groupingSet.stream()
             .map(ExpressionFormatter::formatExpression)
             .iterator()));
-  }
-
-  private static String formatGroupingSet(List<QualifiedName> groupingSet) {
-    return format("(%s)", Joiner.on(", ").join(groupingSet));
   }
 
   private static Function<SortItem, String> sortItemFormatterFunction(boolean unmangleNames) {

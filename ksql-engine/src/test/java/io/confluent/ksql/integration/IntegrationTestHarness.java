@@ -36,7 +36,7 @@ public class IntegrationTestHarness {
 
 
   public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
-  public static final long RESULTS_POLL_MAX_TIME_MS = 10000;
+  public static final long RESULTS_POLL_MAX_TIME_MS = 30000;
   public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
 
   public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Iintegration_Test_Consumer_";
@@ -116,10 +116,11 @@ public class IntegrationTestHarness {
    * @param schema
    * @param expectedNumMessages
    * @param keyDeserializer
+   * @param resultsPollMaxTimeMs
    * @param <K>
    * @return
    */
-  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer) {
+  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer, long resultsPollMaxTimeMs) {
 
     topic = topic.toUpperCase();
 
@@ -134,7 +135,7 @@ public class IntegrationTestHarness {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
-      long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
+      long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd && continueConsuming(result.size(), expectedNumMessages)) {
         for (ConsumerRecord<K, GenericRow> record : consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {

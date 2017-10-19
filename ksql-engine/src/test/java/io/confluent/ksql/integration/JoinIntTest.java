@@ -19,10 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
@@ -89,7 +86,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer()));
+      results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS));
       final boolean success = results.equals(expectedResults);
       if (!success) {
         try {

@@ -27,7 +27,6 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
@@ -40,7 +39,7 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   SelectValueMapper(final GenericRowValueTypeEnforcer typeEnforcer,
                     final List<Pair<String, Expression>> expressionPairList,
                     final List<ExpressionMetadata> expressionEvaluators
-                    ) throws Exception {
+                    ) {
     this.typeEnforcer = typeEnforcer;
     this.expressionPairList = expressionPairList;
     this.expressionEvaluators = expressionEvaluators;
@@ -48,36 +47,30 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   @Override
   public GenericRow apply(final GenericRow row) {
-    try {
-      final List<Object> newColumns = new ArrayList<>();
-      for (int i = 0; i < expressionPairList.size(); i++) {
-        try {
-          final int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
-          final Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
-          final Object[] parameterObjects = new Object[parameterIndexes.length];
-          for (int j = 0; j < parameterIndexes.length; j++) {
-            if (parameterIndexes[j] < 0) {
-              parameterObjects[j] = kudfs[j];
-            } else {
-              parameterObjects[j] =
-                  typeEnforcer.enforceFieldType(parameterIndexes[j],
-                      row.getColumns()
-                          .get(parameterIndexes[j]));
-            }
+    final List<Object> newColumns = new ArrayList<>();
+    for (int i = 0; i < expressionPairList.size(); i++) {
+      try {
+        final int[] parameterIndexes = expressionEvaluators.get(i).getIndexes();
+        final Kudf[] kudfs = expressionEvaluators.get(i).getUdfs();
+        final Object[] parameterObjects = new Object[parameterIndexes.length];
+        for (int j = 0; j < parameterIndexes.length; j++) {
+          if (parameterIndexes[j] < 0) {
+            parameterObjects[j] = kudfs[j];
+          } else {
+            parameterObjects[j] =
+                typeEnforcer.enforceFieldType(parameterIndexes[j],
+                    row.getColumns()
+                        .get(parameterIndexes[j]));
           }
-          newColumns.add(expressionEvaluators.get(i).getExpressionEvaluator()
-              .evaluate(parameterObjects));
-        } catch (Exception e) {
-          log.error("Error calculating column with index " + i + " : " +
-              expressionPairList.get(i).getLeft());
-          newColumns.add(null);
         }
+        newColumns.add(expressionEvaluators.get(i).getExpressionEvaluator()
+            .evaluate(parameterObjects));
+      } catch (Exception e) {
+        log.error("Error calculating column with index " + i + " : " +
+            expressionPairList.get(i).getLeft(), e);
+        newColumns.add(null);
       }
-      return new GenericRow(newColumns);
-    } catch (Exception e) {
-      log.error("Projection exception for row: " + row.toString());
-      log.error(e.getMessage(), e);
-      throw new KsqlException("Error in SELECT clause: " + e.getMessage(), e);
     }
+    return new GenericRow(newColumns);
   }
 }

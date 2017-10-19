@@ -19,10 +19,23 @@ package io.confluent.ksql.function.udf.math;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AbsKudf implements Kudf {
 
+  Map<Class, Abs> funcs = new HashMap<>();
+
+  public AbsKudf(){
+    init();
+  }
   @Override
   public void init() {
+    funcs.put(Double.class, val -> Math.abs(val.doubleValue()));
+    funcs.put(Long.class, val -> Math.abs(val.longValue()));
+    funcs.put(Integer.class, val -> Math.abs(val.intValue()));
+    funcs.put(Float.class, val -> Math.abs(val.floatValue()));
+    funcs.put(Short.class, val -> Math.abs(val.shortValue()));
   }
 
   @Override
@@ -30,6 +43,15 @@ public class AbsKudf implements Kudf {
     if (args.length != 1) {
       throw new KsqlFunctionException("Abs udf should have one input argument.");
     }
-    return Math.abs((Double) args[0]);
+
+    if (args[0] instanceof Number) {
+      return funcs.get(args[0].getClass()).abs((Number) args[0]);
+    } else {
+      throw new RuntimeException(String.format("Value: %s is not a Number"));
+    }
+  }
+
+  private interface Abs<T extends Number> {
+    T abs(Number val);
   }
 }

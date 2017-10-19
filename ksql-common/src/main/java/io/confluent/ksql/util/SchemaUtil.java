@@ -45,7 +45,7 @@ public class SchemaUtil {
       case INT64:
         return Long.class;
       case FLOAT64:
-        return Double.class;
+        return Number.class;
       case ARRAY:
         Class elementClass = getJavaType(schema.valueSchema());
         return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();

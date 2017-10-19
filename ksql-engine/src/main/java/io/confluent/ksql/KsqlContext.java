@@ -20,9 +20,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;

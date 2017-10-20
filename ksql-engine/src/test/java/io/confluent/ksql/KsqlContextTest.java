@@ -60,13 +60,10 @@ public class KsqlContextTest {
         (Collections.emptyList());
     expect(ksqlEngine.buildMultipleQueries(false, statement2, Collections.emptyMap()))
         .andReturn(getQueryMetadata(1, DataSource.DataSourceType.KSTREAM));
-    expect(ksqlEngine.buildMultipleQueries(false, statement3, Collections.emptyMap()))
-        .andReturn(getQueryMetadata(2, DataSource.DataSourceType.KTABLE));
-    expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap).times(2);
+    expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap);
     replay(ksqlEngine);
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
-    ksqlContext.sql(statement3);
 
     verify(ksqlEngine);
   }
@@ -75,7 +72,7 @@ public class KsqlContextTest {
     KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
-    PersistentQueryMetadata persistentQueryMetadata1 = new PersistentQueryMetadata(String.valueOf
+    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(String.valueOf
         (queryid),
                                                                                    queryStreams,
                                                                                   null,
@@ -86,7 +83,7 @@ public class KsqlContextTest {
                                                                                   null,
                                                                                   null);
 
-    return Arrays.asList(persistentQueryMetadata1);
+    return Arrays.asList(persistentQueryMetadata);
 
   }
 

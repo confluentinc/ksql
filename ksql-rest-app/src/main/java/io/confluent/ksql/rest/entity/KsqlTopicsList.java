@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.KsqlTopic;
 
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonTypeName("ksql_topics")
+@JsonSubTypes({})
 public class KsqlTopicsList extends KsqlEntity {
   private final Collection<KsqlTopicInfo> topics;
 

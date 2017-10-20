@@ -115,13 +115,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 6);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(terminateCommandId).getStatus(), CommandStatus.Status.ERROR);
-    
+    Assert.assertEquals(6, statusStore.size());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(csasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(terminateCommandId).getStatus
+        ());
+
   }
 
   @Test
@@ -139,11 +140,11 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 4);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
+    Assert.assertEquals(4, statusStore.size());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(csasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
   }
 
 }

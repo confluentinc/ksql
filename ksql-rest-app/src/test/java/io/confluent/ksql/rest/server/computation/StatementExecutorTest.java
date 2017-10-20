@@ -41,8 +41,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     StatementParser statementParser = new StatementParser(mockKsqkEngine);
 
-    StatementExecutor statementExecutor = new StatementExecutor(mockKsqkEngine, statementParser);
-    return statementExecutor;
+    return new StatementExecutor(mockKsqkEngine, statementParser);
   }
 
   @Test

@@ -118,9 +118,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(statusStore.size(), 6);
     Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
     Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.SUCCESS);
+    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
     Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(terminateCommandId).getStatus(), CommandStatus.Status.SUCCESS);
+    Assert.assertEquals(statusStore.get(terminateCommandId).getStatus(), CommandStatus.Status.ERROR);
   }
 
   @Test
@@ -141,7 +141,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(statusStore.size(), 4);
     Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
     Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.SUCCESS);
+    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
     Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
   }
 

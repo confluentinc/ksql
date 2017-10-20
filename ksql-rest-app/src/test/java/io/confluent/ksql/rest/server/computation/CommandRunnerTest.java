@@ -72,7 +72,7 @@ public class CommandRunnerTest {
   public void testThread() throws InterruptedException {
     CommandRunner commandRunner = getCommanRunner();
     new Thread(commandRunner).start();
-    Thread.sleep(5000);
+    Thread.sleep(10000);
     commandRunner.close();
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");

@@ -68,6 +68,12 @@ public interface KafkaTopicClient extends Closeable {
   void deleteTopics(List<String> topicsToDelete);
 
   /**
+   * Delete the internal topics of a given application.
+   * @param applicationId
+   */
+  void deleteInternalTopics(String applicationId);
+
+  /**
    * Close the underlying Kafka admin client.
    */
   void close();

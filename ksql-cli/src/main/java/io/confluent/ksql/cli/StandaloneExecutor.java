@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Statement;
@@ -42,7 +43,7 @@ public class StandaloneExecutor {
 
   KsqlEngine ksqlEngine;
 
-  public StandaloneExecutor(Map streamProperties) {
+  public StandaloneExecutor(Map streamProperties) throws ExecutionException, InterruptedException {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
     ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
   }

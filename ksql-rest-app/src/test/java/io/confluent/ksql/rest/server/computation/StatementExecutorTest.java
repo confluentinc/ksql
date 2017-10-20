@@ -121,6 +121,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
     Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
     Assert.assertEquals(statusStore.get(terminateCommandId).getStatus(), CommandStatus.Status.ERROR);
+    
   }
 
   @Test

@@ -23,7 +23,6 @@ import io.confluent.ksql.ddl.commands.DDLCommandExec;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -97,7 +96,7 @@ import java.util.stream.Collectors;
 @Produces(MediaType.APPLICATION_JSON)
 public class KsqlResource {
 
-  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(KsqlResource.class);
+  private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
   private final KsqlEngine ksqlEngine;
   private final CommandStore commandStore;
@@ -137,8 +136,7 @@ public class KsqlResource {
         result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       }
     } catch (Exception exception) {
-      String stackTrace = ExceptionUtil.stackTraceToString(exception);
-      LOGGER.error(stackTrace);
+      log.error("Failed to handle POST:" + request, exception);
       result.add(new ErrorMessageEntity(request.getKsql(), exception));
     }
 
@@ -207,8 +205,7 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
-      ExecutionPlan executionPlan = getStatementExecutionPlan(statement, statementText,
-                                                              streamsProperties);
+      //   getStatementExecutionPlan(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
@@ -239,8 +236,8 @@ public class KsqlResource {
       commandStatus = statementExecutor.registerQueuedStatement(commandId)
           .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
     } catch (TimeoutException exception) {
-      LOGGER.warn("Timeout to get commandStatus, waited {} milliseconds.",
-                  distributedCommandResponseTimeout);
+      log.warn("Timeout to get commandStatus, waited {} milliseconds:, statementText:" + statementText,
+                  distributedCommandResponseTimeout, exception);
       commandStatus = statementExecutor.getStatus(commandId).get();
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);
@@ -279,11 +276,10 @@ public class KsqlResource {
     return new Queries(statementText, runningQueries);
   }
 
-  private TopicDescription describeTopic(String statementText, String name) throws
-                                                                                   Exception {
+  private TopicDescription describeTopic(String statementText, String name) throws Exception {
     KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
     if (ksqlTopic == null) {
-      throw new Exception(String.format("Could not find topic '%s' in the metastore",
+      throw new Exception(String.format("Could not find Topic '%s' in the Metastore",
                                         name));
     }
     String schemaString = null;
@@ -301,7 +297,7 @@ public class KsqlResource {
 
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new Exception(String.format("Could not find data stream/table '%s' in the metastore",
+      throw new Exception(String.format("Could not find STREAM/TABLE '%s' in the Metastore",
                                         name));
     }
     return new SourceDescription(statementText, dataSource);
@@ -333,7 +329,7 @@ public class KsqlResource {
       try {
         return new ExecutionPlan(ddlCommandTask.execute(statement, statementText, properties));
       } catch (Throwable t) {
-        throw new KsqlException("Cannot RUN execution plan for this statement, " + statement + " ex:" + t.toString());
+        throw new KsqlException("Cannot RUN execution plan for this statement, " + statement, t);
       }
     }
     throw new KsqlException("Cannot FIND execution plan for this statement:" + statement);
@@ -350,7 +346,7 @@ public class KsqlResource {
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
-        throw new KsqlException("Invalid result type. Your select query produces a TABLE. Please "
+        throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
                 + "use CREATE TABLE AS SELECT statement instead.");
       }
       return queryMetadata.getExecutionPlan();
@@ -359,7 +355,7 @@ public class KsqlResource {
     ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
       QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
-        throw new KsqlException("Invalid result type. Your select query produces a STREAM. Please "
+        throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
                 + "use CREATE STREAM AS SELECT statement instead.");
       }
       return queryMetadata.getExecutionPlan();

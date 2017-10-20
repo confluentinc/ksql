@@ -19,6 +19,8 @@ package io.confluent.ksql.parser.rewrite;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedMap;
+
+import io.confluent.ksql.parser.ExpressionFormatter;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -119,7 +121,7 @@ public final class SqlFormatterQueryRewrite {
     protected Void visitExpression(Expression node, Integer indent) {
       checkArgument(indent == 0,
                     "visitExpression should only be called at root");
-      builder.append(ExpressionFormatterQueryRewrite.formatExpression(node, unmangledNames));
+      builder.append(ExpressionFormatter.formatExpression(node, unmangledNames));
       return null;
     }
 
@@ -151,7 +153,7 @@ public final class SqlFormatterQueryRewrite {
       if (!node.getOrderBy().isEmpty()) {
         append(indent,
                "ORDER BY "
-               + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
+               + ExpressionFormatter.formatSortItems(node.getOrderBy()))
             .append('\n');
       }
 
@@ -186,14 +188,14 @@ public final class SqlFormatterQueryRewrite {
       if (node.getWhere().isPresent()) {
         append(indent,
                "WHERE "
-               + ExpressionFormatterQueryRewrite.formatExpression(node.getWhere().get()))
+               + ExpressionFormatter.formatExpression(node.getWhere().get()))
             .append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
         append(indent, "GROUP BY "
                        + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
-                       + ExpressionFormatterQueryRewrite
+                       + ExpressionFormatter
                            .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
       }
@@ -201,14 +203,14 @@ public final class SqlFormatterQueryRewrite {
       if (node.getHaving().isPresent()) {
         append(indent,
                "HAVING "
-               + ExpressionFormatterQueryRewrite.formatExpression(node.getHaving().get()))
+               + ExpressionFormatter.formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
       if (!node.getOrderBy().isEmpty()) {
         append(indent,
                "ORDER BY "
-               + ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()))
+               + ExpressionFormatter.formatSortItems(node.getOrderBy()))
             .append('\n');
       }
 
@@ -248,7 +250,7 @@ public final class SqlFormatterQueryRewrite {
 
     @Override
     protected Void visitSingleColumn(SingleColumn node, Integer indent) {
-      builder.append(ExpressionFormatterQueryRewrite.formatExpression(node.getExpression()));
+      builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
       if (node.getAlias().isPresent()) {
         builder.append(' ')
             .append(" AS ")
@@ -300,7 +302,7 @@ public final class SqlFormatterQueryRewrite {
         } else if (criteria instanceof JoinOn) {
           JoinOn on = (JoinOn) criteria;
           builder.append(" ON (")
-              .append(ExpressionFormatterQueryRewrite.formatExpression(on.getExpression()))
+              .append(ExpressionFormatter.formatExpression(on.getExpression()))
               .append(")");
         } else if (!(criteria instanceof NaturalJoin)) {
           throw new UnsupportedOperationException("unknown join criteria: " + criteria);
@@ -352,7 +354,7 @@ public final class SqlFormatterQueryRewrite {
             .append(indentString(indent))
             .append(first ? "  " : ", ");
 
-        builder.append(ExpressionFormatterQueryRewrite.formatExpression(row));
+        builder.append(ExpressionFormatter.formatExpression(row));
         first = false;
       }
       builder.append('\n');
@@ -486,7 +488,7 @@ public final class SqlFormatterQueryRewrite {
 
       node.getLikePattern().ifPresent((value) ->
                                           builder.append(" LIKE ")
-                                              .append(ExpressionFormatterQueryRewrite
+                                              .append(ExpressionFormatter
                                                           .formatStringLiteral(value)));
 
       return null;
@@ -503,7 +505,7 @@ public final class SqlFormatterQueryRewrite {
 
       node.getLikePattern().ifPresent((value) ->
                                           builder.append(" LIKE ")
-                                              .append(ExpressionFormatterQueryRewrite
+                                              .append(ExpressionFormatter
                                                           .formatStringLiteral(value)));
 
       return null;
@@ -537,12 +539,12 @@ public final class SqlFormatterQueryRewrite {
 
       if (node.getWhere().isPresent()) {
         builder.append(" WHERE ")
-            .append(ExpressionFormatterQueryRewrite.formatExpression(node.getWhere().get()));
+            .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
       }
 
       if (!node.getOrderBy().isEmpty()) {
         builder.append(" ORDER BY ")
-            .append(ExpressionFormatterQueryRewrite.formatSortItems(node.getOrderBy()));
+            .append(ExpressionFormatter.formatSortItems(node.getOrderBy()));
       }
 
       if (node.getLimit().isPresent()) {
@@ -574,7 +576,7 @@ public final class SqlFormatterQueryRewrite {
 
       if (node.getWhere().isPresent()) {
         builder.append(" WHERE ")
-            .append(ExpressionFormatterQueryRewrite.formatExpression(node.getWhere().get()));
+            .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
       }
 
       return null;
@@ -593,8 +595,7 @@ public final class SqlFormatterQueryRewrite {
         Joiner.on(", ").appendTo(builder,
                       transform(node.getProperties().entrySet(), entry -> entry.getKey()
                               + " = "
-                              + ExpressionFormatterQueryRewrite
-                              .formatExpression(entry.getValue())));
+                              + ExpressionFormatter.formatExpression(entry.getValue())));
         builder.append(")");
       }
 
@@ -685,7 +686,7 @@ public final class SqlFormatterQueryRewrite {
       builder.append("SET SESSION ")
           .append(node.getName())
           .append(" = ")
-          .append(ExpressionFormatterQueryRewrite.formatExpression(node.getValue()));
+          .append(ExpressionFormatter.formatExpression(node.getValue()));
 
       return null;
     }

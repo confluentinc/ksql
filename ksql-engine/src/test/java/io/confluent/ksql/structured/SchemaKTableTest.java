@@ -16,19 +16,10 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
+
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
@@ -44,21 +35,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
+  private KTable kTable;
+  private KsqlTable ksqlTable;
+  private FunctionRegistry functionRegistry;
 
-  MetaStore metaStore;
-  KTable kTable;
-  KsqlTable ksqlTable;
-  FunctionRegistry functionRegistry;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
     functionRegistry = new FunctionRegistry();
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
@@ -68,38 +57,10 @@ public class SchemaKTableTest {
 
   }
 
-  private Analysis analyze(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0))
-                           .replace("\n", " "));
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
-
-  private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-    }
-    // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-    return logicalPlan;
-  }
-
   @Test
   public void testSelectSchemaKStream() throws Exception {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
@@ -131,7 +92,7 @@ public class SchemaKTableTest {
   @Test
   public void testSelectWithExpression() throws Exception {
     String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
@@ -164,7 +125,7 @@ public class SchemaKTableTest {
   @Test
   public void testFilter() throws Exception {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),

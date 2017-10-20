@@ -70,7 +70,7 @@ public class UdfIntTest {
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "ITEM_8", 800.0, 1110.0, 12.0, true)));
 
-    Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 4, new StringDeserializer());
+    Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -97,7 +97,7 @@ public class UdfIntTest {
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, 80, "true", 8.0, "80.0")));
 
-    Map<String, GenericRow> results = testHarness.consumeData(streamName, resultSchema, 4, new StringDeserializer());
+    Map<String, GenericRow> results = testHarness.consumeData(streamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -127,7 +127,7 @@ public class UdfIntTest {
                     10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
             recordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
 
-    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer());
+    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
 
     assertThat(results, equalTo(expectedResults));
   }

@@ -200,7 +200,7 @@ public class PhysicalPlanBuilder {
       return schemaKStream.toQueue(outputNode.getLimit());
     }
 
-    throw new KsqlException("Unsupported output logical node: " + outputNode.getClass().getName());
+    throw new KsqlException("Unsupported OutputNode type: " + outputNode.getClass().getName());
   }
 
   private void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
@@ -503,7 +503,7 @@ public class PhysicalPlanBuilder {
     final SchemaKStream rightStream = kafkaStreamsDsl(joinNode.getRight(), propsMap);
 
     if (!(rightStream instanceof SchemaKTable)) {
-      throw new KsqlException("Unsupported join. Only stream-table joins are supported, but was "
+      throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
           + joinNode.getLeft() + "-" + joinNode.getRight());
     }
 

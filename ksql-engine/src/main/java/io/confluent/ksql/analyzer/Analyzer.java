@@ -262,7 +262,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           (QualifiedNameReference) expression;
       return leftQualifiedNameReference.getName().getSuffix();
     } else {
-      throw new KsqlException("Join criteria is not supported.");
+      throw new KsqlException("Join criteria is not supported. Expression:" + expression);
     }
   }
 

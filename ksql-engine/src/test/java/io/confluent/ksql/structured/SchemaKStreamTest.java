@@ -16,18 +16,10 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
@@ -49,9 +41,9 @@ import java.util.List;
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
 
-  private MetaStore metaStore;
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KStream kStream;
   private KsqlStream ksqlStream;
   private FunctionRegistry functionRegistry;
@@ -59,7 +51,6 @@ public class SchemaKStreamTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore();
     functionRegistry = new FunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     StreamsBuilder builder = new StreamsBuilder();
@@ -68,27 +59,11 @@ public class SchemaKStreamTest {
             .getKsqlTopicSerDe(), null)));
   }
 
-  private PlanNode buildLogicalPlan(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
-                                                                functionRegistry);
-    for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-    }
-    // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-    return logicalPlan;
-  }
 
   @Test
   public void testSelectSchemaKStream() throws Exception {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
@@ -116,7 +91,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectWithExpression() throws Exception {
     String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
@@ -143,7 +118,7 @@ public class SchemaKStreamTest {
   @Test
   public void testFilter() throws Exception {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
@@ -173,7 +148,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectKey() throws Exception {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),

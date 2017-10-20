@@ -94,12 +94,12 @@ public class SqlPredicate {
     }
   }
 
-  private Predicate getStringKeyPredicate() throws Exception {
+  private Predicate<String, GenericRow> getStringKeyPredicate() throws Exception {
     CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     ExpressionMetadata expressionEvaluator =
         codeGenRunner.buildCodeGenFromParseTree(filterExpression);
 
-    return (Predicate<String, GenericRow>) (key, row) -> {
+    return (key, row) -> {
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();
         Object[] values = new Object[columnIndexes.length];

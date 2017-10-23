@@ -19,28 +19,39 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.streams.KafkaStreams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class QueryMetadata {
+
+  private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
+  private final KafkaTopicClient kafkaTopicClient;
+  private final KsqlConfig ksqlConfig;
 
-  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
-                       String executionPlan,
-                       DataSource.DataSourceType dataSourceType,
-                       String queryApplicationId) {
+  public QueryMetadata(final String statementString,
+                       final KafkaStreams kafkaStreams,
+                       final OutputNode outputNode,
+                       final String executionPlan,
+                       final DataSource.DataSourceType dataSourceType,
+                       final String queryApplicationId,
+                       final KafkaTopicClient kafkaTopicClient,
+                       final KsqlConfig ksqlConfig) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
     this.dataSourceType = dataSourceType;
     this.queryApplicationId = queryApplicationId;
+    this.kafkaTopicClient = kafkaTopicClient;
+    this.ksqlConfig = ksqlConfig;
   }
 
   public String getStatementString() {
@@ -68,8 +79,14 @@ public class QueryMetadata {
   }
 
   public void close() {
-    kafkaStreams.close(100L, TimeUnit.MILLISECONDS);
-    kafkaStreams.cleanUp();
+    kafkaStreams.close();
+    if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
+      kafkaStreams.cleanUp();
+      kafkaTopicClient.deleteInternalTopics(queryApplicationId);
+    } else {
+      log.error("Could not clean up the query with application id: {}. Query status is: {}",
+                queryApplicationId, kafkaStreams.state());
+    }
   }
 
   @Override

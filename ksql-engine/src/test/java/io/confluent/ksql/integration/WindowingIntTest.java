@@ -2,7 +2,12 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.QueryMetadata;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -19,6 +24,7 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -89,6 +95,21 @@ public class WindowingIntTest {
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
+
+    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+
+    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+
+    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
+               topicBeforeCleanup.size() == 5);
+    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+
+    queryMetadata.close();
+    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+
+    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
+        (), topicsAfterCleanUp.size() == 3);
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -126,6 +147,21 @@ public class WindowingIntTest {
       final GenericRow actual = results.get("ITEM_1");
       return expected.equals(actual);
     }, 60000, "didn't receive correct results within timeout");
+
+    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+
+    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+
+    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
+               topicBeforeCleanup.size() == 5);
+    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+
+    queryMetadata.close();
+    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+
+    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
+        (), topicsAfterCleanUp.size() == 3);
   }
 
   @Test
@@ -158,6 +194,21 @@ public class WindowingIntTest {
       final GenericRow actual = results.get("ORDER_6");
       return expectedResults.equals(actual) && results.size() == 6;
     }, 60000, "didn't receive correct results within timeout");
+
+    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+
+    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+
+    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
+               topicBeforeCleanup.size() == 5);
+    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+
+    queryMetadata.close();
+    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+
+    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
+        (), topicsAfterCleanUp.size() == 3);
 
   }
 

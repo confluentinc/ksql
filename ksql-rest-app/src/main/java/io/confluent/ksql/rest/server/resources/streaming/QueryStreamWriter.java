@@ -106,8 +106,7 @@ class QueryStreamWriter implements StreamingOutput {
       out.flush();
 
     } finally {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.close();
     }
   }
 

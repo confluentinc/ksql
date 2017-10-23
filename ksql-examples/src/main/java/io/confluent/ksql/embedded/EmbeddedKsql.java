@@ -16,13 +16,15 @@
 
 package io.confluent.ksql.embedded;
 
+import java.util.Collections;
+
 import io.confluent.ksql.KsqlContext;
 
 public class EmbeddedKsql {
 
   public static void main(String[] args) throws Exception {
 
-    KsqlContext ksqlContext = KsqlContext.create();
+    KsqlContext ksqlContext = KsqlContext.create(Collections.emptyMap());
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

@@ -17,10 +17,12 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class CommandId {
   private final Type type;
   private final String entity;

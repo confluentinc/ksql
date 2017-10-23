@@ -295,7 +295,9 @@ public class QueryEngine {
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable) ?
         DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
-        applicationId
+        applicationId,
+        ksqlEngine.getTopicClient(),
+        ksqlConfigClone
     );
   }
 
@@ -365,7 +367,9 @@ public class QueryEngine {
                                        (schemaKStream instanceof SchemaKTable) ? DataSource
                                            .DataSourceType.KTABLE : DataSource.DataSourceType
                                            .KSTREAM,
-                                       applicationId);
+                                       applicationId,
+                                       ksqlEngine.getTopicClient(),
+                                       ksqlConfigClone);
   }
 
 

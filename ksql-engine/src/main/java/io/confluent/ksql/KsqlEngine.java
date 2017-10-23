@@ -342,6 +342,10 @@ public class KsqlEngine implements Closeable {
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
+  public Set<QueryMetadata> getLiveQueries() {
+    return liveQueries;
+  }
+
   public MetaStore getMetaStore() {
     return metaStore;
   }

@@ -34,6 +34,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class KsqlContext {
 
@@ -44,12 +46,8 @@ public class KsqlContext {
   private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
 
-
-  public static KsqlContext create() {
-    return create(Collections.emptyMap());
-  }
-
-  public static KsqlContext create(Map<String, Object> streamsProperties) {
+  public static KsqlContext create(Map<String, Object> streamsProperties)
+      throws ExecutionException, InterruptedException {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -59,7 +57,11 @@ public class KsqlContext {
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
-    return new KsqlContext(streamsProperties);
+    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    return new KsqlContext(adminClient, topicClient, ksqlEngine);
   }
 
 
@@ -67,20 +69,14 @@ public class KsqlContext {
    * Create a KSQL context object with the given properties.
    * A KSQL context has it's own metastore valid during the life of the object.
    *
-   * @param streamsProperties
+   * @param adminClient
+   * @param topicClient
+   * @param ksqlEngine
    */
-  private KsqlContext(Map<String, Object> streamsProperties) {
-    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(adminClient);
-    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
-  }
-
-  protected KsqlContext(KsqlEngine ksqlEngin, AdminClient adminClient, KafkaTopicClient
-      topicClient) {
-    this.ksqlEngine = ksqlEngin;
+  KsqlContext(final AdminClient adminClient, final KafkaTopicClient topicClient, final KsqlEngine ksqlEngine) {
     this.adminClient = adminClient;
     this.topicClient = topicClient;
+    this.ksqlEngine = ksqlEngine;
   }
 
   public MetaStore getMetaStore() {
@@ -96,6 +92,7 @@ public class KsqlContext {
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
         .emptyMap());
+
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -109,6 +106,10 @@ public class KsqlContext {
         log.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
+  }
+
+  public Set<QueryMetadata> getRunningQueries() {
+    return ksqlEngine.getLiveQueries();
   }
 
   public void close() throws IOException {

@@ -16,76 +16,70 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.junit.After;
-import org.junit.AfterClass;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.mock.MockCommandStore;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
-import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.Pair;
+
+import static org.easymock.EasyMock.*;
 
 public class CommandRunnerTest {
 
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
-
-  @AfterClass
-  public static void cleanUp() {
-    CLUSTER.stop();
-  }
-
+  /**
+   *   Get a command runner instance using mock values
+    */
   private CommandRunner getCommanRunner(StatementExecutor statementExecutor) {
-
-    Map<String, Object> commandConsumerProperties = new HashMap<>();
-    commandConsumerProperties.put("bootstrap.servers", CLUSTER.bootstrapServers());
-    Deserializer<Command> commandDeserializer = new KafkaJsonDeserializer<>();
-    Deserializer<CommandId> commandIdDeserializer = new KafkaJsonDeserializer<>();
-
-    KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        commandIdDeserializer,
-        commandDeserializer
-    );
-
-    CommandRunner commandRunner = new CommandRunner(statementExecutor, new MockCommandStore
-        ("CT", commandConsumer, null,
-         new CommandIdAssigner(new MetaStoreImpl())));
-    return commandRunner;
+    List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
+    List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
+    for (Pair commandPair: commandList) {
+      recordList.add(new ConsumerRecord<CommandId, Command>("T", 1, 1, (CommandId) commandPair
+          .getLeft(), (Command) commandPair.getRight()));
+    }
+    Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
+    recordMap.put(new TopicPartition("T", 1), recordList);
+    CommandStore commandStore = mock(CommandStore.class);
+    expect(commandStore.getNewCommands()).andReturn(new ConsumerRecords<>(recordMap));
+    expect(commandStore.getPriorCommands()).andReturn(Collections.emptyList());
+    replay(commandStore);
+    return new CommandRunner(statementExecutor, commandStore);
   }
 
-  private StatementExecutor getStatementExecutor() {
-    Map<String, Object> props = new HashMap<>();
-    props.put("application.id", "ksqlStatementExecutorTest");
-    props.put("bootstrap.servers", CLUSTER.bootstrapServers());
+  private StatementExecutor getMockStatementExecutor() throws Exception {
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    Map<CommandId, CommandStatus> statusStore = new HashMap<>();
+    statusStore.put(topicCommandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Success"));
+    statusStore.put(csCommandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Success"));
+    statusStore.put(csasCommandId, new CommandStatus(CommandStatus.Status.SUCCESS, "Success"));
+    statusStore.put(ctasCommandId, new CommandStatus(CommandStatus.Status.ERROR, "Error"));
 
-    MockKsqkEngine mockKsqkEngine = new MockKsqkEngine(
-        new KsqlConfig(props), new MockKafkaTopicClient());
+    StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    expect(statementExecutor.getStatuses()).andReturn(statusStore);
 
-    StatementParser statementParser = new StatementParser(mockKsqkEngine);
-
-    return new StatementExecutor(mockKsqkEngine, statementParser);
+    return statementExecutor;
   }
 
   @Test
-  public void testThread() throws InterruptedException {
-    StatementExecutor statementExecutor = getStatementExecutor();
+  public void testNewCommandRun() throws Exception {
+    StatementExecutor statementExecutor = getMockStatementExecutor();
+    statementExecutor.handleStatement(anyObject(), anyObject());
+    expectLastCall().times(4);
+    replay(statementExecutor);
     CommandRunner commandRunner = getCommanRunner(statementExecutor);
-    new Thread(commandRunner).start();
-    Thread.sleep(2000);
-    commandRunner.close();
+    commandRunner.fetchAndRunCommands();
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
     CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
@@ -95,19 +89,17 @@ public class CommandRunnerTest {
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
-    if (statusStore.containsKey(csasCommandId)) {
-      Assert.assertTrue((statusStore.get(csasCommandId).getStatus() == CommandStatus.Status
-          .EXECUTING) || (statusStore.get(csasCommandId).getStatus() == CommandStatus.Status
-          .SUCCESS));
-    }
-    if (statusStore.containsKey(ctasCommandId)) {
-      Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
-    }
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+    verify(statementExecutor);
   }
 
   @Test
   public void testPriorCommandsRun() throws Exception {
-    StatementExecutor statementExecutor = getStatementExecutor();
+    StatementExecutor statementExecutor = getMockStatementExecutor();
+    statementExecutor.handleStatements(anyObject());
+    expectLastCall();
+    replay(statementExecutor);
     CommandRunner commandRunner = getCommanRunner(statementExecutor);
     commandRunner.processPriorCommands();
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
@@ -121,6 +113,7 @@ public class CommandRunnerTest {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+    verify(statementExecutor);
   }
 
 }

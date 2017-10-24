@@ -63,17 +63,7 @@ public class CommandRunner implements Runnable, Closeable {
     try {
       while (!closed.get()) {
         log.debug("Polling for new writes to command topic");
-        ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
-        log.debug("Found {} new writes to command topic", records.count());
-        for (ConsumerRecord<CommandId, Command> record : records) {
-          CommandId commandId = record.key();
-          Command command = record.value();
-          if (command.getStatement() != null) {
-            executeStatement(command, commandId);
-          } else {
-            log.debug("Skipping null statement for ID {}", commandId);
-          }
-        }
+        fetchAndRunCommands();
       }
     } catch (WakeupException wue) {
       if (!closed.get()) {
@@ -89,6 +79,20 @@ public class CommandRunner implements Runnable, Closeable {
   public void close() {
     closed.set(true);
     commandStore.close();
+  }
+
+  public void fetchAndRunCommands() {
+    ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
+    log.debug("Found {} new writes to command topic", records.count());
+    for (ConsumerRecord<CommandId, Command> record : records) {
+      CommandId commandId = record.key();
+      Command command = record.value();
+      if (command.getStatement() != null) {
+        executeStatement(command, commandId);
+      } else {
+        log.debug("Skipping null statement for ID {}", commandId);
+      }
+    }
   }
 
   /**

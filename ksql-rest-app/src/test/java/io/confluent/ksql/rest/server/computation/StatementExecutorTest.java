@@ -17,8 +17,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import org.easymock.EasyMockSupport;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -40,11 +38,6 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
-
-  @AfterClass
-  public static void cleanUp() {
-    CLUSTER.stop();
-  }
 
   private StatementExecutor getStatementExecutor() {
     Map<String, Object> props = new HashMap<>();

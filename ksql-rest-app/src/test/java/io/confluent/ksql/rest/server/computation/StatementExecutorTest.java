@@ -17,11 +17,13 @@
 package io.confluent.ksql.rest.server.computation;
 
 import org.easymock.EasyMockSupport;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,14 +32,27 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 
 public class StatementExecutorTest extends EasyMockSupport {
 
+  @ClassRule
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+
+  @AfterClass
+  public static void cleanUp() {
+    CLUSTER.stop();
+  }
 
   private StatementExecutor getStatementExecutor() {
+    Map<String, Object> props = new HashMap<>();
+    props.put("application.id", "ksqlStatementExecutorTest");
+    props.put("bootstrap.servers", CLUSTER.bootstrapServers());
+
     MockKsqkEngine mockKsqkEngine = new MockKsqkEngine(
-        TestUtils.getMockKsqlConfig(), new MockKafkaTopicClient());
+        new KsqlConfig(props), new MockKafkaTopicClient());
 
     StatementParser statementParser = new StatementParser(mockKsqkEngine);
 

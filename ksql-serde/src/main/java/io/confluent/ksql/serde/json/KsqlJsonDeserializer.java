@@ -125,7 +125,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   }
 
-  class CaseInsensitiveJsonNode {
+  static class CaseInsensitiveJsonNode {
     JsonNode jsonNode;
     Map<String, String> keyMap = new HashMap<>();
 

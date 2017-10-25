@@ -108,17 +108,15 @@ public class SchemaKStream {
   }
 
   public SchemaKStream select(final Schema selectSchema) {
-
     final KStream<String, GenericRow>
         projectedKStream =
-        kstream.map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+        kstream.mapValues(row -> {
           List<Object> newColumns = new ArrayList<>();
           for (Field schemaField : selectSchema.fields()) {
             newColumns.add(
                 row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name())));
           }
-          GenericRow newRow = new GenericRow(newColumns);
-          return new KeyValue<>(key, newRow);
+          return new GenericRow(newColumns);
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Collections.singletonList(this),

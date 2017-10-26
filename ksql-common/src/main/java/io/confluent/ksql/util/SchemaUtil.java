@@ -50,7 +50,7 @@ public class SchemaUtil {
         Class elementClass = getJavaType(schema.valueSchema());
         return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
       case MAP:
-        return (new HashMap<>()).getClass();
+        return HashMap.class;
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
     }

@@ -25,14 +25,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
-import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class StatementExecutorTest extends EasyMockSupport {
 
@@ -44,16 +46,16 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("application.id", "ksqlStatementExecutorTest");
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
-    MockKsqkEngine mockKsqkEngine = new MockKsqkEngine(
+    KsqlEngine ksqlEngine = new KsqlEngine(
         new KsqlConfig(props), new MockKafkaTopicClient());
 
-    StatementParser statementParser = new StatementParser(mockKsqkEngine);
+    StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    return new StatementExecutor(mockKsqkEngine, statementParser);
+    return new StatementExecutor(ksqlEngine, statementParser);
   }
 
   @Test
-  public void handleCorrectDDLStatement() throws Exception {
+  public void shouldHandleCorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGISTER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
@@ -67,7 +69,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void handleIncorrectDDLStatement() throws Exception {
+  public void shouldHandleIncorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGIST ER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
@@ -81,7 +83,19 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void handleCSAS_CTASStatement() throws Exception {
+  public void shouldNotRunNullStatementList() {
+    StatementExecutor statementExecutor = getStatementExecutor();
+    try{
+      statementExecutor.handleStatements(null);
+    } catch (Exception nex) {
+      assertThat("Statement list should not be null.", nex instanceof NullPointerException);
+    }
+
+
+  }
+
+  @Test
+  public void shouldHandleCSAS_CTASStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
 
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
@@ -132,7 +146,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void handlePriorStatement() throws Exception {
+  public void shouldHandlePriorStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     TestUtils testUtils = new TestUtils();
     List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();

@@ -81,17 +81,13 @@ public class CommandRunner implements Runnable, Closeable {
     commandStore.close();
   }
 
-  public void fetchAndRunCommands() {
+  void fetchAndRunCommands() {
     ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
-    log.debug("Found {} new writes to command topic", records.count());
+    log.trace("Found {} new writes to command topic", records.count());
     for (ConsumerRecord<CommandId, Command> record : records) {
       CommandId commandId = record.key();
       Command command = record.value();
-      if (command.getStatement() != null) {
-        executeStatement(command, commandId);
-      } else {
-        log.debug("Skipping null statement for ID {}", commandId);
-      }
+      executeStatement(command, commandId);
     }
   }
 

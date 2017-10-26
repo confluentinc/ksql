@@ -277,10 +277,7 @@ public abstract class Console implements Closeable {
         writer().println("output:");
         writer().println("\tView the current output format.");
         writer().println("");
-        writer() .printf(
-            "output <format>:",
-            OutputFormat.VALID_FORMATS
-        );
+        writer().println("output <format>");
         writer().println("");
         writer() .printf(
             "\tSet the output format to <format> (valid formats: %s)%n",

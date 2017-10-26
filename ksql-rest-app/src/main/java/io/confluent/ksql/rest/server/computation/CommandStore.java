@@ -136,14 +136,14 @@ public class CommandStore implements Closeable {
         log.debug("Reading prior command records");
 
         List<ConsumerRecord<CommandId, Command>> result = new ArrayList<>();
-        ConsumerRecords<CommandId, Command> records = commandConsumer.poll(30000);
+        ConsumerRecords<CommandId, Command> records = commandConsumer.poll(5000);
         while (!records.isEmpty()) {
 
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
                 result.add(record);
             }
-            records = commandConsumer.poll(30000);
+            records = commandConsumer.poll(5000);
         }
         log.debug("Retrieved records:" + result.size());
         return result;

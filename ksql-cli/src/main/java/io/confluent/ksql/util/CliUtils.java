@@ -148,7 +148,12 @@ public class CliUtils {
 
   public static boolean createFile(Path path) {
     try {
-      Files.createDirectories(path.getParent());
+      final Path parent = path.getParent();
+      if (parent == null) {
+        log.warn("Failed to create file as the parent was null. path: {}", path);
+        return false;
+      }
+      Files.createDirectories(parent);
       if (Files.notExists(path)) {
         Files.createFile(path);
       }

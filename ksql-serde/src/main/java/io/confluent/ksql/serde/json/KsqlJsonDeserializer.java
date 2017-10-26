@@ -125,12 +125,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   }
 
-  class CaseInsensitiveJsonNode {
-    JsonNode jsonNode;
+  static class CaseInsensitiveJsonNode {
     Map<String, String> keyMap = new HashMap<>();
 
     CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      this.jsonNode = jsonNode;
       Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
         String fieldName = fieldNames.next();

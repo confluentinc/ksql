@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -158,7 +159,7 @@ public class Cli implements Closeable, AutoCloseable {
       // Math.min(terminal.getWidth(), helpReminderMessage.length())
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
-      String leftPadding = new String(new byte[paddingWidth]).replaceAll(".", " ");
+      String leftPadding = new String(new byte[paddingWidth], StandardCharsets.UTF_8).replaceAll(".", " ");
       terminal.writer().printf("%s======================================%n", leftPadding);
       terminal.writer().printf("%s=      _  __ _____  ____  _          =%n", leftPadding);
       terminal.writer().printf("%s=     | |/ // ____|/ __ \\| |         =%n", leftPadding);
@@ -318,7 +319,7 @@ public class Cli implements Closeable, AutoCloseable {
         String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
         String fileContent;
         try {
-          fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
+          fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), StandardCharsets.UTF_8);
         } catch (IOException e) {
           throw new KsqlException(" Could not read statements from file: " + schemaFilePath + ". "
                                   + "Details: " + e.getMessage(), e);
@@ -430,26 +431,20 @@ public class Cli implements Closeable, AutoCloseable {
         restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
-      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse())) {
-        Future<?> topicPrintFuture = queryStreamExecutorService.submit(new Runnable() {
-          @Override
-          public void run() {
-            while (topicStreamScanner.hasNextLine()) {
-              String line = topicStreamScanner.nextLine();
-              if (!line.isEmpty()) {
-                terminal.writer().println(line);
-                terminal.flush();
-              }
+      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), StandardCharsets.UTF_8.name())) {
+        Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
+          while (topicStreamScanner.hasNextLine()) {
+            String line = topicStreamScanner.nextLine();
+            if (!line.isEmpty()) {
+              terminal.writer().println(line);
+              terminal.flush();
             }
           }
         });
 
-        terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
-          @Override
-          public void handle(Terminal.Signal signal) {
-            terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-            topicPrintFuture.cancel(true);
-          }
+        terminal.handle(Terminal.Signal.INT, signal -> {
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+          topicPrintFuture.cancel(true);
         });
 
         try {

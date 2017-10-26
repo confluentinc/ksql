@@ -37,12 +37,7 @@ import java.util.Properties;
 public class Standalone extends AbstractCliCommands {
 
   private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
-
-  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-
-  private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
-  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
 
   @Option(
       name = PROPERTIES_FILE_OPTION_NAME,
@@ -97,7 +92,9 @@ public class Standalone extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      properties.load(new FileInputStream(propertiesFile));
+      try(final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
+        properties.load(inputStream);
+      }
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,

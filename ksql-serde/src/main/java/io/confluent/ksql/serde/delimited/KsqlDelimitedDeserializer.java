@@ -26,6 +26,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     if (bytes == null) {
       return null;
     }
-    String recordCsvString = new String(bytes);
+    String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
     try {
       List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
           .getRecords();

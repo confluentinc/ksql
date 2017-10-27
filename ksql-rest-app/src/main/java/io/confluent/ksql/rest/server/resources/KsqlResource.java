@@ -205,6 +205,7 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
+      //Sanity check for the statement before distributing it.
       getStatementExecutionPlan(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {

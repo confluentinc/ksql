@@ -25,7 +25,6 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -44,7 +43,6 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
   final MetaStore metaStore;
 
-  Schema fromSchema;
   Schema joinLeftSchema;
   Schema joinRightSchema;
 
@@ -65,7 +63,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitQuerySpecification(final SqlBaseParser.QuerySpecificationContext ctx) {
-    Relation from = (Relation) visit(ctx.from);
+    visit(ctx.from);
     return visitChildren(ctx);
   }
 
@@ -94,7 +92,6 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
       if (fromDataSource == null) {
         throw new KsqlException(table.getName().getSuffix() + " does not exist.");
       }
-      this.fromSchema = fromDataSource.getSchema();
       return null;
     }
 

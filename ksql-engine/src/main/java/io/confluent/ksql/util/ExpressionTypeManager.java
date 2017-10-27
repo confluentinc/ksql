@@ -44,7 +44,7 @@ public class ExpressionTypeManager
     return expressionTypeContext.getSchema();
   }
 
-  class ExpressionTypeContext {
+  static class ExpressionTypeContext {
 
     Schema schema;
 

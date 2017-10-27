@@ -61,12 +61,12 @@ public class CodeGenRunner {
     Kudf[] kudfObjects = new Kudf[parameterMap.size()];
 
     int index = 0;
-    for (String parameterName : parameterMap.keySet()) {
-      parameterNames[index] = parameterName;
-      parameterTypes[index] = parameterMap.get(parameterName);
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+      parameterNames[index] = entry.getKey();
+      parameterTypes[index] = entry.getValue();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       if (columnIndexes[index] < 0) {
-        kudfObjects[index] = (Kudf) parameterMap.get(parameterName).newInstance();
+        kudfObjects[index] = (Kudf) entry.getValue().newInstance();
       } else {
         kudfObjects[index] = null;
       }
@@ -93,7 +93,7 @@ public class CodeGenRunner {
     return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
-  private class Visitor extends AstVisitor<Object, Object> {
+  private static class Visitor extends AstVisitor<Object, Object> {
 
     final Schema schema;
     final Map<String, Class> parameterMap;

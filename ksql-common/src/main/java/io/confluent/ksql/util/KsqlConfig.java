@@ -57,67 +57,83 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
-  public static final ConfigDef.Type
-      KSQL_SERVICE_ID_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_SERVICE_ID_DEFAULT = "ksql_";
-  public static final ConfigDef.Importance
-      KSQL_SERVICE_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_SERVICE_ID_DOC =
-      "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queries in "
-      + "this service.";
 
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
-  public static final ConfigDef.Type
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT = "query_";
-  public static final ConfigDef.Importance
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_DOC =
-      "Second part of the prefix for persitent queries.";
 
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
-  public static final ConfigDef.Type
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
-  public static final ConfigDef.Importance
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_DOC =
-      "Second part of the prefix for transient queries.";
 
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final ConfigDef.Type
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "transient_";
-  public static final ConfigDef.Importance
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DOC =
-      "Suffix for state store names in Tables.";
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
-  public int defaultSinkNumberOfPartitions = 4;
-  public short defaultSinkNumberOfReplications = 1;
+  public static int defaultSinkNumberOfPartitions = 4;
+  public static short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.
-  public long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
+  public static long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
-  public String defaultAutoOffsetRestConfig = "latest";
-  public long defaultCommitIntervalMsConfig = 2000;
-  public long defaultCacheMaxBytesBufferingConfig = 10000000;
-  public int defaultNumberOfStreamsThreads = 4;
+  public static String defaultAutoOffsetRestConfig = "latest";
+  public static long defaultCommitIntervalMsConfig = 2000;
+  public static long defaultCacheMaxBytesBufferingConfig = 10000000;
+  public static int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
 
-  private static final ConfigDef CONFIG_DEF = new ConfigDef();
+  private static final ConfigDef CONFIG_DEF;
+
+  static {
+    CONFIG_DEF = new ConfigDef()
+    .define(KSQL_SERVICE_ID_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_SERVICE_ID_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queries in "
+            + "this service.")
+
+    .define(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Second part of the prefix for persitent queries.")
+    .define(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Second part of the prefix for transient queries.")
+    .define(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Suffix for state store names in Tables.")
+    .define(DEFAULT_SINK_NUMBER_OF_PARTITIONS,
+            ConfigDef.Type.INT,
+            defaultSinkNumberOfPartitions,
+            ConfigDef.Importance.MEDIUM,
+            "The default number of partitions for the topics created by KSQL.")
+    .define(DEFAULT_SINK_NUMBER_OF_REPLICATIONS,
+            ConfigDef.Type.SHORT,
+            defaultSinkNumberOfReplications,
+            ConfigDef.Importance.MEDIUM,
+            "The default number of replications for the topics created by KSQL."
+            )
+    .define(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+            ConfigDef.Type.LONG,
+            defaultSinkWindowChangeLogAdditionalRetention,
+            ConfigDef.Importance.MEDIUM,
+            "The default window change log additional retention time."
+            )
+    ;
+  }
+
 
   public KsqlConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);

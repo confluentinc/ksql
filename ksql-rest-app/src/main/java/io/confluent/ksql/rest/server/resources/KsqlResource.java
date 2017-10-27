@@ -205,7 +205,7 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
-      //   getStatementExecutionPlan(statement, statementText, streamsProperties);
+      getStatementExecutionPlan(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
@@ -328,6 +328,8 @@ public class KsqlResource {
     if (ddlCommandTask != null) {
       try {
         return new ExecutionPlan(ddlCommandTask.execute(statement, statementText, properties));
+      } catch (KsqlException ksqlException) {
+        throw ksqlException;
       } catch (Throwable t) {
         throw new KsqlException("Cannot RUN execution plan for this statement, " + statement, t);
       }

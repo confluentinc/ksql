@@ -65,10 +65,10 @@ public class SqlPredicate {
     columnIndexes = new int[parameterMap.size()];
 
     int index = 0;
-    for (String parameterName : parameterMap.keySet()) {
-      parameterNames[index] = parameterName;
-      parameterTypes[index] = parameterMap.get(parameterName);
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+      parameterNames[index] = entry.getKey();
+      parameterTypes[index] = entry.getValue();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       index++;
     }
 
@@ -156,8 +156,13 @@ public class SqlPredicate {
     return schema;
   }
 
-  public int[] getColumnIndexes() {
-    return columnIndexes;
+  // visible for testing
+  int[] getColumnIndexes() {
+    // As this is only used for testing it is ok to do the array copy.
+    // We need to revisit the tests for this class and remove this.
+    final int [] result = new int[columnIndexes.length];
+    System.arraycopy(columnIndexes, 0, result, 0, columnIndexes.length);
+    return result;
   }
 
 }

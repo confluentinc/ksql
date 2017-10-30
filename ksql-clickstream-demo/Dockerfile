@@ -1,8 +1,8 @@
 # https://confluentinc.atlassian.net/browse/KSQL-292
 
-ARG DOCKER_REGISTRY
+ARG DOCKER_UPSTREAM_REGISTRY
 
-FROM ${DOCKER_REGISTRY}confluentinc/docker-demo-base:3.3.0
+FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/docker-demo-base:3.3.0
 
 ARG KSQL_VERSION
 ARG ARTIFACT_ID

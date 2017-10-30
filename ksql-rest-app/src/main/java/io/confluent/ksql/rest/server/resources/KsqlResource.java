@@ -206,7 +206,7 @@ public class KsqlResource {
             || statement instanceof DropTable
     ) {
       //Sanity check for the statement before distributing it.
-      getStatementExecutionPlan(statement, statementText, streamsProperties);
+      validateStatement(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
@@ -223,6 +223,19 @@ public class KsqlResource {
         throw new Exception("Unable to execute statement");
       }
     }
+  }
+
+  /**
+   * Validate the statement by creating the execution plan for it.
+   * 
+   * @param statement
+   * @param statementText
+   * @param streamsProperties
+   * @throws Exception
+   */
+  private void validateStatement(Statement statement, String statementText,
+                                 Map<String, Object> streamsProperties) throws Exception {
+    getStatementExecutionPlan(statement, statementText, streamsProperties);
   }
 
   private CommandStatusEntity distributeStatement(

@@ -307,16 +307,14 @@ Common configuration properties that you might want to change from their default
 
 ## Running KSQL
 
-KSQL support various [modes of operation](concepts.md#modes-of-operation), including a standalone mode and a
+KSQL supports various [modes of operation](concepts.md#modes-of-operation), including a standalone mode and a
 client-server mode.
 
 Additionally, you can also instruct KSQL to execute a single statement from the command line.
-
-Example:
+The following example command runs the given `SELECT` statement and show the results in the terminal.  In this
+particular case, the query will run until 5 records have been found, and then terminate.
 
 ```shell
 $ ksql-cli local --exec "SELECT * FROM pageviews LIMIT 5;"
 ```
 
-This command will run the given `SELECT` statement and show the results in the terminal.  In this particular
-case, the query will run until 5 records have been found, and then terminate.

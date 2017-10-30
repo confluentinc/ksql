@@ -23,6 +23,7 @@
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
+        <module>ksql-clickstream-demo</module>
     </modules>
 
     <repositories>

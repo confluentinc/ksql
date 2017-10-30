@@ -75,15 +75,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
-  public static int defaultSinkNumberOfPartitions = 4;
-  public static short defaultSinkNumberOfReplications = 1;
+  private static int defaultSinkNumberOfPartitions = 4;
+  private static short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.
-  public static long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
+  private static long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
-  public static String defaultAutoOffsetRestConfig = "latest";
-  public static long defaultCommitIntervalMsConfig = 2000;
-  public static long defaultCacheMaxBytesBufferingConfig = 10000000;
-  public static int defaultNumberOfStreamsThreads = 4;
+  private static String defaultAutoOffsetRestConfig = "latest";
+  private static long defaultCommitIntervalMsConfig = 2000;
+  private static long defaultCacheMaxBytesBufferingConfig = 10000000;
+  private static int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
@@ -103,17 +103,21 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Type.STRING,
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for persitent queries.")
+            "Second part of the prefix for persitent queries. For instance if the prefix is transient_"
+            + "query_ the query name will be ksql_query_1.")
     .define(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for transient queries.")
+            "Second part of the prefix for transient queries. For instance if the prefix is "
+            + "transient_ the query name would be ksql_transient_4120896722607083946_1509389010601")
     .define(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Suffix for state store names in Tables.")
+            "Suffix for state store names in Tables. For instance if the suffix is _ksql_statestore the state "
+            + "store name would be ksql_query_1_ksql_statestore"
+            + "_ksql_statestore ")
     .define(DEFAULT_SINK_NUMBER_OF_PARTITIONS,
             ConfigDef.Type.INT,
             defaultSinkNumberOfPartitions,
@@ -123,7 +127,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Type.SHORT,
             defaultSinkNumberOfReplications,
             ConfigDef.Importance.MEDIUM,
-            "The default number of replications for the topics created by KSQL."
+            "The default number of replicas for the topics created by KSQL."
             )
     .define(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
             ConfigDef.Type.LONG,

@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -94,10 +95,14 @@ public class CommandStore implements Closeable {
             String statementString,
             Statement statement,
             Map<String, Object> streamsProperties
-    ) throws Exception {
+    ) throws KsqlException {
         CommandId commandId = commandIdAssigner.getCommandId(statement);
         Command command = new Command(statementString, streamsProperties);
-        commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
+        try {
+            commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
+        } catch (Exception e) {
+            throw new KsqlException("Could not write the statement into the command topic.", e);
+        }
         return commandId;
     }
 

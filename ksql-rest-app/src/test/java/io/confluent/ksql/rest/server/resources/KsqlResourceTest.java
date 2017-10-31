@@ -78,6 +78,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -412,10 +413,10 @@ public class KsqlResourceTest {
     Response response2 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString2, Collections
         .EMPTY_MAP));
     KsqlEntityList result2 = (KsqlEntityList) response2.getEntity();
-    assertTrue("Incorrect response size.", result2.size() == 1);
+    assertThat("Incorrect response size.", result2.size(),  equalTo(1));
     assertThat(result2.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity2 = (ErrorMessageEntity) result2.get(0);
-    assertTrue(errorMessageEntity2.getErrorMessage().getMessage().equalsIgnoreCase("Invalid "
+    assertThat("", errorMessageEntity2.getErrorMessage().getMessage(), equalTo("Invalid "
                                                                                    + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
   }
 
@@ -427,10 +428,11 @@ public class KsqlResourceTest {
     Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
         .EMPTY_MAP));
     KsqlEntityList result = (KsqlEntityList) response.getEntity();
-    assertTrue("Incorrect response size.", result.size() == 1);
+    assertThat("Incorrect response size.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
-    assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Invalid result type. Your SELECT query produces a STREAM. Please use CREATE STREAM AS SELECT statement instead."));
+    assertThat(errorMessageEntity.getErrorMessage().getMessage(), equalTo("Invalid result type. Your "
+                                                                  + "SELECT query produces a STREAM. Please use CREATE STREAM AS SELECT statement instead."));
   }
 
 }

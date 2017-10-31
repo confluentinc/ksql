@@ -86,7 +86,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -171,7 +177,7 @@ public class KsqlResource {
       String statementText,
       Statement statement,
       Map<String, Object> streamsProperties
-  ) throws Exception {
+  ) throws KsqlException {
     if (statement instanceof ListTopics) {
       return listTopics(statementText);
     } else if (statement instanceof ListRegisteredTopics) {
@@ -210,17 +216,17 @@ public class KsqlResource {
       return distributeStatement(statementText, statement, streamsProperties);
     } else {
       if (statement != null) {
-        throw new Exception(String.format(
+        throw new KsqlException(String.format(
             "Cannot handle statement of type '%s'",
             statement.getClass().getSimpleName()
         ));
       } else if (statementText != null) {
-        throw new Exception(String.format(
+        throw new KsqlException(String.format(
             "Unable to execute statement '%s'",
             statementText
         ));
       } else {
-        throw new Exception("Unable to execute statement");
+        throw new KsqlException("Unable to execute statement");
       }
     }
   }
@@ -234,7 +240,7 @@ public class KsqlResource {
    * @throws Exception
    */
   private void validateStatement(Statement statement, String statementText,
-                                 Map<String, Object> streamsProperties) throws Exception {
+                                 Map<String, Object> streamsProperties) throws KsqlException {
     getStatementExecutionPlan(statement, statementText, streamsProperties);
   }
 
@@ -242,7 +248,7 @@ public class KsqlResource {
       String statementText,
       Statement statement,
       Map<String, Object> streamsProperties
-  ) throws Exception {
+  ) throws KsqlException {
     CommandId commandId =
         commandStore.distributeStatement(statementText, statement, streamsProperties);
     CommandStatus commandStatus;
@@ -253,6 +259,8 @@ public class KsqlResource {
       log.warn("Timeout to get commandStatus, waited {} milliseconds:, statementText:" + statementText,
                   distributedCommandResponseTimeout, exception);
       commandStatus = statementExecutor.getStatus(commandId).get();
+    } catch (Exception e) {
+      throw new KsqlException("Could not write the statement into the command topic.", e);
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);
   }
@@ -290,10 +298,10 @@ public class KsqlResource {
     return new Queries(statementText, runningQueries);
   }
 
-  private TopicDescription describeTopic(String statementText, String name) throws Exception {
+  private TopicDescription describeTopic(String statementText, String name) throws KsqlException {
     KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
     if (ksqlTopic == null) {
-      throw new Exception(String.format("Could not find Topic '%s' in the Metastore",
+      throw new KsqlException(String.format("Could not find Topic '%s' in the Metastore",
                                         name));
     }
     String schemaString = null;
@@ -307,11 +315,11 @@ public class KsqlResource {
     return topicDescription;
   }
 
-  private SourceDescription describe(String statementText, String name) throws Exception {
+  private SourceDescription describe(String statementText, String name) throws KsqlException {
 
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new Exception(String.format("Could not find STREAM/TABLE '%s' in the Metastore",
+      throw new KsqlException(String.format("Could not find STREAM/TABLE '%s' in the Metastore",
                                         name));
     }
     return new SourceDescription(statementText, dataSource);
@@ -330,13 +338,13 @@ public class KsqlResource {
   }
 
   private ExecutionPlan getStatementExecutionPlan(Explain explain, String statementText)
-      throws Exception {
+      throws KsqlException {
     return getStatementExecutionPlan(explain.getStatement(), statementText, Collections.emptyMap());
   }
 
   private ExecutionPlan getStatementExecutionPlan(Statement statement, String statementText,
                                                   Map<String, Object> properties)
-      throws Exception {
+      throws KsqlException {
 
     DDLCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
     if (ddlCommandTask != null) {

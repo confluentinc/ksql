@@ -45,6 +45,8 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.support.metrics.KsqlSupportMetricsAgent;
+import io.confluent.ksql.support.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -151,6 +153,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   public void start() throws Exception {
     super.start();
     commandRunnerThread.start();
+    Properties metricsProperties = new Properties();
+    metricsProperties.putAll(getConfiguration().getOriginals());
+    KsqlSupportMetricsAgent.initialize(KsqlModuleType.SERVER, metricsProperties);
   }
 
   @Override

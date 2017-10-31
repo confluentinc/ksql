@@ -30,6 +30,10 @@
             <artifactId>ksql-rest-app</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-support-metrics-client</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>javax.inject</groupId>

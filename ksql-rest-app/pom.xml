@@ -27,6 +27,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-support-metrics-client</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-json-serializer</artifactId>
         </dependency>

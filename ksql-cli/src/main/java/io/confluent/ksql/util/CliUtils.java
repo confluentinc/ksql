@@ -23,9 +23,11 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ConnectException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -82,9 +84,8 @@ public class CliUtils {
 
   public String readQueryFile(final String queryFilePath) throws IOException {
     StringBuilder sb = new StringBuilder();
-    BufferedReader br = null;
-    try {
-      br = new BufferedReader(new FileReader(queryFilePath));
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {
         sb.append(line);
@@ -93,10 +94,6 @@ public class CliUtils {
       }
     } catch (IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
-    } finally {
-      if (br != null) {
-        br.close();
-      }
     }
     return sb.toString();
   }

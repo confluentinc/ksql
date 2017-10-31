@@ -46,7 +46,7 @@ public class CommandStore implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
-    public static long POLLING_TIMEOUT_FOR_COMMAND_TOPIC = 5000;
+    private static final long POLLING_TIMEOUT_FOR_COMMAND_TOPIC = 5000;
 
     private final String commandTopic;
     private final Consumer<CommandId, Command> commandConsumer;

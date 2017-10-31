@@ -113,7 +113,7 @@ class QueryStreamWriter implements StreamingOutput {
 
   void write(OutputStream output, GenericRow row) throws IOException {
     objectMapper.writeValue(output, new StreamedRow(row));
-    output.write("\n".getBytes());
+    output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
   }
 

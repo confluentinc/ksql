@@ -455,9 +455,9 @@ TERMINATE query_id;
 Terminate a persistent query. Persistent queries run continuously until they are explicitly terminated.
 
 * In standalone mode, exiting the CLI will stop (think: "pause") any persistent queries because exiting the CLI will
-  also stop the KSQL engine.  When the CLI is restarted, the engine will be restarted, too, and any previously defined
+  also stop the KSQL server.  When the CLI is restarted, the server will be restarted, too, and any previously defined
   persistent queries will resume processing.
-* In client-server mode, exiting the CLI will not stop persistent queries because the KSQL engine(s) will continue to
+* In client-server mode, exiting the CLI will not stop persistent queries because the KSQL server(s) will continue to
   process the queries.
 
 (To terminate a non-persistent query use `Ctrl-C` in the CLI.)

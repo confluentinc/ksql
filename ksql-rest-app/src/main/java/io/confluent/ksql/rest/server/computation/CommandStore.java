@@ -46,6 +46,8 @@ public class CommandStore implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
+    private static final long POLLING_TIMEOUT_FOR_COMMAND_TOPIC = 5000;
+
     private final String commandTopic;
     private final Consumer<CommandId, Command> commandConsumer;
     private final Producer<CommandId, Command> commandProducer;
@@ -136,14 +138,14 @@ public class CommandStore implements Closeable {
         log.debug("Reading prior command records");
 
         List<ConsumerRecord<CommandId, Command>> result = new ArrayList<>();
-        ConsumerRecords<CommandId, Command> records = commandConsumer.poll(30000);
+        ConsumerRecords<CommandId, Command> records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         while (!records.isEmpty()) {
 
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
                 result.add(record);
             }
-            records = commandConsumer.poll(30000);
+            records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         }
         log.debug("Retrieved records:" + result.size());
         return result;

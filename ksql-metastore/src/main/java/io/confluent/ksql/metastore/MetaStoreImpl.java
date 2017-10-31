@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class MetaStoreImpl implements MetaStore {
+public class MetaStoreImpl implements MetaStore, Cloneable {
 
   private final Map<String, KsqlTopic> topicMap;
   private final Map<String, StructuredDataSource> dataSourceMap;

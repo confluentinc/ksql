@@ -14,6 +14,8 @@
   - [Aggregating, windowing, and sessionization](#aggregating)
   - [Working with arrays and maps](#working-with-arrays-and-maps)
 - [Configuring KSQL](#configuring-ksql)
+- [Running KSQL](#running-ksql)
+
 
 ## Overview
 
@@ -301,3 +303,18 @@ Common configuration properties that you might want to change from their default
 
 - [cache.max.bytes.buffering](https://kafka.apache.org/documentation/#streamsconfigs):
   The default value in KSQL is `10000000` (~ 10 MB);
+
+
+## Running KSQL
+
+KSQL supports various [modes of operation](concepts.md#modes-of-operation), including a standalone mode and a
+client-server mode.
+
+Additionally, you can also instruct KSQL to execute a single statement from the command line.
+The following example command runs the given `SELECT` statement and show the results in the terminal.  In this
+particular case, the query will run until 5 records have been found, and then terminate.
+
+```shell
+$ ksql-cli local --exec "SELECT * FROM pageviews LIMIT 5;"
+```
+

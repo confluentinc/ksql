@@ -141,7 +141,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private static Properties getProps(String propsFile) throws IOException {
     Properties result = new Properties();
     result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    result.load(new FileInputStream(propsFile));
+    try(final FileInputStream inputStream = new FileInputStream(propsFile)) {
+      result.load(inputStream);
+    }
     return result;
   }
 

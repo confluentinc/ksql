@@ -20,17 +20,25 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
 import javax.annotation.concurrent.Immutable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -84,10 +92,6 @@ public class ProjectNode
     return keyField;
   }
 
-  public List<Expression> getProjectExpressions() {
-    return projectExpressions;
-  }
-
   public List<Pair<String, Expression>> getProjectNameExpressionPairList() {
     if (schema.fields().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
@@ -103,5 +107,16 @@ public class ProjectNode
   @Override
   public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
     return visitor.visitProject(this, context);
+  }
+
+  @Override
+  public SchemaKStream buildStream(final StreamsBuilder builder,
+                                   final KsqlConfig ksqlConfig,
+                                   final KafkaTopicClient kafkaTopicClient,
+                                   final MetastoreUtil metastoreUtil,
+                                   final FunctionRegistry functionRegistry,
+                                   final Map<String, Object> props) {
+    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, props)
+        .select(getProjectNameExpressionPairList());
   }
 }

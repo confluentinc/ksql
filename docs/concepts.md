@@ -10,16 +10,17 @@
 - [Modes of operation](#modes-of-operation)
 
 # Components
-The main components of KSQL are CLI, engine, and the REST interface.
+The main components of KSQL are the KSQL CLI and the KSQL server.
 
-#### CLI
-Provides a familiar interface, designed users of MySQL, Postgres, etc.
+#### KSQL CLI
+The KSQL CLI allows you to interactively write KSQL queries.
+Its interface should be familiar to users of MySQL, Postgres, Oracle, Hive, Presto, etc.
 
-#### Engine
-Performs the data processing.
+The KSQL CLI acts as a client to the KSQL server (see next section).
 
-#### REST interface
-Enables an engine to receive instructions from the CLI.
+#### KSQL Server
+The KSQL server runs the engine that executes KSQL queries, which includes the data processing as well as reading
+data from and writing data to the target Kafka cluster.
 
 # Terminology
 When using KSQL, the following terminology is used.

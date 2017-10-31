@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import org.apache.kafka.common.utils.Utils;
+
 import io.confluent.ksql.rest.entity.CommandStatus;
 
 import java.util.concurrent.Future;
@@ -56,35 +58,28 @@ public class CommandStatusFuture implements Future<CommandStatus> {
 
   @Override
   public CommandStatus get() throws InterruptedException {
-    synchronized (result) {
-      while (result.get() == null) {
-        result.wait();
-      }
-      cleanup.run(commandId);
-      return result.get();
+    while (result.get() == null) {
+      result.wait();
     }
+    cleanup.run(commandId);
+    return result.get();
   }
 
   @Override
   public CommandStatus get(long timeout, TimeUnit unit)
           throws InterruptedException, TimeoutException {
     long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
-    synchronized (result) {
-      while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
-        result.wait(Math.max(1, endTimeMs - System.currentTimeMillis()));
-      }
-      if (result.get() == null) {
-        throw new TimeoutException();
-      }
-      cleanup.run(commandId);
-      return result.get();
+    while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
+      Utils.sleep(1);
     }
+    if (result.get() == null) {
+      throw new TimeoutException();
+    }
+    cleanup.run(commandId);
+    return result.get();
   }
 
   public void complete(CommandStatus result) {
-    synchronized (this.result) {
-      this.result.set(result);
-      this.result.notifyAll();
-    }
+    this.result.set(result);
   }
 }

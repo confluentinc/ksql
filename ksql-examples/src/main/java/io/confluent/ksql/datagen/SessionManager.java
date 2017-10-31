@@ -91,17 +91,14 @@ public class SessionManager {
   }
 
   public String getActiveSessionThatHasExpired() {
-    String expiredToken = null;
-    for (String s : activeSessions.keySet()) {
-      if (activeSessions.get(s).isExpired()) {
-        expiredToken = s;
-      }
-    }
-    if (expiredToken != null) {
-      expiredSessions.put(expiredToken, activeSessions.remove(expiredToken));
-    }
+    return activeSessions.entrySet().stream()
+        .filter(entry -> entry.getValue().isExpired())
+        .findFirst()
+        .map(entry -> {
+          expiredSessions.put(entry.getKey(), activeSessions.remove(entry.getKey()));
+          return entry.getKey();
+        }).orElse(null);
 
-    return expiredToken;
   }
 
   public String getToken(String s) {

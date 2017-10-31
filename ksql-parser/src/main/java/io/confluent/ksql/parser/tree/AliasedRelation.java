@@ -46,7 +46,7 @@ public class AliasedRelation
     requireNonNull(alias, " is null");
 
     this.relation = relation;
-    this.alias = alias;
+    this.alias = alias.toUpperCase();
     this.columnNames = columnNames;
   }
 

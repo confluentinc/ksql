@@ -57,7 +57,7 @@ connect is [UP]
     $ mvn clean compile install -DskipTests
     ```
 
-1.  Start KSQL. The `local` argument starts the KSQL engine locally.
+1.  Start KSQL. The `local` argument starts KSQL in [standalone mode](/docs/concepts.md#modes-of-operation).
 
     ```bash
     $ ./bin/ksql-cli local

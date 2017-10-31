@@ -32,6 +32,7 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -80,7 +81,7 @@ class QueryStreamWriter implements StreamingOutput {
         } else {
           // If no new rows have been written, the user may have terminated the connection without
           // us knowing. Check by trying to write a single newline.
-          out.write("\n".getBytes());
+          out.write("\n".getBytes(StandardCharsets.UTF_8));
           out.flush();
         }
         if (streamsException != null) {
@@ -96,13 +97,13 @@ class QueryStreamWriter implements StreamingOutput {
       log.warn("Interrupted while writing to connection stream");
     } catch (Throwable exception) {
       log.error("Exception occurred while writing to connection stream: ", exception);
-      out.write("\n".getBytes());
+      out.write("\n".getBytes(StandardCharsets.UTF_8));
       if (exception.getCause() instanceof KsqlException) {
         objectMapper.writeValue(out, new StreamedRow(exception.getCause()));
       } else {
         objectMapper.writeValue(out, new StreamedRow(exception));
       }
-      out.write("\n".getBytes());
+      out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
 
     } finally {

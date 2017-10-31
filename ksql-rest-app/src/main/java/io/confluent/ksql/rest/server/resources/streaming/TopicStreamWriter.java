@@ -41,6 +41,7 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +119,7 @@ public class TopicStreamWriter implements StreamingOutput {
         ConsumerRecords<?, ?> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
           synchronized (out) {
-            out.write("\n".getBytes());
+            out.write("\n".getBytes(StandardCharsets.UTF_8));
             out.flush();
           }
         } else {
@@ -142,8 +143,8 @@ public class TopicStreamWriter implements StreamingOutput {
     } catch (Exception exception) {
       log.error("Exception encountered while writing to output stream", exception);
       synchronized (out) {
-        out.write(exception.getMessage().getBytes());
-        out.write("\n".getBytes());
+        out.write(exception.getMessage().getBytes(StandardCharsets.UTF_8));
+        out.write("\n".getBytes(StandardCharsets.UTF_8));
         out.flush();
       }
     } finally {
@@ -159,15 +160,15 @@ public class TopicStreamWriter implements StreamingOutput {
         .toString(): "null");
     objectNode.setAll((ObjectNode) jsonNode);
     objectMapper.writeValue(out, objectNode);
-    out.write("\n".getBytes());
+    out.write("\n".getBytes(StandardCharsets.UTF_8));
     out.flush();
   }
 
   private void printAvroOrDelimitedValue(OutputStream out, ConsumerRecord<?, ?> record) throws
                                                                                    IOException {
     out.write((record.timestamp() + " , " +record.key().toString() + " , " + record.value()
-        .toString()).getBytes());
-    out.write("\n".getBytes());
+        .toString()).getBytes(StandardCharsets.UTF_8));
+    out.write("\n".getBytes(StandardCharsets.UTF_8));
     out.flush();
   }
 

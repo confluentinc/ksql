@@ -14,183 +14,85 @@
 
 package io.confluent.ksql.physical;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.planner.LogicalPlanner;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryMetadata;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
 public class PhysicalPlanBuilderTest {
+  private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private PhysicalPlanBuilder physicalPlanBuilder;
+  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private LogicalPlanBuilder planBuilder;
 
+  @Before
+  public void before() {
+    final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    final FunctionRegistry functionRegistry = new FunctionRegistry();
+    Map<String, Object> configMap = new HashMap<>();
+    configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+    configMap.put("application.id", "KSQL");
+    configMap.put("commit.interval.ms", 0);
+    configMap.put("cache.max.bytes.buffering", 0);
+    configMap.put("auto.offset.reset", "earliest");
+    physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder,
+        new KsqlConfig(configMap),
+        new FakeKafkaTopicClient(),
+        new MetastoreUtil(),
+        functionRegistry,
+        false,
+        Collections.emptyMap(),
+        false,
+        metaStore,
+        1);
+    planBuilder = new LogicalPlanBuilder(metaStore);
+  }
 
-    StreamsBuilder streamsBuilder;
-    KsqlParser ksqlParser;
-    PhysicalPlanBuilder physicalPlanBuilder;
-    MetaStore metaStore;
-    FunctionRegistry functionRegistry;
-
-    @Before
-    public void before() {
-        streamsBuilder = new StreamsBuilder();
-        ksqlParser = new KsqlParser();
-        metaStore = MetaStoreFixture.getNewMetaStore();
-      functionRegistry = new FunctionRegistry();
-        Map<String, Object> configMap = new HashMap<>();
-        configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        configMap.put("application.id", "KSQL");
-        configMap.put("commit.interval.ms", 0);
-        configMap.put("cache.max.bytes.buffering", 0);
-        configMap.put("auto.offset.reset", "earliest");
-        physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder, new KsqlConfig(configMap),
-                                                      new FakeKafkaTopicClient(), new
-                                                          MetastoreUtil(), functionRegistry);
-    }
-
-    private SchemaKStream buildPhysicalPlan(String queryStr) throws Exception {
-        List<Statement> statements = ksqlParser.buildAst(queryStr, metaStore);
-        // Analyze the query to resolve the references and extract oeprations
-        Analysis analysis = new Analysis();
-        Analyzer analyzer = new Analyzer(analysis, metaStore);
-        analyzer.process(statements.get(0), new AnalysisContext(null));
-
-        AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-        AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-                                                                    analysis, functionRegistry);
-        AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
-            (functionRegistry);
-        for (Expression expression: analysis.getSelectExpressions()) {
-            aggregateAnalyzer.process(expression, new AnalysisContext(null));
-            if (!aggregateAnalyzer.isHasAggregateFunction()) {
-                aggregateAnalysis.getNonAggResultColumns().add(expression);
-            }
-            aggregateAnalysis.getFinalSelectExpressions().add(
-                ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-            aggregateAnalyzer.setHasAggregateFunction(false);
-        }
-        // Build a logical plan
-        PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-        SchemaKStream schemaKStream =  physicalPlanBuilder.buildPhysicalPlan(logicalPlan);
-        return schemaKStream;
-    }
-
-  @Test
-  public void should() throws Exception {
-    buildPhysicalPlan("SELECT col1, col2 FROM test1 LIMIT 5;");
+  private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
+    final PlanNode logical = planBuilder.buildLogicalPlan(query);
+    return physicalPlanBuilder.buildPhysicalPlan(new Pair<>(query, logical));
   }
 
   @Test
-  public void testSimpleSelect() throws Exception {
-    String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
-    Assert.assertNotNull(schemaKStream);
-    Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
-        .size() == 6);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
+  public void shouldHaveKStreamDataSource() throws Exception {
+    final QueryMetadata metadata = buildPhysicalPlan(simpleSelectFilter);
+    assertThat(metadata.getDataSourceType(), equalTo(DataSource.DataSourceType.KSTREAM));
   }
 
   @Test
-  public void testSimpleLeftJoinLogicalPlan() throws Exception {
-    String
-        simpleQuery =
-        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col1;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
-    Assert.assertNotNull(schemaKStream);
-    Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase
-        ("T1_COL1"));
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.STRING_SCHEMA);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(3).name().equalsIgnoreCase
-        ("COL5"));
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
-        .size() == 11);
+  public void shouldHaveOutputNode() throws Exception {
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+    assertThat(queryMetadata.getOutputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
   @Test
-  public void testSimpleLeftJoinFilterLogicalPlan() throws Exception {
-    String
-        simpleQuery =
-        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON "
-            + "t1.col1 = t2.col1 WHERE t1.col0 > 10 AND t2.col3 = 10.8;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(simpleQuery);
-    Assert.assertNotNull(schemaKStream);
-    Assert.assertTrue(schemaKStream.getSchema().fields().size() == 5);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(1).name().equalsIgnoreCase
-        ("T2_COL1"));
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields()
-        .size() == 11);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().get(0).getSourceSchemaKStreams().size() == 2);
-  }
-
-  @Test
-  public void testSimpleAggregate() throws Exception {
-    String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "WHERE col0 > 100 GROUP BY col0;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
-    Assert.assertNotNull(schemaKStream);
-    Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().get(0).name().equalsIgnoreCase("TEST1.COL0"));
-  }
-
-  @Test
-  public void testSimpleAggregateNoWindow() throws Exception {
+  public void shouldCreateExecutionPlan() throws Exception {
     String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
         + "WHERE col0 > 100 GROUP BY col0;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
-    Assert.assertNotNull(schemaKStream);
-    Assert.assertTrue(schemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name().equalsIgnoreCase("COL0"));
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(1).schema() == Schema.FLOAT64_SCHEMA);
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0).getSchema().fields().size() == 4);
-    Assert.assertTrue(schemaKStream.getSchema().fields().get(0).name()
-        .equalsIgnoreCase("COL0"));
-    Assert.assertTrue(schemaKStream.getSourceSchemaKStreams().get(0) instanceof SchemaKTable);
-    Assert.assertTrue(((SchemaKTable) schemaKStream.getSourceSchemaKStreams().get(0))
-        .isWindowed() == false);
-  }
-
-  @Test
-  public void testExecutionPlan() throws Exception {
-    String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
-        + "WHERE col0 > 100 GROUP BY col0;";
-    SchemaKStream schemaKStream = buildPhysicalPlan(queryString);
-    String planText = schemaKStream.getExecutionPlan("");
+    final QueryMetadata metadata = buildPhysicalPlan(queryString);
+    final String planText = metadata.getExecutionPlan();
     String[] lines = planText.split("\n");
     Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , KSQL_COL_1 : FLOAT64 "
         + ", KSQL_COL_2 : INT64].");

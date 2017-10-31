@@ -19,10 +19,12 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SerDeUtil;
@@ -59,6 +61,7 @@ public class SchemaKStream {
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   protected final Type type;
   protected final FunctionRegistry functionRegistry;
+  private OutputNode output;
 
   public SchemaKStream(final Schema schema,
                        final KStream<String, GenericRow> kstream,
@@ -100,7 +103,7 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream filter(final Expression filterExpression) throws Exception {
+  public SchemaKStream filter(final Expression filterExpression) {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, functionRegistry);
     KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
@@ -123,8 +126,7 @@ public class SchemaKStream {
                              Type.PROJECT, functionRegistry);
   }
 
-  public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList)
-      throws Exception {
+  public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList) {
     final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 
     return new SchemaKStream(schemaAndMapper.left,
@@ -132,20 +134,24 @@ public class SchemaKStream {
                              Type.PROJECT, functionRegistry);
   }
 
-  Pair<Schema, SelectValueMapper> createSelectValueMapperAndSchema(final List<Pair<String, Expression>> expressionPairList) throws Exception {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-    for (Pair<String, Expression> expressionPair : expressionPairList) {
-      final ExpressionMetadata
-          expressionEvaluator =
-          codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());
-      schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
-      expressionEvaluators.add(expressionEvaluator);
+  Pair<Schema, SelectValueMapper> createSelectValueMapperAndSchema(final List<Pair<String, Expression>> expressionPairList)  {
+    try {
+      final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+      final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+      final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
+      for (Pair<String, Expression> expressionPair : expressionPairList) {
+        final ExpressionMetadata
+            expressionEvaluator =
+            codeGenRunner.buildCodeGenFromParseTree(expressionPair.getRight());
+        schemaBuilder.field(expressionPair.getLeft(), expressionEvaluator.getExpressionType());
+        expressionEvaluators.add(expressionEvaluator);
+      }
+      return new Pair<>(schemaBuilder.build(), new SelectValueMapper(genericRowValueTypeEnforcer,
+          expressionPairList,
+          expressionEvaluators));
+    } catch (Exception e) {
+      throw new KsqlException("Code generation failed for SelectValueMapper", e);
     }
-    return new Pair<>(schemaBuilder.build(), new SelectValueMapper(genericRowValueTypeEnforcer,
-        expressionPairList,
-        expressionEvaluators));
   }
 
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable,
@@ -228,4 +234,11 @@ public class SchemaKStream {
     return stringBuilder.toString();
   }
 
+  public OutputNode outputNode() {
+    return output;
+  }
+
+  public void setOutputNode(final OutputNode output) {
+    this.output = output;
+  }
 }

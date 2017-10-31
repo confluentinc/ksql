@@ -102,7 +102,7 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable filter(final Expression filterExpression) throws Exception {
+  public SchemaKTable filter(final Expression filterExpression)  {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed,
                                               functionRegistry);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
@@ -111,7 +111,7 @@ public class SchemaKTable extends SchemaKStream {
   }
 
   @Override
-  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) throws Exception {
+  public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
 
     final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
 

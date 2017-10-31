@@ -1,0 +1,42 @@
+{
+  "namespace": "io.confluent.ksql.support.metrics",
+  "type": "record",
+  "name": "KsqlBasicMetrics",
+  "doc": "Represents basic metrics captured on a single ksql component",
+  "fields": [
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Time when this data record was created on the ksql component (Unix time)."
+    },
+    {
+      "name": "confluentPlatformVersion",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "The version of the Confluent Platform this kql component is running."
+    },
+    {
+      "name": "collectorState",
+      "type": "int",
+      "doc": "The state of the collector (e.g., Running or Shutting down)."
+    },
+    {
+      "name": "ksqlComponentType",
+      "type": "string",
+      "doc": "Identifies the ksql component"
+    },
+    {
+      "name": "ksqlComponentUUID",
+      "type": "string",
+      "doc": "A unique identifier that is valid for the runtime of a component.  The identifieris generated at component startup and lost at shutdown/crash."
+    },
+    {
+      "name": "serviceId",
+      "type": "string",
+      "doc": "A unique identifier for the ksql engine.",
+      "default": "NA"
+    }
+  ]
+}

@@ -29,6 +29,10 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-support-metrics-client</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

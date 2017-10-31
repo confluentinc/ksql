@@ -38,7 +38,7 @@
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
-        <avro.version>1.8.1</avro.version>
+        <avro.version>1.8.2</avro.version>
         <csv.version>1.4</csv.version>
         <docker.registry></docker.registry>
         <docker.tag>${project.version}</docker.tag>

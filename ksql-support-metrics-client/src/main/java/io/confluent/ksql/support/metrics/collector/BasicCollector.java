@@ -32,6 +32,7 @@ public class BasicCollector extends Collector {
   private final Uuid uuid;
   private final KsqlModuleType moduleType;
   private final String serviceId;
+  private final String customerId;
 
   public BasicCollector(
       KsqlModuleType moduleType,
@@ -42,6 +43,7 @@ public class BasicCollector extends Collector {
     this.moduleType = moduleType;
     this.serviceId = ksqlSupportConfig.getProperties()
         .getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    this.customerId = ksqlSupportConfig.getCustomerId();
   }
 
   @Override
@@ -53,6 +55,7 @@ public class BasicCollector extends Collector {
     metricsRecord.setKsqlComponentUUID(uuid.toString());
     metricsRecord.setKsqlComponentType(moduleType.name());
     metricsRecord.setServiceId(serviceId);
+    metricsRecord.setCustomerId(customerId);
     return metricsRecord;
   }
 }

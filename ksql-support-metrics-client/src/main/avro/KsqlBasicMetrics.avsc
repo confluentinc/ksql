@@ -37,6 +37,12 @@
       "type": "string",
       "doc": "A unique identifier for the ksql engine.",
       "default": "NA"
+    },
+    {
+      "name": "customerId",
+      "type": "string",
+      "doc": "Customer Id provided by confluent",
+      "default": "anonymous"
     }
   ]
 }

@@ -61,8 +61,8 @@ public class EndToEndIntegrationTest {
 
   private Map<String, RecordMetadata> pageViewTopicMessages;
 
-  private final String pageViewStream = "pageview_stream";
-  private final String userTable = "user_table";
+  private final String pageViewStream = "pageviews_original";
+  private final String userTable = "users_original";
 
   @Before
   public void before() throws Exception {
@@ -82,9 +82,9 @@ public class EndToEndIntegrationTest {
 
     pageViewDataProvider = new PageViewDataProvider();
     userDataProvider = new UserDataProvider();
-    pageViewTopicMessages = testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
     testHarness.publishTestData(usersTopic, userDataProvider, System.currentTimeMillis());
-
+    Thread.sleep(3000);
+    pageViewTopicMessages = testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
   }
 
   @After

@@ -111,7 +111,7 @@ public class KsqlContext {
   public Set<QueryMetadata> getRunningQueries() {
     return ksqlEngine.getLiveQueries();
   }
-  
+
   public KsqlEngine getKsqlEngine() {
     return ksqlEngine;
   }

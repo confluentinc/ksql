@@ -101,7 +101,9 @@ public class CommandStore implements Closeable {
         try {
             commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
         } catch (Exception e) {
-            throw new KsqlException("Could not write the statement into the command topic.", e);
+            throw new KsqlException(String.format("Could not write the statement '%s' into the "
+                                                  + "command topic"
+                                           + ".", statementString), e);
         }
         return commandId;
     }

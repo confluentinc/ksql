@@ -399,19 +399,18 @@ public class KsqlResourceTest {
     String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
     Response response1 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString1, Collections
-        .EMPTY_MAP));
+        .emptyMap()));
     KsqlEntityList result1 = (KsqlEntityList) response1.getEntity();
     assertTrue("Incorrect response size.", result1.size() == 1);
     assertThat(result1.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity1 = (ErrorMessageEntity) result1.get(0);
-    assertTrue(errorMessageEntity1.getErrorMessage().getMessage().equalsIgnoreCase("Invalid "
-                                                                                   + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
+    assertThat("", errorMessageEntity1.getErrorMessage().getMessage(), equalTo("Invalid result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
 
     String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
                          + "s2_f1;";
 
     Response response2 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString2, Collections
-        .EMPTY_MAP));
+        .emptyMap()));
     KsqlEntityList result2 = (KsqlEntityList) response2.getEntity();
     assertThat("Incorrect response size.", result2.size(),  equalTo(1));
     assertThat(result2.get(0), instanceOf(ErrorMessageEntity.class));
@@ -426,7 +425,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE TABLE s1 AS SELECT * FROM test_stream;";
 
     Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
-        .EMPTY_MAP));
+        .emptyMap()));
     KsqlEntityList result = (KsqlEntityList) response.getEntity();
     assertThat("Incorrect response size.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));

@@ -220,13 +220,11 @@ public class KsqlResource {
             "Cannot handle statement of type '%s'",
             statement.getClass().getSimpleName()
         ));
-      } else if (statementText != null) {
+      } else {
         throw new KsqlException(String.format(
             "Unable to execute statement '%s'",
             statementText
         ));
-      } else {
-        throw new KsqlException("Unable to execute statement");
       }
     }
   }
@@ -260,7 +258,8 @@ public class KsqlResource {
                   distributedCommandResponseTimeout, exception);
       commandStatus = statementExecutor.getStatus(commandId).get();
     } catch (Exception e) {
-      throw new KsqlException("Could not write the statement into the command topic.", e);
+      throw new KsqlException(String.format("Could not write the statement '%s' into the command "
+                                            + "topic.", statementText), e);
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);
   }

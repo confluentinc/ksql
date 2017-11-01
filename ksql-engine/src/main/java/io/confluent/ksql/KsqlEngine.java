@@ -330,7 +330,7 @@ public class KsqlEngine implements Closeable {
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
             querySpecification.getSelect(),
-            Optional.of(intoTable),
+            intoTable,
             querySpecification.getFrom(),
             querySpecification.getWindowExpression(),
             querySpecification.getWhere(),

@@ -321,7 +321,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource into;
     if (node.isStdOut) {
-      into =
+        into =
           new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
                          null, StructuredDataSource.DataSourceType.KSTREAM);
 

@@ -466,16 +466,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
+    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS) != null) {
       try {
         short numberOfReplications =
-            Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
+            Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS)
                                  .toString());
         analysis.getIntoProperties()
-            .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY, numberOfReplications);
+            .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
       } catch (NumberFormatException e) {
         throw new KsqlException("Invalid number of replications in WITH clause: " + node
-            .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+            .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS).toString());
       }
     }
   }
@@ -541,7 +541,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
     validSet.add(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
     validSet.add(KsqlConfig.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
-    validSet.add(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS.toUpperCase());
+    validSet.add(KsqlConfig.SINK_NUMBER_OF_REPLICAS.toUpperCase());
 
     for (String withVariable: withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

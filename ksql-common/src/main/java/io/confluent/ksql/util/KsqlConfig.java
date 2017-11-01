@@ -36,18 +36,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
-  public static final String DEFAULT_SINK_NUMBER_OF_PARTITIONS = "ksql.sink.partitions.default";
 
-  public static final String SINK_NUMBER_OF_REPLICATIONS = "REPLICATIONS";
-  public static final String SINK_NUMBER_OF_REPLICATIONS_PROPERTY = "ksql.sink.replications";
-  public static final String DEFAULT_SINK_NUMBER_OF_REPLICATIONS = "ksql.sink.replications.default";
+  public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
+  public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
-  public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
-      "ksql.sink.window.change.log.additional.retention.default";
 
   public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
 
@@ -118,18 +114,18 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Suffix for state store names in Tables. For instance if the suffix is _ksql_statestore the state "
             + "store name would be ksql_query_1_ksql_statestore"
             + "_ksql_statestore ")
-    .define(DEFAULT_SINK_NUMBER_OF_PARTITIONS,
+    .define(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,
             defaultSinkNumberOfPartitions,
             ConfigDef.Importance.MEDIUM,
             "The default number of partitions for the topics created by KSQL.")
-    .define(DEFAULT_SINK_NUMBER_OF_REPLICATIONS,
+    .define(SINK_NUMBER_OF_REPLICAS_PROPERTY,
             ConfigDef.Type.SHORT,
             defaultSinkNumberOfReplications,
             ConfigDef.Importance.MEDIUM,
             "The default number of replicas for the topics created by KSQL."
             )
-    .define(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION,
+    .define(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
             ConfigDef.Type.LONG,
             defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
@@ -144,32 +140,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     ksqlConfigProps = new HashMap<>();
     ksqlStreamConfigProps = new HashMap<>();
-    ksqlConfigProps.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
-    ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-    ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
-    ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
-
-    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-                          Integer.parseInt(props.get(DEFAULT_SINK_NUMBER_OF_PARTITIONS).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, defaultSinkNumberOfPartitions);
-    }
-
-    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY,
-                          Short.parseShort(props.get(DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, defaultSinkNumberOfReplications);
-    }
-
-    if (props.containsKey(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION)) {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
-                          Long.parseLong(props.get(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
-                          defaultSinkWindowChangeLogAdditionalRetention);
-    }
+    ksqlConfigProps.putAll(super.values());
 
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
     ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
@@ -177,7 +148,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
     ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
 
-    for (Map.Entry<?, ?> entry : props.entrySet()) {
+    for (Map.Entry<?, ?> entry : originals().entrySet()) {
       final String key = entry.getKey().toString();
       if (key.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
         ksqlConfigProps.put(key, entry.getValue());

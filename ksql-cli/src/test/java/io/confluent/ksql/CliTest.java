@@ -163,7 +163,7 @@ public class CliTest extends TestRunner {
     Map<String, Object> startConfigs = genDefaultConfigMap();
     startConfigs.put("num.stream.threads", 4);
 
-    startConfigs.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, 1);
+    startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
     startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY, 1000000);
 

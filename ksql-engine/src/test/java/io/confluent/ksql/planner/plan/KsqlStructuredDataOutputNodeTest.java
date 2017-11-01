@@ -90,7 +90,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void before() {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
-    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY, (short)3);
+    props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
     createOutputNode(props);
     topicClient.createTopic(eq("output"), anyInt(), anyShort());
     EasyMock.expectLastCall();
@@ -156,7 +156,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldUpdateReplicationPartitionsInConfig() {
-    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY), equalTo(Integer.valueOf(3).shortValue()));
+    assertThat(ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo(Integer.valueOf(3).shortValue()));
   }
 
   @Test

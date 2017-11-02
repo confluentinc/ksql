@@ -31,4 +31,55 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
     <Match>
         <Class name="io.confluent.ksql.parser.SqlBaseParser"/>
     </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$BooleanExpressionContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$PrimaryExpressionContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$QueryTermContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$TypeContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$ValueExpressionContext "/>
+    </Match>
+
+
+    <!-- other issues we should fix in the future -->
+    <Match>
+        <Class name="io.confluent.ksql.util.KsqlConfig"/>
+        <Method name="clone"/>
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.metastore.MetaStoreImpl"/>
+        <Method name="clone"/>
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.util.ExpressionMetadata"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.util.GenericRowValueTypeEnforcer"/>
+        <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+        <Method name="enforceBoolean"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.avro.random.generator.Generator$BooleanIterator"/>
+        <Bug pattern="IT_NO_SUCH_ELEMENT"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.metastore.MetaStoreUtil"/>
+        <Method name="buildAvroSchema"/>
+        <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
+    </Match>
 </FindBugsFilter>

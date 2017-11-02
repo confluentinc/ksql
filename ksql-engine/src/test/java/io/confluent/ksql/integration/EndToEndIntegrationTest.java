@@ -89,7 +89,6 @@ public class EndToEndIntegrationTest {
     ksqlContext.sql(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
             "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic));
 
-
   }
 
   @After
@@ -102,7 +101,8 @@ public class EndToEndIntegrationTest {
   public void testKSQLFromEndToEnd() throws Exception {
     validateSelectFromPageViewsWithSpecificColumn();
     validateSelectAllFromUsers();
-    validateSelectAllFromDerivedStream();
+    String derivedStream = validateSelectAllFromDerivedStream();
+    validateCreateStreamUsingLikeClause(derivedStream);
   }
 
   private void validateSelectAllFromUsers() throws Exception {
@@ -156,17 +156,14 @@ public class EndToEndIntegrationTest {
         assertEquals(1, columns.size());
         String page = (String) columns.get(0);
         actualPages.add(page);
-        log.debug("Pageview : {}", page);
       }
     }
 
     assertEquals(expectedPages, actualPages);
-
     queryMetadata.getKafkaStreams().close();
-
   }
 
-  private void validateSelectAllFromDerivedStream() throws Exception {
+  private String validateSelectAllFromDerivedStream() throws Exception {
 
     String derivedStream = "pageviews_female";
     createPageViewsFemaleStream(derivedStream);
@@ -212,6 +209,47 @@ public class EndToEndIntegrationTest {
 
     assertEquals(expectedPages, actualPages);
     assertEquals(expectedUsers, actualUsers);
+
+    return derivedStream;
+  }
+
+  private void validateCreateStreamUsingLikeClause(String inputStream) throws Exception {
+    String outputStream = createStreamUsingLikeClause(inputStream);
+    String selectPageViewsFromRegion = String.format("SELECT userid, pageid from %s;", outputStream);
+    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, selectPageViewsFromRegion,
+            Collections.emptyMap());
+
+    assertEquals(1, queries.size());
+    assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
+
+    QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) queries.get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+
+    List<String> actualPages = new ArrayList<>();
+    List<String> expectedPages = Arrays.asList("PAGE_5");
+    while (actualPages.size() < 1) {
+      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      if (nextRow != null) {
+        List<Object> columns = nextRow.value.getColumns();
+        assertEquals(2, columns.size());
+        log.debug("pageview from region 0: {}", nextRow.value.getColumns());
+        actualPages.add((String) columns.get(1));
+      }
+    }
+
+    assertEquals(expectedPages, actualPages);
+    queryMetadata.getKafkaStreams().close();
+  }
+
+  private String createStreamUsingLikeClause(String inputStream) throws Exception {
+    String outputStream = "pageviews_female_like_r0";
+    String createStatement = String.format("CREATE STREAM %s WITH (kafka_topic='pageviews_enriched_r0', " +
+            "value_format='DELIMITED') AS SELECT * FROM %s WHERE regionid LIKE '%%_0';", outputStream, inputStream);
+
+    ksqlContext.sql(createStatement);
+    return outputStream;
   }
 
   private PersistentQueryMetadata createPageViewsFemaleStream(String streamName) throws Exception {

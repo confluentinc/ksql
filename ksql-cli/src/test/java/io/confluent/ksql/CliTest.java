@@ -147,8 +147,6 @@ public class CliTest extends TestRunner {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
-    configMap.put("ksql.command.topic.suffix", "commands");
-
     return configMap;
   }
 

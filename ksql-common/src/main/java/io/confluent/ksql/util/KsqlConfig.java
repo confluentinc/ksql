@@ -150,9 +150,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     for (Map.Entry<?, ?> entry : originals().entrySet()) {
       final String key = entry.getKey().toString();
-      if (key.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
-        ksqlConfigProps.put(key, entry.getValue());
-      } else {
+      if (!key.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
         ksqlStreamConfigProps.put(key, entry.getValue());
       }
     }

@@ -112,10 +112,6 @@ public class KsqlContext {
     return ksqlEngine.getLiveQueries();
   }
 
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
-  }
-
   public void close() throws IOException {
     ksqlEngine.close();
     topicClient.close();

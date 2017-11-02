@@ -17,11 +17,16 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.Time;
@@ -58,7 +63,7 @@ import static org.testng.Assert.assertNotNull;
 public class EndToEndIntegrationTest {
   private static final Logger log = LoggerFactory.getLogger(EndToEndIntegrationTest.class);
   private IntegrationTestHarness testHarness;
-  private KsqlContext ksqlContext;
+  private KsqlEngine ksqlEngine;
 
   private PageViewDataProvider pageViewDataProvider;
   private UserDataProvider userDataProvider;
@@ -73,10 +78,14 @@ public class EndToEndIntegrationTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
-    Map<String, Object> ksqlConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
-    ksqlConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    Map<String, Object> streamsConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
+    streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    ksqlContext = KsqlContext.create(ksqlConfig);
+    KsqlConfig ksqlconfig = new KsqlConfig(streamsConfig);
+    AdminClient adminClient = AdminClient.create(ksqlconfig.getKsqlAdminClientConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+
+    ksqlEngine = new KsqlEngine(ksqlconfig, topicClient);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -87,17 +96,15 @@ public class EndToEndIntegrationTest {
     testHarness.publishTestData(usersTopic, userDataProvider, System.currentTimeMillis() - 10000);
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
-    ksqlContext.sql(String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
-            "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic));
-
-    ksqlContext.sql(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
-            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic));
-
+    ksqlEngine.buildMultipleQueries(false, String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
+            "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic), Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(false, String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
+            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic), Collections.emptyMap());
   }
 
   @After
   public void after() throws Exception {
-    ksqlContext.close();
+    ksqlEngine.close();
     testHarness.stop();
   }
 
@@ -113,7 +120,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT * from %s;", userTable);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -141,7 +148,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT pageid from %s;", pageViewStream);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -174,7 +181,7 @@ public class EndToEndIntegrationTest {
 
     String selectQuery = String.format("SELECT * from %s;", derivedStream);
 
-    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, selectQuery, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectQuery, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -227,7 +234,7 @@ public class EndToEndIntegrationTest {
   private void validateCreateStreamUsingLikeClause(String inputStream) throws Exception {
     String outputStream = createStreamUsingLikeClause(inputStream);
     String selectPageViewsFromRegion = String.format("SELECT userid, pageid from %s;", outputStream);
-    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, selectPageViewsFromRegion,
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectPageViewsFromRegion,
             Collections.emptyMap());
 
     assertEquals(1, queries.size());
@@ -261,7 +268,9 @@ public class EndToEndIntegrationTest {
     String createStatement = String.format("CREATE STREAM %s WITH (kafka_topic='pageviews_enriched_r0', " +
             "value_format='DELIMITED') AS SELECT * FROM %s WHERE regionid LIKE '%%_0';", outputStream, inputStream);
 
-    ksqlContext.sql(createStatement);
+    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(false, createStatement, Collections.emptyMap());
+    assertEquals(1, queryMetadata.size());
+    queryMetadata.get(0).getKafkaStreams().start();
     return outputStream;
   }
 
@@ -273,7 +282,7 @@ public class EndToEndIntegrationTest {
 
     log.debug("Creating {} using: {}", streamName, createStreamStatement);
 
-    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, createStreamStatement,
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, createStreamStatement,
             Collections.emptyMap());
 
     assertEquals(1, queries.size());

@@ -24,9 +24,11 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -190,9 +193,16 @@ public class EndToEndIntegrationTest {
     List<String> actualUsers = new ArrayList<>();
 
     while (results.size() < 3) {
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      log.debug("polling from {}", derivedStream);
+      KeyValue<String, GenericRow> nextRow = rowQueue.poll(8000, TimeUnit.MILLISECONDS);
       if (nextRow != null) {
         results.add(nextRow);
+      } else {
+        // If we didn't receive any records on the output topic for 8 seconds, it probably means that the join
+        // failed because the table data wasn't populated when the stream data was consumed. We should just
+        // re populate the stream data to try the join again.
+        log.warn("repopulating data in {} because the join returned empty results.", pageViewTopic);
+        testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
       }
     }
 
@@ -230,8 +240,10 @@ public class EndToEndIntegrationTest {
 
     List<String> actualPages = new ArrayList<>();
     List<String> expectedPages = Arrays.asList("PAGE_5");
+
     while (actualPages.size() < 1) {
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      log.debug("polling from {}", outputStream);
+      KeyValue<String, GenericRow> nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
       if (nextRow != null) {
         List<Object> columns = nextRow.value.getColumns();
         assertEquals(2, columns.size());

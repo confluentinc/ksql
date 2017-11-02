@@ -24,6 +24,7 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
@@ -120,7 +121,7 @@ public class EndToEndIntegrationTest {
     BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
     Set<String> actualUsers = new HashSet<>();
-    Set<String> expectedUsers = new HashSet<>(Arrays.asList("USER_0", "USER_1", "USER_2", "USER_3", "USER_4"));
+    Set<String> expectedUsers = Utils.mkSet("USER_0", "USER_1", "USER_2", "USER_3", "USER_4");
     while (actualUsers.size() < 5) {
       KeyValue<String, GenericRow> nextRow = rowQueue.poll();
       if (nextRow != null) {

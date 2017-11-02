@@ -22,6 +22,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
@@ -35,8 +36,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 import static org.junit.Assert.assertEquals;
@@ -59,8 +62,6 @@ public class EndToEndIntegrationTest {
   private final String pageViewTopic = "pageviews";
   private final String usersTopic = "users";
 
-  private Map<String, RecordMetadata> pageViewTopicMessages;
-
   private final String pageViewStream = "pageviews_original";
   private final String userTable = "users_original";
 
@@ -68,23 +69,27 @@ public class EndToEndIntegrationTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start();
+    Map<String, Object> ksqlConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
+    ksqlConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    ksqlContext = KsqlContext.create(ksqlConfig);
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
 
-    ksqlContext.sql(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
-            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic));
+    pageViewDataProvider = new PageViewDataProvider();
+    userDataProvider = new UserDataProvider();
+
+    testHarness.publishTestData(usersTopic, userDataProvider, System.currentTimeMillis() - 10000);
+    testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
     ksqlContext.sql(String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
             "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic));
 
-    pageViewDataProvider = new PageViewDataProvider();
-    userDataProvider = new UserDataProvider();
-    testHarness.publishTestData(usersTopic, userDataProvider, System.currentTimeMillis());
-    Thread.sleep(3000);
-    pageViewTopicMessages = testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
+    ksqlContext.sql(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
+            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic));
+
+
   }
 
   @After
@@ -95,13 +100,40 @@ public class EndToEndIntegrationTest {
 
   @Test
   public void testKSQLFromEndToEnd() throws Exception {
-    validateSelectStatementWithSpecificColumn();
-
+    validateSelectFromPageViewsWithSpecificColumn();
+    validateSelectAllFromUsers();
     validateSelectAllFromDerivedStream();
-
   }
 
-  private void validateSelectStatementWithSpecificColumn() throws Exception {
+  private void validateSelectAllFromUsers() throws Exception {
+    String query = String.format("SELECT * from %s;", userTable);
+    log.debug("Sending query: {}", query);
+
+    List<QueryMetadata> queries = ksqlContext.getKsqlEngine().buildMultipleQueries(false, query, Collections.emptyMap());
+
+    assertEquals(1, queries.size());
+    assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
+
+    QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) queries.get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+
+    Set<String> actualUsers = new HashSet<>();
+    Set<String> expectedUsers = new HashSet<>(Arrays.asList("USER_0", "USER_1", "USER_2", "USER_3", "USER_4"));
+    while (actualUsers.size() < 5) {
+      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+      if (nextRow != null) {
+        List<Object> columns = nextRow.value.getColumns();
+        assertEquals(6, columns.size());
+        actualUsers.add((String) columns.get(1));
+      }
+    }
+    assertEquals(expectedUsers, actualUsers);
+    queryMetadata.getKafkaStreams().close();
+  }
+
+  private void validateSelectFromPageViewsWithSpecificColumn() throws Exception {
     String query = String.format("SELECT pageid from %s;", pageViewStream);
     log.debug("Sending query: {}", query);
 
@@ -122,7 +154,6 @@ public class EndToEndIntegrationTest {
       if (nextRow != null) {
         List<Object> columns = nextRow.value.getColumns();
         assertEquals(1, columns.size());
-
         String page = (String) columns.get(0);
         actualPages.add(page);
         log.debug("Pageview : {}", page);
@@ -169,13 +200,14 @@ public class EndToEndIntegrationTest {
 
     for (KeyValue<String, GenericRow> result: results) {
       List<Object> columns = result.value.getColumns();
-      assertEquals(5, columns.size());
-      String user = (String) columns.get(0);
+      log.debug("pageview join: {}", columns);
+
+      assertEquals(6, columns.size());
+      String user = (String) columns.get(2);
       actualUsers.add(user);
 
-      String page = (String) columns.get(2);
+      String page = (String) columns.get(3);
       actualPages.add(page);
-      log.debug("user {} viewed page {}", user, page);
     }
 
     assertEquals(expectedPages, actualPages);

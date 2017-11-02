@@ -2,6 +2,7 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -30,9 +31,11 @@ public class UdfIntTest {
   private String topicName = "TestTopic";
   private OrderDataProvider dataProvider;
 
+  String format = DataSource.DataSourceSerDe.JSON.name();
+
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
+    testHarness = new IntegrationTestHarness(format);
     testHarness.start();
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);
@@ -42,7 +45,7 @@ public class UdfIntTest {
      */
     dataProvider = new OrderDataProvider();
     recordMetadataMap = testHarness.publishTestData(topicName, dataProvider, null);
-    createOrdersStream();
+    createOrdersStream(format);
   }
 
   @After
@@ -133,8 +136,8 @@ public class UdfIntTest {
   }
 
 
-  private void createOrdersStream() throws Exception {
-    ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON');");
+  private void createOrdersStream(String serdes) throws Exception {
+    ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='" + serdes + "');");
   }
 
 }

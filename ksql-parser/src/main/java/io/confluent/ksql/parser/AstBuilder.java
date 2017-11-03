@@ -260,8 +260,8 @@ public class AstBuilder
     return new QuerySpecification(
         getLocation(context),
         select,
-        Optional.of(into),
-        Optional.of(from),
+        into,
+        from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),

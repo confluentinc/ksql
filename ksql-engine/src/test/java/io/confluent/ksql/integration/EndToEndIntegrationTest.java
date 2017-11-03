@@ -18,6 +18,7 @@ package io.confluent.ksql.integration;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -33,6 +34,7 @@ import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.test.TestCondition;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -199,19 +201,25 @@ public class EndToEndIntegrationTest {
     List<String> actualPages = new ArrayList<>();
     List<String> actualUsers = new ArrayList<>();
 
-    while (results.size() < 3) {
-      log.debug("polling from {}", derivedStream);
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll(8000, TimeUnit.MILLISECONDS);
-      if (nextRow != null) {
-        results.add(nextRow);
-      } else {
-        // If we didn't receive any records on the output topic for 8 seconds, it probably means that the join
-        // failed because the table data wasn't populated when the stream data was consumed. We should just
-        // re populate the stream data to try the join again.
-        log.warn("repopulating data in {} because the join returned empty results.", pageViewTopic);
-        testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
+    TestUtils.waitForCondition(() -> {
+      try {
+        log.debug("polling from {}", derivedStream);
+        KeyValue<String, GenericRow> nextRow = rowQueue.poll(8000, TimeUnit.MILLISECONDS);
+        if (nextRow != null) {
+          results.add(nextRow);
+        } else {
+          // If we didn't receive any records on the output topic for 8 seconds, it probably means that the join
+          // failed because the table data wasn't populated when the stream data was consumed. We should just
+          // re populate the stream data to try the join again.
+          log.warn("repopulating data in {} because the join returned empty results.", pageViewTopic);
+          testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
+        }
       }
-    }
+      catch (Exception e) {
+        log.error("Got exception when polling from " + derivedStream, e);
+      }
+      return 3 <= results.size();
+    }, 30000, "Could not consume any records from " + pageViewTopic + " for 30 seconds");
 
     for (KeyValue<String, GenericRow> result: results) {
       List<Object> columns = result.value.getColumns();
@@ -248,16 +256,21 @@ public class EndToEndIntegrationTest {
     List<String> actualPages = new ArrayList<>();
     List<String> expectedPages = Arrays.asList("PAGE_5");
 
-    while (actualPages.size() < 1) {
-      log.debug("polling from {}", outputStream);
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
-      if (nextRow != null) {
-        List<Object> columns = nextRow.value.getColumns();
-        assertEquals(2, columns.size());
-        log.debug("pageview from region 0: {}", nextRow.value.getColumns());
-        actualPages.add((String) columns.get(1));
+    TestUtils.waitForCondition(() -> {
+      try {
+        log.debug("polling from {}", outputStream);
+        KeyValue<String, GenericRow> nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
+        if (nextRow != null) {
+          List<Object> columns = nextRow.value.getColumns();
+          assertEquals(2, columns.size());
+          log.debug("pageview from region 0: {}", nextRow.value.getColumns());
+          actualPages.add((String) columns.get(1));
+        }
+      } catch (Exception e) {
+        log.warn("Failed to read data from " + outputStream, e);
       }
-    }
+      return 1 <= actualPages.size();
+    }, 30000, "Could not read data from " + outputStream + " for 30 seconds");
 
     assertEquals(expectedPages, actualPages);
     queryMetadata.getKafkaStreams().close();

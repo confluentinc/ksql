@@ -28,8 +28,7 @@ public class DelimUdfIntTest {
   private Map<String, RecordMetadata> recordMetadataMap;
   private String topicName = "TestTopic";
   private TestDataProvider dataProvider;
-
-  String format = DataSource.DataSourceSerDe.DELIMITED.name();
+  private String format = DataSource.DataSourceSerDe.DELIMITED.name();
 
   @Before
   public void before() throws Exception {

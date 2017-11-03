@@ -18,6 +18,8 @@ When submitting a pull request (PR), use the following guidelines:
 
 ### GitHub Workflow
 
+**Note: The active development branch is: 4.0.x**
+
 1. Fork the confluentinc/ksql repository into your GitHub account: https://github.com/confluentinc/ksql/fork.
 
 2. Clone your fork of the GitHub repository, replacing `<username>` with your GitHub username.

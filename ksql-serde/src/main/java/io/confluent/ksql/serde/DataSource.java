@@ -22,9 +22,9 @@ public interface DataSource {
 
   enum DataSourceSerDe { JSON, AVRO, DELIMITED }
 
-  final String AVRO_SERDE_NAME = "AVRO";
-  final String JSON_SERDE_NAME = "JSON";
-  final String DELIMITED_SERDE_NAME = "DELIMITED";
+  String AVRO_SERDE_NAME = "AVRO";
+  String JSON_SERDE_NAME = "JSON";
+  String DELIMITED_SERDE_NAME = "DELIMITED";
 
   String getName();
 

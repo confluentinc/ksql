@@ -31,8 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.sql.rowset.serial.SerialException;
-
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
@@ -63,7 +61,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       List<Object> columns = new ArrayList();
       if (csvRecord.size() != schema.fields().size()) {
-        throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
+        throw new KsqlException("Missing/Extra fields in the delimited line: " + recordCsvString);
       }
       for (int i = 0; i < csvRecord.size(); i++) {
         columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));

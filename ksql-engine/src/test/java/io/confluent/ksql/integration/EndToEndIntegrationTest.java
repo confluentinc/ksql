@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Except;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -78,7 +79,7 @@ public class EndToEndIntegrationTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
+    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
     testHarness.start();
     Map<String, Object> streamsConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
     streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

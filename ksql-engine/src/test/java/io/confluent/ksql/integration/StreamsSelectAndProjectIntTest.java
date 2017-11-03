@@ -2,6 +2,7 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -33,7 +34,7 @@ public class StreamsSelectAndProjectIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
+    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
     testHarness.start();
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);

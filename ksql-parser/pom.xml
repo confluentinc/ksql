@@ -22,6 +22,13 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-metastore</artifactId>
+            <version>4.0.0-SNAPSHOT</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>

@@ -40,8 +40,6 @@ import java.util.Set;
  */
 abstract class AbstractCreateStreamCommand implements DDLCommand {
 
-  public static final String ARRAY = "ARRAY";
-  public static final String MAP = "MAP";
   String sourceName;
   String topicName;
   Schema schema;
@@ -131,49 +129,10 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
             + " You cannot use them as a column name.");
 
       }
-      tableSchema = tableSchema.field(tableElement.getName(), getKsqlType(tableElement.getType()));
+      tableSchema = tableSchema.field(tableElement.getName(), SchemaUtil.getTypeSchema(tableElement.getType()));
     }
 
     return tableSchema;
-  }
-
-  //TODO: this needs to be moved to proper place to be accessible to everyone. Temporary!
-  private Schema getKsqlType(final String sqlType) {
-    switch (sqlType) {
-      case "VARCHAR":
-      case "STRING":
-        return Schema.STRING_SCHEMA;
-      case "BOOLEAN":
-      case "BOOL":
-        return Schema.BOOLEAN_SCHEMA;
-      case "INTEGER":
-      case "INT":
-        return Schema.INT32_SCHEMA;
-      case "BIGINT":
-      case "LONG":
-        return Schema.INT64_SCHEMA;
-      case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
-      default:
-        return getKsqlComplexType(sqlType);
-    }
-  }
-
-  private Schema getKsqlComplexType(final String sqlType) {
-    if (sqlType.startsWith(ARRAY)) {
-      return SchemaBuilder.array(getKsqlType(sqlType.substring(ARRAY.length() + 1, sqlType.length() - 1)));
-    } else if (sqlType.startsWith(MAP)) {
-      //TODO: For now only primitive data types for map are supported. Will have to add nested types.
-      String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
-          .trim().split(",");
-      if (mapTypesStrs.length != 2) {
-        throw new KsqlException("Map type is not defined correctly.: " + sqlType);
-      }
-      String keyType = mapTypesStrs[0].trim();
-      String valueType = mapTypesStrs[1].trim();
-      return SchemaBuilder.map(getKsqlType(keyType), getKsqlType(valueType));
-    }
-    throw new KsqlException("Unsupported type: " + sqlType);
   }
 
   protected void checkMetaData(MetaStore metaStore, String sourceName, String topicName) {

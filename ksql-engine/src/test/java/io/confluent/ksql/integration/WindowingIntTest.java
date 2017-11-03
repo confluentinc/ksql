@@ -2,6 +2,7 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -43,7 +44,7 @@ public class WindowingIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
+    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
     testHarness.start();
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
     testHarness.createTopic(topicName);

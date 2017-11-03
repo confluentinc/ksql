@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class ArithmeticBinaryExpression
     extends Expression {
@@ -44,17 +43,6 @@ public class ArithmeticBinaryExpression
   private final Expression right;
 
   public ArithmeticBinaryExpression(Type type, Expression left, Expression right) {
-    this(Optional.empty(), type, left, right);
-  }
-
-  public ArithmeticBinaryExpression(NodeLocation location, Type type, Expression left,
-                                    Expression right) {
-    this(Optional.of(location), type, left, right);
-  }
-
-  private ArithmeticBinaryExpression(Optional<NodeLocation> location, Type type, Expression left,
-                                     Expression right) {
-    super(location);
     this.type = type;
     this.left = left;
     this.right = right;

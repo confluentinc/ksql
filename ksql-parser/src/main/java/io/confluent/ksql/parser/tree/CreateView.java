@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -29,16 +28,6 @@ public class CreateView extends Statement {
   private final boolean replace;
 
   public CreateView(QualifiedName name, Query query, boolean replace) {
-    this(Optional.empty(), name, query, replace);
-  }
-
-  public CreateView(NodeLocation location, QualifiedName name, Query query, boolean replace) {
-    this(Optional.of(location), name, query, replace);
-  }
-
-  private CreateView(Optional<NodeLocation> location, QualifiedName name, Query query,
-                     boolean replace) {
-    super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
     this.replace = replace;

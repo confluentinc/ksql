@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,17 +26,7 @@ public class Window
 
   private final WindowExpression windowExpression;
 
-  public Window(String windowName, WindowExpression windowExpression) {
-    this(Optional.empty(), windowName, windowExpression);
-  }
-
-  public Window(NodeLocation location, String windowName, WindowExpression windowExpression) {
-    this(Optional.of(location), windowName, windowExpression);
-  }
-
-  private Window(Optional<NodeLocation> location, String windowName,
-                 WindowExpression windowExpression) {
-    super(location);
+  public Window(WindowExpression windowExpression) {
     this.windowExpression = requireNonNull(windowExpression, "windowExpression is null");
   }
 

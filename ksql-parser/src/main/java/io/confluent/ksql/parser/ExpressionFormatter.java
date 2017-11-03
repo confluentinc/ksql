@@ -339,11 +339,7 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitAllColumns(AllColumns node, Boolean unmangleNames) {
-      if (node.getPrefix().isPresent()) {
-        return node.getPrefix().get() + ".*";
-      }
-
-      return "*";
+      return node.toString();
     }
 
     @Override
@@ -443,11 +439,11 @@ public final class ExpressionFormatter {
         case UNBOUNDED_PRECEDING:
           return "UNBOUNDED PRECEDING";
         case PRECEDING:
-          return process(node.getValue().get(), unmangleNames) + " PRECEDING";
+          return process(node.getValue(), unmangleNames) + " PRECEDING";
         case CURRENT_ROW:
           return "CURRENT ROW";
         case FOLLOWING:
-          return process(node.getValue().get(), unmangleNames) + " FOLLOWING";
+          return process(node.getValue(), unmangleNames) + " FOLLOWING";
         case UNBOUNDED_FOLLOWING:
           return "UNBOUNDED FOLLOWING";
         default:

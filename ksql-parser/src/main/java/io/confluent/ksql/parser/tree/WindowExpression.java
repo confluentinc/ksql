@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class WindowExpression extends Node {
@@ -26,18 +25,8 @@ public class WindowExpression extends Node {
   private  final KsqlWindowExpression ksqlWindowExpression;
 
   public WindowExpression(String windowName, KsqlWindowExpression ksqlWindowExpression) {
-    this(Optional.empty(), windowName, ksqlWindowExpression);
-  }
-
-  protected WindowExpression(Optional<NodeLocation> location, String windowName,
-                             KsqlWindowExpression ksqlWindowExpression) {
-    super(location);
     this.windowName = windowName;
     this.ksqlWindowExpression = ksqlWindowExpression;
-  }
-
-  public String getWindowName() {
-    return windowName;
   }
 
   public KsqlWindowExpression getKsqlWindowExpression() {

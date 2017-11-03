@@ -36,25 +36,6 @@ public class Query
       QueryBody queryBody,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.empty(), with, queryBody, orderBy, limit);
-  }
-
-  public Query(
-      NodeLocation location,
-      Optional<With> with,
-      QueryBody queryBody,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    this(Optional.of(location), with, queryBody, orderBy, limit);
-  }
-
-  private Query(
-      Optional<NodeLocation> location,
-      Optional<With> with,
-      QueryBody queryBody,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    super(location);
     requireNonNull(with, "with is null");
     requireNonNull(queryBody, "queryBody is null");
     requireNonNull(orderBy, "orderBy is null");

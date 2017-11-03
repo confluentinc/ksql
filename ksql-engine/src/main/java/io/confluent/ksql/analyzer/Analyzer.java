@@ -347,7 +347,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     for (SelectItem selectItem : node.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
         // expand * and T.*
-        AllColumns allColumns = (AllColumns) selectItem;
         if ((this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources()
             .isEmpty())) {
           throw new KsqlException("FROM clause was not resolved!");
@@ -357,14 +356,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           for (Field field : joinNode.getLeft().getSchema().fields()) {
             QualifiedNameReference
                 qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
-                    .of(joinNode.getLeftAlias() + "." + field.name()));
+                new QualifiedNameReference(QualifiedName.of(joinNode.getLeftAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
                 joinNode.getLeftAlias() + "_" + field.name());
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
             QualifiedNameReference qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+                new QualifiedNameReference(QualifiedName
                     .of(joinNode.getRightAlias() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference,
                 joinNode.getRightAlias() + "_" + field.name());
@@ -374,7 +372,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
               .fields()) {
             QualifiedNameReference
                 qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+                new QualifiedNameReference(QualifiedName
                     .of(this.analysis.getFromDataSources().get(0).getRight() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference, field.name());
           }

@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
 
 public class DoubleLiteral
@@ -26,15 +24,6 @@ public class DoubleLiteral
   private final double value;
 
   public DoubleLiteral(String value) {
-    this(Optional.empty(), value);
-  }
-
-  public DoubleLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
-  }
-
-  private DoubleLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
     requireNonNull(value, "value is null");
     this.value = Double.parseDouble(value);
   }

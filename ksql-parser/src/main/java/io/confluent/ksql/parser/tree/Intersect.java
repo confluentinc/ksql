@@ -39,7 +39,7 @@ public class Intersect
   }
 
   private Intersect(Optional<NodeLocation> location, List<Relation> relations, boolean distinct) {
-    super(location, distinct);
+    super(distinct);
     requireNonNull(relations, "relations is null");
 
     this.relations = ImmutableList.copyOf(relations);

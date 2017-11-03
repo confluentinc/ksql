@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class InPredicate
     extends Expression {
@@ -26,15 +25,6 @@ public class InPredicate
   private final Expression valueList;
 
   public InPredicate(Expression value, Expression valueList) {
-    this(Optional.empty(), value, valueList);
-  }
-
-  public InPredicate(NodeLocation location, Expression value, Expression valueList) {
-    this(Optional.of(location), value, valueList);
-  }
-
-  private InPredicate(Optional<NodeLocation> location, Expression value, Expression valueList) {
-    super(location);
     this.value = value;
     this.valueList = valueList;
   }

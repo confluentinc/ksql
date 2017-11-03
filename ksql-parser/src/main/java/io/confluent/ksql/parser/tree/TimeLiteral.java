@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,15 +26,6 @@ public class TimeLiteral
   private final String value;
 
   public TimeLiteral(String value) {
-    this(Optional.empty(), value);
-  }
-
-  public TimeLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
-  }
-
-  private TimeLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
     requireNonNull(value, "value is null");
     this.value = value;
   }

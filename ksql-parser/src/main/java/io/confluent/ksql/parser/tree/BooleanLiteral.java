@@ -19,7 +19,6 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.base.Preconditions;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
@@ -27,21 +26,9 @@ import static java.util.Objects.requireNonNull;
 public class BooleanLiteral
     extends Literal {
 
-  public static final BooleanLiteral TRUE_LITERAL = new BooleanLiteral(Optional.empty(), "true");
-  public static final BooleanLiteral FALSE_LITERAL = new BooleanLiteral(Optional.empty(), "false");
-
   private final boolean value;
 
   public BooleanLiteral(String value) {
-    this(Optional.empty(), value);
-  }
-
-  public BooleanLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
-  }
-
-  private BooleanLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
     requireNonNull(value, "value is null");
     Preconditions.checkArgument(
         value.toLowerCase(ENGLISH).equals("true") || value.toLowerCase(ENGLISH).equals("false"));

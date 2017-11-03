@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
@@ -27,15 +26,6 @@ public class TableSubquery
   private final Query query;
 
   public TableSubquery(Query query) {
-    this(Optional.empty(), query);
-  }
-
-  public TableSubquery(NodeLocation location, Query query) {
-    this(Optional.of(location), query);
-  }
-
-  private TableSubquery(Optional<NodeLocation> location, Query query) {
-    super(location);
     this.query = query;
   }
 

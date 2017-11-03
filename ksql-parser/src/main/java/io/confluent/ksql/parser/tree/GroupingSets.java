@@ -21,7 +21,6 @@ import com.google.common.base.Joiner;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,12 +36,7 @@ public class GroupingSets
 
   private final List<List<QualifiedName>> sets;
 
-  public GroupingSets(NodeLocation location, List<List<QualifiedName>> sets) {
-    this(Optional.of(location), sets);
-  }
-
-  private GroupingSets(Optional<NodeLocation> location, List<List<QualifiedName>> sets) {
-    super(location);
+  public GroupingSets(List<List<QualifiedName>> sets) {
     requireNonNull(sets);
     checkArgument(!sets.isEmpty(), "grouping sets cannot be empty");
     this.sets = sets;

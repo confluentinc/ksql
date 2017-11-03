@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,15 +26,6 @@ public class NotExpression
   private final Expression value;
 
   public NotExpression(Expression value) {
-    this(Optional.empty(), value);
-  }
-
-  public NotExpression(NodeLocation location, Expression value) {
-    this(Optional.of(location), value);
-  }
-
-  private NotExpression(Optional<NodeLocation> location, Expression value) {
-    super(location);
     requireNonNull(value, "value is null");
     this.value = value;
   }

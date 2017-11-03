@@ -69,7 +69,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitTableName(final SqlBaseParser.TableNameContext context) {
-    return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+    return new Table(getQualifiedName(context.qualifiedName()));
   }
 
   @Override
@@ -96,7 +96,7 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     }
 
     // TODO: Figure out if the call to toUpperCase() here is really necessary
-    return new AliasedRelation(getLocation(context), table, alias.toUpperCase(),
+    return new AliasedRelation(table, alias.toUpperCase(),
                                getColumnAliases(context.columnAliases()));
 
   }

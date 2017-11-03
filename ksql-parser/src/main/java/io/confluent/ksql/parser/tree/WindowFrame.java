@@ -34,16 +34,6 @@ public class WindowFrame
   private final Optional<FrameBound> end;
 
   public WindowFrame(Type type, FrameBound start, Optional<FrameBound> end) {
-    this(Optional.empty(), type, start, end);
-  }
-
-  public WindowFrame(NodeLocation location, Type type, FrameBound start, Optional<FrameBound> end) {
-    this(Optional.of(location), type, start, end);
-  }
-
-  private WindowFrame(Optional<NodeLocation> location, Type type, FrameBound start,
-                      Optional<FrameBound> end) {
-    super(location);
     this.type = requireNonNull(type, "type is null");
     this.start = requireNonNull(start, "start is null");
     this.end = requireNonNull(end, "end is null");

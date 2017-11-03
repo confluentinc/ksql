@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -50,15 +49,6 @@ public class Extract
   }
 
   public Extract(Expression expression, Field field) {
-    this(Optional.empty(), expression, field);
-  }
-
-  public Extract(NodeLocation location, Expression expression, Field field) {
-    this(Optional.of(location), expression, field);
-  }
-
-  private Extract(Optional<NodeLocation> location, Expression expression, Field field) {
-    super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(field, "field is null");
 

@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -27,15 +26,6 @@ public class TerminateQuery extends Statement {
   private final long queryId;
 
   public TerminateQuery(long queryId) {
-    this(Optional.empty(), queryId);
-  }
-
-  public TerminateQuery(NodeLocation location, long queryId) {
-    this(Optional.of(location), queryId);
-  }
-
-  private TerminateQuery(Optional<NodeLocation> location, long queryId) {
-    super(location);
     this.queryId = requireNonNull(queryId, "table is null");
   }
 

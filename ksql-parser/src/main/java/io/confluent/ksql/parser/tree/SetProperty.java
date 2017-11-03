@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -28,9 +27,8 @@ public class SetProperty extends Statement {
   private final String propertyValue;
 
 
-  public SetProperty(Optional<NodeLocation> location, String propertyName,
-                      String propertyValue) {
-    super(location);
+  public SetProperty(String propertyName,
+                     String propertyValue) {
     requireNonNull(propertyName, "propertyName is null");
     requireNonNull(propertyValue, "propertyValue is null");
     this.propertyName = propertyName;

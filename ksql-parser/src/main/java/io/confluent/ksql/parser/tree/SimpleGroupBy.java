@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import io.confluent.ksql.parser.ExpressionFormatter;
@@ -36,12 +35,6 @@ public class SimpleGroupBy
   private final List<Expression> columns;
 
   public SimpleGroupBy(NodeLocation location, List<Expression> simpleGroupByExpressions) {
-    this(Optional.of(location), simpleGroupByExpressions);
-  }
-
-  private SimpleGroupBy(Optional<NodeLocation> location,
-                        List<Expression> simpleGroupByExpressions) {
-    super(location);
     this.columns = requireNonNull(simpleGroupByExpressions);
   }
 

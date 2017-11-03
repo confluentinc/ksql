@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class FieldReference
@@ -26,7 +24,6 @@ public class FieldReference
   private final int fieldIndex;
 
   public FieldReference(int fieldIndex) {
-    super(Optional.empty());
     checkArgument(fieldIndex >= 0, "fieldIndex must be >= 0");
 
     this.fieldIndex = fieldIndex;

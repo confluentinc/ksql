@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -31,17 +30,6 @@ public class AliasedRelation
   private final List<String> columnNames;
 
   public AliasedRelation(Relation relation, String alias, List<String> columnNames) {
-    this(Optional.empty(), relation, alias, columnNames);
-  }
-
-  public AliasedRelation(NodeLocation location, Relation relation, String alias,
-                         List<String> columnNames) {
-    this(Optional.of(location), relation, alias, columnNames);
-  }
-
-  private AliasedRelation(Optional<NodeLocation> location, Relation relation, String alias,
-                          List<String> columnNames) {
-    super(location);
     requireNonNull(relation, "relation is null");
     requireNonNull(alias, " is null");
 

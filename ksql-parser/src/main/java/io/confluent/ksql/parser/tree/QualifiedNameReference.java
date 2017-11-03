@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class QualifiedNameReference
     extends Expression {
@@ -25,15 +24,6 @@ public class QualifiedNameReference
   private final QualifiedName name;
 
   public QualifiedNameReference(QualifiedName name) {
-    this(Optional.empty(), name);
-  }
-
-  public QualifiedNameReference(NodeLocation location, QualifiedName name) {
-    this(Optional.of(location), name);
-  }
-
-  private QualifiedNameReference(Optional<NodeLocation> location, QualifiedName name) {
-    super(location);
     this.name = name;
   }
 

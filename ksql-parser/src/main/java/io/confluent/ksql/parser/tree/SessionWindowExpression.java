@@ -23,7 +23,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.SessionWindows;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.GenericRow;
@@ -35,12 +34,6 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   private final TimeUnit sizeUnit;
 
   public SessionWindowExpression(long gap, TimeUnit sizeUnit) {
-    this(Optional.empty(), gap, sizeUnit);
-  }
-
-  private SessionWindowExpression(Optional<NodeLocation> location, long gap,
-                                  TimeUnit sizeUnit) {
-    super(location);
     this.gap = gap;
     this.sizeUnit = sizeUnit;
   }

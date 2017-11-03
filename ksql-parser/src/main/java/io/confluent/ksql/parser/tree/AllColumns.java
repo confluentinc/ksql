@@ -17,41 +17,18 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class AllColumns
     extends SelectItem {
 
-  private final Optional<QualifiedName> prefix;
+  private final QualifiedName prefix;
 
   public AllColumns() {
-    super(Optional.empty());
-    prefix = Optional.empty();
-  }
-
-  public AllColumns(NodeLocation location) {
-    super(Optional.of(location));
-    prefix = Optional.empty();
+    this(null);
   }
 
   public AllColumns(QualifiedName prefix) {
-    this(Optional.empty(), prefix);
-  }
-
-  public AllColumns(NodeLocation location, QualifiedName prefix) {
-    this(Optional.of(location), prefix);
-  }
-
-  private AllColumns(Optional<NodeLocation> location, QualifiedName prefix) {
-    super(location);
-    requireNonNull(prefix, "prefix is null");
-    this.prefix = Optional.of(prefix);
-  }
-
-  public Optional<QualifiedName> getPrefix() {
-    return prefix;
+    this.prefix = prefix;
   }
 
   @Override
@@ -79,8 +56,8 @@ public class AllColumns
 
   @Override
   public String toString() {
-    if (prefix.isPresent()) {
-      return prefix.get() + ".*";
+    if (prefix != null) {
+      return prefix + ".*";
     }
 
     return "*";

@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -28,26 +27,12 @@ public class PrintTopic extends Statement {
   private final boolean fromBeginning;
   private final LongLiteral intervalValue;
 
-  public PrintTopic(QualifiedName topic, boolean fromBeginning, LongLiteral intervalValue) {
-    this(Optional.empty(), topic, fromBeginning, intervalValue);
-  }
 
   public PrintTopic(
-      NodeLocation location,
       QualifiedName topic,
       boolean fromBeginning,
       LongLiteral intervalValue
   ) {
-    this(Optional.of(location), topic, fromBeginning, intervalValue);
-  }
-
-  private PrintTopic(
-      Optional<NodeLocation> location,
-      QualifiedName topic,
-      boolean fromBeginning,
-      LongLiteral intervalValue
-  ) {
-    super(location);
     this.topic = requireNonNull(topic, "table is null");
     this.fromBeginning = fromBeginning;
     this.intervalValue = intervalValue;

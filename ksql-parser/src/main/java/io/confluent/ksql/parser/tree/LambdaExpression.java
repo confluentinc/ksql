@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,16 +28,6 @@ public class LambdaExpression
   private final Expression body;
 
   public LambdaExpression(List<String> arguments, Expression body) {
-    this(Optional.empty(), arguments, body);
-  }
-
-  public LambdaExpression(NodeLocation location, List<String> arguments, Expression body) {
-    this(Optional.of(location), arguments, body);
-  }
-
-  private LambdaExpression(Optional<NodeLocation> location, List<String> arguments,
-                           Expression body) {
-    super(location);
     this.arguments = requireNonNull(arguments, "arguments is null");
     this.body = requireNonNull(body, "body is null");
   }

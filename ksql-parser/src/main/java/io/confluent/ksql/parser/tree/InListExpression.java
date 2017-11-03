@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class InListExpression
     extends Expression {
@@ -26,15 +25,6 @@ public class InListExpression
   private final List<Expression> values;
 
   public InListExpression(List<Expression> values) {
-    this(Optional.empty(), values);
-  }
-
-  public InListExpression(NodeLocation location, List<Expression> values) {
-    this(Optional.of(location), values);
-  }
-
-  private InListExpression(Optional<NodeLocation> location, List<Expression> values) {
-    super(location);
     this.values = values;
   }
 

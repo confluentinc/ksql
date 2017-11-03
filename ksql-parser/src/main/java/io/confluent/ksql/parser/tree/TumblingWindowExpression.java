@@ -23,7 +23,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.GenericRow;
@@ -35,12 +34,6 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   private final TimeUnit sizeUnit;
 
   public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
-    this(Optional.empty(), size, sizeUnit);
-  }
-
-  private TumblingWindowExpression(Optional<NodeLocation> location, long size,
-                                   TimeUnit sizeUnit) {
-    super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
   }

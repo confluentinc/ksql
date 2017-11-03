@@ -42,7 +42,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
-  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY =
+  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
   public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
@@ -125,11 +125,16 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.MEDIUM,
             "The default number of replicas for the topics created by KSQL."
             )
-    .define(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
+    .define(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
             defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
-            "The default window change log additional retention time."
+            "The default window change log additional retention time. This is a streams "
+            + "config value which will be added to a windows maintainMs to ensure data is not "
+            + "deleted from "
+            + "the "
+            + "log "
+            + "prematurely. Allows for clock drift. Default is 1 day"
             )
     ;
   }

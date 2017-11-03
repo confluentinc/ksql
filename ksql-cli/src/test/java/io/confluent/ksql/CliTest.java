@@ -28,7 +28,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -163,7 +162,7 @@ public class CliTest extends TestRunner {
 
     startConfigs.put(SINK_NUMBER_OF_REPLICAS_PROPERTY, 1);
     startConfigs.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
-    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY, 1000000);
+    startConfigs.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY, 1000000);
 
     startConfigs.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);

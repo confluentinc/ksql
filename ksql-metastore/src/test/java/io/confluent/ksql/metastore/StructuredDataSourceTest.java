@@ -31,16 +31,35 @@ import static org.junit.Assert.fail;
 public class StructuredDataSourceTest {
 
   @Test
-  public void testGetDataSourceType() {
+  public void testShouldGetStreamDataSourceType() {
 
     assertEquals(DataSource.DataSourceType.KSTREAM, StructuredDataSource.getDataSourceType("STREAM"));
+  }
+
+  @Test
+  public void testShouldGetTableDataSourceType() {
 
     assertEquals(DataSource.DataSourceType.KTABLE, StructuredDataSource.getDataSourceType("TABLE"));
+  }
+
+  @Test
+  public void testShouldFailOnUnknownDataSourceType() {
 
     try {
       StructuredDataSource.getDataSourceType("");
       fail("Expecting exception: KsqlException");
     } catch (KsqlException e) {
+      assertEquals(StructuredDataSource.class.getName(), e.getStackTrace()[0].getClassName());
+    }
+  }
+
+  @Test
+  public void testShouldFailOnNullDataSourceType() {
+
+    try {
+      StructuredDataSource.getDataSourceType(null);
+      fail("Expecting exception: NullPointerException");
+    } catch (NullPointerException e) {
       assertEquals(StructuredDataSource.class.getName(), e.getStackTrace()[0].getClassName());
     }
   }

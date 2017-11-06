@@ -31,7 +31,6 @@
             <artifactId>kafka-json-serializer</artifactId>
         </dependency>
 
-
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>rest-utils</artifactId>

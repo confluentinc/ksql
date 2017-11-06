@@ -13,7 +13,7 @@
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
-
+    <version>4.0.0-SNAPSHOT</version>
     <modules>
         <module>ksql-common</module>
         <module>ksql-serde</module>
@@ -34,6 +34,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <!--<kafka.version>0.11.0.1</kafka.version>-->
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>

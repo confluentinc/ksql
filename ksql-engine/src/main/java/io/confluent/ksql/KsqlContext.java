@@ -17,8 +17,13 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -29,9 +34,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class KsqlContext {
 
@@ -39,19 +43,11 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-  private final KafkaTopicClientImpl topicClient;
+  private final AdminClient adminClient;
+  private final KafkaTopicClient topicClient;
 
-  public KsqlContext() {
-    this(null);
-  }
-
-  /**
-   * Create a KSQL context object with the given properties.
-   * A KSQL context has it's own metastore valid during the life of the object.
-   *
-   * @param streamsProperties
-   */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  public static KsqlContext create(Map<String, Object> streamsProperties)
+      throws ExecutionException, InterruptedException {
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -62,11 +58,26 @@ public class KsqlContext {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
     KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-
-    topicClient = new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps());
-    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    return new KsqlContext(adminClient, topicClient, ksqlEngine);
   }
 
+
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param adminClient
+   * @param topicClient
+   * @param ksqlEngine
+   */
+  KsqlContext(final AdminClient adminClient, final KafkaTopicClient topicClient, final KsqlEngine ksqlEngine) {
+    this.adminClient = adminClient;
+    this.topicClient = topicClient;
+    this.ksqlEngine = ksqlEngine;
+  }
 
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();
@@ -81,6 +92,7 @@ public class KsqlContext {
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
         .emptyMap());
+
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -96,8 +108,13 @@ public class KsqlContext {
     }
   }
 
+  public Set<QueryMetadata> getRunningQueries() {
+    return ksqlEngine.getLiveQueries();
+  }
+
   public void close() throws IOException {
     ksqlEngine.close();
     topicClient.close();
+    adminClient.close();
   }
 }

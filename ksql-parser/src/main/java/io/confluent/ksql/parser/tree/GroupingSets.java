@@ -16,12 +16,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.common.base.Joiner;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.parser.ExpressionFormatter;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -32,10 +36,6 @@ public class GroupingSets
     extends GroupingElement {
 
   private final List<List<QualifiedName>> sets;
-
-  public GroupingSets(List<List<QualifiedName>> groupingSetList) {
-    this(Optional.empty(), groupingSetList);
-  }
 
   public GroupingSets(NodeLocation location, List<List<QualifiedName>> sets) {
     this(Optional.of(location), sets);
@@ -60,6 +60,14 @@ public class GroupingSets
   @Override
   protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
     return visitor.visitGroupingSets(this, context);
+  }
+
+  @Override
+  public String format() {
+    return String.format("GROUPING SETS (%s)", Joiner.on(", ").join(
+          enumerateGroupingSets().stream()
+            .map(ExpressionFormatter::formatGroupingSet)
+            .iterator()));
   }
 
   @Override

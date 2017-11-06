@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
@@ -57,7 +58,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 public class KsqlEngine implements Closeable {
 
@@ -78,6 +78,8 @@ public class KsqlEngine implements Closeable {
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
+  public final FunctionRegistry functionRegistry;
+
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
@@ -90,6 +92,7 @@ public class KsqlEngine implements Closeable {
 
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
+    this.functionRegistry = new FunctionRegistry();
   }
 
   /**
@@ -128,9 +131,7 @@ public class KsqlEngine implements Closeable {
   public List<QueryMetadata> planQueries(final boolean createNewAppId,
                                          final List<Pair<String, Statement>> statementList,
                                          final Map<String, Object> overriddenProperties,
-                                         final MetaStore tempMetaStore)
-          throws Exception {
-
+                                         final MetaStore tempMetaStore) throws Exception {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
@@ -329,7 +330,7 @@ public class KsqlEngine implements Closeable {
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
             querySpecification.getSelect(),
-            Optional.of(intoTable),
+            intoTable,
             querySpecification.getFrom(),
             querySpecification.getWindowExpression(),
             querySpecification.getWhere(),
@@ -341,8 +342,16 @@ public class KsqlEngine implements Closeable {
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
+  public Set<QueryMetadata> getLiveQueries() {
+    return liveQueries;
+  }
+
   public MetaStore getMetaStore() {
     return metaStore;
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return functionRegistry;
   }
 
   public KafkaTopicClient getTopicClient() {
@@ -360,8 +369,7 @@ public class KsqlEngine implements Closeable {
     }
     liveQueries.remove(queryMetadata);
     if (closeStreams) {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.close();
     }
     return true;
   }
@@ -388,8 +396,7 @@ public class KsqlEngine implements Closeable {
   @Override
   public void close() throws IOException {
     for (QueryMetadata queryMetadata : liveQueries) {
-      queryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-      queryMetadata.getKafkaStreams().cleanUp();
+      queryMetadata.close();
     }
     topicClient.close();
   }
@@ -403,8 +410,8 @@ public class KsqlEngine implements Closeable {
       for (QueryMetadata queryMetadata : liveQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().close(100L, TimeUnit.MILLISECONDS);
-          persistentQueryMetadata.getKafkaStreams().cleanUp();
+          persistentQueryMetadata.close();
+
         }
       }
     } catch (Exception e) {

@@ -77,10 +77,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitQuerySpecification(final QuerySpecification node,
                                          final AnalysisContext context) {
 
-    process(node.getFrom().get(),
+    process(node.getFrom(),
             new AnalysisContext(AnalysisContext.ParentType.FROM));
 
-    process(node.getInto().get(), new AnalysisContext(
+    process(node.getInto(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
       analyzeNonStdOutSink();
@@ -202,21 +202,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightAlias = right.getAlias();
     StructuredDataSourceNode
         leftSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                     leftDataSource.getKeyField(),
-                                     leftDataSource.getTimestampField(),
-                                     leftDataSource.getKsqlTopic().getTopicName(),
-                                     leftAlias, leftDataSource.getDataSourceType(),
-                                     leftDataSource);
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"),
+            leftDataSource,
+            leftDataSource.getSchema());
     StructuredDataSourceNode
         rightSourceKafkaTopicNode =
         new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-                                     rightDataSource.getSchema(),
-                                     rightDataSource.getKeyField(),
-                                     rightDataSource.getTimestampField(),
-                                     rightDataSource.getKsqlTopic().getTopicName(),
-                                     rightAlias, rightDataSource.getDataSourceType(),
-                                     rightDataSource);
+            rightDataSource,
+            rightDataSource.getSchema());
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -269,7 +262,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           (QualifiedNameReference) expression;
       return leftQualifiedNameReference.getName().getSuffix();
     } else {
-      throw new KsqlException("Join criteria is not supported.");
+      throw new KsqlException("Join criteria is not supported. Expression:" + expression);
     }
   }
 
@@ -319,7 +312,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new Pair<>(
             structuredDataSource,
             node.getAlias());
-    analysis.getFromDataSources().add(fromDataSource);
+    analysis.addDataSource(fromDataSource);
     return node;
   }
 

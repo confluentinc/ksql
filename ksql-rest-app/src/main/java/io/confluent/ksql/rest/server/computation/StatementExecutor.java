@@ -53,10 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -151,7 +147,7 @@ public class StatementExecutor {
       if (result != null) {
         return result;
       } else {
-        result = new CommandStatusFuture(commandId);
+        result = new CommandStatusFuture(commandId, commandId1 -> statusFutures.remove(commandId1));
         statusFutures.put(commandId, result);
         return result;
       }
@@ -164,32 +160,15 @@ public class StatementExecutor {
       if (statusFuture != null) {
         statusFuture.complete(commandStatus);
       } else {
-        CommandStatusFuture newStatusFuture = new CommandStatusFuture(commandId);
+        CommandStatusFuture newStatusFuture = new CommandStatusFuture(commandId, commandId1 -> statusFutures.remove(commandId1));
         newStatusFuture.complete(commandStatus);
         statusFutures.put(commandId, newStatusFuture);
       }
     }
   }
 
-  private Map<Long, CommandId> getTerminatedQueries(Map<CommandId, Command> commands) {
-    Map<Long, CommandId> result = new HashMap<>();
-
-    for (Map.Entry<CommandId, Command> commandEntry : commands.entrySet()) {
-      CommandId commandId = commandEntry.getKey();
-      String command = commandEntry.getValue().getStatement();
-      Matcher terminateMatcher = TERMINATE_PATTERN.matcher(command.toUpperCase());
-      if (terminateMatcher.matches()) {
-        Long queryId = Long.parseLong(terminateMatcher.group(1));
-        result.put(queryId, commandId);
-      }
-    }
-
-    return result;
-  }
-
   /**
    * Attempt to execute a single statement.
-//   * @param statementString The string containing the statement to be executed
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
    * @param terminatedQueries An optional map from terminated query IDs to the commands that
@@ -216,9 +195,8 @@ public class StatementExecutor {
     } catch (WakeupException exception) {
       throw exception;
     } catch (Exception exception) {
-      String stackTraceString = ExceptionUtil.stackTraceToString(exception);
-      log.error(stackTraceString);
-      CommandStatus errorStatus = new CommandStatus(CommandStatus.Status.ERROR, stackTraceString);
+      log.error("Failed to handle: " + command, exception);
+      CommandStatus errorStatus = new CommandStatus(CommandStatus.Status.ERROR, ExceptionUtil.stackTraceToString(exception));
       statusStore.put(commandId, errorStatus);
       completeStatusFuture(commandId, errorStatus);
     }
@@ -317,9 +295,9 @@ public class StatementExecutor {
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-      Optional<Relation> into = querySpecification.getInto();
-      if (into.isPresent() && into.get() instanceof Table) {
-        Table table = (Table) into.get();
+      Relation into = querySpecification.getInto();
+      if (into instanceof Table) {
+        Table table = (Table) into;
         if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",
@@ -392,71 +370,5 @@ public class StatementExecutor {
         queryStatementId,
         new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
     );
-  }
-
-  private class CommandStatusFuture implements Future<CommandStatus> {
-
-    private final CommandId commandId;
-    private final AtomicReference<CommandStatus> result;
-
-    public CommandStatusFuture(CommandId commandId) {
-      this.commandId = commandId;
-      this.result = new AtomicReference<>(null);
-    }
-
-    @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
-      return false; // TODO: Is an implementation of this method necessary?
-    }
-
-    @Override
-    public boolean isCancelled() {
-      return false; // TODO: Is an implementation of this method necessary?
-    }
-
-    @Override
-    public boolean isDone() {
-      return result.get() != null;
-    }
-
-    @Override
-    public CommandStatus get() throws InterruptedException {
-      synchronized (result) {
-        while (result.get() == null) {
-          result.wait();
-        }
-        removeFromFutures();
-        return result.get();
-      }
-    }
-
-    @Override
-    public CommandStatus get(long timeout, TimeUnit unit)
-        throws InterruptedException, TimeoutException {
-      long endTimeMs = System.currentTimeMillis() + unit.toMillis(timeout);
-      synchronized (result) {
-        while (System.currentTimeMillis() < endTimeMs && result.get() == null) {
-          result.wait(Math.max(1, endTimeMs - System.currentTimeMillis()));
-        }
-        if (result.get() == null) {
-          throw new TimeoutException();
-        }
-        removeFromFutures();
-        return result.get();
-      }
-    }
-
-    private void complete(CommandStatus result) {
-      synchronized (this.result) {
-        this.result.set(result);
-        this.result.notifyAll();
-      }
-    }
-
-    private void removeFromFutures() {
-      synchronized (statusFutures) {
-        statusFutures.remove(commandId);
-      }
-    }
   }
 }

@@ -18,7 +18,8 @@ package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.streams.kstream.Aggregator;
+import io.confluent.ksql.function.UdafAggregator;
+
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class KudafAggregator implements Aggregator<String, GenericRow, GenericRow> {
+public class KudafAggregator implements UdafAggregator {
 
   private Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
@@ -37,52 +38,45 @@ public class KudafAggregator implements Aggregator<String, GenericRow, GenericRo
     this.aggValToValColumnMap = aggValToValColumnMap;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(String s, GenericRow rowValue, GenericRow aggRowValue) {
+    aggValToValColumnMap.forEach((key, value) ->
+        aggRowValue.getColumns().set(key, rowValue.getColumns().get(value))
+    );
 
-    for (int aggValColIndex: aggValToValColumnMap.keySet()) {
-      aggRowValue.getColumns().set(aggValColIndex, rowValue.getColumns()
-          .get(aggValToValColumnMap.get(aggValColIndex)));
-    }
-
-    for (int aggFunctionIndex: aggValToAggFunctionMap.keySet()) {
-      KsqlAggregateFunction ksqlAggregateFunction = aggValToAggFunctionMap.get(aggFunctionIndex);
-      aggRowValue.getColumns().set(aggFunctionIndex, ksqlAggregateFunction.aggregate(
-          rowValue.getColumns().get(ksqlAggregateFunction.getArgIndexInValue()),
-          aggRowValue.getColumns().get(aggFunctionIndex))
-      );
-    }
+    aggValToAggFunctionMap.forEach((key, value) ->
+        aggRowValue.getColumns().set(key,
+            value.aggregate(rowValue.getColumns().get(value.getArgIndexInValue()),
+                aggRowValue.getColumns().get(key)))
+    );
     return aggRowValue;
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
   public Merger<String, GenericRow> getMerger() {
     return (key, aggRowOne, aggRowTwo) -> {
-
-      List columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
+      List<Object> columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
           .collect(Collectors.toList());
       GenericRow mergedRow = new GenericRow(columns);
 
-      for (int aggValColIndex: aggValToValColumnMap.keySet()) {
-        if (aggRowOne.getColumns()
-            .get(aggValToValColumnMap.get(aggValColIndex)).toString().length() > 0) {
-          mergedRow.getColumns().set(aggValColIndex, aggRowOne.getColumns()
-              .get(aggValToValColumnMap.get(aggValColIndex)));
+      aggValToValColumnMap.forEach((columnIndex, value) -> {
+        if (aggRowOne.getColumns().get(value).toString().length() > 0) {
+          mergedRow.getColumns().set(columnIndex, aggRowOne.getColumns()
+              .get(value));
         } else {
-          mergedRow.getColumns().set(aggValColIndex, aggRowTwo.getColumns()
-              .get(aggValToValColumnMap.get(aggValColIndex)));
+          mergedRow.getColumns().set(columnIndex, aggRowTwo.getColumns()
+              .get(value));
         }
+      });
 
-      }
+      aggValToAggFunctionMap.forEach((functionIndex, ksqlAggregateFunction) ->
+          mergedRow.getColumns().set(functionIndex, ksqlAggregateFunction.getMerger()
+          .apply(key,
+              aggRowOne.getColumns().get(functionIndex),
+              aggRowTwo.getColumns().get(functionIndex))));
 
-      for (int aggFunctionIndex: aggValToAggFunctionMap.keySet()) {
-        KsqlAggregateFunction ksqlAggregateFunction = aggValToAggFunctionMap
-            .get(aggFunctionIndex);
-        mergedRow.getColumns().set(aggFunctionIndex, ksqlAggregateFunction.getMerger()
-            .apply(key,
-                   aggRowOne.getColumns().get(aggFunctionIndex),
-                   aggRowTwo.getColumns().get(aggFunctionIndex))
-        );
-      }
       return mergedRow;
     };
   }

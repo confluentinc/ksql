@@ -40,11 +40,15 @@ public class ExpressionMetadata {
   }
 
   public int[] getIndexes() {
-    return indexes;
+    final int [] result = new int[indexes.length];
+    System.arraycopy(indexes, 0, result, 0, indexes.length);
+    return result;
   }
 
   public Kudf[] getUdfs() {
-    return udfs;
+    final Kudf[] result = new Kudf[udfs.length];
+    System.arraycopy(udfs, 0, result, 0, udfs.length);
+    return result;
   }
 
   public Schema getExpressionType() {

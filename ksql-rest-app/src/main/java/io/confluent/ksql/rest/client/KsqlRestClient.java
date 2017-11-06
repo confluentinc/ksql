@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -161,7 +162,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      this.responseScanner = new Scanner((InputStream) response.getEntity());
+      this.responseScanner = new Scanner((InputStream) response.getEntity(), StandardCharsets.UTF_8.name());
 
       this.bufferedRow = null;
       this.closed = false;
@@ -170,7 +171,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public boolean hasNext() {
       if (closed) {
-        throw new IllegalStateException("Cannot call hasNext() once closed");
+        throw closedIllegalStateException("hasNext()");
       }
 
       if (bufferedRow != null) {
@@ -197,7 +198,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public StreamedRow next() {
       if (closed) {
-        throw new IllegalStateException("Cannot call next() once closed");
+        throw closedIllegalStateException("next()");
       }
 
       if (!hasNext()) {
@@ -212,13 +213,18 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public void close() {
       if (closed) {
-        throw new IllegalStateException("Cannot call close() when already closed");
+        throw closedIllegalStateException("close()");
       }
 
       closed = true;
       responseScanner.close();
       response.close();
     }
+
+    private IllegalStateException closedIllegalStateException(String methodName) {
+      return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
+    }
+
   }
 
   public Map<String, Object> getLocalProperties() {
@@ -232,10 +238,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public boolean unsetProperty(String property) {
-    if (localProperties.containsKey(property)) {
-      Object value = localProperties.remove(property);
-      return true;
-    }
-    return false;
+    return localProperties.remove(property) != null;
   }
 }

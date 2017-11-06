@@ -138,5 +138,13 @@ public class Analysis {
   public void setLimitClause(Optional<Integer> limitClause) {
     this.limitClause = limitClause;
   }
+
+  public Pair<StructuredDataSource, String> getFromDataSource(int index) {
+    return fromDataSources.get(index);
+  }
+
+  void addDataSource(Pair<StructuredDataSource, String> fromDataSource) {
+    fromDataSources.add(fromDataSource);
+  }
 }
 

@@ -25,8 +25,28 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.rest.entity.*;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ListQueries;
+import io.confluent.ksql.parser.tree.ListRegisteredTopics;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlTopicInfo;
+import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -45,11 +65,20 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.core.Response;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -363,4 +392,46 @@ public class KsqlResourceTest {
 
     assertEquals(expectedTable, testTables.get(0));
   }
+
+  @Test
+  public void shouldFailForIncorrectCSASStatementResultType() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get();
+    String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
+
+    Response response1 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString1, Collections
+        .emptyMap()));
+    KsqlEntityList result1 = (KsqlEntityList) response1.getEntity();
+    assertTrue("Incorrect response size.", result1.size() == 1);
+    assertThat(result1.get(0), instanceOf(ErrorMessageEntity.class));
+    ErrorMessageEntity errorMessageEntity1 = (ErrorMessageEntity) result1.get(0);
+    assertThat("", errorMessageEntity1.getErrorMessage().getMessage(), equalTo("Invalid result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
+
+    String ksqlString2 = "CREATE STREAM s2 AS SELECT S2_F1 , count(S2_F1) FROM test_stream group by "
+                         + "s2_f1;";
+
+    Response response2 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString2, Collections
+        .emptyMap()));
+    KsqlEntityList result2 = (KsqlEntityList) response2.getEntity();
+    assertThat("Incorrect response size.", result2.size(),  equalTo(1));
+    assertThat(result2.get(0), instanceOf(ErrorMessageEntity.class));
+    ErrorMessageEntity errorMessageEntity2 = (ErrorMessageEntity) result2.get(0);
+    assertThat("", errorMessageEntity2.getErrorMessage().getMessage(), equalTo("Invalid "
+                                                                                   + "result type. Your SELECT query produces a TABLE. Please use CREATE TABLE AS SELECT statement instead."));
+  }
+
+  @Test
+  public void shouldFailForIncorrectCTASStatementResultType() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get();
+    final String ksqlString = "CREATE TABLE s1 AS SELECT * FROM test_stream;";
+
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
+        .emptyMap()));
+    KsqlEntityList result = (KsqlEntityList) response.getEntity();
+    assertThat("Incorrect response size.", result.size(), equalTo(1));
+    assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
+    ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
+    assertThat(errorMessageEntity.getErrorMessage().getMessage(), equalTo("Invalid result type. Your "
+                                                                  + "SELECT query produces a STREAM. Please use CREATE STREAM AS SELECT statement instead."));
+  }
+
 }

@@ -21,13 +21,13 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class KsqlConfig extends AbstractConfig {
+public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PREPERTY_PREFIX = "ksql.";
 
@@ -48,6 +48,10 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.sink.window.change.log.additional.retention";
   public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
       "ksql.sink.window.change.log.additional.retention.default";
+
+  public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+
+  public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
 
@@ -153,14 +157,19 @@ public class KsqlConfig extends AbstractConfig {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
     ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
 
-    for (Object propKey: props.keySet()) {
-      if (propKey.toString().toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
-        ksqlConfigProps.put(propKey.toString(), props.get(propKey));
+    for (Map.Entry<?, ?> entry : props.entrySet()) {
+      final String key = entry.getKey().toString();
+      if (key.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+        ksqlConfigProps.put(key, entry.getValue());
       } else {
-        ksqlStreamConfigProps.put(propKey.toString(), props.get(propKey));
+        ksqlStreamConfigProps.put(key, entry.getValue());
       }
     }
 
+    final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
+    if (fail == null || !Boolean.parseBoolean(fail.toString())) {
+      ksqlStreamConfigProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
+    }
   }
 
   public Map<String, Object> getKsqlConfigProps() {
@@ -174,9 +183,9 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     Set<String> adminClientConfigProperties = AdminClientConfig.configNames();
     Map<String, Object> adminClientConfigs = new HashMap<>();
-    for (String propertyName: ksqlStreamConfigProps.keySet()) {
-      if (adminClientConfigProperties.contains(propertyName)) {
-        adminClientConfigs.put(propertyName, ksqlStreamConfigProps.get(propertyName));
+    for (Map.Entry<String, Object> entry: ksqlStreamConfigProps.entrySet()) {
+      if (adminClientConfigProperties.contains(entry.getKey())) {
+        adminClientConfigs.put(entry.getKey(), entry.getValue());
       }
     }
     return adminClientConfigs;

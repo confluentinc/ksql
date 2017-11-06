@@ -22,6 +22,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,6 +60,18 @@ public interface KafkaTopicClient extends Closeable {
    * @throws KafkaResponseGetFailedException
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
+
+  /**
+   * Delete the list of the topics in the given list.
+   * @param topicsToDelete
+   */
+  void deleteTopics(List<String> topicsToDelete);
+
+  /**
+   * Delete the internal topics of a given application.
+   * @param applicationId
+   */
+  void deleteInternalTopics(String applicationId);
 
   /**
    * Close the underlying Kafka admin client.

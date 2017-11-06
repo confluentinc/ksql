@@ -21,6 +21,7 @@ import io.confluent.ksql.util.KsqlException;
 
 import org.apache.kafka.common.serialization.Serializer;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 
@@ -46,7 +47,7 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
         }
         recordString.append(genericRow.getColumns().get(i).toString());
       }
-      return recordString.toString().getBytes();
+      return recordString.toString().getBytes(StandardCharsets.UTF_8);
     } catch (Exception e) {
       throw new KsqlException(e.getMessage(), e);
     }

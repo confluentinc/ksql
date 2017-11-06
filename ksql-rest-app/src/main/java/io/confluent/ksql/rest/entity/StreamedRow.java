@@ -18,10 +18,13 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+
 import io.confluent.ksql.GenericRow;
 
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class StreamedRow {
   private final GenericRow row;
   private final ErrorMessage errorMessage;

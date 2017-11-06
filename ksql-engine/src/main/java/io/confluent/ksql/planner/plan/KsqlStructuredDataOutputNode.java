@@ -18,12 +18,29 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SerDeUtil;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -62,6 +79,111 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return keyField;
   }
 
+  @Override
+  public SchemaKStream buildStream(final StreamsBuilder builder,
+                                   final KsqlConfig ksqlConfig,
+                                   final KafkaTopicClient kafkaTopicClient,
+                                   final MetastoreUtil metastoreUtil,
+                                   final FunctionRegistry functionRegistry,
+                                   final Map<String, Object> props) {
+
+    final SchemaKStream schemaKStream = getSource().buildStream(builder,
+        ksqlConfig,
+        kafkaTopicClient,
+        metastoreUtil,
+        functionRegistry,
+        props);
+    final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
+    final Builder outputNodeBuilder
+        = Builder.from(this);
+    final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+        getSchema());
+    outputNodeBuilder.withSchema(schema);
+
+    if (getTopicSerde() instanceof KsqlAvroTopicSerDe) {
+      addAvroSchemaToResultTopic(outputNodeBuilder, schema, metastoreUtil);
+    }
+
+    final Map<String, Object> outputProperties = getOutputProperties();
+
+    if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
+      ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+          outputProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+    }
+    if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY)) {
+      ksqlConfig.put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY,
+          outputProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY
+          ));
+    }
+
+    final SchemaKStream result = createOutputStream(schemaKStream,
+        outputNodeBuilder,
+        functionRegistry,
+        outputProperties);
+
+    final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
+    createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+    result.into(
+        noRowKey.getKafkaTopicName(),
+        SerDeUtil.getRowSerDe(
+            noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
+            noRowKey.getSchema()),
+        rowkeyIndexes
+    );
+
+
+    result.setOutputNode(outputNodeBuilder.withSchema(SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
+        .build());
+    return result;
+  }
+
+  private SchemaKStream createOutputStream(final SchemaKStream schemaKStream,
+                                           final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
+                                           final FunctionRegistry functionRegistry,
+                                           final Map<String, Object> outputProperties) {
+
+    if (schemaKStream instanceof SchemaKTable) {
+      return schemaKStream;
+    }
+
+    final SchemaKStream result = new SchemaKStream(getSchema(),
+        schemaKStream.getKstream(),
+        this
+            .getKeyField(),
+        Collections.singletonList(schemaKStream),
+        SchemaKStream.Type.SINK, functionRegistry
+    );
+
+    if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
+      String keyFieldName = outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY).toString();
+      Field keyField = SchemaUtil.getFieldByName(
+          result.getSchema(), keyFieldName)
+          .orElseThrow(() -> new KsqlException(String.format("Column %s does not exist in the result schema."
+                  + " Error in Partition By clause.",
+              keyFieldName)));
+
+      outputNodeBuilder.withKeyField(keyField);
+      return result.selectKey(keyField);
+    }
+    return result;
+  }
+  private void addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode.Builder builder,
+                                          final Schema schema,
+                                          final MetastoreUtil metastoreUtil) {
+    final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
+        new KsqlAvroTopicSerDe(metastoreUtil.buildAvroSchema(schema,
+            getKsqlTopic().getName()));
+    builder.withKsqlTopic(new KsqlTopic(getKsqlTopic()
+        .getName(),
+        getKsqlTopic().getKafkaTopicName(),
+        ksqlAvroTopicSerDe));
+  }
+
+  private void createSinkTopic(final String kafkaTopicName, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient) {
+    int numberOfPartitions = (Integer) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+    short numberOfReplications = (Short) ksqlConfig.get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY);
+    kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
+  }
   public Field getTimestampField() {
     return timestampField;
   }
@@ -72,6 +194,93 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public Map<String, Object> getOutputProperties() {
     return outputProperties;
+  }
+
+  public KsqlTopicSerDe getTopicSerde() {
+    return ksqlTopic.getKsqlTopicSerDe();
+  }
+
+  public static class Builder {
+    private PlanNodeId id;
+    private PlanNode source;
+    private Schema schema;
+    private Field timestampField;
+    private Field keyField;
+    private KsqlTopic ksqlTopic;
+    private String topicName;
+    private Map<String, Object> outputProperties;
+    private Optional<Integer> limit;
+
+    public KsqlStructuredDataOutputNode build() {
+      return new KsqlStructuredDataOutputNode(id,
+          source,
+          schema,
+          timestampField,
+          keyField,
+          ksqlTopic,
+          topicName,
+          outputProperties,
+          limit);
+    }
+
+    public static Builder from(final KsqlStructuredDataOutputNode original) {
+      return new Builder()
+          .withId(original.getId())
+          .withSource(original.getSource())
+          .withSchema(original.getSchema())
+          .withTimestampField(original.getTimestampField())
+          .withKeyField(original.getKeyField())
+          .withKsqlTopic(original.getKsqlTopic())
+          .withTopicName(original.getKafkaTopicName())
+          .withOutputProperties(original.getOutputProperties())
+          .withLimit(original.getLimit());
+    }
+
+    Builder withLimit(final Optional<Integer> limit) {
+      this.limit = limit;
+      return this;
+    }
+
+    Builder withOutputProperties(Map<String, Object> outputProperties) {
+      this.outputProperties = outputProperties;
+      return this;
+    }
+
+    Builder withTopicName(String topicName) {
+      this.topicName = topicName;
+      return this;
+    }
+
+    Builder withKsqlTopic(KsqlTopic ksqlTopic) {
+      this.ksqlTopic = ksqlTopic;
+      return this;
+    }
+
+    Builder withKeyField(Field keyField) {
+      this.keyField = keyField;
+      return this;
+    }
+
+    Builder withTimestampField(Field timestampField) {
+      this.timestampField = timestampField;
+      return this;
+    }
+
+    Builder withSchema(Schema schema) {
+      this.schema = schema;
+      return this;
+    }
+
+    Builder withSource(PlanNode source) {
+      this.source = source;
+      return this;
+    }
+
+    Builder withId(final PlanNodeId id) {
+      this.id = id;
+      return this;
+    }
+
   }
 
 }

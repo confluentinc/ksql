@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -23,6 +25,7 @@ import java.util.Collection;
  * Utility class to prevent type erasure from stripping annotation information from KsqlEntity
  * instances in a list
  */
+@JsonSubTypes({})
 public class KsqlEntityList extends ArrayList<KsqlEntity> {
   public KsqlEntityList() {
   }

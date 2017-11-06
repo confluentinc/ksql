@@ -34,7 +34,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
@@ -82,11 +82,11 @@ public class LogicalPlanner {
                                       inputSchema, analysis.getLimitClause());
     } else if (intoDataSource != null) {
       Field timestampField = null;
-      if (analysis.getIntoProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+      if (analysis.getIntoProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
         timestampField =
             SchemaUtil.getFieldByName(inputSchema,
                                       analysis.getIntoProperties()
-                                          .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME)
+                                          .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME)
                                           .toString()).get();
       }
 

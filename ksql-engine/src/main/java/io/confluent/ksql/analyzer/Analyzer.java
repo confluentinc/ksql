@@ -51,6 +51,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.connect.data.Field;
@@ -447,35 +448,35 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
                                        intoPartitionByColumnName);
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
       setIntoTimestampColumn(node);
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
       try {
         int numberOfPartitions = Integer.parseInt(node.getProperties()
-                                                      .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                                      .get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)
                                                       .toString());
         analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
                                          numberOfPartitions);
 
       } catch (NumberFormatException e) {
         throw new KsqlException("Invalid number of partitions in WITH clause: "
-                                + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
+                                + node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)
                                     .toString());
       }
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
       try {
         short numberOfReplications =
-            Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS)
+            Short.parseShort(node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS)
                                  .toString());
         analysis.getIntoProperties()
             .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
       } catch (NumberFormatException e) {
         throw new KsqlException("Invalid number of replications in WITH clause: " + node
-            .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICAS).toString());
+            .getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       }
     }
   }
@@ -520,7 +521,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   private void setIntoTimestampColumn(final Table node) {
     String
         intoTimestampColumnName = node.getProperties()
-        .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+        .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
     if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
       throw new KsqlException(
           intoTimestampColumnName + " value is string and should be enclosed between "
@@ -529,7 +530,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     intoTimestampColumnName = intoTimestampColumnName.substring(1,
                                                                 intoTimestampColumnName
                                                                     .length() - 1);
-    analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
+    analysis.getIntoProperties().put(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME,
                                      intoTimestampColumnName);
   }
 
@@ -539,9 +540,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
-    validSet.add(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
-    validSet.add(KsqlConfig.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
-    validSet.add(KsqlConfig.SINK_NUMBER_OF_REPLICAS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
 
     for (String withVariable: withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

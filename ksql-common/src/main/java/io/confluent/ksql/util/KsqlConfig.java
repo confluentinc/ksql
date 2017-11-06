@@ -32,16 +32,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_CONFIG_PREPERTY_PREFIX = "ksql.";
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
-  public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
-  public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
-  public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
-  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
-      "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
+
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
@@ -71,15 +67,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
-  private static int defaultSinkNumberOfPartitions = 4;
-  private static short defaultSinkNumberOfReplications = 1;
-  // TODO: Find out the best default value.
-  private static long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
-  private static String defaultAutoOffsetRestConfig = "latest";
-  private static long defaultCommitIntervalMsConfig = 2000;
-  private static long defaultCacheMaxBytesBufferingConfig = 10000000;
-  private static int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
@@ -106,7 +94,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Second part of the prefix for transient queries. For instance if the prefix is "
-            + "transient_ the query name would be ksql_transient_4120896722607083946_1509389010601")
+            + "transient_ the query name would be "
+            + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
+            + " and '_transient' is the second part of the prefix for the query id the third and "
+            + "4th parts are a random long value and the current timestamp. ")
     .define(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
@@ -116,25 +107,22 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             + "_ksql_statestore ")
     .define(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,
-            defaultSinkNumberOfPartitions,
+            KsqlConstants.defaultSinkNumberOfPartitions,
             ConfigDef.Importance.MEDIUM,
             "The default number of partitions for the topics created by KSQL.")
     .define(SINK_NUMBER_OF_REPLICAS_PROPERTY,
             ConfigDef.Type.SHORT,
-            defaultSinkNumberOfReplications,
+            KsqlConstants.defaultSinkNumberOfReplications,
             ConfigDef.Importance.MEDIUM,
             "The default number of replicas for the topics created by KSQL."
             )
     .define(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
-            defaultSinkWindowChangeLogAdditionalRetention,
+            KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
             "The default window change log additional retention time. This is a streams "
             + "config value which will be added to a windows maintainMs to ensure data is not "
-            + "deleted from "
-            + "the "
-            + "log "
-            + "prematurely. Allows for clock drift. Default is 1 day"
+            + "deleted from the log prematurely. Allows for clock drift. Default is 1 day"
             )
     ;
   }
@@ -147,11 +135,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     ksqlStreamConfigProps = new HashMap<>();
     ksqlConfigProps.putAll(super.values());
 
-    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
+    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
+        .defaultAutoOffsetRestConfig);
+    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
+        .defaultCommitIntervalMsConfig);
     ksqlStreamConfigProps.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
+            .defaultCacheMaxBytesBufferingConfig);
+    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
+        .defaultNumberOfStreamsThreads);
 
     for (Map.Entry<?, ?> entry : originals().entrySet()) {
       final String key = entry.getKey().toString();

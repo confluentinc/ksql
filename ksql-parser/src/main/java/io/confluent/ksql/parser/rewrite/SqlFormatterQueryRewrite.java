@@ -159,21 +159,16 @@ public final class SqlFormatterQueryRewrite {
     @Override
     protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
       process(node.getSelect(), indent);
+      append(indent, "INTO");
+      builder.append('\n');
+      append(indent, "  ");
+      process(node.getInto(), indent);
+      builder.append('\n');
 
-      if (node.getInto().isPresent()) {
-        append(indent, "INTO");
-        builder.append('\n');
-        append(indent, "  ");
-        process(node.getInto().get(), indent);
-        builder.append('\n');
-      }
-
-      if (node.getFrom().isPresent()) {
-        append(indent, "FROM");
-        builder.append('\n');
-        append(indent, "  ");
-        process(node.getFrom().get(), indent);
-      }
+      append(indent, "FROM");
+      builder.append('\n');
+      append(indent, "  ");
+      process(node.getFrom(), indent);
 
       builder.append('\n');
 

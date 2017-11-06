@@ -77,10 +77,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   protected Node visitQuerySpecification(final QuerySpecification node,
                                          final AnalysisContext context) {
 
-    process(node.getFrom().get(),
+    process(node.getFrom(),
             new AnalysisContext(AnalysisContext.ParentType.FROM));
 
-    process(node.getInto().get(), new AnalysisContext(
+    process(node.getInto(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
       analyzeNonStdOutSink();
@@ -312,7 +312,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         new Pair<>(
             structuredDataSource,
             node.getAlias());
-    analysis.getFromDataSources().add(fromDataSource);
+    analysis.addDataSource(fromDataSource);
     return node;
   }
 

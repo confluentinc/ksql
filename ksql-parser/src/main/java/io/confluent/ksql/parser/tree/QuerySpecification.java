@@ -27,8 +27,8 @@ public class QuerySpecification
     extends QueryBody {
 
   private final Select select;
-  private final Optional<Relation> into;
-  private final Optional<Relation> from;
+  private final Relation into;
+  private final Relation from;
   private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
@@ -38,8 +38,8 @@ public class QuerySpecification
 
   public QuerySpecification(
       Select select,
-      Optional<Relation> into,
-      Optional<Relation> from,
+      Relation into,
+      Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
@@ -53,8 +53,8 @@ public class QuerySpecification
   public QuerySpecification(
       NodeLocation location,
       Select select,
-      Optional<Relation> into,
-      Optional<Relation> from,
+      Relation into,
+      Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
@@ -68,8 +68,8 @@ public class QuerySpecification
   private QuerySpecification(
       Optional<NodeLocation> location,
       Select select,
-      Optional<Relation> into,
-      Optional<Relation> from,
+      Relation into,
+      Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
@@ -102,11 +102,11 @@ public class QuerySpecification
     return select;
   }
 
-  public Optional<Relation> getInto() {
+  public Relation getInto() {
     return into;
   }
 
-  public Optional<Relation> getFrom() {
+  public Relation getFrom() {
     return from;
   }
 

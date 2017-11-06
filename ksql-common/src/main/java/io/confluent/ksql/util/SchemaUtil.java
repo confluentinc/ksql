@@ -28,6 +28,8 @@ import java.util.Set;
 
 public class SchemaUtil {
 
+  public static final String ARRAY = "ARRAY";
+  public static final String MAP = "MAP";
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
@@ -57,34 +59,6 @@ public class SchemaUtil {
   }
 
 
-  public static Schema getTypeSchema(final String ksqlType) {
-    switch (ksqlType) {
-      case "VARCHAR":
-      case "STRING":
-        return Schema.STRING_SCHEMA;
-      case "BOOLEAN":
-        return Schema.BOOLEAN_SCHEMA;
-      case "INTEGER":
-        return Schema.INT32_SCHEMA;
-      case "BIGINT":
-        return Schema.INT64_SCHEMA;
-      case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
-      case "ARRAY":
-        return SchemaBuilder.array(
-            getTypeSchema(ksqlType.substring("ARRAY".length() + 1, ksqlType.length() - 1).trim()));
-      case "MAP":
-        return SchemaBuilder.map(
-            Schema.STRING_SCHEMA,
-            getTypeSchema(ksqlType.substring(ksqlType.indexOf(",") + 1,
-                                             ksqlType.length() - 1).trim()));
-      default:
-        throw new KsqlException("Type is not supported: " + ksqlType);
-
-    }
-  }
-
-
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
     if (schema.fields() != null) {
       for (Field field : schema.fields()) {
@@ -97,6 +71,46 @@ public class SchemaUtil {
     }
     return Optional.empty();
   }
+
+  public static Schema getTypeSchema(final String sqlType) {
+    switch (sqlType) {
+      case "VARCHAR":
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOLEAN":
+      case "BOOL":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INTEGER":
+      case "INT":
+        return Schema.INT32_SCHEMA;
+      case "BIGINT":
+      case "LONG":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        return getKsqlComplexType(sqlType);
+    }
+  }
+
+  private static Schema getKsqlComplexType(final String sqlType) {
+    if (sqlType.startsWith(ARRAY)) {
+      return SchemaBuilder.array(getTypeSchema(sqlType.substring(ARRAY.length() + 1, sqlType.length() - 1)));
+    } else if (sqlType.startsWith(MAP)) {
+      //TODO: For now only primitive data types for map are supported. Will have to add nested types.
+      String[] mapTypesStrs = sqlType.substring("MAP".length() + 1, sqlType.length() - 1)
+              .trim().split(",");
+      if (mapTypesStrs.length != 2) {
+        throw new KsqlException("Map type is not defined correctly.: " + sqlType);
+      }
+      String keyType = mapTypesStrs[0].trim();
+      String valueType = mapTypesStrs[1].trim();
+      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType));
+    }
+    throw new KsqlException("Unsupported type: " + sqlType);
+  }
+
+
 
   public static int getFieldIndexByName(final Schema schema, final String fieldName) {
     if (schema.fields() == null) {

@@ -2,6 +2,9 @@ package io.confluent.ksql.integration;
 
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
@@ -16,6 +19,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
@@ -39,15 +43,17 @@ public class IntegrationTestHarness {
   public static final long RESULTS_POLL_MAX_TIME_MS = 30000;
   public static final long RESULTS_EXTRA_POLL_TIME_MS = 250;
 
-  public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Iintegration_Test_Consumer_";
+  public static final String CONSUMER_GROUP_ID_PREFIX = "KSQL_Integration_Test_Consumer_";
 
   public KsqlConfig ksqlConfig;
   KafkaTopicClientImpl topicClient;
   private AdminClient adminClient;
 
   private TopicConsumer topicConsumer;
+  private String dataFormat;
 
-  public IntegrationTestHarness() {
+  public IntegrationTestHarness(String format) {
+    dataFormat = format;
   }
 
 
@@ -71,14 +77,14 @@ public class IntegrationTestHarness {
    * @throws TimeoutException
    * @throws ExecutionException
    */
-  public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Schema schema, Long timestamp)
+  public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Serializer<GenericRow> serializer, Long timestamp)
           throws InterruptedException, TimeoutException, ExecutionException {
 
     createTopic(topicName);
 
     Properties producerConfig = properties();
     KafkaProducer<String, GenericRow> producer =
-            new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema));
+            new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
 
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
@@ -103,10 +109,10 @@ public class IntegrationTestHarness {
     return producerConfig;
   }
 
-  void produceRecord(final String topicName, final String key, final String jsonData) {
+  void produceRecord(final String topicName, final String key, final String data) {
     try(final KafkaProducer<String, String> producer
                 = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
-      producer.send(new ProducerRecord<>(topicName, key, jsonData));
+      producer.send(new ProducerRecord<>(topicName, key, data));
     }
   }
 
@@ -131,7 +137,7 @@ public class IntegrationTestHarness {
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, new KsqlJsonDeserializer(schema))) {
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, getDeserializer(schema))) {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
@@ -187,6 +193,23 @@ public class IntegrationTestHarness {
 
   public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider, Long timestamp) throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
-    return produceData(topicName, dataProvider.data(), dataProvider.schema(), timestamp);
+    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema()), timestamp);
+  }
+
+  private Serializer getSerializer(Schema schema) {
+    if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
+      return new KsqlDelimitedSerializer();
+    } else {
+      return new KsqlJsonSerializer(schema);
+    }
+  }
+
+  private Deserializer<GenericRow> getDeserializer(Schema schema) {
+    if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
+      return new KsqlDelimitedDeserializer(schema);
+    } else {
+      return new KsqlJsonDeserializer(schema);
+    }
+
   }
 }

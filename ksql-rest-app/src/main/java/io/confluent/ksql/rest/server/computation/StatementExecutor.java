@@ -295,9 +295,9 @@ public class StatementExecutor {
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-      Optional<Relation> into = querySpecification.getInto();
-      if (into.isPresent() && into.get() instanceof Table) {
-        Table table = (Table) into.get();
+      Relation into = querySpecification.getInto();
+      if (into instanceof Table) {
+        Table table = (Table) into;
         if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",

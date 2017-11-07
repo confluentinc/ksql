@@ -87,7 +87,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Type.STRING,
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for persitent queries. For instance if the prefix is transient_"
+            "Second part of the prefix for persitent queries. For instance if the prefix is "
             + "query_ the query name will be ksql_query_1.")
     .define(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
@@ -103,8 +103,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Suffix for state store names in Tables. For instance if the suffix is _ksql_statestore the state "
-            + "store name would be ksql_query_1_ksql_statestore"
-            + "_ksql_statestore ")
+            + "store name would be ksql_query_1_ksql_statestore _ksql_statestore ")
     .define(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,
             KsqlConstants.defaultSinkNumberOfPartitions,

@@ -24,6 +24,7 @@
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
         <module>ksql-clickstream-demo</module>
+        <module>ksql-console-scripts</module>
     </modules>
 
     <repositories>

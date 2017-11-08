@@ -26,7 +26,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class RegisterTopic
-    extends Statement {
+    extends Statement implements DDLStatement {
 
   private final QualifiedName name;
   private final boolean notExists;

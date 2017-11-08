@@ -26,7 +26,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class CreateTableAsSelect
-    extends Statement {
+    extends Statement implements CreateAsSelect{
 
   private final QualifiedName name;
   private final Query query;
@@ -71,6 +71,11 @@ public class CreateTableAsSelect
 
   public Map<String, Expression> getProperties() {
     return properties;
+  }
+
+  @Override
+  public Optional<Expression> getPartitionByColumn() {
+    return Optional.empty();
   }
 
   @Override

@@ -20,16 +20,11 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.*;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
@@ -53,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import java.util.regex.Pattern;
 
 /**
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
@@ -62,9 +56,6 @@ import java.util.regex.Pattern;
 public class StatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
-
-  private static final Pattern TERMINATE_PATTERN =
-      Pattern.compile("\\s*TERMINATE\\s+([0-9]+)\\s*;?\\s*");
 
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
@@ -82,7 +73,7 @@ public class StatementExecutor {
     this.statusFutures = new HashMap<>();
   }
 
-  public void handleStatements(List<Pair<CommandId, Command>> priorCommands) throws Exception {
+  void handleStatements(List<Pair<CommandId, Command>> priorCommands) throws Exception {
     for (Pair<CommandId, Command> commandIdCommandPair: priorCommands) {
       log.info("Executing prior statement: '{}'", commandIdCommandPair.getRight());
       try {
@@ -103,7 +94,7 @@ public class StatementExecutor {
    * @param commandId The ID to be used to track the status of the command
    * @throws Exception TODO: Refine this.
    */
-  public void handleStatement(
+  void handleStatement(
       Command command,
       CommandId commandId
   ) throws Exception {
@@ -147,7 +138,7 @@ public class StatementExecutor {
       if (result != null) {
         return result;
       } else {
-        result = new CommandStatusFuture(commandId, commandId1 -> statusFutures.remove(commandId1));
+        result = new CommandStatusFuture(commandId, statusFutures::remove);
         statusFutures.put(commandId, result);
         return result;
       }
@@ -160,7 +151,7 @@ public class StatementExecutor {
       if (statusFuture != null) {
         statusFuture.complete(commandStatus);
       } else {
-        CommandStatusFuture newStatusFuture = new CommandStatusFuture(commandId, commandId1 -> statusFutures.remove(commandId1));
+        CommandStatusFuture newStatusFuture = new CommandStatusFuture(commandId, statusFutures::remove);
         newStatusFuture.complete(commandStatus);
         statusFutures.put(commandId, newStatusFuture);
       }
@@ -212,67 +203,22 @@ public class StatementExecutor {
 
     DDLCommandResult result = null;
     String successMessage = "";
-
-    if (statement instanceof RegisterTopic
-        || statement instanceof CreateStream
-        || statement instanceof CreateTable
-        || statement instanceof DropTopic
-        || statement instanceof DropStream
-        || statement instanceof DropTable
-        ) {
+    if (statement instanceof DDLStatement) {
       result =
-          ksqlEngine.getQueryEngine().handleDdlStatement(statement, command.getStreamsProperties());
-    } else if (statement instanceof CreateStreamAsSelect) {
-      CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-      QuerySpecification querySpecification =
-          (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-      Query query = ksqlEngine.addInto(
-          createStreamAsSelect.getQuery(),
-          querySpecification,
-          createStreamAsSelect.getName().getSuffix(),
-          createStreamAsSelect.getProperties(),
-          createStreamAsSelect.getPartitionByColumn()
-      );
-      if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
-        successMessage = "Stream created and running";
-      } else {
-        return;
-      }
-    } else if (statement instanceof CreateTableAsSelect) {
-      CreateTableAsSelect createTableAsSelect = (CreateTableAsSelect) statement;
-      QuerySpecification querySpecification =
-          (QuerySpecification) createTableAsSelect.getQuery().getQueryBody();
-      Query query = ksqlEngine.addInto(
-          createTableAsSelect.getQuery(),
-          querySpecification,
-          createTableAsSelect.getName().getSuffix(),
-          createTableAsSelect.getProperties(),
-          Optional.empty()
-      );
-      if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
-        successMessage = "Table created and running";
-      } else {
-        return;
-      }
+          ksqlEngine.executeDdlStatement((DDLStatement) statement, command.getStreamsProperties());
+    } else if (statement instanceof CreateAsSelect) {
+      successMessage = handleCreateAsSelect((CreateAsSelect)
+          statement,
+          command,
+          commandId,
+          terminatedQueries,
+          statementStr);
+      if (successMessage == null) return;
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";
     } else if (statement instanceof RunScript) {
-      if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
-        String queries =
-            (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
-        List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
-                                            command.getStreamsProperties());
-        for (QueryMetadata queryMetadata : queryMetadataList) {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-            persistentQueryMetadata.getKafkaStreams().start();
-          }
-        }
-      } else {
-        throw new KsqlException("No statements received for LOAD FROM FILE.");
-      }
-
+      handleRunScript(command);
     }else {
       throw new Exception(String.format(
           "Unexpected statement type: %s",
@@ -284,6 +230,46 @@ public class StatementExecutor {
         result != null ? result.getMessage(): successMessage);
     statusStore.put(commandId, successStatus);
     completeStatusFuture(commandId, successStatus);
+  }
+
+  private void handleRunScript(Command command) throws Exception {
+    if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+      String queries =
+          (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
+                                          command.getStreamsProperties());
+      for (QueryMetadata queryMetadata : queryMetadataList) {
+        if (queryMetadata instanceof PersistentQueryMetadata) {
+          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+          persistentQueryMetadata.getKafkaStreams().start();
+        }
+      }
+    } else {
+      throw new KsqlException("No statements received for LOAD FROM FILE.");
+    }
+  }
+
+  private String handleCreateAsSelect(final CreateAsSelect statement,
+                                      final Command command,
+                                      final CommandId commandId,
+                                      final Map<Long, CommandId> terminatedQueries,
+                                      final String statementStr) throws Exception {
+    QuerySpecification querySpecification =
+        (QuerySpecification) statement.getQuery().getQueryBody();
+    Query query = ksqlEngine.addInto(
+        statement.getQuery(),
+        querySpecification,
+        statement.getName().getSuffix(),
+        statement.getProperties(),
+        statement.getPartitionByColumn()
+    );
+    if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
+      return statement instanceof CreateTableAsSelect
+          ? "Table created and running"
+          : "Stream created and running";
+    }
+
+    return null;
   }
 
   private boolean startQuery(

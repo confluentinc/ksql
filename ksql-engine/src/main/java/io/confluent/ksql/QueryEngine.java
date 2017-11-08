@@ -22,6 +22,7 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandFactory;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
@@ -37,10 +38,10 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
@@ -63,14 +64,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class QueryEngine {
+class QueryEngine {
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final AtomicLong queryIdCounter;
   private final KsqlEngine ksqlEngine;
+  private final DDLCommandFactory ddlCommandFactory;
 
 
-  QueryEngine(final KsqlEngine ksqlEngine) {
+  QueryEngine(final KsqlEngine ksqlEngine, final DDLCommandFactory ddlCommandFactory) {
+    this.ddlCommandFactory = ddlCommandFactory;
     this.queryIdCounter = new AtomicLong(1);
     this.ksqlEngine = ksqlEngine;
   }
@@ -138,7 +141,11 @@ public class QueryEngine {
 
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
       if (statementPlanPair.getRight() == null) {
-        handleDdlStatement(statementList.get(i).getRight(), overriddenStreamsProperties);
+        Statement statement = statementList.get(i).getRight();
+        if (!(statement instanceof  DDLStatement)) {
+          throw new KsqlException("expecting a statement implementing DDLStatement but got: " + statement.getClass());
+        }
+        handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
       } else {
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
                                overriddenStreamsProperties, updateMetastore);
@@ -155,9 +162,7 @@ public class QueryEngine {
                                       final boolean updateMetastore) throws Exception {
 
     final StreamsBuilder builder = new StreamsBuilder();
-
     final KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
-
 
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
@@ -175,15 +180,10 @@ public class QueryEngine {
   }
 
 
-  public DDLCommandResult handleDdlStatement(
-      final Statement statement,
+  DDLCommandResult handleDdlStatement(
+      final DDLStatement statement,
       final Map<String, Object> overriddenProperties) {
-    if (statement instanceof SetProperty) {
-      SetProperty setProperty = (SetProperty) statement;
-      overriddenProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-      return null;
-    }
-    DDLCommand command = generateDDLCommand(statement, overriddenProperties);
+    DDLCommand command = ddlCommandFactory.create(statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
   }
 

@@ -17,9 +17,11 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -33,6 +35,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -101,7 +104,7 @@ public class KsqlEngine implements Closeable {
     this.metaStore = new MetaStoreImpl();
     this.topicClient = topicClient;
     this.ddlCommandExec = new DDLCommandExec(metaStore);
-    this.queryEngine = new QueryEngine(this);
+    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient));
 
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
@@ -416,9 +419,6 @@ public class KsqlEngine implements Closeable {
     topicClient.close();
   }
 
-  public QueryEngine getQueryEngine() {
-    return queryEngine;
-  }
 
   public boolean terminateAllQueries() {
     try {
@@ -435,4 +435,10 @@ public class KsqlEngine implements Closeable {
 
     return true;
   }
+
+  public DDLCommandResult executeDdlStatement(final DDLStatement statement,
+                                              final Map<String, Object> streamsProperties) {
+    return queryEngine.handleDdlStatement(statement, streamsProperties);
+  }
+
 }

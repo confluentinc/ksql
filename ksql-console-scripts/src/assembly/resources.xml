@@ -1,0 +1,16 @@
+<assembly>
+  <id>resources</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+
+  <fileSets>
+    <fileSet>
+      <directory>../bin</directory>
+      <outputDirectory></outputDirectory>
+      <includes>
+        <include>ksql-*</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+</assembly>

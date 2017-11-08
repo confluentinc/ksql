@@ -40,12 +40,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Set<String> listTopicNames() {
-    return Collections.EMPTY_SET;
+    return Collections.emptySet();
   }
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    return Collections.EMPTY_MAP;
+    return Collections.emptyMap();
   }
 
   @Override

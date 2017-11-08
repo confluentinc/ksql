@@ -17,10 +17,16 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.ddl.commands.DropTopicCommand;
+import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -40,7 +46,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;

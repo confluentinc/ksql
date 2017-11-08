@@ -322,10 +322,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource into;
     if (node.isStdOut) {
-      into =
-          new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
-                         null, StructuredDataSource.DataSourceType.KSTREAM);
-
+      into = new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
+              null, StructuredDataSource.DataSourceType.KSTREAM);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = analyzeNonStdOutTable(node);
     } else {

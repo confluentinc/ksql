@@ -25,18 +25,13 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateStreamAsSelect extends Statement {
+public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
   private final Optional<Expression> partitionByColumn;
-
-  public CreateStreamAsSelect(QualifiedName name, Query query, boolean notExists,
-                      Map<String, Expression> properties, Optional<Expression> partitionByColumn) {
-    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
-  }
 
   public CreateStreamAsSelect(NodeLocation location, QualifiedName name, Query query,
                       boolean notExists, Map<String, Expression> properties,
@@ -58,10 +53,6 @@ public class CreateStreamAsSelect extends Statement {
 
   public QualifiedName getName() {
     return name;
-  }
-
-  public boolean isNotExists() {
-    return notExists;
   }
 
   public Query getQuery() {

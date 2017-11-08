@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
@@ -28,15 +27,6 @@ public class DropView
   private final boolean exists;
 
   public DropView(QualifiedName name, boolean exists) {
-    this(Optional.empty(), name, exists);
-  }
-
-  public DropView(NodeLocation location, QualifiedName name, boolean exists) {
-    this(Optional.of(location), name, exists);
-  }
-
-  private DropView(Optional<NodeLocation> location, QualifiedName name, boolean exists) {
-    super(location);
     this.name = name;
     this.exists = exists;
   }

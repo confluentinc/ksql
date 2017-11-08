@@ -17,15 +17,10 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ListRegisteredTopics extends Statement {
-
-  public ListRegisteredTopics(Optional<NodeLocation> location) {
-    super(location);
-  }
 
   @Override
   public int hashCode() {

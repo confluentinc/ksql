@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,15 +26,6 @@ public class DecimalLiteral
   private final String value;
 
   public DecimalLiteral(String value) {
-    this(Optional.empty(), value);
-  }
-
-  public DecimalLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
-  }
-
-  public DecimalLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
     this.value = requireNonNull(value, "value is null");
   }
 

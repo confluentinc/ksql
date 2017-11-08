@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
@@ -27,12 +26,7 @@ public class Statements extends Node {
   public List<Statement> statementList;
 
   public Statements(List<Statement> statementList) {
-    super(Optional.empty());
     this.statementList = statementList;
-  }
-
-  protected Statements(Optional<NodeLocation> location, List<Statement> statementList) {
-    super(location);
   }
 
   @Override

@@ -19,7 +19,6 @@ package io.confluent.ksql.parser.tree;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class Table
     extends QueryBody {
@@ -29,23 +28,10 @@ public class Table
   private final QualifiedName name;
 
   public Table(QualifiedName name) {
-    this(Optional.empty(), name, false);
+    this(name, false);
   }
 
   public Table(QualifiedName name, boolean isStdOut) {
-    this(Optional.empty(), name, isStdOut);
-  }
-
-  public Table(NodeLocation location, QualifiedName name) {
-    this(Optional.of(location), name, false);
-  }
-
-  public Table(NodeLocation location, QualifiedName name, boolean isStdOut) {
-    this(Optional.of(location), name, isStdOut);
-  }
-
-  private Table(Optional<NodeLocation> location, QualifiedName name, boolean isStdOut) {
-    super(location);
     this.name = name;
     this.isStdOut = isStdOut;
   }

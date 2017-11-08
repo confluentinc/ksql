@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -35,21 +34,6 @@ public class CreateTableAsSelect
 
   public CreateTableAsSelect(QualifiedName name, Query query, boolean notExists,
                              Map<String, Expression> properties) {
-    this(Optional.empty(), name, query, notExists, properties);
-  }
-
-  public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
-                             boolean notExists,
-                             Map<String, Expression> properties
-                             ) {
-    this(Optional.of(location), name, query, notExists, properties);
-  }
-
-  private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
-                              boolean notExists,
-                              Map<String, Expression> properties
-                              ) {
-    super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
     this.notExists = notExists;

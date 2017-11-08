@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -33,15 +32,6 @@ public class With
   private final List<WithQuery> queries;
 
   public With(boolean recursive, List<WithQuery> queries) {
-    this(Optional.empty(), recursive, queries);
-  }
-
-  public With(NodeLocation location, boolean recursive, List<WithQuery> queries) {
-    this(Optional.of(location), recursive, queries);
-  }
-
-  private With(Optional<NodeLocation> location, boolean recursive, List<WithQuery> queries) {
-    super(location);
     requireNonNull(queries, "queries is null");
     checkArgument(!queries.isEmpty(), "queries is empty");
 

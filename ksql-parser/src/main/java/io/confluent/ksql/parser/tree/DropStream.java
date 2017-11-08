@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
@@ -27,16 +26,7 @@ public class DropStream
   private final QualifiedName streamName;
   private final boolean exists;
 
-  public DropStream(QualifiedName tableName, boolean exists) {
-    this(Optional.empty(), tableName, exists);
-  }
-
-  public DropStream(NodeLocation location, QualifiedName tableName, boolean exists) {
-    this(Optional.of(location), tableName, exists);
-  }
-
-  private DropStream(Optional<NodeLocation> location, QualifiedName streamName, boolean exists) {
-    super(location);
+  public DropStream(QualifiedName streamName, boolean exists) {
     this.streamName = streamName;
     this.exists = exists;
   }

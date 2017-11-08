@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class SymbolReference
     extends Expression {
@@ -25,7 +24,6 @@ public class SymbolReference
   private final String name;
 
   public SymbolReference(String name) {
-    super(Optional.empty());
     this.name = name;
   }
 

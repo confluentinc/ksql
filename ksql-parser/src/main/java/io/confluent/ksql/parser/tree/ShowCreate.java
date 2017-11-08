@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -34,15 +33,6 @@ public class ShowCreate
   private final QualifiedName name;
 
   public ShowCreate(Type type, QualifiedName name) {
-    this(Optional.empty(), type, name);
-  }
-
-  public ShowCreate(NodeLocation location, Type type, QualifiedName name) {
-    this(Optional.of(location), type, name);
-  }
-
-  private ShowCreate(Optional<NodeLocation> location, Type type, QualifiedName name) {
-    super(location);
     this.type = requireNonNull(type, "type is null");
     this.name = requireNonNull(name, "name is null");
   }

@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+
 import io.confluent.ksql.parser.ParsingException;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,16 +29,11 @@ public final class GenericLiteral
   private final String type;
   private final String value;
 
-  public GenericLiteral(String type, String value) {
-    this(Optional.empty(), type, value);
+  public GenericLiteral(final String type, final String value) {
+    this(null, type, value);
   }
 
-  public GenericLiteral(NodeLocation location, String type, String value) {
-    this(Optional.of(location), type, value);
-  }
-
-  private GenericLiteral(Optional<NodeLocation> location, String type, String value) {
-    super(location);
+  public GenericLiteral(final NodeLocation location, String type, String value) {
     requireNonNull(type, "type is null");
     requireNonNull(value, "value is null");
     if (type.equalsIgnoreCase("X")) {
@@ -47,7 +42,7 @@ public final class GenericLiteral
       // added whitespace between the X and quote
       throw new ParsingException(
           "Spaces are not allowed between 'X' and the starting quote of a binary literal",
-          location.get());
+          location);
     }
     this.type = type;
     this.value = value;

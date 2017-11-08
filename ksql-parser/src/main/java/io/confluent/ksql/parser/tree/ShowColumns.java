@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -29,15 +28,6 @@ public class ShowColumns
   private final boolean isTopic;
 
   public ShowColumns(QualifiedName table, boolean isTopic) {
-    this(Optional.empty(), table, isTopic);
-  }
-
-  public ShowColumns(NodeLocation location, QualifiedName table, boolean isTopic) {
-    this(Optional.of(location), table, isTopic);
-  }
-
-  private ShowColumns(Optional<NodeLocation> location, QualifiedName table, boolean isTopic) {
-    super(location);
     this.table = requireNonNull(table, "table is null");
     this.isTopic = isTopic;
   }

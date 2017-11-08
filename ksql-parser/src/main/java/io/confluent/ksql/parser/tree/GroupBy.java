@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -32,17 +31,6 @@ public class GroupBy
   private final List<GroupingElement> groupingElements;
 
   public GroupBy(boolean isDistinct, List<GroupingElement> groupingElements) {
-    this(Optional.empty(), isDistinct, groupingElements);
-  }
-
-  public GroupBy(NodeLocation location, boolean isDistinct,
-                 List<GroupingElement> groupingElements) {
-    this(Optional.of(location), isDistinct, groupingElements);
-  }
-
-  private GroupBy(Optional<NodeLocation> location, boolean isDistinct,
-                  List<GroupingElement> groupingElements) {
-    super(location);
     this.isDistinct = isDistinct;
     this.groupingElements = ImmutableList.copyOf(requireNonNull(groupingElements));
   }

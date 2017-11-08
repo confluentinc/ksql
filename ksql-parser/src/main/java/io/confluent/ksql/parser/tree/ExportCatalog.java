@@ -19,14 +19,12 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.base.MoreObjects;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class ExportCatalog extends Statement {
 
   final String catalogFilePath;
 
-  public ExportCatalog(Optional<NodeLocation> location, String catalogFilePath) {
-    super(location);
+  public ExportCatalog(String catalogFilePath) {
     if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
       this.catalogFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);
     } else {

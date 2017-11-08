@@ -16,18 +16,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 public class NullLiteral
     extends Literal {
-
-  public NullLiteral() {
-    super(Optional.empty());
-  }
-
-  public NullLiteral(NodeLocation location) {
-    super(Optional.of(location));
-  }
 
   @Override
   public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

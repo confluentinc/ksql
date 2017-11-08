@@ -16,24 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class ShowSession
     extends Statement {
-
-  public ShowSession() {
-    this(Optional.empty());
-  }
-
-  public ShowSession(NodeLocation location) {
-    this(Optional.of(location));
-  }
-
-  private ShowSession(Optional<NodeLocation> location) {
-    super(location);
-  }
 
   @Override
   public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

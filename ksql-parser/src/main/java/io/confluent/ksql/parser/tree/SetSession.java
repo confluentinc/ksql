@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
@@ -28,15 +27,6 @@ public class SetSession
   private final Expression value;
 
   public SetSession(QualifiedName name, Expression value) {
-    this(Optional.empty(), name, value);
-  }
-
-  public SetSession(NodeLocation location, QualifiedName name, Expression value) {
-    this(Optional.of(location), name, value);
-  }
-
-  private SetSession(Optional<NodeLocation> location, QualifiedName name, Expression value) {
-    super(location);
     this.name = name;
     this.value = value;
   }

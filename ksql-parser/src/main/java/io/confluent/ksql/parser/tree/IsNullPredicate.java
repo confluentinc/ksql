@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,15 +26,6 @@ public class IsNullPredicate
   private final Expression value;
 
   public IsNullPredicate(Expression value) {
-    this(Optional.empty(), value);
-  }
-
-  public IsNullPredicate(NodeLocation location, Expression value) {
-    this(Optional.of(location), value);
-  }
-
-  private IsNullPredicate(Optional<NodeLocation> location, Expression value) {
-    super(location);
     requireNonNull(value, "value is null");
     this.value = value;
   }

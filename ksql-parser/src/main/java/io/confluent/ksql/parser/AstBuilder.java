@@ -24,7 +24,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
-import io.confluent.ksql.parser.SqlBaseParser.*;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
@@ -106,7 +105,7 @@ public class AstBuilder
 
   @Override
   public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
-    return new CreateTable(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new CreateTable(getQualifiedName(context.qualifiedName()),
                            visit(context.tableElement(), TableElement.class),
                            context.EXISTS() != null,
                            processTableProperties(context.tableProperties()));
@@ -114,14 +113,14 @@ public class AstBuilder
 
   @Override
   public Node visitRegisterTopic(SqlBaseParser.RegisterTopicContext context) {
-    return new RegisterTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new RegisterTopic(getQualifiedName(context.qualifiedName()),
                            context.EXISTS() != null,
                              processTableProperties(context.tableProperties()));
   }
 
   @Override
   public Node visitCreateStream(SqlBaseParser.CreateStreamContext context) {
-    return new CreateStream(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new CreateStream(getQualifiedName(context.qualifiedName()),
                             visit(context.tableElement(), TableElement.class),
                             context.EXISTS() != null,
                             processTableProperties(context.tableProperties()));
@@ -135,7 +134,7 @@ public class AstBuilder
           QualifiedName.of(getIdentifierText(context.identifier()))));
     }
 
-    return new CreateStreamAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new CreateStreamAsSelect(getQualifiedName(context.qualifiedName()),
                                     (Query) visitQuery(context.query()),
                                     context.EXISTS() != null,
                                     processTableProperties(context.tableProperties()),
@@ -144,7 +143,7 @@ public class AstBuilder
 
   @Override
   public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
-    return new CreateTableAsSelect(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new CreateTableAsSelect(getQualifiedName(context.qualifiedName()),
                                    (Query) visitQuery(context.query()),
                                    context.EXISTS() != null,
                                    processTableProperties(context.tableProperties()));
@@ -152,19 +151,19 @@ public class AstBuilder
 
   @Override
   public Node visitDropTopic(SqlBaseParser.DropTopicContext context) {
-    return new DropTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new DropTopic(getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);
   }
 
   @Override
   public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-    return new DropTable(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new DropTable(getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);
   }
 
   @Override
   public Node visitDropStream(SqlBaseParser.DropStreamContext context) {
-    return new DropStream(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new DropStream(getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);
   }
 
@@ -175,7 +174,6 @@ public class AstBuilder
     Query body = (Query) visit(context.queryNoWith());
 
     return new Query(
-        getLocation(context),
         visitIfPresent(context.with(), With.class),
         body.getQueryBody(),
         body.getOrderBy(),
@@ -184,13 +182,13 @@ public class AstBuilder
 
   @Override
   public Node visitWith(SqlBaseParser.WithContext context) {
-    return new With(getLocation(context), context.RECURSIVE() != null,
+    return new With(context.RECURSIVE() != null,
                     visit(context.namedQuery(), WithQuery.class));
   }
 
   @Override
   public Node visitNamedQuery(SqlBaseParser.NamedQueryContext context) {
-    return new WithQuery(getLocation(context), context.name.getText(),
+    return new WithQuery(context.name.getText(),
                          (Query) visit(context.query()),
                          Optional.ofNullable(getColumnAliases(context.columnAliases())));
   }
@@ -208,10 +206,8 @@ public class AstBuilder
       // to columns defined in the query specification)
       QuerySpecification query = (QuerySpecification) term;
       return new Query(
-          getLocation(context),
           Optional.<With>empty(),
           new QuerySpecification(
-              getLocation(context),
               query.getSelect(),
               query.getInto(),
               query.getFrom(),
@@ -226,7 +222,6 @@ public class AstBuilder
     }
 
     return new Query(
-        getLocation(context),
         Optional.<With>empty(),
         term,
         visit(context.sortItem(), SortItem.class),
@@ -251,14 +246,13 @@ public class AstBuilder
 
     Select
         select =
-        new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()),
+        new Select(isDistinct(context.setQuantifier()),
                    visit(context.selectItem(), SelectItem.class));
-    select = new Select(getLocation(context.SELECT()), select.isDistinct(),
+    select = new Select(select.isDistinct(),
                         extractSelectItems(select, from));
     getResultDatasource(select, into);
 
     return new QuerySpecification(
-        getLocation(context),
         select,
         into,
         from,
@@ -310,23 +304,21 @@ public class AstBuilder
       for (Field field : leftDataSource.getSchema().fields()) {
         QualifiedNameReference
             qualifiedNameReference =
-            new QualifiedNameReference(allColumns.getLocation().get(),
-                                       QualifiedName.of(left.getAlias() + "." + field.name()));
+            new QualifiedNameReference(QualifiedName.of(left.getAlias() + "." + field.name()));
         SingleColumn
             newSelectItem =
             new SingleColumn(qualifiedNameReference,
-                             left.getAlias() + "_" + field.name());
+                             Optional.of(left.getAlias() + "_" + field.name()));
         selectItems.add(newSelectItem);
       }
       for (Field field : rightDataSource.getSchema().fields()) {
         QualifiedNameReference
             qualifiedNameReference =
-            new QualifiedNameReference(allColumns.getLocation().get(),
-                                       QualifiedName.of(right.getAlias() + "." + field.name()));
+            new QualifiedNameReference(QualifiedName.of(right.getAlias() + "." + field.name()));
         SingleColumn
             newSelectItem =
             new SingleColumn(qualifiedNameReference,
-                             right.getAlias() + "_" + field.name());
+                             Optional.of(right.getAlias() + "_" + field.name()));
         selectItems.add(newSelectItem);
       }
     } else {
@@ -343,11 +335,11 @@ public class AstBuilder
       for (Field field : fromDataSource.getSchema().fields()) {
         QualifiedNameReference
             qualifiedNameReference =
-            new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+            new QualifiedNameReference(QualifiedName
                 .of(fromDataSource.getName() + "." + field.name()));
         SingleColumn
             newSelectItem =
-            new SingleColumn(qualifiedNameReference, field.name());
+            new SingleColumn(qualifiedNameReference, Optional.of(field.name()));
         selectItems.add(newSelectItem);
       }
     }
@@ -418,7 +410,7 @@ public class AstBuilder
 
   @Override
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
-    return new GroupBy(getLocation(context), isDistinct(context.setQuantifier()),
+    return new GroupBy(isDistinct(context.setQuantifier()),
                        visit(context.groupingElement(), GroupingElement.class));
   }
 
@@ -430,7 +422,7 @@ public class AstBuilder
 
   @Override
   public Node visitMultipleGroupingSets(SqlBaseParser.MultipleGroupingSetsContext context) {
-    return new GroupingSets(getLocation(context), context.groupingSet().stream()
+    return new GroupingSets(context.groupingSet().stream()
         .map(groupingSet -> groupingSet.qualifiedName().stream()
             .map(AstBuilder::getQualifiedName)
             .collect(toList()))
@@ -463,10 +455,10 @@ public class AstBuilder
   @Override
   public Node visitSelectAll(SqlBaseParser.SelectAllContext context) {
     if (context.qualifiedName() != null) {
-      return new AllColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
+      return new AllColumns(getQualifiedName(context.qualifiedName()));
     }
 
-    return new AllColumns(getLocation(context));
+    return new AllColumns();
   }
 
   @Override
@@ -500,7 +492,7 @@ public class AstBuilder
       alias = Optional.of(alias.get());
     }
     selectItemIndex++;
-    return new SingleColumn(getLocation(context), selectItemExpression, alias);
+    return new SingleColumn(selectItemExpression, alias);
   }
 
   @Override
@@ -510,73 +502,72 @@ public class AstBuilder
 
   @Override
   public Node visitTable(SqlBaseParser.TableContext context) {
-    return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+    return new Table(getQualifiedName(context.qualifiedName()));
   }
 
   @Override
   public Node visitExportCatalog(SqlBaseParser.ExportCatalogContext context) {
-    return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+    return new ExportCatalog(context.STRING().getText());
   }
 
   @Override
   public Node visitRunScript(SqlBaseParser.RunScriptContext context) {
-    return new RunScript(Optional.ofNullable(getLocation(context)), context.STRING().getText());
+    return new RunScript(context.STRING().getText());
   }
 
   @Override
   public Node visitListRegisteredTopics(SqlBaseParser.ListRegisteredTopicsContext context) {
-    return new ListRegisteredTopics(Optional.ofNullable(getLocation(context)));
+    return new ListRegisteredTopics();
   }
 
   @Override
   public Node visitListTopics(SqlBaseParser.ListTopicsContext context) {
-    return new ListTopics(Optional.ofNullable(getLocation(context)));
+    return new ListTopics();
   }
 
   @Override
   public Node visitListStreams(SqlBaseParser.ListStreamsContext context) {
-    return new ListStreams(Optional.ofNullable(getLocation(context)));
+    return new ListStreams();
   }
 
   @Override
   public Node visitListTables(SqlBaseParser.ListTablesContext context) {
-    return new ListTables(Optional.ofNullable(getLocation(context)));
+    return new ListTables();
   }
 
 
   @Override
   public Node visitListQueries(SqlBaseParser.ListQueriesContext context) {
-    return new ListQueries(Optional.ofNullable(getLocation(context)));
+    return new ListQueries();
   }
 
   @Override
   public Node visitTerminateQuery(SqlBaseParser.TerminateQueryContext context) {
-    return new TerminateQuery(getLocation(context),
-                              Long.parseLong(context.INTEGER_VALUE().getText()));
+    return new TerminateQuery(Long.parseLong(context.INTEGER_VALUE().getText()));
   }
 
   @Override
   public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
-    return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()),
+    return new ShowColumns(getQualifiedName(context.qualifiedName()),
                            context.TOPIC() != null);
   }
 
   @Override
   public Node visitListProperties(SqlBaseParser.ListPropertiesContext context) {
-    return new ListProperties(Optional.ofNullable(getLocation(context)));
+    return new ListProperties();
   }
 
   @Override
   public Node visitSetProperty(SqlBaseParser.SetPropertyContext context) {
     String propertyName = unquote(context.STRING(0).getText(), "'");
     String propertyValue = unquote(context.STRING(1).getText(), "'");
-    return new SetProperty(Optional.ofNullable(getLocation(context)), propertyName, propertyValue);
+    return new SetProperty(propertyName, propertyValue);
   }
 
   @Override
   public Node visitUnsetProperty(SqlBaseParser.UnsetPropertyContext context) {
     String propertyName = unquote(context.STRING().getText(), "'");
-    return new UnsetProperty(Optional.ofNullable(getLocation(context)), propertyName);
+    return new UnsetProperty(propertyName);
   }
 
   @Override
@@ -584,7 +575,6 @@ public class AstBuilder
     boolean fromBeginning = context.FROM() != null;
     if (context.number() == null) {
       return new PrintTopic(
-          getLocation(context),
           getQualifiedName(context.qualifiedName()),
           fromBeginning,
           null
@@ -594,7 +584,6 @@ public class AstBuilder
           integerLiteralContext =
           (SqlBaseParser.IntegerLiteralContext) context.number();
       return new PrintTopic(
-          getLocation(context),
           getQualifiedName(context.qualifiedName()),
           fromBeginning,
           (LongLiteral) visitIntegerLiteral(integerLiteralContext)
@@ -612,21 +601,21 @@ public class AstBuilder
 
   @Override
   public Node visitSubquery(SqlBaseParser.SubqueryContext context) {
-    return new TableSubquery(getLocation(context), (Query) visit(context.queryNoWith()));
+    return new TableSubquery((Query) visit(context.queryNoWith()));
   }
 
   @Override
   public Node visitInlineTable(SqlBaseParser.InlineTableContext context) {
-    return new Values(getLocation(context), visit(context.expression(), Expression.class));
+    return new Values(visit(context.expression(), Expression.class));
   }
 
   @Override
   public Node visitExplainFormat(SqlBaseParser.ExplainFormatContext context) {
     switch (context.value.getType()) {
       case SqlBaseLexer.GRAPHVIZ:
-        return new ExplainFormat(getLocation(context), ExplainFormat.Type.GRAPHVIZ);
+        return new ExplainFormat(ExplainFormat.Type.GRAPHVIZ);
       case SqlBaseLexer.TEXT:
-        return new ExplainFormat(getLocation(context), ExplainFormat.Type.TEXT);
+        return new ExplainFormat(ExplainFormat.Type.TEXT);
       default:
         throw new IllegalArgumentException("Unsupported EXPLAIN format: "
                                            + context.value.getText());
@@ -637,9 +626,9 @@ public class AstBuilder
   public Node visitExplainType(SqlBaseParser.ExplainTypeContext context) {
     switch (context.value.getType()) {
       case SqlBaseLexer.LOGICAL:
-        return new ExplainType(getLocation(context), ExplainType.Type.LOGICAL);
+        return new ExplainType(ExplainType.Type.LOGICAL);
       case SqlBaseLexer.DISTRIBUTED:
-        return new ExplainType(getLocation(context), ExplainType.Type.DISTRIBUTED);
+        return new ExplainType(ExplainType.Type.DISTRIBUTED);
       default:
         throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
     }
@@ -649,13 +638,12 @@ public class AstBuilder
 
   @Override
   public Node visitLogicalNot(SqlBaseParser.LogicalNotContext context) {
-    return new NotExpression(getLocation(context), (Expression) visit(context.booleanExpression()));
+    return new NotExpression((Expression) visit(context.booleanExpression()));
   }
 
   @Override
   public Node visitLogicalBinary(SqlBaseParser.LogicalBinaryContext context) {
     return new LogicalBinaryExpression(
-        getLocation(context.operator),
         getLogicalBinaryOperator(context.operator),
         (Expression) visit(context.left),
         (Expression) visit(context.right));
@@ -670,8 +658,8 @@ public class AstBuilder
 
     if (context.CROSS() != null) {
       right = (Relation) visit(context.right);
-      return new Join(getLocation(context), Join.Type.CROSS, left, right,
-                      Optional.<JoinCriteria>empty());
+      return new Join(Join.Type.CROSS, left, right,
+                      Optional.empty());
     }
 
     JoinCriteria criteria;
@@ -705,7 +693,7 @@ public class AstBuilder
       joinType = Join.Type.INNER;
     }
 
-    return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
+    return new Join(joinType, left, right, Optional.of(criteria));
   }
 
   @Override
@@ -722,7 +710,7 @@ public class AstBuilder
       throw new IllegalArgumentException("AliasedRelationContext must have either 1 or 2 children, but has:" + context.children.size());
     }
 
-    return new AliasedRelation(getLocation(context), child, alias,
+    return new AliasedRelation(child, alias,
                                getColumnAliases(context.columnAliases()));
 
   }
@@ -730,7 +718,7 @@ public class AstBuilder
   @Override
   public Node visitTableName(SqlBaseParser.TableNameContext context) {
 
-    Table table = new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+    Table table = new Table(getQualifiedName(context.qualifiedName()));
     if (context.tableProperties() != null) {
       table.setProperties(processTableProperties(context.tableProperties()));
     }
@@ -739,7 +727,7 @@ public class AstBuilder
 
   @Override
   public Node visitSubqueryRelation(SqlBaseParser.SubqueryRelationContext context) {
-    return new TableSubquery(getLocation(context), (Query) visit(context.query()));
+    return new TableSubquery((Query) visit(context.query()));
   }
 
   @Override
@@ -761,7 +749,6 @@ public class AstBuilder
   @Override
   public Node visitComparison(SqlBaseParser.ComparisonContext context) {
     return new ComparisonExpression(
-        getLocation(context.comparisonOperator()),
         getComparisonOperator(
             ((TerminalNode) context.comparisonOperator().getChild(0)).getSymbol()),
         (Expression) visit(context.value),
@@ -771,13 +758,12 @@ public class AstBuilder
   @Override
   public Node visitDistinctFrom(SqlBaseParser.DistinctFromContext context) {
     Expression expression = new ComparisonExpression(
-        getLocation(context),
         ComparisonExpression.Type.IS_DISTINCT_FROM,
         (Expression) visit(context.value),
         (Expression) visit(context.right));
 
     if (context.NOT() != null) {
-      expression = new NotExpression(getLocation(context), expression);
+      expression = new NotExpression(expression);
     }
 
     return expression;
@@ -786,13 +772,12 @@ public class AstBuilder
   @Override
   public Node visitBetween(SqlBaseParser.BetweenContext context) {
     Expression expression = new BetweenPredicate(
-        getLocation(context),
         (Expression) visit(context.value),
         (Expression) visit(context.lower),
         (Expression) visit(context.upper));
 
     if (context.NOT() != null) {
-      expression = new NotExpression(getLocation(context), expression);
+      expression = new NotExpression(expression);
     }
 
     return expression;
@@ -803,10 +788,10 @@ public class AstBuilder
     Expression child = (Expression) visit(context.value);
 
     if (context.NOT() == null) {
-      return new IsNullPredicate(getLocation(context), child);
+      return new IsNullPredicate(child);
     }
 
-    return new IsNotNullPredicate(getLocation(context), child);
+    return new IsNotNullPredicate(child);
   }
 
   @Override
@@ -818,11 +803,11 @@ public class AstBuilder
 
     Expression
         result =
-        new LikePredicate(getLocation(context), (Expression) visit(context.value),
+        new LikePredicate((Expression) visit(context.value),
                           (Expression) visit(context.pattern), escape);
 
     if (context.NOT() != null) {
-      result = new NotExpression(getLocation(context), result);
+      result = new NotExpression(result);
     }
 
     return result;
@@ -831,12 +816,11 @@ public class AstBuilder
   @Override
   public Node visitInList(SqlBaseParser.InListContext context) {
     Expression result = new InPredicate(
-        getLocation(context),
         (Expression) visit(context.value),
-        new InListExpression(getLocation(context), visit(context.expression(), Expression.class)));
+        new InListExpression(visit(context.expression(), Expression.class)));
 
     if (context.NOT() != null) {
-      result = new NotExpression(getLocation(context), result);
+      result = new NotExpression(result);
     }
 
     return result;
@@ -845,12 +829,11 @@ public class AstBuilder
   @Override
   public Node visitInSubquery(SqlBaseParser.InSubqueryContext context) {
     Expression result = new InPredicate(
-        getLocation(context),
         (Expression) visit(context.value),
-        new SubqueryExpression(getLocation(context), (Query) visit(context.query())));
+        new SubqueryExpression((Query) visit(context.query())));
 
     if (context.NOT() != null) {
-      result = new NotExpression(getLocation(context), result);
+      result = new NotExpression(result);
     }
 
     return result;
@@ -858,7 +841,7 @@ public class AstBuilder
 
   @Override
   public Node visitExists(SqlBaseParser.ExistsContext context) {
-    return new ExistsPredicate(getLocation(context), (Query) visit(context.query()));
+    return new ExistsPredicate((Query) visit(context.query()));
   }
 
   // ************** value expressions **************
@@ -869,9 +852,9 @@ public class AstBuilder
 
     switch (context.operator.getType()) {
       case SqlBaseLexer.MINUS:
-        return ArithmeticUnaryExpression.negative(getLocation(context), child);
+        return ArithmeticUnaryExpression.negative(child);
       case SqlBaseLexer.PLUS:
-        return ArithmeticUnaryExpression.positive(getLocation(context), child);
+        return ArithmeticUnaryExpression.positive(child);
       default:
         throw new UnsupportedOperationException("Unsupported sign: " + context.operator.getText());
     }
@@ -880,7 +863,6 @@ public class AstBuilder
   @Override
   public Node visitArithmeticBinary(SqlBaseParser.ArithmeticBinaryContext context) {
     return new ArithmeticBinaryExpression(
-        getLocation(context.operator),
         getArithmeticBinaryOperator(context.operator),
         (Expression) visit(context.left),
         (Expression) visit(context.right));
@@ -889,7 +871,6 @@ public class AstBuilder
   @Override
   public Node visitConcatenation(SqlBaseParser.ConcatenationContext context) {
     return new FunctionCall(
-        getLocation(context.CONCAT()),
         QualifiedName.of("concat"), ImmutableList.of(
         (Expression) visit(context.left),
         (Expression) visit(context.right)));
@@ -902,7 +883,7 @@ public class AstBuilder
 
   @Override
   public Node visitTimeZoneString(SqlBaseParser.TimeZoneStringContext context) {
-    return new StringLiteral(getLocation(context), unquote(context.STRING().getText(), "'"));
+    return new StringLiteral(unquote(context.STRING().getText(), "'"));
   }
 
   // ********************* primary expressions **********************
@@ -914,14 +895,14 @@ public class AstBuilder
 
   @Override
   public Node visitRowConstructor(SqlBaseParser.RowConstructorContext context) {
-    return new Row(getLocation(context), visit(context.expression(), Expression.class));
+    return new Row(visit(context.expression(), Expression.class));
   }
 
 
   @Override
   public Node visitCast(SqlBaseParser.CastContext context) {
     boolean isTryCast = context.TRY_CAST() != null;
-    return new Cast(getLocation(context), (Expression) visit(context.expression()),
+    return new Cast((Expression) visit(context.expression()),
                     getType(context.type()), isTryCast);
   }
 
@@ -936,19 +917,19 @@ public class AstBuilder
                                  context.getStart().getLine(),
                                  context.getStart().getCharPositionInLine());
     }
-    return new Extract(getLocation(context), (Expression) visit(context.valueExpression()), field);
+    return new Extract((Expression) visit(context.valueExpression()), field);
   }
 
   @Override
   public Node visitSubstring(SqlBaseParser.SubstringContext context) {
-    return new FunctionCall(getLocation(context), QualifiedName.of("SUBSTR"),
+    return new FunctionCall(QualifiedName.of("SUBSTR"),
                             visit(context.valueExpression(), Expression.class));
   }
 
   @Override
   public Node visitPosition(SqlBaseParser.PositionContext context) {
     List<Expression> arguments = Lists.reverse(visit(context.valueExpression(), Expression.class));
-    return new FunctionCall(getLocation(context), QualifiedName.of("STRPOS"), arguments);
+    return new FunctionCall(QualifiedName.of("STRPOS"), arguments);
   }
 
   @Override
@@ -958,19 +939,19 @@ public class AstBuilder
         normalForm =
         Optional.ofNullable(
             context.normalForm()).map(ParserRuleContext::getText).orElse("NFC");
-    return new FunctionCall(getLocation(context), QualifiedName.of("NORMALIZE"), ImmutableList
-        .of(str, new StringLiteral(getLocation(context), normalForm)));
+    return new FunctionCall(QualifiedName.of("NORMALIZE"), ImmutableList
+        .of(str, new StringLiteral(normalForm)));
   }
 
   @Override
   public Node visitSubscript(SqlBaseParser.SubscriptContext context) {
-    return new SubscriptExpression(getLocation(context), (Expression) visit(context.value),
+    return new SubscriptExpression((Expression) visit(context.value),
                                    (Expression) visit(context.index));
   }
 
   @Override
   public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
-    return new SubqueryExpression(getLocation(context), (Query) visit(context.query()));
+    return new SubqueryExpression((Query) visit(context.query()));
   }
 
   @Override
@@ -979,12 +960,8 @@ public class AstBuilder
     Expression baseExpression;
     QualifiedName tableName = QualifiedName.of(
         context.primaryExpression().getText().toUpperCase());
-    baseExpression = new QualifiedNameReference(
-        getLocation(context.primaryExpression()), tableName);
-    DereferenceExpression
-        dereferenceExpression =
-        new DereferenceExpression(getLocation(context), baseExpression, fieldName);
-    return dereferenceExpression;
+    baseExpression = new QualifiedNameReference(tableName);
+    return new DereferenceExpression(baseExpression, fieldName);
   }
 
   @Override
@@ -997,31 +974,27 @@ public class AstBuilder
       } else if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
         Expression
             baseExpression =
-            new QualifiedNameReference(getLocation(context),
-                                       QualifiedName.of(dataSourceExtractor.getLeftAlias()));
-        return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+            new QualifiedNameReference(QualifiedName.of(dataSourceExtractor.getLeftAlias()));
+        return new DereferenceExpression(baseExpression, columnName);
       } else if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
         Expression
             baseExpression =
-            new QualifiedNameReference(getLocation(context),
-                                       QualifiedName.of(dataSourceExtractor.getRightAlias()));
-        return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+            new QualifiedNameReference(QualifiedName.of(dataSourceExtractor.getRightAlias()));
+        return new DereferenceExpression(baseExpression, columnName);
       } else {
         throw new InvalidColumnReferenceException("Field " + columnName + " is ambiguous.");
       }
     } else {
       Expression
           baseExpression =
-          new QualifiedNameReference(getLocation(context),
-                                     QualifiedName.of(dataSourceExtractor.getFromAlias()));
-      return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+          new QualifiedNameReference(QualifiedName.of(dataSourceExtractor.getFromAlias()));
+      return new DereferenceExpression(baseExpression, columnName);
     }
   }
 
   @Override
   public Node visitSimpleCase(SqlBaseParser.SimpleCaseContext context) {
     return new SimpleCaseExpression(
-        getLocation(context),
         (Expression) visit(context.valueExpression()),
         visit(context.whenClause(), WhenClause.class),
         visitIfPresent(context.elseExpression, Expression.class));
@@ -1030,14 +1003,13 @@ public class AstBuilder
   @Override
   public Node visitSearchedCase(SqlBaseParser.SearchedCaseContext context) {
     return new SearchedCaseExpression(
-        getLocation(context),
         visit(context.whenClause(), WhenClause.class),
         visitIfPresent(context.elseExpression, Expression.class));
   }
 
   @Override
   public Node visitWhenClause(SqlBaseParser.WhenClauseContext context) {
-    return new WhenClause(getLocation(context), (Expression) visit(context.condition),
+    return new WhenClause((Expression) visit(context.condition),
                           (Expression) visit(context.result));
   }
 
@@ -1057,13 +1029,11 @@ public class AstBuilder
       check(!distinct, "DISTINCT not valid for 'nullif' function", context);
 
       return new NullIfExpression(
-          getLocation(context),
           (Expression) visit(context.expression(0)),
           (Expression) visit(context.expression(1)));
     }
 
     return new FunctionCall(
-        getLocation(context),
         getQualifiedName(context.qualifiedName()),
         window,
         distinct,
@@ -1084,7 +1054,7 @@ public class AstBuilder
 
   @Override
   public Node visitTableElement(SqlBaseParser.TableElementContext context) {
-    return new TableElement(getLocation(context), getIdentifierText(context.identifier()),
+    return new TableElement(getIdentifierText(context.identifier()),
                             getType(context.type()));
   }
 
@@ -1093,12 +1063,12 @@ public class AstBuilder
 
   @Override
   public Node visitNullLiteral(SqlBaseParser.NullLiteralContext context) {
-    return new NullLiteral(getLocation(context));
+    return new NullLiteral();
   }
 
   @Override
   public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
-    return new StringLiteral(getLocation(context), unquote(context.STRING().getText(), "'"));
+    return new StringLiteral(unquote(context.STRING().getText(), "'"));
   }
 
   @Override
@@ -1113,13 +1083,13 @@ public class AstBuilder
     String value = unquote(context.STRING().getText(), "'");
 
     if (type.equals("TIME")) {
-      return new TimeLiteral(getLocation(context), value);
+      return new TimeLiteral(value);
     }
     if (type.equals("TIMESTAMP")) {
-      return new TimestampLiteral(getLocation(context), value);
+      return new TimestampLiteral(value);
     }
     if (type.equals("DECIMAL")) {
-      return new DecimalLiteral(getLocation(context), value);
+      return new DecimalLiteral(value);
     }
 
     return new GenericLiteral(getLocation(context), type, value);
@@ -1127,23 +1097,22 @@ public class AstBuilder
 
   @Override
   public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-    return new LongLiteral(getLocation(context), context.getText());
+    return new LongLiteral(context.getText());
   }
 
   @Override
   public Node visitDecimalLiteral(SqlBaseParser.DecimalLiteralContext context) {
-    return new DoubleLiteral(getLocation(context), context.getText());
+    return new DoubleLiteral(context.getText());
   }
 
   @Override
   public Node visitBooleanValue(SqlBaseParser.BooleanValueContext context) {
-    return new BooleanLiteral(getLocation(context), context.getText());
+    return new BooleanLiteral(context.getText());
   }
 
   @Override
   public Node visitInterval(SqlBaseParser.IntervalContext context) {
     return new IntervalLiteral(
-        getLocation(context),
         unquote(context.STRING().getText(), "'"),
         Optional.ofNullable(context.sign)
             .map(AstBuilder::getIntervalSign)
@@ -1162,8 +1131,7 @@ public class AstBuilder
     // Only simple explain is supported for now.
     //TODO: Expand to support other parts of EXPLAIN
 
-    Explain explain = new Explain(statement, false, Arrays.asList());
-    return explain;
+    return new Explain(statement, false, Arrays.asList());
   }
 
   // ***************** helpers *****************

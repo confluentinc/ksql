@@ -17,15 +17,13 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.List;
-import java.util.Optional;
 
 public abstract class SetOperation
     extends QueryBody {
 
   private final boolean distinct;
 
-  protected SetOperation(Optional<NodeLocation> location, boolean distinct) {
-    super(location);
+  protected SetOperation(boolean distinct) {
     this.distinct = distinct;
   }
 

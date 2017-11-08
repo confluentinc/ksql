@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,15 +26,6 @@ public class ExistsPredicate
   private final Query subquery;
 
   public ExistsPredicate(Query subquery) {
-    this(Optional.empty(), subquery);
-  }
-
-  public ExistsPredicate(NodeLocation location, Query subquery) {
-    this(Optional.of(location), subquery);
-  }
-
-  private ExistsPredicate(Optional<NodeLocation> location, Query subquery) {
-    super(location);
     requireNonNull(subquery, "subquery is null");
     this.subquery = subquery;
   }

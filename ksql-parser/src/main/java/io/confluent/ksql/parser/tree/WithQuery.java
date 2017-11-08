@@ -31,17 +31,6 @@ public class WithQuery
   private final Optional<List<String>> columnNames;
 
   public WithQuery(String name, Query query, Optional<List<String>> columnNames) {
-    this(Optional.empty(), name, query, columnNames);
-  }
-
-  public WithQuery(NodeLocation location, String name, Query query,
-                   Optional<List<String>> columnNames) {
-    this(Optional.of(location), name, query, columnNames);
-  }
-
-  private WithQuery(Optional<NodeLocation> location, String name, Query query,
-                    Optional<List<String>> columnNames) {
-    super(location);
     this.name = QualifiedName.of(requireNonNull(name, "name is null")).getParts().get(0);
     this.query = requireNonNull(query, "query is null");
     this.columnNames = requireNonNull(columnNames, "columnNames is null");

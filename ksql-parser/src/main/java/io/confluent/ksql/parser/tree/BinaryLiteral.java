@@ -22,7 +22,6 @@ import io.airlift.slice.Slices;
 import io.confluent.ksql.parser.ParsingException;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
@@ -36,27 +35,21 @@ public class BinaryLiteral
 
   private final Slice value;
 
-  public BinaryLiteral(String value) {
-    this(Optional.empty(), value);
+  public BinaryLiteral(final String value) {
+    this(null, value);
   }
-
-  public BinaryLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
+  public BinaryLiteral(final NodeLocation location, String value) {
     requireNonNull(value, "value is null");
     String hexString = WHITESPACE_PATTERN.matcher(value).replaceAll("");
     if (NOT_HEX_DIGIT_PATTERN.matcher(hexString).matches()) {
       throw new ParsingException("Binary literal can only contain hexadecimal digits",
-                                 location.get());
+                                 location);
     }
     if (hexString.length() % 2 != 0) {
       throw new ParsingException("Binary literal must contain an even number of digits",
-                                 location.get());
+                                 location);
     }
     this.value = Slices.wrappedBuffer(BaseEncoding.base16().decode(hexString));
-  }
-
-  public BinaryLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
   }
 
   /**

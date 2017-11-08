@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -34,18 +33,6 @@ public class RegisterTopic
 
   public RegisterTopic(QualifiedName name, boolean notExists,
                        Map<String, Expression> properties) {
-    this(Optional.empty(), name, notExists, properties);
-  }
-
-  public RegisterTopic(NodeLocation location, QualifiedName name,
-                       boolean notExists, Map<String, Expression> properties) {
-    this(Optional.of(location), name, notExists, properties);
-  }
-
-  private RegisterTopic(Optional<NodeLocation> location, QualifiedName name,
-                        boolean notExists,
-                        Map<String, Expression> properties) {
-    super(location);
     this.name = requireNonNull(name, "topic is null");
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));

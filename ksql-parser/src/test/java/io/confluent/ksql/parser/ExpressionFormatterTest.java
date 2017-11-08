@@ -35,13 +35,10 @@ import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.ExistsPredicate;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Extract;
 import io.confluent.ksql.parser.tree.FieldReference;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
-import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
@@ -58,7 +55,6 @@ import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
@@ -73,7 +69,6 @@ import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.tree.WindowFrame;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
@@ -223,7 +218,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
+    final FunctionCall functionCall = new FunctionCall(
         QualifiedName.of("function", "COUNT"),
         true,
         Collections.singletonList(new StringLiteral("name")));
@@ -232,9 +227,9 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCallWithWindow() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
+    final FunctionCall functionCall = new FunctionCall(
         QualifiedName.of("function"),
-        Optional.of(new Window("window",
+        Optional.of(new Window(
             new WindowExpression("blah", new TumblingWindowExpression(1L, TimeUnit.SECONDS)))),
         false,
         Collections.singletonList(new StringLiteral("name")));

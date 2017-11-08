@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class SubqueryExpression
     extends Expression {
@@ -25,15 +24,6 @@ public class SubqueryExpression
   private final Query query;
 
   public SubqueryExpression(Query query) {
-    this(Optional.empty(), query);
-  }
-
-  public SubqueryExpression(NodeLocation location, Query query) {
-    this(Optional.of(location), query);
-  }
-
-  private SubqueryExpression(Optional<NodeLocation> location, Query query) {
-    super(location);
     this.query = query;
   }
 

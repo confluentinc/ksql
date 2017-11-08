@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,15 +30,6 @@ public final class Values
   private final List<Expression> rows;
 
   public Values(List<Expression> rows) {
-    this(Optional.empty(), rows);
-  }
-
-  public Values(NodeLocation location, List<Expression> rows) {
-    this(Optional.of(location), rows);
-  }
-
-  private Values(Optional<NodeLocation> location, List<Expression> rows) {
-    super(location);
     requireNonNull(rows, "rows is null");
     this.rows = ImmutableList.copyOf(rows);
   }

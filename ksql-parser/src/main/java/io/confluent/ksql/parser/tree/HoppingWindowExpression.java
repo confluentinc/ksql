@@ -23,7 +23,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.GenericRow;
@@ -38,13 +37,6 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
 
   public HoppingWindowExpression(long size, TimeUnit sizeUnit,
                                   long advanceBy, TimeUnit advanceByUnit) {
-    this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
-  }
-
-  private HoppingWindowExpression(Optional<NodeLocation> location, long size,
-                                  TimeUnit sizeUnit,
-                                  long advanceBy, TimeUnit advanceByUnit) {
-    super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
     this.advanceBy = advanceBy;

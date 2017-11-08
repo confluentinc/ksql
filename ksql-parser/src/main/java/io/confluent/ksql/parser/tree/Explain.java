@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -33,17 +32,6 @@ public class Explain
   private final List<ExplainOption> options;
 
   public Explain(Statement statement, boolean analyze, List<ExplainOption> options) {
-    this(Optional.empty(), analyze, statement, options);
-  }
-
-  public Explain(NodeLocation location, boolean analyze, Statement statement,
-                 List<ExplainOption> options) {
-    this(Optional.of(location), analyze, statement, options);
-  }
-
-  private Explain(Optional<NodeLocation> location, boolean analyze, Statement statement,
-                  List<ExplainOption> options) {
-    super(location);
     this.statement = requireNonNull(statement, "statement is null");
     this.analyze = analyze;
     if (options == null) {

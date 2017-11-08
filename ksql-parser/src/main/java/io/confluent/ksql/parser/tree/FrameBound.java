@@ -17,7 +17,6 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -34,39 +33,18 @@ public class FrameBound
   }
 
   private final Type type;
-  private final Optional<Expression> value;
-
-  public FrameBound(Type type) {
-    this(Optional.empty(), type);
-  }
-
-  public FrameBound(NodeLocation location, Type type) {
-    this(Optional.of(location), type);
-  }
+  private final Expression value;
 
   public FrameBound(Type type, Expression value) {
-    this(Optional.empty(), type, value);
-  }
-
-  private FrameBound(Optional<NodeLocation> location, Type type) {
-    this(location, type, null);
-  }
-
-  public FrameBound(NodeLocation location, Type type, Expression value) {
-    this(Optional.of(location), type, value);
-  }
-
-  private FrameBound(Optional<NodeLocation> location, Type type, Expression value) {
-    super(location);
     this.type = requireNonNull(type, "type is null");
-    this.value = Optional.ofNullable(value);
+    this.value = value;
   }
 
   public Type getType() {
     return type;
   }
 
-  public Optional<Expression> getValue() {
+  public Expression getValue() {
     return value;
   }
 

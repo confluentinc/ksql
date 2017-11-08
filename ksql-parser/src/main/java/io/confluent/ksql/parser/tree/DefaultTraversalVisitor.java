@@ -161,8 +161,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   public R visitFrameBound(FrameBound node, C context) {
-    if (node.getValue().isPresent()) {
-      process(node.getValue().get(), context);
+    if (node.getValue() != null) {
+      process(node.getValue(), context);
     }
 
     return null;

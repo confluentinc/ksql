@@ -19,7 +19,6 @@ package io.confluent.ksql.parser.tree;
 import io.airlift.slice.Slice;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.util.Objects.requireNonNull;
@@ -31,15 +30,6 @@ public class StringLiteral
   private final Slice slice;
 
   public StringLiteral(String value) {
-    this(Optional.empty(), value);
-  }
-
-  public StringLiteral(NodeLocation location, String value) {
-    this(Optional.of(location), value);
-  }
-
-  private StringLiteral(Optional<NodeLocation> location, String value) {
-    super(location);
     requireNonNull(value, "value is null");
     this.value = value;
     this.slice = utf8Slice(value);

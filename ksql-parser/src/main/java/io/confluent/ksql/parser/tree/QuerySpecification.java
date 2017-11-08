@@ -46,37 +46,6 @@ public class QuerySpecification
       Optional<Expression> having,
       List<SortItem> orderBy,
       Optional<String> limit) {
-    this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
-  }
-
-  public QuerySpecification(
-      NodeLocation location,
-      Select select,
-      Relation into,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
-  }
-
-  private QuerySpecification(
-      Optional<NodeLocation> location,
-      Select select,
-      Relation into,
-      Relation from,
-      Optional<WindowExpression> windowExpression,
-      Optional<Expression> where,
-      Optional<GroupBy> groupBy,
-      Optional<Expression> having,
-      List<SortItem> orderBy,
-      Optional<String> limit) {
-    super(location);
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
     requireNonNull(from, "from is null");

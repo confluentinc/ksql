@@ -275,7 +275,7 @@ public class KsqlResourceTest {
   public void testListRegisteredTopics() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String ksqlString = "LIST REGISTERED TOPICS;";
-    final ListRegisteredTopics ksqlStatement = new ListRegisteredTopics(Optional.empty());
+    final ListRegisteredTopics ksqlStatement = new ListRegisteredTopics();
 
     KsqlTopicsList ksqlTopicsList = makeSingleRequest(
         testResource,
@@ -306,7 +306,7 @@ public class KsqlResourceTest {
   public void testShowQueries() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String ksqlString = "SHOW QUERIES;";
-    final ListQueries ksqlStatement = new ListQueries(Optional.empty());
+    final ListQueries ksqlStatement = new ListQueries();
     final String testKafkaTopic = "lol";
 
     final String testQueryStatement = String.format(
@@ -351,7 +351,7 @@ public class KsqlResourceTest {
   public void testListStreamsStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String ksqlString = "LIST STREAMS;";
-    final ListStreams ksqlStatement = new ListStreams(Optional.empty());
+    final ListStreams ksqlStatement = new ListStreams();
 
     StreamsList streamsList = makeSingleRequest(
         testResource,
@@ -374,7 +374,7 @@ public class KsqlResourceTest {
   public void testListTablesStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String ksqlString = "LIST TABLES;";
-    final ListTables ksqlStatement = new ListTables(Optional.empty());
+    final ListTables ksqlStatement = new ListTables();
 
     TablesList tablesList = makeSingleRequest(
         testResource,

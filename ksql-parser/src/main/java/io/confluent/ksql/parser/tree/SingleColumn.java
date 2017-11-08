@@ -31,24 +31,10 @@ public class SingleColumn
   private final Expression expression;
 
   public SingleColumn(Expression expression) {
-    this(Optional.empty(), expression, Optional.empty());
+    this(expression, Optional.empty());
   }
 
   public SingleColumn(Expression expression, Optional<String> alias) {
-    this(Optional.empty(), expression, alias);
-  }
-
-  public SingleColumn(Expression expression, String alias) {
-    this(Optional.empty(), expression, Optional.of(alias));
-  }
-
-  public SingleColumn(NodeLocation location, Expression expression, Optional<String> alias) {
-    this(Optional.of(location), expression, alias);
-  }
-
-  private SingleColumn(Optional<NodeLocation> location, Expression expression,
-                       Optional<String> alias) {
-    super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
 

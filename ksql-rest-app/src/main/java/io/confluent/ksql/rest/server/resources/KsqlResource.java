@@ -351,7 +351,7 @@ public class KsqlResource {
       try {
         return new ExecutionPlan(ddlCommandTask.execute(statement, statementText, properties));
       } catch (KsqlException ksqlException) {
-        throw new KsqlException(ksqlException.getMessage());
+        throw ksqlException;
       } catch (Throwable t) {
         throw new KsqlException("Cannot RUN execution plan for this statement, " + statement, t);
       }

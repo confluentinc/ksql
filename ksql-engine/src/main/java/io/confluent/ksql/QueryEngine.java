@@ -47,6 +47,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -198,9 +199,9 @@ public class QueryEngine {
       return new CreateTableCommand((CreateTable) statement, overriddenProperties,
                                     ksqlEngine.getTopicClient());
     } else if (statement instanceof DropStream) {
-      return new DropSourceCommand((DropStream) statement);
+      return new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM);
     } else if (statement instanceof DropTable) {
-      return new DropSourceCommand((DropTable) statement);
+      return new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE);
     } else if (statement instanceof DropTopic) {
       return new DropTopicCommand((DropTopic) statement);
     } else {

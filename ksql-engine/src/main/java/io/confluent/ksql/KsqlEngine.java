@@ -39,6 +39,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -282,12 +283,14 @@ public class KsqlEngine implements Closeable {
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
       ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);

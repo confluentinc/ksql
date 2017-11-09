@@ -19,27 +19,16 @@ package io.confluent.ksql;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.ddl.commands.CreateStreamCommand;
-import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandFactory;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
-import io.confluent.ksql.ddl.commands.DropTopicCommand;
-import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.DDLStatement;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -48,7 +37,6 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -185,29 +173,6 @@ class QueryEngine {
       final Map<String, Object> overriddenProperties) {
     DDLCommand command = ddlCommandFactory.create(statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
-  }
-
-  private DDLCommand generateDDLCommand(
-      final Statement statement,
-      final Map<String, Object> overriddenProperties) {
-    if (statement instanceof RegisterTopic) {
-      return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
-    } else if (statement instanceof CreateStream) {
-      return new CreateStreamCommand((CreateStream) statement, overriddenProperties,
-                                     ksqlEngine.getTopicClient());
-    } else if (statement instanceof CreateTable) {
-      return new CreateTableCommand((CreateTable) statement, overriddenProperties,
-                                    ksqlEngine.getTopicClient());
-    } else if (statement instanceof DropStream) {
-      return new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM);
-    } else if (statement instanceof DropTable) {
-      return new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE);
-    } else if (statement instanceof DropTopic) {
-      return new DropTopicCommand((DropTopic) statement);
-    } else {
-      throw new KsqlException(
-          "Corresponding command not found for statement: " + statement.toString());
-    }
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {

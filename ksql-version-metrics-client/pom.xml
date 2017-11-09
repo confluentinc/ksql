@@ -10,7 +10,7 @@
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-support-metrics-client</artifactId>
+    <artifactId>ksql-version-metrics-client</artifactId>
 
     <dependencies>
         <dependency>

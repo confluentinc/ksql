@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.support.metrics.collector;
+package io.confluent.ksql.version.metrics.collector;
 
 import org.apache.avro.generic.GenericContainer;
 
-import io.confluent.ksql.support.metrics.KsqlBasicMetrics;
-import io.confluent.ksql.support.metrics.KsqlSupportConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.Uuid;
@@ -36,26 +36,22 @@ public class BasicCollector extends Collector {
 
   public BasicCollector(
       KsqlModuleType moduleType,
-      KsqlSupportConfig ksqlSupportConfig
+      KsqlVersionCheckerConfig ksqlVersionCheckerConfig
   ) {
     uuid = new Uuid();
     time = new TimeUtils();
     this.moduleType = moduleType;
-    this.serviceId = ksqlSupportConfig.getProperties()
+    this.serviceId = ksqlVersionCheckerConfig.getProperties()
         .getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    this.customerId = ksqlSupportConfig.getCustomerId();
+    this.customerId = ksqlVersionCheckerConfig.getCustomerId();
   }
 
   @Override
   public GenericContainer collectMetrics() {
-    KsqlBasicMetrics metricsRecord = new KsqlBasicMetrics();
+    KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
     metricsRecord.setTimestamp(time.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
-    metricsRecord.setCollectorState(this.getRuntimeState().stateId());
-    metricsRecord.setKsqlComponentUUID(uuid.toString());
     metricsRecord.setKsqlComponentType(moduleType.name());
-    metricsRecord.setServiceId(serviceId);
-    metricsRecord.setCustomerId(customerId);
     return metricsRecord;
   }
 }

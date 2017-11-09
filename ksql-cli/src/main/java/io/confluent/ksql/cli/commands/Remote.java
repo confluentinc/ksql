@@ -28,8 +28,8 @@ import io.confluent.ksql.cli.RemoteCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
-import io.confluent.ksql.support.metrics.KsqlSupportMetricsAgent;
-import io.confluent.ksql.support.metrics.collector.KsqlModuleType;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.FileInputStream;
@@ -70,7 +70,7 @@ public class Remote extends AbstractCliCommands {
     KsqlRestClient restClient = new KsqlRestClient(server, propertiesMap);
     Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
 
-    KsqlSupportMetricsAgent.initialize(KsqlModuleType.REMOTE_CLI, properties);
+    KsqlVersionCheckerAgent.initialize(KsqlModuleType.REMOTE_CLI, properties);
     return new RemoteCli(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,

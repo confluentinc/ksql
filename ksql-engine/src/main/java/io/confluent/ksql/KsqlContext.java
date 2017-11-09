@@ -17,8 +17,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.support.metrics.KsqlSupportMetricsAgent;
-import io.confluent.ksql.support.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -36,7 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -64,9 +61,6 @@ public class KsqlContext {
     AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
-    Properties supportProperties = new Properties();
-    supportProperties.putAll(streamsProperties);
-    KsqlSupportMetricsAgent.initialize(KsqlModuleType.EMBEDDED, supportProperties);
     return new KsqlContext(adminClient, topicClient, ksqlEngine);
   }
 

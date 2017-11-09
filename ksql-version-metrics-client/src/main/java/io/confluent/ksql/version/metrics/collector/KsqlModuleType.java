@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.support.metrics.collector;
+package io.confluent.ksql.version.metrics.collector;
 
 public enum KsqlModuleType {
   LOCAL_CLI, REMOTE_CLI, EMBEDDED, SERVER;

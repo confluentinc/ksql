@@ -84,11 +84,12 @@ public class JoinNodeTest {
   @Test
   public void shouldHaveLeftJoin() {
     final Topology topology = builder.build();
+    System.out.println(topology.describe());
     final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000016");
+        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000013");
     final List<String> predecessors = leftJoin.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KSTREAM-REDUCE-STATE-STORE-0000000003")));
-    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000015")));
+    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000012")));
   }
 
   @Test

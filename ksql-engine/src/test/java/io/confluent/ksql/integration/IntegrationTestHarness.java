@@ -25,14 +25,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY;
+import static io.confluent.ksql.util.KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY;
 
 
 public class IntegrationTestHarness {
@@ -92,6 +92,7 @@ public class IntegrationTestHarness {
       Future<RecordMetadata> recordMetadataFuture = producer.send(buildRecord(topicName, timestamp, recordEntry, key));
       result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
+    producer.flush();
     producer.close();
 
     return result;
@@ -139,20 +140,16 @@ public class IntegrationTestHarness {
 
     try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, getDeserializer(schema))) {
 
+      System.out.println(new Date().toString() + " Start consuming data");
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
       long pollEnd = pollStart + resultsPollMaxTimeMs;
       while (System.currentTimeMillis() < pollEnd && continueConsuming(result.size(), expectedNumMessages)) {
-        for (ConsumerRecord<K, GenericRow> record : consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+
+        for (ConsumerRecord<K, GenericRow> record : consumer.poll(10000)){//Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
           }
-        }
-      }
-
-      for (ConsumerRecord<K, GenericRow> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
-        if (record.value() != null) {
-          result.put(record.key(), record.value());
         }
       }
     }
@@ -175,11 +172,21 @@ public class IntegrationTestHarness {
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaCluster.bootstrapServers());
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
+    configMap.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+    configMap.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//    configMap.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "4096");
+//    configMap.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, "10000");
+
+    configMap.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, 1);
+    configMap.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
+
+
     configMap.put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
 
     this.ksqlConfig = new KsqlConfig(configMap);
+
+
+
     this.adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     this.topicClient = new KafkaTopicClientImpl(adminClient);
 

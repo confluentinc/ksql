@@ -17,10 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ThreadFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -70,13 +68,31 @@ public class JoinIntTest {
     testHarness.stop();
   }
 
+
+  int failRate = 0;
+  @Test
+  public void collectSuccessRate() throws Exception {
+
+    int firstTimeSuccessRate = 0;
+    int totalFails = 0;
+    for (int i = 1; i < 10; i++) {
+      failRate = 0;
+      before();
+      shouldLeftJoinOrderAndItems();
+      after();
+      if (failRate >0) totalFails++;
+      else firstTimeSuccessRate++;
+      System.out.println(new Date() + "Iteration:" + i + " firstTimeSucess:" + firstTimeSuccessRate + " failsThisIter:" + failRate + " totalFails:" + totalFails + " Failure:" + ( (double)totalFails / (double) i) * 100 + "%\n\n\n\n");
+    }
+    System.out.println("FAILURE_RATE:" + failRate);
+  }
+
   @Test
   public void shouldLeftJoinOrderAndItems() throws Exception {
     final String testStreamName = "OrderedWithDescription".toUpperCase();
 
     final String queryString = String.format(
-            "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM orders LEFT JOIN items " +
-                    " on orders.ITEMID = item.ITEMID WHERE orders.ITEMID = 'ITEM_1' ;",
+            "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM orders LEFT JOIN items ON orders.ITEMID = items.ID WHERE orders.ITEMID = 'ITEM_1' ;",
             testStreamName
     );
 
@@ -90,8 +106,14 @@ public class JoinIntTest {
     TestUtils.waitForCondition(() -> {
       results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS));
       final boolean success = results.equals(expectedResults);
+      System.out.println("Results:" + results.toString().replace("],", "],\n"));
+
       if (!success) {
+
+        System.out.println("FAIL");
+        System.exit(1);
         try {
+          failRate++;
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
@@ -99,6 +121,8 @@ public class JoinIntTest {
         } catch(Exception e) {
           throw new RuntimeException(e);
         }
+      } else {
+        System.out.println("SUCCESS");
       }
       return success;
     }, 60000, "failed to complete join correctly");
@@ -106,7 +130,7 @@ public class JoinIntTest {
 
   private void createStreams() throws Exception {
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='" + orderStreamTopic + "', value_format='JSON');");
-    ksqlContext.sql("CREATE TABLE items (ID varchar, DESCRIPTION varchar) WITH (kafka_topic='" + itemTableTopic + "', value_format='JSON');");
+    ksqlContext.sql("CREATE TABLE items (ID varchar, DESCRIPTION varchar) WITH (key='ID', kafka_topic='" + itemTableTopic + "', value_format='JSON');");
   }
 
 }

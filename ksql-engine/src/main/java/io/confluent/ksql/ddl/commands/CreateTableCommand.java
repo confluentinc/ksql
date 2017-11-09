@@ -51,6 +51,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore);
     }
     checkMetaData(metaStore, sourceName, topicName);
+    if (keyColumnName.length() == 0) {
+      throw  new RuntimeException("Key field was not specified");
+    }
     KsqlTable ksqlTable = new KsqlTable(sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),

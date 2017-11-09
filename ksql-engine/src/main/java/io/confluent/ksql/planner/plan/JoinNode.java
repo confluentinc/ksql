@@ -190,6 +190,9 @@ public class JoinNode extends PlanNode {
       throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
           + getLeft() + "-" + getRight());
     }
+    if (schemaKStream.getKeyField() == null) {
+      System.out.println("Key field was not specified on TABLE");
+    }
 
     return (SchemaKTable) schemaKStream;
   }

@@ -44,6 +44,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -238,6 +239,8 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
+
+    System.out.println(new Date() + " BOOM:" + applicationId + " TOPOLOGY:" + builder.build().describe());
     return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 

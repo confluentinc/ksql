@@ -43,12 +43,7 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class SchemaKStream {
   
@@ -162,6 +157,7 @@ public class SchemaKStream {
     KStream joinedKStream =
         kstream.leftJoin(
             schemaKTable.getKtable(), (ValueJoiner<GenericRow, GenericRow, GenericRow>) (leftGenericRow, rightGenericRow) -> {
+                  System.out.println(Thread.currentThread().getName() + " " + new Date().toString() +" SchemaKStream.JOINING DATA");
               List<Object> columns = new ArrayList<>();
               columns.addAll(leftGenericRow.getColumns());
               if (rightGenericRow == null) {

@@ -104,7 +104,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DOC =
       "Suffix for state store names in Tables.";
 
-  public int defaultSinkNumberOfPartitions = 4;
+  public int defaultSinkNumberOfPartitions = 1;
   public short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.
   public long defaultSinkWindowChangeLogAdditionalRetention = 1000000;

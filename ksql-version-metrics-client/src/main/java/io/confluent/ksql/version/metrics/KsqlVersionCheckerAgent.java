@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package io.confluent.ksql.support.metrics;
+package io.confluent.ksql.version.metrics;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-import io.confluent.ksql.support.metrics.collector.KsqlModuleType;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 
-public class KsqlSupportMetricsAgent {
+public class KsqlVersionCheckerAgent {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlSupportMetricsAgent.class);
+  private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
   public static void initialize(KsqlModuleType moduleType, Properties ksqlProperties){
-    KsqlSupportConfig ksqlSupportConfig = new KsqlSupportConfig(ksqlProperties);
-    if(ksqlSupportConfig.isProactiveSupportEnabled()) {
+    KsqlVersionCheckerConfig ksqlVersionCheckerConfig = new KsqlVersionCheckerConfig(ksqlProperties);
+    if(ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       try {
         Runtime serverRuntime = Runtime.getRuntime();
 
-        MetricsReporter metricsReporter =
-            new MetricsReporter(ksqlSupportConfig, serverRuntime, moduleType);
-        metricsReporter.init();
-        Thread metricsThread = newThread("KsqlSupportMetricsAgent", metricsReporter);
-        long reportIntervalMs = ksqlSupportConfig.getReportIntervalMs();
+        KsqlVersionChecker ksqlVersionChecker =
+            new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType);
+        ksqlVersionChecker.init();
+        Thread metricsThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
+        long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
         long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
         metricsThread.start();
         // We log at WARN level to increase the visibility of this information.
@@ -46,7 +46,7 @@ public class KsqlSupportMetricsAgent {
       } catch (Exception e) {
         // We catch any exceptions to prevent collateral damage to the more important broker
         // threads that are running in the same JVM.
-        log.error("Failed to start Proactive Support Metrics agent: {}", e.getMessage());
+        log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
       }
     } else {
       log.warn(legalDisclaimerProactiveSupportDisabled());
@@ -66,24 +66,25 @@ public class KsqlSupportMetricsAgent {
   }
 
   private static String legalDisclaimerProactiveSupportEnabled(long reportIntervalHours) {
-    return "Please note that the support metrics collection feature (\"Metrics\") of Proactive Support is enabled.  " +
-           "With Metrics enabled, this broker is configured to collect and report certain broker and " +
-           "cluster metadata (\"Metadata\") about your use of the Confluent Platform (including " +
-           "without limitation, your remote internet protocol address) to Confluent, Inc. " +
+    return "Please note that the version check feature of KSQL is enabled.  " +
+           "With this enabled, this instance is configured to collect and report "
+           + "anonymously the version information to Confluent, Inc. " +
            "(\"Confluent\") or its parent, subsidiaries, affiliates or service providers every " +
            reportIntervalHours +
            "hours.  This Metadata may be transferred to any country in which Confluent maintains " +
-           "facilities.  For a more in depth discussion of how Confluent processes such information, " +
-           "please read our Privacy Policy located at http://www.confluent.io/privacy. " +
-           "By proceeding with `" + KsqlSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, " +
-           "you agree to all such collection, transfer, storage and use of Metadata by Confluent.  " +
-           "You can turn the Metrics feature off by setting `" +
-           KsqlSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the broker " +
-           "configuration and restarting the broker.  See the Confluent Platform documentation for " +
-           "further information.";
+           "facilities.  For a more in depth discussion of how Confluent processes " +
+           "such information, please read our Privacy Policy located at " +
+           "http://www.confluent.io/privacy. " +
+           "By proceeding with `" +
+           KsqlVersionCheckerConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, " +
+           "you agree to all such collection, transfer and use of Version information " +
+           "by Confluent. You can turn the version check  feature off by setting `" +
+           KsqlVersionCheckerConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the " +
+           "KSQL configuration and restarting the KSQL.  See the Confluent Platform " +
+           "documentation for further information.";
   }
 
   private static String legalDisclaimerProactiveSupportDisabled() {
-    return "The support metrics collection feature (\"Metrics\") of Proactive Support is disabled.";
+    return "The version check feature of KSQL  is disabled.";
   }
 }

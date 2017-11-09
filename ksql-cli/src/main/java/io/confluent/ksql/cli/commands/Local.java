@@ -24,12 +24,12 @@ import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.support.metrics.collector.KsqlModuleType;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.support.metrics.KsqlSupportMetricsAgent;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -116,7 +116,7 @@ public class Local extends AbstractCliCommands {
     KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
     restServer.start();
 
-    KsqlSupportMetricsAgent.initialize(KsqlModuleType.LOCAL_CLI, serverProperties);
+    KsqlVersionCheckerAgent.initialize(KsqlModuleType.LOCAL_CLI, serverProperties);
     return new LocalCli(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,

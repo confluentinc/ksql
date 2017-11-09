@@ -24,7 +24,7 @@
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
         <module>ksql-clickstream-demo</module>
-        <module>ksql-support-metrics-client</module>
+        <module>ksql-version-metrics-client</module>
     </modules>
 
     <repositories>
@@ -119,7 +119,7 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-support-metrics-client</artifactId>
+                <artifactId>ksql-version-metrics-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->

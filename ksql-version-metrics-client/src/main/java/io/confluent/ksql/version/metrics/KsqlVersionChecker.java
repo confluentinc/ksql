@@ -26,7 +26,7 @@ import io.confluent.support.metrics.common.kafka.ZkUtilsProvider;
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
   private final Runtime serverRuntime;
-  private final Collector metricsCollector;
+  protected final Collector metricsCollector;
 
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
@@ -39,7 +39,7 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     }
     this.serverRuntime = serverRuntime;
     this.serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
-    this.metricsCollector = new BasicCollector(moduleType, ksqlVersionCheckerConfig);
+    this.metricsCollector = new BasicCollector(moduleType);
   }
 
 

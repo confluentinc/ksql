@@ -23,23 +23,27 @@ import java.util.Properties;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 
-public class KsqlVersionCheckerAgent {
+public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
+
+  private Thread versionCheckerThread;
+
+  protected KsqlVersionChecker ksqlVersionChecker;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
-  public static void initialize(KsqlModuleType moduleType, Properties ksqlProperties){
+  public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
     KsqlVersionCheckerConfig ksqlVersionCheckerConfig = new KsqlVersionCheckerConfig(ksqlProperties);
     if(ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       try {
         Runtime serverRuntime = Runtime.getRuntime();
 
-        KsqlVersionChecker ksqlVersionChecker =
+        ksqlVersionChecker =
             new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType);
         ksqlVersionChecker.init();
-        Thread metricsThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
+        versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
         long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
         long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
-        metricsThread.start();
+        versionCheckerThread.start();
         // We log at WARN level to increase the visibility of this information.
         log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
 
@@ -51,6 +55,11 @@ public class KsqlVersionCheckerAgent {
     } else {
       log.warn(legalDisclaimerProactiveSupportDisabled());
     }
+  }
+
+  @Override
+  public void stop() {
+
   }
 
 

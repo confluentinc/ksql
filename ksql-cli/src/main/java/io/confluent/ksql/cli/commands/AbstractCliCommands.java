@@ -21,8 +21,12 @@ import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 
 public abstract class AbstractCliCommands implements Runnable {
+
+  protected VersionCheckerAgent versionCheckerAgent;
 
   private static final String NON_INTERACTIVE_TEXT_OPTION_NAME = "--exec";
   private static final String STREAMED_QUERY_ROW_LIMIT_OPTION_NAME = "--query-row-limit";
@@ -62,6 +66,11 @@ public abstract class AbstractCliCommands implements Runnable {
           + "defaults to TABULAR)"
   )
   String outputFormat = OutputFormat.TABULAR.name();
+
+
+  public AbstractCliCommands() {
+    versionCheckerAgent = new KsqlVersionCheckerAgent();
+  }
 
   @Override
   public void run() {

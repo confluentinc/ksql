@@ -23,12 +23,14 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
+import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -81,7 +83,9 @@ public class CliTest extends TestRunner {
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
     commandTopicName = restServerConfig.getCommandTopic();
 
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
+    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+        EasyMock.mock(VersionCheckerAgent.class)
+    );
     restServer.start();
 
     localCli = new LocalCli(

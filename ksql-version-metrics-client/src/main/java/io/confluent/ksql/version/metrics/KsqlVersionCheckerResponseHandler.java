@@ -28,9 +28,9 @@ import java.io.InputStreamReader;
 
 import io.confluent.support.metrics.submitters.ResponseHandler;
 
-public class KsqlVersionCheckerResponseHandler implements ResponseHandler{
-  private static final Logger log = LoggerFactory.getLogger(KsqlVersionChecker.class);
+public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
 
+  private static final Logger log = LoggerFactory.getLogger(KsqlVersionChecker.class);
 
   @Override
   public void handle(HttpResponse response) {
@@ -51,7 +51,7 @@ public class KsqlVersionCheckerResponseHandler implements ResponseHandler{
         }
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      log.error("Error while parsing the Version check response ", e);
     }
   }
 }

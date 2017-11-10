@@ -24,12 +24,12 @@ import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -39,6 +39,7 @@ import java.util.Properties;
 
 @Command(name = "local", description = "Run a local (standalone) Cli session")
 public class Local extends AbstractCliCommands {
+
 
   private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
@@ -113,10 +114,12 @@ public class Local extends AbstractCliCommands {
     // Have to override listeners config to make sure it aligns with port number for client
     serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(portNumber));
     KsqlRestConfig restServerConfig = new KsqlRestConfig(serverProperties);
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
+    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+        new KsqlVersionCheckerAgent()
+    );
     restServer.start();
 
-    KsqlVersionCheckerAgent.initialize(KsqlModuleType.LOCAL_CLI, serverProperties);
+    versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, serverProperties);
     return new LocalCli(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,

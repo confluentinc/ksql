@@ -18,38 +18,25 @@ package io.confluent.ksql.version.metrics.collector;
 
 import org.apache.avro.generic.GenericContainer;
 
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.support.metrics.common.Collector;
-import io.confluent.support.metrics.common.Uuid;
 import io.confluent.support.metrics.common.Version;
 import io.confluent.support.metrics.common.time.TimeUtils;
 
 public class BasicCollector extends Collector {
 
-  private final TimeUtils time;
-  private final Uuid uuid;
+  private final long time;
   private final KsqlModuleType moduleType;
-  private final String serviceId;
-  private final String customerId;
 
-  public BasicCollector(
-      KsqlModuleType moduleType,
-      KsqlVersionCheckerConfig ksqlVersionCheckerConfig
-  ) {
-    uuid = new Uuid();
-    time = new TimeUtils();
+  public BasicCollector(KsqlModuleType moduleType) {
+    time = new TimeUtils().nowInUnixTime();
     this.moduleType = moduleType;
-    this.serviceId = ksqlVersionCheckerConfig.getProperties()
-        .getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    this.customerId = ksqlVersionCheckerConfig.getCustomerId();
   }
 
   @Override
   public GenericContainer collectMetrics() {
     KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
-    metricsRecord.setTimestamp(time.nowInUnixTime());
+    metricsRecord.setTimestamp(time);
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
     return metricsRecord;

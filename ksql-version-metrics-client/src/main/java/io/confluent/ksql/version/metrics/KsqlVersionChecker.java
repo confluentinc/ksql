@@ -22,23 +22,24 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkUtilsProvider;
+import io.confluent.support.metrics.common.time.TimeUtils;
 
 
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
-  private final Runtime serverRuntime;
-  protected final Collector metricsCollector;
+  private final Collector metricsCollector;
 
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
-  public KsqlVersionChecker(KsqlVersionCheckerConfig ksqlVersionCheckerConfig,
-                            Runtime serverRuntime, KsqlModuleType moduleType) {
+  public KsqlVersionChecker(
+      KsqlVersionCheckerConfig ksqlVersionCheckerConfig,
+      Runtime serverRuntime, KsqlModuleType moduleType, boolean enableSettlingTime
+  ) {
 
-    super(ksqlVersionCheckerConfig, null, new KsqlVersionCheckerResponseHandler());
+    super(ksqlVersionCheckerConfig, null, new KsqlVersionCheckerResponseHandler(), enableSettlingTime);
     Objects.requireNonNull(serverRuntime,"serverRuntime is required");
-    this.serverRuntime = serverRuntime;
-    this.serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
-    this.metricsCollector = new BasicCollector(moduleType);
+    serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
+    this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
   }
 
 

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
+import org.easymock.EasyMock;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,6 +28,7 @@ import java.util.EnumSet;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
+import io.confluent.support.metrics.common.time.TimeUtils;
 
 @RunWith(Parameterized.class)
 public class BasicCollectorTest {
@@ -40,14 +43,18 @@ public class BasicCollectorTest {
 
   @Test
   public void testGetCollector(){
-    BasicCollector basicCollector = new BasicCollector(moduleType);
-    KsqlVersionMetrics metricsRecord = (KsqlVersionMetrics) basicCollector.collectMetrics();
-    Assert.assertNotNull("Metrics record shouldn't be null ", metricsRecord);
-    Assert.assertNotNull("Timestamp must not be null " , metricsRecord.getTimestamp());
-    Assert.assertNotNull("Version must not be null",metricsRecord.getConfluentPlatformVersion());
-    Assert.assertNotNull("ComponentType must not be null",metricsRecord.getKsqlComponentType());
-    Assert.assertEquals(Version.getVersion(),metricsRecord.getConfluentPlatformVersion() );
-    Assert.assertEquals(moduleType.name(),metricsRecord.getKsqlComponentType() );
+
+    TimeUtils timeUtils = EasyMock.mock(TimeUtils.class);
+    EasyMock.expect(timeUtils.nowInUnixTime()).andReturn(System.currentTimeMillis()).anyTimes();
+    EasyMock.replay(timeUtils);
+    BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+
+    KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
+    expectedMetrics.setTimestamp(timeUtils.nowInUnixTime());
+    expectedMetrics.setConfluentPlatformVersion(Version.getVersion());
+    expectedMetrics.setKsqlComponentType(moduleType.name());
+
+    Assert.assertThat(basicCollector.collectMetrics(), CoreMatchers.equalTo(expectedMetrics));
   }
 
 }

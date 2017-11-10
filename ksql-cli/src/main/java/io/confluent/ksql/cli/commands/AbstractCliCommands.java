@@ -67,9 +67,13 @@ public abstract class AbstractCliCommands implements Runnable {
   )
   String outputFormat = OutputFormat.TABULAR.name();
 
+  // for testing purposes only
+  public AbstractCliCommands(VersionCheckerAgent versionCheckerAgent) {
+    this.versionCheckerAgent = versionCheckerAgent;
+  }
 
   public AbstractCliCommands() {
-    versionCheckerAgent = new KsqlVersionCheckerAgent();
+    this(new KsqlVersionCheckerAgent());
   }
 
   @Override

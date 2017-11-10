@@ -28,8 +28,8 @@ public class BasicCollector extends Collector {
   private final long time;
   private final KsqlModuleType moduleType;
 
-  public BasicCollector(KsqlModuleType moduleType) {
-    time = new TimeUtils().nowInUnixTime();
+  public BasicCollector(KsqlModuleType moduleType, TimeUtils timeUtils) {
+    time = timeUtils.nowInUnixTime();
     this.moduleType = moduleType;
   }
 

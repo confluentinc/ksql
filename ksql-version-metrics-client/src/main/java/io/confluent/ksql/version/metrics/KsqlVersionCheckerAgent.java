@@ -27,10 +27,22 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   private Thread versionCheckerThread;
 
-  protected KsqlVersionChecker ksqlVersionChecker;
+  private KsqlVersionChecker ksqlVersionChecker;
+
+  private boolean enableSettlingTime;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
+  public KsqlVersionCheckerAgent(){
+    this(true);
+  }
+
+  //for testing purposes only
+  public KsqlVersionCheckerAgent(boolean enableSettlingTime) {
+    this.enableSettlingTime = enableSettlingTime;
+  }
+
+  @Override
   public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
     KsqlVersionCheckerConfig ksqlVersionCheckerConfig = new KsqlVersionCheckerConfig(ksqlProperties);
     if(ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
@@ -38,7 +50,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
         Runtime serverRuntime = Runtime.getRuntime();
 
         ksqlVersionChecker =
-            new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType);
+            new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType, enableSettlingTime);
         ksqlVersionChecker.init();
         versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
         long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
@@ -56,12 +68,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
       log.warn(legalDisclaimerProactiveSupportDisabled());
     }
   }
-
-  @Override
-  public void stop() {
-
-  }
-
 
   private static Thread newThread(String name, Runnable runnable) {
     Thread thread = new Thread(runnable, name);

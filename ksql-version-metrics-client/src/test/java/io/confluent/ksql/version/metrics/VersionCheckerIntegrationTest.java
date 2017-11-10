@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.version.metrics;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockserver.integration.ClientAndProxy;
@@ -42,7 +43,7 @@ public class VersionCheckerIntegrationTest {
 
   @Test
   public void testMetricsAgent() throws InterruptedException, IOException {
-    KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent();
+    KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(false);
     Properties versionCheckProps = new Properties();
     versionCheckProps.setProperty(BaseSupportConfig
         .CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG, "false");
@@ -51,9 +52,17 @@ public class VersionCheckerIntegrationTest {
         "http://localhost:" + proxyPort
     );
     versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, versionCheckProps);
-
-    //metrics reporter starts approximately after 10000 ms
-    Thread.sleep(15000);
-    clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
+    for (int i = 0; i < 5; i++) {
+      try {
+        clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
+        break;
+      } catch (AssertionError assertionError) {
+        if (i == 4) {
+          Assert.fail("Submit version check failed ");
+        } else {
+          Thread.sleep(50);
+        }
+      }
+    }
   }
 }

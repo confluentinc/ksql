@@ -19,7 +19,9 @@ package io.confluent.ksql.rest.server.resources;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.ddl.commands.DDLCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -393,14 +395,14 @@ public class KsqlResource {
     ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
               new CreateStreamCommand((CreateStream) statement, properties, ksqlEngine.getTopicClient());
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createStreamCommand);
+      executeDDLCommand(createStreamCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
           new CreateTableCommand((CreateTable) statement, properties, ksqlEngine.getTopicClient());
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(createTableCommand);
+      executeDDLCommand(createTableCommand);
       return statement.toString();
     });
 
@@ -412,14 +414,14 @@ public class KsqlResource {
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM);
+      executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropSourceCommand);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE);
+      executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
@@ -433,6 +435,13 @@ public class KsqlResource {
                     KsqlRestApplication.getCommandsStreamName()))
             .map(dataSourceClass::cast)
             .collect(Collectors.toList());
+  }
+
+  private void executeDDLCommand(DDLCommand ddlCommand) {
+    DDLCommandResult ddlCommandResult = new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(ddlCommand);
+    if (!ddlCommandResult.isSuccess()) {
+      throw new KsqlException(ddlCommandResult.getMessage());
+    }
   }
 
 }

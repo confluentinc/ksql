@@ -139,7 +139,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     // TODO: move the check to the runtime since it accesses metaStore
     KsqlPreconditions.checkArgument(
         metaStore.getSource(sourceName) == null,
-        "Source already exists.");
+        String.format("Source %s already exists.", sourceName));
 
     KsqlPreconditions.checkNotNull(
         metaStore.getTopic(topicName),

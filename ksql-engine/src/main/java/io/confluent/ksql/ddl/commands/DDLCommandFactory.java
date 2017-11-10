@@ -13,17 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+package io.confluent.ksql.ddl.commands;
 
-package io.confluent.ksql.rest.server.mock;
+import java.util.Map;
 
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.parser.tree.DDLStatement;
 
-public class MockKsqkEngine extends KsqlEngine {
-
-  public MockKsqkEngine(KsqlConfig ksqlConfig,
-                        KafkaTopicClient kafkaTopicClient) {
-    super(ksqlConfig, kafkaTopicClient);
-  }
+public interface DDLCommandFactory {
+  DDLCommand create(final DDLStatement ddlStatement, final Map<String, Object> properties);
 }

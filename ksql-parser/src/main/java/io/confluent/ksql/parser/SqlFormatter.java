@@ -162,11 +162,9 @@ public final class SqlFormatter {
     protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
       process(node.getSelect(), indent);
 
-      if (node.getFrom().isPresent()) {
-        append(indent, "FROM");
-        builder.append('\n');
-        append(indent, "  ");
-      }
+      append(indent, "FROM");
+      builder.append('\n');
+      append(indent, "  ");
 
       builder.append('\n');
 

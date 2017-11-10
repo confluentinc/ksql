@@ -104,14 +104,15 @@ public class Local extends AbstractCliCommands {
       throw new RuntimeException(exception);
     }
 
+    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getLocalServerAddress(portNumber));
+    Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
+    terminal.writer().println("Initializing KSQL...");
+    terminal.flush();
     // Have to override listeners config to make sure it aligns with port number for client
     serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(portNumber));
     KsqlRestConfig restServerConfig = new KsqlRestConfig(serverProperties);
     KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
     restServer.start();
-
-    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getLocalServerAddress(portNumber));
-    Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
 
     return new LocalCli(
         streamedQueryRowLimit,
@@ -142,7 +143,10 @@ public class Local extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      properties.load(new FileInputStream(propertiesFile));
+      try(final FileInputStream input = new FileInputStream(propertiesFile)) {
+        properties.load(input);
+      }
+
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,

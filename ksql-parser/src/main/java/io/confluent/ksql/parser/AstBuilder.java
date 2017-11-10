@@ -51,10 +51,9 @@ public class AstBuilder
 
   private int selectItemIndex = 0;
 
-  public static final String DEFAULT_WINDOW_NAME = "StreamWindow";
+  private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
   private DataSourceExtractor dataSourceExtractor;
-  public StructuredDataSource resultDataSource = null;
 
   public AstBuilder(DataSourceExtractor dataSourceExtractor) {
     this.dataSourceExtractor = dataSourceExtractor;
@@ -256,13 +255,13 @@ public class AstBuilder
                    visit(context.selectItem(), SelectItem.class));
     select = new Select(getLocation(context.SELECT()), select.isDistinct(),
                         extractSelectItems(select, from));
-    this.resultDataSource = getResultDatasource(select, into);
+    getResultDatasource(select, into);
 
     return new QuerySpecification(
         getLocation(context),
         select,
-        Optional.of(into),
-        Optional.of(from),
+        into,
+        from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),
@@ -713,17 +712,17 @@ public class AstBuilder
   public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context) {
     Relation child = (Relation) visit(context.relationPrimary());
 
-    String alias = null;
+    String alias;
     if (context.children.size() == 1) {
       Table table = (Table) visit(context.relationPrimary());
       alias = table.getName().getSuffix();
-
     } else if (context.children.size() == 2) {
       alias = context.children.get(1).getText();
+    } else {
+      throw new IllegalArgumentException("AliasedRelationContext must have either 1 or 2 children, but has:" + context.children.size());
     }
 
-    // TODO: Figure out if the call to toUpperCase() here is really necessary
-    return new AliasedRelation(getLocation(context), child, alias.toUpperCase(),
+    return new AliasedRelation(getLocation(context), child, alias,
                                getColumnAliases(context.columnAliases()));
 
   }

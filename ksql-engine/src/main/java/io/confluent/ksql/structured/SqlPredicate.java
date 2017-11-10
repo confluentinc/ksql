@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import org.apache.kafka.connect.data.Schema;
@@ -50,7 +51,7 @@ public class SqlPredicate {
   SqlPredicate(final Expression filterExpression,
                final Schema schema,
                boolean isWindowedKey,
-               final FunctionRegistry functionRegistry) throws Exception {
+               final FunctionRegistry functionRegistry) {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -65,28 +66,39 @@ public class SqlPredicate {
     columnIndexes = new int[parameterMap.size()];
 
     int index = 0;
-    for (String parameterName : parameterMap.keySet()) {
-      parameterNames[index] = parameterName;
-      parameterTypes[index] = parameterMap.get(parameterName);
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+      parameterNames[index] = entry.getKey();
+      parameterTypes[index] = entry.getValue();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       index++;
     }
 
-    ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+    try {
+      ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
-    // The expression will have two "int" parameters: "a" and "b".
-    ee.setParameters(parameterNames, parameterTypes);
+      // The expression will have two "int" parameters: "a" and "b".
+      ee.setParameters(parameterNames, parameterTypes);
 
-    // And the expression (i.e. "result") type is also "int".
-    ee.setExpressionType(boolean.class);
+      // And the expression (i.e. "result") type is also "int".
+      ee.setExpressionType(boolean.class);
 
-    String expressionStr = new SqlToJavaVisitor(schema, functionRegistry).process(filterExpression);
+      String expressionStr = new SqlToJavaVisitor(schema, functionRegistry).process(filterExpression);
 
-    // And now we "cook" (scan, parse, compile and load) the fabulous expression.
-    ee.cook(expressionStr);
+      // And now we "cook" (scan, parse, compile and load) the fabulous expression.
+      ee.cook(expressionStr);
+    } catch (Exception e) {
+      throw new KsqlException("Failed to generate code for SqlPredicate."
+          + "filterExpression: "
+          + filterExpression
+          + "schema:"
+          + schema
+          + "isWindowedKey:"
+          + isWindowedKey,
+          e);
+    }
   }
 
-  Predicate getPredicate() throws Exception {
+  Predicate getPredicate() {
     if (isWindowedKey) {
       return getWindowedKeyPredicate();
     } else {
@@ -94,10 +106,8 @@ public class SqlPredicate {
     }
   }
 
-  private Predicate<String, GenericRow> getStringKeyPredicate() throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    ExpressionMetadata expressionEvaluator =
-        codeGenRunner.buildCodeGenFromParseTree(filterExpression);
+  private Predicate<String, GenericRow> getStringKeyPredicate()  {
+    final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {
       try {
@@ -121,11 +131,17 @@ public class SqlPredicate {
     };
   }
 
-  private Predicate getWindowedKeyPredicate() throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    ExpressionMetadata
-        expressionEvaluator =
-        codeGenRunner.buildCodeGenFromParseTree(filterExpression);
+  private ExpressionMetadata createExpressionMetadata() {
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    try {
+      return codeGenRunner.buildCodeGenFromParseTree(filterExpression);
+    } catch (Exception e) {
+      throw new KsqlException("Failed to generate code for filterExpression:" + filterExpression + " schema:" + schema, e);
+    }
+  }
+
+  private Predicate getWindowedKeyPredicate()  {
+    final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
     return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
       try {
         Kudf[] kudfs = expressionEvaluator.getUdfs();
@@ -156,8 +172,13 @@ public class SqlPredicate {
     return schema;
   }
 
-  public int[] getColumnIndexes() {
-    return columnIndexes;
+  // visible for testing
+  int[] getColumnIndexes() {
+    // As this is only used for testing it is ok to do the array copy.
+    // We need to revisit the tests for this class and remove this.
+    final int [] result = new int[columnIndexes.length];
+    System.arraycopy(columnIndexes, 0, result, 0, columnIndexes.length);
+    return result;
   }
 
 }

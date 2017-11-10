@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -141,7 +142,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private static Properties getProps(String propsFile) throws IOException {
     Properties result = new Properties();
     result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    result.load(new FileInputStream(propsFile));
+    try(final FileInputStream inputStream = new FileInputStream(propsFile)) {
+      result.load(inputStream);
+    }
     return result;
   }
 
@@ -216,9 +219,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     try {
       short replicationFactor = 1;
-      if(restConfig.getOriginals().containsKey(KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
+      if(restConfig.getOriginals().containsKey(KsqlConstants.SINK_NUMBER_OF_REPLICAS)) {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
-                                                     .get(KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString());
+                                                     .get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {

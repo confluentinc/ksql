@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -161,7 +162,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      this.responseScanner = new Scanner((InputStream) response.getEntity());
+      this.responseScanner = new Scanner((InputStream) response.getEntity(), StandardCharsets.UTF_8.name());
 
       this.bufferedRow = null;
       this.closed = false;
@@ -237,10 +238,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public boolean unsetProperty(String property) {
-    if (localProperties.containsKey(property)) {
-      Object value = localProperties.remove(property);
-      return true;
-    }
-    return false;
+    return localProperties.remove(property) != null;
   }
 }

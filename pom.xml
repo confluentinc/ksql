@@ -13,7 +13,7 @@
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
-
+    <version>4.0.0-SNAPSHOT</version>
     <modules>
         <module>ksql-common</module>
         <module>ksql-serde</module>
@@ -23,6 +23,8 @@
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
+        <module>ksql-clickstream-demo</module>
+        <module>ksql-console-scripts</module>
     </modules>
 
     <repositories>
@@ -33,6 +35,8 @@
     </repositories>
 
     <properties>
+        <!-- remove the version control when confluent-common updates to 11.0.1 -->
+        <!--<kafka.version>0.11.0.1</kafka.version>-->
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
@@ -229,16 +233,6 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <configuration>
-                        <failsOnError>true</failsOnError>
-                        <failOnViolation>true</failOnViolation>
-                    </configuration>
-                </plugin>
-
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
@@ -266,4 +260,19 @@
             </plugin>
         </plugins>
     </build>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs-maven-plugin.version}</version>
+                <configuration>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>

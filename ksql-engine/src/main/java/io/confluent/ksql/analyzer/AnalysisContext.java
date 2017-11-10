@@ -38,6 +38,9 @@ public class AnalysisContext {
 
   private final ParentType parentType;
 
+  public AnalysisContext() {
+    this(null);
+  }
   public AnalysisContext(final ParentType parentType) {
     this.parentType = parentType;
   }

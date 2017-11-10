@@ -84,20 +84,12 @@ public final class SqlFormatterQueryRewrite {
   private static final String INDENT = "   ";
   private static final Pattern NAME_PATTERN = Pattern.compile("[a-z_][a-z0-9_]*");
 
-  private boolean isJoin = false;
-
   private SqlFormatterQueryRewrite() {
   }
 
   public static String formatSql(Node root) {
     StringBuilder builder = new StringBuilder();
     new Formatter(builder, true).process(root, 0);
-    return builder.toString();
-  }
-
-  public static String formatSql(Node root, boolean unmangleNames) {
-    StringBuilder builder = new StringBuilder();
-    new Formatter(builder, unmangleNames).process(root, 0);
     return builder.toString();
   }
 
@@ -167,21 +159,16 @@ public final class SqlFormatterQueryRewrite {
     @Override
     protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
       process(node.getSelect(), indent);
+      append(indent, "INTO");
+      builder.append('\n');
+      append(indent, "  ");
+      process(node.getInto(), indent);
+      builder.append('\n');
 
-      if (node.getInto().isPresent()) {
-        append(indent, "INTO");
-        builder.append('\n');
-        append(indent, "  ");
-        process(node.getInto().get(), indent);
-        builder.append('\n');
-      }
-
-      if (node.getFrom().isPresent()) {
-        append(indent, "FROM");
-        builder.append('\n');
-        append(indent, "  ");
-        process(node.getFrom().get(), indent);
-      }
+      append(indent, "FROM");
+      builder.append('\n');
+      append(indent, "  ");
+      process(node.getFrom(), indent);
 
       builder.append('\n');
 

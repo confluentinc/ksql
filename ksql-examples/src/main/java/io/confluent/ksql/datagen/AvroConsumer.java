@@ -137,16 +137,13 @@ public class AvroConsumer {
     streams.cleanUp();
   }
 
-  class KSQLPrintKeyValueMapper
+  static class KSQLPrintKeyValueMapper
       implements KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> {
-
-    public KSQLPrintKeyValueMapper() {
-    }
 
     @Override
     public KeyValue<String, GenericRow> apply(String key, GenericRow row) {
       System.out.println(row);
-      return new KeyValue<String, GenericRow>(key, row);
+      return new KeyValue<>(key, row);
     }
   }
 

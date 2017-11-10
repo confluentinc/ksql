@@ -204,9 +204,7 @@ public class JsonConsumer {
 
     StreamsBuilder builder = new StreamsBuilder();
 
-    KStream<String, GenericRow>
-        pageviewStream =
-        builder.stream("streams-pageview-input", Consumed.with(Serdes.String(), getGenericRowSerde()));
+    builder.stream("streams-pageview-input", Consumed.with(Serdes.String(), getGenericRowSerde()));
 
     KTable<String, GenericRow>
         usersTable =

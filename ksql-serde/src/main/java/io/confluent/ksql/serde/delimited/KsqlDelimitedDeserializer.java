@@ -26,6 +26,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     if (bytes == null) {
       return null;
     }
-    String recordCsvString = new String(bytes);
+    String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
     try {
       List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
           .getRecords();
@@ -60,7 +61,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       List<Object> columns = new ArrayList();
       if (csvRecord.size() != schema.fields().size()) {
-        throw new KsqlException("Missing/Extra fields in the delimited line: " + recordCsvString);
+        throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
       }
       for (int i = 0; i < csvRecord.size(); i++) {
         columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));

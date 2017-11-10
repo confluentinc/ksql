@@ -19,6 +19,7 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -39,13 +40,16 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = new LinkedBlockingQueue<>(100);
 
-  private QueuedSchemaKStream(final Schema schema, final KStream kstream, final Field keyField,
+  private QueuedSchemaKStream(final Schema schema,
+                              final KStream kstream,
+                              final Field keyField,
                               final List<SchemaKStream> sourceSchemaKStreams,
-                              Type type,
+                              final Type type,
                               final FunctionRegistry functionRegistry,
-                              Optional<Integer> limit
-  ) {
+                              final Optional<Integer> limit,
+                              final OutputNode outputNode) {
     super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry);
+    setOutputNode(outputNode);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
 
@@ -59,7 +63,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
             schemaKStream.sourceSchemaKStreams,
             Type.SINK,
             schemaKStream.functionRegistry,
-            limit
+            limit,
+            schemaKStream.outputNode()
     );
   }
 
@@ -74,7 +79,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream filter(Expression filterExpression) throws Exception {
+  public SchemaKStream filter(Expression filterExpression) {
     throw new UnsupportedOperationException();
   }
 
@@ -84,7 +89,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream select(List<Pair<String, Expression>> expressions) throws Exception {
+  public SchemaKStream select(List<Pair<String, Expression>> expressions) {
     throw new UnsupportedOperationException();
   }
 

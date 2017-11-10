@@ -5,5 +5,5 @@ docker_oraclejdk8 {
     withPush = true
     upstreamProjects = 'confluentinc/schema-registry'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
-    dockerRepos = ['confluentinc/ksql-examples', 'confluentinc/ksql-cli']
+    dockerRepos = ['confluentinc/ksql-examples', 'confluentinc/ksql-cli', 'confluentinc/ksql-clickstream-demo']
 }

@@ -21,7 +21,7 @@ import org.apache.kafka.streams.processor.ProcessorContext;
 
 import io.confluent.ksql.GenericRow;
 
-class AddTimestampColumnValueTransformerSupplier implements ValueTransformerSupplier<GenericRow, GenericRow> {
+public class AddTimestampColumn implements ValueTransformerSupplier<GenericRow, GenericRow> {
   @Override
   public ValueTransformer<GenericRow, GenericRow> get() {
     return new ValueTransformer<GenericRow, GenericRow>() {

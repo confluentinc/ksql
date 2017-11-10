@@ -31,10 +31,6 @@ public final class ExpressionTreeRewriter<C> {
     return new ExpressionTreeRewriter<>(rewriter).rewrite(node, null);
   }
 
-  public static <C, T extends Expression> T rewriteWith(ExpressionRewriter<C> rewriter, T node,
-                                                        C context) {
-    return new ExpressionTreeRewriter<>(rewriter).rewrite(node, context);
-  }
 
   public ExpressionTreeRewriter(ExpressionRewriter<C> rewriter) {
     this.rewriter = rewriter;
@@ -44,15 +40,6 @@ public final class ExpressionTreeRewriter<C> {
   @SuppressWarnings("unchecked")
   public <T extends Expression> T rewrite(T node, C context) {
     return (T) visitor.process(node, new Context<>(context, false));
-  }
-
-  /**
-   * Invoke the default rewrite logic explicitly. Specifically, it skips the invocation of the
-   * expression rewriter for the provided node.
-   */
-  @SuppressWarnings("unchecked")
-  public <T extends Expression> T defaultRewrite(T node, C context) {
-    return (T) visitor.process(node, new Context<>(context, true));
   }
 
   private class RewritingVisitor
@@ -392,8 +379,6 @@ public final class ExpressionTreeRewriter<C> {
           return result;
         }
       }
-
-      Optional<Window> rewrittenWindow = node.getWindow();
 
       return node;
     }

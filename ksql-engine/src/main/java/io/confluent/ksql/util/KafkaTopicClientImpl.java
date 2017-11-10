@@ -54,9 +54,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(final String topic, final int numPartitions, final short
-      replicatonFactor) {
-    log.info("Creating topic '{}'", topic);
+  public void createTopic(final String topic, final int numPartitions, final short replicatonFactor) {
     if (isTopicExists(topic)) {
       Map<String, TopicDescription> topicDescriptions = describeTopics(Arrays.asList(topic));
       TopicDescription topicDescription = topicDescriptions.get(topic);
@@ -69,10 +67,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         ));
       }
       // Topic with the partitons and replicas exists, reuse it!
+      log.debug("Did not create topic {} with {} partitions and replication-factor {} since it already exists", topic,
+              numPartitions, replicatonFactor);
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
     try {
+      log.info("Creating topic '{}'", topic);
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
 
     } catch (InterruptedException | ExecutionException e) {
@@ -83,7 +84,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public boolean isTopicExists(final String topic) {
-    log.debug("Checking for existence of topic '{}'", topic);
+    log.trace("Checking for existence of topic '{}'", topic);
     return listTopicNames().contains(topic);
   }
 

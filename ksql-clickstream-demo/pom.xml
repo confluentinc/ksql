@@ -42,6 +42,12 @@
             <artifactId>ksql-cli</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -78,6 +84,11 @@
     <profiles>
         <profile>
             <id>packaging</id>
+            <activation>
+                <property>
+                    <name>env.BUILD_NUMBER</name>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -91,10 +102,12 @@
                                     <goal>build</goal>
                                 </goals>
                                 <configuration>
+                                    <skip>${docker.skip}</skip>
                                     <buildArgs>
                                         <ARTIFACT_ID>${project.artifactId}</ARTIFACT_ID>
                                         <KSQL_VERSION>${project.version}</KSQL_VERSION>
                                         <DOCKER_REGISTRY>${docker.registry}</DOCKER_REGISTRY>
+                                        <DOCKER_UPSTREAM_REGISTRY>docker.io/</DOCKER_UPSTREAM_REGISTRY>
                                     </buildArgs>
                                     <tag>${docker.tag}</tag>
                                     <repository>${docker.registry}confluentinc/${project.artifactId}</repository>

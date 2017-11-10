@@ -14,6 +14,7 @@
 package io.confluent.ksql.version.metrics;
 
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.confluent.ksql.version.metrics.collector.BasicCollector;
@@ -34,9 +35,7 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
                             Runtime serverRuntime, KsqlModuleType moduleType) {
 
     super(ksqlVersionCheckerConfig, null, new KsqlVersionCheckerResponseHandler());
-    if (ksqlVersionCheckerConfig == null || serverRuntime == null) {
-      throw new IllegalArgumentException("some arguments are null");
-    }
+    Objects.requireNonNull(serverRuntime,"serverRuntime is required");
     this.serverRuntime = serverRuntime;
     this.serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
     this.metricsCollector = new BasicCollector(moduleType);

@@ -1,5 +1,5 @@
 {
-  "namespace": "io.confluent.ksql.support.metrics",
+  "namespace": "io.confluent.ksql.version.metrics",
   "type": "record",
   "name": "KsqlVersionMetrics",
   "doc": "Represents basic metrics captured on a single ksql component",

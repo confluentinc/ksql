@@ -45,6 +45,7 @@ import io.confluent.ksql.util.Pair;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class QueryAnalyzerTest {
@@ -142,21 +143,22 @@ public class QueryAnalyzerTest {
         metaStore);
     final Query query = (Query) statements.get(0);
     try {
-      final Analysis analysis = queryAnalyzer.analyize(query);
+      queryAnalyzer.analyize(query);
     } catch (KsqlException ex) {
-      assertThat(ex.getMessage().trim(), equalTo("Line: 1, Col: 46 : Invalid join criteria "
-                                             + "(TEST1.COL1 = TEST2.COLL)"));
+      assertThat(ex.getMessage().trim(), equalTo("Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). Key for TEST2 is not set correctly."));
     }
   }
 
   @Test
   public void shouldPassJoinWithAnyCriteriaOrder() {
     final List<Statement> statements = ksqlParser.buildAst(
-        "select * from test1 join test2 on test2.col2 = test1.col1;",
+        "select * from test1 left join test2 on test2.col2 = test1.col1;",
         metaStore);
     final Query query = (Query) statements.get(0);
     final Analysis analysis = queryAnalyzer.analyize(query);
-
+    assertTrue(analysis.getJoin().isLeftJoin());
+    assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
+    assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));
   }
 
 }

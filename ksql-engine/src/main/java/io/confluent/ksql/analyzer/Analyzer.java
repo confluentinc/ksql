@@ -203,16 +203,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
-    StructuredDataSourceNode
-        leftSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"),
-            leftDataSource,
-            leftDataSource.getSchema());
-    StructuredDataSourceNode
-        rightSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-            rightDataSource,
-            rightDataSource.getSchema());
+
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -235,6 +226,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         throw new KsqlException("Join type is not supported: " + node.getType().name());
     }
 
+    if (!node.getCriteria().isPresent()) {
+      throw new KsqlException(String.format("%s Join criteria is not set.",
+                                            node.getLocation().isPresent()? node.getLocation()
+                                                                                .get().toString(): ""));
+    }
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
     ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
@@ -247,9 +243,20 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String rightKeyFieldName = rightSide.getRight();
 
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
-      throw new KsqlException("Join criteria is not supported.");
+      throw new KsqlException("Only equality join criteria is supported.");
     }
 
+    StructuredDataSourceNode
+        leftSourceKafkaTopicNode =
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"),
+                                     leftDataSource,
+                                     leftDataSource.getSchema());
+    StructuredDataSourceNode
+        rightSourceKafkaTopicNode =
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
+                                     rightDataSource,
+                                     rightDataSource.getSchema());
+    
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
             rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
@@ -266,8 +273,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       keyInfo = fetchKeyFieldNameFromExpr(comparisonExpression.getRight(), sourceAlias, sourceSchema);
     }
     if (keyInfo == null) {
-      throw new KsqlException(String.format("%s : Invalid join criteria %s ", comparisonExpression
-          .getLocation().get().toString(), comparisonExpression));
+      throw new KsqlException(String.format("%s : Invalid join criteria %s. Key for %s is not set"
+                                            + " correctly."
+                                            + " ", comparisonExpression
+          .getLocation().isPresent()? comparisonExpression
+          .getLocation().get().toString(): "", comparisonExpression, sourceAlias));
     }
     return keyInfo;
   }

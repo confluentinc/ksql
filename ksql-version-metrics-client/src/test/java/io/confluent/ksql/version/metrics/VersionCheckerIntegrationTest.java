@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.version.metrics;
 
-import org.junit.Assert;
+import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockserver.integration.ClientAndProxy;
@@ -52,17 +52,16 @@ public class VersionCheckerIntegrationTest {
         "http://localhost:" + proxyPort
     );
     versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, versionCheckProps);
-    for (int i = 0; i < 5; i++) {
-      try {
-        clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
-        break;
-      } catch (AssertionError assertionError) {
-        if (i == 4) {
-          Assert.fail("Submit version check failed ");
-        } else {
-          Thread.sleep(50);
-        }
-      }
-    }
+
+    TestUtils.waitForCondition(() -> {
+          try {
+            clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
+            return true;
+          } catch (AssertionError e) {
+            return false;
+          }
+        },
+        30000, "Version not submitted"
+    );
   }
 }

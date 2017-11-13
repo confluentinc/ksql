@@ -62,6 +62,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <classifier>test</classifier>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

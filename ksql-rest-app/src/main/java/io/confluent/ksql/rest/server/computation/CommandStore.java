@@ -31,13 +31,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -62,7 +63,6 @@ public class CommandStore implements Closeable {
             CommandIdAssigner commandIdAssigner
     ) {
         this.commandTopic = commandTopic;
-        // TODO: Remove commandConsumer/commandProducer as parameters if not needed in testing
         this.commandConsumer = commandConsumer;
         this.commandProducer = commandProducer;
         this.commandIdAssigner = commandIdAssigner;
@@ -89,15 +89,15 @@ public class CommandStore implements Closeable {
      * @param statement The statement to be distributed
      * @param streamsProperties Any command-specific Streams properties to use.
      * @return The ID assigned to the statement
-     * @throws Exception TODO: Refine this
      */
     public CommandId distributeStatement(
             String statementString,
             Statement statement,
             Map<String, Object> streamsProperties
     ) throws KsqlException {
-        CommandId commandId = commandIdAssigner.getCommandId(statement);
-        Command command = new Command(statementString, streamsProperties);
+        final CommandId commandId = commandIdAssigner.getCommandId(statement);
+        final Command command = new Command(statementString, streamsProperties);
+        maybeSendTombstone(commandId);
         try {
             commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
         } catch (Exception e) {
@@ -106,6 +106,15 @@ public class CommandStore implements Closeable {
                                            + ".", statementString), e);
         }
         return commandId;
+    }
+
+    private void maybeSendTombstone(final CommandId commandId) {
+        if (commandId.getAction() == CommandId.Action.DROP) {
+            commandProducer.send(new ProducerRecord<>(commandTopic,
+                new CommandId(commandId.getType(),
+                    commandId.getEntity(),
+                    CommandId.Action.CREATE), null));
+        }
     }
 
     /**
@@ -122,40 +131,33 @@ public class CommandStore implements Closeable {
      * @return The commands that have been read from the command topic
      */
     public List<Pair<CommandId, Command>> getPriorCommands() {
-        List<Pair<CommandId, Command>> result = new ArrayList<>();
-        for (ConsumerRecord<CommandId, Command> commandRecord : getAllPriorCommandRecords()) {
-            CommandId commandId = commandRecord.key();
-            Command command = commandRecord.value();
-            if (command != null) {
-                result.add(new Pair<>(commandId, command));
-            }
-        }
-
-        return result;
+        return getAllPriorCommandRecords()
+            .stream()
+            .map(record -> new Pair<>(record.key(), record.value())).collect(Collectors.toList());
     }
 
-    private List<ConsumerRecord<CommandId, Command>> getAllPriorCommandRecords() {
+    private Collection<ConsumerRecord<CommandId, Command>> getAllPriorCommandRecords() {
         Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
-        // Have to poll to make sure subscription has taken effect (subscribe() is lazy)
-        commandConsumer.poll(0);
         commandConsumer.seekToBeginning(commandTopicPartitions);
 
-//        TODO: correctly handle a sequence of related records
         log.debug("Reading prior command records");
 
-        List<ConsumerRecord<CommandId, Command>> result = new ArrayList<>();
+        final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = new LinkedHashMap<>();
         ConsumerRecords<CommandId, Command> records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         while (!records.isEmpty()) {
-
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
-                result.add(record);
-            }
+                final CommandId key = record.key();
+                if(record.value() == null) {
+                    commands.remove(key);
+                } else if (key.getAction() != CommandId.Action.DROP)
+                    commands.put(key, record);
+                }
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         }
-        log.debug("Retrieved records:" + result.size());
-        return result;
+        log.debug("Retrieved records:" + commands.size());
+        return commands.values();
     }
 
     private Collection<TopicPartition> getTopicPartitionsForTopic(String topic) {

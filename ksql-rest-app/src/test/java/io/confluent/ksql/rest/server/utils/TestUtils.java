@@ -44,7 +44,7 @@ public class TestUtils {
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
                                        + "(value_format = 'json', "
                                        + "kafka_topic='pageview_topic_json');", new HashMap<>());
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(topicCommandId, topicCommand));
 
 
@@ -52,14 +52,14 @@ public class TestUtils {
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
                                     + "WITH (registered_topic = 'pageview_topic');",
                                     new HashMap<>());
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csCommandId, csCommand));
 
     Command csasCommand = new Command("CREATE STREAM user1pv "
                                       + " AS select * from pageview WHERE userid = 'user1';",
                                       new HashMap<>());
 
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csasCommandId, csasCommand));
 
 
@@ -69,7 +69,7 @@ public class TestUtils {
                                       + "'user1' group by pageid;",
                                       new HashMap<>());
 
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));
 
     return priorCommands;

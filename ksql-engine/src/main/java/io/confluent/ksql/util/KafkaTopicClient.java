@@ -40,6 +40,18 @@ public interface KafkaTopicClient extends Closeable {
   void createTopic(String topic, int numPartitions, short replicatonFactor);
 
   /**
+   * Create a new topic with the specified name, numPartitions and replicatonFactor.
+   * [warn] synchronous call to get the response
+   * @param topic name of the topic to create
+   * @param numPartitions
+   * @param replicatonFactor
+   * @param configs any additional topic configs to use
+   * @throws KafkaTopicException
+   * @throws KafkaResponseGetFailedException
+   */
+  void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs);
+
+  /**
    * [warn] synchronous call to get the response
    * @param topic name of the topic
    * @return whether the topic exists or not

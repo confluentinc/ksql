@@ -59,7 +59,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGISTER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen");
+    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
@@ -73,7 +73,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGIST ER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen");
+    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
@@ -101,21 +101,21 @@ public class StatementExecutorTest extends EasyMockSupport {
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
                                        + "(value_format = 'json', "
                                        + "kafka_topic='pageview_topic_json');", new HashMap<>());
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(topicCommand, topicCommandId);
 
     Command csCommand = new Command("CREATE STREAM pageview "
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
                                     + "WITH (registered_topic = 'pageview_topic');",
                                     new HashMap<>());
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csCommand, csCommandId);
 
     Command csasCommand = new Command("CREATE STREAM user1pv "
                                     + " AS select * from pageview WHERE userid = 'user1';",
                                     new HashMap<>());
 
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 
     Command ctasCommand = new Command("CREATE TABLE user1pvtb "
@@ -124,14 +124,14 @@ public class StatementExecutorTest extends EasyMockSupport {
                                       + "'user1' group by pageid;",
                                       new HashMap<>());
 
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
     Command terminateCommand = new Command("TERMINATE 1;",
                                       new HashMap<>());
 
-    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen");
+    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand, terminateCommandId);
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -151,10 +151,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     TestUtils testUtils = new TestUtils();
     List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
 
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
     statementExecutor.handleStatements(priorCommands);
 

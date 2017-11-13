@@ -99,7 +99,7 @@ public class ConsoleTest {
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(
-          new CommandStatusEntity("e", "topic/1", "SUCCESS", "Success Message"),
+          new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
           new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),

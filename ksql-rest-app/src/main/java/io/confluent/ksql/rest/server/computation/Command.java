@@ -63,4 +63,12 @@ public class Command {
   public int hashCode() {
     return Objects.hash(getStatement(), getStreamsProperties());
   }
+
+  @Override
+  public String toString() {
+    return "Command{" +
+        "statement='" + statement + '\'' +
+        ", streamsProperties=" + streamsProperties +
+        '}';
+  }
 }

@@ -351,7 +351,7 @@ public class StatementExecutor {
     String queryEntity =
         ((KsqlStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
 
-    CommandId queryStatementId = new CommandId(commandType, queryEntity);
+    CommandId queryStatementId = new CommandId(commandType, queryEntity, CommandId.Action.CREATE);
     statusStore.put(
         queryStatementId,
         new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")

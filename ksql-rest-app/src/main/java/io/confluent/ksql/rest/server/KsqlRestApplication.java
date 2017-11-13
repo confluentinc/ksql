@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.collect.ImmutableMap;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -79,6 +81,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static final int COMMAND_TOPIC_SEGMENT_SIZE = 1024 * 1024;
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -223,7 +226,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
                                                      .get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       }
-      client.createTopic(commandTopic, 1, replicationFactor);
+      final Map<String, String> topicConfig = ImmutableMap.of("cleanup.policy", "compact",
+          "segment.bytes", Integer.toString(COMMAND_TOPIC_SEGMENT_SIZE));
+      client.createTopic(commandTopic, 1, replicationFactor, topicConfig);
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: " + e.getMessage());
     }

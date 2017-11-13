@@ -2,6 +2,7 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -20,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
 public class JoinIntTest {
@@ -40,7 +40,7 @@ public class JoinIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
+    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
     testHarness.start();
     Map<String, Object> ksqlStreamConfigProps = testHarness.ksqlConfig.getKsqlStreamConfigProps();
     // turn caching off to improve join consistency
@@ -74,7 +74,7 @@ public class JoinIntTest {
 
     final String queryString = String.format(
             "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM orders LEFT JOIN items " +
-                    " on orders.ITEMID = item.ITEMID WHERE orders.ITEMID = 'ITEM_1' ;",
+                    " on orders.ITEMID = item.ID WHERE orders.ITEMID = 'ITEM_1' ;",
             testStreamName
     );
 

@@ -17,16 +17,25 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.ddl.commands.CommandFactories;
+import io.confluent.ksql.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandExec;
+import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.ddl.commands.DropTopicCommand;
+import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.metastore.*;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -39,7 +48,14 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.util.*;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.DataSourceExtractor;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;
@@ -88,7 +104,7 @@ public class KsqlEngine implements Closeable {
     this.metaStore = new MetaStoreImpl();
     this.topicClient = topicClient;
     this.ddlCommandExec = new DDLCommandExec(metaStore);
-    this.queryEngine = new QueryEngine(this);
+    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient));
 
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
@@ -282,12 +298,14 @@ public class KsqlEngine implements Closeable {
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement), tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement), tempMetaStoreForParser);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE),
+                                tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
       ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
@@ -330,7 +348,7 @@ public class KsqlEngine implements Closeable {
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
             querySpecification.getSelect(),
-            Optional.of(intoTable),
+            intoTable,
             querySpecification.getFrom(),
             querySpecification.getWindowExpression(),
             querySpecification.getWhere(),
@@ -401,9 +419,6 @@ public class KsqlEngine implements Closeable {
     topicClient.close();
   }
 
-  public QueryEngine getQueryEngine() {
-    return queryEngine;
-  }
 
   public boolean terminateAllQueries() {
     try {
@@ -420,4 +435,10 @@ public class KsqlEngine implements Closeable {
 
     return true;
   }
+
+  public DDLCommandResult executeDdlStatement(final DDLStatement statement,
+                                              final Map<String, Object> streamsProperties) {
+    return queryEngine.handleDdlStatement(statement, streamsProperties);
+  }
+
 }

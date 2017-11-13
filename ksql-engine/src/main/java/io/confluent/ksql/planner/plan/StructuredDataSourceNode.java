@@ -48,6 +48,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.KStreamImpl;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -162,10 +163,10 @@ public class StructuredDataSourceNode
     }
 
     return new SchemaKStream(getSchema(),
-        builder
+        resetRepartitionFlag(builder
             .stream(getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
                 Consumed.with(Serdes.String(), genericRowSerde))
-            .map(nonWindowedMapper)
+            .map(nonWindowedMapper))
             .transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
         SchemaKStream.Type.SOURCE, functionRegistry);
@@ -223,21 +224,35 @@ public class StructuredDataSourceNode
                               final Serde<GenericRow> genericRowSerde,
                               final Serde<GenericRow> genericRowSerdeAfterRead) {
     if (ksqlTable.isWindowed()) {
-      return table(builder
+      return table(resetRepartitionFlag(builder
           .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
               Consumed.with(windowedSerde, genericRowSerde)
                   .withOffsetResetPolicy(autoOffsetReset))
-          .map(windowedMapper)
+          .map(windowedMapper))
           .transformValues(new AddTimestampColumn()), windowedSerde, genericRowSerdeAfterRead);
     } else {
-      return table(builder
-              .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
-                  Consumed.with(Serdes.String(), genericRowSerde)
-                      .withOffsetResetPolicy(autoOffsetReset))
-              .map(nonWindowedMapper)
+      return table(resetRepartitionFlag(
+          builder.stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+              Consumed.with(Serdes.String(), genericRowSerde)
+                  .withOffsetResetPolicy(autoOffsetReset))
+          .map(nonWindowedMapper))
               .transformValues(new AddTimestampColumn()),
           Serdes.String(), genericRowSerdeAfterRead);
     }
+  }
+
+  // This is a hack to reset the repartitionRequiredFlag - can be removed once KIP-159 is introduced
+  // in kafka 1.1
+  private <K> KStream<K, GenericRow> resetRepartitionFlag(final KStream<K, GenericRow> stream) {
+    try {
+      java.lang.reflect.Field repartitionField = KStreamImpl.class.getDeclaredField("repartitionRequired");
+      repartitionField.setAccessible(true);
+      repartitionField.set(stream, false);
+      repartitionField.setAccessible(false);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      // ignored
+    }
+    return stream;
   }
 
   private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {

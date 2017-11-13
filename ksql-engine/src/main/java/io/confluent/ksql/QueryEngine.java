@@ -17,36 +17,20 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
-import io.confluent.ksql.ddl.commands.CreateStreamCommand;
-import io.confluent.ksql.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.ddl.commands.DDLCommand;
+import io.confluent.ksql.ddl.commands.DDLCommandFactory;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
-import io.confluent.ksql.ddl.commands.DropTopicCommand;
-import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
@@ -68,14 +52,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class QueryEngine {
+class QueryEngine {
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
   private final AtomicLong queryIdCounter;
   private final KsqlEngine ksqlEngine;
+  private final DDLCommandFactory ddlCommandFactory;
 
 
-  QueryEngine(final KsqlEngine ksqlEngine) {
+  QueryEngine(final KsqlEngine ksqlEngine, final DDLCommandFactory ddlCommandFactory) {
+    this.ddlCommandFactory = ddlCommandFactory;
     this.queryIdCounter = new AtomicLong(1);
     this.ksqlEngine = ksqlEngine;
   }
@@ -104,50 +90,11 @@ public class QueryEngine {
   }
 
   private PlanNode buildQueryLogicalPlan(final Query query, final MetaStore tempMetaStore) {
-
-    // Analyze the query to resolve the references and extract operations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, tempMetaStore);
-    analyzer.process(query, new AnalysisContext(null));
-
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis, ksqlEngine.getFunctionRegistry());
-    AggregateExpressionRewriter aggregateExpressionRewriter =
-        new AggregateExpressionRewriter(ksqlEngine.getFunctionRegistry());
-    for (Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer
-          .process(expression, new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(expression);
-      }
-      aggregateAnalysis.getFinalSelectExpressions()
-          .add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-      aggregateAnalyzer.setHasAggregateFunction(false);
-    }
-
-    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty() &&
-        analysis.getGroupByExpressions().isEmpty()) {
-      throw new KsqlException("Aggregate query needs GROUP BY clause.");
-    }
-    // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
-    if (analysis.getHavingExpression() != null) {
-      aggregateAnalyzer.process(analysis.getHavingExpression(),
-                                new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
-      }
-      aggregateAnalysis
-          .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-                                                                  analysis.getHavingExpression()));
-      aggregateAnalyzer.setHasAggregateFunction(false);
-    }
-
-    enforceAggregateRules(query, aggregateAnalysis);
-
-
-    // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(tempMetaStore, ksqlEngine.getFunctionRegistry());
+    final Analysis analysis = queryAnalyzer.analyize(query);
+    final AggregateAnalysis aggAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
+    final PlanNode logicalPlan
+        = new LogicalPlanner(analysis, aggAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
     if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) logicalPlan;
@@ -182,7 +129,11 @@ public class QueryEngine {
 
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
       if (statementPlanPair.getRight() == null) {
-        handleDdlStatement(statementList.get(i).getRight(), overriddenStreamsProperties);
+        Statement statement = statementList.get(i).getRight();
+        if (!(statement instanceof  DDLStatement)) {
+          throw new KsqlException("expecting a statement implementing DDLStatement but got: " + statement.getClass());
+        }
+        handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
       } else {
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
                                overriddenStreamsProperties, updateMetastore);
@@ -199,9 +150,7 @@ public class QueryEngine {
                                       final boolean updateMetastore) throws Exception {
 
     final StreamsBuilder builder = new StreamsBuilder();
-
     final KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
-
 
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
@@ -219,39 +168,11 @@ public class QueryEngine {
   }
 
 
-  public DDLCommandResult handleDdlStatement(
-      final Statement statement,
+  DDLCommandResult handleDdlStatement(
+      final DDLStatement statement,
       final Map<String, Object> overriddenProperties) {
-    if (statement instanceof SetProperty) {
-      SetProperty setProperty = (SetProperty) statement;
-      overriddenProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-      return null;
-    }
-    DDLCommand command = generateDDLCommand(statement, overriddenProperties);
+    DDLCommand command = ddlCommandFactory.create(statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
-  }
-
-  private DDLCommand generateDDLCommand(
-      final Statement statement,
-      final Map<String, Object> overriddenProperties) {
-    if (statement instanceof RegisterTopic) {
-      return new RegisterTopicCommand((RegisterTopic) statement, overriddenProperties);
-    } else if (statement instanceof CreateStream) {
-      return new CreateStreamCommand((CreateStream) statement, overriddenProperties,
-                                     ksqlEngine.getTopicClient());
-    } else if (statement instanceof CreateTable) {
-      return new CreateTableCommand((CreateTable) statement, overriddenProperties,
-                                    ksqlEngine.getTopicClient());
-    } else if (statement instanceof DropStream) {
-      return new DropSourceCommand((DropStream) statement);
-    } else if (statement instanceof DropTable) {
-      return new DropSourceCommand((DropTable) statement);
-    } else if (statement instanceof DropTopic) {
-      return new DropTopicCommand((DropTopic) statement);
-    } else {
-      throw new KsqlException(
-          "Corresponding command not found for statement: " + statement.toString());
-    }
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {
@@ -268,17 +189,4 @@ public class QueryEngine {
     KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
     return new KsqlStream(name, dataSource.schema(), null, null, ksqlTopic);
   }
-
-  private void enforceAggregateRules(Query query, AggregateAnalysis aggregateAnalysis) {
-    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
-      return;
-    }
-    int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
-    int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
-        .getGroupingElements().size();
-    if (numberOfNonAggProjections != groupBySize) {
-      throw new KsqlException("Group by elements should match the SELECT expressions.");
-    }
-  }
-
 }

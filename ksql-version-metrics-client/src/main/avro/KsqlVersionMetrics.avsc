@@ -1,0 +1,26 @@
+{
+  "namespace": "io.confluent.ksql.version.metrics",
+  "type": "record",
+  "name": "KsqlVersionMetrics",
+  "doc": "Represents basic metrics captured on a single ksql component",
+  "fields": [
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Time when this data record was created on the ksql component (Unix time)."
+    },
+    {
+      "name": "confluentPlatformVersion",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "The version of the Confluent Platform this kql component is running."
+    },
+    {
+      "name": "ksqlComponentType",
+      "type": "string",
+      "doc": "Identifies the ksql component"
+    }
+  ]
+}

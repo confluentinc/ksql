@@ -16,27 +16,18 @@
 
 package io.confluent.ksql.rest.server.utils;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 
 public class TestUtils {
-
-  public static KsqlConfig getMockKsqlConfig() {
-    Map<String, Object> props = new HashMap<>();
-    props.put("application.id", "ksqlStatementExecutorTest");
-    props.put("bootstrap.servers", "localhost:9092");
-    return new KsqlConfig(props);
-  }
 
   public List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
@@ -73,5 +64,12 @@ public class TestUtils {
     priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));
 
     return priorCommands;
+  }
+
+  public static int randomFreeLocalPort() throws IOException {
+    ServerSocket s = new ServerSocket(0);
+    int port = s.getLocalPort();
+    s.close();
+    return port;
   }
 }

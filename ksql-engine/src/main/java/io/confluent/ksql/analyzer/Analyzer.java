@@ -265,6 +265,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
+  /**
+   * From the join criteria expression fetch the key field corresponding to the given source
+   * alias.
+   * 
+   * @param comparisonExpression
+   * @param sourceAlias
+   * @param sourceSchema
+   * @return
+   */
   private Pair<String, String> fetchKeyFieldName(ComparisonExpression comparisonExpression, String sourceAlias, Schema
       sourceSchema) {
     Pair<String, String> keyInfo = fetchKeyFieldNameFromExpr(comparisonExpression.getLeft(),
@@ -282,6 +291,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return keyInfo;
   }
 
+  /**
+   * Given an expression and the source alias detects if the expression type is DereferenceExpression
+   * or QualifiedNameReference and if the variable prefix matches the source Alias.
+   *
+   * @param expression
+   * @param sourceAlias
+   * @param sourceSchema
+   * @return
+   */
   private Pair<String, String> fetchKeyFieldNameFromExpr(Expression expression, String sourceAlias,
                                                   Schema sourceSchema) {
     if (expression instanceof DereferenceExpression) {

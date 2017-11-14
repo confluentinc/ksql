@@ -33,4 +33,9 @@ public final class NodeLocation {
   public int getColumnNumber() {
     return charPositionInLine + 1;
   }
+
+  @Override
+  public String toString() {
+    return String.format(" Line: %d, Col: %d", line, charPositionInLine + 1);
+  }
 }

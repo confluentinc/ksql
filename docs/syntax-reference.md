@@ -528,7 +528,7 @@ $ cat ksql.properties
 auto.offset.reset=earliest
 
 # Start KSQL in standalone mode with the custom properties above
-$ ksql-cli local ./ksql.properties
+$ ksql-cli local --properties-file ./ksql.properties
 
 # Start a KSQL server node (for client-server mode) with the custom properties above
 $ ksql-server-start ./ksql.properties

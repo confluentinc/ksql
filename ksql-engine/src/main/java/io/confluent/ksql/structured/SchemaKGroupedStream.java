@@ -22,7 +22,7 @@ import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -61,13 +61,13 @@ public class SchemaKGroupedStream {
     final KTable aggKtable;
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
-          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>as(storeName)
+          = Materialized.<String, GenericRow, WindowStore<String, GenericRow>>as(storeName)
           .withValueSerde(topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
       aggKtable = ksqlWindowExpression.applyAggregate(kgroupedStream, initializer, aggregator, materialized);
     } else {
-      aggKtable = kgroupedStream.aggregate(initializer, aggregator, Materialized.with(null, topicValueSerDe));
+      aggKtable = kgroupedStream.aggregate(initializer, aggregator, Materialized.with(Serdes.String(), topicValueSerDe));
     }
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, windowExpression != null,
                             SchemaKStream.Type.AGGREGATE, functionRegistry);

@@ -27,8 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 @Category({IntegrationTest.class})
 public class WindowingIntTest {
@@ -69,6 +69,52 @@ public class WindowingIntTest {
   }
 
   @Test
+  public void shouldAggregateWithNoWindow() throws Exception {
+
+    testHarness.publishTestData(topicName, dataProvider, now);
+
+
+    final String streamName = "NOWINDOW_AGGTEST";
+
+    final String queryString = String.format(
+        "CREATE TABLE %s AS SELECT %s FROM ORDERS WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;",
+        streamName,
+        "ITEMID, COUNT(ITEMID), SUM(ORDERUNITS)"
+    );
+
+    ksqlContext.sql(queryString);
+
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, "ITEM_1", 2 /** 2 x items **/, 20.0));
+
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      final Map<String, GenericRow> aggregateResults = testHarness.consumeData(streamName,
+                                                                           resultSchema, 1, new
+                                                                                   StringDeserializer(), MAX_POLL_PER_ITERATION);
+      final GenericRow actual = aggregateResults.get("ITEM_1");
+      return expected.equals(actual);
+    }, 60000, "didn't receive correct results within timeout");
+
+    AdminClient adminClient = AdminClient.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
+
+    Set<String> topicBeforeCleanup = topicClient.listTopicNames();
+
+    assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
+               topicBeforeCleanup.size(), equalTo(5));
+    QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
+
+    queryMetadata.close();
+    Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
+
+    assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
+        (), topicsAfterCleanUp.size(), equalTo(3));
+  }
+
+
+  @Test
   public void shouldAggregateTumblingWindow() throws Exception {
 
     testHarness.publishTestData(topicName, dataProvider, now);
@@ -103,14 +149,14 @@ public class WindowingIntTest {
     Set<String> topicBeforeCleanup = topicClient.listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size() == 5);
+               topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
     Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size() == 3);
+        (), topicsAfterCleanUp.size(), equalTo(3));
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
@@ -155,14 +201,14 @@ public class WindowingIntTest {
     Set<String> topicBeforeCleanup = topicClient.listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size() == 5);
+               topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
     Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size() == 3);
+        (), topicsAfterCleanUp.size(), equalTo(3));
   }
 
   @Test
@@ -202,14 +248,14 @@ public class WindowingIntTest {
     Set<String> topicBeforeCleanup = topicClient.listTopicNames();
 
     assertThat("Expected to have 5 topics instead have : " + topicBeforeCleanup.size(),
-               topicBeforeCleanup.size() == 5);
+               topicBeforeCleanup.size(), equalTo(5));
     QueryMetadata queryMetadata = ksqlContext.getRunningQueries().iterator().next();
 
     queryMetadata.close();
     Set<String> topicsAfterCleanUp = topicClient.listTopicNames();
 
     assertThat("Expected to see 3 topics after clean up but seeing " + topicsAfterCleanUp.size
-        (), topicsAfterCleanUp.size() == 3);
+        (), topicsAfterCleanUp.size(), equalTo(3));
 
   }
 

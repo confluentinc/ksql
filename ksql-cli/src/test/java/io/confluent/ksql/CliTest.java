@@ -177,14 +177,13 @@ public class CliTest extends TestRunner {
       selectQuery += ";";
     }
     String resultKStreamName = "RESULT";
-    String resultTopicName = resultKStreamName;
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */
     test(queryString, build("Stream created and running"));
 
     /* Assert Results */
-    Map<String, GenericRow> results = topicConsumer.readResults(resultTopicName, resultSchema, expectedResults.size(), new StringDeserializer());
+    Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
     assertThat(results, equalTo(expectedResults));
 
@@ -192,7 +191,7 @@ public class CliTest extends TestRunner {
     String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);
 
     /* Clean Up */
-    run("terminate query " + queryID);
+    run("terminate query '" + queryID + "'");
     dropStream(resultKStreamName);
   }
 

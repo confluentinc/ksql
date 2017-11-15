@@ -37,6 +37,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -120,11 +121,12 @@ class QueryEngine {
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenStreamsProperties,
-      final boolean updateMetastore
-  ) throws Exception {
+      final boolean updateMetastore,
+      final QueryId queryId) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
+    QueryId nextQueryId = queryId;
     for (int i = 0; i < logicalPlans.size(); i++) {
 
       Pair<String, PlanNode> statementPlanPair = logicalPlans.get(i);
@@ -135,8 +137,10 @@ class QueryEngine {
         }
         handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
       } else {
+
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
-                               overriddenStreamsProperties, updateMetastore);
+                               overriddenStreamsProperties, updateMetastore, nextQueryId);
+        nextQueryId = queryId.nextChildId();
       }
 
     }
@@ -147,7 +151,8 @@ class QueryEngine {
                                       final boolean addUniqueTimeSuffix,
                                       final Pair<String, PlanNode> statementPlanPair,
                                       final Map<String, Object> overriddenStreamsProperties,
-                                      final boolean updateMetastore) throws Exception {
+                                      final boolean updateMetastore,
+                                      final QueryId queryId) throws Exception {
 
     final StreamsBuilder builder = new StreamsBuilder();
     final KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
@@ -162,7 +167,7 @@ class QueryEngine {
         overriddenStreamsProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
-        queryIdCounter.getAndIncrement());
+        queryId);
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }

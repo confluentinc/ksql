@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import org.slf4j.Logger;
@@ -46,15 +47,17 @@ public class StreamedQueryResource {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final long disconnectCheckInterval;
+  private final QueryIdProvider queryIdProvider;
 
   public StreamedQueryResource(
       KsqlEngine ksqlEngine,
       StatementParser statementParser,
-      long disconnectCheckInterval
-  ) {
+      long disconnectCheckInterval,
+      QueryIdProvider queryIdProvider) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
+    this.queryIdProvider = queryIdProvider;
   }
 
   @POST
@@ -67,7 +70,7 @@ public class StreamedQueryResource {
 
     if (statement instanceof Query) {
       QueryStreamWriter queryStreamWriter =
-          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties);
+          new QueryStreamWriter(ksqlEngine, disconnectCheckInterval, ksql, clientLocalProperties, queryIdProvider);
       log.info("Streaming query '{}'", ksql);
       return Response.ok().entity(queryStreamWriter).build();
 

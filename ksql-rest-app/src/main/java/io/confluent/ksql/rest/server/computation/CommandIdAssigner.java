@@ -91,7 +91,7 @@ public class CommandIdAssigner {
   }
 
   private CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
-    return new CommandId(CommandId.Type.TERMINATE, Long.toString(terminateQuery.getQueryId()), CommandId.Action.CREATE);
+    return new CommandId(CommandId.Type.TERMINATE, terminateQuery.getQueryId().toString(), CommandId.Action.CREATE);
   }
 
   private CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {

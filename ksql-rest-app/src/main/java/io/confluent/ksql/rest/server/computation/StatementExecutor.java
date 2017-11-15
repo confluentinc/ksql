@@ -23,6 +23,7 @@ import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Query;
@@ -169,7 +170,7 @@ public class StatementExecutor {
   private void handleStatementWithTerminatedQueries(
       Command command,
       CommandId commandId,
-      Map<Long, CommandId> terminatedQueries
+      Map<QueryId, CommandId> terminatedQueries
   ) throws Exception {
     try {
       String statementString = command.getStatement();
@@ -197,7 +198,7 @@ public class StatementExecutor {
       Statement statement,
       Command command,
       CommandId commandId,
-      Map<Long, CommandId> terminatedQueries
+      Map<QueryId, CommandId> terminatedQueries
   ) throws Exception {
     String statementStr = command.getStatement();
 
@@ -237,7 +238,7 @@ public class StatementExecutor {
       String queries =
           (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
-                                          command.getStreamsProperties());
+                                          command.getStreamsProperties(), command.getQueryId());
       for (QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
@@ -252,7 +253,7 @@ public class StatementExecutor {
   private String handleCreateAsSelect(final CreateAsSelect statement,
                                       final Command command,
                                       final CommandId commandId,
-                                      final Map<Long, CommandId> terminatedQueries,
+                                      final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr) throws Exception {
     QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
@@ -263,7 +264,7 @@ public class StatementExecutor {
         statement.getProperties(),
         statement.getPartitionByColumn()
     );
-    if (startQuery(statementStr, query, commandId, terminatedQueries, command.getStreamsProperties())) {
+    if (startQuery(statementStr, query, commandId, terminatedQueries, command)) {
       return statement instanceof CreateTableAsSelect
           ? "Table created and running"
           : "Stream created and running";
@@ -276,8 +277,8 @@ public class StatementExecutor {
       String queryString,
       Query query,
       CommandId commandId,
-      Map<Long, CommandId> terminatedQueries,
-      Map<String, Object> queryConfigProperties
+      Map<QueryId, CommandId> terminatedQueries,
+      Command command
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -294,11 +295,14 @@ public class StatementExecutor {
     }
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
-        false, queryString, queryConfigProperties).get(0);
+        false,
+        queryString,
+        command.getStreamsProperties(),
+        command.getQueryId()).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-      long queryId = persistentQueryMetadata.getId();
+      final QueryId queryId = persistentQueryMetadata.getId();
 
       if (terminatedQueries != null && terminatedQueries.containsKey(queryId)) {
         CommandId terminateId = terminatedQueries.get(queryId);
@@ -327,10 +331,10 @@ public class StatementExecutor {
   }
 
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
-    long queryId = terminateQuery.getQueryId();
+    final QueryId queryId = terminateQuery.getQueryId();
     QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
     if (!ksqlEngine.terminateQuery(queryId, true)) {
-      throw new Exception(String.format("No running query with id %d was found", queryId));
+      throw new Exception(String.format("No running query with id %s was found", queryId));
     }
 
     CommandId.Type commandType;

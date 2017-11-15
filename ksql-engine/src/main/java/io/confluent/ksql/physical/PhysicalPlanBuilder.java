@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -59,7 +60,7 @@ public class PhysicalPlanBuilder {
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
-  private final long queryId;
+  private final QueryId queryId;
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -70,7 +71,7 @@ public class PhysicalPlanBuilder {
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
                              final MetaStore metaStore,
-                             final long queryId) {
+                             final QueryId queryId) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;

@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -54,18 +55,20 @@ public class CommandStore implements Closeable {
     private final Consumer<CommandId, Command> commandConsumer;
     private final Producer<CommandId, Command> commandProducer;
     private final CommandIdAssigner commandIdAssigner;
+    private final QueryIdProvider queryIdProvider;
     private final AtomicBoolean closed;
 
     public CommandStore(
-            String commandTopic,
-            Consumer<CommandId, Command> commandConsumer,
-            Producer<CommandId, Command> commandProducer,
-            CommandIdAssigner commandIdAssigner
-    ) {
+        String commandTopic,
+        Consumer<CommandId, Command> commandConsumer,
+        Producer<CommandId, Command> commandProducer,
+        CommandIdAssigner commandIdAssigner,
+        QueryIdProvider queryIdProvider) {
         this.commandTopic = commandTopic;
         this.commandConsumer = commandConsumer;
         this.commandProducer = commandProducer;
         this.commandIdAssigner = commandIdAssigner;
+        this.queryIdProvider = queryIdProvider;
 
         commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
 
@@ -96,7 +99,9 @@ public class CommandStore implements Closeable {
             Map<String, Object> streamsProperties
     ) throws KsqlException {
         final CommandId commandId = commandIdAssigner.getCommandId(statement);
-        final Command command = new Command(statementString, streamsProperties);
+        final Command command = new Command(statementString,
+            streamsProperties,
+            queryIdProvider.next());
         maybeSendTombstone(commandId);
         try {
             commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();

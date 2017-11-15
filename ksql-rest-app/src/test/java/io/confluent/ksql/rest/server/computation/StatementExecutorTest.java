@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
@@ -41,6 +43,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
+  private final QueryIdProvider queryIdProvider = new QueryIdProvider();
   private StatementExecutor getStatementExecutor() {
     Map<String, Object> props = new HashMap<>();
     props.put("application.id", "ksqlStatementExecutorTest");
@@ -58,7 +61,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandleCorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGISTER TOPIC users_topic WITH (value_format = 'json', "
-                                  + "kafka_topic='user_topic_json');", new HashMap<>());
+        + "kafka_topic='user_topic_json');", new HashMap<>(),
+        queryIdProvider.next());
     CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -72,7 +76,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandleIncorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGIST ER TOPIC users_topic WITH (value_format = 'json', "
-                                  + "kafka_topic='user_topic_json');", new HashMap<>());
+        + "kafka_topic='user_topic_json');", new HashMap<>(),
+        queryIdProvider.next());
     CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -99,37 +104,42 @@ public class StatementExecutorTest extends EasyMockSupport {
     StatementExecutor statementExecutor = getStatementExecutor();
 
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
-                                       + "(value_format = 'json', "
-                                       + "kafka_topic='pageview_topic_json');", new HashMap<>());
+        + "(value_format = 'json', "
+        + "kafka_topic='pageview_topic_json');", new HashMap<>(),
+        queryIdProvider.next());
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(topicCommand, topicCommandId);
 
     Command csCommand = new Command("CREATE STREAM pageview "
-                                    + "(viewtime bigint, pageid varchar, userid varchar) "
-                                    + "WITH (registered_topic = 'pageview_topic');",
-                                    new HashMap<>());
+        + "(viewtime bigint, pageid varchar, userid varchar) "
+        + "WITH (registered_topic = 'pageview_topic');",
+        new HashMap<>(),
+        queryIdProvider.next());
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csCommand, csCommandId);
 
     Command csasCommand = new Command("CREATE STREAM user1pv "
-                                    + " AS select * from pageview WHERE userid = 'user1';",
-                                    new HashMap<>());
+        + " AS select * from pageview WHERE userid = 'user1';",
+        new HashMap<>(),
+        queryIdProvider.next());
 
     CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 
     Command ctasCommand = new Command("CREATE TABLE user1pvtb "
-                                      + " AS select * from pageview window tumbling(size 5 "
-                                      + "second) WHERE userid = "
-                                      + "'user1' group by pageid;",
-                                      new HashMap<>());
+        + " AS select * from pageview window tumbling(size 5 "
+        + "second) WHERE userid = "
+        + "'user1' group by pageid;",
+        new HashMap<>(),
+        queryIdProvider.next());
 
     CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command("TERMINATE 1;",
-                                      new HashMap<>());
+    Command terminateCommand = new Command("TERMINATE '2-0';",
+        new HashMap<>(),
+        queryIdProvider.next());
 
     CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand, terminateCommandId);

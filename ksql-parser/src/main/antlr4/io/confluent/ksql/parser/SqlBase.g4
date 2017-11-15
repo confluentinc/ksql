@@ -44,7 +44,7 @@ statement
     | DESCRIBE (qualifiedName | TOPIC qualifiedName)                        #showColumns
     | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES                                                 #listQueries
-    | TERMINATE QUERY? INTEGER_VALUE                                               #terminateQuery
+    | TERMINATE QUERY? STRING                                               #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
     | LOAD expression                                                       #loadProperties

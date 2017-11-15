@@ -18,6 +18,7 @@ package io.confluent.ksql.cli.console;
 
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.TestTerminal;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -95,7 +96,7 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<Queries.RunningQuery> queries = new ArrayList<>();
-    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", 1));
+    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", new QueryId(0)));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(

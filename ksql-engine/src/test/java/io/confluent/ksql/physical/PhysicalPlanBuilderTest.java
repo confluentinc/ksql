@@ -19,6 +19,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -66,7 +67,7 @@ public class PhysicalPlanBuilderTest {
         Collections.emptyMap(),
         false,
         metaStore,
-        1);
+        new QueryId(0));
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 

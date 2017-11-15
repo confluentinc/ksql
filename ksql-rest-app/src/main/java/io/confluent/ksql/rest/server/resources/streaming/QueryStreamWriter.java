@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
@@ -50,11 +51,11 @@ class QueryStreamWriter implements StreamingOutput {
       KsqlEngine ksqlEngine,
       long disconnectCheckInterval,
       String queryString,
-      Map<String, Object> overriddenProperties
-  )
+      Map<String, Object> overriddenProperties,
+      QueryIdProvider queryIdProvider)
       throws Exception {
     QueryMetadata queryMetadata =
-        ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties).get(0);
+        ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties, queryIdProvider.next()).get(0);
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

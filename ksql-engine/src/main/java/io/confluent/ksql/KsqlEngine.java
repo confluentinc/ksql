@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -68,6 +69,8 @@ public class KsqlEngine implements Closeable {
   private static final Set<String> IMMUTABLE_PROPERTIES = new HashSet<>(Arrays.asList(
           StreamsConfig.BOOTSTRAP_SERVERS_CONFIG
   ));
+  // queryId not important here as it is not executed
+  private static final QueryId EXECUTION_PLAN_QUERY_ID = new QueryId(-1);
 
   private KsqlConfig ksqlConfig;
 
@@ -76,7 +79,7 @@ public class KsqlEngine implements Closeable {
   private final DDLCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
 
-  private final Map<Long, PersistentQueryMetadata> persistentQueries;
+  private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
   public final FunctionRegistry functionRegistry;
@@ -101,14 +104,15 @@ public class KsqlEngine implements Closeable {
    *
    * @param createNewAppId If a new application id should be generated.
    * @param queriesString The ksql query string.
+   * @param queryId
    * @return List of query metadata.
    * @throws Exception Any exception thrown here!
    */
   public List<QueryMetadata> buildMultipleQueries(
-          final boolean createNewAppId,
-          final String queriesString,
-          final Map<String, Object> overriddenProperties
-  ) throws Exception {
+      final boolean createNewAppId,
+      final String queriesString,
+      final Map<String, Object> overriddenProperties,
+      QueryId queryId) throws Exception {
     for (String property : overriddenProperties.keySet()) {
       if (IMMUTABLE_PROPERTIES.contains(property)) {
         throw new IllegalArgumentException(
@@ -125,14 +129,15 @@ public class KsqlEngine implements Closeable {
     // Build query AST from the query string
     List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties, tempMetaStore);
 
-    return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore);
+    return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore, queryId);
 
   }
 
   public List<QueryMetadata> planQueries(final boolean createNewAppId,
                                          final List<Pair<String, Statement>> statementList,
                                          final Map<String, Object> overriddenProperties,
-                                         final MetaStore tempMetaStore) throws Exception {
+                                         final MetaStore tempMetaStore,
+                                         final QueryId queryId) throws Exception {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
@@ -142,8 +147,8 @@ public class KsqlEngine implements Closeable {
             logicalPlans,
             statementList,
             overriddenProperties,
-            true
-    );
+            true,
+        queryId);
 
     for (QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -159,16 +164,17 @@ public class KsqlEngine implements Closeable {
   public QueryMetadata getQueryExecutionPlan(final Query query) throws Exception {
 
     // Logical plan creation from the ASTs
-    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore, Arrays.asList(new Pair<>("", query)));
+    List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(metaStore,
+        Collections.singletonList(new Pair<>("", query)));
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
-            false,
-            logicalPlans,
-            Arrays.asList(new Pair<>("", query)),
-            Collections.emptyMap(),
-            false
-    );
+        false,
+        logicalPlans,
+        Collections.singletonList(new Pair<>("", query)),
+        Collections.emptyMap(),
+        false,
+        EXECUTION_PLAN_QUERY_ID);
     return runningQueries.get(0);
   }
 
@@ -216,7 +222,7 @@ public class KsqlEngine implements Closeable {
     log.info("Building AST for {}.", statementString);
 
     if (statement instanceof Query) {
-      return new Pair<>(statementString, (Query) statement);
+      return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
       QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
@@ -363,7 +369,7 @@ public class KsqlEngine implements Closeable {
     return ddlCommandExec;
   }
 
-  public boolean terminateQuery(final long queryId, final boolean closeStreams) {
+  public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
     QueryMetadata queryMetadata = persistentQueries.remove(queryId);
     if (queryMetadata == null) {
       return false;
@@ -375,7 +381,7 @@ public class KsqlEngine implements Closeable {
     return true;
   }
 
-  public Map<Long, PersistentQueryMetadata> getPersistentQueries() {
+  public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
     return new HashMap<>(persistentQueries);
   }
 

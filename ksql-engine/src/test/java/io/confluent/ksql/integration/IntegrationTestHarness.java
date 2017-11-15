@@ -70,7 +70,6 @@ public class IntegrationTestHarness {
    * Topic topicName will be automatically created if it doesn't exist.
    * @param topicName
    * @param recordsToPublish
-   * @param schema
    * @param timestamp
    * @return
    * @throws InterruptedException

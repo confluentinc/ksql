@@ -54,6 +54,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -201,16 +203,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
-    StructuredDataSourceNode
-        leftSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"),
-            leftDataSource,
-            leftDataSource.getSchema());
-    StructuredDataSourceNode
-        rightSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-            rightDataSource,
-            rightDataSource.getSchema());
+
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -233,16 +226,37 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         throw new KsqlException("Join type is not supported: " + node.getType().name());
     }
 
+    if (!node.getCriteria().isPresent()) {
+      throw new KsqlException(String.format("%s Join criteria is not set.",
+                                            node.getLocation().isPresent()? node.getLocation()
+                                                                                .get().toString(): ""));
+    }
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
     ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
-    String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
-    String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
+    Pair<String, String> leftSide = fetchKeyFieldName(comparisonExpression, leftAlias,
+                                                      leftDataSource.getSchema());
+    Pair<String, String> rightSide = fetchKeyFieldName(comparisonExpression, rightAlias,
+                                                      rightDataSource.getSchema());
+
+    String leftKeyFieldName = leftSide.getRight();
+    String rightKeyFieldName = rightSide.getRight();
 
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
-      throw new KsqlException("Join criteria is not supported.");
+      throw new KsqlException("Only equality join criteria is supported.");
     }
 
+    StructuredDataSourceNode
+        leftSourceKafkaTopicNode =
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"),
+                                     leftDataSource,
+                                     leftDataSource.getSchema());
+    StructuredDataSourceNode
+        rightSourceKafkaTopicNode =
+        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
+                                     rightDataSource,
+                                     rightDataSource.getSchema());
+    
     JoinNode joinNode =
         new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
             rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
@@ -251,20 +265,64 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private String fetchKeyFieldName(Expression expression) {
+  /**
+   * From the join criteria expression fetch the key field corresponding to the given source
+   * alias.
+   * 
+   * @param comparisonExpression
+   * @param sourceAlias
+   * @param sourceSchema
+   * @return
+   */
+  private Pair<String, String> fetchKeyFieldName(ComparisonExpression comparisonExpression, String sourceAlias, Schema
+      sourceSchema) {
+    Pair<String, String> keyInfo = fetchKeyFieldNameFromExpr(comparisonExpression.getLeft(),
+                                                      sourceAlias, sourceSchema);
+    if (keyInfo == null) {
+      keyInfo = fetchKeyFieldNameFromExpr(comparisonExpression.getRight(), sourceAlias, sourceSchema);
+    }
+    if (keyInfo == null) {
+      throw new KsqlException(String.format("%s : Invalid join criteria %s. Key for %s is not set"
+                                            + " correctly."
+                                            + " ", comparisonExpression
+          .getLocation().isPresent()? comparisonExpression
+          .getLocation().get().toString(): "", comparisonExpression, sourceAlias));
+    }
+    return keyInfo;
+  }
+
+  /**
+   * Given an expression and the source alias detects if the expression type is DereferenceExpression
+   * or QualifiedNameReference and if the variable prefix matches the source Alias.
+   *
+   * @param expression
+   * @param sourceAlias
+   * @param sourceSchema
+   * @return
+   */
+  private Pair<String, String> fetchKeyFieldNameFromExpr(Expression expression, String sourceAlias,
+                                                  Schema sourceSchema) {
     if (expression instanceof DereferenceExpression) {
       DereferenceExpression
-          leftDereferenceExpression =
+          dereferenceExpression =
           (DereferenceExpression) expression;
-      return leftDereferenceExpression.getFieldName();
+      String sourceAliasVal = dereferenceExpression.getBase().toString();
+      if (sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+        String keyFieldName = dereferenceExpression.getFieldName();
+        if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
+          return new Pair<>(sourceAliasVal, keyFieldName);
+        }
+      }
     } else if (expression instanceof QualifiedNameReference) {
       QualifiedNameReference
-          leftQualifiedNameReference =
+          qualifiedNameReference =
           (QualifiedNameReference) expression;
-      return leftQualifiedNameReference.getName().getSuffix();
-    } else {
-      throw new KsqlException("Join criteria is not supported. Expression:" + expression);
+      String keyFieldName = qualifiedNameReference.getName().getSuffix();
+      if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
+        return new Pair<>(sourceAlias, keyFieldName);
+      }
     }
+    return null;
   }
 
   private StructuredDataSource timestampColumn(AliasedRelation aliasedRelation,

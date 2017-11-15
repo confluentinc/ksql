@@ -22,6 +22,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,18 +34,19 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 
 public class KsqlRestClientTest {
 
   MockApplication mockApplication;
-  int portNumber = 59098;
   KsqlRestConfig ksqlRestConfig;
   KsqlRestClient ksqlRestClient;
 
   @Before
   public void init() throws Exception {
+    final int port = TestUtils.randomFreeLocalPort();
     Map<String, Object> props = new HashMap<>();
-    props.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:59098");
+    props.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + port);
 //    props.put(KsqlRestConfig.PORT_CONFIG, String.valueOf(portNumber));
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
@@ -52,7 +55,7 @@ public class KsqlRestClientTest {
     mockApplication = new MockApplication(ksqlRestConfig);
     mockApplication.start();
 
-    ksqlRestClient = new KsqlRestClient("http://localhost:" + portNumber);
+    ksqlRestClient = new KsqlRestClient("http://localhost:" + port);
   }
 
   @After

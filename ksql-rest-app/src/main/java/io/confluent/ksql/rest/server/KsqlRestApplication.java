@@ -48,6 +48,9 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -94,6 +97,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
+  private final VersionCheckerAgent versionChckerAgent;
 
   public static String getCommandsKsqlTopicName() {
     return COMMANDS_KSQL_TOPIC_NAME;
@@ -111,7 +115,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      boolean enableQuickstartPage
+      boolean enableQuickstartPage,
+      VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -121,6 +126,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
     this.enableQuickstartPage = enableQuickstartPage;
+    this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
   }
@@ -156,6 +162,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   public void start() throws Exception {
     super.start();
     commandRunnerThread.start();
+    Properties metricsProperties = new Properties();
+    metricsProperties.putAll(getConfiguration().getOriginals());
+    if (versionChckerAgent != null) {
+      versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+    }
   }
 
   @Override
@@ -196,7 +207,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
 
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart());
+    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart(), new KsqlVersionCheckerAgent());
 
     log.info("Starting server");
     app.start();
@@ -205,7 +216,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     log.info("Server shutting down");
   }
 
-  public static KsqlRestApplication buildApplication(KsqlRestConfig restConfig, boolean quickstart)
+  public static KsqlRestApplication buildApplication(
+      KsqlRestConfig restConfig,
+      boolean quickstart,
+      VersionCheckerAgent versionCheckerAgent
+  )
       throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
@@ -316,7 +331,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        quickstart
+        quickstart,
+        versionCheckerAgent
     );
   }
 

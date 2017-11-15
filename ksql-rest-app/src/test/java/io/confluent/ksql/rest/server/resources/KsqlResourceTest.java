@@ -431,8 +431,34 @@ public class KsqlResourceTest {
     assertThat("Incorrect response size.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
-    assertThat(errorMessageEntity.getErrorMessage().getMessage(), equalTo("Invalid result type. Your "
-                                                                  + "SELECT query produces a STREAM. Please use CREATE STREAM AS SELECT statement instead."));
+    assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Invalid result type. Your "
+                                                                          + "SELECT query produces a STREAM. Please use CREATE STREAM AS SELECT statement instead."));
+  }
+
+  @Test
+  public void shouldFailForIncorrectDropStreamStatement() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get();
+    final String ksqlString = "DROP TABLE test_stream;";
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
+        .emptyMap()));
+    KsqlEntityList result = (KsqlEntityList) response.getEntity();
+    assertThat("Incorrect drop statement.", result.size(), equalTo(1));
+    assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
+    ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
+    assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Incompatible data source type is STREAM, but statement was DROP TABLE"));
+  }
+
+  @Test
+  public void shouldFailForIncorrectDropTableStatement() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get();
+    final String ksqlString = "DROP STREAM test_table;";
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
+        .emptyMap()));
+    KsqlEntityList result = (KsqlEntityList) response.getEntity();
+    assertThat("Incorrect drop statement.", result.size(), equalTo(1));
+    assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
+    ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
+    assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Incompatible data source type is TABLE, but statement was DROP STREAM"));
   }
 
 }

@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
@@ -36,8 +37,10 @@ public class CommandFactories implements DDLCommandFactory {
     factories.put(RegisterTopic.class, (ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement, properties));
     factories.put(CreateStream.class, (ddlStatement, properties) -> new CreateStreamCommand((CreateStream) ddlStatement, properties, topicClient));
     factories.put(CreateTable.class, (ddlStatement, properties) -> new CreateTableCommand((CreateTable)ddlStatement, properties, topicClient));
-    factories.put(DropStream.class, (ddlStatement, properties) -> new DropSourceCommand((DropStream) ddlStatement));
-    factories.put(DropTable.class, (ddlStatement, properties) -> new DropSourceCommand((DropTable) ddlStatement));
+    factories.put(DropStream.class, (ddlStatement, properties) -> new DropSourceCommand(
+        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM));
+    factories.put(DropTable.class, (ddlStatement, properties) -> new DropSourceCommand(
+        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE));
     factories.put(DropTopic.class, (ddlStatement, properties) -> new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(SetProperty.class, (ddlStatement, properties) -> new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }

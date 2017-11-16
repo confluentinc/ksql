@@ -156,9 +156,13 @@ public class CommandStore implements Closeable {
                 final CommandId key = record.key();
                 if(record.value() == null) {
                     commands.remove(key);
-                } else if (key.getAction() != CommandId.Action.DROP)
+                } else if (key.getAction() != CommandId.Action.DROP) {
                     commands.put(key, record);
+                } else {
+                    // send tombstone for drop command
+                    commandProducer.send(new ProducerRecord<>(commandTopic, key, null));
                 }
+            }
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         }
         log.debug("Retrieved records:" + commands.size());

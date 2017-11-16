@@ -20,6 +20,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
@@ -101,7 +102,7 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldIgnorePriorDropCommands() {
+  public void shouldSendTombstoneForPriorDropCommands() {
     final CommandId commandId = new CommandId(CommandId.Type.TOPIC, "one", CommandId.Action.DROP);
     final Command latestCommand = new Command("a new statement", Collections.emptyMap(), queryIdProvider.next());
     final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Collections.singletonList(
@@ -113,11 +114,14 @@ public class CommandStoreTest {
 
     EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    EasyMock.replay(commandConsumer);
+
+    EasyMock.expect(commandProducer.send(new ProducerRecord<>(COMMAND_TOPIC, commandId, null))).andReturn(null);
+    EasyMock.replay(commandConsumer, commandProducer);
 
     final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
     final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
     assertThat(priorCommands, equalTo(Collections.emptyList()));
+    EasyMock.verify(commandProducer);
   }
 
 }

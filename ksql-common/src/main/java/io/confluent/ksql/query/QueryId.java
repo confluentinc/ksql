@@ -48,6 +48,15 @@ public class QueryId {
     return String.format("%d-%d", id, childId);
   }
 
+  // Next two methods need for Json Serialization
+  public long getId() {
+    return id;
+  }
+
+  public int getChildId() {
+    return childId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

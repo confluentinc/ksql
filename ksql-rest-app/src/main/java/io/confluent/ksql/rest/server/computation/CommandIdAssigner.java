@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
 
 public class CommandIdAssigner {
 
@@ -48,8 +47,6 @@ public class CommandIdAssigner {
       return getSelectStreamCommandId((CreateStreamAsSelect) command);
     } else if (command instanceof CreateTableAsSelect) {
       return getSelectTableCommandId((CreateTableAsSelect) command);
-    } else if (command instanceof TerminateQuery) {
-      return getTerminateCommandId((TerminateQuery) command);
     } else if (command instanceof DropTopic) {
       return getDropTopicCommandId((DropTopic) command);
     } else if (command instanceof DropStream) {
@@ -88,10 +85,6 @@ public class CommandIdAssigner {
 
   private CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
     return getTableCommandId(createTableAsSelect.getName().toString());
-  }
-
-  private CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
-    return new CommandId(CommandId.Type.TERMINATE, terminateQuery.getQueryId().toString(), CommandId.Action.CREATE);
   }
 
   private CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {

@@ -48,6 +48,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return id;
   }
 
+  public String getEntity() {
+    return getOutputNode().getId().toString();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof PersistentQueryMetadata)) {

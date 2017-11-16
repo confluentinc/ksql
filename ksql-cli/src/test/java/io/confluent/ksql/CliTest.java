@@ -193,11 +193,6 @@ public class CliTest extends TestRunner {
 
     assertThat(results, equalTo(expectedResults));
 
-    /* Get first column of the first row in the result set to obtain the queryID */
-    String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);
-
-    /* Clean Up */
-    run("terminate query '" + queryID + "'");
     dropStream(resultKStreamName);
   }
 

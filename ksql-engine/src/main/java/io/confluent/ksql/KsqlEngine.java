@@ -76,7 +76,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public class KsqlEngine implements Closeable {
+public class KsqlEngine implements Closeable, QueryTeminator {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
@@ -107,8 +107,7 @@ public class KsqlEngine implements Closeable {
     this.metaStore = new MetaStoreImpl();
     this.topicClient = topicClient;
     this.ddlCommandExec = new DDLCommandExec(metaStore);
-    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient));
-
+    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
@@ -304,13 +303,13 @@ public class KsqlEngine implements Closeable {
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM),
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, this), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, this),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE), tempMetaStore);
-      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE),
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, this), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, this),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
@@ -386,6 +385,7 @@ public class KsqlEngine implements Closeable {
     return ddlCommandExec;
   }
 
+  @Override
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
     QueryMetadata queryMetadata = persistentQueries.remove(queryId);
     if (queryMetadata == null) {
@@ -396,6 +396,22 @@ public class KsqlEngine implements Closeable {
       queryMetadata.close();
     }
     return true;
+  }
+
+  @Override
+  public void terminateQueryForEntity(final String entity) {
+    final Optional<PersistentQueryMetadata> query = persistentQueries.values()
+        .stream()
+        .filter(persistentQueryMetadata -> persistentQueryMetadata.getEntity().equalsIgnoreCase(entity))
+        .findFirst();
+
+    if (query.isPresent()) {
+      final PersistentQueryMetadata metadata = query.get();
+      log.info("Terminating persistent query {}", metadata.getId());
+      metadata.close();
+      persistentQueries.remove(metadata.getId());
+      liveQueries.remove(metadata);
+    }
   }
 
   public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
@@ -426,6 +442,7 @@ public class KsqlEngine implements Closeable {
   }
 
 
+  @Override
   public boolean terminateAllQueries() {
     try {
       for (QueryMetadata queryMetadata : liveQueries) {

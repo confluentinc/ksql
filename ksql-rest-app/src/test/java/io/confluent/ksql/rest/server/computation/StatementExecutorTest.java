@@ -137,22 +137,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command("TERMINATE '2-0';",
-        new HashMap<>(),
-        queryIdProvider.next());
-
-    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
-    statementExecutor.handleStatement(terminateCommand, terminateCommandId);
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(6, statusStore.size());
+    Assert.assertEquals(4, statusStore.size());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(terminateCommandId).getStatus());
-
   }
 
   @Test

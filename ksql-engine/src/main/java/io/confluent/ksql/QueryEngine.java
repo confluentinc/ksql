@@ -162,7 +162,7 @@ class QueryEngine {
         overriddenStreamsProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
-        queryIdCounter.getAndIncrement());
+        queryIdCounter);
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }

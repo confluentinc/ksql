@@ -16,7 +16,11 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommand;
@@ -25,6 +29,8 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -74,9 +80,11 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StringUtil;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -213,6 +221,11 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
+      if (statement instanceof AbstractStreamCreateStatement) {
+        AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
+            statement;
+        checkAndSetAvroSchema(streamCreateStatement.getProperties(), streamsProperties);
+      }
       //Sanity check for the statement before distributing it.
       validateStatement(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
@@ -442,6 +455,39 @@ public class KsqlResource {
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
+  }
+
+  private void checkAndSetAvroSchema(Map<String,Expression> ddlProperties, Map<String, Object>
+      streamsProperties) {
+    if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+      throw
+          new KsqlException(String.format("%s should be set in WITH clause of CREATE "
+                                          + "STRAEM/TABLE statement.", DdlConfig.VALUE_FORMAT_PROPERTY));
+    }
+    final String serde = StringUtil.cleanQuotes(
+        ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+      String kafkaTopicName = StringUtil.cleanQuotes(
+          ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+      SchemaRegistryClient
+          schemaRegistryClient = new CachedSchemaRegistryClient("http://localhost:8081", 100);
+      try {
+        SchemaMetadata
+            schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(kafkaTopicName +
+                                                                          KsqlConstants
+                                                                              .SCHEMA_REGISTRY_VALUE_SUFFIX);
+        streamsProperties.put(DdlConfig.AVRO_SCHEMA, schemaMetadata.getSchema());
+
+      } catch (Exception e) {
+        String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
+                                            + "registry (url: %s). $s ",
+                                            "http://localhost:8081", e.getMessage());
+        log.error(errorMessage, e);
+        throw new KsqlException(errorMessage);
+      }
+
+    }
+
   }
 
 }

@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.serde.avro;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.Decoder;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -36,13 +36,18 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   private final org.apache.kafka.connect.data.Schema schema;
 
+  private SchemaRegistryClient schemaRegistryClient;
+
   String rowSchema;
   Schema.Parser parser;
   Schema avroSchema;
   GenericDatumReader<GenericRecord> reader;
+  KafkaAvroDeserializer kafkaAvroDeserializer;
 
-  public KsqlGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema) {
+  public KsqlGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema,
+                                        SchemaRegistryClient schemaRegistryClient) {
     this.schema = schema;
+    this.kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
   }
 
   @Override
@@ -58,17 +63,15 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
+
+    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize(topic, bytes);
+
     if (bytes == null) {
       return null;
     }
 
     GenericRow genericRow = null;
-    GenericRecord genericRecord = null;
     try {
-      Decoder decoder = DecoderFactory.get().binaryDecoder((bytes[0] == 0)?
-                                                           removeSchemaRegistryMetaBytes(bytes):
-                                                           bytes, null);
-      genericRecord = reader.read(genericRecord, decoder);
       List<Schema.Field> fields = genericRecord.getSchema().getFields();
       List columns = new ArrayList();
       for (Schema.Field field : fields) {

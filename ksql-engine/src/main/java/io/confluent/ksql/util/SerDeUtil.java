@@ -72,11 +72,12 @@ public class SerDeUtil {
     String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, DdlConfig.AVRO_SCHEMA);
     serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema,
+                                                                                         SchemaRegistryClientFactory.getSchemaRegistryClient());
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer =
-        new KsqlGenericRowAvroDeserializer(schema);
+        new KsqlGenericRowAvroDeserializer(schema, SchemaRegistryClientFactory.getSchemaRegistryClient());
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

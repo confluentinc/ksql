@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.util.SchemaRegistryClientFactory;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -85,7 +86,7 @@ public class TopicStreamWriter implements StreamingOutput {
             KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG,
             avroTopicSerDe.getSchemaString()
         );
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null);
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, SchemaRegistryClientFactory.getSchemaRegistryClient());
         valueDeserializer.configure(avroSerdeProps, false);
         break;
       default:

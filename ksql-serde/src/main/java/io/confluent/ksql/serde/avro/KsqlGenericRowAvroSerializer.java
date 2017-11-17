@@ -16,19 +16,21 @@
 
 package io.confluent.ksql.serde.avro;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.GenericRow;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +49,16 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
   Encoder encoder;
   List<Schema.Field> fields;
 
-  public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema) {
+  KafkaAvroSerializer kafkaAvroSerializer;
+
+  public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema, SchemaRegistryClient schemaRegistryClient) {
     this.schema = schema;
+    Map map = new HashMap();
+    map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
+    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
+
+    kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
+
   }
 
   @Override
@@ -78,16 +88,8 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
     }
 
-    try {
-      output = new ByteArrayOutputStream();
-      encoder = EncoderFactory.get().binaryEncoder(output, null);
-      writer.write(avroRecord, encoder);
-      encoder.flush();
-      output.flush();
-    } catch (IOException e) {
-      throw new SerializationException("Error serializing AVRO message", e);
-    }
-    return output.toByteArray();
+    return kafkaAvroSerializer.serialize(topic, avroRecord);
+
   }
 
   @Override

@@ -55,6 +55,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaRegistryClientFactory;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -90,7 +91,6 @@ public class KsqlEngine implements Closeable {
   private final KafkaTopicClient topicClient;
   private final DDLCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
-
   private final Map<Long, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> liveQueries;
 
@@ -109,6 +109,9 @@ public class KsqlEngine implements Closeable {
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
+    SchemaRegistryClientFactory.setSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig
+                                                                                    .SCHEMA_REGISTRY_URL_PROPERTY));
+
   }
 
   /**

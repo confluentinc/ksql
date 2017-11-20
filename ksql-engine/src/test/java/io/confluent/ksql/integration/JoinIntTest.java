@@ -104,7 +104,8 @@ public class JoinIntTest {
 
   private void createStreams() throws Exception {
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='" + orderStreamTopic + "', value_format='JSON');");
-    ksqlContext.sql("CREATE TABLE items (ID varchar, DESCRIPTION varchar) WITH (kafka_topic='" + itemTableTopic + "', value_format='JSON');");
+    ksqlContext.sql("CREATE TABLE items (ID varchar, DESCRIPTION varchar) WITH (kafka_topic='" +
+                    itemTableTopic + "', value_format='JSON', key='ID');");
   }
 
 }

@@ -40,6 +40,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
 import static org.easymock.EasyMock.anyString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -78,12 +79,29 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForCreateTable() {
+    HashMap<String, Expression> tableProperties = new HashMap<>();
+    tableProperties.putAll(properties);
+    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("col1"));
     final DDLCommand result = commandFactories.create(
         new CreateTable(QualifiedName.of("foo"),
-            Collections.emptyList(), true, properties),
+            Collections.emptyList(), true, tableProperties),
         Collections.emptyMap());
 
     assertThat(result, instanceOf(CreateTableCommand.class));
+  }
+
+  @Test
+  public void shouldFailCreateTableIfKeyIsNotProvided() {
+    try {
+      final DDLCommand result = commandFactories.create(
+          new CreateTable(QualifiedName.of("foo"),
+                          Collections.emptyList(), true, properties),
+          Collections.emptyMap());
+
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
+    }
+
   }
 
   @Test

@@ -549,7 +549,7 @@ auto.offset.reset=earliest
 $ ksql-cli local --properties-file ./ksql.properties
 
 # Start a KSQL server node (for client-server mode) with the custom properties above
-$ ksql-server-start --properties-file ./ksql.properties
+$ ksql-server-start ./ksql.properties
 ```
 
 Note: Be careful when you are using KSQL in Docker because the properties file must be available inside the Docker

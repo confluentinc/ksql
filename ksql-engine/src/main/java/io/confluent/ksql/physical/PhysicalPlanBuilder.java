@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.MetricCollector;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -40,9 +41,8 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.streams.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -193,6 +193,7 @@ public class PhysicalPlanBuilder {
     }
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
+
     return new PersistentQueryMetadata(statement,
         streams, outputNode, schemaKStream
         .getExecutionPlan(""), queryId,
@@ -238,7 +239,16 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-    return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
+    Topology build = builder.build();
+    //    TopologyDescription describe = build.describe();
+    //
+    //    System.out.println(describe.toString());
+
+    newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), MetricCollector.class.getCanonicalName());
+    newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), MetricCollector.class.getCanonicalName());
+
+
+    return new KafkaStreams(build, new StreamsConfig(newStreamsProperties));
   }
 
 }

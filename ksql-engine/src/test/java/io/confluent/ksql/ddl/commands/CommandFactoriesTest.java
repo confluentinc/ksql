@@ -20,6 +20,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
@@ -36,6 +37,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
@@ -81,13 +83,54 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForCreateTable() {
     HashMap<String, Expression> tableProperties = new HashMap<>();
     tableProperties.putAll(properties);
-    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("col1"));
+    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
     final DDLCommand result = commandFactories.create(
         new CreateTable(QualifiedName.of("foo"),
-            Collections.emptyList(), true, tableProperties),
+                        Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
+                            ("COL2", "VARCHAR")), true,
+                        tableProperties),
         Collections.emptyMap());
 
     assertThat(result, instanceOf(CreateTableCommand.class));
+  }
+
+  @Test
+  public void shouldFailCreateTableIfKeyNameIsIncorrect() {
+    HashMap<String, Expression> tableProperties = new HashMap<>();
+    tableProperties.putAll(properties);
+    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
+    try {
+      final DDLCommand result = commandFactories.create(
+          new CreateTable(QualifiedName.of("foo"),
+                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
+                              ("COL2", "VARCHAR")), true,
+                          tableProperties),
+          Collections.emptyMap());
+
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
+                                         + "WITH clause, COL3, exists in the defined schema."));
+    }
+
+  }
+
+  @Test
+  public void shouldFailCreateTableIfTimestampColumnNameIsIncorrect() {
+    HashMap<String, Expression> tableProperties = new HashMap<>();
+    tableProperties.putAll(properties);
+    tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
+    try {
+      final DDLCommand result = commandFactories.create(
+          new CreateTable(QualifiedName.of("foo"),
+                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
+                              ("COL2", "VARCHAR")), true,
+                          tableProperties),
+          Collections.emptyMap());
+
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
+    }
+
   }
 
   @Test
@@ -95,7 +138,8 @@ public class CommandFactoriesTest {
     try {
       final DDLCommand result = commandFactories.create(
           new CreateTable(QualifiedName.of("foo"),
-                          Collections.emptyList(), true, properties),
+                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
+                              ("COL2", "VARCHAR")), true, properties),
           Collections.emptyMap());
 
     } catch (KsqlException e) {

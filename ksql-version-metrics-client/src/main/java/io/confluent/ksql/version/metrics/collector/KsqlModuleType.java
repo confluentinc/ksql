@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,30 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.version.metrics.collector;
 
-public final class NodeLocation {
-
-  private final int line;
-  private final int charPositionInLine;
-
-  public NodeLocation(int line, int charPositionInLine) {
-    this.line = line;
-    this.charPositionInLine = charPositionInLine;
-  }
-
-  public int getLineNumber() {
-    return line;
-  }
-
-  public int getColumnNumber() {
-    return charPositionInLine + 1;
-  }
-
-  @Override
-  public String toString() {
-    return String.format(" Line: %d, Col: %d", line, charPositionInLine + 1);
-  }
+public enum KsqlModuleType {
+  LOCAL_CLI, REMOTE_CLI, EMBEDDED, SERVER;
 }

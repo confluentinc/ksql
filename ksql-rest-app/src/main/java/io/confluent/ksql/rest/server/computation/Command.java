@@ -24,18 +24,23 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Objects;
 
+import io.confluent.ksql.query.QueryId;
+
 @JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> streamsProperties;
+  private final QueryId queryId;
 
   @JsonCreator
   public Command(
       @JsonProperty("statement") String statement,
-      @JsonProperty("streamsProperties") Map<String, Object> streamsProperties
+      @JsonProperty("streamsProperties") Map<String, Object> streamsProperties,
+      @JsonProperty("queryId") QueryId queryId
   ) {
     this.statement = statement;
     this.streamsProperties = streamsProperties;
+    this.queryId = queryId;
   }
 
   public String getStatement() {
@@ -46,21 +51,31 @@ public class Command {
     return new HashMap<>(streamsProperties);
   }
 
+  public QueryId getQueryId() {
+    return queryId;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Command)) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     Command command = (Command) o;
-    return Objects.equals(getStatement(), command.getStatement())
-        && Objects.equals(getStreamsProperties(), command.getStreamsProperties());
+    return Objects.equals(statement, command.statement) &&
+        Objects.equals(streamsProperties, command.streamsProperties) &&
+        Objects.equals(queryId, command.queryId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatement(), getStreamsProperties());
+    return Objects.hash(statement, streamsProperties, queryId);
+  }
+
+  @Override
+  public String toString() {
+    return "Command{" +
+        "statement='" + statement + '\'' +
+        ", streamsProperties=" + streamsProperties +
+        ", queryId=" + queryId +
+        '}';
   }
 }

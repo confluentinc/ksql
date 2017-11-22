@@ -16,9 +16,8 @@
 package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Except;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -30,12 +29,9 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestCondition;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -76,6 +72,7 @@ public class EndToEndIntegrationTest {
 
   private final String pageViewStream = "pageviews_original";
   private final String userTable = "users_original";
+  private long queryId = 0;
 
   @Before
   public void before() throws Exception {
@@ -100,9 +97,9 @@ public class EndToEndIntegrationTest {
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
     ksqlEngine.buildMultipleQueries(false, String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
-            "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic), Collections.emptyMap());
+            "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic), Collections.emptyMap(), new QueryId(queryId++));
     ksqlEngine.buildMultipleQueries(false, String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
-            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic), Collections.emptyMap());
+            "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic), Collections.emptyMap(), new QueryId(queryId++));
   }
 
   @After
@@ -123,7 +120,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT * from %s;", userTable);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap(), new QueryId(queryId++));
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -151,7 +148,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT pageid from %s;", pageViewStream);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap(), new QueryId(queryId++));
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -184,7 +181,7 @@ public class EndToEndIntegrationTest {
 
     String selectQuery = String.format("SELECT * from %s;", derivedStream);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectQuery, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectQuery, Collections.emptyMap(), new QueryId(queryId++));
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -244,7 +241,7 @@ public class EndToEndIntegrationTest {
     String outputStream = createStreamUsingLikeClause(inputStream);
     String selectPageViewsFromRegion = String.format("SELECT userid, pageid from %s;", outputStream);
     List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectPageViewsFromRegion,
-            Collections.emptyMap());
+            Collections.emptyMap(), new QueryId(queryId++));
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -282,7 +279,7 @@ public class EndToEndIntegrationTest {
     String createStatement = String.format("CREATE STREAM %s WITH (kafka_topic='pageviews_enriched_r0', " +
             "value_format='DELIMITED') AS SELECT * FROM %s WHERE regionid LIKE '%%_0';", outputStream, inputStream);
 
-    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(false, createStatement, Collections.emptyMap());
+    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(false, createStatement, Collections.emptyMap(), new QueryId(queryId++));
     assertEquals(1, queryMetadata.size());
     queryMetadata.get(0).getKafkaStreams().start();
     return outputStream;
@@ -297,7 +294,7 @@ public class EndToEndIntegrationTest {
     log.debug("Creating {} using: {}", streamName, createStreamStatement);
 
     List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, createStreamStatement,
-            Collections.emptyMap());
+            Collections.emptyMap(), new QueryId(queryId++));
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof PersistentQueryMetadata);

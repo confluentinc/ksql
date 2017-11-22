@@ -19,6 +19,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -36,7 +37,6 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -66,7 +66,9 @@ public class PhysicalPlanBuilderTest {
         false,
         Collections.emptyMap(),
         false,
-        metaStore, new AtomicLong(1) );
+        metaStore,
+        new QueryId(0));
+
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 

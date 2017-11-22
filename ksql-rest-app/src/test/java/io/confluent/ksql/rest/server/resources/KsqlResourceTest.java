@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -129,7 +130,7 @@ public class KsqlResourceTest {
 
       KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient());
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
+          commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()), new QueryIdProvider());
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
 
       addTestTopicAndSources(ksqlEngine.getMetaStore());
@@ -232,7 +233,7 @@ public class KsqlResourceTest {
         createTopicProperties
     );
 
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
+    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.QUEUED,
         "Statement written to command topic"

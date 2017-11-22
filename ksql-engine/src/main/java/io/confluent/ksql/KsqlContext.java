@@ -17,6 +17,7 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -45,6 +46,7 @@ public class KsqlContext {
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
   private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
+  private final QueryIdProvider queryIdProvider = new QueryIdProvider();
 
   public static KsqlContext create(Map<String, Object> streamsProperties)
       throws ExecutionException, InterruptedException {
@@ -91,7 +93,7 @@ public class KsqlContext {
    */
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
-        .emptyMap());
+        .emptyMap(), queryIdProvider.next());
 
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {

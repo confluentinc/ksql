@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -32,6 +33,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.query.QueryIdProvider;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
@@ -280,12 +282,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         getJsonSerializer(false)
     );
 
+    final QueryIdProvider queryIdProvider = new QueryIdProvider();
     CommandStore commandStore = new CommandStore(
         commandTopic,
         commandConsumer,
         commandProducer,
-        new CommandIdAssigner(ksqlEngine.getMetaStore())
-    );
+        new CommandIdAssigner(ksqlEngine.getMetaStore()),
+        queryIdProvider);
 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -305,8 +308,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         statementParser,
-        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
-    );
+        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG),
+        queryIdProvider);
     KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandStore,

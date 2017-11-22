@@ -53,19 +53,64 @@ public class CommandStoreTest {
 
   private final QueryIdProvider queryIdProvider = new QueryIdProvider();
 
-  @SuppressWarnings("unchecked")
   @Test
-  public void shouldRemovePriorCommandsThatHaveBeenTombstoned() {
-    final CommandId idTwo = new CommandId(CommandId.Type.TABLE, "two", CommandId.Action.CREATE);
-    final Command commandTwo = new Command("some other statement", Collections.emptyMap(), queryIdProvider.next());
+  public void shouldUseFirstCommandForSameIdIfNoDropBetweenThem() {
+    final CommandId commandId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+    final Command originalCommand = new Command("some statement", Collections.emptyMap(), queryIdProvider.next());
+    final Command latestCommand = new Command("a new statement", Collections.emptyMap(), queryIdProvider.next());
+    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
+        new ConsumerRecord<>("topic", 0, 0, commandId,
+            originalCommand),
+        new ConsumerRecord<>("topic", 0, 0, commandId,
+            latestCommand))
+    ));
+
+    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
+
+    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
+        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    EasyMock.replay(commandConsumer);
+
+    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
+    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
+    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(commandId, originalCommand))));
+  }
+
+  @Test
+  public void shouldReplaceCommandWithNewCommandAfterDrop() {
+    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
+    final Command originalCommand = new Command("some statement", Collections.emptyMap(), queryIdProvider.next());
+    final Command dropCommand = new Command("drop", Collections.emptyMap(), queryIdProvider.next());
+    final Command latestCommand = new Command("a new statement", Collections.emptyMap(), queryIdProvider.next());
 
     final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
-        new ConsumerRecord<>("topic", 0, 0, new CommandId(CommandId.Type.TOPIC, "one", CommandId.Action.CREATE),
-            new Command("some statement", Collections.emptyMap(), queryIdProvider.next())),
-        new ConsumerRecord<>("topic", 0, 0, idTwo,
-            commandTwo),
-        new ConsumerRecord<>("topic", 0, 0, new CommandId(CommandId.Type.TOPIC, "one", CommandId.Action.CREATE),
-            null)
+        new ConsumerRecord<>("topic", 0, 0, createId, originalCommand),
+        new ConsumerRecord<>("topic", 0, 0, dropId, dropCommand),
+        new ConsumerRecord<>("topic", 0, 0, createId, latestCommand))
+    ));
+
+    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
+
+    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
+        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    EasyMock.replay(commandConsumer);
+
+    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
+    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
+    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(createId, latestCommand))));
+  }
+
+  @Test
+  public void shouldRemoveCreateCommandIfItHasBeenDropped() {
+    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
+    final Command originalCommand = new Command("some statement", Collections.emptyMap(), queryIdProvider.next());
+    final Command dropCommand = new Command("drop", Collections.emptyMap(), queryIdProvider.next());
+
+    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
+        new ConsumerRecord<>("topic", 0, 0, createId, originalCommand),
+        new ConsumerRecord<>("topic", 0, 0, dropId, dropCommand)
     )));
 
     EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
@@ -76,52 +121,7 @@ public class CommandStoreTest {
 
     final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
     final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
-    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(idTwo, commandTwo))));
-  }
-
-  @Test
-  public void shouldOnlyHaveLatestCommandForCommandId() {
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, "one", CommandId.Action.CREATE);
-    final Command latestCommand = new Command("a new statement", Collections.emptyMap(), queryIdProvider.next());
-    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
-        new ConsumerRecord<>("topic", 0, 0, commandId,
-            new Command("some statement", Collections.emptyMap(), queryIdProvider.next())),
-        new ConsumerRecord<>("topic", 0, 0, commandId,
-            latestCommand))
-    ));
-
-    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
-
-    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
-        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    EasyMock.replay(commandConsumer);
-
-    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
-    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
-    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(commandId, latestCommand))));
-  }
-
-  @Test
-  public void shouldSendTombstoneForPriorDropCommands() {
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, "one", CommandId.Action.DROP);
-    final Command latestCommand = new Command("a new statement", Collections.emptyMap(), queryIdProvider.next());
-    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Collections.singletonList(
-        new ConsumerRecord<>("topic", 0, 0, commandId,
-            latestCommand))
-    ));
-
-    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
-
-    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
-        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
-
-    EasyMock.expect(commandProducer.send(new ProducerRecord<>(COMMAND_TOPIC, commandId, null))).andReturn(null);
-    EasyMock.replay(commandConsumer, commandProducer);
-
-    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()), queryIdProvider);
-    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
     assertThat(priorCommands, equalTo(Collections.emptyList()));
-    EasyMock.verify(commandProducer);
   }
 
 }

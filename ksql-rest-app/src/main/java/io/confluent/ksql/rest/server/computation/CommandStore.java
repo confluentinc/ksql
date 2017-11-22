@@ -102,7 +102,6 @@ public class CommandStore implements Closeable {
         final Command command = new Command(statementString,
             streamsProperties,
             queryIdProvider.next());
-        maybeSendTombstone(commandId);
         try {
             commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
         } catch (Exception e) {
@@ -111,15 +110,6 @@ public class CommandStore implements Closeable {
                                            + ".", statementString), e);
         }
         return commandId;
-    }
-
-    private void maybeSendTombstone(final CommandId commandId) {
-        if (commandId.getAction() == CommandId.Action.DROP) {
-            commandProducer.send(new ProducerRecord<>(commandTopic,
-                new CommandId(commandId.getType(),
-                    commandId.getEntity(),
-                    CommandId.Action.CREATE), null));
-        }
     }
 
     /**
@@ -154,13 +144,10 @@ public class CommandStore implements Closeable {
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
                 final CommandId key = record.key();
-                if(record.value() == null) {
-                    commands.remove(key);
-                } else if (key.getAction() != CommandId.Action.DROP) {
+                if (key.getAction() != CommandId.Action.DROP && !commands.containsKey(key)) {
                     commands.put(key, record);
-                } else {
-                    // send tombstone for drop command
-                    commandProducer.send(new ProducerRecord<>(commandTopic, key, null));
+                } else if (key.getAction() == CommandId.Action.DROP){
+                  commands.remove(new CommandId(key.getType(), key.getEntity(), CommandId.Action.CREATE));
                 }
             }
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);

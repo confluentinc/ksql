@@ -62,6 +62,7 @@ public class PhysicalPlanBuilder {
   private final boolean updateMetastore;
   private final QueryId queryId;
 
+
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
                              final KafkaTopicClient kafkaTopicClient,

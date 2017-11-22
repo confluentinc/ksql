@@ -68,6 +68,7 @@ public class PhysicalPlanBuilderTest {
         false,
         metaStore,
         new QueryId(0));
+
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 

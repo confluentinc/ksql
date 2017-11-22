@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.metrics;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.common.metrics.KafkaMetric;
 import io.confluent.common.metrics.MetricName;
 import io.confluent.common.metrics.Metrics;

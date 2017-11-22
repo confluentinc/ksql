@@ -60,18 +60,20 @@ public class Remote extends AbstractCliCommands {
   String propertiesFile;
 
   private static final String USERNAME_OPTION = "--user";
+  private static final String USERNAME_SHORT_OPTION = "-u";
   private static final String PASSWORD_OPTION = "--password";
+  private static final String PASSWORD_SHORT_OPTION = "-p";
   @Option(
-          name = USERNAME_OPTION,
+          name = {USERNAME_OPTION, USERNAME_SHORT_OPTION},
           description = "If your KSQL server is configured for authentication, then provide your user name here. " +
-                  "The password must be specified separately with the " + PASSWORD_OPTION + " flag"
+                  "The password must be specified separately with the " + PASSWORD_SHORT_OPTION + "/" + PASSWORD_OPTION + " flag"
   )
   String userName;
 
   @Option(
-          name = PASSWORD_OPTION,
+          name = {PASSWORD_OPTION, PASSWORD_SHORT_OPTION},
           description = "If your KSQL server is configured for authentication, then provide your password here. " +
-                  "The username must be specified separately with the " + USERNAME_OPTION + " flag"
+                  "The username must be specified separately with the " + USERNAME_SHORT_OPTION + "/" + USERNAME_OPTION + " flag"
   )
   String password;
 

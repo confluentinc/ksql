@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to streams/tables/queries for ksql entities (Stream, Table, Query)
  * TODO: hook into Stream, Table, Query statistics for describe
- * TODO: persistence, bouncing a node should not blat current stats
- * TODO: add lastMinute stats collector (max events, max bytes, timestamp)
- * TODO: add maxMinute stats retention
+ * TODO: persistence, bouncing a node should not blat current statsAsString
+ * TODO: add lastMinute statsAsString collector (max events, max bytes, timestamp)
+ * TODO: add maxMinute statsAsString retention
  */
 public class MetricCollectors {
 
@@ -45,7 +45,7 @@ public class MetricCollectors {
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
   }
 
-  public static Metrics addCollector(MetricCollector collector) {
+  static Metrics addCollector(MetricCollector collector) {
     String id = collector.getId();
     while (collectorMap.containsKey(id)) {
       id+=collectorMap.size()+".";
@@ -54,7 +54,7 @@ public class MetricCollectors {
     return metrics;
   }
 
-  public static void remove(String id) {
+  static void remove(String id) {
     collectorMap.remove(id);
   }
 

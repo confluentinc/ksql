@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.confluent.ksql.metrics.MetricCollectors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +55,11 @@ public class Queries extends KsqlEntity {
         @JsonProperty("kafkaTopic") String kafkaTopic,
         @JsonProperty("id") long id
     ) {
-      this.queryString = queryString;
+      String stats = MetricCollectors.getCollectorStatsByTopic(kafkaTopic);
+      this.queryString = queryString + " " + stats;
       this.kafkaTopic = kafkaTopic;
       this.id = id;
+
     }
 
     public String getQueryString() {

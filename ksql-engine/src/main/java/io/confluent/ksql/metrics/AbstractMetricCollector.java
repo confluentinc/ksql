@@ -23,34 +23,20 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.util.Map;
 
-public class AbstractMetricCollector implements ConsumerInterceptor, ProducerInterceptor {
-  @Override
-  public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+interface AbstractMetricCollector extends ConsumerInterceptor, ProducerInterceptor {
+  default ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
     return consumerRecords;
   }
 
-  @Override
-  public ProducerRecord onSend(ProducerRecord producerRecord) {
+  default ProducerRecord onSend(ProducerRecord producerRecord) {
     return producerRecord;
   }
 
-  @Override
-  public void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {
+  default void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {  }
 
-  }
+  default void close() {  }
 
-  @Override
-  public void close() {
+  default void onCommit(Map map) {  }
 
-  }
-
-  @Override
-  public void onCommit(Map map) {
-
-  }
-
-  @Override
-  public void configure(Map<String, ?> map) {
-
-  }
+  default void configure(Map<String, ?> map) {  }
 }

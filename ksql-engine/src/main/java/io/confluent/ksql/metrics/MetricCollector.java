@@ -24,7 +24,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import java.util.Date;
 import java.util.Map;
 
-public class MetricCollector extends AbstractMetricCollector {
+public class MetricCollector implements AbstractMetricCollector {
   private ConsumerCollector consumerCollector;
   private ProducerCollector producerCollector;
   private final Date created = new Date();
@@ -34,11 +34,6 @@ public class MetricCollector extends AbstractMetricCollector {
    * Created by via registration as an Interceptor (hence the ugly binding to the MetricCollector)
    */
   public MetricCollector(){
-    Metrics metrics = MetricCollectors.addCollector(this);
-
-    // Note: I will probably break these apart
-    consumerCollector = new ConsumerCollector(metrics);
-    producerCollector = new ProducerCollector(metrics);
   }
 
   @Override
@@ -64,8 +59,9 @@ public class MetricCollector extends AbstractMetricCollector {
     this.clientId = map.containsKey(ConsumerConfig.GROUP_ID_CONFIG) ?
             (String) map.get(ConsumerConfig.GROUP_ID_CONFIG) : (String) map.get(ProducerConfig.CLIENT_ID_CONFIG);
 
-    consumerCollector.configure(map);
-    producerCollector.configure(map);
+    Metrics metrics = MetricCollectors.addCollector(this);
+    consumerCollector = new ConsumerCollector(metrics, this.clientId);
+    producerCollector = new ProducerCollector(metrics, this.clientId);
   }
 
   @Override

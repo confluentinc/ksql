@@ -16,115 +16,95 @@
 
 package io.confluent.ksql.metrics;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.metrics.KafkaMetric;
 import io.confluent.common.metrics.MetricName;
 import io.confluent.common.metrics.Metrics;
 import io.confluent.common.metrics.Sensor;
 import io.confluent.common.metrics.stats.Rate;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class ConsumerCollector {
 
-  final Map<String, Counter> topicCounters = new HashMap<>();
-  private Metrics metrics;
-  private String id;
+  private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
+  private final Metrics metrics;
+  private final String id;
 
-  public ConsumerCollector(Metrics metrics) {
+  ConsumerCollector(Metrics metrics, String id) {
     this.metrics = metrics;
+    this.id = id;
   }
 
-
-  public ConsumerRecords onConsume(ConsumerRecords records) {
-    if (id == null) {
-      throw new RuntimeException(new IllegalStateException("Cannot run without 'id' being set, use ConsumerCollector.configure(map)"));
-    }
-
+  void onConsume(ConsumerRecords records) {
     collect(records);
-    return records;
   }
 
+  @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
     stream.forEach((record) -> {
-      topicCounters.computeIfAbsent(record.topic(), k -> new Counter(id, metrics)).increment(record);
+
+      topicPartitionCounters.computeIfAbsent(getKey(record.topic(), record.partition()), k ->
+              new Counter<>(k, record.topic(), record.partition(), buildSensors(metrics, record))
+      ).increment(record);
+
     });
   }
-  public void configure(Map<String, ?> map) {
-    this.id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
+
+  private String getKey(String topic, Integer partition) {
+    return id + topic + partition;
+  }
+
+  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(Metrics metrics, ConsumerRecord record) {
+
+    HashMap<String, Counter.SensorMetric<ConsumerRecord>> results = new HashMap<>();
+
+    addConsumerRateSensor(metrics, record, results);
+    addConsumerBandwidthSensor(metrics, record, results);
+
+    return results;
+  }
+
+  private void addConsumerRateSensor(Metrics metrics, ConsumerRecord record, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
+    String name = "consumer-" + id + "-" +record.topic() + "-rate-per-sec";
+    Sensor sensor = metrics.sensor(name);
+    MetricName consumerRate = new MetricName(name + "-rate-per-sec", name, "consumer-statsAsString");
+    sensor.add(consumerRate, new Rate(TimeUnit.SECONDS));
+    KafkaMetric rate = metrics.metrics().get(consumerRate);
+
+    results.put(consumerRate.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, rate){
+      void record(ConsumerRecord record) {
+        sensor.record(1);
+      }
+    });
+  }
+  private void addConsumerBandwidthSensor(Metrics metrics, ConsumerRecord record, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
+    String name = "consumer-" + id + "-" +record.topic() + "-bytes-per-sec";
+    Sensor sensor = metrics.sensor(name);
+    MetricName consumerRate = new MetricName(name + "-bytes-per-sec", name, "consumer-statsAsString");
+    sensor.add(consumerRate, new Rate(TimeUnit.SECONDS));
+    KafkaMetric rate = metrics.metrics().get(consumerRate);
+
+    results.put(consumerRate.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, rate){
+      void record(ConsumerRecord record) {
+        sensor.record(record.serializedValueSize());
+      }
+    });
   }
 
   public void close() {
   }
 
-  public String statsForTopic(String topic) {
-    return topicCounters.containsKey(topic) ? "Consumer:" + topicCounters.get(topic).toString() : "";
-  }
-
-  public static class Counter {
-    private final String id;
-    private final Metrics metrics;
-    private Sensor sensor;
-    private KafkaMetric rate;
-
-    public Counter(String id, Metrics metrics) {
-      this.id = id;
-      this.metrics = metrics;
-    }
-
-    Map<Integer, PartitionCounter> partitionCounter = new HashMap<>();
-    long records;
-    long valueBytes;
-
-    public void increment(ConsumerRecord record) {
-      records +=1;
-      valueBytes += record.serializedValueSize();
-
-      if (sensor == null) {
-        String name = "consumer-" + id + "-" +record.topic() + "-" + record.partition();
-        sensor = metrics.sensor(name);
-        System.out.println("Registering:" + name);
-        new RuntimeException("Register:" + name).printStackTrace();
-        MetricName producerRate = new MetricName(name + "-rate-per-sec", name, "consumer-stats");
-        sensor.add(producerRate, new Rate(TimeUnit.SECONDS));
-        rate = metrics.metrics().get(producerRate);
-      }
-      sensor.record(1);
-
-      partitionCounter.computeIfAbsent(record.partition(), k -> new PartitionCounter()).increment(record);
-    }
-
-    @Override
-    public String toString() {
-      return "Sensor: " + sensor.name() + " Metric: " + rate.metricName() + " Rate:" + rate.value() + " " + partitionCounter;
-    }
-
-
-    public static class PartitionCounter {
-      long records;
-      long valueBytes;
-      void increment(ConsumerRecord record) {
-        records++;
-        valueBytes += record.serializedValueSize();
-      }
-
-      @Override
-      public String toString() {
-        return "Records:" + records + " bytes: " + valueBytes;
-      }
-    }
-  }
-
-  @Override
-  public String toString() {
-    return getClass().getSimpleName() + " Metrics:" + topicCounters.toString();
+  public String statsForTopic(final String topic) {
+    return topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).map(record -> record.statsAsString()).collect(Collectors.joining(", "));
   }
 
 }

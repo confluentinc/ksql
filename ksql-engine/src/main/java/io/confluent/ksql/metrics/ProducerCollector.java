@@ -15,8 +15,8 @@
  **/
 package io.confluent.ksql.metrics;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.metrics.stats.Rate;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import io.confluent.common.metrics.*;
 
@@ -24,85 +24,60 @@ import io.confluent.common.metrics.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ProducerCollector {
 
-  final Map<String, Counter> topicCounters = new HashMap<>();
+  private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
   private final Metrics metrics;
-  private String id;
+  private final String id;
 
-  public ProducerCollector(Metrics metrics) {
+  ProducerCollector(Metrics metrics, String id) {
     this.metrics = metrics;
+    this.id = id;
   }
 
-  public ProducerRecord onSend(ProducerRecord record) {
-    if (id == null) {
-      throw new RuntimeException(new IllegalStateException("Cannot run without 'id' being set, use  ProducerCollector.configure(map)"));
-    }
+  ProducerRecord onSend(ProducerRecord record) {
     collect(record);
     return record;
   }
   private void collect(ProducerRecord record) {
-    topicCounters.computeIfAbsent(record.topic(), k -> new Counter()).increment(id, metrics, record);
+    topicPartitionCounters.computeIfAbsent(getKey(record.topic(), record.partition()), k ->
+      new Counter<>(k, record.topic(), record.partition(), buildSensors(metrics, record))
+    ).increment(record);
+  }
+
+  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(Metrics metrics, ProducerRecord record) {
+    String name = "producer-" + id + "-" +record.topic();
+    Sensor sensor = metrics.sensor(name);
+    MetricName producerRate = new MetricName(name + "-rate-per-sec", name, "producer-statsAsString");
+    sensor.add(producerRate, new Rate(TimeUnit.SECONDS));
+    KafkaMetric rate = metrics.metrics().get(producerRate);
+    return ImmutableMap.of(producerRate.name(), new Counter.SensorMetric<ProducerRecord>(sensor, rate){
+      void record(ProducerRecord record) {
+        sensor.record(1);
+      }
+    });
+  }
+
+  private String getKey(String topic, Integer partition) {
+    return id + topic + partition;
   }
 
   public void close() {
-    topicCounters.values().stream().forEach(v -> {
+    topicPartitionCounters.values().stream().forEach(v -> {
       v.close(metrics);
     });
   }
 
-  public String statsForTopic(String topic) {
-    return topicCounters.containsKey(topic) ? "Producer:" + topicCounters.get(topic).toString() : "";
+  public String statsForTopic(final String topic) {
+    return topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).map(record -> record.statsAsString()).collect(Collectors.joining(", "));
   }
 
-  public void configure(Map<String, ?> config) {
-    this.id = (String) config.get(ProducerConfig.CLIENT_ID_CONFIG);
-  }
 
-  public static class Counter {
-    Map<Integer, PartitionCounter> partitionCounters = new HashMap<>();
-    private Sensor sensor;
-    private KafkaMetric rate;
-
-
-    public void increment(String id, Metrics metrics, ProducerRecord record) {
-      if (sensor == null) {
-        String name = "producer-" + id + "-" +record.topic();
-        sensor = metrics.sensor(name);
-        MetricName producerRate = new MetricName(name + "-rate-per-sec", name, "producer-stats");
-        sensor.add(producerRate, new Rate(TimeUnit.SECONDS));
-        rate = metrics.metrics().get(producerRate);
-      }
-      sensor.record(1);
-      partitionCounters.computeIfAbsent(record.partition(), k -> new PartitionCounter()).increment(record);
-    }
-
-    @Override
-    public String toString() {
-      return "Sensor: " + sensor.name() + " Metric: " + rate.metricName() + " Rate:" + rate.value() + " " + partitionCounters;
-    }
-
-    public void close(Metrics metrics) {
-    // TODO: not yet supported in commons-metrics
-    // metrics.removeSensor(sensor.name());
-    }
-
-    public static class PartitionCounter {
-      long records;
-      void increment(ProducerRecord record) {
-        records++;
-      }
-
-      @Override
-      public String toString() {
-        return   "Records:" + records;
-      }
-    }
-  }
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + " " + this.topicCounters.toString();
+    return getClass().getSimpleName() + " " + this.topicPartitionCounters.toString();
   }
 }

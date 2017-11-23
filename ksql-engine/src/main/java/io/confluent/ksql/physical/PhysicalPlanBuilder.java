@@ -47,6 +47,7 @@ import org.apache.kafka.streams.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PhysicalPlanBuilder {
 
@@ -59,7 +60,7 @@ public class PhysicalPlanBuilder {
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
-  private final long queryId;
+  private final AtomicLong queryIdCounter;
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -70,7 +71,7 @@ public class PhysicalPlanBuilder {
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
                              final MetaStore metaStore,
-                             final long queryId) {
+                             final AtomicLong queryIdCounter) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -80,7 +81,7 @@ public class PhysicalPlanBuilder {
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
-    this.queryId = queryId;
+    this.queryIdCounter = queryIdCounter;
   }
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
@@ -159,6 +160,7 @@ public class PhysicalPlanBuilder {
                                                          final String persistanceQueryPrefix,
                                                          final String statement) {
 
+    long queryId = queryIdCounter.getAndIncrement();
     String applicationId = serviceId + persistanceQueryPrefix + queryId;
     if (addUniqueTimeSuffix) {
       applicationId = addTimeSuffix(applicationId);

@@ -290,6 +290,24 @@ In the above statements from_item is one of the following:
 - `table_name [ [ AS ] alias]`
 - `from_item LEFT JOIN from_item ON join_condition`
 
+WHERE clause can refer to any column defined for a stream or table, including the two implicit columns `ROWTIME`
+and `ROWKEY`.
+
+Example:
+
+```sql
+SELECT * FROM pageviews
+  WHERE ROWTIME >= 1510923225000
+    AND ROWTIME <= 1510923228000;
+```
+
+> Tip: If you want to select older data, you can configure KSQL to query the stream from the beginning.  You must
+> do this configuration before running the query:
+>
+> ```sql
+> SET 'auto.offset.reset' = 'earliest';
+> ```
+
 The WINDOW clause lets you control how to *group input records that have the same key* into so-called *windows* for
 operations such as aggregations or joins.  Windows are tracked per record key.  KSQL supports the following WINDOW
 types:
@@ -531,7 +549,7 @@ auto.offset.reset=earliest
 $ ksql-cli local --properties-file ./ksql.properties
 
 # Start a KSQL server node (for client-server mode) with the custom properties above
-$ ksql-server-start --properties-file ./ksql.properties
+$ ksql-server-start ./ksql.properties
 ```
 
 Note: Be careful when you are using KSQL in Docker because the properties file must be available inside the Docker

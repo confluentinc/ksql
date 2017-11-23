@@ -63,6 +63,7 @@ public class JsonFormatTest {
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
   private AdminClient adminClient;
+  private long queryId = 0;
 
 
   @Before

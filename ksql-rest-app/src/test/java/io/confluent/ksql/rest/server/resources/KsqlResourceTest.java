@@ -232,7 +232,7 @@ public class KsqlResourceTest {
         createTopicProperties
     );
 
-    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic);
+    final CommandId commandId = new CommandId(CommandId.Type.TOPIC, ksqlTopic, CommandId.Action.CREATE);
     final CommandStatus commandStatus = new CommandStatus(
         CommandStatus.Status.QUEUED,
         "Statement written to command topic"

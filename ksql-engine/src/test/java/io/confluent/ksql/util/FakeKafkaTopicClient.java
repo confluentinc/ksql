@@ -34,6 +34,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+
+  }
+
+  @Override
   public boolean isTopicExists(String topic) {
     return false;
   }

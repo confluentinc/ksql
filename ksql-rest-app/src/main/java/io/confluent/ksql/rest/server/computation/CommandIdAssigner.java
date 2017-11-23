@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
 
 public class CommandIdAssigner {
 
@@ -48,8 +47,6 @@ public class CommandIdAssigner {
       return getSelectStreamCommandId((CreateStreamAsSelect) command);
     } else if (command instanceof CreateTableAsSelect) {
       return getSelectTableCommandId((CreateTableAsSelect) command);
-    } else if (command instanceof TerminateQuery) {
-      return getTerminateCommandId((TerminateQuery) command);
     } else if (command instanceof DropTopic) {
       return getDropTopicCommandId((DropTopic) command);
     } else if (command instanceof DropStream) {
@@ -57,7 +54,7 @@ public class CommandIdAssigner {
     } else if (command instanceof DropTable) {
       return getDropTableCommandId((DropTable) command);
     } else if (command instanceof RunScript) {
-      return new CommandId(CommandId.Type.STREAM, "RunScript");
+      return new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.CREATE);
     } else {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",
@@ -71,42 +68,38 @@ public class CommandIdAssigner {
     if (metaStore.getAllTopicNames().contains(topicName)) {
       throw new RuntimeException(String.format("Topic %s already exists", topicName));
     }
-    return new CommandId(CommandId.Type.TOPIC, topicName);
+    return new CommandId(CommandId.Type.TOPIC, topicName, CommandId.Action.CREATE);
   }
 
-  public CommandId getTopicStreamCommandId(CreateStream createStream) {
+  private CommandId getTopicStreamCommandId(CreateStream createStream) {
     return getStreamCommandId(createStream.getName().toString());
   }
 
-  public CommandId getSelectStreamCommandId(CreateStreamAsSelect createStreamAsSelect) {
+  private CommandId getSelectStreamCommandId(CreateStreamAsSelect createStreamAsSelect) {
     return getStreamCommandId(createStreamAsSelect.getName().toString());
   }
 
-  public CommandId getTopicTableCommandId(CreateTable createTable) {
+  private CommandId getTopicTableCommandId(CreateTable createTable) {
     return getTableCommandId(createTable.getName().toString());
   }
 
-  public CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
+  private CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
     return getTableCommandId(createTableAsSelect.getName().toString());
   }
 
-  public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
-    return new CommandId(CommandId.Type.TERMINATE, Long.toString(terminateQuery.getQueryId()));
-  }
-
-  public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
+  private CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
     return new CommandId(CommandId.Type.TOPIC,
-                         dropTopicQuery.getTopicName().getSuffix() + "_DROP");
+                         dropTopicQuery.getTopicName().getSuffix(), CommandId.Action.DROP);
   }
 
-  public CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
+  private CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
     return new CommandId(CommandId.Type.STREAM,
-                         dropStreamQuery.getName().getSuffix() + "_DROP");
+                         dropStreamQuery.getName().getSuffix(), CommandId.Action.DROP);
   }
 
-  public CommandId getDropTableCommandId(DropTable dropTableQuery) {
+  private CommandId getDropTableCommandId(DropTable dropTableQuery) {
     return new CommandId(CommandId.Type.TABLE,
-                         dropTableQuery.getName().getSuffix() + "_DROP");
+                         dropTableQuery.getName().getSuffix(), CommandId.Action.DROP);
   }
 
   private CommandId getStreamCommandId(String streamName) {
@@ -121,6 +114,6 @@ public class CommandIdAssigner {
     if (metaStore.getAllStructuredDataSourceNames().contains(sourceName)) {
       throw new RuntimeException(String.format("Source %s already exists", sourceName));
     }
-    return new CommandId(type, sourceName);
+    return new CommandId(type, sourceName, CommandId.Action.CREATE);
   }
 }

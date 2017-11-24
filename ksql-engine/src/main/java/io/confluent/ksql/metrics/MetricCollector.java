@@ -1,12 +1,12 @@
 /**
  * Copyright 2017 Confluent Inc.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.Map;
 
 public class MetricCollector implements AbstractMetricCollector {
+
   private ConsumerCollector consumerCollector;
   private ProducerCollector producerCollector;
   private final Date created = new Date();
@@ -33,7 +34,7 @@ public class MetricCollector implements AbstractMetricCollector {
   /**
    * Created by via registration as an Interceptor (hence the ugly binding to the MetricCollector)
    */
-  public MetricCollector(){
+  public MetricCollector() {
   }
 
   @Override
@@ -74,7 +75,8 @@ public class MetricCollector implements AbstractMetricCollector {
   }
 
   public String statsForTopic(String topic) {
-    String results = consumerCollector.statsForTopic(topic);
-    return results + producerCollector.statsForTopic(topic);
+    String results = consumerCollector.statsForTopic(topic, false);
+    return results + producerCollector.statsForTopic(topic, false);
   }
+
 }

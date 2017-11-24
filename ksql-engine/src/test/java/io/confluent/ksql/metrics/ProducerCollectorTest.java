@@ -17,12 +17,12 @@ public class ProducerCollectorTest {
       collector.onSend(new ProducerRecord("test-topic", 1, "key", "value"));
     }
 
-    String statsForTopic = collector.statsForTopic("test-topic");
+    String statsForTopic = collector.statsForTopic("test-topic", true);
     System.out.println(statsForTopic);
     assertNotNull(statsForTopic);
 
     // TODO: ugly - until we determine how to hook it into describe extend (use a describe-metric-reporter)
-    assertTrue(statsForTopic.contains("partition:1 producer-clientid-test-topic-rate-per-sec:"));
+    assertTrue(statsForTopic.contains("prod-test-topic--rate-per-sec.rate-per-sec:"));
 //    assertTrue(statsForTopic.contains("{1=Records:1000}"));
 
   }

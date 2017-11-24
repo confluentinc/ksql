@@ -95,7 +95,7 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<Queries.RunningQuery> queries = new ArrayList<>();
-    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", 1));
+    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", "stats",  1));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(

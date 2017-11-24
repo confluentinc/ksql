@@ -420,12 +420,13 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String", "Statistics");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
               Long.toString(runningQuery.getId()),
               runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString()
+              runningQuery.getQueryString(),
+              runningQuery.getStatistics()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
       List<SourceDescription.FieldSchemaInfo> fields = ((SourceDescription) ksqlEntity).getSchema();

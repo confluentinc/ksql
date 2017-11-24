@@ -1,10 +1,7 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.metrics.JmxReporter;
-import io.confluent.common.metrics.MetricConfig;
-import io.confluent.common.metrics.Metrics;
-import io.confluent.common.metrics.MetricsReporter;
+import io.confluent.common.metrics.*;
 import io.confluent.common.utils.SystemTime;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -40,14 +37,14 @@ public class ConsumerCollectorTest {
       collector.onConsume(consumerRecords);
     }
 
-    String statsForTopic = collector.statsForTopic(TEST_TOPIC);
+    String statsForTopic = collector.statsForTopic(TEST_TOPIC, true);
     assertNotNull(statsForTopic);
 
     System.out.println(statsForTopic);
 
     // TODO: ugly - until we determine how to hook it into describe extend (use a describe-metric-reporter)
-    assertTrue("Missing data from topic:" + statsForTopic, statsForTopic.contains("consumer-group-TestTopic-bytes-per-sec-bytes-per-sec:"));
-    assertTrue("Missing data from topic:" + statsForTopic, statsForTopic.contains("consumer-group-TestTopic-rate-per-sec-rate-per-sec:"));
+    assertTrue("Missing data from topic:" + statsForTopic, statsForTopic.contains("group_TestTopic_-bytes-per-sec.bytes-per-sec:"));
+    assertTrue("Missing data from topic:" + statsForTopic, statsForTopic.contains("group_TestTopic_-rate-per-sec.rate-per-sec:"));
 
   }
 

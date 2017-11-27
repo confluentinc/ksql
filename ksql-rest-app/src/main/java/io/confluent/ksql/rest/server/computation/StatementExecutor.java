@@ -30,8 +30,11 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -212,6 +215,9 @@ public class StatementExecutor {
           terminatedQueries,
           statementStr);
       if (successMessage == null) return;
+    } else if (statement instanceof TerminateQuery) {
+      terminateQuery((TerminateQuery) statement);
+      successMessage = "Query terminated.";
     } else if (statement instanceof RunScript) {
       handleRunScript(command);
     }else {
@@ -322,5 +328,37 @@ public class StatementExecutor {
           PersistentQueryMetadata.class.getCanonicalName()
       ));
     }
+  }
+
+  private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
+    final QueryId queryId = terminateQuery.getQueryId();
+    final QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
+    if (!ksqlEngine.terminateQuery(queryId, true)) {
+      throw new Exception(String.format("No running query with id %s was found", queryId));
+    }
+
+    CommandId.Type commandType;
+    DataSource.DataSourceType sourceType =
+        queryMetadata.getOutputNode().getTheSourceNode().getDataSourceType();
+    switch (sourceType) {
+      case KTABLE:
+        commandType = CommandId.Type.TABLE;
+        break;
+      case KSTREAM:
+        commandType = CommandId.Type.STREAM;
+        break;
+      default:
+        throw new
+            Exception(String.format("Unexpected source type for running query: %s", sourceType));
+    }
+
+    String queryEntity =
+        ((KsqlStructuredDataOutputNode) queryMetadata.getOutputNode()).getKsqlTopic().getName();
+
+    CommandId queryStatementId = new CommandId(commandType, queryEntity, CommandId.Action.CREATE);
+    statusStore.put(
+        queryStatementId,
+        new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
+    );
   }
 }

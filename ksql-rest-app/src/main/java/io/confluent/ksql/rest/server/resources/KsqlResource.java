@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -207,6 +208,7 @@ public class KsqlResource {
             || statement instanceof CreateTable
             || statement instanceof CreateStreamAsSelect
             || statement instanceof CreateTableAsSelect
+            || statement instanceof TerminateQuery
             || statement instanceof DropTopic
             || statement instanceof DropStream
             || statement instanceof DropTable
@@ -423,6 +425,7 @@ public class KsqlResource {
       return statement.toString();
     });
 
+    ddlCommandTasks.put(TerminateQuery.class, (statement, statementText, properties) -> statement.toString());
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {

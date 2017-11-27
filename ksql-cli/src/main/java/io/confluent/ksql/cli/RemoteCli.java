@@ -19,9 +19,11 @@ package io.confluent.ksql.cli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.cli.console.CliSpecificCommand;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.rest.client.RestResponse;
 
 import javax.ws.rs.ProcessingException;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class RemoteCli extends Cli {
 
@@ -38,7 +40,7 @@ public class RemoteCli extends Cli {
         terminal
     );
 
-    validateClient();
+    validateClient(terminal.writer());
 
     terminal.registerCliSpecificCommand(new CliSpecificCommand() {
       @Override
@@ -62,19 +64,27 @@ public class RemoteCli extends Cli {
         } else {
           String serverAddress = commandStrippedLine.trim();
           restClient.setServerAddress(serverAddress);
-          validateClient();
+          validateClient(terminal.writer());
         }
       }
     });
   }
 
-  private void validateClient() {
+  // Visible for testing
+  public boolean hasUserCredentials() {
+    return restClient.hasUserCredentials();
+  }
+
+  private void validateClient(PrintWriter writer) {
     try {
-      restClient.makeRootRequest();
+      RestResponse restResponse = restClient.makeRootRequest();
+      if (restResponse.isErroneous()) {
+        writer.format("Couldn't connect to the KSQL server: %s\n\n", restResponse.getErrorMessage().getMessage());
+      }
     } catch (IllegalArgumentException exception) {
-      terminal.writer().println("Server URL must begin with protocol (e.g., http:// or https://)");
+      writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
     } catch (ProcessingException exception) {
-      terminal.writer().println("Warning: remote server address may not be valid");
+      writer.println("Warning: remote server address may not be valid");
     }
   }
 }

@@ -304,6 +304,11 @@ Common configuration properties that you might want to change from their default
 - [cache.max.bytes.buffering](https://kafka.apache.org/documentation/#streamsconfigs):
   The default value in KSQL is `10000000` (~ 10 MB);
 
+- fail.on.deserialization.error:
+  When set to false (the default), any errors that occur when deserializing a record will result in the the error being logged and the record being dropped.
+  If you wish to halt processing on deserialization errors you should set this to true.
+  
+  
 
 ## Running KSQL
 

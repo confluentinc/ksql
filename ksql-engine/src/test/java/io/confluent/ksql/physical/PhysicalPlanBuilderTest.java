@@ -36,6 +36,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -65,8 +66,7 @@ public class PhysicalPlanBuilderTest {
         false,
         Collections.emptyMap(),
         false,
-        metaStore,
-        1);
+        metaStore, new AtomicLong(1) );
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 

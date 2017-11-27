@@ -120,6 +120,8 @@ public class ProducerCollector {
     //topicPartitionCounters.values().stream().forEach();
   }
 
+  // TODO: use this:
+  // https://stackoverflow.com/questions/25439277/lambdas-multiple-foreach-with-casting
   public String statsForTopic(final String topic, final boolean verbose) {
     List<Counter> last = new ArrayList<>();
 

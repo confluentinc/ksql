@@ -17,13 +17,14 @@ package io.confluent.ksql.metrics;
 
 import io.confluent.common.metrics.KafkaMetric;
 import io.confluent.common.metrics.Metrics;
+import io.confluent.common.metrics.MetricsReporter;
 import io.confluent.common.metrics.Sensor;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.kafka.common.MetricName;
 
+import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Counter<R> {
@@ -82,6 +83,10 @@ public class Counter<R> {
       return metric;
     }
 
+    public double value() {
+      return metric.value();
+    }
+
     public Sensor sensor() {
       return sensor;
     }
@@ -94,7 +99,7 @@ public class Counter<R> {
     public void close(Metrics metrics) {
       // TODO: not yet supported in commons-metrics
       // metrics.removeSensor(sensor.name());
-    }
+      }
 
     public String toString(boolean verbose) {
       if (verbose) {

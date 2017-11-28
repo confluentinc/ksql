@@ -241,16 +241,9 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-    Topology build = builder.build();
-    //    TopologyDescription describe = build.describe();
-    //
-    //    System.out.println(describe.toString());
-
     newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), MetricCollector.class.getCanonicalName());
     newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), MetricCollector.class.getCanonicalName());
-
-
-    return new KafkaStreams(build, new StreamsConfig(newStreamsProperties));
+    return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 
 }

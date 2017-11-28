@@ -277,65 +277,20 @@ public class Cli implements Closeable, AutoCloseable {
       String statementText = KsqlEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
-        if (consecutiveStatements.length() != 0) {
-          printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString())
-          );
-          consecutiveStatements = new StringBuilder();
-        }
-        if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
-          handleStreamedQuery(statementText);
-        } else {
-          handlePrintedTopic(statementText);
-        }
-      } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
+        consecutiveStatements = printOrDisplayQueryResults(consecutiveStatements, statementContext, statementText);
 
-        KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-        PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
-        propertiesList.getProperties().putAll(restClient.getLocalProperties());
-        terminal.printKsqlEntityList(
-            Arrays.asList(propertiesList)
-        );
+      } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
+        listProperties(statementText);
+
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
-        SqlBaseParser.SetPropertyContext setPropertyContext =
-            (SqlBaseParser.SetPropertyContext) statementContext.statement();
-        String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
-        String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
-        setProperty(property, value);
+        setProperty(statementContext);
+
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
-        if (consecutiveStatements.length() != 0) {
-          printKsqlResponse(
-              restClient.makeKsqlRequest(consecutiveStatements.toString())
-          );
-          consecutiveStatements = new StringBuilder();
-        }
-        SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
-            (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
-        String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
-        unsetProperty(property);
+        consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
       } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
-        SqlBaseParser.RunScriptContext runScriptContext =
-            (SqlBaseParser.RunScriptContext) statementContext.statement();
-        String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
-        String fileContent;
-        try {
-          fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-          throw new KsqlException(" Could not read statements from file: " + schemaFilePath + ". "
-                                  + "Details: " + e.getMessage(), e);
-        }
-        setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
-        printKsqlResponse(
-            restClient.makeKsqlRequest(statementText)
-        );
+        runScript(statementContext, statementText);
       } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
-        CliUtils cliUtils = new CliUtils();
-        Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
-            (SqlBaseParser.RegisterTopicContext) statementContext.statement());
-        if (avroSchema.isPresent()) {
-          setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
-        }
-        consecutiveStatements.append(statementText);
+        registerTopic(consecutiveStatements, statementContext, statementText);
       } else {
         consecutiveStatements.append(statementText);
       }
@@ -345,6 +300,79 @@ public class Cli implements Closeable, AutoCloseable {
           restClient.makeKsqlRequest(consecutiveStatements.toString())
       );
     }
+  }
+
+  private void registerTopic(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext, String statementText) {
+    CliUtils cliUtils = new CliUtils();
+    Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
+        (SqlBaseParser.RegisterTopicContext) statementContext.statement());
+    if (avroSchema.isPresent()) {
+      setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
+    }
+    consecutiveStatements.append(statementText);
+  }
+
+  private void runScript(SqlBaseParser.SingleStatementContext statementContext, String statementText) throws IOException {
+    SqlBaseParser.RunScriptContext runScriptContext =
+        (SqlBaseParser.RunScriptContext) statementContext.statement();
+    String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
+    String fileContent;
+    try {
+      fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new KsqlException(" Could not read statements from file: " + schemaFilePath + ". "
+                              + "Details: " + e.getMessage(), e);
+    }
+    setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
+    printKsqlResponse(
+        restClient.makeKsqlRequest(statementText)
+    );
+  }
+
+  private StringBuilder unsetProperty(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext) throws IOException {
+    if (consecutiveStatements.length() != 0) {
+      printKsqlResponse(
+          restClient.makeKsqlRequest(consecutiveStatements.toString())
+      );
+      consecutiveStatements = new StringBuilder();
+    }
+    SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
+        (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
+    String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
+    unsetProperty(property);
+    return consecutiveStatements;
+  }
+
+  private StringBuilder printOrDisplayQueryResults(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext, String statementText) throws IOException, InterruptedException, ExecutionException {
+    if (consecutiveStatements.length() != 0) {
+      printKsqlResponse(
+          restClient.makeKsqlRequest(consecutiveStatements.toString())
+      );
+      consecutiveStatements = new StringBuilder();
+    }
+    if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+      handleStreamedQuery(statementText);
+    } else {
+      handlePrintedTopic(statementText);
+    }
+    return consecutiveStatements;
+  }
+
+  private void setProperty(SqlBaseParser.SingleStatementContext statementContext) {
+    SqlBaseParser.SetPropertyContext setPropertyContext =
+        (SqlBaseParser.SetPropertyContext) statementContext.statement();
+    String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
+    String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
+    setProperty(property, value);
+  }
+
+  private void listProperties(String statementText) throws IOException {
+    KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
+    PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
+    propertiesList.getProperties().putAll(restClient.getLocalProperties());
+    terminal.printKsqlEntityList(
+        Arrays.asList(propertiesList)
+    );
   }
 
   private void printKsqlResponse(RestResponse<KsqlEntityList> response) throws IOException {

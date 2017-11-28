@@ -15,38 +15,33 @@
  **/
 package io.confluent.ksql.metrics;
 
-import io.confluent.common.metrics.KafkaMetric;
-import io.confluent.common.metrics.Metrics;
-import io.confluent.common.metrics.MetricsReporter;
-import io.confluent.common.metrics.Sensor;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 
-import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Counter<R> {
+class Counter<R> {
 
-  private final String id;
-  private String topic;
-  private final Integer partition;
+  private final String topic;
   Map<String, SensorMetric<R>> sensors = new HashMap<>();
 
-  Counter(final String id, String topic, Integer partition, final Map<String, SensorMetric<R>> sensors) {
-    this.id = id;
-    this.topic = topic;
-    this.partition = partition;
+  Counter(String topic, final Map<String, SensorMetric<R>> sensors) {
+    this.topic = topic.toLowerCase();
     this.sensors = sensors;
   }
 
   void increment(R record) {
-    sensors.values().stream().forEach(v -> v.record(record));
+    sensors.values().forEach(v -> v.record(record));
   }
 
   public void close(Metrics metrics) {
-    sensors.values().stream().forEach(v -> v.close(metrics));
+    sensors.values().forEach(v -> v.close(metrics));
   }
 
   public boolean isTopic(String topic) {
@@ -75,8 +70,10 @@ public class Counter<R> {
      * Anon class must call down to this for timestamp recording
      * @param object
      */
+    volatile  int counted;
     void record(P object) {
       this.lastEvent = System.currentTimeMillis();
+      this.counted++;
     }
 
     public KafkaMetric metric() {
@@ -84,7 +81,7 @@ public class Counter<R> {
     }
 
     public double value() {
-      return metric.value();
+      return metric.measurable().measure(metric.config(), System.currentTimeMillis());
     }
 
     public Sensor sensor() {
@@ -93,19 +90,19 @@ public class Counter<R> {
 
     public String lastEventTime() {
       if (lastEvent == 0) return "No-events";
-      return "Last-event: " + SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(lastEvent));
+      return "Last-event: " + SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(lastEvent)) + " counted:" + counted;
     }
 
     public void close(Metrics metrics) {
-      // TODO: not yet supported in commons-metrics
-      // metrics.removeSensor(sensor.name());
-      }
+      metrics.removeSensor(sensor.name());
+      metrics.removeMetric(metric.metricName());
+    }
 
     public String toString(boolean verbose) {
       if (verbose) {
-        return metric.metricName().group() + "." + metric.metricName().name() + ":" + metric.value();
+        return metric.metricName().group() + "." + metric.metricName().name() + ":" +  String.format("%10.2f", value());
       } else {
-        return metric.metricName().name() + ":" + String.format("%10.2f", metric.value());
+        return metric.metricName().name() + ":" + String.format("%10.2f", value());
       }
     }
 

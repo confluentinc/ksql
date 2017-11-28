@@ -16,8 +16,11 @@
 
 package io.confluent.ksql.metrics;
 
-import io.confluent.common.utils.SystemTime;
-import io.confluent.common.metrics.*;
+import org.apache.kafka.common.metrics.JmxReporter;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.utils.SystemTime;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,15 +30,11 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to streams/tables/queries for ksql entities (Stream, Table, Query)
- * TODO: hook into Stream, Table, Query statistics for describe
- * TODO: persistence, bouncing a node should not blat current statsAsString
- * TODO: add lastMinute statsAsString collector (max events, max bytes, timestamp)
- * TODO: add maxMinute statsAsString retention
  */
 public class MetricCollectors {
 
 
-  private static final Map<String, MetricCollector> collectorMap = new HashMap<String, MetricCollector>();
+  private static final Map<String, MetricCollector> collectorMap = new HashMap<>();
   private static final Metrics metrics;
 
   static {
@@ -60,9 +59,11 @@ public class MetricCollectors {
 
   public static String getCollectorStatsByTopic(final String topic) {
     final StringBuilder results = new StringBuilder();
-    collectorMap.values().stream().forEach(c -> {
-      results.append(c.statsForTopic(topic));
-    });
+    collectorMap.values().forEach(c -> results.append(c.statsForTopic(topic.toLowerCase())));
     return results.toString();
+  }
+
+  public static Metrics getMetrics() {
+    return metrics;
   }
 }

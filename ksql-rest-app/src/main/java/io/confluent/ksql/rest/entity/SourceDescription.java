@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.util.SchemaUtil;
@@ -41,6 +42,7 @@ public class SourceDescription extends KsqlEntity {
   private final DataSource.DataSourceType type;
   private final String key;
   private final String timestamp;
+  private final String statistics;
 
   @JsonCreator
   public SourceDescription(
@@ -49,7 +51,8 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("schema")        List<FieldSchemaInfo> schema,
       @JsonProperty("type")          DataSource.DataSourceType type,
       @JsonProperty("key")           String key,
-      @JsonProperty("timestamp")     String timestamp
+      @JsonProperty("timestamp")     String timestamp,
+      @JsonProperty("statistics")     String statistics
   ) {
     super(statementText);
     this.name = name;
@@ -57,6 +60,7 @@ public class SourceDescription extends KsqlEntity {
     this.type = type;
     this.key = key;
     this.timestamp = timestamp;
+    this.statistics = statistics;
   }
 
   public SourceDescription(String statementText, StructuredDataSource dataSource) {
@@ -71,7 +75,8 @@ public class SourceDescription extends KsqlEntity {
             }).collect(Collectors.toList()),
         dataSource.getDataSourceType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(null),
-        Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(null)
+        Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(null),
+        MetricCollectors.getCollectorStatsByTopic(dataSource.getTopicName())
     );
   }
 
@@ -93,6 +98,10 @@ public class SourceDescription extends KsqlEntity {
 
   public String getTimestamp() {
     return timestamp;
+  }
+
+  public String getStatistics() {
+    return statistics;
   }
 
   @Override

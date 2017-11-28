@@ -15,11 +15,11 @@
  **/
 package io.confluent.ksql.metrics;
 
-import io.confluent.common.metrics.Metrics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.metrics.Metrics;
 
 import java.util.Date;
 import java.util.Map;
@@ -30,12 +30,6 @@ public class MetricCollector implements AbstractMetricCollector {
   private ProducerCollector producerCollector;
   private final Date created = new Date();
   private String clientId;
-
-  /**
-   * Created by via registration as an Interceptor (hence the ugly binding to the MetricCollector)
-   */
-  public MetricCollector() {
-  }
 
   @Override
   public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
@@ -75,8 +69,8 @@ public class MetricCollector implements AbstractMetricCollector {
   }
 
   public String statsForTopic(String topic) {
-    String results = consumerCollector.statsForTopic(topic, false);
-    return results + producerCollector.statsForTopic(topic, false);
+    String results = consumerCollector.statsForTopic(topic.toLowerCase(), false);
+    return results + producerCollector.statsForTopic(topic.toLowerCase(), false);
   }
 
 }

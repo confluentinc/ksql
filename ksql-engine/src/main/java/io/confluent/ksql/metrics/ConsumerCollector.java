@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.metrics;
 
-import io.confluent.common.metrics.KafkaMetric;
-import io.confluent.common.metrics.MetricName;
-import io.confluent.common.metrics.Metrics;
-import io.confluent.common.metrics.Sensor;
-import io.confluent.common.metrics.stats.Rate;
-import io.confluent.common.metrics.stats.Total;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.metrics.stats.Total;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +31,29 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Interceptor for collecting ksql-stats
+ * Design notes:
+ * </p>
+ * Measureable stats are shared across all partitions as well as consumers.
+ * </p>
+ * Limitations:
+ * Stats are only collected for a consumer's topic(s). As such they are aggregated across all partitions at intercept-time; the
+ * alternative would be to aggregate on read, and also store records at the partition level.
+ * </p>
+ * The downside to this approach is:
+ * - Potential performance penalty during interception due to sharing of AKMetrics across Consumer threads
+ * - Accuracy of stats, AK Metrics are not thread safe, as such stats are indicative
+ * - Lack of partition level metrics
+ * - collected at process level - a higher order aggregator would be needed to collect across multiple processed
+ * </p>
+ * Potential issues:
+ * - With metric leaks where a client interceptor is closed(), De-registration of sensors and metrics where other clients are still connected (in the same process).
+ * - Around dynamic resource allocation (ie. stream threads are added/removed)
+ * </p>
+ * Benefits:
+ * - Smaller memory footprint due to agg on intercept
+ */
 public class ConsumerCollector {
 
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
@@ -49,60 +72,60 @@ public class ConsumerCollector {
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach((record) -> {
-
-      topicPartitionCounters.computeIfAbsent(getKey(record.topic(), record.partition()), k ->
-              new Counter<>(k, record.topic(), record.partition(), buildSensors(k, metrics, record))
-      ).increment(record);
-
-    });
+    stream.forEach((record) -> topicPartitionCounters.computeIfAbsent(getKey(record.topic().toLowerCase()), k ->
+            new Counter<>(record.topic().toLowerCase(), buildSensors(k, metrics))
+    ).increment(record));
   }
 
-  // TODO: per stream thread uses its own consumer - either share stats (perf overhead) or handle keying
-  private String getKey(String topic, Integer partition) {
-    // dont record at partition level because we cannot aggregate across them...
-    return id + "_" + topic + "_";// + partition;// + "-" + registered++;
+  private String getKey(String topic) {
+    return topic + "_";
   }
 
-  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key, Metrics metrics, ConsumerRecord record) {
+  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key, Metrics metrics) {
 
     HashMap<String, Counter.SensorMetric<ConsumerRecord>> results = new HashMap<>();
 
-    addRateSensor(key, metrics, results);
-    addBandwidthSensor(key, metrics, results);
-    addTotalSensor(key, metrics, results);
-
+    // Note: syncronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
+    synchronized (metrics) {
+      addRateSensor(key, metrics, results);
+      addBandwidthSensor(key, metrics, results);
+      addTotalSensor(key, metrics, results);
+    }
     return results;
   }
 
   private void addRateSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-rate-per-sec";
+
+    MetricName metricName = new MetricName("consume rate-per-sec", name, "consumer-rate-per-sec",  Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
+    Sensor sensor = metrics.sensor(name);
 
+    // re-use the existing measurable stats to share between consumers
     if (existingSensor == null) {
-      System.out.println("cons NEW:" + name + " id:" + id);
-      Sensor sensor = metrics.sensor(name);
-
-      MetricName consumerRate = new MetricName("rate-per-sec", name, "consumer-rate-per-sec");
-      sensor.add(consumerRate, new Rate(TimeUnit.SECONDS));
-      KafkaMetric rate = metrics.metrics().get(consumerRate);
-
-      results.put(consumerRate.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, rate) {
-        void record(ConsumerRecord record) {
-          sensor.record(1);
-          super.record(record);
-        }
-      });
-    } else {
-      System.out.println("cons EXISTING:" + name);
+      sensor.add(metricName, new Rate(TimeUnit.SECONDS));
     }
+
+    KafkaMetric rate = metrics.metrics().get(metricName);
+    results.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, rate) {
+      void record(ConsumerRecord record) {
+        sensor.record(1);
+        super.record(record);
+      }
+    });
   }
 
   private void addBandwidthSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-bytes-per-sec";
+
+    MetricName metricName = new MetricName("bytes-per-sec", name, "consumer-bytes-per-sec", Collections.EMPTY_MAP);
+    Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
-    MetricName metricName = new MetricName("bytes-per-sec", name, "consumer-bytes-per-sec");
-    sensor.add(metricName, new Rate(TimeUnit.SECONDS));
+
+    // re-use the existing measurable stats to share between consumers
+    if (existingSensor == null) {
+      sensor.add(metricName, new Rate(TimeUnit.SECONDS));
+    }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
     results.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric) {
@@ -115,45 +138,44 @@ public class ConsumerCollector {
 
   private void addTotalSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
     String name = "cons-" + key + "-total-events";
+
+    MetricName metricName = new MetricName("total-events", name, "consumer-total-events", Collections.EMPTY_MAP);
+    Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
-    MetricName metricName = new MetricName("total-events", name, "consumer-total-events");
-    sensor.add(metricName, new Total());
+
+    // re-use the existing measurable stats to share between consumers
+    if (existingSensor == null) {
+      sensor.add(metricName, new Total());
+    }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
     sensors.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric) {
       void record(ConsumerRecord record) {
-        sensor.record(record.serializedValueSize());
+        sensor.record(1);
         super.record(record);
       }
     });
   }
 
   public void close() {
+    topicPartitionCounters.values().stream().forEach(v -> {
+      v.close(metrics);
+    });
   }
 
   public String statsForTopic(final String topic, boolean verbose) {
-    return topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
+    List<Counter> last = new ArrayList<>();
+
+    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic)  ? last.add(counter) || true  : false)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
+
+    // Add timestamp information
+    if (!last.isEmpty()) {
+      Counter.SensorMetric sensor = (Counter.SensorMetric) last.stream().findFirst().get().sensors.values().stream().findFirst().get();
+
+      if (sensor != null) {
+        stats += " " + sensor.lastEventTime();
+      }
+    }
+    return stats;
   }
-
-  public Map<String, Counter.SensorMetric> stats(final String topic) {
-    Map<String, Counter.SensorMetric> metrics = new HashMap<>();
-
-    topicPartitionCounters.values().stream().filter(counter ->
-        counter.isTopic(topic)).forEach(counter ->
-        ((Map<String, Counter.SensorMetric>) counter.sensors).values().stream().forEach(metric -> {
-          // metrics.computeIfAbsent(metric.sensor().name(), k -> metric.clone()).sensor().record(metric.metric().value());
-          if (metrics.containsKey(metric.sensor().name())) {
-            System.err.println("already got metrics for:" + metric.metric().metricName());
-            //metrics.get(metric.sensor().name()).sensor().record(metric.metric().value());
-          } else {
-            metrics.put(metric.sensor().name(), metric);
-          }
-        }
-        )
-    );
-
-    return metrics;
-  }
-
-
 }

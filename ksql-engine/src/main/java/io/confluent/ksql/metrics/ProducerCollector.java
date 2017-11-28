@@ -15,16 +15,19 @@
  **/
 package io.confluent.ksql.metrics;
 
-import io.confluent.common.metrics.stats.Rate;
-import io.confluent.common.metrics.stats.Total;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import io.confluent.common.metrics.*;
-
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.metrics.stats.Total;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unchecked")
 public class ProducerCollector {
 
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
@@ -42,58 +45,54 @@ public class ProducerCollector {
   }
 
   private void collect(ProducerRecord record) {
-    topicPartitionCounters.computeIfAbsent(getKey(record.topic(), record.partition()), k ->
-            new Counter<>(k, record.topic(), record.partition(), buildSensors(k, metrics, record))
+    topicPartitionCounters.computeIfAbsent(getKey(record.topic()), k ->
+            new Counter<>(record.topic(), buildSensors(k, metrics))
     ).increment(record);
   }
 
-  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key, Metrics metrics, ProducerRecord record) {
+  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key, Metrics metrics) {
     HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors = new HashMap<>();
 
-    addRatePerSecond(key, metrics, sensors);
-    addTotalSensor(key, metrics, sensors);
+    // Note: syncronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
+    synchronized (metrics) {
+      addRatePerSecond(key, metrics, sensors);
+      addTotalSensor(key, metrics, sensors);
+    }
     return sensors;
   }
 
+  @SuppressWarnings("unchecked")
   private void addRatePerSecond(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors) {
     String name = "prod-" + key + "-" + "-rate-per-sec";
 
+    MetricName producerRate = new MetricName("produce rate-per-sec", name, "producer-statsAsString",Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
+    Sensor sensor = metrics.sensor(name);
 
-    if (existingSensor != null) {
-
-      System.out.println("prod Existing...." + name);
-      // hook into existing sensor?
-      MetricName producerRate = new MetricName("rate-per-sec", name, "producer-statsAsString");
-      KafkaMetric rate = metrics.metrics().get(producerRate);
-      sensors.put(existingSensor.name(), new Counter.SensorMetric<ProducerRecord>(existingSensor, rate) {
-        void record(ProducerRecord record) {
-          existingSensor.record(1);
-          super.record(record);
-        }
-      });
-
-    } else {
-      System.out.println("prod new....:" + name + " id:" + id);
-      Sensor sensor = metrics.sensor(name);
-      MetricName producerRate = new MetricName("rate-per-sec", name, "producer-statsAsString");
+    if (existingSensor == null) {
       sensor.add(producerRate, new Rate(TimeUnit.SECONDS));
-      KafkaMetric rate = metrics.metrics().get(producerRate);
-      sensors.put(producerRate.name(), new Counter.SensorMetric<ProducerRecord>(sensor, rate) {
-        void record(ProducerRecord record) {
-          sensor.record(1);
-          super.record(record);
-        }
-      });
     }
+
+    KafkaMetric rate = metrics.metrics().get(producerRate);
+    sensors.put(sensor.name(), new Counter.SensorMetric<ProducerRecord>(sensor, rate) {
+      void record(ProducerRecord record) {
+        sensor.record(1);
+        super.record(record);
+      }
+    });
   }
 
 
   private void addTotalSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ProducerRecord>> results) {
     String name = "prod-" + key + "-total-events";
+
+    MetricName metricName = new MetricName("total-events", name, "producer-total-events",Collections.EMPTY_MAP);
+    Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
-    MetricName metricName = new MetricName("total-events", name, "producer-total-events");
-    sensor.add(metricName, new Total());
+
+    if (existingSensor == null) {
+      sensor.add(metricName, new Total());
+    }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
     results.put(metricName.name(), new Counter.SensorMetric<ProducerRecord>(sensor, metric) {
@@ -104,38 +103,31 @@ public class ProducerCollector {
     });
   }
 
-
-  private String getKey(String topic, Integer partition) {
-    // dont use the producer-id - streams uses a unique id per thread - we need to agg across the producer and partitions at write time because sensors etc are immutable and PITA to reconstruct
-    // return id + "_" + topic + "_" + partition;
-    return topic;// + "_" + partition;// + "-" + registered++;
+  private String getKey(String topic) {
+    return topic;
   }
 
   public void close() {
-    topicPartitionCounters.values().stream().forEach(v -> {
-      v.close(metrics);
-    });
-
-    // how do I release metrics if they are shared??? FFS!
-    //topicPartitionCounters.values().stream().forEach();
+    topicPartitionCounters.values().forEach(v -> v.close(metrics));
   }
 
   // TODO: use this:
   // https://stackoverflow.com/questions/25439277/lambdas-multiple-foreach-with-casting
   public String statsForTopic(final String topic, final boolean verbose) {
+
     List<Counter> last = new ArrayList<>();
 
-    String collect = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic) ? last.add(counter) || true  : false)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
+    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic) ? last.add(counter) || true  : false)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
 
-    if (last.size() > 0) {
-      // Add the sensor timestamp information
+    if (!last.isEmpty()) {
+      // Add timestamp information
       Counter.SensorMetric sensor = (Counter.SensorMetric) last.stream().findFirst().get().sensors.values().stream().findFirst().get();
 
       if (sensor != null) {
-        collect += " " + sensor.lastEventTime();
+        stats += " " + sensor.lastEventTime();
       }
     }
-    return collect;
+    return stats;
   }
 
   @Override

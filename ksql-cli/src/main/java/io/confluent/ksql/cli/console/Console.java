@@ -429,11 +429,18 @@ public abstract class Console implements Closeable {
               runningQuery.getStatistics()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
-      List<SourceDescription.FieldSchemaInfo> fields = ((SourceDescription) ksqlEntity).getSchema();
+      SourceDescription ksqlEntity1 = (SourceDescription) ksqlEntity;
+      List<SourceDescription.FieldSchemaInfo> fields = ksqlEntity1.getSchema();
       columnHeaders = Arrays.asList("Field", "Type");
       rowValues = fields.stream()
           .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
+
+      rowValues.add(Arrays.asList("------","--------"));
+      rowValues.add(Arrays.asList("",""));
+      rowValues.add(Arrays.asList("Statistics", ksqlEntity1.getStatistics()));
+
+
     } else if (ksqlEntity instanceof TopicDescription) {
       columnHeaders = new ArrayList<>();
       columnHeaders.add("Topic Name");

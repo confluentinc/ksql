@@ -103,7 +103,7 @@ public class ConsoleTest {
           new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),
-          new SourceDescription("e", "TestSource", buildTestSchema(i), DataSource.DataSourceType.KTABLE, "key", "2000-01-01"),
+          new SourceDescription("e", "TestSource", buildTestSchema(i), DataSource.DataSourceType.KTABLE, "key", "2000-01-01", ""),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", Arrays.asList(new StreamsList.StreamInfo("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new TablesList.TableInfo("TestTable", "TestTopic", "JSON", false))),

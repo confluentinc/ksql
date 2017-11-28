@@ -27,7 +27,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("unchecked")
 public class ProducerCollector {
 
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
@@ -53,7 +52,7 @@ public class ProducerCollector {
   private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key, Metrics metrics) {
     HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors = new HashMap<>();
 
-    // Note: syncronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
+    // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
       addRatePerSecond(key, metrics, sensors);
       addTotalSensor(key, metrics, sensors);
@@ -117,21 +116,18 @@ public class ProducerCollector {
 
     List<Counter> last = new ArrayList<>();
 
-    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic) ? last.add(counter) || true  : false)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
+    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic) && last.add(counter))).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
 
     if (!last.isEmpty()) {
       // Add timestamp information
       Counter.SensorMetric sensor = (Counter.SensorMetric) last.stream().findFirst().get().sensors.values().stream().findFirst().get();
-
-      if (sensor != null) {
-        stats += " " + sensor.lastEventTime();
-      }
+      stats += " " + sensor.lastEventTime();
     }
     return stats;
   }
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + " " + this.topicPartitionCounters.toString();
+    return getClass().getSimpleName() + " " + this.id + " " + this.topicPartitionCounters.toString();
   }
 }

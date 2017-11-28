@@ -35,7 +35,7 @@ import java.util.stream.StreamSupport;
  * Interceptor for collecting ksql-stats
  * Design notes:
  * </p>
- * Measureable stats are shared across all partitions as well as consumers.
+ * Measurable stats are shared across all partitions as well as consumers.
  * </p>
  * Limitations:
  * Stats are only collected for a consumer's topic(s). As such they are aggregated across all partitions at intercept-time; the
@@ -85,7 +85,7 @@ public class ConsumerCollector {
 
     HashMap<String, Counter.SensorMetric<ConsumerRecord>> results = new HashMap<>();
 
-    // Note: syncronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
+    // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
       addRateSensor(key, metrics, results);
       addBandwidthSensor(key, metrics, results);
@@ -97,6 +97,7 @@ public class ConsumerCollector {
   private void addRateSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-rate-per-sec";
 
+    //noinspection unchecked
     MetricName metricName = new MetricName("consume rate-per-sec", name, "consumer-rate-per-sec",  Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
@@ -118,6 +119,7 @@ public class ConsumerCollector {
   private void addBandwidthSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-bytes-per-sec";
 
+    //noinspection unchecked
     MetricName metricName = new MetricName("bytes-per-sec", name, "consumer-bytes-per-sec", Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
@@ -139,6 +141,7 @@ public class ConsumerCollector {
   private void addTotalSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
     String name = "cons-" + key + "-total-events";
 
+    //noinspection unchecked
     MetricName metricName = new MetricName("total-events", name, "consumer-total-events", Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
@@ -158,24 +161,24 @@ public class ConsumerCollector {
   }
 
   public void close() {
-    topicPartitionCounters.values().stream().forEach(v -> {
-      v.close(metrics);
-    });
+    topicPartitionCounters.values().forEach(v -> v.close(metrics));
   }
 
   public String statsForTopic(final String topic, boolean verbose) {
     List<Counter> last = new ArrayList<>();
 
-    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic)  ? last.add(counter) || true  : false)).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
+    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic)  && last.add(counter))).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
 
     // Add timestamp information
     if (!last.isEmpty()) {
       Counter.SensorMetric sensor = (Counter.SensorMetric) last.stream().findFirst().get().sensors.values().stream().findFirst().get();
-
-      if (sensor != null) {
-        stats += " " + sensor.lastEventTime();
-      }
+      stats += " " + sensor.lastEventTime();
     }
     return stats;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString() + " id:" + this.id + " " + topicPartitionCounters.keySet();
   }
 }

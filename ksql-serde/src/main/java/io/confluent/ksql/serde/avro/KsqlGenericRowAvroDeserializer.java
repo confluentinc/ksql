@@ -23,7 +23,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -39,26 +38,21 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
   private final Schema schema;
 
   String rowAvroSchemaString;
-  org.apache.avro.Schema.Parser parser;
-  org.apache.avro.Schema avroSchema;
-  GenericDatumReader<GenericRecord> reader;
   KafkaAvroDeserializer kafkaAvroDeserializer;
 
   public KsqlGenericRowAvroDeserializer(Schema schema,
                                         SchemaRegistryClient schemaRegistryClient) {
+    this(schema, new KafkaAvroDeserializer(schemaRegistryClient));
+  }
+
+  public KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
+      kafkaAvroDeserializer) {
     this.schema = schema;
-    this.kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+    this.kafkaAvroDeserializer = kafkaAvroDeserializer;
   }
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowAvroSchemaString = (String) map.get(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
-    if (rowAvroSchemaString == null) {
-      throw new SerializationException("Avro schema is not set for the deserializer.");
-    }
-    parser = new org.apache.avro.Schema.Parser();
-    avroSchema = parser.parse(rowAvroSchemaString);
-    reader = new GenericDatumReader<>(avroSchema);
   }
 
   @Override

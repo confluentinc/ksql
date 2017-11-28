@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.datagen;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
@@ -68,7 +69,7 @@ public class AvroConsumer {
                                                                                                Collections.emptyMap()));
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(null, null);
+      final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(null, new MockSchemaRegistryClient());
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

@@ -70,10 +70,8 @@ class Counter<R> {
      * Anon class must call down to this for timestamp recording
      * @param object
      */
-    volatile  int counted;
     void record(P object) {
       this.lastEvent = System.currentTimeMillis();
-      this.counted++;
     }
 
     public KafkaMetric metric() {
@@ -90,7 +88,7 @@ class Counter<R> {
 
     public String lastEventTime() {
       if (lastEvent == 0) return "No-events";
-      return "Last-event: " + SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(lastEvent)) + " counted:" + counted;
+      return "Last-event: " + SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(lastEvent));
     }
 
     public void close(Metrics metrics) {

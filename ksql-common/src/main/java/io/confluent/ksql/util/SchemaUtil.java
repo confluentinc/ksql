@@ -239,4 +239,27 @@ public class SchemaUtil {
     return stringBuilder.toString();
   }
 
+  public static String getSQLTypeName(Schema schema) {
+    switch (schema.type()) {
+      case INT32:
+        return "INT";
+      case INT64:
+        return "BIGINT";
+      case FLOAT32:
+      case FLOAT64:
+        return "DOUBLE";
+      case BOOLEAN:
+        return "BOOLEAN";
+      case STRING:
+        return "VARCHAR";
+      case ARRAY:
+        return "ARRAY<" + getSQLTypeName(schema.valueSchema()) + ">";
+      case MAP:
+        return "MAP<" + getSQLTypeName(schema.keySchema()) + "," + getSQLTypeName(schema
+                                                                                       .valueSchema()) + ">";
+      default:
+        throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
+    }
+  }
+
 }

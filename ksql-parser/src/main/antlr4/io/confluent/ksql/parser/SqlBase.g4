@@ -51,13 +51,13 @@ statement
     | REGISTER TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                         #registerTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
-                '(' tableElement (',' tableElement)* ')'
+                ('(' tableElement (',' tableElement)* ')')?
                 (WITH tableProperties)?                                     #createStream
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query
                                        (PARTITION BY identifier)?           #createStreamAs
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-                    '(' tableElement (',' tableElement)* ')'
+                    ('(' tableElement (',' tableElement)* ')')?
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs

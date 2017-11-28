@@ -19,6 +19,8 @@ package io.confluent.ksql.datagen;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.util.KsqlConfig;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -33,6 +35,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Printed;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -58,7 +61,11 @@ public class AvroConsumer {
       Map<String, Object> serdeProps = new HashMap<>();
       serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, schemaStr);
 
-      final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(null,null);
+      final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(null,
+                                                                                           null,
+                                                                                           new
+                                                                                               KsqlConfig(
+                                                                                               Collections.emptyMap()));
       genericRowSerializer.configure(serdeProps, false);
 
       final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(null, null);

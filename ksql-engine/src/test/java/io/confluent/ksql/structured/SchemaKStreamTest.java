@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SerDeUtil;
@@ -36,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SchemaKStreamTest {
@@ -56,7 +58,7 @@ public class SchemaKStreamTest {
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(Serdes.String(), SerDeUtil.getRowSerDe(ksqlStream.getKsqlTopic()
-            .getKsqlTopicSerDe(), null)));
+            .getKsqlTopicSerDe(), null, new KsqlConfig(Collections.emptyMap()))));
   }
 
 

@@ -16,11 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommand;
@@ -30,7 +26,6 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -79,12 +74,12 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StringUtil;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -224,7 +219,12 @@ public class KsqlResource {
       if (statement instanceof AbstractStreamCreateStatement) {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
             statement;
-        checkAndSetAvroSchema(streamCreateStatement.getProperties(), streamsProperties);
+        Pair<AbstractStreamCreateStatement, String> avroCheckResult = AvroUtil.checkAndSetAvroSchema(streamCreateStatement,
+            streamsProperties);
+        if (avroCheckResult.getRight() != null) {
+          statement = avroCheckResult.getLeft();
+          statementText = avroCheckResult.getRight();
+        }
       }
       //Sanity check for the statement before distributing it.
       validateStatement(statement, statementText, streamsProperties);
@@ -457,37 +457,100 @@ public class KsqlResource {
     }
   }
 
-  private void checkAndSetAvroSchema(Map<String,Expression> ddlProperties, Map<String, Object>
-      streamsProperties) {
-    if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
-      throw
-          new KsqlException(String.format("%s should be set in WITH clause of CREATE "
-                                          + "STRAEM/TABLE statement.", DdlConfig.VALUE_FORMAT_PROPERTY));
-    }
-    final String serde = StringUtil.cleanQuotes(
-        ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-      String kafkaTopicName = StringUtil.cleanQuotes(
-          ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      SchemaRegistryClient
-          schemaRegistryClient = new CachedSchemaRegistryClient("http://localhost:8081", 100);
-      try {
-        SchemaMetadata
-            schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(kafkaTopicName +
-                                                                          KsqlConstants
-                                                                              .SCHEMA_REGISTRY_VALUE_SUFFIX);
-        streamsProperties.put(DdlConfig.AVRO_SCHEMA, schemaMetadata.getSchema());
-
-      } catch (Exception e) {
-        String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
-                                            + "registry (url: %s). $s ",
-                                            "http://localhost:8081", e.getMessage());
-        log.error(errorMessage, e);
-        throw new KsqlException(errorMessage);
-      }
-
-    }
-
-  }
+//  private Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema
+//      (AbstractStreamCreateStatement
+//                                                                   abstractStreamCreateStatement,
+//                                                                   Map<String, Object> streamsProperties) {
+//    Map<String,Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
+//    if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+//      throw
+//          new KsqlException(String.format("%s should be set in WITH clause of CREATE "
+//                                          + "STRAEM/TABLE statement.", DdlConfig.VALUE_FORMAT_PROPERTY));
+//    }
+//    final String serde = StringUtil.cleanQuotes(
+//        ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+//    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+//      String kafkaTopicName = StringUtil.cleanQuotes(
+//          ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+//      KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+//      SchemaRegistryClient
+//          schemaRegistryClient = new CachedSchemaRegistryClient(ksqlConfig.get
+//          (KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), 100);
+//      try {
+//        SchemaMetadata schemaMetadata;
+//        if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants
+//                                                                          .AVRO_SCHEMA_ID)) {
+//
+//          int schemaId = -1;
+//          try {
+//            schemaId = Integer.parseInt(StringUtil.cleanQuotes(abstractStreamCreateStatement.getProperties().get
+//                (KsqlConstants.AVRO_SCHEMA_ID).toString()));
+//          } catch (NumberFormatException e) {
+//            throw new KsqlException(String.format("Invalid schema id property: %s.", abstractStreamCreateStatement.getProperties().get
+//                (KsqlConstants.AVRO_SCHEMA_ID).toString()));
+//          }
+//          schemaMetadata = schemaRegistryClient.getSchemaMetadata(
+//              kafkaTopicName +KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schemaId);
+//        } else {
+//          schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(kafkaTopicName +
+//                                                                        KsqlConstants
+//                                                                            .SCHEMA_REGISTRY_VALUE_SUFFIX);
+//        }
+//
+//        String avroSchemaString = schemaMetadata.getSchema();
+//        streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
+//        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
+//        System.out.println();
+//        if (abstractStreamCreateStatement.getElements().isEmpty()) {
+//          abstractStreamCreateStatement = addAvroFields(abstractStreamCreateStatement, schema,
+//                                                        schemaMetadata.getId());
+//          return new Pair<>(abstractStreamCreateStatement, SqlFormatter.formatSql
+//              (abstractStreamCreateStatement));
+//        }
+//
+//      } catch (Exception e) {
+//        String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
+//                                            + "registry (url: %s). $s ",
+//                                            "http://localhost:8081", e.getMessage());
+//        log.error(errorMessage, e);
+//        throw new KsqlException(errorMessage);
+//      }
+//    }
+//    return new Pair<>(abstractStreamCreateStatement, null);
+//  }
+//
+//  private AbstractStreamCreateStatement addAvroFields(AbstractStreamCreateStatement
+//                                                          abstractStreamCreateStatement, Schema
+//      schema, int schemaId) {
+//    List<TableElement> elements = new ArrayList<>();
+//    for (Field field: schema.fields()) {
+//      TableElement tableElement = new TableElement(field.name(), SchemaUtil
+//          .getSQLTypeName(field.schema()));
+//      elements.add(tableElement);
+//    }
+//    StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
+//    Map<String, Expression> properties;
+//    if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
+//      properties = abstractStreamCreateStatement.getProperties();
+//    } else {
+//      properties = new HashMap<>();
+//      properties.putAll(abstractStreamCreateStatement.getProperties());
+//      properties.put(KsqlConstants.AVRO_SCHEMA_ID, schemaIdLiteral);
+//    }
+//
+//
+//    if (abstractStreamCreateStatement instanceof CreateStream) {
+//      return new CreateStream(abstractStreamCreateStatement.getName(), elements,
+//                              ((CreateStream) abstractStreamCreateStatement).isNotExists(),
+//                              properties);
+//    } else if (abstractStreamCreateStatement instanceof CreateTable) {
+//      return new CreateTable(abstractStreamCreateStatement.getName(), elements,
+//                              ((CreateStream) abstractStreamCreateStatement).isNotExists(),
+//                             properties);
+//    } else {
+//      throw new KsqlException(String.format("Invalid AbstractStreamCreateStatement: %s",
+//                                            SqlFormatter.formatSql(abstractStreamCreateStatement)));
+//    }
+//  }
 
 }

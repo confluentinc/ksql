@@ -173,7 +173,7 @@ public class JoinNode extends PlanNode {
     return stream.leftJoin(table,
         getSchema(),
         getSchema().field(getLeftAlias() + "." + stream.getKeyField().name()),
-        joinSerDe);
+        joinSerDe, ksqlConfig);
 
   }
 

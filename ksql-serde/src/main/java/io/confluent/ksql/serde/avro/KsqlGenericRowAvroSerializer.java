@@ -20,6 +20,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlConfig;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -51,11 +53,12 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   KafkaAvroSerializer kafkaAvroSerializer;
 
-  public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema, SchemaRegistryClient schemaRegistryClient) {
+  public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema,
+                                      SchemaRegistryClient schemaRegistryClient, KsqlConfig ksqlConfig) {
     this.schema = schema;
     Map map = new HashMap();
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
-    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
+    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
     kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
 
@@ -85,9 +88,7 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
       } else {
         avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
       }
-
     }
-
     return kafkaAvroSerializer.serialize(topic, avroRecord);
 
   }

@@ -127,7 +127,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         noRowKey.getKafkaTopicName(),
         SerDeUtil.getRowSerDe(
             noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-            noRowKey.getSchema()),
+            noRowKey.getSchema(), ksqlConfig),
         rowkeyIndexes
     );
 

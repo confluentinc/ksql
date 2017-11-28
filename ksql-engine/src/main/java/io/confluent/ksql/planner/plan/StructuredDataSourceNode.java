@@ -142,7 +142,7 @@ public class StructuredDataSourceNode
         SerDeUtil.getRowSerDe(getStructuredDataSource()
                 .getKsqlTopic().getKsqlTopicSerDe(),
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                getSchema()));
+                getSchema()), ksqlConfig);
 
     if (getDataSourceType()
         == StructuredDataSource.DataSourceType.KTABLE) {
@@ -154,7 +154,7 @@ public class StructuredDataSourceNode
           table,
           genericRowSerde,
           SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
-              getSchema())
+              getSchema(), ksqlConfig)
       );
       return new SchemaKTable(getSchema(), kTable,
           getKeyField(), new ArrayList<>(),

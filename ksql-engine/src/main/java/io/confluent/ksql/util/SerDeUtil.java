@@ -34,6 +34,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,13 +68,13 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema) {
+  public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema, final KsqlConfig ksqlConfig) {
     Map<String, Object> serdeProps = new HashMap<>();
     String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, DdlConfig.AVRO_SCHEMA);
     serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema,
-                                                                                         SchemaRegistryClientFactory.getSchemaRegistryClient());
+                                                                                         SchemaRegistryClientFactory.getSchemaRegistryClient(), ksqlConfig);
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer =
@@ -83,15 +84,52 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getRowSerDe(final KsqlTopicSerDe topicSerDe, Schema schema) {
+  public static Serde<GenericRow> getRowSerDe(final KsqlTopicSerDe topicSerDe, Schema schema,
+                                              KsqlConfig ksqlConfig) {
     if (topicSerDe instanceof KsqlAvroTopicSerDe) {
-      return SerDeUtil.getGenericRowAvroSerde(schema);
+      return SerDeUtil.getGenericRowAvroSerde(schema, ksqlConfig);
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJsonSerde(schema);
     } else if (topicSerDe instanceof KsqlDelimitedTopicSerDe) {
       return SerDeUtil.getGenericRowDelimitedSerde(schema);
     } else {
       throw new KsqlException("Unknown topic serde.");
+    }
+  }
+
+  public static synchronized Schema getSchemaFromAvro(String avroSchemaString) {
+    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
+
+    SchemaBuilder inferredSchema = SchemaBuilder.struct().name(avroSchema.getName());
+    for (org.apache.avro.Schema.Field avroField: avroSchema.getFields()) {
+      inferredSchema.field(avroField.name(), getKSQLSchemaForAvroSchema(avroField.schema()));
+    }
+
+    return inferredSchema.build();
+  }
+
+  public static Schema getKSQLSchemaForAvroSchema(org.apache.avro.Schema avroSchema) {
+    switch (avroSchema.getType()) {
+      case INT:
+        return Schema.INT16_SCHEMA;
+      case LONG:
+        return Schema.FLOAT64_SCHEMA;
+      case DOUBLE:
+      case FLOAT:
+        return Schema.FLOAT64_SCHEMA;
+      case BOOLEAN:
+        return Schema.BOOLEAN_SCHEMA;
+      case STRING:
+        return Schema.STRING_SCHEMA;
+      case ARRAY:
+        return SchemaBuilder.array(getKSQLSchemaForAvroSchema(avroSchema.getValueType()));
+      case MAP:
+        return SchemaBuilder.map(Schema.STRING_SCHEMA,
+                                 getKSQLSchemaForAvroSchema(avroSchema.getValueType()));
+      default:
+        throw new KsqlException(String.format("Cannot find correct type for avro type: %s",
+                                              avroSchema.getFullName()));
     }
   }
 

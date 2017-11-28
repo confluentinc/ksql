@@ -36,8 +36,6 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   private final org.apache.kafka.connect.data.Schema schema;
 
-  private SchemaRegistryClient schemaRegistryClient;
-
   String rowSchema;
   Schema.Parser parser;
   Schema avroSchema;

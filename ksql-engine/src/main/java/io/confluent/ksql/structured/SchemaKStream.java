@@ -24,6 +24,7 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -157,7 +158,8 @@ public class SchemaKStream {
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable,
                                 final Schema joinSchema,
                                 final Field joinKey,
-                                KsqlTopicSerDe joinSerDe) {
+                                KsqlTopicSerDe joinSerDe,
+                                KsqlConfig ksqlConfig) {
 
     KStream joinedKStream =
         kstream.leftJoin(
@@ -174,7 +176,8 @@ public class SchemaKStream {
               }
 
               return new GenericRow(columns);
-            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
+            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema(), ksqlConfig),
+                           null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
                              Arrays.asList(this, schemaKTable), Type.JOIN, functionRegistry);

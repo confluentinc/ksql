@@ -197,7 +197,7 @@ public class AggregateNode extends PlanNode {
         SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
                 .getKsqlTopic()
                 .getKsqlTopicSerDe(),
-            aggregateArgExpanded.getSchema());
+            aggregateArgExpanded.getSchema(), ksqlConfig);
 
     final SchemaKGroupedStream schemaKGroupedStream =
         aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
@@ -216,7 +216,7 @@ public class AggregateNode extends PlanNode {
             .getStructuredDataSource()
             .getKsqlTopic()
             .getKsqlTopicSerDe(),
-        aggregateSchema);
+        aggregateSchema, ksqlConfig);
 
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KudafInitializer(resultColumns),

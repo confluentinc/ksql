@@ -123,7 +123,7 @@ public class SerDeUtil {
       case STRING:
         return Schema.STRING_SCHEMA;
       case ARRAY:
-        return SchemaBuilder.array(getKSQLSchemaForAvroSchema(avroSchema.getValueType()));
+        return SchemaBuilder.array(getKSQLSchemaForAvroSchema(avroSchema.getElementType()));
       case MAP:
         return SchemaBuilder.map(Schema.STRING_SCHEMA,
                                  getKSQLSchemaForAvroSchema(avroSchema.getValueType()));

@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import io.confluent.ksql.util.SchemaUtil;
@@ -178,6 +179,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
+    validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
 
 
     for (String withVariable: withClauseVariables) {

@@ -50,47 +50,48 @@ public class AvroUtil {
     }
     final String serde = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    if (serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-      String kafkaTopicName = StringUtil.cleanQuotes(
-          ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
-      SchemaRegistryClient
-          schemaRegistryClient = new CachedSchemaRegistryClient(ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), 100);
-      try {
-        SchemaMetadata schemaMetadata;
-        if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
-          int schemaId = -1;
-          try {
-            schemaId = Integer.parseInt(StringUtil.cleanQuotes(abstractStreamCreateStatement.getProperties().get(KsqlConstants.AVRO_SCHEMA_ID).toString()));
-          } catch (NumberFormatException e) {
-            throw new KsqlException(String.format("Invalid schema id property: %s.",
-                                                  abstractStreamCreateStatement.getProperties().get(KsqlConstants.AVRO_SCHEMA_ID).toString()));
-          }
-          schemaMetadata = schemaRegistryClient.getSchemaMetadata(
-              kafkaTopicName +KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schemaId);
-        } else {
-          schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(kafkaTopicName +
-                                                                        KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-        }
-
-        String avroSchemaString = schemaMetadata.getSchema();
-        streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
-        System.out.println();
-        if (abstractStreamCreateStatement.getElements().isEmpty()) {
-          abstractStreamCreateStatement = addAvroFields(abstractStreamCreateStatement, schema,
-                                                        schemaMetadata.getId());
-          return new Pair<>(abstractStreamCreateStatement, SqlFormatter.formatSql(abstractStreamCreateStatement));
-        }
-
-      } catch (Exception e) {
-        String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
-                                            + "registry (url: %s). $s ",
-                                            ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), e.getMessage());
-        throw new KsqlException(errorMessage);
-      }
+    if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
+      return new Pair<>(abstractStreamCreateStatement, null);
     }
-    return new Pair<>(abstractStreamCreateStatement, null);
+
+    String kafkaTopicName = StringUtil.cleanQuotes(
+        ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    SchemaRegistryClient
+        schemaRegistryClient = new CachedSchemaRegistryClient(ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), 100);
+    try {
+      SchemaMetadata schemaMetadata;
+      if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
+        int schemaId = -1;
+        try {
+          schemaId = Integer.parseInt(StringUtil.cleanQuotes(abstractStreamCreateStatement.getProperties().get(KsqlConstants.AVRO_SCHEMA_ID).toString()));
+        } catch (NumberFormatException e) {
+          throw new KsqlException(String.format("Invalid schema id property: %s.",
+                                                abstractStreamCreateStatement.getProperties().get(KsqlConstants.AVRO_SCHEMA_ID).toString()));
+        }
+        schemaMetadata = schemaRegistryClient.getSchemaMetadata(
+            kafkaTopicName +KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schemaId);
+      } else {
+        schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(kafkaTopicName +
+                                                                      KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+      }
+
+      String avroSchemaString = schemaMetadata.getSchema();
+      streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
+      Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
+      if (abstractStreamCreateStatement.getElements().isEmpty()) {
+        abstractStreamCreateStatement = addAvroFields(abstractStreamCreateStatement, schema,
+                                                      schemaMetadata.getId());
+        return new Pair<>(abstractStreamCreateStatement, SqlFormatter.formatSql(abstractStreamCreateStatement));
+      } else {
+        return new Pair<>(abstractStreamCreateStatement, null);
+      }
+    } catch (Exception e) {
+      String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
+                                          + "registry (url: %s). $s ",
+                                          ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), e.getMessage());
+      throw new KsqlException(errorMessage);
+    }
   }
 
   public static synchronized AbstractStreamCreateStatement addAvroFields(AbstractStreamCreateStatement

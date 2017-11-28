@@ -20,29 +20,31 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-import org.apache.avro.Schema;
+import io.confluent.ksql.util.SchemaUtil;
+
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
-  private final org.apache.kafka.connect.data.Schema schema;
+  private final Schema schema;
 
-  String rowSchema;
-  Schema.Parser parser;
-  Schema avroSchema;
+  String rowAvroSchemaString;
+  org.apache.avro.Schema.Parser parser;
+  org.apache.avro.Schema avroSchema;
   GenericDatumReader<GenericRecord> reader;
   KafkaAvroDeserializer kafkaAvroDeserializer;
 
-  public KsqlGenericRowAvroDeserializer(org.apache.kafka.connect.data.Schema schema,
+  public KsqlGenericRowAvroDeserializer(Schema schema,
                                         SchemaRegistryClient schemaRegistryClient) {
     this.schema = schema;
     this.kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
@@ -50,12 +52,12 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowSchema = (String) map.get(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
-    if (rowSchema == null) {
+    rowAvroSchemaString = (String) map.get(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG);
+    if (rowAvroSchemaString == null) {
       throw new SerializationException("Avro schema is not set for the deserializer.");
     }
-    parser = new Schema.Parser();
-    avroSchema = parser.parse(rowSchema);
+    parser = new org.apache.avro.Schema.Parser();
+    avroSchema = parser.parse(rowAvroSchemaString);
     reader = new GenericDatumReader<>(avroSchema);
   }
 
@@ -70,9 +72,8 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
     GenericRow genericRow = null;
     try {
-      List<Schema.Field> fields = genericRecord.getSchema().getFields();
       List columns = new ArrayList();
-      for (Schema.Field field : fields) {
+      for (Field field : schema.fields()) {
         columns.add(enforceFieldType(field.schema(), genericRecord.get(field.name())));
       }
       genericRow = new GenericRow(columns);
@@ -92,49 +93,27 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   private Object enforceFieldType(Schema fieldSchema, Object value) {
 
-    switch (fieldSchema.getType()) {
+    switch (fieldSchema.type()) {
       case BOOLEAN:
-      case INT:
-      case LONG:
-      case DOUBLE:
+      case INT32:
+      case INT64:
+      case FLOAT64:
       case STRING:
       case MAP:
         return value;
       case ARRAY:
         GenericData.Array genericArray = (GenericData.Array) value;
-        Class elementClass = getJavaTypeForAvroType(fieldSchema.getElementType());
+        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
         Object[] arrayField =
             (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
         for (int i = 0; i < genericArray.size(); i++) {
-          Object obj = enforceFieldType(fieldSchema.getElementType(), genericArray.get(i));
+          Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
           arrayField[i] = obj;
         }
         return arrayField;
       default:
-        throw new KsqlException("Type is not supported: " + fieldSchema.getType());
+        throw new KsqlException("Type is not supported: " + fieldSchema.schema());
 
-    }
-  }
-
-  private static Class getJavaTypeForAvroType(final Schema schema) {
-    switch (schema.getType()) {
-      case STRING:
-        return String.class;
-      case BOOLEAN:
-        return Boolean.class;
-      case INT:
-        return Integer.class;
-      case LONG:
-        return Long.class;
-      case DOUBLE:
-        return Double.class;
-      case ARRAY:
-        Class elementClass = getJavaTypeForAvroType(schema.getElementType());
-        return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
-      case MAP:
-        return HashMap.class;
-      default:
-        throw new KsqlException("Type is not supported: " + schema.getType());
     }
   }
 

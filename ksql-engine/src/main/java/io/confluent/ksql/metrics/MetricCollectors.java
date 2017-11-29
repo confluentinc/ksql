@@ -44,8 +44,7 @@ public class MetricCollectors {
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
   }
 
-  static Metrics addCollector(MetricCollector collector) {
-    String id = collector.getId();
+  static Metrics addCollector(String id, MetricCollector collector) {
     while (collectorMap.containsKey(id)) {
       id += collectorMap.size() + ".";
     }

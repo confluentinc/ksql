@@ -52,10 +52,6 @@ class Counter<R> {
     return sensors.values().stream().map(sensor -> sensor.toString(verbose)).collect(Collectors.joining("  "));
   }
 
-  public Map<String, SensorMetric<R>> stats() {
-    return sensors;
-  }
-
   abstract static class SensorMetric<P> {
     private final Sensor sensor;
     private final KafkaMetric metric;
@@ -74,16 +70,8 @@ class Counter<R> {
       this.lastEvent = System.currentTimeMillis();
     }
 
-    public KafkaMetric metric() {
-      return metric;
-    }
-
     public double value() {
       return metric.measurable().measure(metric.config(), System.currentTimeMillis());
-    }
-
-    public Sensor sensor() {
-      return sensor;
     }
 
     public String lastEventTime() {

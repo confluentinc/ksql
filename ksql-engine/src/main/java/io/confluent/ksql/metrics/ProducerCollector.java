@@ -15,6 +15,7 @@
  **/
 package io.confluent.ksql.metrics;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -27,41 +28,52 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class ProducerCollector {
+public class ProducerCollector implements MetricCollector {
 
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
-  private final Metrics metrics;
-  private final String id;
+  private Metrics metrics;
+  private String id;
 
-  ProducerCollector(Metrics metrics, String id) {
-    this.metrics = metrics;
-    this.id = id;
+  public void configure(Map<String, ?> map) {
+    String id = (String) map.get(ProducerConfig.CLIENT_ID_CONFIG);
+    configure(MetricCollectors.addCollector(id, this), id);
   }
 
-  ProducerRecord onSend(ProducerRecord record) {
+  ProducerCollector configure(final Metrics metrics, final String id) {
+    this.id = id;
+    this.metrics = metrics;
+    return this;
+  }
+
+  @Override
+  public String getId() {
+    return id;
+  }
+
+  public ProducerRecord onSend(ProducerRecord record) {
     collect(record);
     return record;
   }
 
   private void collect(ProducerRecord record) {
     topicPartitionCounters.computeIfAbsent(getKey(record.topic()), k ->
-            new Counter<>(record.topic(), buildSensors(k, metrics))
+            new Counter<>(record.topic(), buildSensors(k))
     ).increment(record);
   }
 
-  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key, Metrics metrics) {
+  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key) {
     HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors = new HashMap<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
-      addRatePerSecond(key, metrics, sensors);
-      addTotalSensor(key, metrics, sensors);
+      addRatePerSecond(key, sensors);
+      addTotalSensor(key, sensors);
     }
     return sensors;
   }
 
   @SuppressWarnings("unchecked")
-  private void addRatePerSecond(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors) {
+  private void addRatePerSecond(String key, HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors) {
     String name = "prod-" + key + "-" + "-rate-per-sec";
 
     MetricName producerRate = new MetricName("produce rate-per-sec", name, "producer-statsAsString",Collections.EMPTY_MAP);
@@ -82,10 +94,10 @@ public class ProducerCollector {
   }
 
 
-  private void addTotalSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ProducerRecord>> results) {
+  private void addTotalSensor(String key, HashMap<String, Counter.SensorMetric<ProducerRecord>> results) {
     String name = "prod-" + key + "-total-events";
 
-    MetricName metricName = new MetricName("total-events", name, "producer-total-events",Collections.EMPTY_MAP);
+    MetricName metricName = new MetricName("total-events", name, "producer-total-events", Collections.EMPTY_MAP);
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
 
@@ -107,11 +119,15 @@ public class ProducerCollector {
   }
 
   public void close() {
+    MetricCollectors.remove(this.id);
     topicPartitionCounters.values().forEach(v -> v.close(metrics));
   }
 
-  // TODO: use this:
-  // https://stackoverflow.com/questions/25439277/lambdas-multiple-foreach-with-casting
+  @Override
+  public String statsForTopic(String topic) {
+    return statsForTopic(topic, false);
+  }
+
   public String statsForTopic(final String topic, final boolean verbose) {
 
     List<Counter> last = new ArrayList<>();

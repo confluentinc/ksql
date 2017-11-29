@@ -18,7 +18,7 @@ public class ProducerCollectorTest {
   @Test
   public void shouldDisplayRateThroughput() throws Exception {
 
-    ProducerCollector collector = new ProducerCollector(new Metrics(), "clientid");
+    ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid");
 
     for (int i = 0; i < 1000; i++){
       collector.onSend(new ProducerRecord(TEST_TOPIC, 1, "key", "value"));
@@ -40,10 +40,10 @@ public class ProducerCollectorTest {
     ArrayList<ProducerCollector> collectors = new ArrayList<>();
 
     Metrics metrics = new Metrics();
-    collectors.add(new ProducerCollector(metrics, "stream-thread-1"));
-    collectors.add(new ProducerCollector(metrics, "stream-thread-2"));
-    collectors.add(new ProducerCollector(metrics, "stream-thread-3"));
-    collectors.add(new ProducerCollector(metrics, "stream-thread-4"));
+    collectors.add(new ProducerCollector().configure(metrics, "stream-thread-1"));
+    collectors.add(new ProducerCollector().configure(metrics, "stream-thread-2"));
+    collectors.add(new ProducerCollector().configure(metrics, "stream-thread-3"));
+    collectors.add(new ProducerCollector().configure(metrics, "stream-thread-4"));
 
     for (int i = 0; i < 1000; i++){
 

@@ -1,12 +1,12 @@
 /**
  * Copyright 2017 Confluent Inc.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,62 +15,32 @@
  **/
 package io.confluent.ksql.metrics;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
-import java.util.Date;
 import java.util.Map;
 
-public class MetricCollector implements AbstractMetricCollector {
-
-  private ConsumerCollector consumerCollector;
-  private ProducerCollector producerCollector;
-  private final Date created = new Date();
-  private String clientId;
-
-  @Override
-  public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
-    consumerCollector.onConsume(consumerRecords);
+interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
+  default ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
     return consumerRecords;
   }
 
-  @Override
-  public ProducerRecord onSend(ProducerRecord producerRecord) {
-    return producerCollector.onSend(producerRecord);
+  default ProducerRecord onSend(ProducerRecord producerRecord) {
+    return producerRecord;
   }
 
-  @Override
-  public void close() {
-    MetricCollectors.remove(clientId);
-    consumerCollector.close();
-    producerCollector.close();
-  }
+  default void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {  }
 
-  @Override
-  public void configure(Map<String, ?> map) {
-    this.clientId = map.containsKey(ConsumerConfig.GROUP_ID_CONFIG) ?
-            (String) map.get(ConsumerConfig.GROUP_ID_CONFIG) : (String) map.get(ProducerConfig.CLIENT_ID_CONFIG);
+  default void close() {  }
 
-    Metrics metrics = MetricCollectors.addCollector(this);
-    consumerCollector = new ConsumerCollector(metrics, this.clientId);
-    producerCollector = new ProducerCollector(metrics, this.clientId);
-  }
+  default void onCommit(Map map) {  }
 
-  @Override
-  public String toString() {
-    return this.getClass().getSimpleName() + "Created:" + created + " Client:" + clientId + " Consumer:" + consumerCollector.toString() + " Producer:" + producerCollector.toString();
-  }
+  default void configure(Map<String, ?> map) {  }
 
-  public String getId() {
-    return clientId;
-  }
+  String getId();
 
-  public String statsForTopic(String topic) {
-    String results = consumerCollector.statsForTopic(topic.toLowerCase(), false);
-    return results + producerCollector.statsForTopic(topic.toLowerCase(), false);
-  }
-
+  String statsForTopic(String topic);
 }

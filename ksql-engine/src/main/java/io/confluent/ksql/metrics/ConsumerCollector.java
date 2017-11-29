@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metrics;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.MetricName;
@@ -54,47 +55,59 @@ import java.util.stream.StreamSupport;
  * Benefits:
  * - Smaller memory footprint due to agg on intercept
  */
-public class ConsumerCollector {
+public class ConsumerCollector implements MetricCollector {
 
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
-  private final Metrics metrics;
-  private final String id;
+  private Metrics metrics;
+  private String id;
 
-  ConsumerCollector(Metrics metrics, String id) {
-    this.metrics = metrics;
-    this.id = id;
+  public void configure(Map<String, ?> map) {
+    String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
+    configure(MetricCollectors.addCollector(id, this), id);
   }
 
-  void onConsume(ConsumerRecords records) {
+  ConsumerCollector configure(final Metrics metrics, final String id) {
+    this.id = id;
+    this.metrics = metrics;
+    return this;
+  }
+
+  @Override
+  public String getId() {
+    return id;
+  }
+
+  public ConsumerRecords onConsume(ConsumerRecords records) {
     collect(records);
+    return records;
   }
 
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
     stream.forEach((record) -> topicPartitionCounters.computeIfAbsent(getKey(record.topic().toLowerCase()), k ->
-            new Counter<>(record.topic().toLowerCase(), buildSensors(k, metrics))
+            new Counter<>(record.topic().toLowerCase(), buildSensors(k))
     ).increment(record));
   }
 
   private String getKey(String topic) {
-    return topic + "_";
+    return topic;
   }
 
-  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key, Metrics metrics) {
+  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key) {
 
     HashMap<String, Counter.SensorMetric<ConsumerRecord>> results = new HashMap<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
-    synchronized (metrics) {
-      addRateSensor(key, metrics, results);
-      addBandwidthSensor(key, metrics, results);
-      addTotalSensor(key, metrics, results);
+    synchronized (this.metrics) {
+      addRateSensor(key, results);
+      addBandwidthSensor(key, results);
+      addTotalSensor(key, results);
     }
     return results;
   }
 
-  private void addRateSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
+  private void addRateSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-rate-per-sec";
 
     //noinspection unchecked
@@ -116,7 +129,7 @@ public class ConsumerCollector {
     });
   }
 
-  private void addBandwidthSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
+  private void addBandwidthSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
     String name = "cons-" + key + "-bytes-per-sec";
 
     //noinspection unchecked
@@ -138,7 +151,7 @@ public class ConsumerCollector {
     });
   }
 
-  private void addTotalSensor(String key, Metrics metrics, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
+  private void addTotalSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
     String name = "cons-" + key + "-total-events";
 
     //noinspection unchecked
@@ -161,7 +174,12 @@ public class ConsumerCollector {
   }
 
   public void close() {
+    MetricCollectors.remove(this.id);
     topicPartitionCounters.values().forEach(v -> v.close(metrics));
+  }
+
+  public String statsForTopic(String topic) {
+    return statsForTopic(topic, false);
   }
 
   public String statsForTopic(final String topic, boolean verbose) {
@@ -179,6 +197,6 @@ public class ConsumerCollector {
 
   @Override
   public String toString() {
-    return super.toString() + " id:" + this.id + " " + topicPartitionCounters.keySet();
+    return getClass().getSimpleName() + " id:" + this.id + " " + topicPartitionCounters.keySet();
   }
 }

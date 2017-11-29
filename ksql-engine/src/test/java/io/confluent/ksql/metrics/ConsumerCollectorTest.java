@@ -26,7 +26,8 @@ public class ConsumerCollectorTest {
   @Test
   public void shouldDisplayRateThroughput() throws Exception {
 
-    ConsumerCollector collector = new ConsumerCollector(new Metrics(), "group");
+    ConsumerCollector collector = new ConsumerCollector();//
+    collector.configure(new Metrics(), "group");
 
     for (int i = 0; i < 100; i++){
 
@@ -55,10 +56,10 @@ public class ConsumerCollectorTest {
     ArrayList<ConsumerCollector> collectors = new ArrayList<>();
 
     Metrics metrics = new Metrics();
-    collectors.add(new ConsumerCollector(metrics, "stream-thread-1"));
-    collectors.add(new ConsumerCollector(metrics, "stream-thread-2"));
-    collectors.add(new ConsumerCollector(metrics, "stream-thread-3"));
-    collectors.add(new ConsumerCollector(metrics, "stream-thread-4"));
+    collectors.add(new ConsumerCollector().configure(metrics, "stream-thread-1"));
+    collectors.add(new ConsumerCollector().configure(metrics, "stream-thread-2"));
+    collectors.add(new ConsumerCollector().configure(metrics, "stream-thread-3"));
+    collectors.add(new ConsumerCollector().configure(metrics, "stream-thread-4"));
 
 
     for (int i = 0; i < 1000; i++){

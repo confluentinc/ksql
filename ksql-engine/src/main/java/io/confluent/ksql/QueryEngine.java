@@ -154,7 +154,7 @@ class QueryEngine {
 
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
-        ksqlConfigClone,
+        ksqlConfigClone.cloneWithPropertyOverwrite(overriddenStreamsProperties),
         ksqlEngine.getTopicClient(),
         new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),

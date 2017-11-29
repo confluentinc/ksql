@@ -58,14 +58,13 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
 
-    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize(topic, bytes);
-
     if (bytes == null) {
       return null;
     }
 
     GenericRow genericRow = null;
     try {
+      GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize(topic, bytes);
       List columns = new ArrayList();
       for (Field field : schema.fields()) {
         columns.add(enforceFieldType(field.schema(), genericRecord.get(field.name())));

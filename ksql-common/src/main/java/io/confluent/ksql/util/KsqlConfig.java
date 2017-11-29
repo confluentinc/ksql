@@ -209,4 +209,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return new KsqlConfig(clonedProperties);
   }
 
+  public KsqlConfig cloneWithPropertyOverwrite(Map<String, Object> props) {
+    Map<String, Object> clonedProperties = new HashMap<>();
+    clonedProperties.putAll(ksqlConfigProps);
+    clonedProperties.putAll(ksqlStreamConfigProps);
+    clonedProperties.putAll(props);
+    return new KsqlConfig(clonedProperties);
+  }
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -499,6 +500,9 @@ public class Cli implements Closeable, AutoCloseable {
       restClient.setProperty(property, value);
       return;
     } else if (property.equalsIgnoreCase(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+      restClient.setProperty(property, value);
+      return;
+    } else if (property.equalsIgnoreCase(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
       restClient.setProperty(property, value);
       return;
     } else {

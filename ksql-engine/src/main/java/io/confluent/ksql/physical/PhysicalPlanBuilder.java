@@ -44,7 +44,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
@@ -89,8 +88,7 @@ public class PhysicalPlanBuilder {
         ksqlConfig,
         kafkaTopicClient,
         metastoreUtil,
-        functionRegistry,
-        new HashMap<>());
+        functionRegistry, overriddenStreamsProperties);
     final OutputNode outputNode = resultStream.outputNode();
     boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 

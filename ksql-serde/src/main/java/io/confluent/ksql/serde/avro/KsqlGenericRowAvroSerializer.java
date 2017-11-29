@@ -58,8 +58,7 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     this.schema = schema;
     Map map = new HashMap();
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
-    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
-
+    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
     kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
 
   }
@@ -81,16 +80,19 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     if (genericRow == null) {
       return null;
     }
-    GenericRecord avroRecord = new GenericData.Record(avroSchema);
-    for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
-        avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.getColumns().get(i)));
-      } else {
-        avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
+    try {
+      GenericRecord avroRecord = new GenericData.Record(avroSchema);
+      for (int i = 0; i < genericRow.getColumns().size(); i++) {
+        if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
+          avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.getColumns().get(i)));
+        } else {
+          avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
+        }
       }
+      return kafkaAvroSerializer.serialize(topic, avroRecord);
+    } catch (Exception e) {
+      throw new SerializationException(e);
     }
-    return kafkaAvroSerializer.serialize(topic, avroRecord);
-
   }
 
   @Override

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.GenericRow;
@@ -73,12 +75,20 @@ public class SerDeUtil {
     String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, DdlConfig.AVRO_SCHEMA);
     serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
 
+    SchemaRegistryClient schemaRegistryClient;
+    if (ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+        .equalsIgnoreCase(SchemaRegistryClientFactory.schemaRegistryUrl)) {
+      schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient();
+    } else {
+      schemaRegistryClient = new CachedSchemaRegistryClient(ksqlConfig.getString(KsqlConfig
+                                                                                     .SCHEMA_REGISTRY_URL_PROPERTY), 1000);
+    }
     final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema,
-                                                                                         SchemaRegistryClientFactory.getSchemaRegistryClient(), ksqlConfig);
+                                                                                         schemaRegistryClient, ksqlConfig);
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer =
-        new KsqlGenericRowAvroDeserializer(schema, SchemaRegistryClientFactory.getSchemaRegistryClient());
+        new KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient);
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

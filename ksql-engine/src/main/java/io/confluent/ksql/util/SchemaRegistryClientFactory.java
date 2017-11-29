@@ -21,9 +21,11 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
 public class SchemaRegistryClientFactory {
 
+  public static String schemaRegistryUrl;
   public static SchemaRegistryClient schemaRegistryClient;
 
-  public static void setSchemaRegistryClient(String schemaRegistryUrl) {
+  public static void setSchemaRegistryClient(String schemaRegistryUrlStr) {
+    schemaRegistryUrl = schemaRegistryUrlStr;
     schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 1000);
   }
 

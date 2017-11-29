@@ -36,4 +36,12 @@ public class SchemaRegistryClientFactory {
     return schemaRegistryClient;
   }
 
+  public static synchronized SchemaRegistryClient getSchemaRegistryClient(String srUrl) {
+    if (srUrl.equalsIgnoreCase(schemaRegistryUrl)) {
+      return schemaRegistryClient;
+    } else {
+      return new CachedSchemaRegistryClient(srUrl, 1000);
+    }
+  }
+
 }

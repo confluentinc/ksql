@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -41,7 +40,7 @@ public class AvroUtil {
 
   public static synchronized Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(AbstractStreamCreateStatement
            abstractStreamCreateStatement,
-       Map<String, Object> streamsProperties) {
+       Map<String, Object> streamsProperties, KsqlConfig engineKsqlConfig) {
     Map<String,Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
     if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw
@@ -56,9 +55,10 @@ public class AvroUtil {
 
     String kafkaTopicName = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
+    KsqlConfig ksqlConfig = engineKsqlConfig.cloneWithPropertyOverwrite(streamsProperties);
     SchemaRegistryClient
-        schemaRegistryClient = new CachedSchemaRegistryClient(ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), 100);
+        schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlConfig
+                                                                                       .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
     try {
       SchemaMetadata schemaMetadata;
       if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {

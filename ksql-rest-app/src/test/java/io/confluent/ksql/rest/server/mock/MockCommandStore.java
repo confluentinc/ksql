@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 public class MockCommandStore extends CommandStore {
@@ -86,7 +87,7 @@ public class MockCommandStore extends CommandStore {
       String statementString,
       Statement statement,
       Map<String, Object> streamsProperties
-  ) throws Exception {
+  ) throws KsqlException {
     CommandId commandId = commandIdAssigner.getCommandId(statement);
     return commandId;
   }

@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 
 public abstract class Console implements Closeable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Console.class);
+  private static final Logger log = LoggerFactory.getLogger(Console.class);
 
   private LineReader lineReader;
   private final ObjectMapper objectMapper;
@@ -127,7 +127,7 @@ public abstract class Console implements Closeable {
   }
 
   public void printError(String shortMsg, String fullMsg) {
-    LOGGER.error(fullMsg);
+    log.error(fullMsg);
     writer().println(shortMsg);
   }
 
@@ -277,10 +277,7 @@ public abstract class Console implements Closeable {
         writer().println("output:");
         writer().println("\tView the current output format.");
         writer().println("");
-        writer() .printf(
-            "output <format>:",
-            OutputFormat.VALID_FORMATS
-        );
+        writer().println("output <format>");
         writer().println("");
         writer() .printf(
             "\tSet the output format to <format> (valid formats: %s)%n",
@@ -523,7 +520,7 @@ public abstract class Console implements Closeable {
       }
       o = newEntities;
     } else {
-      LOGGER.warn(String.format("Unexpected result class: '%s' found in printAsJson", o.getClass().getCanonicalName()));
+      log.warn("Unexpected result class: '{}' found in printAsJson", o.getClass().getCanonicalName());
     }
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
     writer().println();

@@ -7,13 +7,13 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>3.3.0</version>
+        <version>4.0.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.1-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
     <modules>
         <module>ksql-common</module>
         <module>ksql-serde</module>
@@ -23,6 +23,9 @@
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>
+        <module>ksql-clickstream-demo</module>
+        <module>ksql-version-metrics-client</module>
+        <module>ksql-console-scripts</module>
     </modules>
 
     <repositories>
@@ -30,7 +33,25 @@
             <id>confluent</id>
             <url>http://packages.confluent.io/maven/</url>
         </repository>
+        <repository>
+            <id>confluent-snapshots</id>
+            <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
+        </repository>
     </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>confluent-snapshots</id>
+            <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <properties>
         <!-- remove the version control when confluent-common updates to 11.0.1 -->
@@ -38,7 +59,7 @@
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
-        <avro.version>1.8.1</avro.version>
+        <avro.version>1.8.2</avro.version>
         <csv.version>1.4</csv.version>
         <docker.registry></docker.registry>
         <docker.tag>${project.version}</docker.tag>
@@ -55,15 +76,8 @@
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <dockerfile-maven-plugin.version>1.3.4</dockerfile-maven-plugin.version>
         <generext.version>1.0.2</generext.version>
+        <jackson.version>2.9.1</jackson.version>
     </properties>
-
-    <!-- Temporarily needed for build-tools artifact until Confluent 3.3.1 is released. -->
-    <pluginRepositories>
-        <pluginRepository>
-            <id>confluent</id>
-            <url>http://packages.confluent.io/maven/</url>
-        </pluginRepository>
-    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -116,6 +130,12 @@
                 <artifactId>ksql-rest-app</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-version-metrics-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <!-- End cross-submodule dependencies -->
 
             <!-- Confluent dependencies -->
@@ -134,6 +154,12 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>rest-utils</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.support</groupId>
+                <artifactId>support-metrics-common</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
 
@@ -204,6 +230,12 @@
                 <artifactId>jline</artifactId>
                 <version>${jline.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -231,16 +263,6 @@
                         </descriptors>
                     </configuration>
                 </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <configuration>
-                        <failsOnError>true</failsOnError>
-                        <failOnViolation>true</failOnViolation>
-                    </configuration>
-                </plugin>
-
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
@@ -268,4 +290,19 @@
             </plugin>
         </plugins>
     </build>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs-maven-plugin.version}</version>
+                <configuration>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>

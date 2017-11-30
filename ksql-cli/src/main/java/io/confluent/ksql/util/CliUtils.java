@@ -19,14 +19,15 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ConnectException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class CliUtils {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CliUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
                                                       registerTopicContext) {
@@ -83,9 +84,8 @@ public class CliUtils {
 
   public String readQueryFile(final String queryFilePath) throws IOException {
     StringBuilder sb = new StringBuilder();
-    BufferedReader br = null;
-    try {
-      br = new BufferedReader(new FileReader(queryFilePath));
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {
         sb.append(line);
@@ -94,10 +94,6 @@ public class CliUtils {
       }
     } catch (IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
-    } finally {
-      if (br != null) {
-        br.close();
-      }
     }
     return sb.toString();
   }
@@ -149,13 +145,18 @@ public class CliUtils {
 
   public static boolean createFile(Path path) {
     try {
-      Files.createDirectories(path.getParent());
+      final Path parent = path.getParent();
+      if (parent == null) {
+        log.warn("Failed to create file as the parent was null. path: {}", path);
+        return false;
+      }
+      Files.createDirectories(parent);
       if (Files.notExists(path)) {
         Files.createFile(path);
       }
       return true;
     } catch (Exception e) {
-      LOGGER.error(ExceptionUtil.stackTraceToString(e));
+      log.warn("createFile failed, path: {}", path, e);
       return false;
     }
   }

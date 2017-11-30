@@ -17,11 +17,15 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.cli.LocalCli;
+import org.apache.kafka.test.TestCondition;
+import org.apache.kafka.test.TestUtils;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+
+import static junit.framework.TestCase.fail;
 
 public abstract class TestRunner {
 
@@ -51,8 +55,16 @@ public abstract class TestRunner {
   }
 
   protected static void test(String command, TestResult expectedResult, boolean requireOrder) {
-    TestResult actual = run(command, requireOrder);
-    Assert.assertEquals(expectedResult, actual);
+    run(command, requireOrder);
+    try {
+      TestUtils.waitForCondition(() -> {
+        TestResult actualResult = testTerminal.getTestResult();
+        return actualResult.data.containsAll(expectedResult.data);
+      }, 10000, "Did not get the expected result '" + expectedResult.toString() + ", in a timely fashion.");
+    } catch (InterruptedException e) {
+      fail("Test got interrutped when waiting for result " + expectedResult.toString());
+    }
+
   }
 
   protected static TestResult run(String command, boolean requireOrder) throws CliTestFailedException {

@@ -20,17 +20,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
-import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,26 +37,10 @@ import java.util.Map;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
-
   //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
   private ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
-
-  private static ConfigDef configDef;
-
-  static {
-    configDef = new ConfigDef()
-        .define(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-            ConfigDef.Type.BOOLEAN,
-            false,
-            ConfigDef.Importance.MEDIUM,
-            "Whether or not KSQL should fail when there are deserialization errors." +
-                "The default is false, errors will be logged");
-  }
-
-  private Boolean failOnDeserializationError = Boolean.FALSE;
 
   /**
    * Default constructor needed by Kafka
@@ -71,10 +51,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
-    final Map<String, Object> config = configDef.parse(map);
-    failOnDeserializationError = (Boolean) config.getOrDefault(
-        KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-        Boolean.FALSE);
   }
 
   @Override
@@ -85,12 +61,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     try {
       return getGenericRow(bytes);
     } catch (Exception e) {
-      if (failOnDeserializationError) {
-        throw new SerializationException("KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
-      } else {
-        log.warn("KsqlJsonDeserializer failed to deserialize data for topic: {}", topic, e);
-        return null;
-      }
+      throw new SerializationException("KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }
   }
 
@@ -154,12 +125,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   }
 
-  class CaseInsensitiveJsonNode {
-    JsonNode jsonNode;
+  static class CaseInsensitiveJsonNode {
     Map<String, String> keyMap = new HashMap<>();
 
     CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      this.jsonNode = jsonNode;
       Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
         String fieldName = fieldNames.next();

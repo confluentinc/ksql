@@ -24,6 +24,8 @@ import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
@@ -37,6 +39,7 @@ import java.util.Properties;
 
 @Command(name = "local", description = "Run a local (standalone) Cli session")
 public class Local extends AbstractCliCommands {
+
 
   private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
 
@@ -104,15 +107,19 @@ public class Local extends AbstractCliCommands {
       throw new RuntimeException(exception);
     }
 
+    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getLocalServerAddress(portNumber));
+    Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
+    terminal.writer().println("Initializing KSQL...");
+    terminal.flush();
     // Have to override listeners config to make sure it aligns with port number for client
     serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(portNumber));
     KsqlRestConfig restServerConfig = new KsqlRestConfig(serverProperties);
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false);
+    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+        new KsqlVersionCheckerAgent()
+    );
     restServer.start();
 
-    KsqlRestClient restClient = new KsqlRestClient(CliUtils.getLocalServerAddress(portNumber));
-    Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
-
+    versionCheckerAgent.start(KsqlModuleType.LOCAL_CLI, serverProperties);
     return new LocalCli(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
@@ -142,7 +149,10 @@ public class Local extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      properties.load(new FileInputStream(propertiesFile));
+      try(final FileInputStream input = new FileInputStream(propertiesFile)) {
+        properties.load(input);
+      }
+
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,

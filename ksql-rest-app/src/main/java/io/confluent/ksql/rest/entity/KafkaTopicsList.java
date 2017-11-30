@@ -18,8 +18,8 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StringUtil;
@@ -27,7 +27,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +37,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 @JsonTypeName("kafka_topics")
+@JsonSubTypes({})
 public class KafkaTopicsList extends KsqlEntity {
   private final Collection<KafkaTopicInfo> topics;
 
@@ -50,7 +50,6 @@ public class KafkaTopicsList extends KsqlEntity {
     this.topics = topics;
   }
 
-  @JsonUnwrapped
   public List<KafkaTopicInfo> getTopics() {
     return new ArrayList<>(topics);
   }
@@ -101,24 +100,24 @@ public class KafkaTopicsList extends KsqlEntity {
   }
 
   private static String getTopicReplicaInfo(List<TopicPartitionInfo> partitions) {
-    int[] replicaSizes = new int[partitions.size()];
+    List<Integer> replicaSizes = new ArrayList<>(partitions.size());
 
-    for (int i = 0; i < partitions.size(); i++) {
-      replicaSizes[i] = partitions.get(i).replicas().size();
+    for (TopicPartitionInfo partition : partitions) {
+      replicaSizes.add(partition.replicas().size());
     }
 
     boolean sameReplicaCount = true;
     for (int i = 1; i < partitions.size(); i++) {
-      if (replicaSizes[i] != replicaSizes[i-1]) {
+      if (!replicaSizes.get(i).equals(replicaSizes.get(i-1))) {
         sameReplicaCount = false;
         break;
       }
     }
 
     if (sameReplicaCount) {
-      return partitions.size() == 0 ? "0" : String.valueOf(replicaSizes[0]);
+      return partitions.size() == 0 ? "0" : String.valueOf(replicaSizes.get(0));
     } else {
-      return StringUtil.join(", ", Arrays.asList(replicaSizes));
+      return StringUtil.join(", ", replicaSizes);
     }
   }
 
@@ -134,10 +133,10 @@ public class KafkaTopicsList extends KsqlEntity {
                                                       .KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)
         .toString();
 
-    for (String kafkaTopicName: kafkaTopicDescriptions.keySet()) {
-      if (!kafkaTopicName.startsWith(serviceId + persistentQueryPrefix) &&
-          !kafkaTopicName.startsWith(serviceId + transientQueryPrefix)) {
-        filteredKafkaTopics.put(kafkaTopicName.toLowerCase(), kafkaTopicDescriptions.get(kafkaTopicName));
+    for (Map.Entry<String, TopicDescription> entry: kafkaTopicDescriptions.entrySet()) {
+      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix) &&
+          !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
+        filteredKafkaTopics.put(entry.getKey().toLowerCase(), entry.getValue());
       }
     }
     return filteredKafkaTopics;

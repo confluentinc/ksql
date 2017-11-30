@@ -18,9 +18,11 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class KafkaTopicInfo {
 
   private final String name;

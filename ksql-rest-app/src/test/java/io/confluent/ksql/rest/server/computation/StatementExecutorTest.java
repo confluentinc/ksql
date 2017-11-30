@@ -18,33 +18,45 @@ package io.confluent.ksql.rest.server.computation;
 
 import org.easymock.EasyMockSupport;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
-import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class StatementExecutorTest extends EasyMockSupport {
 
-  private MockKsqkEngine mockKsqkEngine = new MockKsqkEngine(
-      TestUtils.getMockKsqlConfig(), new MockKafkaTopicClient());
+  @ClassRule
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
 
-  private StatementParser statementParser = new StatementParser(mockKsqkEngine);
+  private StatementExecutor getStatementExecutor() {
+    Map<String, Object> props = new HashMap<>();
+    props.put("application.id", "ksqlStatementExecutorTest");
+    props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
-  StatementExecutor statementExecutor = new StatementExecutor(mockKsqkEngine, statementParser);
+    KsqlEngine ksqlEngine = new KsqlEngine(
+        new KsqlConfig(props), new MockKafkaTopicClient());
 
+    StatementParser statementParser = new StatementParser(ksqlEngine);
 
+    return new StatementExecutor(ksqlEngine, statementParser);
+  }
 
   @Test
-  public void handleCorrectDDLStatement() throws Exception {
+  public void shouldHandleCorrectDDLStatement() throws Exception {
+    StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGISTER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
     CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen");
@@ -57,7 +69,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void handleIncorrectDDLStatement() throws Exception {
+  public void shouldHandleIncorrectDDLStatement() throws Exception {
+    StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGIST ER TOPIC users_topic WITH (value_format = 'json', "
                                   + "kafka_topic='user_topic_json');", new HashMap<>());
     CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen");
@@ -70,7 +83,20 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void handleCSAS_CTASStatement() throws Exception {
+  public void shouldNotRunNullStatementList() {
+    StatementExecutor statementExecutor = getStatementExecutor();
+    try{
+      statementExecutor.handleStatements(null);
+    } catch (Exception nex) {
+      assertThat("Statement list should not be null.", nex instanceof NullPointerException);
+    }
+
+
+  }
+
+  @Test
+  public void shouldHandleCSAS_CTASStatement() throws Exception {
+    StatementExecutor statementExecutor = getStatementExecutor();
 
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
                                        + "(value_format = 'json', "
@@ -99,6 +125,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                                       new HashMap<>());
 
     CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
     Command terminateCommand = new Command("TERMINATE 1;",
@@ -109,16 +136,18 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 5);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(terminateCommandId).getStatus(), CommandStatus.Status.ERROR);
+    Assert.assertEquals(6, statusStore.size());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(terminateCommandId).getStatus());
+
   }
 
   @Test
-  public void handlePriorStatement() throws Exception {
+  public void shouldHandlePriorStatement() throws Exception {
+    StatementExecutor statementExecutor = getStatementExecutor();
     TestUtils testUtils = new TestUtils();
     List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
 
@@ -131,11 +160,11 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 4);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
+    Assert.assertEquals(4, statusStore.size());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
+    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
   }
 
 }

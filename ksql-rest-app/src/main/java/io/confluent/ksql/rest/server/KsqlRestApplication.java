@@ -45,9 +45,13 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -89,6 +93,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final boolean enableQuickstartPage;
 
   private final Thread commandRunnerThread;
+  private final VersionCheckerAgent versionChckerAgent;
 
   public static String getCommandsKsqlTopicName() {
     return COMMANDS_KSQL_TOPIC_NAME;
@@ -106,7 +111,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      boolean enableQuickstartPage
+      boolean enableQuickstartPage,
+      VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -116,6 +122,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
     this.enableQuickstartPage = enableQuickstartPage;
+    this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
   }
@@ -141,7 +148,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private static Properties getProps(String propsFile) throws IOException {
     Properties result = new Properties();
     result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    result.load(new FileInputStream(propsFile));
+    try(final FileInputStream inputStream = new FileInputStream(propsFile)) {
+      result.load(inputStream);
+    }
     return result;
   }
 
@@ -149,6 +158,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   public void start() throws Exception {
     super.start();
     commandRunnerThread.start();
+    Properties metricsProperties = new Properties();
+    metricsProperties.putAll(getConfiguration().getOriginals());
+    if (versionChckerAgent != null) {
+      versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
+    }
   }
 
   @Override
@@ -189,7 +203,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
 
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart());
+    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart(), new KsqlVersionCheckerAgent());
 
     log.info("Starting server");
     app.start();
@@ -198,7 +212,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     log.info("Server shutting down");
   }
 
-  public static KsqlRestApplication buildApplication(KsqlRestConfig restConfig, boolean quickstart)
+  public static KsqlRestApplication buildApplication(
+      KsqlRestConfig restConfig,
+      boolean quickstart,
+      VersionCheckerAgent versionCheckerAgent
+  )
       throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
@@ -208,16 +226,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ksqlConfProperties.putAll(restConfig.getOriginals());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(ksqlConfig.getKsqlAdminClientConfigProps()));
+    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient client = ksqlEngine.getTopicClient();
 
     String commandTopic = restConfig.getCommandTopic();
 
     try {
       short replicationFactor = 1;
-      if(restConfig.getOriginals().containsKey(KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
+      if(restConfig.getOriginals().containsKey(KsqlConstants.SINK_NUMBER_OF_REPLICAS)) {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
-                                                     .get(KsqlConfig.DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString());
+                                                     .get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {
@@ -305,7 +324,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        quickstart
+        quickstart,
+        versionCheckerAgent
     );
   }
 

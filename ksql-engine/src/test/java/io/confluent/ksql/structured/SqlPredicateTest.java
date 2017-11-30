@@ -21,10 +21,10 @@ import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -33,8 +33,9 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SerDeUtil;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,28 +50,19 @@ public class SqlPredicateTest {
   MetaStore metaStore;
   KStream kStream;
   KsqlStream ksqlStream;
+  FunctionRegistry functionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+    functionRegistry = new FunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
-    KStreamBuilder builder = new KStreamBuilder();
-    kStream = builder.stream(Serdes.String(),
+    StreamsBuilder builder = new StreamsBuilder();
+    kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
                              SerDeUtil.getRowSerDe(ksqlStream.getKsqlTopic().getKsqlTopicSerDe(),
-                                                   null),
-                             ksqlStream.getKsqlTopic().getKafkaTopicName());
+                                                   null)));
   }
 
-  private Analysis analyze(String queryStr) {
-    List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0))
-                           .replace("\n", " "));
-    // Analyze the query to resolve the references and extract oeprations
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
-    analyzer.process(statements.get(0), new AnalysisContext(null));
-    return analysis;
-  }
 
   private PlanNode buildLogicalPlan(String queryStr) {
     List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
@@ -80,12 +72,12 @@ public class SqlPredicateTest {
     analyzer.process(statements.get(0), new AnalysisContext(null));
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-        analysis);
+                                                                analysis, functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis).buildPlan();
+    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
     return logicalPlan;
   }
 
@@ -98,9 +90,9 @@ public class SqlPredicateTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false);
+        .getSchema(), false, functionRegistry);
 
     Assert.assertTrue(predicate.getFilterExpression()
                           .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
@@ -117,9 +109,9 @@ public class SqlPredicateTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE);
+                                             SchemaKStream.Type.SOURCE, functionRegistry);
     SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false);
+        .getSchema(), false, functionRegistry);
 
     Assert.assertTrue(predicate
                           .getFilterExpression()

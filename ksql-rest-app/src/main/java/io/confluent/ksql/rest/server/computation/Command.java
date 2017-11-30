@@ -18,11 +18,13 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> streamsProperties;

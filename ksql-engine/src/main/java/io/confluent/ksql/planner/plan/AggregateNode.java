@@ -19,17 +19,42 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.KudafAggregator;
+import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.structured.SchemaKGroupedStream;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SerDeUtil;
 
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 public class AggregateNode extends PlanNode {
@@ -127,14 +152,11 @@ public class AggregateNode extends PlanNode {
     return requiredColumnList;
   }
 
-  public List<Expression> getNonAggResultColumns() {
-    return nonAggResultColumns;
-  }
-
   public List<Pair<String, Expression>> getFinalSelectExpressions() {
     List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
-      throw new KsqlException("Incompatible aggregate schema.");
+      throw new KsqlException("Incompatible aggregate schema, field count must match, "
+      + "selected field count:" +finalSelectExpressions.size() + " schema field count:" + schema.fields().size());
     }
     for (int i = 0; i < finalSelectExpressions.size(); i++) {
       finalSelectExpressionList.add(new Pair<>(schema.fields().get(i).name(),
@@ -150,5 +172,208 @@ public class AggregateNode extends PlanNode {
   @Override
   public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
     return visitor.visitAggregate(this, context);
+  }
+
+  @Override
+  public SchemaKStream buildStream(final StreamsBuilder builder,
+                                   final KsqlConfig ksqlConfig,
+                                   final KafkaTopicClient kafkaTopicClient,
+                                   final MetastoreUtil metastoreUtil,
+                                   final FunctionRegistry functionRegistry,
+                                   final Map<String, Object> props) {
+    final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
+    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, props);
+    final SchemaKStream rekeyedSchemaKStream = aggregateReKey(sourceSchemaKStream, functionRegistry);
+
+    // Pre aggregate computations
+    final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
+    final Map<String, Integer> expressionNames = new HashMap<>();
+    collectAggregateArgExpressions(getRequiredColumnList(), aggArgExpansionList, expressionNames);
+    collectAggregateArgExpressions(getAggregateFunctionArguments(), aggArgExpansionList, expressionNames);
+
+    final SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
+
+    final Serde<GenericRow> genericRowSerde =
+        SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
+                .getKsqlTopic()
+                .getKsqlTopicSerDe(),
+            aggregateArgExpanded.getSchema());
+
+    final SchemaKGroupedStream schemaKGroupedStream =
+        aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
+
+    // Aggregate computations
+    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+
+    final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
+        aggregateArgExpanded,
+        aggregateSchema);
+
+    final List<Object> resultColumns = IntStream.range(0,
+        aggValToValColumnMap.size()).mapToObj(value -> "").collect(Collectors.toList());
+
+    final Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
+            .getStructuredDataSource()
+            .getKsqlTopic()
+            .getKsqlTopicSerDe(),
+        aggregateSchema);
+
+    final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
+        new KudafInitializer(resultColumns),
+        new KudafAggregator(createAggValToFunctionMap(
+            expressionNames,
+            aggregateArgExpanded,
+            aggregateSchema,
+            resultColumns,
+            functionRegistry),
+            aggValToValColumnMap), getWindowExpression(),
+        aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
+
+    final Schema aggStageSchema = buildAggregateSchema(schemaKTable, functionRegistry);
+
+    SchemaKTable result = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
+        schemaKTable.getKeyField(),
+        schemaKTable.getSourceSchemaKStreams(),
+        schemaKTable.isWindowed(),
+        SchemaKStream.Type.AGGREGATE,
+        functionRegistry);
+
+
+    if (getHavingExpressions() != null) {
+      result = result.filter(getHavingExpressions());
+    }
+
+    return result.select(getFinalSelectExpressions());
+  }
+
+  private SchemaKStream aggregateReKey(final SchemaKStream sourceSchemaKStream, final FunctionRegistry functionRegistry) {
+    StringBuilder aggregateKeyName = new StringBuilder();
+    List<Integer> newKeyIndexes = new ArrayList<>();
+    boolean addSeparator = false;
+    for (Expression groupByExpr : getGroupByExpressions()) {
+      if (addSeparator) {
+        aggregateKeyName.append("|+|");
+      } else {
+        addSeparator = true;
+      }
+      aggregateKeyName.append(groupByExpr.toString());
+      newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
+    }
+
+    KStream rekeyedKStream = sourceSchemaKStream.getKstream().selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
+      StringBuilder newKey = new StringBuilder();
+      boolean addSeparator1 = false;
+      for (int index : newKeyIndexes) {
+        if (addSeparator1) {
+          newKey.append("|+|");
+        } else {
+          addSeparator1 = true;
+        }
+        newKey.append(String.valueOf(value.getColumns().get(index)));
+      }
+      return newKey.toString();
+    });
+
+    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
+
+    return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
+        Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY,
+        functionRegistry);
+  }
+
+  private Map<Integer, Integer> createAggregateValueToValueColumnMap(final SchemaKStream aggregateArgExpanded,
+                                                                     final SchemaBuilder aggregateSchema) {
+    Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
+    int nonAggColumnIndex = 0;
+    for (Expression expression: getRequiredColumnList()) {
+      String exprStr = expression.toString();
+      int index = getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+      aggValToValColumnMap.put(nonAggColumnIndex, index);
+      nonAggColumnIndex++;
+      Field field = aggregateArgExpanded.getSchema().fields().get(index);
+      aggregateSchema.field(field.name(), field.schema());
+    }
+    return aggValToValColumnMap;
+  }
+
+  private void collectAggregateArgExpressions(final List<Expression> expressions,
+                                              final List<Pair<String, Expression>> aggArgExpansionList,
+                                              final Map<String, Integer> expressionNames) {
+    expressions.stream()
+        .filter(e -> !expressionNames.containsKey(e.toString()))
+        .forEach(expression -> {
+          expressionNames.put(expression.toString(), aggArgExpansionList.size());
+          aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
+        });
+  }
+
+  private int getIndexInSchema(final String fieldName, final Schema schema) {
+    List<Field> fields = schema.fields();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (field.name().equals(fieldName)) {
+        return i;
+      }
+    }
+    throw new KsqlException("Couldn't find field with name="
+        + fieldName
+        + " in schema. fields="
+        + fields);
+  }
+
+  private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(final Map<String, Integer> expressionNames,
+                                                                        final SchemaKStream aggregateArgExpanded,
+                                                                        final SchemaBuilder aggregateSchema,
+                                                                        final List<Object> resultColumns,
+                                                                        final FunctionRegistry functionRegistry) {
+    try {
+      int udafIndexInAggSchema = resultColumns.size();
+      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
+      for (FunctionCall functionCall: getFunctionList()) {
+        KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+            .getAggregateFunction(functionCall
+                    .getName()
+                    .toString(),
+                functionCall
+                    .getArguments(), aggregateArgExpanded.getSchema());
+        int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
+        KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
+            .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
+        aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
+        resultColumns.add(aggregateFunction.getIntialValue());
+
+        aggregateSchema.field("AGG_COL_"
+            + udafIndexInAggSchema, aggregateFunction.getReturnType());
+      }
+      return aggValToAggFunctionMap;
+    } catch (final Exception e) {
+      throw new KsqlException(String.format("Failed to create aggregate val to function map. expressionNames:%s, resultColumns:%s",
+          expressionNames,
+          resultColumns),
+          e);
+    }
+  }
+
+  private Schema buildAggregateSchema(final SchemaKTable schemaKTable,
+                                      final FunctionRegistry functionRegistry) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final List<Field> fields = schemaKTable.getSchema().fields();
+    for (int i = 0; i < getRequiredColumnList().size(); i++) {
+      schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
+    }
+    for (int aggFunctionVarSuffix = 0;
+         aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
+      Schema fieldSchema;
+      String udafName = getFunctionList().get(aggFunctionVarSuffix).getName()
+          .getSuffix();
+      KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
+          getFunctionList()
+              .get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
+      fieldSchema = aggregateFunction.getReturnType();
+      schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
+          + aggFunctionVarSuffix, fieldSchema);
+    }
+
+    return schemaBuilder.build();
   }
 }

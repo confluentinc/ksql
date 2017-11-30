@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.confluent.ksql.serde.DataSource;
@@ -32,6 +33,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @JsonTypeName("description")
+@JsonSubTypes({})
 public class SourceDescription extends KsqlEntity {
 
   private final String name;

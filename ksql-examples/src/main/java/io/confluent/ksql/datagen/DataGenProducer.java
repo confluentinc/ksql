@@ -147,8 +147,7 @@ public abstract class DataGenProducer {
       LinkedHashMap properties = (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
       Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
 
-      int hash = Math.abs(sessionisationValue.hashCode());
-      int vvalue = hash % max.intValue();
+      int vvalue = Math.abs(sessionisationValue.hashCode() % max);
 
       int foundValue = -1;
       // used - search for another

@@ -28,6 +28,7 @@ import io.confluent.ksql.cli.RemoteCli;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.JLineTerminal;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.FileInputStream;
@@ -68,6 +69,7 @@ public class Remote extends AbstractCliCommands {
     KsqlRestClient restClient = new KsqlRestClient(server, propertiesMap);
     Console terminal = new JLineTerminal(parseOutputFormat(), restClient);
 
+    versionCheckerAgent.start(KsqlModuleType.REMOTE_CLI, properties);
     return new RemoteCli(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
@@ -85,7 +87,9 @@ public class Remote extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      properties.load(new FileInputStream(propertiesFile));
+      try(final FileInputStream input = new FileInputStream(propertiesFile)) {
+        properties.load(input);
+      }
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,

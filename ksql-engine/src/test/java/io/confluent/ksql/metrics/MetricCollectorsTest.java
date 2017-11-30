@@ -1,10 +1,10 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
 
@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class MetricCollectorsTest {
@@ -19,11 +21,23 @@ public class MetricCollectorsTest {
   private static final String TEST_TOPIC = "shared-topic";
 
   @Test
+  public void shouldAggregateStats() throws Exception {
+
+    List<Counter.Stat> stats = Arrays.asList(new Counter.Stat("metric", 1, 1l), new Counter.Stat("metric", 1, 1l), new Counter.Stat("metric", 1, 1l));
+    Map<String, Counter.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
+    assertThat(aggregateMetrics.size(), equalTo(1));
+    assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
+  }
+
+
+    @Test
   public void shouldKeepWorkingWhenDuplicateTopicConsumerIsRemoved() throws Exception {
 
-    Metrics metrics = new Metrics();
-    ConsumerCollector collector1 = new ConsumerCollector().configure(metrics, "stream-thread-1");
-    ConsumerCollector collector2 = new ConsumerCollector().configure(metrics, "stream-thread-2");
+    ConsumerCollector collector1 = new ConsumerCollector();
+    collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "stream-thread-1") );
+
+    ConsumerCollector collector2 = new ConsumerCollector();
+    collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "stream-thread-2") );
 
 
 
@@ -36,7 +50,7 @@ public class MetricCollectorsTest {
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
-    String firstPassStats = collector1.statsForTopic(TEST_TOPIC);
+    String firstPassStats = MetricCollectors.getCollectorStatsByTopic(TEST_TOPIC);
 
     assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-events:      2.00"));
 
@@ -44,9 +58,9 @@ public class MetricCollectorsTest {
 
     collector1.onConsume(consumerRecords);
 
-    String statsForTopic2 = collector1.statsForTopic(TEST_TOPIC);
+    String statsForTopic2 =  MetricCollectors.getCollectorStatsByTopic(TEST_TOPIC);
 
-    assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-events:      3.00"));
+    assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-events:      2.00"));
 
   }
 }

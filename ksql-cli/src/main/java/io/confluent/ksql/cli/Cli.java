@@ -52,12 +52,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -371,7 +366,7 @@ public class Cli implements Closeable, AutoCloseable {
     PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
     propertiesList.getProperties().putAll(restClient.getLocalProperties());
     terminal.printKsqlEntityList(
-        Arrays.asList(propertiesList)
+            Collections.singletonList(propertiesList)
     );
   }
 
@@ -381,7 +376,10 @@ public class Cli implements Closeable, AutoCloseable {
       boolean noErrorFromServer = true;
       for (KsqlEntity entity : ksqlEntities) {
         if (entity instanceof ErrorMessageEntity) {
-          terminal.printErrorMessage(((ErrorMessageEntity) entity).getErrorMessage());
+          ErrorMessageEntity errorMsg = (ErrorMessageEntity) entity;
+          terminal.printErrorMessage(errorMsg.getErrorMessage());
+          LOGGER.error(errorMsg.toString());
+          LOGGER.error(errorMsg.getErrorMessage().getStackTrace().toString().replace(", ", ", \n "));
           noErrorFromServer = false;
         } else if (entity instanceof CommandStatusEntity &&
                    (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {

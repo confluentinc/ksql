@@ -16,19 +16,20 @@
 
 package io.confluent.ksql.metrics;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.common.utils.Time;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -60,15 +61,19 @@ public class ConsumerCollector implements MetricCollector {
   private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
   private Metrics metrics;
   private String id;
+  private Time time;
 
   public void configure(Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
-    configure(MetricCollectors.addCollector(id, this), id);
+    if (id == null) id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
+    if (id.contains(""))
+    configure(MetricCollectors.getMetrics(), MetricCollectors.addCollector(id, this), MetricCollectors.getTime());
   }
 
-  ConsumerCollector configure(final Metrics metrics, final String id) {
+  ConsumerCollector configure(final Metrics metrics, final String id, final Time time) {
     this.id = id;
     this.metrics = metrics;
+    this.time = time;
     return this;
   }
 
@@ -85,87 +90,42 @@ public class ConsumerCollector implements MetricCollector {
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach((record) -> topicPartitionCounters.computeIfAbsent(getKey(record.topic().toLowerCase()), k ->
+    stream.forEach((record) -> topicPartitionCounters.computeIfAbsent(getCounterKey(record.topic().toLowerCase()), k ->
             new Counter<>(record.topic().toLowerCase(), buildSensors(k))
     ).increment(record));
   }
 
-  private String getKey(String topic) {
+  private String getCounterKey(String topic) {
     return topic;
   }
 
   private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key) {
 
-    HashMap<String, Counter.SensorMetric<ConsumerRecord>> results = new HashMap<>();
+    HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors = new HashMap<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (this.metrics) {
-      addRateSensor(key, results);
-      addBandwidthSensor(key, results);
-      addTotalSensor(key, results);
+      addSensor(key, "events-per-sec", new Rate(), sensors);
+      addSensor(key, "total-events", new Total(), sensors);
     }
-    return results;
+    return sensors;
   }
 
-  private void addRateSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
-    String name = "cons-" + key + "-rate-per-sec";
+  private void addSensor(String key, String metricNameString, MeasurableStat stat, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
+    String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
-    //noinspection unchecked
-    MetricName metricName = new MetricName("consume rate-per-sec", name, "consumer-rate-per-sec",  Collections.EMPTY_MAP);
+    MetricName metricName = new MetricName(metricNameString, "consumer-metrics", "consumer-" + name, ImmutableMap.of("key", key, "id", id));
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
 
     // re-use the existing measurable stats to share between consumers
-    if (existingSensor == null) {
-      sensor.add(metricName, new Rate(TimeUnit.SECONDS));
+    if (existingSensor == null ||  metrics.metrics().get(metricName) == null) {
+      sensor.add(metricName, stat);
     }
 
-    KafkaMetric rate = metrics.metrics().get(metricName);
-    results.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, rate) {
-      void record(ConsumerRecord record) {
-        sensor.record(1);
-        super.record(record);
-      }
-    });
-  }
-
-  private void addBandwidthSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> results) {
-    String name = "cons-" + key + "-bytes-per-sec";
-
-    //noinspection unchecked
-    MetricName metricName = new MetricName("bytes-per-sec", name, "consumer-bytes-per-sec", Collections.EMPTY_MAP);
-    Sensor existingSensor = metrics.getSensor(name);
-    Sensor sensor = metrics.sensor(name);
-
-    // re-use the existing measurable stats to share between consumers
-    if (existingSensor == null) {
-      sensor.add(metricName, new Rate(TimeUnit.SECONDS));
-    }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
-    results.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric) {
-      void record(ConsumerRecord record) {
-        sensor.record(record.serializedValueSize());
-        super.record(record);
-      }
-    });
-  }
-
-  private void addTotalSensor(String key, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
-    String name = "cons-" + key + "-total-events";
-
-    //noinspection unchecked
-    MetricName metricName = new MetricName("total-events", name, "consumer-total-events", Collections.EMPTY_MAP);
-    Sensor existingSensor = metrics.getSensor(name);
-    Sensor sensor = metrics.sensor(name);
-
-    // re-use the existing measurable stats to share between consumers
-    if (existingSensor == null) {
-      sensor.add(metricName, new Total());
-    }
-    KafkaMetric metric = metrics.metrics().get(metricName);
-
-    sensors.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric) {
+    sensors.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric, time) {
       void record(ConsumerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -178,21 +138,10 @@ public class ConsumerCollector implements MetricCollector {
     topicPartitionCounters.values().forEach(v -> v.close(metrics));
   }
 
-  public String statsForTopic(String topic) {
-    return statsForTopic(topic, false);
-  }
-
-  public String statsForTopic(final String topic, boolean verbose) {
-    List<Counter> last = new ArrayList<>();
-
-    String stats = topicPartitionCounters.values().stream().filter(counter -> (counter.isTopic(topic)  && last.add(counter))).map(record -> record.statsAsString(verbose)).collect(Collectors.joining(", "));
-
-    // Add timestamp information
-    if (!last.isEmpty()) {
-      Counter.SensorMetric sensor = (Counter.SensorMetric) last.stream().findFirst().get().sensors.values().stream().findFirst().get();
-      stats += " " + sensor.lastEventTime();
-    }
-    return stats;
+  public Collection<Counter.Stat> stats(String topic) {
+    final List<Counter.Stat> list = new ArrayList<>();
+    topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
+    return list;
   }
 
   @Override

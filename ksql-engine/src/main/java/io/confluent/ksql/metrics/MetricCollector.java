@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
+import java.util.Collection;
 import java.util.Map;
 
 interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
@@ -42,5 +43,5 @@ interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
 
   String getId();
 
-  String statsForTopic(String topic);
+  Collection<Counter.Stat> stats(String topic);
 }

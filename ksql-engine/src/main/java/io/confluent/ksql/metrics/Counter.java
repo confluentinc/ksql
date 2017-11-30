@@ -15,13 +15,14 @@
  **/
 package io.confluent.ksql.metrics;
 
+import io.confluent.common.utils.Time;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 class Counter<R> {
 
   private final String topic;
-  Map<String, SensorMetric<R>> sensors = new HashMap<>();
+  private final Map<String, SensorMetric<R>> sensors;
 
   Counter(String topic, final Map<String, SensorMetric<R>> sensors) {
     this.topic = topic.toLowerCase();
@@ -44,22 +45,100 @@ class Counter<R> {
     sensors.values().forEach(v -> v.close(metrics));
   }
 
-  public boolean isTopic(String topic) {
+  boolean isTopic(String topic) {
     return this.topic.equals(topic);
   }
 
-  public String statsAsString(boolean verbose) {
-    return sensors.values().stream().map(sensor -> sensor.toString(verbose)).collect(Collectors.joining("  "));
+  Collection<Stat> stats() {
+    return sensors.values().stream().map(sensor -> sensor.asStat()).collect(Collectors.toList());
+  }
+
+  public SensorMetric<R> firstSensor() {
+    if (sensors.isEmpty()) throw new RuntimeException("Sensors is empty");
+    return this.sensors.values().iterator().next();
+  }
+
+  static class Stat {
+    private final String name;
+    private double value;
+    private final long timestamp;
+
+
+    public Stat(String name, double value, long timestamp) {
+      this.name = name;
+      this.value = value;
+      this.timestamp = timestamp;
+    }
+    public String formatted() {
+      return  String.format("%s:%10.2f", name, value);
+    }
+
+    public String timestamp() {
+      return SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(timestamp));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      Stat stat = (Stat) o;
+
+      if (Double.compare(stat.value, value) != 0) return false;
+      if (Double.compare(stat.timestamp, timestamp) != 0) return false;
+      return name != null ? name.equals(stat.name) : stat.name == null;
+    }
+
+    @Override
+    public int hashCode() {
+      int result;
+      long temp;
+      result = name != null ? name.hashCode() : 0;
+      temp = Double.doubleToLongBits(value);
+      result = 31 * result + (int) (temp ^ (temp >>> 32));
+      temp = Double.doubleToLongBits(timestamp);
+      result = 31 * result + (int) (temp ^ (temp >>> 32));
+      return result;
+    }
+
+
+    @Override
+    public String toString() {
+      return "Stat{" +
+              "name='" + name + '\'' +
+              ", value=" + value +
+              ", timestamp=" + timestamp +
+              '}';
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public double getValue() {
+      return value;
+    }
+
+    public long getTimestamp() {
+      return timestamp;
+    }
+
+    public Stat aggregate(double value) {
+      this.value += value;
+      return this;
+    }
   }
 
   abstract static class SensorMetric<P> {
     private final Sensor sensor;
     private final KafkaMetric metric;
+    private Time time;
     private long lastEvent = 0;
 
-    SensorMetric(Sensor sensor, KafkaMetric metric) {
+    SensorMetric(Sensor sensor, KafkaMetric metric, Time time) {
       this.sensor = sensor;
       this.metric = metric;
+      this.time = time;
     }
 
     /**
@@ -67,16 +146,11 @@ class Counter<R> {
      * @param object
      */
     void record(P object) {
-      this.lastEvent = System.currentTimeMillis();
+      this.lastEvent = time.milliseconds();
     }
 
     public double value() {
-      return metric.measurable().measure(metric.config(), System.currentTimeMillis());
-    }
-
-    public String lastEventTime() {
-      if (lastEvent == 0) return "No-events";
-      return "Last-event: " + SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(lastEvent));
+      return metric.measurable().measure(metric.config(), time.milliseconds());
     }
 
     public void close(Metrics metrics) {
@@ -84,17 +158,13 @@ class Counter<R> {
       metrics.removeMetric(metric.metricName());
     }
 
-    public String toString(boolean verbose) {
-      if (verbose) {
-        return metric.metricName().group() + "." + metric.metricName().name() + ":" +  String.format("%10.2f", value());
-      } else {
-        return metric.metricName().name() + ":" + String.format("%10.2f", value());
-      }
-    }
-
     @Override
     public String toString() {
-      return toString(false);
+      return super.toString() + " " + asStat().toString();
+    }
+
+    public Stat asStat() {
+      return new Stat(metric.metricName().name(), value(), lastEvent);
     }
   }
 }

@@ -16,16 +16,15 @@
 
 package io.confluent.ksql.metrics;
 
+import io.confluent.common.utils.Time;
 import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.utils.SystemTime;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,22 +33,24 @@ import java.util.concurrent.TimeUnit;
 public class MetricCollectors {
 
 
-  private static final Map<String, MetricCollector> collectorMap = new HashMap<>();
+  private static final Map<String, MetricCollector> collectorMap = new ConcurrentHashMap<>();
   private static final Metrics metrics;
 
   static {
     MetricConfig metricConfig = new MetricConfig().samples(100).timeWindow(1000, TimeUnit.MILLISECONDS);
     List<MetricsReporter> reporters = new ArrayList<>();
-    reporters.add(new JmxReporter("ksql.metrics"));
+    reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
   }
 
-  static Metrics addCollector(String id, MetricCollector collector) {
+  private static Time time = new io.confluent.common.utils.SystemTime();
+
+  static String addCollector(String id, MetricCollector collector) {
     while (collectorMap.containsKey(id)) {
-      id += collectorMap.size() + ".";
+      id += "-" + collectorMap.size();
     }
     collectorMap.put(id, collector);
-    return metrics;
+    return id;
   }
 
   static void remove(String id) {
@@ -57,12 +58,36 @@ public class MetricCollectors {
   }
 
   public static String getCollectorStatsByTopic(final String topic) {
-    final StringBuilder results = new StringBuilder();
-    collectorMap.values().forEach(c -> results.append(c.statsForTopic(topic.toLowerCase())));
+
+    ArrayList<Counter.Stat> allStats = new ArrayList<>();
+    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase())));
+
+    Map<String, Counter.Stat> aggregateStats = getAggregateMetrics(allStats);
+
+    return format(aggregateStats.values());
+  }
+
+  static Map<String, Counter.Stat> getAggregateMetrics(final List<Counter.Stat> allStats) {
+    Map<String, Counter.Stat> results = new TreeMap<>();
+    allStats.forEach(stat -> {
+      results.computeIfAbsent(stat.name(), k -> new Counter.Stat(stat.name(), 0L, stat.getTimestamp()));
+      results.get(stat.name()).aggregate(stat.getValue());
+    });
+    return results;
+  }
+
+  private static String format(Collection<Counter.Stat> stats) {
+    StringBuilder results = new StringBuilder();
+    stats.forEach(stat -> results.append(stat.formatted()).append("  "));
+    if (stats.size() > 0) results.append(" last-event: ").append(stats.iterator().next().timestamp()).append(" \n");
     return results.toString();
   }
 
   public static Metrics getMetrics() {
     return metrics;
+  }
+
+  public static Time getTime() {
+    return time;
   }
 }

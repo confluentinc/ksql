@@ -379,7 +379,6 @@ public class Cli implements Closeable, AutoCloseable {
           ErrorMessageEntity errorMsg = (ErrorMessageEntity) entity;
           terminal.printErrorMessage(errorMsg.getErrorMessage());
           LOGGER.error(errorMsg.getErrorMessage().getMessage());
-          LOGGER.error(errorMsg.getErrorMessage().getStackTrace().toString().replace(", ", ", \n "));
           noErrorFromServer = false;
         } else if (entity instanceof CommandStatusEntity &&
                    (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {

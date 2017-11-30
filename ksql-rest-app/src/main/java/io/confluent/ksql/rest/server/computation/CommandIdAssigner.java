@@ -57,7 +57,7 @@ public class CommandIdAssigner {
     } else if (command instanceof DropTable) {
       return getDropTableCommandId((DropTable) command);
     } else if (command instanceof RunScript) {
-      return new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.CREATE);
+      return new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE);
     } else {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",
@@ -91,7 +91,7 @@ public class CommandIdAssigner {
   }
 
   public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
-    return new CommandId(CommandId.Type.TERMINATE, terminateQuery.getQueryId().toString(), CommandId.Action.CREATE);
+    return new CommandId(CommandId.Type.TERMINATE, terminateQuery.getQueryId().toString(), CommandId.Action.EXECUTE);
   }
 
   public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {

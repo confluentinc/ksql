@@ -142,7 +142,12 @@ public class CommandStore implements Closeable {
                 if (key.getAction() != CommandId.Action.DROP && !commands.containsKey(key)) {
                     commands.put(key, record);
                 } else if (key.getAction() == CommandId.Action.DROP){
-                  commands.remove(new CommandId(key.getType(), key.getEntity(), CommandId.Action.CREATE));
+                    if(commands.remove(new CommandId(key.getType(),
+                        key.getEntity(),
+                        CommandId.Action.CREATE)) == null) {
+                        log.warn("drop command {} found without a corresponding create command for"
+                            + " {} {}", key, key.getType(), key.getAction());
+                    }
                 }
             }
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);

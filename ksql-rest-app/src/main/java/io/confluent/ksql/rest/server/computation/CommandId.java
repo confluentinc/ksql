@@ -37,7 +37,8 @@ public class CommandId {
 
   public enum Action {
     CREATE,
-    DROP
+    DROP,
+    EXECUTE
   }
 
   public CommandId(final Type type,

@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
-import io.confluent.ksql.QueryTeminator;
+import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -47,7 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class CommandFactoriesTest {
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
-  private final CommandFactories commandFactories = new CommandFactories(topicClient, EasyMock.createMock(QueryTeminator.class));
+  private final CommandFactories commandFactories = new CommandFactories(topicClient, EasyMock.createMock(QueryTerminator.class));
   private final HashMap<String, Expression> properties = new HashMap<>();
 
   @Before

@@ -17,7 +17,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.query.QueryId;
 
-public interface QueryTeminator {
+public interface QueryTerminator {
   boolean terminateQuery(QueryId queryId, boolean closeStreams);
 
   void terminateQueryForEntity(String entity);

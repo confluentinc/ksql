@@ -18,7 +18,7 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.QueryTeminator;
+import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -34,14 +34,14 @@ import io.confluent.ksql.util.KsqlException;
 public class CommandFactories implements DDLCommandFactory {
   private final Map<Class<? extends DDLStatement>, DDLCommandFactory> factories = new HashMap<>();
 
-  public CommandFactories(final KafkaTopicClient topicClient, final QueryTeminator queryTeminator) {
+  public CommandFactories(final KafkaTopicClient topicClient, final QueryTerminator queryTerminator) {
     factories.put(RegisterTopic.class, (ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement, properties));
     factories.put(CreateStream.class, (ddlStatement, properties) -> new CreateStreamCommand((CreateStream) ddlStatement, properties, topicClient));
     factories.put(CreateTable.class, (ddlStatement, properties) -> new CreateTableCommand((CreateTable)ddlStatement, properties, topicClient));
     factories.put(DropStream.class, (ddlStatement, properties) -> new DropSourceCommand(
-        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTeminator));
+        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator));
     factories.put(DropTable.class, (ddlStatement, properties) -> new DropSourceCommand(
-        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTeminator));
+        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator));
     factories.put(DropTopic.class, (ddlStatement, properties) -> new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(SetProperty.class, (ddlStatement, properties) -> new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }

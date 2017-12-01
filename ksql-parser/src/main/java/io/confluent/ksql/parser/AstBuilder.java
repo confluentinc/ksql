@@ -552,7 +552,7 @@ public class AstBuilder
   @Override
   public Node visitTerminateQuery(SqlBaseParser.TerminateQueryContext context) {
     return new TerminateQuery(getLocation(context),
-                              Long.parseLong(context.INTEGER_VALUE().getText()));
+                              unquote(context.STRING().getText(), "'"));
   }
 
   @Override

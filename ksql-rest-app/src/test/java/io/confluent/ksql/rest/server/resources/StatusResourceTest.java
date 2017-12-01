@@ -42,17 +42,17 @@ public class StatusResourceTest {
     mockCommandStatuses = new HashMap<>();
 
     mockCommandStatuses.put(
-        new CommandId(CommandId.Type.TOPIC, "test_topic"),
+        new CommandId(CommandId.Type.TOPIC, "test_topic", CommandId.Action.CREATE),
         new CommandStatus(CommandStatus.Status.SUCCESS, "Topic created successfully")
     );
 
     mockCommandStatuses.put(
-        new CommandId(CommandId.Type.STREAM, "test_stream"),
+        new CommandId(CommandId.Type.STREAM, "test_stream", CommandId.Action.CREATE),
         new CommandStatus(CommandStatus.Status.ERROR, "Hi Ewen!")
     );
 
     mockCommandStatuses.put(
-        new CommandId(CommandId.Type.TERMINATE, "5"),
+        new CommandId(CommandId.Type.TERMINATE, "5", CommandId.Action.CREATE),
         new CommandStatus(CommandStatus.Status.QUEUED, "Command written to command topic")
     );
   }
@@ -95,7 +95,7 @@ public class StatusResourceTest {
       CommandId commandId = commandEntry.getKey();
       CommandStatus expectedCommandStatus = commandEntry.getValue();
 
-      Object statusEntity = testResource.getStatus(commandId.getType().name(), commandId.getEntity()).getEntity();
+      Object statusEntity = testResource.getStatus(commandId.getType().name(), commandId.getEntity(), commandId.getAction().name()).getEntity();
       assertThat(statusEntity, instanceOf(CommandStatus.class));
       CommandStatus testCommandStatus = (CommandStatus) statusEntity;
 

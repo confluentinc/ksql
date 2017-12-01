@@ -66,14 +66,16 @@ public class Remote extends AbstractCliCommands {
   @Option(
           name = {USERNAME_OPTION, USERNAME_SHORT_OPTION},
           description = "If your KSQL server is configured for authentication, then provide your user name here. " +
-                  "The password must be specified separately with the " + PASSWORD_SHORT_OPTION + "/" + PASSWORD_OPTION + " flag"
+                  "The password must be specified separately with the " + PASSWORD_SHORT_OPTION + "/" + PASSWORD_OPTION + " flag",
+          hidden = true
   )
   String userName;
 
   @Option(
           name = {PASSWORD_OPTION, PASSWORD_SHORT_OPTION},
           description = "If your KSQL server is configured for authentication, then provide your password here. " +
-                  "The username must be specified separately with the " + USERNAME_SHORT_OPTION + "/" + USERNAME_OPTION + " flag"
+                  "The username must be specified separately with the " + USERNAME_SHORT_OPTION + "/" + USERNAME_OPTION + " flag",
+          hidden = true
   )
   String password;
 

@@ -420,19 +420,27 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String", "Statistics");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
-              Long.toString(runningQuery.getId()),
+              runningQuery.getId().toString(),
               runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString()
+              runningQuery.getQueryString(),
+              runningQuery.getStatistics()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
-      List<SourceDescription.FieldSchemaInfo> fields = ((SourceDescription) ksqlEntity).getSchema();
+      SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
+      List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
       columnHeaders = Arrays.asList("Field", "Type");
       rowValues = fields.stream()
           .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
+
+      rowValues.add(Arrays.asList("------","--------"));
+      rowValues.add(Arrays.asList("",""));
+      rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
+
+
     } else if (ksqlEntity instanceof TopicDescription) {
       columnHeaders = new ArrayList<>();
       columnHeaders.add("Topic Name");

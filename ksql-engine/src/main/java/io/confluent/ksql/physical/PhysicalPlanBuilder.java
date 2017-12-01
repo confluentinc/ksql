@@ -22,6 +22,9 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -40,6 +43,7 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -47,7 +51,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class PhysicalPlanBuilder {
 
@@ -60,7 +63,6 @@ public class PhysicalPlanBuilder {
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
-  private final AtomicLong queryIdCounter;
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -70,8 +72,7 @@ public class PhysicalPlanBuilder {
                              final boolean addUniqueTimeSuffix,
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
-                             final MetaStore metaStore,
-                             final AtomicLong queryIdCounter) {
+                             final MetaStore metaStore) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -81,7 +82,6 @@ public class PhysicalPlanBuilder {
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
-    this.queryIdCounter = queryIdCounter;
   }
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
@@ -160,12 +160,6 @@ public class PhysicalPlanBuilder {
                                                          final String persistanceQueryPrefix,
                                                          final String statement) {
 
-    long queryId = queryIdCounter.getAndIncrement();
-    String applicationId = serviceId + persistanceQueryPrefix + queryId;
-    if (addUniqueTimeSuffix) {
-      applicationId = addTimeSuffix(applicationId);
-    }
-
     if (metaStore.getTopic(outputNode.getKafkaTopicName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
@@ -188,11 +182,16 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic());
+
     }
 
     if (updateMetastore) {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
     }
+
+    final QueryId queryId = sinkDataSource.getPersistentQueryId();
+    final String applicationId = addTimeSuffix(serviceId + persistanceQueryPrefix + queryId);
+
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
     return new PersistentQueryMetadata(statement,
@@ -240,6 +239,8 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
+    newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), ConsumerCollector.class.getCanonicalName());
+    newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), ProducerCollector.class.getCanonicalName());
     return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 

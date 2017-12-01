@@ -22,6 +22,8 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
@@ -41,6 +43,7 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -236,6 +239,8 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
+    newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), ConsumerCollector.class.getCanonicalName());
+    newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), ProducerCollector.class.getCanonicalName());
     return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
   }
 

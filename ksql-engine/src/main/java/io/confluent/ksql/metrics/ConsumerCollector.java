@@ -58,7 +58,7 @@ import java.util.stream.StreamSupport;
  */
 public class ConsumerCollector implements MetricCollector {
 
-  private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
+  private final Map<String, TopicSensors> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private Time time;
@@ -82,6 +82,7 @@ public class ConsumerCollector implements MetricCollector {
     return id;
   }
 
+  @Override
   public ConsumerRecords onConsume(ConsumerRecords records) {
     collect(records);
     return records;
@@ -90,8 +91,8 @@ public class ConsumerCollector implements MetricCollector {
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach((record) -> topicPartitionCounters.computeIfAbsent(getCounterKey(record.topic().toLowerCase()), k ->
-            new Counter<>(record.topic().toLowerCase(), buildSensors(k))
+    stream.forEach((record) -> topicSensors.computeIfAbsent(getCounterKey(record.topic().toLowerCase()), k ->
+            new TopicSensors<>(record.topic().toLowerCase(), buildSensors(k))
     ).increment(record));
   }
 
@@ -99,9 +100,9 @@ public class ConsumerCollector implements MetricCollector {
     return topic;
   }
 
-  private Map<String, Counter.SensorMetric<ConsumerRecord>> buildSensors(String key) {
+  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(String key) {
 
-    HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors = new HashMap<>();
+    List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (this.metrics) {
@@ -111,7 +112,7 @@ public class ConsumerCollector implements MetricCollector {
     return sensors;
   }
 
-  private void addSensor(String key, String metricNameString, MeasurableStat stat, HashMap<String, Counter.SensorMetric<ConsumerRecord>> sensors) {
+  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ConsumerRecord>> sensors) {
     String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
     MetricName metricName = new MetricName(metricNameString, "consumer-metrics", "consumer-" + name, ImmutableMap.of("key", key, "id", id));
@@ -125,7 +126,7 @@ public class ConsumerCollector implements MetricCollector {
 
     KafkaMetric metric = metrics.metrics().get(metricName);
 
-    sensors.put(metricName.name(), new Counter.SensorMetric<ConsumerRecord>(sensor, metric, time) {
+    sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time) {
       void record(ConsumerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -135,17 +136,17 @@ public class ConsumerCollector implements MetricCollector {
 
   public void close() {
     MetricCollectors.remove(this.id);
-    topicPartitionCounters.values().forEach(v -> v.close(metrics));
+    topicSensors.values().forEach(v -> v.close(metrics));
   }
 
-  public Collection<Counter.Stat> stats(String topic) {
-    final List<Counter.Stat> list = new ArrayList<>();
-    topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
+  public Collection<TopicSensors.Stat> stats(String topic) {
+    final List<TopicSensors.Stat> list = new ArrayList<>();
+    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
     return list;
   }
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + " id:" + this.id + " " + topicPartitionCounters.keySet();
+    return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }
 }

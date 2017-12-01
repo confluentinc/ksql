@@ -10,12 +10,8 @@ import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -39,7 +35,7 @@ public class ConsumerCollectorTest {
       collector.onConsume(consumerRecords);
     }
 
-    Collection<Counter.Stat> stats = collector.stats(TEST_TOPIC);
+    Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC);
     assertNotNull(stats);
 
     assertThat( stats.toString(), containsString("name='events-per-sec',"));

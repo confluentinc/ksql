@@ -429,8 +429,8 @@ public abstract class Console implements Closeable {
               runningQuery.getStatistics()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
-      SourceDescription ksqlEntity1 = (SourceDescription) ksqlEntity;
-      List<SourceDescription.FieldSchemaInfo> fields = ksqlEntity1.getSchema();
+      SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
+      List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
       columnHeaders = Arrays.asList("Field", "Type");
       rowValues = fields.stream()
           .map(field -> Arrays.asList(field.getName(), field.getType()))
@@ -438,7 +438,7 @@ public abstract class Console implements Closeable {
 
       rowValues.add(Arrays.asList("------","--------"));
       rowValues.add(Arrays.asList("",""));
-      rowValues.add(Arrays.asList("Statistics", ksqlEntity1.getStatistics()));
+      rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
 
 
     } else if (ksqlEntity instanceof TopicDescription) {

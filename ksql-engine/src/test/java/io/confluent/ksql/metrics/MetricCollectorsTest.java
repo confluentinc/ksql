@@ -23,8 +23,8 @@ public class MetricCollectorsTest {
   @Test
   public void shouldAggregateStats() throws Exception {
 
-    List<Counter.Stat> stats = Arrays.asList(new Counter.Stat("metric", 1, 1l), new Counter.Stat("metric", 1, 1l), new Counter.Stat("metric", 1, 1l));
-    Map<String, Counter.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
+    List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
+    Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
   }

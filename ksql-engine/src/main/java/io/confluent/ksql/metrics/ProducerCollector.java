@@ -31,7 +31,7 @@ import java.util.*;
 
 public class ProducerCollector implements MetricCollector {
 
-  private final Map<String, Counter> topicPartitionCounters = new HashMap<>();
+  private final Map<String, TopicSensors> topicSensors = new HashMap<>();
   private Metrics metrics;
   private String id;
   private Time time;
@@ -53,19 +53,20 @@ public class ProducerCollector implements MetricCollector {
     return id;
   }
 
+  @Override
   public ProducerRecord onSend(ProducerRecord record) {
     collect(record);
     return record;
   }
 
   private void collect(ProducerRecord record) {
-    topicPartitionCounters.computeIfAbsent(getKey(record.topic()), k ->
-            new Counter<>(record.topic(), buildSensors(k))
+    topicSensors.computeIfAbsent(getKey(record.topic()), k ->
+            new TopicSensors<>(record.topic(), buildSensors(k))
     ).increment(record);
   }
 
-  private Map<String, Counter.SensorMetric<ProducerRecord>> buildSensors(String key) {
-    HashMap<String, Counter.SensorMetric<ProducerRecord>> sensors = new HashMap<>();
+  private List<TopicSensors.SensorMetric<ProducerRecord>> buildSensors(String key) {
+    List<TopicSensors.SensorMetric<ProducerRecord>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
@@ -75,7 +76,7 @@ public class ProducerCollector implements MetricCollector {
     return sensors;
   }
 
-  private void addSensor(String key, String metricNameString, MeasurableStat stat, HashMap<String, Counter.SensorMetric<ProducerRecord>> results) {
+  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ProducerRecord>> results) {
     String name = "prod-" + key + "-" + metricNameString + "-" + id;
 
     MetricName metricName = new MetricName(metricNameString, "producer-metrics", "producer-" + name,  ImmutableMap.of("key", key, "id", id));
@@ -88,7 +89,7 @@ public class ProducerCollector implements MetricCollector {
     }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
-    results.put(metricName.name(), new Counter.SensorMetric<ProducerRecord>(sensor, metric, time) {
+    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time) {
       void record(ProducerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -103,18 +104,18 @@ public class ProducerCollector implements MetricCollector {
 
   public void close() {
     MetricCollectors.remove(this.id);
-    topicPartitionCounters.values().forEach(v -> v.close(metrics));
+    topicSensors.values().forEach(v -> v.close(metrics));
   }
 
-  public Collection<Counter.Stat> stats(String topic) {
-    final List<Counter.Stat> list = new ArrayList<>();
-    topicPartitionCounters.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
+  public Collection<TopicSensors.Stat> stats(String topic) {
+    final List<TopicSensors.Stat> list = new ArrayList<>();
+    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
     return list;
   }
 
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + " " + this.id + " " + this.topicPartitionCounters.toString();
+    return getClass().getSimpleName() + " " + this.id + " " + this.topicSensors.toString();
   }
 }

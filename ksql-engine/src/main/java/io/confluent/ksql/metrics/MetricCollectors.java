@@ -63,24 +63,24 @@ public class MetricCollectors {
 
   public static String getCollectorStatsByTopic(final String topic) {
 
-    ArrayList<Counter.Stat> allStats = new ArrayList<>();
+    ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
     collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase())));
 
-    Map<String, Counter.Stat> aggregateStats = getAggregateMetrics(allStats);
+    Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
 
     return format(aggregateStats.values());
   }
 
-  static Map<String, Counter.Stat> getAggregateMetrics(final List<Counter.Stat> allStats) {
-    Map<String, Counter.Stat> results = new TreeMap<>();
+  static Map<String, TopicSensors.Stat> getAggregateMetrics(final List<TopicSensors.Stat> allStats) {
+    Map<String, TopicSensors.Stat> results = new TreeMap<>();
     allStats.forEach(stat -> {
-      results.computeIfAbsent(stat.name(), k -> new Counter.Stat(stat.name(), 0L, stat.getTimestamp()));
+      results.computeIfAbsent(stat.name(), k -> new TopicSensors.Stat(stat.name(), 0L, stat.getTimestamp()));
       results.get(stat.name()).aggregate(stat.getValue());
     });
     return results;
   }
 
-  private static String format(Collection<Counter.Stat> stats) {
+  private static String format(Collection<TopicSensors.Stat> stats) {
     StringBuilder results = new StringBuilder();
     stats.forEach(stat -> results.append(stat.formatted()).append("  "));
     if (stats.size() > 0) results.append(" last-event: ").append(stats.iterator().next().timestamp()).append(" \n");

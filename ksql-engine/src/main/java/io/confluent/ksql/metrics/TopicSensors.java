@@ -23,26 +23,26 @@ import org.apache.kafka.common.metrics.Sensor;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-class Counter<R> {
+class TopicSensors<R> {
 
   private final String topic;
-  private final Map<String, SensorMetric<R>> sensors;
+  private final List<SensorMetric<R>> sensors;
 
-  Counter(String topic, final Map<String, SensorMetric<R>> sensors) {
+  TopicSensors(String topic, final List<SensorMetric<R>> sensors) {
     this.topic = topic.toLowerCase();
     this.sensors = sensors;
   }
 
   void increment(R record) {
-    sensors.values().forEach(v -> v.record(record));
+    sensors.forEach(v -> v.record(record));
   }
 
   public void close(Metrics metrics) {
-    sensors.values().forEach(v -> v.close(metrics));
+    sensors.forEach(v -> v.close(metrics));
   }
 
   boolean isTopic(String topic) {
@@ -50,12 +50,7 @@ class Counter<R> {
   }
 
   Collection<Stat> stats() {
-    return sensors.values().stream().map(sensor -> sensor.asStat()).collect(Collectors.toList());
-  }
-
-  public SensorMetric<R> firstSensor() {
-    if (sensors.isEmpty()) throw new RuntimeException("Sensors is empty");
-    return this.sensors.values().iterator().next();
+    return sensors.stream().map(sensor -> sensor.asStat()).collect(Collectors.toList());
   }
 
   static class Stat {

@@ -21,7 +21,7 @@ public class ProducerCollectorTest {
       collector.onSend(new ProducerRecord(TEST_TOPIC, 1, "key", "value"));
     }
 
-    Collection<Counter.Stat> stats = collector.stats("test-topic");
+    Collection<TopicSensors.Stat> stats = collector.stats("test-topic");
 
     assertThat( stats.toString(), containsString("name='events-per-sec',"));
   }

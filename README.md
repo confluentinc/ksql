@@ -61,7 +61,8 @@ CREATE TABLE error_counts AS
 
 
 # Documentation
-You can find the KSQL documentation at [docs.confluent.io](https://docs.confluent.io/current/ksql/docs/index.html).
+You can find the KSQL documentation at [docs.confluent.io](https://docs.confluent.io/current/ksql/docs/index.html). The source
+is located in [https://github.com/confluentinc/ksql/docs/](/docs/).
 
 # Join the Community
 Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).

@@ -423,7 +423,7 @@ public abstract class Console implements Closeable {
       columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String", "Statistics");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
-              Long.toString(runningQuery.getId()),
+              runningQuery.getId().toString(),
               runningQuery.getKafkaTopic(),
               runningQuery.getQueryString(),
               runningQuery.getStatistics()

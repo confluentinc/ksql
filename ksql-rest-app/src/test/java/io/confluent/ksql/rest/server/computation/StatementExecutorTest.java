@@ -58,8 +58,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandleCorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGISTER TOPIC users_topic WITH (value_format = 'json', "
-                                  + "kafka_topic='user_topic_json');", new HashMap<>());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen");
+        + "kafka_topic='user_topic_json');", new HashMap<>());
+    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_CorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
@@ -72,8 +72,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandleIncorrectDDLStatement() throws Exception {
     StatementExecutor statementExecutor = getStatementExecutor();
     Command command = new Command("REGIST ER TOPIC users_topic WITH (value_format = 'json', "
-                                  + "kafka_topic='user_topic_json');", new HashMap<>());
-    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen");
+        + "kafka_topic='user_topic_json');", new HashMap<>());
+    CommandId commandId =  new CommandId(CommandId.Type.TOPIC, "_IncorrectTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(command, commandId);
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
@@ -99,39 +99,39 @@ public class StatementExecutorTest extends EasyMockSupport {
     StatementExecutor statementExecutor = getStatementExecutor();
 
     Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
-                                       + "(value_format = 'json', "
-                                       + "kafka_topic='pageview_topic_json');", new HashMap<>());
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
+        + "(value_format = 'json', "
+        + "kafka_topic='pageview_topic_json');", new HashMap<>());
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(topicCommand, topicCommandId);
 
     Command csCommand = new Command("CREATE STREAM pageview "
-                                    + "(viewtime bigint, pageid varchar, userid varchar) "
-                                    + "WITH (registered_topic = 'pageview_topic');",
-                                    new HashMap<>());
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
+        + "(viewtime bigint, pageid varchar, userid varchar) "
+        + "WITH (registered_topic = 'pageview_topic');",
+        new HashMap<>());
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csCommand, csCommandId);
 
     Command csasCommand = new Command("CREATE STREAM user1pv "
-                                    + " AS select * from pageview WHERE userid = 'user1';",
-                                    new HashMap<>());
+        + " AS select * from pageview WHERE userid = 'user1';",
+        new HashMap<>());
 
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(csasCommand, csasCommandId);
 
     Command ctasCommand = new Command("CREATE TABLE user1pvtb "
-                                      + " AS select * from pageview window tumbling(size 5 "
-                                      + "second) WHERE userid = "
-                                      + "'user1' group by pageid;",
-                                      new HashMap<>());
+        + " AS select * from pageview window tumbling(size 5 "
+        + "second) WHERE userid = "
+        + "'user1' group by pageid;",
+        new HashMap<>());
 
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command("TERMINATE 1;",
+    Command terminateCommand = new Command("TERMINATE 'CSAS_USER1PV';",
                                       new HashMap<>());
 
-    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen");
+    CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(terminateCommand, terminateCommandId);
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -151,10 +151,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     TestUtils testUtils = new TestUtils();
     List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
 
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
+    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
     statementExecutor.handleStatements(priorCommands);
 

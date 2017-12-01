@@ -45,10 +45,10 @@ public class StatusResource {
   }
 
   @GET
-  @Path("/{type}/{entity}")
-  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity)
+  @Path("/{type}/{entity}/{action}")
+  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity, @PathParam("action") String action)
       throws Exception {
-    CommandId commandId = new CommandId(type, entity);
+    CommandId commandId = new CommandId(type, entity, action);
 
     Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 

@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import io.confluent.ksql.query.QueryId;
+
 @JsonTypeName("queries")
 @JsonSubTypes({})
 public class Queries extends KsqlEntity {
@@ -47,20 +49,19 @@ public class Queries extends KsqlEntity {
     private final String queryString;
     private final String statistics;
     private final String kafkaTopic;
-    private final long id;
+    private final QueryId id;
 
     @JsonCreator
     public RunningQuery(
         @JsonProperty("queryString") String queryString,
         @JsonProperty("kafkaTopic") String kafkaTopic,
         @JsonProperty("statistics") String statistics,
-        @JsonProperty("id") long id
+        @JsonProperty("id") QueryId id
     ) {
       this.statistics = statistics;
       this.queryString = queryString;
       this.kafkaTopic = kafkaTopic;
       this.id = id;
-
     }
 
     public String getQueryString() {
@@ -71,12 +72,12 @@ public class Queries extends KsqlEntity {
       return kafkaTopic;
     }
 
-    public String getStatistics() {
-      return statistics;
+    public QueryId getId() {
+      return id;
     }
 
-    public long getId() {
-      return id;
+    public String getStatistics() {
+      return statistics;
     }
 
     @Override

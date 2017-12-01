@@ -61,7 +61,7 @@ public class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  public static String getCollectorStatsByTopic(final String topic) {
+  public static String getStatsFor(final String topic) {
 
     ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
     collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase())));

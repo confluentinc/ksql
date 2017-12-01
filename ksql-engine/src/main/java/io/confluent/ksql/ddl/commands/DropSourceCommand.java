@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
@@ -27,10 +28,14 @@ public class DropSourceCommand implements DDLCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
+  private final QueryTerminator queryTerminator;
 
-  public DropSourceCommand(AbstractStreamDropStatement statement, DataSource.DataSourceType dataSourceType) {
+  public DropSourceCommand(final AbstractStreamDropStatement statement,
+                           final DataSource.DataSourceType dataSourceType,
+                           final QueryTerminator queryTerminator) {
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
+    this.queryTerminator = queryTerminator;
   }
 
   @Override
@@ -50,6 +55,7 @@ public class DropSourceCommand implements DDLCommand {
         dataSource.getKsqlTopic().getTopicName());
     dropTopicCommand.run(metaStore);
     metaStore.deleteSource(sourceName);
+    queryTerminator.terminateQueryForEntity(sourceName);
     return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
   }
 }

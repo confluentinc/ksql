@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
@@ -45,6 +46,11 @@ public class KsqlStream extends StructuredDataSource {
                               + "(INT64).");
     }
     return new KsqlStream(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic);
+  }
+
+  @Override
+  public QueryId getPersistentQueryId() {
+    return new QueryId("CSAS_" + dataSourceName);
   }
 
   @Override

@@ -76,7 +76,7 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getDataSourceType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(null),
         Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(null),
-        MetricCollectors.getCollectorStatsByTopic(dataSource.getTopicName())
+        MetricCollectors.getStatsFor(dataSource.getTopicName())
     );
   }
 

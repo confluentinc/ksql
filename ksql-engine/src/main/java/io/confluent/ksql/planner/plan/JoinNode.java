@@ -191,7 +191,7 @@ public class JoinNode extends PlanNode {
 
     Map<String, Object> joinTableProps = new HashMap<>();
     joinTableProps.putAll(props);
-    joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "EARLIEST");
+    joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
     final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, joinTableProps);
     if (!(schemaKStream instanceof SchemaKTable)) {

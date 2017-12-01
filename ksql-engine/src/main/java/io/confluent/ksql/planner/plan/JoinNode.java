@@ -17,12 +17,15 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -177,7 +180,8 @@ public class JoinNode extends PlanNode {
 
   }
 
-  private SchemaKTable tableForJoin(
+  // package private for test
+  SchemaKTable tableForJoin(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -185,7 +189,11 @@ public class JoinNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props) {
 
-    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, props);
+    Map<String, Object> joinTableProps = new HashMap<>();
+    joinTableProps.putAll(props);
+    joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, joinTableProps);
     if (!(schemaKStream instanceof SchemaKTable)) {
       throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
           + getLeft() + "-" + getRight());

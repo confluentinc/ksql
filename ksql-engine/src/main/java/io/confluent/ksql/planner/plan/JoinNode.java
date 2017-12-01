@@ -180,7 +180,8 @@ public class JoinNode extends PlanNode {
 
   }
 
-  private SchemaKTable tableForJoin(
+  // package private for test
+  SchemaKTable tableForJoin(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,

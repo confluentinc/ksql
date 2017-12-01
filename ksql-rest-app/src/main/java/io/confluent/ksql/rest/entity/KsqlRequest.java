@@ -19,10 +19,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -68,10 +64,4 @@ public class KsqlRequest {
     return Objects.hash(getKsql(), getStreamsProperties());
   }
 
-  public static void main(String[] args) throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    new ObjectMapper().writer().writeValue(out, new KsqlRequest("CREATE STREAM pageviews_original(viewtime bigint, userid varchar, pageid varchar) " +
-        "WITH (kafka_topic='pageviews', value_format='JSON');", Collections.emptyMap()));
-    System.out.println(new String(out.toByteArray()));
-  }
 }

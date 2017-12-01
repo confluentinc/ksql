@@ -23,6 +23,9 @@ import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 import static junit.framework.TestCase.fail;
@@ -56,11 +59,15 @@ public abstract class TestRunner {
 
   protected static void test(String command, TestResult expectedResult, boolean requireOrder) {
     run(command, requireOrder);
+    final Collection<List<String>> finalResults = new ArrayList<>();
     try {
       TestUtils.waitForCondition(() -> {
         TestResult actualResult = testTerminal.getTestResult();
+        finalResults.clear();
+        finalResults.addAll(actualResult.data);
         return actualResult.data.containsAll(expectedResult.data);
-      }, 10000, "Did not get the expected result '" + expectedResult.toString() + ", in a timely fashion.");
+      }, 10000, "Did not get the expected result '" + expectedResult + ", in a timely fashion. Received " +
+              "following results instead: " + finalResults);
     } catch (InterruptedException e) {
       fail("Test got interrutped when waiting for result " + expectedResult.toString());
     }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -305,8 +306,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         statementParser,
-        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
-    );
+        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG));
     KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandStore,

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -42,8 +43,6 @@ public class KsqlContextTest {
                       + "WITH (kafka_topic='ordertopic', value_format='JSON' , "
                       + "key='orderid');\n";
   private final String statement2 = "CREATE STREAM BIGORDERS AS SELECT * FROM orders WHERE ORDERUNITS > 5;";
-  private final String statement3 = "CREATE TABLE ORDERSUMS AS select itemid, sum(orderunits) from orders window "
-                      + "TUMBLING ( size 30 second) group by itemid;";
 
   @Test
   public void shouldRunSimpleStatements() throws Exception {
@@ -51,7 +50,7 @@ public class KsqlContextTest {
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClientImpl.class);
     KsqlEngine ksqlEngine = mock(KsqlEngine.class);
 
-    Map<Long, PersistentQueryMetadata> liveQueryMap = new HashMap<>();
+    Map<QueryId, PersistentQueryMetadata> liveQueryMap = new HashMap<>();
 
     KsqlContext ksqlContext = new KsqlContext(adminClient, kafkaTopicClient, ksqlEngine);
 
@@ -59,7 +58,7 @@ public class KsqlContextTest {
         .andReturn
         (Collections.emptyList());
     expect(ksqlEngine.buildMultipleQueries(false, statement2, Collections.emptyMap()))
-        .andReturn(getQueryMetadata(1, DataSource.DataSourceType.KSTREAM));
+        .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
     expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap);
     replay(ksqlEngine);
     ksqlContext.sql(statement1);
@@ -68,12 +67,11 @@ public class KsqlContextTest {
     verify(ksqlEngine);
   }
 
-  private List<QueryMetadata> getQueryMetadata(long queryid, DataSource.DataSourceType type) {
+  private List<QueryMetadata> getQueryMetadata(QueryId queryid, DataSource.DataSourceType type) {
     KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(String.valueOf
-        (queryid),
+    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
                                                                                    queryStreams,
                                                                                   null,
                                                                                   "",

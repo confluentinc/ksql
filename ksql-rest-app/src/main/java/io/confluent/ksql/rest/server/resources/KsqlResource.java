@@ -26,6 +26,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -306,6 +307,7 @@ public class KsqlResource {
       runningQueries.add(new Queries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
+          MetricCollectors.getStatsFor(ksqlStructuredDataOutputNode.getKafkaTopicName()),
           persistentQueryMetadata.getId()
       ));
     }
@@ -427,13 +429,13 @@ public class KsqlResource {
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, ksqlEngine);
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, ksqlEngine);
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });

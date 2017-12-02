@@ -16,9 +16,7 @@
 package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -30,12 +28,9 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestCondition;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;

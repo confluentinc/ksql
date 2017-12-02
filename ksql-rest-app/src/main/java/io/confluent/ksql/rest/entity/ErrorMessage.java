@@ -43,7 +43,7 @@ public class ErrorMessage {
   }
 
   public ErrorMessage(Throwable exception) {
-    this(exception.getMessage(), getStackTraceStrings(exception));
+    this(exception.getMessage() != null ? exception.getMessage() : " ServerError:" + exception.toString(), getStackTraceStrings(exception));
   }
 
   public static List<String> getStackTraceStrings(Throwable exception) {

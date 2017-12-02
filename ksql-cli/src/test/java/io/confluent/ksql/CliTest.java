@@ -51,7 +51,6 @@ public class CliTest extends TestRunner {
 
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
-
   private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_KSQL_TOPIC_NAME;
   private static final int PORT = 9098;
   private static final String LOCAL_REST_SERVER_ADDR = "http://localhost:" + PORT;
@@ -184,23 +183,16 @@ public class CliTest extends TestRunner {
       selectQuery += ";";
     }
     String resultKStreamName = "RESULT";
-    String resultTopicName = resultKStreamName;
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */
     test(queryString, build("Stream created and running"));
 
     /* Assert Results */
-    Map<String, GenericRow> results = topicConsumer.readResults(resultTopicName, resultSchema, expectedResults.size(), new StringDeserializer());
+    Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    assertThat(results, equalTo(expectedResults));
-
-    /* Get first column of the first row in the result set to obtain the queryID */
-    String queryID = (String) ((List) run("list queries").data.toArray()[0]).get(0);
-
-    /* Clean Up */
-    run("terminate query " + queryID);
     dropStream(resultKStreamName);
+    assertThat(results, equalTo(expectedResults));
   }
 
   private static void dropStream(String name) {

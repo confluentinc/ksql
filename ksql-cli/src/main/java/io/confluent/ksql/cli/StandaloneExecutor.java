@@ -41,7 +41,7 @@ public class StandaloneExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
-  KsqlEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
 
   public StandaloneExecutor(Map streamProperties) throws ExecutionException, InterruptedException {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);

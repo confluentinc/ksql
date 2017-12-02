@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Field;
@@ -88,4 +89,6 @@ public abstract class StructuredDataSource implements DataSource {
   public String getTopicName() {
     return ksqlTopic.getTopicName();
   }
+
+  public abstract QueryId getPersistentQueryId();
 }

@@ -50,8 +50,7 @@ class QueryStreamWriter implements StreamingOutput {
       KsqlEngine ksqlEngine,
       long disconnectCheckInterval,
       String queryString,
-      Map<String, Object> overriddenProperties
-  )
+      Map<String, Object> overriddenProperties)
       throws Exception {
     QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties).get(0);

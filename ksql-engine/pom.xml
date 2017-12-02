@@ -18,6 +18,10 @@
             <artifactId>ksql-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.confluent.support</groupId>
+            <artifactId>support-metrics-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-serde</artifactId>
         </dependency>
@@ -120,6 +124,10 @@
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>common-metrics</artifactId>
         </dependency>
     </dependencies>
 

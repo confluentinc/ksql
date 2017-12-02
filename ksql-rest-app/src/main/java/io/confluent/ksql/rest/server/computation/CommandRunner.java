@@ -87,7 +87,9 @@ public class CommandRunner implements Runnable, Closeable {
     for (ConsumerRecord<CommandId, Command> record : records) {
       CommandId commandId = record.key();
       Command command = record.value();
-      executeStatement(command, commandId);
+      if (command != null) {
+        executeStatement(command, commandId);
+      }
     }
   }
 

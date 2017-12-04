@@ -190,7 +190,10 @@ public class PhysicalPlanBuilder {
     }
 
     final QueryId queryId = sinkDataSource.getPersistentQueryId();
-    final String applicationId = addTimeSuffix(serviceId + persistanceQueryPrefix + queryId);
+    String applicationId = serviceId + persistanceQueryPrefix + queryId;
+    if (addUniqueTimeSuffix) {
+      applicationId = addTimeSuffix(applicationId);
+    }
 
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 

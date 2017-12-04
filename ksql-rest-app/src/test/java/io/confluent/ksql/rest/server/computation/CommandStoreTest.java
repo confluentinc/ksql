@@ -30,9 +30,12 @@ import org.junit.runner.RunWith;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.Pair;
 
 import static org.easymock.EasyMock.anyLong;
@@ -69,8 +72,8 @@ public class CommandStoreTest {
     EasyMock.replay(commandConsumer);
 
     final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
-    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
-    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(commandId, originalCommand))));
+    final Map<CommandId, Command> commands = getPriorCommands(command);
+    assertThat(commands, equalTo(Collections.singletonMap(commandId, originalCommand)));
   }
 
   @Test
@@ -94,8 +97,8 @@ public class CommandStoreTest {
     EasyMock.replay(commandConsumer);
 
     final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
-    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
-    assertThat(priorCommands, equalTo(Collections.singletonList(new Pair<>(createId, latestCommand))));
+    final Map<CommandId, Command> commands = getPriorCommands(command);
+    assertThat(commands, equalTo(Collections.singletonMap(createId, latestCommand)));
   }
 
   @Test
@@ -116,9 +119,33 @@ public class CommandStoreTest {
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 
-    final CommandStore command = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
-    final List<Pair<CommandId, Command>> priorCommands = command.getPriorCommands();
-    assertThat(priorCommands, equalTo(Collections.emptyList()));
+    final CommandStore commandStore = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
+    assertThat(getPriorCommands(commandStore), equalTo(Collections.emptyMap()));
+  }
+
+  @Test
+  public void shouldCollectTerminatedQueries() {
+    final CommandId terminated = new CommandId(CommandId.Type.TERMINATE, "queryId", CommandId.Action.EXECUTE);
+    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(
+        Collections.singletonMap(new TopicPartition("topic", 0), Collections.singletonList(
+        new ConsumerRecord<>("topic", 0, 0, terminated, new Command("terminate query 'queryId'", Collections.emptyMap()))
+    )));
+
+    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
+    EasyMock.expect(commandConsumer.poll(anyLong())).andReturn(records)
+        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    EasyMock.replay(commandConsumer);
+
+    final CommandStore commandStore = new CommandStore(COMMAND_TOPIC, commandConsumer, commandProducer, new CommandIdAssigner(new MetaStoreImpl()));
+    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
+    assertThat(restoreCommands.terminatedQueries(), equalTo(Collections.singletonMap(new QueryId("queryId"), terminated)));
+  }
+
+  private Map<CommandId, Command> getPriorCommands(CommandStore command) {
+    final RestoreCommands priorCommands = command.getRestoreCommands();
+    final Map<CommandId, Command> commands = new HashMap<>();
+    priorCommands.forEach(((id, cmd, terminatedQueries) -> commands.put(id, cmd)));
+    return commands;
   }
 
 }

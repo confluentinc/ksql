@@ -28,13 +28,13 @@ Prerequisites
 
     .. code:: bash
 
-        $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo bash
+        $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:0.2 bash
 
     Your output should resemble:
 
     .. code:: bash
 
-        Unable to find image 'confluentinc/ksql-clickstream-demo:latest' locally
+        Unable to find image 'confluentinc/ksql-clickstream-demo:0.2' locally
         latest: Pulling from confluentinc/ksql-clickstream-demo
         ad74af05f5a2: Already exists 
         d02e292e7b5e: Already exists 
@@ -55,7 +55,7 @@ Prerequisites
         015da01a41b0: Pull complete 
         80e29f47abe0: Pull complete 
         Digest: sha256:f3b2b19668b851d1300f77aa8c2236a126b628b911578cc688c7e0de442c1cd3
-        Status: Downloaded newer image for confluentinc/ksql-clickstream-demo:latest
+        Status: Downloaded newer image for confluentinc/ksql-clickstream-demo:0.2
         root@d98186dd8d6c:/#
 
     You should now be in the Docker container.

@@ -23,13 +23,13 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.KafkaClient;
 import org.apache.kafka.clients.Metadata;
 import org.apache.kafka.clients.NetworkClient;
+import org.apache.kafka.clients.NetworkClientUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -164,7 +164,12 @@ public class BrokerCompatibilityCheck implements Closeable {
         time.milliseconds(),
         true);
 
-    final ClientResponse clientResponse = sendRequest(clientRequest);
+    final ClientResponse clientResponse;
+    try {
+      clientResponse = NetworkClientUtils.sendAndReceive(kafkaClient, clientRequest, time);
+    } catch (IOException e) {
+      throw new KsqlException("IOException caught while checking Broker Compatibility");
+    }
     if (!clientResponse.hasResponse()) {
       throw new KsqlException("Received an empty response for client request when checking broker version.");
     }
@@ -179,45 +184,6 @@ public class BrokerCompatibilityCheck implements Closeable {
       throw new KsqlException("KSQL requires broker version 0.10.1.x or higher.");
     }
 
-  }
-
-  /**
-   * @return the response to the request
-   * @throws TimeoutException if there was no response within {@code request.timeout.ms}
-   * @throws StreamsException any other fatal error
-   */
-  private ClientResponse sendRequest(final ClientRequest clientRequest) {
-    try {
-      kafkaClient.send(clientRequest, Time.SYSTEM.milliseconds());
-    } catch (final RuntimeException e) {
-      throw new KsqlException("Could not send request.", e);
-    }
-
-    // Poll for the response.
-    final long responseTimeout = Time.SYSTEM.milliseconds() + config.getInt(StreamsConfig.REQUEST_TIMEOUT_MS_CONFIG);
-    while (Time.SYSTEM.milliseconds() < responseTimeout) {
-      final List<ClientResponse> responseList;
-      try {
-        responseList = kafkaClient.poll(100, Time.SYSTEM.milliseconds());
-      } catch (final RuntimeException e) {
-        throw new KsqlException("Could not poll.", e);
-      }
-      if (!responseList.isEmpty()) {
-        if (responseList.size() > 1) {
-          throw new KsqlException("Sent one request but received multiple or no responses.");
-        }
-        final ClientResponse response = responseList.get(0);
-        if (response.requestHeader().correlationId() == clientRequest.correlationId()) {
-          return response;
-        } else {
-          throw new KsqlException("Inconsistent response received from the broker "
-              + clientRequest.destination() + ", expected correlation id " + clientRequest.correlationId()
-              + ", but received " + response.requestHeader().correlationId());
-        }
-      }
-    }
-
-    throw new TimeoutException("Failed to get response from broker within timeout");
   }
 
   private String getAnyReadyBrokerId() {

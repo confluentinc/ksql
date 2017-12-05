@@ -90,7 +90,7 @@ public class KsqlContext {
    * @throws Exception
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql, Collections
         .emptyMap());
 
     for (QueryMetadata queryMetadata: queryMetadataList) {

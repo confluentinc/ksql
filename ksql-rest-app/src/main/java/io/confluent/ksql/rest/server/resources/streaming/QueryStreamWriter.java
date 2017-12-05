@@ -53,7 +53,7 @@ class QueryStreamWriter implements StreamingOutput {
       Map<String, Object> overriddenProperties)
       throws Exception {
     QueryMetadata queryMetadata =
-        ksqlEngine.buildMultipleQueries(true, queryString, overriddenProperties).get(0);
+        ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

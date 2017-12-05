@@ -237,7 +237,7 @@ public class StatementExecutor {
     if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
       String queries =
           (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, queries,
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(queries,
                                           command.getStreamsProperties());
       for (QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -295,7 +295,6 @@ public class StatementExecutor {
     }
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
-        false,
         queryString,
         command.getStreamsProperties()
     ).get(0);

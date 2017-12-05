@@ -18,7 +18,10 @@ package io.confluent.ksql.util;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +29,10 @@ import java.util.Map;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -37,6 +43,8 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
 
 public class AvroUtil {
+
+  private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
 
   public static synchronized Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(AbstractStreamCreateStatement
            abstractStreamCreateStatement,
@@ -94,7 +102,7 @@ public class AvroUtil {
     }
   }
 
-  public static synchronized AbstractStreamCreateStatement addAvroFields(AbstractStreamCreateStatement
+  private static AbstractStreamCreateStatement addAvroFields(AbstractStreamCreateStatement
                                                                              abstractStreamCreateStatement, Schema
                                                                              schema, int schemaId) {
     List<TableElement> elements = new ArrayList<>();
@@ -125,6 +133,51 @@ public class AvroUtil {
     } else {
       throw new KsqlException(String.format("Invalid AbstractStreamCreateStatement: %s",
                                             SqlFormatter.formatSql(abstractStreamCreateStatement)));
+    }
+  }
+
+
+  public static synchronized void validatePersistantQueryResults(PersistentQueryMetadata
+                                                                     persistentQueryMetadata,
+                                                                 Map<String, Object> streamsProperties,
+                                                                 KsqlConfig engineKsqlConfig) {
+    if (persistentQueryMetadata.getResultTopic().getKsqlTopicSerDe().getSerDe() == DataSource.DataSourceSerDe.AVRO) {
+      String avroSchemaString = new MetastoreUtil().buildAvroSchema(persistentQueryMetadata
+                                                                        .getResultSchema(),
+                                                                    persistentQueryMetadata
+                                                                        .getResultTopic().getName());
+      boolean isValidSchema = AvroUtil.isValidAvroSchemaForTopic(persistentQueryMetadata.getResultTopic()
+                                                                     .getTopicName(),
+                                                                 avroSchemaString, streamsProperties,
+                                                                 engineKsqlConfig);
+      if (isValidSchema) {
+        throw new KsqlException(String.format("Cannot register avro schema for %s since it is "
+                                              + "not valid for schema registry.", persistentQueryMetadata
+                                                  .getResultTopic().getKafkaTopicName()));
+      }
+    }
+  }
+
+
+  private static synchronized boolean isValidAvroSchemaForTopic(String topicName, String
+      avroSchemaString, Map<String, Object> streamsProperties, KsqlConfig engineKsqlConfig) {
+    KsqlConfig ksqlConfig = engineKsqlConfig.cloneWithPropertyOverwrite(streamsProperties);
+    SchemaRegistryClient
+        schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlConfig
+                                                                                       .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+
+    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
+    try {
+      return schemaRegistryClient.testCompatibility(topicName, avroSchema);
+    } catch (IOException e) {
+      log.error(ExceptionUtil.stackTraceToString(e));
+      throw new KsqlException(String.format("Could not check Schema compatibility: %s", e
+          .getMessage()));
+    } catch (RestClientException e) {
+      log.error(ExceptionUtil.stackTraceToString(e));
+      throw new KsqlException(String.format("Could not connect to Schema Registry service: %s", e
+          .getMessage()));
     }
   }
 

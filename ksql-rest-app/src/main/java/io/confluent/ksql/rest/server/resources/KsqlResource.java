@@ -387,8 +387,13 @@ public class KsqlResource {
       QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
-                + "use CREATE TABLE AS SELECT statement instead.");
+                                + "use CREATE TABLE AS SELECT statement instead.");
       }
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                properties, ksqlEngine.getKsqlConfig());
+      }
+
       return queryMetadata.getExecutionPlan();
     });
 
@@ -397,6 +402,10 @@ public class KsqlResource {
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
                 + "use CREATE STREAM AS SELECT statement instead.");
+      }
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                properties, ksqlEngine.getKsqlConfig());
       }
       return queryMetadata.getExecutionPlan();
     });
@@ -458,5 +467,4 @@ public class KsqlResource {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
   }
-
 }

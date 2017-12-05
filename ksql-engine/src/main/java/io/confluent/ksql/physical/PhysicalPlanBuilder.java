@@ -200,7 +200,8 @@ public class PhysicalPlanBuilder {
             .KSTREAM,
         applicationId,
         kafkaTopicClient,
-        ksqlConfig);
+        ksqlConfig, outputNode.getSchema(),
+        sinkDataSource.getKsqlTopic());
   }
 
   private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {

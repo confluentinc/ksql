@@ -68,6 +68,7 @@ public class CliTest extends TestRunner {
   private static TopicConsumer topicConsumer;
 
   private static OrderDataProvider orderDataProvider;
+  private static int result_stream_no = 0;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -181,7 +182,7 @@ public class CliTest extends TestRunner {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    String resultKStreamName = "RESULT";
+    String resultKStreamName = "RESULT_" + result_stream_no++;
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */

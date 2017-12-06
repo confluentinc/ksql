@@ -117,7 +117,7 @@ public class StreamedQueryResourceTest {
                                 mockKafkaTopicClient,
                                 new KsqlConfig(Collections.EMPTY_MAP)
                                 );
-    expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
+    expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 
     StatementParser mockStatementParser = mock(StatementParser.class);

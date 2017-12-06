@@ -114,13 +114,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   /**
    * Runs the set of queries in the given query string.
    *
-   * @param createNewAppId If a new application id should be generated.
    * @param queriesString The ksql query string.
    * @return List of query metadata.
    * @throws Exception Any exception thrown here!
    */
   public List<QueryMetadata> buildMultipleQueries(
-      final boolean createNewAppId,
       final String queriesString,
       final Map<String, Object> overriddenProperties) throws Exception {
     for (String property : overriddenProperties.keySet()) {
@@ -139,12 +137,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     // Build query AST from the query string
     List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties, tempMetaStore);
 
-    return planQueries(createNewAppId, queries, overriddenProperties, tempMetaStore);
+    return planQueries(queries, overriddenProperties, tempMetaStore);
 
   }
 
-  public List<QueryMetadata> planQueries(final boolean createNewAppId,
-                                         final List<Pair<String, Statement>> statementList,
+  public List<QueryMetadata> planQueries(final List<Pair<String, Statement>> statementList,
                                          final Map<String, Object> overriddenProperties,
                                          final MetaStore tempMetaStore) throws Exception {
     // Logical plan creation from the ASTs
@@ -152,8 +149,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
-            createNewAppId,
-            logicalPlans,
+        logicalPlans,
             statementList,
             overriddenProperties,
             true
@@ -178,7 +174,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
-        false,
         logicalPlans,
         Collections.singletonList(new Pair<>("", query)),
         Collections.emptyMap(),

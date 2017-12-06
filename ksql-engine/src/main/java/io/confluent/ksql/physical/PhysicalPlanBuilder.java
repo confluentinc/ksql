@@ -59,7 +59,6 @@ public class PhysicalPlanBuilder {
   private final KafkaTopicClient kafkaTopicClient;
   private final MetastoreUtil metastoreUtil;
   private final FunctionRegistry functionRegistry;
-  private final boolean addUniqueTimeSuffix;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
@@ -69,7 +68,6 @@ public class PhysicalPlanBuilder {
                              final KafkaTopicClient kafkaTopicClient,
                              final MetastoreUtil metastoreUtil,
                              final FunctionRegistry functionRegistry,
-                             final boolean addUniqueTimeSuffix,
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
                              final MetaStore metaStore) {
@@ -78,7 +76,6 @@ public class PhysicalPlanBuilder {
     this.kafkaTopicClient = kafkaTopicClient;
     this.metastoreUtil = metastoreUtil;
     this.functionRegistry = functionRegistry;
-    this.addUniqueTimeSuffix = addUniqueTimeSuffix;
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
@@ -130,10 +127,7 @@ public class PhysicalPlanBuilder {
                                               final String transientQueryPrefix,
                                               final String statement) {
 
-    String applicationId = getBareQueryApplicationId(serviceId, transientQueryPrefix);
-    if (addUniqueTimeSuffix) {
-      applicationId = addTimeSuffix(applicationId);
-    }
+    final String applicationId = addTimeSuffix(getBareQueryApplicationId(serviceId, transientQueryPrefix));
 
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
@@ -190,7 +184,7 @@ public class PhysicalPlanBuilder {
     }
 
     final QueryId queryId = sinkDataSource.getPersistentQueryId();
-    final String applicationId = addTimeSuffix(serviceId + persistanceQueryPrefix + queryId);
+    final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 

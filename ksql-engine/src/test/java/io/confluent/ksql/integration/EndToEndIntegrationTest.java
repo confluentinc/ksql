@@ -94,9 +94,9 @@ public class EndToEndIntegrationTest {
     testHarness.publishTestData(usersTopic, userDataProvider, System.currentTimeMillis() - 10000);
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
-    ksqlEngine.buildMultipleQueries(false, String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
+    ksqlEngine.buildMultipleQueries(String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
             "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic), Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(false, String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
+    ksqlEngine.buildMultipleQueries(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
             "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic), Collections.emptyMap());
   }
 
@@ -118,7 +118,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT * from %s;", userTable);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(query, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -146,7 +146,7 @@ public class EndToEndIntegrationTest {
     String query = String.format("SELECT pageid from %s;", pageViewStream);
     log.debug("Sending query: {}", query);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, query, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(query, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -179,7 +179,7 @@ public class EndToEndIntegrationTest {
 
     String selectQuery = String.format("SELECT * from %s;", derivedStream);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectQuery, Collections.emptyMap());
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(selectQuery, Collections.emptyMap());
 
     assertEquals(1, queries.size());
     assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
@@ -238,7 +238,7 @@ public class EndToEndIntegrationTest {
   private void validateCreateStreamUsingLikeClause(String inputStream) throws Exception {
     String outputStream = createStreamUsingLikeClause(inputStream);
     String selectPageViewsFromRegion = String.format("SELECT userid, pageid from %s;", outputStream);
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, selectPageViewsFromRegion,
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(selectPageViewsFromRegion,
             Collections.emptyMap());
 
     assertEquals(1, queries.size());
@@ -277,7 +277,7 @@ public class EndToEndIntegrationTest {
     String createStatement = String.format("CREATE STREAM %s WITH (kafka_topic='pageviews_enriched_r0', " +
             "value_format='DELIMITED') AS SELECT * FROM %s WHERE regionid LIKE '%%_0';", outputStream, inputStream);
 
-    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(false, createStatement, Collections.emptyMap());
+    List<QueryMetadata> queryMetadata = ksqlEngine.buildMultipleQueries(createStatement, Collections.emptyMap());
     assertEquals(1, queryMetadata.size());
     queryMetadata.get(0).getKafkaStreams().start();
     return outputStream;
@@ -291,7 +291,7 @@ public class EndToEndIntegrationTest {
 
     log.debug("Creating {} using: {}", streamName, createStreamStatement);
 
-    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(false, createStreamStatement,
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(createStreamStatement,
             Collections.emptyMap());
 
     assertEquals(1, queries.size());

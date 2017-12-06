@@ -113,7 +113,6 @@ class QueryEngine {
   }
 
   List<QueryMetadata> buildPhysicalPlans(
-      final boolean addUniqueTimeSuffix,
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenStreamsProperties,
@@ -131,7 +130,7 @@ class QueryEngine {
         }
         handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
       } else {
-        buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
+        buildQueryPhysicalPlan(physicalPlans, statementPlanPair,
                                overriddenStreamsProperties, updateMetastore);
       }
 
@@ -140,7 +139,6 @@ class QueryEngine {
   }
 
   private void buildQueryPhysicalPlan(final List<QueryMetadata> physicalPlans,
-                                      final boolean addUniqueTimeSuffix,
                                       final Pair<String, PlanNode> statementPlanPair,
                                       final Map<String, Object> overriddenStreamsProperties,
                                       final boolean updateMetastore) throws Exception {
@@ -154,7 +152,6 @@ class QueryEngine {
         ksqlEngine.getTopicClient(),
         new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
-        addUniqueTimeSuffix,
         overriddenStreamsProperties,
         updateMetastore,
         ksqlEngine.getMetaStore()

@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
+        <version>4.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-engine</artifactId>
@@ -16,6 +16,10 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.support</groupId>
+            <artifactId>support-metrics-common</artifactId>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -120,6 +124,10 @@
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>common-metrics</artifactId>
         </dependency>
     </dependencies>
 

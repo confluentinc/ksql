@@ -26,7 +26,9 @@ import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
+import javax.naming.AuthenticationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -40,6 +42,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
@@ -49,6 +52,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private String serverAddress;
 
   private final Map<String, Object> localProperties;
+
+  private boolean hasUserCredentials = false;
 
   public KsqlRestClient(String serverAddress) {
     this.serverAddress = serverAddress;
@@ -66,6 +71,25 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
+  // Visible for testing
+  KsqlRestClient(Client client, String serverAddress) {
+    this.client = client;
+    this.serverAddress = serverAddress;
+    this.localProperties = new HashMap<>();
+  }
+
+  public void setupAuthenticationCredentials(String userName, String password) {
+    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(Objects.requireNonNull(userName),
+            Objects.requireNonNull(password));
+    client.register(feature);
+    hasUserCredentials = true;
+  }
+
+  // Visible for testing
+  public boolean hasUserCredentials() {
+    return hasUserCredentials;
+  }
+
   public String getServerAddress() {
     return serverAddress;
   }
@@ -76,9 +100,16 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   public RestResponse<ServerInfo> makeRootRequest() {
     Response response = makeGetRequest("/");
-    ServerInfo result = response.readEntity(ServerInfo.class);
-    response.close();
-    return RestResponse.successful(result);
+    try {
+      if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
+        return RestResponse.erroneous(new ErrorMessage(
+                new AuthenticationException("Could not authenticate successfully with the supplied credentials.")));
+      }
+      ServerInfo result = response.readEntity(ServerInfo.class);
+      return RestResponse.successful(result);
+    } finally {
+      response.close();
+    }
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {

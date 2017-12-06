@@ -36,7 +36,6 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -63,10 +62,11 @@ public class PhysicalPlanBuilderTest {
         new FakeKafkaTopicClient(),
         new MetastoreUtil(),
         functionRegistry,
-        false,
         Collections.emptyMap(),
         false,
-        metaStore, new AtomicLong(1) );
+        metaStore
+    );
+
     planBuilder = new LogicalPlanBuilder(metaStore);
   }
 

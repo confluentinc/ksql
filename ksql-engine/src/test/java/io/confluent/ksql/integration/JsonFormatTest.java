@@ -63,6 +63,7 @@ public class JsonFormatTest {
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
   private AdminClient adminClient;
+  private long queryId = 0;
 
 
   @Before
@@ -120,8 +121,8 @@ public class JsonFormatTest {
     String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    ksqlEngine.buildMultipleQueries(false, ordersStreamStr, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(false, messageStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(messageStreamStr, Collections.emptyMap());
   }
 
   @After
@@ -153,7 +154,7 @@ public class JsonFormatTest {
     );
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil
@@ -180,7 +181,7 @@ public class JsonFormatTest {
         streamName, resultPartitionCount, inputStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
@@ -207,7 +208,7 @@ public class JsonFormatTest {
         streamName, messageLogStream);
 
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(true, queryString, Collections.emptyMap()).get(0);
+        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
 
     Schema resultSchema = SchemaUtil

@@ -16,8 +16,10 @@
 
 package io.confluent.ksql.planner.plan;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
@@ -25,23 +27,24 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAP_NODE;
@@ -49,6 +52,9 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static org.easymock.EasyMock.mock;
+
 
 public class JoinNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
@@ -79,6 +85,64 @@ public class JoinNodeTest {
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList(MAP_NODE)));
     assertThat(node.topics(), equalTo("[test2]"));
+  }
+
+  @Test
+  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() throws Exception {
+
+    StreamsBuilder streamsBuilder = mock(StreamsBuilder.class);
+    KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+    KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
+    MetastoreUtil metastoreUtil = mock(MetastoreUtil.class);
+    FunctionRegistry functionRegistry = mock(FunctionRegistry.class);
+
+    class RightTable extends PlanNode {
+      final Schema schema;
+
+      public RightTable(final PlanNodeId id, Schema schema) {
+        super(id);
+        this.schema = schema;
+      }
+      @Override
+      public Schema getSchema() {
+        return schema;
+      }
+
+      @Override
+      public Field getKeyField() {
+        return null;
+      }
+
+      @Override
+      public List<PlanNode> getSources() {
+        return null;
+      }
+
+      @Override
+      public SchemaKStream buildStream(StreamsBuilder builder, KsqlConfig ksqlConfig,
+                                       KafkaTopicClient kafkaTopicClient,
+                                       MetastoreUtil metastoreUtil,
+                                       FunctionRegistry functionRegistry,
+                                       Map<String, Object> props) {
+        if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) &&
+            props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString().equalsIgnoreCase
+                ("EARLIEST")) {
+          return mock(SchemaKTable.class);
+        } else {
+          throw new KsqlException("auto.offset.reset should be set to EARLIEST.");
+        }
+
+      }
+    }
+
+    RightTable rightTable = new RightTable(new PlanNodeId("1"), joinNode.getRight().getSchema());
+
+    JoinNode testJoinNode = new JoinNode(joinNode.getId(), joinNode.getType(), joinNode.getLeft()
+        , rightTable, joinNode.getLeftKeyFieldName(), joinNode.getRightKeyFieldName(), joinNode
+                                             .getLeftAlias(), joinNode.getRightAlias());
+    testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry,
+                          new HashMap<>());
+
   }
 
   @Test

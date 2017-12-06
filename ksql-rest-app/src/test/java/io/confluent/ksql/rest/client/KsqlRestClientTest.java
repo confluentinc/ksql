@@ -90,8 +90,8 @@ public class KsqlRestClientTest {
     Assert.assertTrue(commandStatusesRestResponse.isSuccessful());
     CommandStatuses commandStatuses = commandStatusesRestResponse.getResponse();
     Assert.assertTrue(commandStatuses.size() == 2);
-    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c1")) == CommandStatus.Status.SUCCESS);
-    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c2")) ==
+    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c1", CommandId.Action.CREATE)) == CommandStatus.Status.SUCCESS);
+    Assert.assertTrue(commandStatuses.get(new CommandId(CommandId.Type.TOPIC, "c2", CommandId.Action.CREATE)) ==
                       CommandStatus.Status.ERROR);
 
   }

@@ -19,6 +19,8 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import io.confluent.ksql.query.QueryId;
+
 public class KsqlStdOut extends StructuredDataSource {
 
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
@@ -56,5 +58,10 @@ public class KsqlStdOut extends StructuredDataSource {
   @Override
   public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
     return this;
+  }
+
+  @Override
+  public QueryId getPersistentQueryId() {
+    throw new UnsupportedOperationException("KsqlStdOut doesn't support persistent queries");
   }
 }

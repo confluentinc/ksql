@@ -41,7 +41,7 @@ public class StandaloneExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
-  KsqlEngine ksqlEngine;
+  private final KsqlEngine ksqlEngine;
 
   public StandaloneExecutor(Map streamProperties) throws ExecutionException, InterruptedException {
     KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
@@ -54,7 +54,7 @@ public class StandaloneExecutor {
                                                                       Collections.emptyMap(),
                                                                       tempMetaStore);
     List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
-        false, queryList, new HashMap<>(), tempMetaStore);
+        queryList, new HashMap<>(), tempMetaStore);
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

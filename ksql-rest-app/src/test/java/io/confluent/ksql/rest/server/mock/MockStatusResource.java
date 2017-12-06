@@ -38,15 +38,17 @@ public class MockStatusResource {
   public Response getAllStatuses() {
     Map<CommandId, CommandStatus.Status> statuses = new
         HashMap<>();
-    statuses.put(new CommandId(CommandId.Type.TOPIC, "c1"), CommandStatus.Status.SUCCESS);
-    statuses.put(new CommandId(CommandId.Type.TOPIC, "c2"), CommandStatus.Status.ERROR);
+    statuses.put(new CommandId(CommandId.Type.TOPIC, "c1", CommandId.Action.CREATE), CommandStatus.Status.SUCCESS);
+    statuses.put(new CommandId(CommandId.Type.TOPIC, "c2", CommandId.Action.CREATE), CommandStatus.Status.ERROR);
     CommandStatuses commandStatuses = new CommandStatuses(statuses);
     return Response.ok(commandStatuses).build();
   }
 
   @GET
-  @Path("/{type}/{entity}")
-  public Response getStatus(@PathParam("type") String type, @PathParam("entity") String entity)
+  @Path("/{type}/{entity}/{action}")
+  public Response getStatus(@PathParam("type") String type,
+                            @PathParam("entity") String entity,
+                            @PathParam("action") String action)
       throws Exception {
     return Response.ok("status").build();
   }

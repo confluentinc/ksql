@@ -50,8 +50,7 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       KsqlEngine ksqlEngine,
       StatementParser statementParser,
-      long disconnectCheckInterval
-  ) {
+      long disconnectCheckInterval) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;

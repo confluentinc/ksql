@@ -50,19 +50,16 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 class QueryEngine {
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
-  private final AtomicLong queryIdCounter;
   private final KsqlEngine ksqlEngine;
   private final DDLCommandFactory ddlCommandFactory;
 
 
   QueryEngine(final KsqlEngine ksqlEngine, final DDLCommandFactory ddlCommandFactory) {
     this.ddlCommandFactory = ddlCommandFactory;
-    this.queryIdCounter = new AtomicLong(1);
     this.ksqlEngine = ksqlEngine;
   }
 
@@ -116,12 +113,10 @@ class QueryEngine {
   }
 
   List<QueryMetadata> buildPhysicalPlans(
-      final boolean addUniqueTimeSuffix,
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
       final Map<String, Object> overriddenStreamsProperties,
-      final boolean updateMetastore
-  ) throws Exception {
+      final boolean updateMetastore) throws Exception {
 
     List<QueryMetadata> physicalPlans = new ArrayList<>();
 
@@ -135,7 +130,7 @@ class QueryEngine {
         }
         handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
       } else {
-        buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
+        buildQueryPhysicalPlan(physicalPlans, statementPlanPair,
                                overriddenStreamsProperties, updateMetastore);
       }
 
@@ -144,7 +139,6 @@ class QueryEngine {
   }
 
   private void buildQueryPhysicalPlan(final List<QueryMetadata> physicalPlans,
-                                      final boolean addUniqueTimeSuffix,
                                       final Pair<String, PlanNode> statementPlanPair,
                                       final Map<String, Object> overriddenStreamsProperties,
                                       final boolean updateMetastore) throws Exception {
@@ -158,11 +152,10 @@ class QueryEngine {
         ksqlEngine.getTopicClient(),
         new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
-        addUniqueTimeSuffix,
         overriddenStreamsProperties,
         updateMetastore,
-        ksqlEngine.getMetaStore(),
-        queryIdCounter);
+        ksqlEngine.getMetaStore()
+    );
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
   }

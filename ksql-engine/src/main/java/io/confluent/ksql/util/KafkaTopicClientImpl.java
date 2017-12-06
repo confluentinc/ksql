@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -55,30 +54,39 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public void createTopic(final String topic, final int numPartitions, final short replicatonFactor) {
+    createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap());
+  }
+
+  @Override
+  public void createTopic(final String topic,
+                          final int numPartitions,
+                          final short replicatonFactor,
+                          final Map<String, String> configs) {
     if (isTopicExists(topic)) {
-      Map<String, TopicDescription> topicDescriptions = describeTopics(Arrays.asList(topic));
+      Map<String, TopicDescription> topicDescriptions = describeTopics(Collections.singletonList(topic));
       TopicDescription topicDescription = topicDescriptions.get(topic);
       if (topicDescription.partitions().size() != numPartitions ||
-          topicDescription.partitions().get(0).replicas().size() != replicatonFactor) {
+          topicDescription.partitions().get(0).replicas().size() < replicatonFactor) {
         throw new KafkaTopicException(String.format(
             "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d v %d", topic,
-                topicDescription.partitions().size(), numPartitions,
-                topicDescription.partitions().get(0).replicas().size(), replicatonFactor
+            topicDescription.partitions().size(), numPartitions,
+            topicDescription.partitions().get(0).replicas().size(), replicatonFactor
         ));
       }
       // Topic with the partitons and replicas exists, reuse it!
       log.debug("Did not create topic {} with {} partitions and replication-factor {} since it already exists", topic,
-              numPartitions, replicatonFactor);
+          numPartitions, replicatonFactor);
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
+    newTopic.configs(configs);
     try {
       log.info("Creating topic '{}'", topic);
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
 
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
-                                                topic, e);
+          topic, e);
     }
   }
 

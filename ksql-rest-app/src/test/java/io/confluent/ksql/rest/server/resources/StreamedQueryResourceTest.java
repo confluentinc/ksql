@@ -33,8 +33,6 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
-import org.easymock.EasyMock;
-import org.easymock.Mock;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
@@ -48,11 +46,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -121,7 +117,7 @@ public class StreamedQueryResourceTest {
                                 mockKafkaTopicClient,
                                 new KsqlConfig(Collections.EMPTY_MAP)
                                 );
-    expect(mockKsqlEngine.buildMultipleQueries(true, queryString, requestStreamsProperties))
+    expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
 
     StatementParser mockStatementParser = mock(StatementParser.class);

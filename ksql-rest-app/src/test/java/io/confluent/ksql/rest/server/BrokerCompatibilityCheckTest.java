@@ -17,28 +17,46 @@
 
 package io.confluent.ksql.rest.server;
 
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.ClassRule;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
+import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlException;
 
 
 public class BrokerCompatibilityCheckTest {
 
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+  private final Consumer consumer = EasyMock.createNiceMock(Consumer.class);
+  private final TopicPartition topic = new TopicPartition("someTopic", 0);
+  private BrokerCompatibilityCheck compatibilityCheck;
+
+  @Before
+  public void before() {
+    TopicPartition topic = new TopicPartition("someTopic", 0);
+    compatibilityCheck = new BrokerCompatibilityCheck(consumer, topic);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldRaiseKsqlExceptionOnUnsupportedVersionException() {
+    EasyMock.expect(consumer.offsetsForTimes(Collections.singletonMap(topic, 0L)))
+        .andThrow(new UnsupportedVersionException("not supported"));
+    EasyMock.replay(consumer);
+    compatibilityCheck.checkCompatibility();
+  }
 
   @Test
-  public void shouldBeCompatibleWithCurrentBrokerVersion() {
-    Map<String, Object> config = new HashMap<>();
-    config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-    config.put(StreamsConfig.APPLICATION_ID_CONFIG, "appid");
-    final BrokerCompatibilityCheck check = BrokerCompatibilityCheck.create(BrokerCompatibilityCheck.Config.fromStreamsConfig(config));
-    // shouldn't throw any exceptions
-    check.checkCompatibility();
+  public void shouldNotRaiseExceptionWhenNoUnsupportedOperationException() {
+    EasyMock.replay(consumer);
+    compatibilityCheck.checkCompatibility();
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowKsqlExceptionIfNoTopicsAvailableToCheck() {
+    BrokerCompatibilityCheck.create(Collections.emptyMap(), Collections.emptySet());
   }
 }

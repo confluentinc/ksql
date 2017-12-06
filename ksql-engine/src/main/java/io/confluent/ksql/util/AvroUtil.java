@@ -48,7 +48,7 @@ public class AvroUtil {
 
   public static synchronized Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(AbstractStreamCreateStatement
            abstractStreamCreateStatement,
-       Map<String, Object> streamsProperties, KsqlConfig engineKsqlConfig) {
+       Map<String, Object> streamsProperties, SchemaRegistryClient schemaRegistryClient) {
     Map<String,Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
     if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw
@@ -63,10 +63,6 @@ public class AvroUtil {
 
     String kafkaTopicName = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    KsqlConfig ksqlConfig = engineKsqlConfig.cloneWithPropertyOverwrite(streamsProperties);
-    SchemaRegistryClient
-        schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlConfig
-                                                                                       .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
     try {
       SchemaMetadata schemaMetadata;
       if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
@@ -96,8 +92,7 @@ public class AvroUtil {
       }
     } catch (Exception e) {
       String errorMessage = String.format(" Could not fetch the AVRO schema from schema "
-                                          + "registry (url: %s). $s ",
-                                          ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString(), e.getMessage());
+                                          + "registry. %s ", e.getMessage());
       throw new KsqlException(errorMessage);
     }
   }
@@ -139,8 +134,8 @@ public class AvroUtil {
 
   public static synchronized void validatePersistantQueryResults(PersistentQueryMetadata
                                                                      persistentQueryMetadata,
-                                                                 Map<String, Object> streamsProperties,
-                                                                 KsqlConfig engineKsqlConfig) {
+                                                                 SchemaRegistryClient
+                                                                     schemaRegistryClient) {
     if (persistentQueryMetadata.getResultTopic().getKsqlTopicSerDe().getSerDe() == DataSource.DataSourceSerDe.AVRO) {
       String avroSchemaString = new MetastoreUtil().buildAvroSchema(persistentQueryMetadata
                                                                         .getResultSchema(),
@@ -148,9 +143,8 @@ public class AvroUtil {
                                                                         .getResultTopic().getName());
       boolean isValidSchema = AvroUtil.isValidAvroSchemaForTopic(persistentQueryMetadata.getResultTopic()
                                                                      .getTopicName(),
-                                                                 avroSchemaString, streamsProperties,
-                                                                 engineKsqlConfig);
-      if (isValidSchema) {
+                                                                 avroSchemaString, schemaRegistryClient);
+      if (!isValidSchema) {
         throw new KsqlException(String.format("Cannot register avro schema for %s since it is "
                                               + "not valid for schema registry.", persistentQueryMetadata
                                                   .getResultTopic().getKafkaTopicName()));
@@ -160,11 +154,7 @@ public class AvroUtil {
 
 
   private static synchronized boolean isValidAvroSchemaForTopic(String topicName, String
-      avroSchemaString, Map<String, Object> streamsProperties, KsqlConfig engineKsqlConfig) {
-    KsqlConfig ksqlConfig = engineKsqlConfig.cloneWithPropertyOverwrite(streamsProperties);
-    SchemaRegistryClient
-        schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlConfig
-                                                                                       .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+      avroSchemaString, SchemaRegistryClient schemaRegistryClient) {
 
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);

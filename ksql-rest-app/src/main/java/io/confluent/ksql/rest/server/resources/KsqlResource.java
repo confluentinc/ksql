@@ -77,10 +77,12 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaRegistryClientFactory;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -220,8 +222,11 @@ public class KsqlResource {
       if (statement instanceof AbstractStreamCreateStatement) {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
             statement;
-        Pair<AbstractStreamCreateStatement, String> avroCheckResult = AvroUtil.checkAndSetAvroSchema(streamCreateStatement,
-            streamsProperties, ksqlEngine.getKsqlConfig());
+        Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+            AvroUtil.checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
+                                           SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
+                                                                                       .getString(
+                                                                                           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
         if (avroCheckResult.getRight() != null) {
           statement = avroCheckResult.getLeft();
           statementText = avroCheckResult.getRight();
@@ -391,7 +396,8 @@ public class KsqlResource {
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
         AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                properties, ksqlEngine.getKsqlConfig());
+                                                SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
+                                                                                       .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
       }
 
       return queryMetadata.getExecutionPlan();
@@ -405,7 +411,8 @@ public class KsqlResource {
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
         AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                properties, ksqlEngine.getKsqlConfig());
+                                                SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
+                                                                                                        .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
       }
       return queryMetadata.getExecutionPlan();
     });

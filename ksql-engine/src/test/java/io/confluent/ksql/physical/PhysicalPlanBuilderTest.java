@@ -62,7 +62,6 @@ public class PhysicalPlanBuilderTest {
         new FakeKafkaTopicClient(),
         new MetastoreUtil(),
         functionRegistry,
-        false,
         Collections.emptyMap(),
         false,
         metaStore

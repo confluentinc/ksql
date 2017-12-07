@@ -61,6 +61,11 @@ public class BrokerCompatibilityCheck implements Closeable {
   /**
    * Check if the used brokers have version 0.10.1.x or higher.
    *
+   * <p>Note during an upgrade this check may pass or fail depending on
+   * which broker is the leader for the partition, i.e, if an old broker is the leader
+   * the check would fail. If a new broker is the leader it will pass. This is only
+   * a temporary situation and will naturally rectify itself.
+   *
    * @throws KsqlException if brokers have version 0.10.0.x
    */
   void checkCompatibility() throws StreamsException {

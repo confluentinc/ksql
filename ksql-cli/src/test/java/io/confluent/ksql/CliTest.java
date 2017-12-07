@@ -84,9 +84,13 @@ public class CliTest extends TestRunner {
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
     commandTopicName = restServerConfig.getCommandTopic();
 
+    orderDataProvider = new OrderDataProvider();
+    CLUSTER.createTopic(orderDataProvider.topicName());
+
     KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
         EasyMock.mock(VersionCheckerAgent.class)
     );
+
     restServer.start();
 
     localCli = new LocalCli(
@@ -102,11 +106,8 @@ public class CliTest extends TestRunner {
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
 
-    // Test list or show commands before any custom topics created.
     testListOrShowCommands();
 
-    orderDataProvider = new OrderDataProvider();
-    restServer.getKsqlEngine().getTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
     produceInputStream(orderDataProvider);
   }
 
@@ -125,7 +126,10 @@ public class CliTest extends TestRunner {
   }
 
   private static void testListOrShowCommands() {
-    testListOrShow("topics", build(commandTopicName, true, 1, 1));
+    TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
+    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1"),
+        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1")));
+    testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
     testListOrShow("tables", EMPTY_RESULT);

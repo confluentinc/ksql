@@ -61,15 +61,20 @@ public class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  public static String getStatsFor(final String topic) {
+  public static String getStatsFor(final String topic, boolean isError) {
 
     ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
-    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase())));
+    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase(), isError)));
 
     Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
 
     return format(aggregateStats.values());
   }
+
+  public static void recordError(String topic) {
+    collectorMap.values().iterator().next().recordError(topic);
+  }
+
 
   static Map<String, TopicSensors.Stat> getAggregateMetrics(final List<TopicSensors.Stat> allStats) {
     Map<String, TopicSensors.Stat> results = new TreeMap<>();
@@ -94,4 +99,5 @@ public class MetricCollectors {
   public static Time getTime() {
     return time;
   }
+
 }

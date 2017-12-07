@@ -43,5 +43,7 @@ interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
 
   String getId();
 
-  Collection<TopicSensors.Stat> stats(String topic);
+  Collection<TopicSensors.Stat> stats(String topic, boolean isError);
+
+  void recordError(String topic);
 }

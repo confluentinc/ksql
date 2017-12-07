@@ -37,8 +37,12 @@ class TopicSensors<R> {
     this.sensors = sensors;
   }
 
-  void increment(R record) {
-    sensors.forEach(v -> v.record(record));
+  void increment(R record, boolean isError) {
+    sensors.forEach((SensorMetric<R> v) -> {
+      if (v.isError() == isError) {
+        v.record(record);
+      }
+    });
   }
 
   public void close(Metrics metrics) {
@@ -49,8 +53,8 @@ class TopicSensors<R> {
     return this.topic.equals(topic);
   }
 
-  Collection<Stat> stats() {
-    return sensors.stream().map(sensor -> sensor.asStat()).collect(Collectors.toList());
+  Collection<Stat> stats(boolean isError) {
+    return sensors.stream().filter(sensor -> sensor.errorMetric == isError).map(sensor -> sensor.asStat()).collect(Collectors.toList());
   }
 
   static class Stat {
@@ -128,12 +132,18 @@ class TopicSensors<R> {
     private final Sensor sensor;
     private final KafkaMetric metric;
     private Time time;
+    private boolean errorMetric;
     private long lastEvent = 0;
 
-    SensorMetric(Sensor sensor, KafkaMetric metric, Time time) {
+    SensorMetric(Sensor sensor, KafkaMetric metric, Time time, boolean errorMetric) {
       this.sensor = sensor;
       this.metric = metric;
       this.time = time;
+      this.errorMetric = errorMetric;
+    }
+
+    public boolean isError() {
+      return errorMetric;
     }
 
     /**

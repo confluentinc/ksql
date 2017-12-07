@@ -21,9 +21,25 @@ public class ProducerCollectorTest {
       collector.onSend(new ProducerRecord(TEST_TOPIC, 1, "key", "value"));
     }
 
-    Collection<TopicSensors.Stat> stats = collector.stats("test-topic");
+    Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);
 
     assertThat( stats.toString(), containsString("name='events-per-sec',"));
   }
+
+  @Test
+  public void shouldRecordErrors() throws Exception {
+
+    ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
+
+    for (int i = 0; i < 1000; i++){
+      collector.recordError(TEST_TOPIC);
+    }
+
+    Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
+
+    assertThat( stats.toString(), containsString("name='total-errors',"));
+    assertThat( stats.toString(), containsString("value=1000"));
+  }
+
 
 }

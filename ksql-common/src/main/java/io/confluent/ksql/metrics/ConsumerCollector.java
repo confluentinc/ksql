@@ -72,10 +72,19 @@ public class ConsumerCollector implements MetricCollector {
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach((record) -> topicSensors.computeIfAbsent(getCounterKey(record.topic().toLowerCase()), k ->
-            new TopicSensors<>(record.topic().toLowerCase(), buildSensors(k))
-    ).increment(record));
+    stream.forEach(record -> record(record.topic().toLowerCase(), false));
   }
+
+  public void recordError(String topic) {
+    record(topic, true);
+  }
+
+  private void record(String topic, boolean isError) {
+    topicSensors.computeIfAbsent(getCounterKey(topic), k ->
+            new TopicSensors<>(topic, buildSensors(k))
+    ).increment(null, isError);
+  }
+
 
   private String getCounterKey(String topic) {
     return topic;
@@ -87,13 +96,14 @@ public class ConsumerCollector implements MetricCollector {
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (this.metrics) {
-      addSensor(key, "events-per-sec", new Rate(), sensors);
-      addSensor(key, "total-events", new Total(), sensors);
+      addSensor(key, "events-per-sec", new Rate(), sensors, false);
+      addSensor(key, "total-events", new Total(), sensors, false);
+      addSensor(key, "total-errors", new Total(), sensors, true);
     }
     return sensors;
   }
 
-  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ConsumerRecord>> sensors) {
+  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ConsumerRecord>> sensors, boolean isError) {
     String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
     MetricName metricName = new MetricName(metricNameString, "consumer-metrics", "consumer-" + name, ImmutableMap.of("key", key, "id", id));
@@ -107,7 +117,7 @@ public class ConsumerCollector implements MetricCollector {
 
     KafkaMetric metric = metrics.metrics().get(metricName);
 
-    sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time) {
+    sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time, isError) {
       void record(ConsumerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -115,16 +125,19 @@ public class ConsumerCollector implements MetricCollector {
     });
   }
 
+
   public void close() {
     MetricCollectors.remove(this.id);
     topicSensors.values().forEach(v -> v.close(metrics));
   }
 
-  public Collection<TopicSensors.Stat> stats(String topic) {
+  @Override
+  public Collection<TopicSensors.Stat> stats(String topic, boolean isError) {
     final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
+    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats(isError)));
     return list;
   }
+
 
   @Override
   public String toString() {

@@ -35,7 +35,7 @@ public class ConsumerCollectorTest {
       collector.onConsume(consumerRecords);
     }
 
-    Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC);
+    Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC, false);
     assertNotNull(stats);
 
     assertThat( stats.toString(), containsString("name='events-per-sec',"));

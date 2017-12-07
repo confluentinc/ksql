@@ -41,11 +41,13 @@ public class SourceDescription extends KsqlEntity {
   private final String key;
   private final String timestamp;
   private final String statistics;
+  private final String errorStats;
   private final boolean extended;
   private final String serdes;
   private final String kafkaTopic;
   private final String topology;
   private final String executionPlan;
+
 
   @JsonCreator
   public SourceDescription(
@@ -56,6 +58,7 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("key")           String key,
       @JsonProperty("timestamp")     String timestamp,
       @JsonProperty("statistics")    String statistics,
+      @JsonProperty("errorStats")    String errorStats,
       @JsonProperty("extended")      boolean extended,
       @JsonProperty("serdes")         String serdes,
       @JsonProperty("kafkaTopic")    String kafkaTopic,
@@ -70,6 +73,7 @@ public class SourceDescription extends KsqlEntity {
     this.key = key;
     this.timestamp = timestamp;
     this.statistics = statistics;
+    this.errorStats = errorStats;
     this.extended = extended;
     this.serdes = serdes;
     this.kafkaTopic = kafkaTopic;
@@ -90,7 +94,8 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(""),
-        (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName()) : ""),
+        (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
+        (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
         extended,
         serdes,
         dataSource.getKsqlTopic().getKafkaTopicName(),
@@ -111,7 +116,8 @@ public class SourceDescription extends KsqlEntity {
             "QUERY",
             Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
             Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),
-            MetricCollectors.getStatsFor(outputNode.getKafkaTopicName()),
+            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false) : ""),
+            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true) : ""),
             extended,
             outputNode.getTopicSerde().getSerDe().name(),
             outputNode.getKafkaTopicName(),
@@ -154,6 +160,10 @@ public class SourceDescription extends KsqlEntity {
 
   public String getStatistics() {
     return statistics;
+  }
+
+  public String getErrorStats() {
+    return errorStats;
   }
 
   public String getTopology() {

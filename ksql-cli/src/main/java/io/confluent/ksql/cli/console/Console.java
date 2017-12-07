@@ -446,20 +446,22 @@ public abstract class Console implements Closeable {
           .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
 
-      rowValues.add(Arrays.asList("------------", "----------------"));
       if (sourceDescription.isExtended()) {
-        rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
-        rowValues.add(Arrays.asList("SQL", sourceDescription.getStatementText()));
-        rowValues.add(Arrays.asList("Kafka Topic", sourceDescription.getKafkaTopic()));
-        rowValues.add(Arrays.asList("Key Field", sourceDescription.getKey()));
-        rowValues.add(Arrays.asList("Timestamp Field", sourceDescription.getTimestamp()));
-        rowValues.add(Arrays.asList("Type", sourceDescription.getType()));
-        rowValues.add(Arrays.asList("value_format", sourceDescription.getSerdes()));
+        footer.add("\n----------------------------------");
+        footer.add("--     Extended information     --\n");
+        footer.add(String.format("%15s : %s","Statistics:", sourceDescription.getStatistics()));
+        footer.add(String.format("%15s : %s","Errors:", sourceDescription.getErrorStats()));
+        footer.add(String.format("%15s : %s","SQL:", sourceDescription.getStatementText()));
+        footer.add(String.format("%15s : %s","Kafka Topic", sourceDescription.getKafkaTopic()));
+        footer.add(String.format("%15s : %s","Key Field", sourceDescription.getKey()));
+        footer.add(String.format("%15s : %s","Timestamp Field", sourceDescription.getTimestamp()));
+        footer.add(String.format("%15s : %s","Type", sourceDescription.getType()));
+        footer.add(String.format("%15s : %s","value_format", sourceDescription.getSerdes()));
         if (sourceDescription.getExecutionPlan() != null) {
-          rowValues.add(Arrays.asList("\n Execution Plan", "\n" + sourceDescription.getExecutionPlan()));
+          footer.add(String.format("\n%15s : %s","Execution Plan", "\n" + sourceDescription.getExecutionPlan()));
         }
         if (sourceDescription.getTopology() != null) {
-          rowValues.add(Arrays.asList("\n Topology", "\n" + sourceDescription.getTopology()));
+          footer.add(String.format("\n%15s : %s","Topology", "\n" + sourceDescription.getTopology()));
         }
       } else {
         footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table,Query>");

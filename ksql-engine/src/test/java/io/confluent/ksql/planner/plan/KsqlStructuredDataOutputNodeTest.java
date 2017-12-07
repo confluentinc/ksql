@@ -40,7 +40,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 
@@ -71,7 +70,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("datasource",
+      new KsqlStream("sqlExpression", "datasource",
           schema,
           schema.field("key"),
           schema.field("timestamp"),

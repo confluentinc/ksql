@@ -259,7 +259,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             false,
             commandTopicProperties)));
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(new CreateStream(
+    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand("statementText", new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement("STATEMENT", "STRING")),
             false,

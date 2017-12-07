@@ -59,7 +59,7 @@ public class StructuredDataSourceNodeTest {
       .build();
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("datasource",
+      new KsqlStream("sqlExpression", "datasource",
           schema,
           schema.field("key"),
           schema.field("timestamp"),
@@ -129,7 +129,7 @@ public class StructuredDataSourceNodeTest {
   public void shouldBuildSchemaKTableWhenKTableSource() {
     StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable("datasource",
+        new KsqlTable("sqlExpression", "datasource",
             schema,
             schema.field("field"),
             schema.field("timestamp"),

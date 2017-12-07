@@ -61,9 +61,9 @@ public class MetastoreUtil {
     String timestampFieldName = node.get("timestamp").asText();
     ArrayNode fields = (ArrayNode) node.get("fields");
     Schema dataSource = buildDatasourceSchema(name, fields);
-
+    String sqlExpression = "Unknown-SQL-Expression-MetaStoreUtil";
     if ("STREAM".equals(type)) {
-      return new KsqlStream(name, dataSource, dataSource.field(keyFieldName),
+      return new KsqlStream(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
                             dataSource.field(timestampFieldName), ksqlTopic);
     } else if ("TABLE".equals(type)) {
       boolean isWindowed = false;
@@ -72,12 +72,12 @@ public class MetastoreUtil {
       }
       // Use the changelog topic name as state store name.
       if (node.get("statestore") == null) {
-        return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
+        return new KsqlTable(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
                              dataSource.field(timestampFieldName),
                              ksqlTopic, ksqlTopic.getName(), isWindowed);
       }
       String stateStore = node.get("statestore").asText();
-      return new KsqlTable(name, dataSource, dataSource.field(keyFieldName),
+      return new KsqlTable(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
                            dataSource.field(timestampFieldName),
           ksqlTopic, stateStore, isWindowed);
     }

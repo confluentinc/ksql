@@ -74,7 +74,7 @@ class QueryEngine {
 
     for (Pair<String, Statement> statementQueryPair : statementList) {
       if (statementQueryPair.getRight() instanceof Query) {
-        PlanNode logicalPlan = buildQueryLogicalPlan((Query) statementQueryPair.getRight(),
+        PlanNode logicalPlan = buildQueryLogicalPlan(statementQueryPair.getLeft(), (Query) statementQueryPair.getRight(),
                                                      tempMetaStore);
         logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), logicalPlan));
       } else {
@@ -86,9 +86,9 @@ class QueryEngine {
     return logicalPlansList;
   }
 
-  private PlanNode buildQueryLogicalPlan(final Query query, final MetaStore tempMetaStore) {
+  private PlanNode buildQueryLogicalPlan(String sqlExpression, final Query query, final MetaStore tempMetaStore) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(tempMetaStore, ksqlEngine.getFunctionRegistry());
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
     final PlanNode logicalPlan
         = new LogicalPlanner(analysis, aggAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
@@ -98,7 +98,7 @@ class QueryEngine {
 
       StructuredDataSource
           structuredDataSource =
-          new KsqlStream(ksqlStructuredDataOutputNode.getId().toString(),
+          new KsqlStream(sqlExpression, ksqlStructuredDataOutputNode.getId().toString(),
                          ksqlStructuredDataOutputNode.getSchema(),
                          ksqlStructuredDataOutputNode.getKeyField(),
                          ksqlStructuredDataOutputNode.getTimestampField() == null
@@ -129,7 +129,7 @@ class QueryEngine {
         if (!(statement instanceof  DDLStatement)) {
           throw new KsqlException("expecting a statement implementing DDLStatement but got: " + statement.getClass());
         }
-        handleDdlStatement((DDLStatement)statement, overriddenStreamsProperties);
+        handleDdlStatement(statementPlanPair.getLeft(), (DDLStatement)statement, overriddenStreamsProperties);
       } else {
         buildQueryPhysicalPlan(physicalPlans, addUniqueTimeSuffix, statementPlanPair,
                                overriddenStreamsProperties, updateMetastore);
@@ -165,9 +165,9 @@ class QueryEngine {
 
 
   DDLCommandResult handleDdlStatement(
-      final DDLStatement statement,
-      final Map<String, Object> overriddenProperties) {
-    DDLCommand command = ddlCommandFactory.create(statement, overriddenProperties);
+          String sqlExpression, final DDLStatement statement,
+          final Map<String, Object> overriddenProperties) {
+    DDLCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
   }
 
@@ -183,6 +183,6 @@ class QueryEngine {
     }
 
     KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
-    return new KsqlStream(name, dataSource.schema(), null, null, ksqlTopic);
+    return new KsqlStream("QueryEngine-DDLCommand-Not-Needed", name, dataSource.schema(), null, null, ksqlTopic);
   }
 }

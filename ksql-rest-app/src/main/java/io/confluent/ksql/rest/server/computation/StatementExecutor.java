@@ -206,7 +206,7 @@ public class StatementExecutor {
     String successMessage = "";
     if (statement instanceof DDLStatement) {
       result =
-          ksqlEngine.executeDdlStatement((DDLStatement) statement, command.getStreamsProperties());
+          ksqlEngine.executeDdlStatement(statementStr, (DDLStatement) statement, command.getStreamsProperties());
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect((CreateAsSelect)
           statement,
@@ -274,7 +274,7 @@ public class StatementExecutor {
   }
 
   private boolean startQuery(
-      String queryString,
+      String sqlExpression,
       Query query,
       CommandId commandId,
       Map<QueryId, CommandId> terminatedQueries,
@@ -296,7 +296,7 @@ public class StatementExecutor {
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         false,
-        queryString,
+        sqlExpression,
         command.getStreamsProperties()
     ).get(0);
 

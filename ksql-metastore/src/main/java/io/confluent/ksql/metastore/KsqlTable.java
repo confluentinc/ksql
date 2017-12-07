@@ -29,10 +29,10 @@ public class KsqlTable extends StructuredDataSource {
   private final String stateStoreName;
   private final boolean isWindowed;
 
-  public KsqlTable(final String datasourceName, final Schema schema, final Field keyField,
+  public KsqlTable(String sqlExpression, final String datasourceName, final Schema schema, final Field keyField,
                    final Field timestampField,
                    final KsqlTopic ksqlTopic, final String stateStoreName, boolean isWindowed) {
-    super(datasourceName, schema, keyField, timestampField, DataSourceType.KTABLE, ksqlTopic);
+    super(sqlExpression, datasourceName, schema, keyField, timestampField, DataSourceType.KTABLE, ksqlTopic);
     this.stateStoreName = stateStoreName;
     this.isWindowed = isWindowed;
   }
@@ -48,7 +48,7 @@ public class KsqlTable extends StructuredDataSource {
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlTable(dataSourceName, newSchema, keyField, timestampField, ksqlTopic,
+    return new KsqlTable(sqlExpression, dataSourceName, newSchema, keyField, timestampField, ksqlTopic,
                          stateStoreName, isWindowed);
   }
 
@@ -59,7 +59,7 @@ public class KsqlTable extends StructuredDataSource {
       throw new KsqlException("Timestamp column, " + timestampfieldName + ", should be LONG"
                               + "(INT64).");
     }
-    return new KsqlTable(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic,
+    return new KsqlTable(sqlExpression, dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic,
                          stateStoreName, isWindowed);
   }
 

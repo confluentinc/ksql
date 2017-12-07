@@ -83,7 +83,7 @@ public class MetricCollectors {
   private static String format(Collection<TopicSensors.Stat> stats) {
     StringBuilder results = new StringBuilder();
     stats.forEach(stat -> results.append(stat.formatted()).append("  "));
-    if (stats.size() > 0) results.append(" last-event: ").append(stats.iterator().next().timestamp()).append(" \n");
+    if (stats.size() > 0) results.append(" last-event: ").append(stats.iterator().next().timestamp());
     return results.toString();
   }
 

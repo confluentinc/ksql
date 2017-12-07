@@ -55,6 +55,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -364,7 +365,7 @@ public abstract class Console implements Closeable {
   }
 
 
-  private void printTable(List<String> columnHeaders, List<List<String>> rowValues) {
+  private void printTable(List<String> columnHeaders, List<List<String>> rowValues, List<String> footer) {
     if (columnHeaders.size() == 0) {
       throw new RuntimeException("Cannot print table without columns");
     }
@@ -377,7 +378,7 @@ public abstract class Console implements Closeable {
     for (int i = 0; i < columnLengths.length; i++) {
       int columnLength = columnHeaders.get(i).length();
       for (List<String> row : rowValues) {
-        columnLength = Math.max(columnLength, row.get(i).length());
+        columnLength = Math.max(columnLength, getMultiLineStringLength(row.get(i)));
       }
       columnLengths[i] = columnLength;
       separatorLength += columnLength + 3;
@@ -391,11 +392,21 @@ public abstract class Console implements Closeable {
     for (List<String> row : rowValues) {
       writer().printf(rowFormatString, row.toArray());
     }
+    for (String msg : footer) {
+      writer().println(msg);
+    }
 
     flush();
   }
 
+  private int getMultiLineStringLength(String s) {
+    String[] split = s.split("\n");
+    String longest = Collections.max(Arrays.asList(split), Comparator.comparing(line -> line.length()));
+    return longest.length();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
+    List<String> footer = new ArrayList<>();
     List<String> columnHeaders;
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
@@ -420,13 +431,12 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String", "Statistics");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
               runningQuery.getId().toString(),
               runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString(),
-              runningQuery.getStatistics()
+              runningQuery.getQueryString()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
@@ -436,9 +446,24 @@ public abstract class Console implements Closeable {
           .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
 
-      rowValues.add(Arrays.asList("------","--------"));
-      rowValues.add(Arrays.asList("",""));
-      rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
+      rowValues.add(Arrays.asList("------------", "----------------"));
+      if (sourceDescription.isExtended()) {
+        rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
+        rowValues.add(Arrays.asList("SQL", sourceDescription.getStatementText()));
+        rowValues.add(Arrays.asList("Kafka Topic", sourceDescription.getKafkaTopic()));
+        rowValues.add(Arrays.asList("Key Field", sourceDescription.getKey()));
+        rowValues.add(Arrays.asList("Timestamp Field", sourceDescription.getTimestamp()));
+        rowValues.add(Arrays.asList("Type", sourceDescription.getType()));
+        rowValues.add(Arrays.asList("value_format", sourceDescription.getSerdes()));
+        if (sourceDescription.getExecutionPlan() != null) {
+          rowValues.add(Arrays.asList("\n Execution Plan", "\n" + sourceDescription.getExecutionPlan()));
+        }
+        if (sourceDescription.getTopology() != null) {
+          rowValues.add(Arrays.asList("\n Topology", "\n" + sourceDescription.getTopology()));
+        }
+      } else {
+        footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table,Query>");
+      }
 
 
     } else if (ksqlEntity instanceof TopicDescription) {
@@ -504,7 +529,7 @@ public abstract class Console implements Closeable {
           ksqlEntity.getClass().getCanonicalName()
       ));
     }
-    printTable(columnHeaders, rowValues);
+    printTable(columnHeaders, rowValues, footer);
   }
 
   private void printAsTable(GenericRow row) {

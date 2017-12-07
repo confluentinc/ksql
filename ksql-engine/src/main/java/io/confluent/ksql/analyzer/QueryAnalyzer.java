@@ -33,9 +33,9 @@ public class QueryAnalyzer {
     this.functionRegistry = functionRegistry;
   }
 
-  public Analysis analyize(final Query query) {
+  public Analysis analyze(final String sqlExpression, final Query query) {
     Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
+    Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore);
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }

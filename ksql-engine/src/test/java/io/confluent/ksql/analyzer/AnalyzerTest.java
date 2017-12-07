@@ -43,7 +43,7 @@ public class AnalyzerTest {
     System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
+    Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }

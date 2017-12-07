@@ -30,9 +30,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   private String stateStoreName;
 
-  public CreateTableCommand(CreateTable createTable, Map<String, Object> overriddenProperties,
+  public CreateTableCommand(String sqlExpression, CreateTable createTable, Map<String, Object> overriddenProperties,
                             KafkaTopicClient kafkaTopicClient) {
-    super(createTable, overriddenProperties, kafkaTopicClient);
+    super(sqlExpression, createTable, overriddenProperties, kafkaTopicClient);
 
     Map<String, Expression> properties = createTable.getProperties();
 
@@ -51,7 +51,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlTable ksqlTable = new KsqlTable(sourceName, schema,
+    KsqlTable ksqlTable = new KsqlTable(sqlExpression, sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),
         (timestampColumnName.length() == 0) ? null :

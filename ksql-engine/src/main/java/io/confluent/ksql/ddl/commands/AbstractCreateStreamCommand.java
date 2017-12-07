@@ -40,6 +40,7 @@ import java.util.Set;
  */
 abstract class AbstractCreateStreamCommand implements DDLCommand {
 
+  String sqlExpression;
   String sourceName;
   String topicName;
   Schema schema;
@@ -49,9 +50,10 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
   RegisterTopicCommand registerTopicCommand;
   private KafkaTopicClient kafkaTopicClient;
 
-  AbstractCreateStreamCommand(final AbstractStreamCreateStatement statement,
+  AbstractCreateStreamCommand(String sqlExpression, final AbstractStreamCreateStatement statement,
                               Map<String, Object> overriddenProperties,
                               KafkaTopicClient kafkaTopicClient) {
+    this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
     this.topicName = this.sourceName;
     this.kafkaTopicClient = kafkaTopicClient;

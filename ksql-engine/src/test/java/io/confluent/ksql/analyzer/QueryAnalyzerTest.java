@@ -57,7 +57,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
     final List<Statement> statements = ksqlParser.buildAst("select orderid from orders;", metaStore);
-    final Analysis analysis = queryAnalyzer.analyize((Query)statements.get(0));
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query)statements.get(0));
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(
         Collections.singletonList(new DereferenceExpression(
@@ -74,7 +74,7 @@ public class QueryAnalyzerTest {
             "where orderunits > 5 group by itemid;",
         metaStore);
     final Query query = (Query) statements.get(0);
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression",query);
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
     final DereferenceExpression itemId = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ITEMID");
     final DereferenceExpression orderUnits = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ORDERUNITS");
@@ -94,7 +94,7 @@ public class QueryAnalyzerTest {
             "where orderunits > 5;",
         metaStore);
     final Query query = (Query) statements.get(0);
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
       queryAnalyzer.analyizeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
@@ -111,7 +111,7 @@ public class QueryAnalyzerTest {
             "where orderunits > 5 group by itemid;",
         metaStore);
     final Query query = (Query) statements.get(0);
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
       queryAnalyzer.analyizeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
@@ -127,7 +127,7 @@ public class QueryAnalyzerTest {
             "where orderunits > 5 group by itemid having count(itemid) > 10;",
         metaStore);
     final Query query = (Query) statements.get(0);
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
     final Expression havingExpression = aggregateAnalysis.getHavingExpression();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
@@ -143,7 +143,7 @@ public class QueryAnalyzerTest {
         metaStore);
     final Query query = (Query) statements.get(0);
     try {
-      queryAnalyzer.analyize(query);
+      queryAnalyzer.analyze("sqlExpression", query);
     } catch (KsqlException ex) {
       assertThat(ex.getMessage().trim(), equalTo("Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). Key for TEST2 is not set correctly."));
     }
@@ -155,7 +155,7 @@ public class QueryAnalyzerTest {
         "select * from test1 left join test2 on test2.col2 = test1.col1;",
         metaStore);
     final Query query = (Query) statements.get(0);
-    final Analysis analysis = queryAnalyzer.analyize(query);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     assertTrue(analysis.getJoin().isLeftJoin());
     assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
     assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));

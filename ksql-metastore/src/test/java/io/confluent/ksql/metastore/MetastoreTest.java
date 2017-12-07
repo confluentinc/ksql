@@ -59,7 +59,7 @@ public class MetastoreTest {
   @Test
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource structuredDataSource2 = new KsqlStream("testStream",
+    StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
                                                                structuredDataSource1.getTimestampField(),

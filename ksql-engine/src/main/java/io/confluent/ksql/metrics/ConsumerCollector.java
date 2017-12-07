@@ -29,33 +29,14 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-/**
- * Interceptor for collecting ksql-stats
- * Design notes:
- * </p>
- * Measurable stats are shared across all partitions as well as consumers.
- * </p>
- * Limitations:
- * Stats are only collected for a consumer's topic(s). As such they are aggregated across all partitions at intercept-time; the
- * alternative would be to aggregate on read, and also store records at the partition level.
- * </p>
- * The downside to this approach is:
- * - Potential performance penalty during interception due to sharing of AKMetrics across Consumer threads
- * - Accuracy of stats, AK Metrics are not thread safe, as such stats are indicative
- * - Lack of partition level metrics
- * - collected at process level - a higher order aggregator would be needed to collect across multiple processed
- * </p>
- * Potential issues:
- * - With metric leaks where a client interceptor is closed(), De-registration of sensors and metrics where other clients are still connected (in the same process).
- * - Around dynamic resource allocation (ie. stream threads are added/removed)
- * </p>
- * Benefits:
- * - Smaller memory footprint due to agg on intercept
- */
 public class ConsumerCollector implements MetricCollector {
 
   private final Map<String, TopicSensors> topicSensors = new HashMap<>();

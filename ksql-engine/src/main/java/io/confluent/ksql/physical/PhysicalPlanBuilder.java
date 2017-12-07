@@ -47,6 +47,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.TopologyDescription;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -116,7 +117,7 @@ public class PhysicalPlanBuilder {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
 
-      return buildPlanForStructuredOutputNode(resultStream,
+      return buildPlanForStructuredOutputNode(statementPlanPair.getLeft(), resultStream,
           (KsqlStructuredDataOutputNode) outputNode, serviceId, persistanceQueryPrefix, statementPlanPair.getLeft());
 
     } else {
@@ -154,7 +155,7 @@ public class PhysicalPlanBuilder {
   }
 
 
-  private QueryMetadata buildPlanForStructuredOutputNode(final SchemaKStream schemaKStream,
+  private QueryMetadata buildPlanForStructuredOutputNode(String sqlExpression, final SchemaKStream schemaKStream,
                                                          final KsqlStructuredDataOutputNode outputNode,
                                                          final String serviceId,
                                                          final String persistanceQueryPrefix,
@@ -167,7 +168,7 @@ public class PhysicalPlanBuilder {
     if (schemaKStream instanceof SchemaKTable) {
       SchemaKTable schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
-          new KsqlTable(outputNode.getId().toString(),
+          new KsqlTable(sqlExpression, outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
@@ -177,7 +178,7 @@ public class PhysicalPlanBuilder {
               schemaKTable.isWindowed());
     } else {
       sinkDataSource =
-          new KsqlStream(outputNode.getId().toString(),
+          new KsqlStream(sqlExpression, outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
@@ -194,6 +195,8 @@ public class PhysicalPlanBuilder {
 
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
+    TopologyDescription topologyDescription = builder.build().describe();
+
     return new PersistentQueryMetadata(statement,
         streams, outputNode, schemaKStream
         .getExecutionPlan(""), queryId,
@@ -202,7 +205,7 @@ public class PhysicalPlanBuilder {
             .KSTREAM,
         applicationId,
         kafkaTopicClient,
-        ksqlConfig);
+        ksqlConfig, topologyDescription.toString());
   }
 
   private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {

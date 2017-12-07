@@ -24,7 +24,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
-import io.confluent.ksql.parser.SqlBaseParser.*;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
@@ -558,7 +557,7 @@ public class AstBuilder
   @Override
   public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
     return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()),
-                           context.TOPIC() != null);
+                           context.TOPIC() != null, context.EXTENDED() != null);
   }
 
   @Override
@@ -1422,7 +1421,7 @@ public class AstBuilder
                                      null);
     StructuredDataSource
         resultStream =
-        new KsqlStream(into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
+        new KsqlStream("AstBuilder-Into", into.getName().toString(), dataSource.schema(), dataSource.fields().get(0),
             null,
             ksqlTopic
         );

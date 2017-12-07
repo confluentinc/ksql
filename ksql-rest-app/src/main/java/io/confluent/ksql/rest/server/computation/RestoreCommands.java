@@ -32,6 +32,9 @@ class RestoreCommands {
   void addCommand(final CommandId key, final Command value) {
     if (key.getType() == CommandId.Type.TERMINATE) {
       allTerminatedQueries.put(new QueryId(key.getEntity()), key);
+      if (allCommandIds.contains(key)) {
+        allCommandIds.remove(key);
+      }
     } else if (!toRestore.containsKey(key)){
       toRestore.put(key, value);
     }

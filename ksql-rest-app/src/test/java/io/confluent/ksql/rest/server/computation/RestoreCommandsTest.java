@@ -22,12 +22,15 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.confluent.ksql.query.QueryId;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.fail;
 
 public class RestoreCommandsTest {
 
@@ -101,6 +104,33 @@ public class RestoreCommandsTest {
       results.add(commandId);
     });
     assertThat(results, equalTo(Arrays.asList(createId, createStreamOneId)));
+  }
+
+  @Test
+  public void shouldHaveTerminatedQueriesWhenMultipleCreateDropTerminateForCommand() {
+    // create
+    restoreCommands.addCommand(createId, createCommand);
+    // terminate
+    restoreCommands.addCommand(terminateId, terminateCommand);
+    // drop
+    restoreCommands.remove(createId);
+    // recreate
+    restoreCommands.addCommand(createId, createCommand);
+    // another one for good measure
+    restoreCommands.addCommand(new CommandId(CommandId.Type.STREAM, "bar", CommandId.Action.CREATE), createCommand);
+    // terminate again
+    restoreCommands.addCommand(terminateId, terminateCommand);
+
+    final Map<CommandId, Map<QueryId, CommandId>> commandIdToTerminate = new HashMap<>();
+    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
+      if (commandIdToTerminate.containsKey(commandId)) {
+        fail("Should not have same commandId twice. CommandId=" + commandId);
+      }
+      commandIdToTerminate.put(commandId, terminatedQueries);
+    });
+
+    assertThat(commandIdToTerminate.get(createId), equalTo(Collections.singletonMap(new QueryId("queryId"),
+        terminateId)));
   }
 
 

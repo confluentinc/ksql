@@ -461,6 +461,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return true;
   }
 
+  public void removeTemporaryQuery(QueryMetadata queryMetadata) {
+    this.allLiveQueries.remove(queryMetadata);
+  }
+
   public DDLCommandResult executeDdlStatement(String sqlExpression, final DDLStatement statement,
                                               final Map<String, Object> streamsProperties) {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);

@@ -35,6 +35,7 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -323,7 +324,7 @@ public class KsqlResourceTest {
     );
 
     SourceDescription expectedDescription =
-        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topology", "executionPlan");
+        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topology", "executionPlan", "", null);
 
     assertEquals(expectedDescription, testDescription);
   }

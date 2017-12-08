@@ -39,6 +39,6 @@ public class ConsumerCollectorTest {
     assertNotNull(stats);
 
     assertThat( stats.toString(), containsString("name='events-per-sec',"));
-    assertThat( stats.toString(), containsString("'total-events', value=100.0"));
+    assertThat( stats.toString(), containsString("total-events', value=100.0"));
   }
 }

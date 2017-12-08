@@ -84,8 +84,8 @@ public class ProducerCollector implements MetricCollector {
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
       addSensor(key, "events-per-sec", new Rate(), sensors, false);
-      addSensor(key, "total-events", new Total(), sensors, false);
-      addSensor(key, "total-errors", new Total(), sensors, true);
+      addSensor(key, "  total-events", new Total(), sensors, false);
+      addSensor(key, "  total-failed", new Total(), sensors, true);
     }
     return sensors;
   }

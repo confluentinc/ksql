@@ -52,7 +52,7 @@ public class MetricCollectorsTest {
 
     String firstPassStats = MetricCollectors.getStatsFor(TEST_TOPIC, false);
 
-    assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-events:      2.00"));
+    assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-events:         2"));
 
     collector2.close();
 
@@ -60,7 +60,7 @@ public class MetricCollectorsTest {
 
     String statsForTopic2 =  MetricCollectors.getStatsFor(TEST_TOPIC, false);
 
-    assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-events:      2.00"));
+    assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-events:         2"));
 
   }
 }

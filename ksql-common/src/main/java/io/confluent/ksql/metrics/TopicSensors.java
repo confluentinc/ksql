@@ -69,10 +69,15 @@ class TopicSensors<R> {
       this.timestamp = timestamp;
     }
     public String formatted() {
-      return  String.format("%s:%10.2f", name, value);
+      if (value == Math.round(value)) {
+        return String.format("%s:%10.0f", name, value);
+      }    else{
+        return String.format("%s:%10.2f", name, value);
+      }
     }
 
     public String timestamp() {
+      if (timestamp == 0) return "";
       return SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(timestamp));
     }
 

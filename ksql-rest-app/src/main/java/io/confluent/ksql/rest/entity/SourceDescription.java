@@ -23,10 +23,14 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.SchemaUtil;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,6 +40,7 @@ import java.util.stream.Collectors;
 public class SourceDescription extends KsqlEntity {
 
   private final String name;
+  private final String queries;
   private final  List<FieldSchemaInfo> schema;
   private final String type;
   private final String key;
@@ -47,12 +52,15 @@ public class SourceDescription extends KsqlEntity {
   private final String kafkaTopic;
   private final String topology;
   private final String executionPlan;
+  private final int partitions;
+  private final int replication;
 
 
   @JsonCreator
   public SourceDescription(
       @JsonProperty("statementText") String statementText,
       @JsonProperty("name")          String name,
+      @JsonProperty("queries")          String queries,
       @JsonProperty("schema")        List<FieldSchemaInfo> schema,
       @JsonProperty("type")          String type,
       @JsonProperty("key")           String key,
@@ -63,11 +71,14 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("serdes")         String serdes,
       @JsonProperty("kafkaTopic")    String kafkaTopic,
       @JsonProperty("topology")    String topology,
-      @JsonProperty("executionPlan")    String executionPlan
+      @JsonProperty("executionPlan")    String executionPlan,
+      @JsonProperty("parititions")    int partitions,
+      @JsonProperty("replication")    int replication
 
   ) {
     super(statementText);
     this.name = name;
+    this.queries = queries;
     this.schema = schema;
     this.type = type;
     this.key = key;
@@ -79,13 +90,16 @@ public class SourceDescription extends KsqlEntity {
     this.kafkaTopic = kafkaTopic;
     this.topology = topology;
     this.executionPlan = executionPlan;
+    this.partitions = partitions;
+    this.replication = replication;
   }
 
-  public SourceDescription(StructuredDataSource dataSource, boolean extended, String serdes, String topology, String executionPlan) {
+  public SourceDescription(StructuredDataSource dataSource, boolean extended, String serdes, String topology, String executionPlan, String queries, KafkaTopicClient topicClient) {
 
     this(
         dataSource.getSqlExpression(),
         dataSource.getName(),
+        queries,
         dataSource.getSchema().fields().stream().map(
             field -> {
               return new FieldSchemaInfo(field.name(), SchemaUtil
@@ -100,15 +114,30 @@ public class SourceDescription extends KsqlEntity {
         serdes,
         dataSource.getKsqlTopic().getKafkaTopicName(),
         topology,
-        executionPlan
+        executionPlan,
+        (extended & topicClient != null ? getParitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
+        (extended & topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
 
     );
   }
 
-  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, boolean extended) {
+  private static int getParitions(KafkaTopicClient topicClient, String kafkaTopicName) {
+    Map<String, TopicDescription> stringTopicDescriptionMap = topicClient.describeTopics(Arrays.asList(kafkaTopicName));
+    TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
+    return topicDescription.partitions().size();
+  }
+  private static int getReplication(KafkaTopicClient topicClient, String kafkaTopicName) {
+    Map<String, TopicDescription> stringTopicDescriptionMap = topicClient.describeTopics(Arrays.asList(kafkaTopicName));
+    TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
+    return topicDescription.partitions().iterator().next().replicas().size();
+
+  }
+
+  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, boolean extended, KafkaTopicClient topicClient) {
     this(
             statementString,
             name,
+            "",
             outputNode.getSchema().fields().stream().map(
               field -> {
                 return new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field));
@@ -122,7 +151,9 @@ public class SourceDescription extends KsqlEntity {
             outputNode.getTopicSerde().getSerDe().name(),
             outputNode.getKafkaTopicName(),
             topoplogy,
-            executionPlan
+            executionPlan,
+            (extended & topicClient != null ? getParitions(topicClient,  outputNode.getKafkaTopicName()) : 0),
+            (extended & topicClient != null ? getReplication(topicClient, outputNode.getKafkaTopicName()) : 0)
     );
   }
 
@@ -152,6 +183,10 @@ public class SourceDescription extends KsqlEntity {
 
   public String getKey() {
     return key;
+  }
+
+  public String getQueries() {
+    return queries;
   }
 
   public String getTimestamp() {
@@ -193,6 +228,14 @@ public class SourceDescription extends KsqlEntity {
   @Override
   public int hashCode() {
     return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
+  }
+
+  public int getPartitions() {
+    return partitions;
+  }
+
+  public int getReplication() {
+    return replication;
   }
 
   public static class FieldSchemaInfo {

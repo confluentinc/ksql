@@ -109,7 +109,7 @@ public class KsqlContext {
   }
 
   public Set<QueryMetadata> getRunningQueries() {
-    return ksqlEngine.getLiveQueries();
+    return ksqlEngine.getLivePersistentQueries();
   }
 
   public void close() throws IOException {

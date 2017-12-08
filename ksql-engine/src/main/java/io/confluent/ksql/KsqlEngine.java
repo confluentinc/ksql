@@ -28,6 +28,7 @@ import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -59,6 +60,10 @@ import io.confluent.ksql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.apache.kafka.common.metrics.MeasurableStat;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,8 +98,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final QueryEngine queryEngine;
 
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> liveQueries;
+  private final Set<QueryMetadata> livePersistentQueries;
+  private final Set<QueryMetadata> allLiveQueries;
 
+  private final KsqlEngineMetrics engineMetrics;
   public final FunctionRegistry functionRegistry;
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
@@ -107,8 +114,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ddlCommandExec = new DDLCommandExec(metaStore);
     this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
     this.persistentQueries = new HashMap<>();
-    this.liveQueries = new HashSet<>();
+    this.livePersistentQueries = new HashSet<>();
+    this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
+    this.engineMetrics = new KsqlEngineMetrics("ksql-engine");
   }
 
   /**
@@ -157,10 +166,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     for (QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        liveQueries.add(queryMetadata);
+        livePersistentQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
       }
+      allLiveQueries.add(queryMetadata);
     }
 
     return runningQueries;
@@ -355,8 +365,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
-  public Set<QueryMetadata> getLiveQueries() {
-    return liveQueries;
+  public Set<QueryMetadata> getLivePersistentQueries() {
+    return livePersistentQueries;
   }
 
   public MetaStore getMetaStore() {
@@ -381,7 +391,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     if (queryMetadata == null) {
       return false;
     }
-    liveQueries.remove(queryMetadata);
+    livePersistentQueries.remove(queryMetadata);
+    allLiveQueries.remove(queryMetadata);
     if (closeStreams) {
       queryMetadata.close();
     }
@@ -400,7 +411,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       log.info("Terminating persistent query {}", metadata.getId());
       metadata.close();
       persistentQueries.remove(metadata.getId());
-      liveQueries.remove(metadata);
+      livePersistentQueries.remove(metadata);
+      allLiveQueries.remove(metadata);
     }
   }
 
@@ -425,7 +437,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   @Override
   public void close() throws IOException {
-    for (QueryMetadata queryMetadata : liveQueries) {
+    for (QueryMetadata queryMetadata : livePersistentQueries) {
       queryMetadata.close();
     }
     topicClient.close();
@@ -435,12 +447,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   @Override
   public boolean terminateAllQueries() {
     try {
-      for (QueryMetadata queryMetadata : liveQueries) {
+      for (QueryMetadata queryMetadata : livePersistentQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
           persistentQueryMetadata.close();
-
         }
+        allLiveQueries.remove(queryMetadata);
       }
     } catch (Exception e) {
       return false;
@@ -454,4 +466,44 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
+  private class KsqlEngineMetrics {
+    private final String metricGroupName;
+    private final Sensor numActiveQueries;
+
+    KsqlEngineMetrics(String metricGroupPrefix) {
+      Metrics metrics = MetricCollectors.getMetrics();
+
+      this.metricGroupName = metricGroupPrefix + "-query-stats";
+      this.numActiveQueries = metrics.sensor(metricGroupName);
+      numActiveQueries.add(
+          metrics.metricName("num-active-queries", this.metricGroupName,
+                             "The current number of active queries running in this engine"),
+          new MeasurableStat() {
+            @Override
+            public double measure(MetricConfig metricConfig, long l) {
+              return allLiveQueries.size();
+            }
+
+            @Override
+            public void record(MetricConfig metricConfig, double v, long l) {
+              // We don't want to record anything, since the live queries anyway.
+            }
+          });
+
+      numActiveQueries.add(
+          metrics.metricName("num-persistent-queries", this.metricGroupName,
+                             "The current number of persistent queries running in this engine"),
+          new MeasurableStat() {
+            @Override
+            public double measure(MetricConfig metricConfig, long l) {
+              return livePersistentQueries.size();
+            }
+
+            @Override
+            public void record(MetricConfig metricConfig, double v, long l) {
+              // No action for record since we can read the desired results directly.
+            }
+          });
+    }
+  }
 }

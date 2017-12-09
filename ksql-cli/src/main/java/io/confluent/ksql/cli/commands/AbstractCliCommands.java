@@ -84,6 +84,8 @@ public abstract class AbstractCliCommands implements Runnable {
       } else {
         cli.runInteractively();
       }
+    } catch (RuntimeException exception) {
+      throw exception;
     } catch (Exception exception) {
       throw new RuntimeException(exception);
     }

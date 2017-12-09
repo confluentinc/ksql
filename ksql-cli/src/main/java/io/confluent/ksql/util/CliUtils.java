@@ -26,7 +26,6 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -96,14 +95,6 @@ public class CliUtils {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
     }
     return sb.toString();
-  }
-
-  public static String getErrorMessage(Throwable e) {
-    if (e instanceof ConnectException) {
-      return "Could not connect to the server.";
-    } else {
-      return e.getMessage();
-    }
   }
 
   public static PropertiesList propertiesListWithOverrides(PropertiesList propertiesList, Map<String, Object> localProperties) {

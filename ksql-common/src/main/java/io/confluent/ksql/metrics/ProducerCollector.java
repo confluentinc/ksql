@@ -129,6 +129,23 @@ public class ProducerCollector implements MetricCollector {
   }
 
   @Override
+  public double currentMessageConsumptionRate() {
+    return 0;
+  }
+
+  @Override
+  public double currentMessageProductionRate() {
+    final List<TopicSensors.Stat> allStats = new ArrayList<>();
+    topicSensors.values().stream().forEach(record -> allStats.addAll(record.stats(false)));
+
+    return allStats
+        .stream()
+        .filter(stat -> stat.name().contains("events-per-sec"))
+        .mapToDouble(TopicSensors.Stat::getValue)
+        .sum();
+  }
+
+  @Override
   public String toString() {
     return getClass().getSimpleName() + " " + this.id + " " + this.topicSensors.toString();
   }

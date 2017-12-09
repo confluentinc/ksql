@@ -64,6 +64,9 @@ import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Percentile;
+import org.apache.kafka.common.metrics.stats.Percentiles;
+import org.apache.kafka.common.metrics.stats.Value;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +83,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class KsqlEngine implements Closeable, QueryTerminator {
 
@@ -102,7 +108,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final Set<QueryMetadata> allLiveQueries;
 
   private final KsqlEngineMetrics engineMetrics;
+  private final ScheduledExecutorService aggregateMetricsCollector;
+
   public final FunctionRegistry functionRegistry;
+
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
@@ -118,6 +127,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine");
+
+    this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
+    aggregateMetricsCollector.scheduleAtFixedRate(() -> {
+      engineMetrics.recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
+      engineMetrics.recordMessagesProduced(MetricCollectors.currentProductionRate());
+    }, 1000, 1000, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -473,12 +488,14 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private class KsqlEngineMetrics {
     private final String metricGroupName;
     private final Sensor numActiveQueries;
+    private final Sensor messagesIn;
+    private final Sensor messagesOut;
 
     KsqlEngineMetrics(String metricGroupPrefix) {
       Metrics metrics = MetricCollectors.getMetrics();
 
       this.metricGroupName = metricGroupPrefix + "-query-stats";
-      this.numActiveQueries = metrics.sensor(metricGroupName);
+      this.numActiveQueries = metrics.sensor(metricGroupName + "-active-queries");
       numActiveQueries.add(
           metrics.metricName("num-active-queries", this.metricGroupName,
                              "The current number of active queries running in this engine"),
@@ -507,7 +524,29 @@ public class KsqlEngine implements Closeable, QueryTerminator {
             public void record(MetricConfig metricConfig, double v, long l) {
               // No action for record since we can read the desired results directly.
             }
-          });
+          }
+      );
+
+      this.messagesIn = metrics.sensor(metricGroupName + "-messages-consumed");
+      this.messagesIn.add(
+          metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
+                             "The number of messages consumed per second across all queries"),
+          new Value());
+
+
+      this.messagesOut = metrics.sensor(metricGroupName + "-messages-produced");
+      this.messagesOut.add(
+          metrics.metricName("messages-produced-per-sec", this.metricGroupName,
+                             "The number of messages produced per second across all queries"),
+          new Value());
+    }
+
+    void recordMessagesProduced(double value) {
+      this.messagesOut.record(value);
+    }
+
+    void recordMessagesConsumed(double value) {
+      this.messagesIn.record(value);
     }
   }
 }

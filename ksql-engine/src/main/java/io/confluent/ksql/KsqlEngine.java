@@ -64,8 +64,6 @@ import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Percentile;
-import org.apache.kafka.common.metrics.stats.Percentiles;
 import org.apache.kafka.common.metrics.stats.Value;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -456,6 +454,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       queryMetadata.close();
     }
     topicClient.close();
+    engineMetrics.close();
   }
 
 
@@ -485,7 +484,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
-  private class KsqlEngineMetrics {
+  private class KsqlEngineMetrics implements Closeable {
     private final String metricGroupName;
     private final Sensor numActiveQueries;
     private final Sensor messagesIn;
@@ -547,6 +546,14 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     void recordMessagesConsumed(double value) {
       this.messagesIn.record(value);
+    }
+
+    @Override
+    public void close() {
+      Metrics metrics = MetricCollectors.getMetrics();
+      metrics.removeSensor(numActiveQueries.name());
+      metrics.removeSensor(messagesIn.name());
+      metrics.removeSensor(messagesOut.name());
     }
   }
 }

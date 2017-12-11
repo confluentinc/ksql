@@ -95,7 +95,9 @@ public class EndToEndIntegrationTest {
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
     ksqlEngine.buildMultipleQueries(String.format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
-            "userid varchar) WITH (kafka_topic='%s', value_format='JSON');", userTable, usersTopic), Collections.emptyMap());
+            "userid varchar) WITH (kafka_topic='%s', value_format='JSON', key = 'userid');",
+                                                         userTable,
+                                                         usersTopic), Collections.emptyMap());
     ksqlEngine.buildMultipleQueries(String.format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
             "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream, pageViewTopic), Collections.emptyMap());
   }

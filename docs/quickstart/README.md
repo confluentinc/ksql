@@ -80,7 +80,8 @@ Before proceeding, please check:
 2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
 
    ```bash
-   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
+   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar,
+   userid varchar) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
 
    ksql> DESCRIBE users_original;
 

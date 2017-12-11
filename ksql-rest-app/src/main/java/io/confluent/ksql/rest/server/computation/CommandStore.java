@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -38,7 +37,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -115,18 +113,9 @@ public class CommandStore implements Closeable {
         return commandConsumer.poll(Long.MAX_VALUE);
     }
 
-    /**
-     * Collect all commands that have been written to the command topic, starting at the earliest
-     * offset and proceeding until it appears that all have been returned.
-     * @return The commands that have been read from the command topic
-     */
-    public List<Pair<CommandId, Command>> getPriorCommands() {
-        return getAllPriorCommandRecords()
-            .stream()
-            .map(record -> new Pair<>(record.key(), record.value())).collect(Collectors.toList());
-    }
+    RestoreCommands getRestoreCommands() {
+        final RestoreCommands restoreCommands = new RestoreCommands();
 
-    private Collection<ConsumerRecord<CommandId, Command>> getAllPriorCommandRecords() {
         Collection<TopicPartition> commandTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
         commandConsumer.seekToBeginning(commandTopicPartitions);
@@ -139,12 +128,12 @@ public class CommandStore implements Closeable {
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
                 final CommandId key = record.key();
-                if (key.getAction() != CommandId.Action.DROP && !commands.containsKey(key)) {
-                    commands.put(key, record);
+                if (key.getAction() != CommandId.Action.DROP) {
+                    restoreCommands.addCommand(record.key(), record.value());
                 } else if (key.getAction() == CommandId.Action.DROP){
-                    if(commands.remove(new CommandId(key.getType(),
+                    if(!restoreCommands.remove(new CommandId(key.getType(),
                         key.getEntity(),
-                        CommandId.Action.CREATE)) == null) {
+                        CommandId.Action.CREATE))) {
                         log.warn("drop command {} found without a corresponding create command for"
                             + " {} {}", key, key.getType(), key.getAction());
                     }
@@ -153,7 +142,7 @@ public class CommandStore implements Closeable {
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         }
         log.debug("Retrieved records:" + commands.size());
-        return commands.values();
+        return restoreCommands;
     }
 
     private Collection<TopicPartition> getTopicPartitionsForTopic(String topic) {

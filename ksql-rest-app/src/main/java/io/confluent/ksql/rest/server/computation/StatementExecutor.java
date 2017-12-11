@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.*;
+import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -36,14 +36,12 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,19 +72,18 @@ public class StatementExecutor {
     this.statusFutures = new HashMap<>();
   }
 
-  void handleStatements(List<Pair<CommandId, Command>> priorCommands) throws Exception {
-    for (Pair<CommandId, Command> commandIdCommandPair: priorCommands) {
-      log.info("Executing prior statement: '{}'", commandIdCommandPair.getRight());
+  void handleRestoration(final RestoreCommands restoreCommands) throws Exception {
+    restoreCommands.forEach(((commandId, command, terminatedQueries) -> {
+      log.info("Executing prior statement: '{}'", command);
       try {
         handleStatementWithTerminatedQueries(
-            commandIdCommandPair.getRight(),
-            commandIdCommandPair.getLeft(),
-            Collections.emptyMap()
-        );
+            command,
+            commandId,
+            terminatedQueries);
       } catch (Exception exception) {
         log.warn("Failed to execute statement due to exception", exception);
       }
-    }
+    }));
   }
 
   /**

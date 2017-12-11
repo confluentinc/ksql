@@ -63,6 +63,12 @@ public class CreateTable
     return elements;
   }
 
+  @Override
+  public AbstractStreamCreateStatement copyWith(List<TableElement> elements,
+                                                Map<String, Expression> properties) {
+    return new CreateTable(name, elements, notExists, properties);
+  }
+
   public boolean isNotExists() {
     return notExists;
   }

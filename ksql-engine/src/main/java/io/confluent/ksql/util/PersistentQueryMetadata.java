@@ -68,6 +68,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return getOutputNode().getId().toString();
   }
 
+  public DataSource.DataSourceSerDe getResultTopicSerde() {
+    if (resultTopic.getKsqlTopicSerDe() == null) {
+      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
+                                            resultTopic.getName()));
+    }
+    return resultTopic.getKsqlTopicSerDe().getSerDe();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof PersistentQueryMetadata)) {

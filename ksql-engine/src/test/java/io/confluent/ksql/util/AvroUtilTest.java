@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
@@ -60,6 +62,7 @@ public class AvroUtilTest {
                      + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
                      + " ]"
                      + "}";
+  AvroUtil avroUtil = new AvroUtil();
 
   @Test
   public void shouldPassAvroCheck() throws Exception {
@@ -74,18 +77,16 @@ public class AvroUtilTest {
         ("CREATE STREAM S1 WITH "
                                                                    + "(kafka_topic='s1_topic', "
                                      + "value_format='avro' );");
-    Pair<AbstractStreamCreateStatement, String> checkResult = AvroUtil.checkAndSetAvroSchema
-        (abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+    Pair<AbstractStreamCreateStatement, String> checkResult = avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
     AbstractStreamCreateStatement newAbstractStreamCreateStatement = checkResult.getLeft();
-    assertThat("Columns were not added correctly from Avro schema.",
-               newAbstractStreamCreateStatement.getElements().size(), equalTo(6));
-    assertThat("Invalid column type mapping. ", newAbstractStreamCreateStatement.getElements()
-        .get(2).getType(), equalTo("VARCHAR"));
-    assertThat("Invalid column type mapping. ", newAbstractStreamCreateStatement.getElements()
-        .get(5).getType(), equalTo("MAP<VARCHAR,DOUBLE>"));
-
-    assertThat("Schema ID was not set correctly.", newAbstractStreamCreateStatement
-        .getProperties().get(KsqlConstants.AVRO_SCHEMA_ID).toString(), equalTo("'1'"));
+    assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
+        new TableElement("ordertime", "BIGINT"),
+        new TableElement("orderid", "BIGINT"),
+        new TableElement("itemid", "VARCHAR"),
+        new TableElement("orderunits", "DOUBLE"),
+        new TableElement("arraycol", "ARRAY<DOUBLE>"),
+        new TableElement("mapcol", "MAP<VARCHAR,DOUBLE>")
+        )));
   }
 
   @Test
@@ -102,16 +103,13 @@ public class AvroUtilTest {
          + "(kafka_topic='s1_topic', "
          + "value_format='avro' );");
     try {
-      Pair<AbstractStreamCreateStatement, String> checkResult = AvroUtil.checkAndSetAvroSchema
-          (abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+      avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
+      fail();
     } catch (Exception e) {
       assertThat("Expected different message message.", e.getMessage(), equalTo(" Could not "
                                                                                + "fetch the AVRO schema "
-                                                          + "from schema "
-                                              + "registry. null "));
-      return;
+                                                          + "from schema registry. null "));
     }
-    fail();
   }
 
   @Test
@@ -121,12 +119,20 @@ public class AvroUtilTest {
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
         ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("", null, null,
-                                                                                  "", null,
-                                                                                  DataSource.DataSourceType.KSTREAM, "", mock(KafkaTopicClient.class), new KsqlConfig(Collections.EMPTY_MAP), resultSchema, resultTopic);
+    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
+                                                                                  null,
+                                                                                  null,
+                                                                                  "",
+                                                                                  null,
+                                                                                  DataSource.DataSourceType.KSTREAM,
+                                                                                  "",
+                                                                                  mock(KafkaTopicClient.class),
+                                                                                  new KsqlConfig(Collections.EMPTY_MAP),
+                                                                                  resultSchema,
+                                                                                  resultTopic);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(true);
     replay(schemaRegistryClient);
-    AvroUtil.validatePersistantQueryResults(persistentQueryMetadata, schemaRegistryClient);
+    avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
   }
 
   @Test
@@ -142,14 +148,12 @@ public class AvroUtilTest {
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {
-      AvroUtil.validatePersistantQueryResults(persistentQueryMetadata, schemaRegistryClient);
+      avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+      fail();
     } catch (Exception e) {
       assertThat("Incorrect exception message", "Cannot register avro schema for testTopic since "
-                                                + "it is not valid for schema registry.", equalTo
-          (e.getMessage()));
-      return;
+                                                + "it is not valid for schema registry.", equalTo(e.getMessage()));
     }
-    fail();
   }
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(String statementString) {
@@ -158,7 +162,7 @@ public class AvroUtilTest {
     if (statementList.get(0) instanceof AbstractStreamCreateStatement) {
       return (AbstractStreamCreateStatement) statementList.get(0);
     }
-    return null;
+    throw new KsqlException("Invalid statement." + statementString);
   }
 
 }

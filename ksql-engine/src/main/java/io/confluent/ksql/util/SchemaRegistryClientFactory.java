@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
@@ -24,9 +27,12 @@ public class SchemaRegistryClientFactory {
   public static String schemaRegistryUrl;
   public static SchemaRegistryClient schemaRegistryClient;
 
+  public static Map<String, SchemaRegistryClient> schemaRegistryClientMap = new HashMap<>();
+
   public static void setSchemaRegistryClient(String schemaRegistryUrlStr) {
     schemaRegistryUrl = schemaRegistryUrlStr;
     schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 1000);
+    schemaRegistryClientMap.put(schemaRegistryUrl, schemaRegistryClient);
   }
 
   public static SchemaRegistryClient getSchemaRegistryClient() {
@@ -40,12 +46,20 @@ public class SchemaRegistryClientFactory {
     if (srUrl.equalsIgnoreCase(schemaRegistryUrl)) {
       return schemaRegistryClient;
     } else {
-      return new CachedSchemaRegistryClient(srUrl, 1000);
+      SchemaRegistryClient srClient = schemaRegistryClientMap.get(srUrl);
+      if (srClient != null) {
+        return srClient;
+      } else {
+        srClient = new CachedSchemaRegistryClient(srUrl, 1000);
+        schemaRegistryClientMap.put(srUrl, srClient);
+        return srClient;
+      }
     }
   }
 
   public static void setSchemaRegistryClient(
       SchemaRegistryClient schemaRegistryClient) {
     SchemaRegistryClientFactory.schemaRegistryClient = schemaRegistryClient;
+    schemaRegistryClientMap.put(schemaRegistryUrl, schemaRegistryClient);
   }
 }

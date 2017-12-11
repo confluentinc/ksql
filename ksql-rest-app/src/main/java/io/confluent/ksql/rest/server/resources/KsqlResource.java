@@ -222,7 +222,7 @@ public class KsqlResource {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
             statement;
         Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-            AvroUtil.checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
+            new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
                                            SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
                                                                                        .getString(
                                                                                            KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
@@ -390,8 +390,8 @@ public class KsqlResource {
                                 + "use CREATE TABLE AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
                                                                                        .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
       }
 
@@ -405,8 +405,8 @@ public class KsqlResource {
                 + "use CREATE STREAM AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        AvroUtil.validatePersistantQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlEngine.getKsqlConfig()
                                                                                                         .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
       }
       return queryMetadata.getExecutionPlan();

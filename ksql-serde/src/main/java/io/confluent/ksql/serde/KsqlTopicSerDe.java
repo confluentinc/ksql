@@ -17,6 +17,13 @@
 package io.confluent.ksql.serde;
 
 
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlConfig;
+
 public abstract class KsqlTopicSerDe {
 
   private final DataSource.DataSourceSerDe serDe;
@@ -28,4 +35,9 @@ public abstract class KsqlTopicSerDe {
   public DataSource.DataSourceSerDe getSerDe() {
     return serDe;
   }
+
+  public abstract Serde<GenericRow> getGenericRowSerde(final Schema schema,
+                                                       final KsqlConfig ksqlConfig,
+                                                       boolean isInternal,
+                                                       SchemaRegistryClient schemaRegistryClient);
 }

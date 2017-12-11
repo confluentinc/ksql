@@ -67,11 +67,8 @@ public class AvroUtilTest {
   @Test
   public void shouldPassAvroCheck() throws Exception {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    SchemaMetadata schemaMetadata = mock(SchemaMetadata.class);
-    expect(schemaMetadata.getSchema()).andReturn(ordersAveroSchemaStr);
-    expect(schemaMetadata.getId()).andReturn(1);
+    SchemaMetadata schemaMetadata = new SchemaMetadata(1, 1, ordersAveroSchemaStr);
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString())).andReturn(schemaMetadata);
-    replay(schemaMetadata);
     replay(schemaRegistryClient);
     AbstractStreamCreateStatement abstractStreamCreateStatement = getAbstractStreamCreateStatement
         ("CREATE STREAM S1 WITH "
@@ -92,11 +89,8 @@ public class AvroUtilTest {
   @Test
   public void shouldNotPassAvroCheckIfSchemaDoesNotExist() throws Exception {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    SchemaMetadata schemaMetadata = mock(SchemaMetadata.class);
-    expect(schemaMetadata.getSchema()).andReturn(null);
-    expect(schemaMetadata.getId()).andReturn(1);
+    SchemaMetadata schemaMetadata = new SchemaMetadata(1, 1, null);
     expect(schemaRegistryClient.getLatestSchemaMetadata(anyString())).andReturn(schemaMetadata);
-    replay(schemaMetadata);
     replay(schemaRegistryClient);
     AbstractStreamCreateStatement abstractStreamCreateStatement = getAbstractStreamCreateStatement
         ("CREATE STREAM S1 WITH "

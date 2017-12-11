@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -108,13 +107,7 @@ public class MetastoreUtil {
     String kafkaTopicName = node.get("kafkatopicname").asText();
     String serde = node.get("serde").asText().toUpperCase();
     if ("AVRO".equals(serde)) {
-      if (node.get(DdlConfig.AVRO_SCHEMA_FILE.toLowerCase()) == null) {
-        throw new KsqlException("For avro SerDe avro schema file path (avroschemafile) should be "
-            + "set in the schema.");
-      }
-      String schemaPath = node.get(DdlConfig.AVRO_SCHEMA_FILE.toLowerCase()).asText();
-      String avroSchema = getAvroSchema(schemaPath);
-      topicSerDe = new KsqlAvroTopicSerDe(avroSchema);
+      topicSerDe = new KsqlAvroTopicSerDe();
     } else if ("JSON".equals(serde)) {
       topicSerDe = new KsqlJsonTopicSerDe(null);
     } else if ("DELIMITED".equals(serde)) {

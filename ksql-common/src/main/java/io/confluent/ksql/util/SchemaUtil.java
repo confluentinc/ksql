@@ -262,4 +262,77 @@ public class SchemaUtil {
     }
   }
 
+  public static  synchronized String buildAvroSchema(final Schema schema, String name) {
+    StringBuilder stringBuilder = new StringBuilder("{\n\t\"namespace\": \"ksql\",\n");
+    stringBuilder.append("\t\"name\": \"" + name + "\",\n");
+    stringBuilder.append("\t\"type\": \"record\",\n");
+    stringBuilder.append("\t\"fields\": [\n");
+    boolean addCamma = false;
+    Set<String> fieldNameSet = new HashSet<>();
+    for (Field field : schema.fields()) {
+      if (addCamma) {
+        stringBuilder.append(",\n");
+      } else {
+        addCamma = true;
+      }
+      String fieldName = field.name().replace(".", "_");
+      while (fieldNameSet.contains(fieldName)) {
+        fieldName = fieldName + "_";
+      }
+      fieldNameSet.add(fieldName);
+      stringBuilder
+          .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": "
+                  + getAvroTypeName(field.schema()) + "}");
+    }
+    stringBuilder.append("\n\t]\n");
+    stringBuilder.append("}");
+    return stringBuilder.toString();
+  }
+
+  private static String getAvroTypeName(final Schema schema) {
+    switch (schema.type()) {
+      case STRING:
+        return "\"string\"";
+      case BOOLEAN:
+        return "\"boolean\"";
+      case INT32:
+        return "\"int\"";
+      case INT64:
+        return "\"long\"";
+      case FLOAT64:
+        return "\"double\"";
+      default:
+        if (schema.type() == Schema.Type.ARRAY) {
+          return "{\"type\": \"array\", \"items\": "
+                 + getAvroTypeName(schema.valueSchema()) + "}";
+        } else if (schema.type() == Schema.Type.MAP) {
+          return "{\"type\": \"map\", \"values\": "
+                 + getAvroTypeName(schema.valueSchema()) + "}";
+        }
+        throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
+    }
+  }
+
+  public static synchronized Schema getAvroSerdeKsqlSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field: schema.fields()) {
+      schemaBuilder.field(field.name().replace(".", "_"), field.schema());
+    }
+
+    return schemaBuilder.build();
+  }
+
+  public static synchronized Schema getSchemaWithNoAlias(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field: schema.fields()) {
+      String name = field.name();
+      if (name.contains(".")) {
+        schemaBuilder.field(name.substring(name.indexOf(".") + 1), field.schema());
+      } else {
+        schemaBuilder.field(name, field.schema());
+      }
+    }
+
+    return schemaBuilder.build();
+  }
 }

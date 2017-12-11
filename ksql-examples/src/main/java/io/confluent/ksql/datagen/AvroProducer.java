@@ -34,7 +34,7 @@ public class AvroProducer extends DataGenProducer {
       String topicName
   ) {
     Serializer<GenericRow> result = new KsqlGenericRowAvroSerializer(kafkaSchema,
-                                                                     null, null);
+                                                                     null, null, false);
     Map<String, String> serializerConfiguration = new HashMap<>();
     serializerConfiguration.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchema.toString());
     result.configure(serializerConfiguration, false);

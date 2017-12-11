@@ -30,25 +30,35 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
+  private final boolean isInternal;
 
   String rowAvroSchemaString;
   KafkaAvroDeserializer kafkaAvroDeserializer;
 
   public KsqlGenericRowAvroDeserializer(Schema schema,
-                                        SchemaRegistryClient schemaRegistryClient) {
-    this(schema, new KafkaAvroDeserializer(schemaRegistryClient));
+                                        SchemaRegistryClient schemaRegistryClient, boolean isInternal) {
+    this(schema, new KafkaAvroDeserializer(schemaRegistryClient), isInternal);
   }
 
   public KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
-      kafkaAvroDeserializer) {
-    this.schema = schema;
+      kafkaAvroDeserializer, boolean isInternal) {
+    this.isInternal = isInternal;
+    if (isInternal) {
+      this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
+    } else {
+      this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
+    }
+
     this.kafkaAvroDeserializer = kafkaAvroDeserializer;
+
   }
 
   @Override
@@ -91,9 +101,14 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       case INT32:
       case INT64:
       case FLOAT64:
-      case STRING:
-      case MAP:
         return value;
+      case STRING:
+        if (value != null) {
+          return value.toString();
+        } else {
+          return value;
+        }
+
       case ARRAY:
         GenericData.Array genericArray = (GenericData.Array) value;
         Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
@@ -104,6 +119,15 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
           arrayField[i] = obj;
         }
         return arrayField;
+      case MAP:
+        Map valueMap = (Map) value;
+        Map<String, Object> ksqlMap = new HashMap<>();
+        Set<Map.Entry> entrySet = valueMap.entrySet();
+        for (Map.Entry avroMapEntry: entrySet) {
+          ksqlMap.put(avroMapEntry.getKey().toString(),
+                      enforceFieldType(fieldSchema.valueSchema(), avroMapEntry.getValue()));
+        }
+        return ksqlMap;
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.schema());
 

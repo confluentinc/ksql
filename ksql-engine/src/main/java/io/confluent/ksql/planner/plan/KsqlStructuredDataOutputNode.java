@@ -127,7 +127,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         noRowKey.getKafkaTopicName(),
         SerDeUtil.getRowSerDe(
             noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-            noRowKey.getSchema(), ksqlConfig),
+            noRowKey.getSchema(), ksqlConfig, false),
         rowkeyIndexes
     );
 
@@ -171,8 +171,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                                           final Schema schema,
                                           final MetastoreUtil metastoreUtil) {
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(metastoreUtil.buildAvroSchema(schema,
-            getKsqlTopic().getName()));
+        new KsqlAvroTopicSerDe();
     builder.withKsqlTopic(new KsqlTopic(getKsqlTopic()
         .getName(),
         getKsqlTopic().getKafkaTopicName(),

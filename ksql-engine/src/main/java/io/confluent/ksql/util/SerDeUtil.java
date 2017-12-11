@@ -17,8 +17,6 @@
 package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -69,28 +67,22 @@ public class SerDeUtil {
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
-  public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema, final KsqlConfig ksqlConfig) {
-    Map<String, Object> serdeProps = new HashMap<>();
-    String avroSchemaString = new MetastoreUtil().buildAvroSchema(schema, DdlConfig.AVRO_SCHEMA);
-    serdeProps.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchemaString);
-
+  public static Serde<GenericRow> getGenericRowAvroSerde(final Schema schema, final KsqlConfig
+      ksqlConfig, boolean isInternal) {
     SchemaRegistryClient schemaRegistryClient = SchemaRegistryClientFactory.getSchemaRegistryClient(ksqlConfig.getString(KsqlConfig
                                                                                                                              .SCHEMA_REGISTRY_URL_PROPERTY));
-    final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(schema,
-                                                                                         schemaRegistryClient, ksqlConfig);
-    genericRowSerializer.configure(serdeProps, false);
-
+    final Serializer<GenericRow> genericRowSerializer =
+        new KsqlGenericRowAvroSerializer(schema, schemaRegistryClient, ksqlConfig, isInternal);
     final Deserializer<GenericRow> genericRowDeserializer =
-        new KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient);
-    genericRowDeserializer.configure(serdeProps, false);
+        new KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient, isInternal);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 
   public static Serde<GenericRow> getRowSerDe(final KsqlTopicSerDe topicSerDe, Schema schema,
-                                              KsqlConfig ksqlConfig) {
+                                              KsqlConfig ksqlConfig, boolean isInternal) {
     if (topicSerDe instanceof KsqlAvroTopicSerDe) {
-      return SerDeUtil.getGenericRowAvroSerde(schema, ksqlConfig);
+      return SerDeUtil.getGenericRowAvroSerde(schema, ksqlConfig, isInternal);
     } else if (topicSerDe instanceof KsqlJsonTopicSerDe) {
       return SerDeUtil.getGenericRowJsonSerde(schema);
     } else if (topicSerDe instanceof KsqlDelimitedTopicSerDe) {

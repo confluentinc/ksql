@@ -24,7 +24,6 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.util.SchemaRegistryClientFactory;
 import io.confluent.ksql.util.SchemaUtil;
 
@@ -43,7 +42,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -81,13 +79,8 @@ public class TopicStreamWriter implements StreamingOutput {
         break;
       case AVRO:
         KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        Map<String, Object> avroSerdeProps = new HashMap<>();
-        avroSerdeProps.put(
-            KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG,
-            avroTopicSerDe.getSchemaString()
-        );
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, SchemaRegistryClientFactory.getSchemaRegistryClient());
-        valueDeserializer.configure(avroSerdeProps, false);
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, SchemaRegistryClientFactory
+            .getSchemaRegistryClient(), false);
         break;
       default:
         throw new RuntimeException(String.format(

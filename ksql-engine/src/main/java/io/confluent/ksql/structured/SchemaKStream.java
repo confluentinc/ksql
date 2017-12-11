@@ -176,7 +176,8 @@ public class SchemaKStream {
               }
 
               return new GenericRow(columns);
-            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema(), ksqlConfig),
+            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema(),
+                                                                  ksqlConfig, false),
                            null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,

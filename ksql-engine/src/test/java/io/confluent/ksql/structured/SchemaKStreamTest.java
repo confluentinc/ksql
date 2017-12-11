@@ -58,7 +58,7 @@ public class SchemaKStreamTest {
     StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(Serdes.String(), SerDeUtil.getRowSerDe(ksqlStream.getKsqlTopic()
-            .getKsqlTopicSerDe(), null, new KsqlConfig(Collections.emptyMap()))));
+            .getKsqlTopicSerDe(), null, new KsqlConfig(Collections.emptyMap()), false)));
   }
 
 

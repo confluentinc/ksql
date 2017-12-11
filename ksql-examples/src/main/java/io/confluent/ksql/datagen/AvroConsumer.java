@@ -62,10 +62,11 @@ public class AvroConsumer {
 
       final Serializer<GenericRow> genericRowSerializer = new KsqlGenericRowAvroSerializer(null,
                                                                                            null,
-                                                                                           null);
+                                                                                           null,
+                                                                                           false);
       genericRowSerializer.configure(serdeProps, false);
 
-      final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(null, new MockSchemaRegistryClient());
+      final Deserializer<GenericRow> genericRowDeserializer = new KsqlGenericRowAvroDeserializer(null, new MockSchemaRegistryClient(), false);
       genericRowDeserializer.configure(serdeProps, false);
 
       genericRowSerde = Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

@@ -32,7 +32,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -137,7 +136,7 @@ public class AvroUtil {
                                                                  SchemaRegistryClient
                                                                      schemaRegistryClient) {
     if (persistentQueryMetadata.getResultTopic().getKsqlTopicSerDe().getSerDe() == DataSource.DataSourceSerDe.AVRO) {
-      String avroSchemaString = new MetastoreUtil().buildAvroSchema(persistentQueryMetadata
+      String avroSchemaString = SchemaUtil.buildAvroSchema(persistentQueryMetadata
                                                                         .getResultSchema(),
                                                                     persistentQueryMetadata
                                                                         .getResultTopic().getName());

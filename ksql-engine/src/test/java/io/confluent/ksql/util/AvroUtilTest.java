@@ -119,7 +119,7 @@ public class AvroUtilTest {
       throws IOException, RestClientException {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
-        (ordersAveroSchemaStr));
+        ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("", null, null,
                                                                                   "", null,
@@ -134,7 +134,7 @@ public class AvroUtilTest {
       throws IOException, RestClientException {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
-        (ordersAveroSchemaStr));
+        ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("", null, null,
                                                                                   "", null,

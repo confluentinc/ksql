@@ -197,7 +197,7 @@ public class AggregateNode extends PlanNode {
         SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
                 .getKsqlTopic()
                 .getKsqlTopicSerDe(),
-            aggregateArgExpanded.getSchema(), ksqlConfig);
+            aggregateArgExpanded.getSchema(), ksqlConfig, true);
 
     final SchemaKGroupedStream schemaKGroupedStream =
         aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
@@ -212,11 +212,12 @@ public class AggregateNode extends PlanNode {
     final List<Object> resultColumns = IntStream.range(0,
         aggValToValColumnMap.size()).mapToObj(value -> "").collect(Collectors.toList());
 
+    final Schema aggStageSchema = buildAggregateSchema(aggregateArgExpanded.getSchema(), functionRegistry);
+
     final Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
             .getStructuredDataSource()
             .getKsqlTopic()
-            .getKsqlTopicSerDe(),
-        aggregateSchema, ksqlConfig);
+            .getKsqlTopicSerDe(), aggStageSchema, ksqlConfig, true);
 
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KudafInitializer(resultColumns),
@@ -228,8 +229,6 @@ public class AggregateNode extends PlanNode {
             functionRegistry),
             aggValToValColumnMap), getWindowExpression(),
         aggValueGenericRowSerde, "KSQL_Agg_Query_" + System.currentTimeMillis());
-
-    final Schema aggStageSchema = buildAggregateSchema(schemaKTable, functionRegistry);
 
     SchemaKTable result = new SchemaKTable(aggStageSchema, schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
@@ -354,10 +353,10 @@ public class AggregateNode extends PlanNode {
     }
   }
 
-  private Schema buildAggregateSchema(final SchemaKTable schemaKTable,
+  private Schema buildAggregateSchema(final Schema schema,
                                       final FunctionRegistry functionRegistry) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final List<Field> fields = schemaKTable.getSchema().fields();
+    final List<Field> fields = schema.fields();
     for (int i = 0; i < getRequiredColumnList().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
@@ -368,7 +367,7 @@ public class AggregateNode extends PlanNode {
           .getSuffix();
       KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
           getFunctionList()
-              .get(aggFunctionVarSuffix).getArguments(), schemaKTable.getSchema());
+              .get(aggFunctionVarSuffix).getArguments(), schema);
       fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
           + aggFunctionVarSuffix, fieldSchema);

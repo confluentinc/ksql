@@ -21,6 +21,7 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -50,12 +51,25 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
   ByteArrayOutputStream output;
   Encoder encoder;
   List<Schema.Field> fields;
+  private final boolean isInternal;
 
   KafkaAvroSerializer kafkaAvroSerializer;
 
   public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema,
-                                      SchemaRegistryClient schemaRegistryClient, KsqlConfig ksqlConfig) {
-    this.schema = schema;
+                                      SchemaRegistryClient schemaRegistryClient, KsqlConfig
+                                          ksqlConfig, boolean isInternal) {
+    this.isInternal = isInternal;
+    if (isInternal) {
+      this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
+    } else {
+      this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
+    }
+
+    String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
+    parser = new Schema.Parser();
+    avroSchema = parser.parse(avroSchemaStr);
+    fields = avroSchema.getFields();
+    writer = new GenericDatumWriter<>(avroSchema);
     Map map = new HashMap();
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
     map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
@@ -65,14 +79,7 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-    rowSchema = (String) map.get(AVRO_SERDE_SCHEMA_CONFIG);
-    if (rowSchema == null) {
-      throw new SerializationException("Avro schema is not set for the serializer.");
-    }
-    parser = new Schema.Parser();
-    avroSchema = parser.parse(rowSchema);
-    fields = avroSchema.getFields();
-    writer = new GenericDatumWriter<>(avroSchema);
+
   }
 
   @Override

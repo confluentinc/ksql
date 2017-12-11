@@ -54,8 +54,9 @@ public class SchemaKTableTest {
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
-            .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(), SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe
-                       (), null, new KsqlConfig(Collections.emptyMap()))));
+            .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
+                , SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe(), null, new
+                    KsqlConfig(Collections.emptyMap()), false)));
 
   }
 

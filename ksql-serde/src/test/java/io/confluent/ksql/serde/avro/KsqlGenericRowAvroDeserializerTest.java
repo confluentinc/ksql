@@ -88,7 +88,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     replay(kafkaAvroDeserializer);
 
     KsqlGenericRowAvroDeserializer ksqlGenericRowAvroDeserializer = new
-        KsqlGenericRowAvroDeserializer(schema, kafkaAvroDeserializer);
+        KsqlGenericRowAvroDeserializer(schema, kafkaAvroDeserializer, false);
 
     GenericRow genericRow = ksqlGenericRowAvroDeserializer.deserialize("", new byte[]{});
 

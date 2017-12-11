@@ -74,7 +74,6 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -326,10 +325,6 @@ public class KsqlResource {
                                         name));
     }
     String schemaString = null;
-    if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
-      KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-      schemaString = ksqlAvroTopicSerDe.getSchemaString();
-    }
     TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic.getKafkaTopicName(),
         ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(), schemaString
     );

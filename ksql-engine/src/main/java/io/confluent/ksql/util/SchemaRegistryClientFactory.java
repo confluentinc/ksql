@@ -44,4 +44,8 @@ public class SchemaRegistryClientFactory {
     }
   }
 
+  public static void setSchemaRegistryClient(
+      SchemaRegistryClient schemaRegistryClient) {
+    SchemaRegistryClientFactory.schemaRegistryClient = schemaRegistryClient;
+  }
 }

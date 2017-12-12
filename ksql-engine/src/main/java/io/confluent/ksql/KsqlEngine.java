@@ -26,6 +26,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -60,11 +61,7 @@ import io.confluent.ksql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.kafka.common.metrics.MeasurableStat;
-import org.apache.kafka.common.metrics.MetricConfig;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Value;
+
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +121,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
-    this.engineMetrics = new KsqlEngineMetrics("ksql-engine");
+    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
 
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(() -> {
@@ -448,6 +445,15 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return ksqlConfig;
   }
 
+  public long numberOfLiveQueries() {
+    return this.allLiveQueries.size();
+  }
+
+  public long numberOfPersistentQueries() {
+    return this.livePersistentQueries.size();
+  }
+
+
   @Override
   public void close() throws IOException {
     for (QueryMetadata queryMetadata : livePersistentQueries) {
@@ -484,76 +490,4 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
-  private class KsqlEngineMetrics implements Closeable {
-    private final String metricGroupName;
-    private final Sensor numActiveQueries;
-    private final Sensor messagesIn;
-    private final Sensor messagesOut;
-
-    KsqlEngineMetrics(String metricGroupPrefix) {
-      Metrics metrics = MetricCollectors.getMetrics();
-
-      this.metricGroupName = metricGroupPrefix + "-query-stats";
-      this.numActiveQueries = metrics.sensor(metricGroupName + "-active-queries");
-      numActiveQueries.add(
-          metrics.metricName("num-active-queries", this.metricGroupName,
-                             "The current number of active queries running in this engine"),
-          new MeasurableStat() {
-            @Override
-            public double measure(MetricConfig metricConfig, long l) {
-              return allLiveQueries.size();
-            }
-
-            @Override
-            public void record(MetricConfig metricConfig, double v, long l) {
-              // We don't want to record anything, since the live queries anyway.
-            }
-          });
-
-      numActiveQueries.add(
-          metrics.metricName("num-persistent-queries", this.metricGroupName,
-                             "The current number of persistent queries running in this engine"),
-          new MeasurableStat() {
-            @Override
-            public double measure(MetricConfig metricConfig, long l) {
-              return livePersistentQueries.size();
-            }
-
-            @Override
-            public void record(MetricConfig metricConfig, double v, long l) {
-              // No action for record since we can read the desired results directly.
-            }
-          }
-      );
-
-      this.messagesIn = metrics.sensor(metricGroupName + "-messages-consumed");
-      this.messagesIn.add(
-          metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
-                             "The number of messages consumed per second across all queries"),
-          new Value());
-
-
-      this.messagesOut = metrics.sensor(metricGroupName + "-messages-produced");
-      this.messagesOut.add(
-          metrics.metricName("messages-produced-per-sec", this.metricGroupName,
-                             "The number of messages produced per second across all queries"),
-          new Value());
-    }
-
-    void recordMessagesProduced(double value) {
-      this.messagesOut.record(value);
-    }
-
-    void recordMessagesConsumed(double value) {
-      this.messagesIn.record(value);
-    }
-
-    @Override
-    public void close() {
-      Metrics metrics = MetricCollectors.getMetrics();
-      metrics.removeSensor(numActiveQueries.name());
-      metrics.removeSensor(messagesIn.name());
-      metrics.removeSensor(messagesOut.name());
-    }
-  }
 }

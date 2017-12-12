@@ -83,6 +83,10 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
           .toString().toUpperCase();
 
       keyColumnName = StringUtil.cleanQuotes(keyColumnName);
+      if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
+        throw new KsqlException(String.format("No column with the provided key column name in the WITH "
+                                    + "clause, %s, exists in the defined schema.", keyColumnName));
+      }
     }
 
     this.timestampColumnName = "";
@@ -90,6 +94,11 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
       timestampColumnName = properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
           .toString().toUpperCase();
       timestampColumnName = StringUtil.cleanQuotes(timestampColumnName);
+      if (!SchemaUtil.getFieldByName(this.schema, timestampColumnName).isPresent()) {
+        throw new KsqlException(String.format("No column with the provided timestamp column name in the "
+                                       + "WITH clause, %s, exists in the defined schema.",
+                                              timestampColumnName));
+      }
       if (SchemaUtil.getFieldByName(schema, timestampColumnName)
           .get().schema().type() != Schema
           .Type.INT64) {
@@ -124,10 +133,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
       if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
           .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KsqlException(SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
-            + "reserved "
-            + "token for "
-            + "implicit "
-            + "column."
+            + "reserved token for implicit column."
             + " You cannot use them as a column name.");
 
       }

@@ -86,7 +86,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldNotRunNullStatementList() {
     StatementExecutor statementExecutor = getStatementExecutor();
     try{
-      statementExecutor.handleStatements(null);
+      statementExecutor.handleRestoration(null);
     } catch (Exception nex) {
       assertThat("Statement list should not be null.", nex instanceof NullPointerException);
     }
@@ -150,13 +150,15 @@ public class StatementExecutorTest extends EasyMockSupport {
     StatementExecutor statementExecutor = getStatementExecutor();
     TestUtils testUtils = new TestUtils();
     List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
+    final RestoreCommands restoreCommands = new RestoreCommands();
+    priorCommands.forEach(pair -> restoreCommands.addCommand(pair.left, pair.right));
 
     CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
 
-    statementExecutor.handleStatements(priorCommands);
+    statementExecutor.handleRestoration(restoreCommands);
 
     Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);

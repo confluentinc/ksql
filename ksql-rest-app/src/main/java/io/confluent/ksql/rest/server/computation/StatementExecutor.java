@@ -203,7 +203,7 @@ public class StatementExecutor {
     String successMessage = "";
     if (statement instanceof DDLStatement) {
       result =
-          ksqlEngine.executeDdlStatement((DDLStatement) statement, command.getStreamsProperties());
+          ksqlEngine.executeDdlStatement(statementStr, (DDLStatement) statement, command.getStreamsProperties());
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect((CreateAsSelect)
           statement,

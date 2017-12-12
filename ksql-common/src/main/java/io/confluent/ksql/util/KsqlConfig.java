@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -153,7 +153,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
-      ksqlStreamConfigProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
+      ksqlStreamConfigProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class);
     }
   }
 

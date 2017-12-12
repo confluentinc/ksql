@@ -31,12 +31,14 @@ public abstract class StructuredDataSource implements DataSource {
   final Field timestampField;
 
   final KsqlTopic ksqlTopic;
+  final String sqlExpression;
 
 
-  public StructuredDataSource(final String datasourceName, final Schema schema,
+  public StructuredDataSource(String sqlExpression, final String datasourceName, final Schema schema,
                               final Field keyField,
                               final Field timestampField,
                               final DataSourceType dataSourceType, final KsqlTopic ksqlTopic) {
+    this.sqlExpression = sqlExpression;
     this.dataSourceName = datasourceName;
     this.schema = schema;
     this.keyField = keyField;
@@ -91,4 +93,8 @@ public abstract class StructuredDataSource implements DataSource {
   }
 
   public abstract QueryId getPersistentQueryId();
+
+  public String getSqlExpression() {
+    return sqlExpression;
+  }
 }

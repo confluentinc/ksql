@@ -96,7 +96,7 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<Queries.RunningQuery> queries = new ArrayList<>();
-    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", "", new QueryId("0")));
+    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", new QueryId("0")));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(
@@ -104,7 +104,7 @@ public class ConsoleTest {
           new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),
-          new SourceDescription("e", "TestSource", buildTestSchema(i), DataSource.DataSourceType.KTABLE, "key", "2000-01-01", ""),
+          new SourceDescription("e", "TestSource", "queries", buildTestSchema(i), DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors", false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", Arrays.asList(new StreamsList.StreamInfo("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new TablesList.TableInfo("TestTable", "TestTopic", "JSON", false))),

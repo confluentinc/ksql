@@ -275,21 +275,21 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     } else if (statement instanceof CreateStream) {
       ddlCommandExec.tryExecute(
               new CreateStreamCommand(
-                      (CreateStream) statement, overriddenProperties, topicClient),
+                      statementString, (CreateStream) statement, overriddenProperties, topicClient),
               tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
               new CreateStreamCommand(
-                      (CreateStream) statement, overriddenProperties, topicClient),
+                      statementString, (CreateStream) statement, overriddenProperties, topicClient),
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
               new CreateTableCommand(
-                      (CreateTable) statement, overriddenProperties, topicClient),
+                      statementString, (CreateTable) statement, overriddenProperties, topicClient),
               tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
               new CreateTableCommand(
-                      (CreateTable) statement, overriddenProperties, topicClient),
+                      statementString, (CreateTable) statement, overriddenProperties, topicClient),
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
@@ -449,9 +449,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return true;
   }
 
-  public DDLCommandResult executeDdlStatement(final DDLStatement statement,
+  public DDLCommandResult executeDdlStatement(String sqlExpression, final DDLStatement statement,
                                               final Map<String, Object> streamsProperties) {
-    return queryEngine.handleDdlStatement(statement, streamsProperties);
+    return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
 }

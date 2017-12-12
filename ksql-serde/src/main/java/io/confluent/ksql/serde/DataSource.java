@@ -18,7 +18,21 @@ package io.confluent.ksql.serde;
 
 public interface DataSource {
 
-  enum DataSourceType { KTOPIC, KSTREAM, KTABLE }
+  enum DataSourceType {
+    KTOPIC("TOPIC"),
+    KSTREAM("STREAM"),
+    KTABLE("TABLE");
+
+    private final String kqlType;
+
+    DataSourceType(String ksqlType) {
+      this.kqlType = ksqlType;
+    }
+
+    public String getKqlType() {
+      return kqlType;
+    }
+  }
 
   enum DataSourceSerDe { JSON, AVRO, DELIMITED }
 

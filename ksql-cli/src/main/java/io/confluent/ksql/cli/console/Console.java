@@ -55,6 +55,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -364,7 +365,7 @@ public abstract class Console implements Closeable {
   }
 
 
-  private void printTable(List<String> columnHeaders, List<List<String>> rowValues) {
+  private void printTable(List<String> columnHeaders, List<List<String>> rowValues, List<String> footer) {
     if (columnHeaders.size() == 0) {
       throw new RuntimeException("Cannot print table without columns");
     }
@@ -375,10 +376,7 @@ public abstract class Console implements Closeable {
     int separatorLength = -1;
 
     for (int i = 0; i < columnLengths.length; i++) {
-      int columnLength = columnHeaders.get(i).length();
-      for (List<String> row : rowValues) {
-        columnLength = Math.max(columnLength, row.get(i).length());
-      }
+      int columnLength = getColumnLength(columnHeaders, rowValues, i);
       columnLengths[i] = columnLength;
       separatorLength += columnLength + 3;
     }
@@ -391,11 +389,31 @@ public abstract class Console implements Closeable {
     for (List<String> row : rowValues) {
       writer().printf(rowFormatString, row.toArray());
     }
+    writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+    for (String msg : footer) {
+      writer().println(msg);
+    }
+
 
     flush();
   }
 
+  private int getColumnLength(List<String> columnHeaders, List<List<String>> rowValues, int i) {
+    int columnLength = columnHeaders.get(i).length();
+    for (List<String> row : rowValues) {
+      columnLength = Math.max(columnLength, getMultiLineStringLength(row.get(i)));
+    }
+    return columnLength;
+  }
+
+  private int getMultiLineStringLength(String s) {
+    String[] split = s.split("\n");
+    String longest = Collections.max(Arrays.asList(split), Comparator.comparing(line -> line.length()));
+    return longest.length();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
+    List<String> footer = new ArrayList<>();
     List<String> columnHeaders;
     List<List<String>> rowValues;
     if (ksqlEntity instanceof CommandStatusEntity) {
@@ -420,13 +438,12 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof Queries) {
       List<Queries.RunningQuery> runningQueries = ((Queries) ksqlEntity).getQueries();
-      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String", "Statistics");
+      columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
               runningQuery.getId().toString(),
               runningQuery.getKafkaTopic(),
-              runningQuery.getQueryString(),
-              runningQuery.getStatistics()
+              runningQuery.getQueryString()
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
@@ -436,9 +453,7 @@ public abstract class Console implements Closeable {
           .map(field -> Arrays.asList(field.getName(), field.getType()))
           .collect(Collectors.toList());
 
-      rowValues.add(Arrays.asList("------","--------"));
-      rowValues.add(Arrays.asList("",""));
-      rowValues.add(Arrays.asList("Statistics", sourceDescription.getStatistics()));
+      printExtendedInformation(footer, sourceDescription);
 
 
     } else if (ksqlEntity instanceof TopicDescription) {
@@ -504,7 +519,39 @@ public abstract class Console implements Closeable {
           ksqlEntity.getClass().getCanonicalName()
       ));
     }
-    printTable(columnHeaders, rowValues);
+    printTable(columnHeaders, rowValues, footer);
+  }
+
+  private void printExtendedInformation(List<String> footer, SourceDescription sourceDescription) {
+    if (sourceDescription.isExtended()) {
+      footer.add(String.format("\n%15s : %s","Type", sourceDescription.getType()));
+      footer.add(String.format("%15s : %s","SQL", sourceDescription.getStatementText()));
+      footer.add(String.format("%15s : %s","Key Field", sourceDescription.getKey()));
+      footer.add(String.format("%15s : %s","Timestamp Field", sourceDescription.getTimestamp()));
+      footer.add(String.format("%15s : %s","Key Format", "STRING"));
+      footer.add(String.format("%15s : %s","Value Format", sourceDescription.getSerdes()));
+      footer.add(String.format("%15s : %s","Query Ids", sourceDescription.getQueries()));
+
+      footer.add(String.format("\n%15s\n%15s","Kafka topic","-----------"));
+      footer.add(String.format(" %15s : %s","Topic name", sourceDescription.getKafkaTopic()));
+      footer.add(String.format(" %15s : %d","Partitions", sourceDescription.getPartitions()));
+      footer.add(String.format(" %15s : %d","Replication", sourceDescription.getReplication()));
+
+
+      footer.add(String.format("\n%15s\n%s","Query runtime statistics","------------------------"));
+      footer.add(String.format("%15s : %s","Statistics:", sourceDescription.getStatistics()));
+      footer.add(String.format("%15s : %s","Errors:", sourceDescription.getErrorStats()));
+
+
+      if (sourceDescription.getExecutionPlan() != null) {
+        footer.add(String.format("\n%15s\n%15s\n%s","Query execution plan", "--------------------", sourceDescription.getExecutionPlan()));
+      }
+      if (sourceDescription.getTopology() != null) {
+        footer.add(String.format("\n%15s\n%15s\n%s","Processing topology", "-------------------", sourceDescription.getTopology()));
+      }
+    } else {
+      footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table>");
+    }
   }
 
   private void printAsTable(GenericRow row) {

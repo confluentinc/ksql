@@ -27,19 +27,21 @@ public class ShowColumns
 
   private final QualifiedName table;
   private final boolean isTopic;
+  private final boolean isExtended;
 
-  public ShowColumns(QualifiedName table, boolean isTopic) {
-    this(Optional.empty(), table, isTopic);
+  public ShowColumns(QualifiedName table, boolean isTopic, boolean isExtended) {
+    this(Optional.empty(), table, isTopic, isExtended);
   }
 
-  public ShowColumns(NodeLocation location, QualifiedName table, boolean isTopic) {
-    this(Optional.of(location), table, isTopic);
+  public ShowColumns(NodeLocation location, QualifiedName table, boolean isTopic, boolean isExtended) {
+    this(Optional.of(location), table, isTopic, isExtended);
   }
 
-  private ShowColumns(Optional<NodeLocation> location, QualifiedName table, boolean isTopic) {
+  private ShowColumns(Optional<NodeLocation> location, QualifiedName table, boolean isTopic, boolean isExtended) {
     super(location);
     this.table = requireNonNull(table, "table is null");
     this.isTopic = isTopic;
+    this.isExtended = isExtended;
   }
 
   public QualifiedName getTable() {
@@ -48,6 +50,10 @@ public class ShowColumns
 
   public boolean isTopic() {
     return isTopic;
+  }
+
+  public boolean isExtended() {
+    return isExtended;
   }
 
   @Override

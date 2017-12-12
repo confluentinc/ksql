@@ -42,7 +42,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final KsqlConfig ksqlConfig
   ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, ksqlConfig);
+          queryApplicationId, kafkaTopicClient, ksqlConfig, "not-applicable-for-queued");
     this.rowQueue = rowQueue;
   }
 

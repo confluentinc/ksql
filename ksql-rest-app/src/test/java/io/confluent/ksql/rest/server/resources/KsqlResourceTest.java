@@ -25,32 +25,17 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
-import io.confluent.ksql.parser.tree.ListStreams;
-import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.KsqlTopicInfo;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
-import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.SourceDescription;
-import io.confluent.ksql.rest.entity.StreamsList;
-import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
+import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.rest.entity.*;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.computation.*;
+import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
+import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -65,6 +50,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -75,13 +61,9 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.core.Response;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.*;
 
 public class KsqlResourceTest {
 
@@ -155,13 +137,13 @@ public class KsqlResourceTest {
       Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
       KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe(null));
       metaStore.putTopic(ksqlTopic1);
-      metaStore.putSource(new KsqlTable("TEST_TABLE", schema1, schema1.field("S1_F1"), null,
+      metaStore.putSource(new KsqlTable("statementText", "TEST_TABLE", schema1, schema1.field("S1_F1"), null,
           ksqlTopic1, "statestore", false));
 
       Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA).field("S2_F2", Schema.INT32_SCHEMA);
       KsqlTopic ksqlTopic2 = new KsqlTopic("KSQL_TOPIC_2", "KAFKA_TOPIC_2", new KsqlJsonTopicSerDe(null));
       metaStore.putTopic(ksqlTopic2);
-      metaStore.putSource(new KsqlStream("TEST_STREAM", schema2, schema2.field("S2_F2"), null,
+      metaStore.putSource(new KsqlStream("statementText", "TEST_STREAM", schema2, schema2.field("S2_F2"), null,
           ksqlTopic2));
     }
 
@@ -258,7 +240,7 @@ public class KsqlResourceTest {
   public void testErroneousStatement() throws Exception {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String ksqlString = "DESCRIBE nonexistent_table;";
-    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"), false);
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"), false, false);
 
     KsqlEntity resultEntity = makeSingleRequest(
         testResource,
@@ -331,7 +313,7 @@ public class KsqlResourceTest {
     KsqlResource testResource = TestKsqlResourceUtil.get();
     final String tableName = "TEST_TABLE";
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
-    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false);
+    final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false, false);
 
     SourceDescription testDescription = makeSingleRequest(
         testResource,
@@ -342,7 +324,7 @@ public class KsqlResourceTest {
     );
 
     SourceDescription expectedDescription =
-        new SourceDescription(ksqlString, testResource.getKsqlEngine().getMetaStore().getSource(tableName));
+        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topology", "executionPlan", "", null);
 
     assertEquals(expectedDescription, testDescription);
   }

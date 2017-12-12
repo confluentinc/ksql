@@ -31,8 +31,28 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.ListQueries;
+import io.confluent.ksql.parser.tree.ListRegisteredTopics;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -300,23 +320,30 @@ public class KsqlResource {
 
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new KsqlException(String.format("Could not find STREAM/TABLE '%s' in the Metastore", name));
+
+      PersistentQueryMetadata metadata = ksqlEngine.getPersistentQueries().get(new QueryId(name));
+      // check if we are describing a Query (not found in the metastore)
+      if (metadata == null) {
+        throw new KsqlException(String.format("Could not find STREAM/TABLE/QUERY '%s' in the Metastore", name));
+      }
+      KsqlStructuredDataOutputNode outputNode = (KsqlStructuredDataOutputNode) metadata.getOutputNode();
+      return new SourceDescription(outputNode, metadata.getStatementString(), name, extended ? metadata.getTopoplogy() : "", extended ? metadata.getExecutionPlan(): "", extended, ksqlEngine.getTopicClient());
     }
 
     List<PersistentQueryMetadata> queries = ksqlEngine.getPersistentQueries().values().stream().filter(meta -> ((KsqlStructuredDataOutputNode) meta.getOutputNode()).getKafkaTopicName().equals(dataSource.getKsqlTopic().getTopicName())).collect(Collectors.toList());
-    return new SourceDescription(dataSource, extended, dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(), getTopology(queries), getExecutionPlan(queries), getQueryIds(queries), ksqlEngine.getTopicClient());
+    return new SourceDescription(dataSource, extended, dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(), "", "", getReadQueryIds(queries), getWriteQueryIds(queries), ksqlEngine.getTopicClient());
   }
+
+  private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
+    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
+  }
+  private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
+    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
+  }
+
 
   private String getQueryIds(List<PersistentQueryMetadata> queries) {
     return queries.stream().map(q -> q.getId().toString()).collect(Collectors.joining("."));
-  }
-
-  private String getExecutionPlan(List<PersistentQueryMetadata> queries) {
-    return queries.size() == 0 ? "" : queries.stream().findFirst().get().getId() + " :" + queries.stream().findFirst().get().getExecutionPlan();
-  }
-
-  private String getTopology(List<PersistentQueryMetadata> queries) {
-    return queries.size() == 0 ? "" : queries.stream().findFirst().get().getId() + " : " + queries.stream().findFirst().get().getTopoplogy();
   }
 
   private String getOptionalValue(Field keyField) {

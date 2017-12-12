@@ -525,32 +525,45 @@ public abstract class Console implements Closeable {
   private void printExtendedInformation(List<String> footer, SourceDescription sourceDescription) {
     if (sourceDescription.isExtended()) {
       footer.add(String.format("\n%15s : %s","Type", sourceDescription.getType()));
-      footer.add(String.format("%15s : %s","SQL", sourceDescription.getStatementText()));
+      if (sourceDescription.getStatementText().length() > 0) {
+        footer.add(String.format("%15s : %s","SQL", sourceDescription.getStatementText()));
+      }
       footer.add(String.format("%15s : %s","Key Field", sourceDescription.getKey()));
       footer.add(String.format("%15s : %s","Timestamp Field", sourceDescription.getTimestamp()));
       footer.add(String.format("%15s : %s","Key Format", "STRING"));
       footer.add(String.format("%15s : %s","Value Format", sourceDescription.getSerdes()));
-      footer.add(String.format("%15s : %s","Query Ids", sourceDescription.getQueries()));
 
-      footer.add(String.format("\n%15s\n%15s","Kafka topic","-----------"));
-      footer.add(String.format(" %15s : %s","Topic name", sourceDescription.getKafkaTopic()));
-      footer.add(String.format(" %15s : %d","Partitions", sourceDescription.getPartitions()));
-      footer.add(String.format(" %15s : %d","Replication", sourceDescription.getReplication()));
-
-
-      footer.add(String.format("\n%15s\n%s","Query runtime statistics","------------------------"));
-      footer.add(String.format("%15s : %s","Statistics:", sourceDescription.getStatistics()));
-      footer.add(String.format("%15s : %s","Errors:", sourceDescription.getErrorStats()));
-
-
-      if (sourceDescription.getExecutionPlan() != null) {
-        footer.add(String.format("\n%15s\n%15s\n%s","Query execution plan", "--------------------", sourceDescription.getExecutionPlan()));
+      if (!sourceDescription.getWriteQueries().isEmpty()) {
+        footer.add(String.format("\n%15s\n%15s", "Write Queries", "--------------"));
+        List<String> writeQueries = sourceDescription.getWriteQueries();
+        for (String writeQuery : writeQueries) {
+          footer.add(writeQuery);
+        }
+        footer.add(String.format("(%s)","Use DESCRIBE EXTENDED <QueryId> for more information"));
       }
-      if (sourceDescription.getTopology() != null) {
+
+      if (sourceDescription.getKafkaTopic().length() > 0) {
+        footer.add(String.format("\n%15s\n%15s", "Kafka topic", "-----------"));
+        footer.add(String.format(" %15s : %s", "Topic name", sourceDescription.getKafkaTopic()));
+        footer.add(String.format(" %15s : %d", "Partitions", sourceDescription.getPartitions()));
+        footer.add(String.format(" %15s : %d", "Replication", sourceDescription.getReplication()));
+      }
+
+
+      footer.add(String.format("\n%15s\n%s","Runtime statistics","------------------"));
+      footer.add(String.format("%15s :%s","Statistics", sourceDescription.getStatistics()));
+      footer.add(String.format("%15s :%s","Errors", sourceDescription.getErrorStats()));
+      footer.add(String.format("(%s)", "Statistics are restricted to the local-KsqlServer and kafka-topic"));
+
+
+      if (sourceDescription.getExecutionPlan().length() > 0) {
+        footer.add(String.format("\n%15s\n%15s\n%s","Execution plan", "--------------------", sourceDescription.getExecutionPlan()));
+      }
+      if (sourceDescription.getTopology().length() > 0) {
         footer.add(String.format("\n%15s\n%15s\n%s","Processing topology", "-------------------", sourceDescription.getTopology()));
       }
     } else {
-      footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table>");
+      footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table,QueryId>");
     }
   }
 

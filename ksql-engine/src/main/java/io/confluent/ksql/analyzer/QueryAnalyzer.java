@@ -40,7 +40,7 @@ public class QueryAnalyzer {
     return analysis;
   }
 
-  public AggregateAnalysis analyizeAggregate(final Query query, final Analysis analysis) {
+  public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     AggregateAnalyzer aggregateAnalyzer = new
         AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);

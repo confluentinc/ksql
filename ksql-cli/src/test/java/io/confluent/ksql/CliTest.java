@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.LocalCli;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -68,6 +69,7 @@ public class CliTest extends TestRunner {
   private static TopicConsumer topicConsumer;
 
   private static OrderDataProvider orderDataProvider;
+  private static int result_stream_no = 0;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -83,9 +85,13 @@ public class CliTest extends TestRunner {
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
     commandTopicName = restServerConfig.getCommandTopic();
 
+    orderDataProvider = new OrderDataProvider();
+    CLUSTER.createTopic(orderDataProvider.topicName());
+
     KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
         EasyMock.mock(VersionCheckerAgent.class)
     );
+
     restServer.start();
 
     localCli = new LocalCli(
@@ -101,11 +107,8 @@ public class CliTest extends TestRunner {
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
 
-    // Test list or show commands before any custom topics created.
     testListOrShowCommands();
 
-    orderDataProvider = new OrderDataProvider();
-    restServer.getKsqlEngine().getTopicClient().createTopic(orderDataProvider.topicName(), 1, (short)1);
     produceInputStream(orderDataProvider);
   }
 
@@ -124,7 +127,10 @@ public class CliTest extends TestRunner {
   }
 
   private static void testListOrShowCommands() {
-    testListOrShow("topics", build(commandTopicName, true, 1, 1));
+    TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
+    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1"),
+        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1")));
+    testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
     testListOrShow("tables", EMPTY_RESULT);
@@ -175,6 +181,7 @@ public class CliTest extends TestRunner {
     startConfigs.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
     startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,  "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler");
     startConfigs.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, KsqlConfig.defaultSchemaRegistryUrl);
+    startConfigs.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class.getName());
     return startConfigs;
   }
 
@@ -182,7 +189,7 @@ public class CliTest extends TestRunner {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    String resultKStreamName = "RESULT";
+    String resultKStreamName = "RESULT_" + result_stream_no++;
     final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
 
     /* Start Stream Query */

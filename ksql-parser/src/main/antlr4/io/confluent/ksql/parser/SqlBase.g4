@@ -41,7 +41,7 @@ statement
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
     | (LIST | SHOW) STREAMS                                                 #listStreams
     | (LIST | SHOW) TABLES                                                  #listTables
-    | DESCRIBE (qualifiedName | TOPIC qualifiedName)                        #showColumns
+    | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES                                                 #listQueries
     | TERMINATE QUERY? STRING                                               #terminateQuery
@@ -564,6 +564,7 @@ DELETE: 'DELETE';
 INTO: 'INTO';
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
+EXTENDED: 'EXTENDED';
 PRINT: 'PRINT';
 GRANT: 'GRANT';
 REVOKE: 'REVOKE';

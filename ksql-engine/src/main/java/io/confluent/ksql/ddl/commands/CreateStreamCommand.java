@@ -25,9 +25,9 @@ import io.confluent.ksql.util.KafkaTopicClient;
 
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
-  public CreateStreamCommand(CreateStream createStream, Map<String, Object> overriddenProperties,
+  public CreateStreamCommand(String sqlExpression, CreateStream createStream, Map<String, Object> overriddenProperties,
                              KafkaTopicClient kafkaTopicClient) {
-    super(createStream, overriddenProperties, kafkaTopicClient);
+    super(sqlExpression, createStream, overriddenProperties, kafkaTopicClient);
   }
 
   @Override
@@ -36,7 +36,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlStream ksqlStream = new KsqlStream(sourceName, schema,
+    KsqlStream ksqlStream = new KsqlStream(sqlExpression, sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),
         (timestampColumnName.length() == 0) ? null :

@@ -26,16 +26,16 @@ import java.util.Optional;
 
 public class KsqlStream extends StructuredDataSource {
 
-  public KsqlStream(final String datasourceName, final Schema schema, final Field keyField,
+  public KsqlStream(String sqlExpression, final String datasourceName, final Schema schema, final Field keyField,
                     final Field timestampField,
                     final KsqlTopic ksqlTopic) {
-    super(datasourceName, schema, keyField, timestampField, DataSourceType.KSTREAM, ksqlTopic);
+    super(sqlExpression, datasourceName, schema, keyField, timestampField, DataSourceType.KSTREAM, ksqlTopic);
   }
 
   @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlStream(dataSourceName, newSchema, keyField, timestampField, ksqlTopic);
+    return new KsqlStream(sqlExpression, dataSourceName, newSchema, keyField, timestampField, ksqlTopic);
   }
 
   @Override
@@ -45,7 +45,7 @@ public class KsqlStream extends StructuredDataSource {
       throw new KsqlException("Timestamp column, " + timestampfieldName + ", should be LONG"
                               + "(INT64).");
     }
-    return new KsqlStream(dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic);
+    return new KsqlStream(sqlExpression, dataSourceName, schema, keyField, newTimestampField.get(), ksqlTopic);
   }
 
   @Override

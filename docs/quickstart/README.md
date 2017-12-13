@@ -1,7 +1,7 @@
 # Quick Start
 
-| [Overview](/docs#ksql-documentation) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) | Quick Start | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  |
+|---|----|-----|----|----|----|----|
 
 Welcome to the quick start for KSQL!
 
@@ -80,7 +80,8 @@ Before proceeding, please check:
 2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
 
    ```bash
-   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON');
+   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar,
+   userid varchar) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
 
    ksql> DESCRIBE users_original;
 

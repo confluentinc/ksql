@@ -1,7 +1,7 @@
 # Clickstream Analysis using Docker
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  |
+|---|----|-----|----|----|----|----|
 
 These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. For instructions without using Docker, see [this documentation](/ksql-clickstream-demo/non-docker-clickstream.md).
 

@@ -68,10 +68,12 @@ import static java.lang.String.format;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-  private Analysis analysis;
-  private MetaStore metaStore;
+  private final String sqlExpression;
+  private final Analysis analysis;
+  private final MetaStore metaStore;
 
-  public Analyzer(Analysis analysis, MetaStore metaStore) {
+  public Analyzer(String sqlExpression, Analysis analysis, MetaStore metaStore) {
+    this.sqlExpression = sqlExpression;
     this.analysis = analysis;
     this.metaStore = metaStore;
   }
@@ -150,7 +152,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     KsqlTopic newIntoKsqlTopic = new KsqlTopic(intoKafkaTopicName,
                                                intoKafkaTopicName, intoTopicSerde);
-    KsqlStream intoKsqlStream = new KsqlStream(intoStructuredDataSource.getName(),
+    KsqlStream intoKsqlStream = new KsqlStream(sqlExpression, intoStructuredDataSource.getName(),
                                                null, null, null,
                                                newIntoKsqlTopic);
     analysis.setInto(intoKsqlStream);
@@ -478,7 +480,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private StructuredDataSource analyzeNonStdOutTable(final Table node) {
-    StructuredDataSource into = new KsqlStream(node.getName().getSuffix(), null,
+    StructuredDataSource into = new KsqlStream(sqlExpression, node.getName().getSuffix(), null,
                                                null, null, null);
 
     setIntoProperties(into, node);

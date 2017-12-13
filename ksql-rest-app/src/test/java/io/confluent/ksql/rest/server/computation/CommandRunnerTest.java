@@ -69,11 +69,11 @@ public class CommandRunnerTest {
   @Test
   public void shouldFetchAndRunPriorCommandsFromCommandTopic() throws Exception {
     StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    statementExecutor.handleStatements(anyObject());
+    statementExecutor.handleRestoration(anyObject());
     expectLastCall();
     replay(statementExecutor);
     CommandStore commandStore = mock(CommandStore.class);
-    expect(commandStore.getPriorCommands()).andReturn(Collections.emptyList());
+    expect(commandStore.getRestoreCommands()).andReturn(new RestoreCommands());
     replay(commandStore);
     CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
     commandRunner.processPriorCommands();

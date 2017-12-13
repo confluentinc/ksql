@@ -123,7 +123,8 @@ public class AvroUtilTest {
                                                                                   mock(KafkaTopicClient.class),
                                                                                   new KsqlConfig(Collections.EMPTY_MAP),
                                                                                   resultSchema,
-                                                                                  resultTopic);
+                                                                                  resultTopic,
+                                                                                  null);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(true);
     replay(schemaRegistryClient);
     avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
@@ -136,9 +137,18 @@ public class AvroUtilTest {
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
         ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("", null, null,
-                                                                                  "", null,
-                                                                                  DataSource.DataSourceType.KSTREAM, "", mock(KafkaTopicClient.class), new KsqlConfig(Collections.EMPTY_MAP), resultSchema, resultTopic);
+    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
+                                                                                  null,
+                                                                                  null,
+                                                                                  "",
+                                                                                  null,
+                                                                                  DataSource.DataSourceType.KSTREAM,
+                                                                                  "",
+                                                                                  mock(KafkaTopicClient.class),
+                                                                                  new KsqlConfig(Collections.EMPTY_MAP),
+                                                                                  resultSchema,
+                                                                                  resultTopic,
+                                                                                  null);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {

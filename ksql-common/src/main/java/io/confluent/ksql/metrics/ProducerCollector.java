@@ -27,7 +27,11 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ProducerCollector implements MetricCollector {
 
@@ -55,28 +59,38 @@ public class ProducerCollector implements MetricCollector {
 
   @Override
   public ProducerRecord onSend(ProducerRecord record) {
-    collect(record);
+    collect(record, false);
     return record;
   }
 
-  private void collect(ProducerRecord record) {
-    topicSensors.computeIfAbsent(getKey(record.topic()), k ->
-            new TopicSensors<>(record.topic(), buildSensors(k))
-    ).increment(record);
+  public void recordError(String topic) {
+    collect(true, topic.toLowerCase());
   }
+
+  private void collect(ProducerRecord record, boolean isError) {
+    collect(isError, record.topic().toLowerCase());
+  }
+
+  private void collect(boolean isError, String topic) {
+    topicSensors.computeIfAbsent(getKey(topic), k ->
+            new TopicSensors<>(topic, buildSensors(k))
+    ).increment(null, isError);
+  }
+
 
   private List<TopicSensors.SensorMetric<ProducerRecord>> buildSensors(String key) {
     List<TopicSensors.SensorMetric<ProducerRecord>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (metrics) {
-      addSensor(key, "events-per-sec", new Rate(), sensors);
-      addSensor(key, "total-events", new Total(), sensors);
+      addSensor(key, "events-per-sec", new Rate(), sensors, false);
+      addSensor(key, "  total-events", new Total(), sensors, false);
+      addSensor(key, "  total-failed", new Total(), sensors, true);
     }
     return sensors;
   }
 
-  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ProducerRecord>> results) {
+  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ProducerRecord>> results, boolean isError) {
     String name = "prod-" + key + "-" + metricNameString + "-" + id;
 
     MetricName metricName = new MetricName(metricNameString, "producer-metrics", "producer-" + name,  ImmutableMap.of("key", key, "id", id));
@@ -89,7 +103,7 @@ public class ProducerCollector implements MetricCollector {
     }
     KafkaMetric metric = metrics.metrics().get(metricName);
 
-    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time) {
+    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time, isError) {
       void record(ProducerRecord record) {
         sensor.record(1);
         super.record(record);
@@ -107,12 +121,12 @@ public class ProducerCollector implements MetricCollector {
     topicSensors.values().forEach(v -> v.close(metrics));
   }
 
-  public Collection<TopicSensors.Stat> stats(String topic) {
+  @Override
+  public Collection<TopicSensors.Stat> stats(String topic, boolean isError) {
     final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats()));
+    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats(isError)));
     return list;
   }
-
 
   @Override
   public String toString() {

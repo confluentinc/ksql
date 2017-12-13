@@ -61,29 +61,34 @@ public class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  public static String getStatsFor(final String topic) {
+  public static String getStatsFor(final String topic, boolean isError) {
 
     ArrayList<TopicSensors.Stat> allStats = new ArrayList<>();
-    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase())));
+    collectorMap.values().forEach(c -> allStats.addAll(c.stats(topic.toLowerCase(), isError)));
 
     Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
 
-    return format(aggregateStats.values());
+    return format(aggregateStats.values(), isError ? "last-failed" : "last-event");
   }
+
+  public static void recordError(String topic) {
+    collectorMap.values().iterator().next().recordError(topic);
+  }
+
 
   static Map<String, TopicSensors.Stat> getAggregateMetrics(final List<TopicSensors.Stat> allStats) {
     Map<String, TopicSensors.Stat> results = new TreeMap<>();
     allStats.forEach(stat -> {
-      results.computeIfAbsent(stat.name(), k -> new TopicSensors.Stat(stat.name(), 0L, stat.getTimestamp()));
+      results.computeIfAbsent(stat.name(), k -> new TopicSensors.Stat(stat.name(), 0, stat.getTimestamp()));
       results.get(stat.name()).aggregate(stat.getValue());
     });
     return results;
   }
 
-  private static String format(Collection<TopicSensors.Stat> stats) {
+  private static String format(Collection<TopicSensors.Stat> stats, String lastEventTimestampMsg) {
     StringBuilder results = new StringBuilder();
     stats.forEach(stat -> results.append(stat.formatted()).append("  "));
-    if (stats.size() > 0) results.append(" last-event: ").append(stats.iterator().next().timestamp()).append(" \n");
+    if (stats.size() > 0) results.append(String.format("%14s: ",lastEventTimestampMsg)).append(stats.iterator().next().timestamp());
     return results.toString();
   }
 
@@ -94,4 +99,5 @@ public class MetricCollectors {
   public static Time getTime() {
     return time;
   }
+
 }

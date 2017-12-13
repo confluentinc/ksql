@@ -47,7 +47,6 @@ public class Queries extends KsqlEntity {
 
   public static class RunningQuery {
     private final String queryString;
-    private final String statistics;
     private final String kafkaTopic;
     private final QueryId id;
 
@@ -55,10 +54,8 @@ public class Queries extends KsqlEntity {
     public RunningQuery(
         @JsonProperty("queryString") String queryString,
         @JsonProperty("kafkaTopic") String kafkaTopic,
-        @JsonProperty("statistics") String statistics,
         @JsonProperty("id") QueryId id
     ) {
-      this.statistics = statistics;
       this.queryString = queryString;
       this.kafkaTopic = kafkaTopic;
       this.id = id;
@@ -74,10 +71,6 @@ public class Queries extends KsqlEntity {
 
     public QueryId getId() {
       return id;
-    }
-
-    public String getStatistics() {
-      return statistics;
     }
 
     @Override

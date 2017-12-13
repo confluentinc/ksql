@@ -21,6 +21,7 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.commands.Local;
 import io.confluent.ksql.cli.commands.Remote;
 import io.confluent.ksql.cli.commands.Standalone;
+import io.confluent.ksql.util.CommonUtils;
 
 import java.io.IOException;
 
@@ -48,7 +49,7 @@ public class Ksql {
       }
       System.err.println("See the help command for usage information");
     } catch (Exception e) {
-      System.err.println(e.getMessage());
+      System.err.println(CommonUtils.getErrorMessageWithCause(e));
     }
     if ((runnable != null) && !(runnable instanceof Standalone)) {
       System.exit(0);

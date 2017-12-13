@@ -30,18 +30,6 @@ import java.sql.SQLDataException;
  * @see CliUtils
  */
 public class CliUtilsTest {
-
-  @Test
-  public void testGetErrorMessage() {
-    Exception exception = new SQLDataException("http://localhost:1621", "", 422);
-
-    assertEquals("http://localhost:1621", CliUtils.getErrorMessage(exception));
-
-    exception = new ConnectException("asdf");
-
-    assertEquals("Could not connect to the server.", CliUtils.getErrorMessage(exception));
-  }
-
   @Test
   public void testReadQueryFileWithNonEmptyStringThrowsKsqlException() throws IOException {
     CliUtils cliUtils = new CliUtils();

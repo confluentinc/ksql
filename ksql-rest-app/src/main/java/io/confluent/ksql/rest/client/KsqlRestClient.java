@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
@@ -169,16 +170,24 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   private Response makePostRequest(String path, Object jsonEntity) {
-    return client.target(serverAddress)
-        .path(path)
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(Entity.json(jsonEntity));
+    try {
+      return client.target(serverAddress)
+              .path(path)
+              .request(MediaType.APPLICATION_JSON_TYPE)
+              .post(Entity.json(jsonEntity));
+    } catch (Exception exception) {
+      throw new KsqlRestClientException("Error issuing POST to KSQL server", exception);
+    }
   }
 
   private Response makeGetRequest(String path) {
-    return client.target(serverAddress).path(path)
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .get();
+    try {
+      return client.target(serverAddress).path(path)
+              .request(MediaType.APPLICATION_JSON_TYPE)
+              .get();
+    } catch (Exception exception) {
+      throw new KsqlRestClientException("Error issuing GET to KSQL server", exception);
+    }
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {

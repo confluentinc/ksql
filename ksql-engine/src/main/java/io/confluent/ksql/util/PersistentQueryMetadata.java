@@ -43,9 +43,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KafkaTopicClient kafkaTopicClient,
                                  final KsqlConfig ksqlConfig,
                                  final Schema resultSchema,
-                                 final KsqlTopic resultTopic) {
+                                 final KsqlTopic resultTopic,
+                                 final String topology) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, ksqlConfig);
+          queryApplicationId, kafkaTopicClient, ksqlConfig, topology);
     this.id = id;
     this.resultSchema = resultSchema;
     this.resultTopic = resultTopic;

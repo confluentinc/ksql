@@ -76,6 +76,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
@@ -227,9 +228,17 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     ksqlConfProperties.putAll(restConfig.getOriginals());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
+
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient client = ksqlEngine.getTopicClient();
+
+    final Set<String> topicNames = client.listTopicNames();
+    try(BrokerCompatibilityCheck compatibilityCheck =
+            BrokerCompatibilityCheck.create(
+                ksqlConfig.getKsqlStreamConfigProps(), topicNames)) {
+      compatibilityCheck.checkCompatibility();
+    }
 
     String commandTopic = restConfig.getCommandTopic();
 
@@ -259,7 +268,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             false,
             commandTopicProperties)));
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(new CreateStream(
+    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand("statementText", new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement("STATEMENT", "STRING")),
             false,

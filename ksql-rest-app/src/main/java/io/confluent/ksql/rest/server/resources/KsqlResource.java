@@ -26,7 +26,6 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -34,26 +33,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.ListProperties;
-import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListStreams;
-import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -63,13 +43,13 @@ import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -82,9 +62,9 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaRegistryClientFactory;
-
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.apache.kafka.connect.data.Field;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
@@ -93,7 +73,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -200,7 +179,7 @@ public class KsqlResource {
       if (showColumns.isTopic()) {
         return describeTopic(statementText, showColumns.getTable().getSuffix());
       }
-      return describe(statementText, showColumns.getTable().getSuffix());
+      return describe(showColumns.getTable().getSuffix(), showColumns.isExtended());
     } else if (statement instanceof ListProperties) {
       return listProperties(statementText);
     } else if (statement instanceof Explain) {
@@ -311,7 +290,6 @@ public class KsqlResource {
       runningQueries.add(new Queries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
-          MetricCollectors.getStatsFor(ksqlStructuredDataOutputNode.getKafkaTopicName()),
           persistentQueryMetadata.getId()
       ));
     }
@@ -331,14 +309,31 @@ public class KsqlResource {
     return topicDescription;
   }
 
-  private SourceDescription describe(String statementText, String name) throws KsqlException {
+  private SourceDescription describe(String name, boolean extended) throws KsqlException {
 
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new KsqlException(String.format("Could not find STREAM/TABLE '%s' in the Metastore",
-                                        name));
+      throw new KsqlException(String.format("Could not find STREAM/TABLE '%s' in the Metastore", name));
     }
-    return new SourceDescription(statementText, dataSource);
+
+    List<PersistentQueryMetadata> queries = ksqlEngine.getPersistentQueries().values().stream().filter(meta -> ((KsqlStructuredDataOutputNode) meta.getOutputNode()).getKafkaTopicName().equals(dataSource.getKsqlTopic().getTopicName())).collect(Collectors.toList());
+    return new SourceDescription(dataSource, extended, dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(), getTopology(queries), getExecutionPlan(queries), getQueryIds(queries), ksqlEngine.getTopicClient());
+  }
+
+  private String getQueryIds(List<PersistentQueryMetadata> queries) {
+    return queries.stream().map(q -> q.getId().toString()).collect(Collectors.joining("."));
+  }
+
+  private String getExecutionPlan(List<PersistentQueryMetadata> queries) {
+    return queries.size() == 0 ? "" : queries.stream().findFirst().get().getId() + " :" + queries.stream().findFirst().get().getExecutionPlan();
+  }
+
+  private String getTopology(List<PersistentQueryMetadata> queries) {
+    return queries.size() == 0 ? "" : queries.stream().findFirst().get().getId() + " : " + queries.stream().findFirst().get().getTopoplogy();
+  }
+
+  private String getOptionalValue(Field keyField) {
+    return keyField != null ? keyField.name() : "";
   }
 
   private PropertiesList listProperties(String statementText) {
@@ -365,7 +360,8 @@ public class KsqlResource {
     DDLCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
     if (ddlCommandTask != null) {
       try {
-        return new ExecutionPlan(ddlCommandTask.execute(statement, statementText, properties));
+        String execute = ddlCommandTask.execute(statement, statementText, properties);
+        return new ExecutionPlan(execute);
       } catch (KsqlException ksqlException) {
         throw ksqlException;
       } catch (Throwable t) {
@@ -420,14 +416,14 @@ public class KsqlResource {
 
     ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
-              new CreateStreamCommand((CreateStream) statement, properties, ksqlEngine.getTopicClient());
+              new CreateStreamCommand(statementText, (CreateStream) statement, properties, ksqlEngine.getTopicClient());
       executeDDLCommand(createStreamCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
-          new CreateTableCommand((CreateTable) statement, properties, ksqlEngine.getTopicClient());
+          new CreateTableCommand(statementText, (CreateTable) statement, properties, ksqlEngine.getTopicClient());
       executeDDLCommand(createTableCommand);
       return statement.toString();
     });

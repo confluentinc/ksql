@@ -54,7 +54,7 @@ public class StandaloneExecutor {
                                                                       Collections.emptyMap(),
                                                                       tempMetaStore);
     List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
-        false, queryList, new HashMap<>(), tempMetaStore);
+        queryList, new HashMap<>(), tempMetaStore);
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

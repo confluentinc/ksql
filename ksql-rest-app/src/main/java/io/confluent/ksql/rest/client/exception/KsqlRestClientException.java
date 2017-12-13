@@ -14,34 +14,14 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.rest.client.exception;
 
-public interface DataSource {
-
-  enum DataSourceType {
-    KTOPIC("TOPIC"),
-    KSTREAM("STREAM"),
-    KTABLE("TABLE");
-
-    private final String kqlType;
-
-    DataSourceType(String ksqlType) {
-      this.kqlType = ksqlType;
-    }
-
-    public String getKqlType() {
-      return kqlType;
-    }
+public class KsqlRestClientException extends RuntimeException {
+  public KsqlRestClientException(String message) {
+    super(message);
   }
 
-  enum DataSourceSerDe { JSON, AVRO, DELIMITED }
-
-  String AVRO_SERDE_NAME = "AVRO";
-  String JSON_SERDE_NAME = "JSON";
-  String DELIMITED_SERDE_NAME = "DELIMITED";
-
-  String getName();
-
-  DataSourceType getDataSourceType();
-
+  public KsqlRestClientException(String message, Throwable throwable) {
+    super(message, throwable);
+  }
 }

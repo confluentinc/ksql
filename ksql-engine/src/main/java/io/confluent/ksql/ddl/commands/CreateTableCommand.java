@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 
 import java.util.Map;
@@ -30,11 +31,16 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   private String stateStoreName;
 
-  public CreateTableCommand(CreateTable createTable, Map<String, Object> overriddenProperties,
+  public CreateTableCommand(String sqlExpression, CreateTable createTable, Map<String, Object> overriddenProperties,
                             KafkaTopicClient kafkaTopicClient) {
-    super(createTable, overriddenProperties, kafkaTopicClient);
+    super(sqlExpression, createTable, overriddenProperties, kafkaTopicClient);
 
     Map<String, Expression> properties = createTable.getProperties();
+
+    if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
+      throw new KsqlException("Cannot define a TABLE without providing the KEY "
+                              + "column name in the WITH clause.");
+    }
 
     if (properties.containsKey(DdlConfig.STATE_STORE_NAME_PROPERTY)) {
       this.stateStoreName =  StringUtil.cleanQuotes(properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY).toString());
@@ -51,7 +57,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlTable ksqlTable = new KsqlTable(sourceName, schema,
+    KsqlTable ksqlTable = new KsqlTable(sqlExpression, sourceName, schema,
         (keyColumnName.length() == 0) ? null :
             schema.field(keyColumnName),
         (timestampColumnName.length() == 0) ? null :

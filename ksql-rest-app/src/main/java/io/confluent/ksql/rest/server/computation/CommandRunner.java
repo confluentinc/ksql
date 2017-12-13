@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.confluent.ksql.util.Pair;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -98,8 +95,8 @@ public class CommandRunner implements Runnable, Closeable {
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() throws Exception {
-    List<Pair<CommandId, Command>> priorCommands = commandStore.getPriorCommands();
-    statementExecutor.handleStatements(priorCommands);
+    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
+    statementExecutor.handleRestoration(restoreCommands);
   }
 
   private void executeStatement(Command command, CommandId commandId) {

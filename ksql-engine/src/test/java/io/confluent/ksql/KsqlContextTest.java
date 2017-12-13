@@ -54,10 +54,10 @@ public class KsqlContextTest {
 
     KsqlContext ksqlContext = new KsqlContext(adminClient, kafkaTopicClient, ksqlEngine);
 
-    expect(ksqlEngine.buildMultipleQueries(false, statement1, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement1, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());
-    expect(ksqlEngine.buildMultipleQueries(false, statement2, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement2, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
     expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap);
     replay(ksqlEngine);
@@ -81,7 +81,8 @@ public class KsqlContextTest {
                                                                                   null,
                                                                                   null,
                                                                                   null,
-                                                                                  null);
+                                                                                  null,
+                                                                                  "topology");
 
     return Arrays.asList(persistentQueryMetadata);
 

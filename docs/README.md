@@ -29,4 +29,13 @@ You can use KSQL in standalone, client-server, application, and embedded modes. 
 * Beginners: Try the [interactive quick start](/docs/quickstart#quick-start). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 * Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis).
 
+## Interoperability
+
+This table shows the version compatibility matrix of which Kafka clusters can be used to read from and write into while running KSQL queries.
+
+|        KSQL        |        0.1       |
+|:------------------:|:----------------:|
+|    Apache Kafka    | 0.10.1 and later |
+| Confluent Platform | 3.1.0 and later  |
+
 

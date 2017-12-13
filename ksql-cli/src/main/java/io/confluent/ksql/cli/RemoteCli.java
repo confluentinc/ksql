@@ -20,6 +20,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.cli.console.CliSpecificCommand;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.util.CommonUtils;
 
 import javax.ws.rs.ProcessingException;
 import java.io.IOException;
@@ -83,8 +85,17 @@ public class RemoteCli extends Cli {
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
-    } catch (ProcessingException exception) {
-      writer.println("Warning: remote server address may not be valid");
+    } catch (KsqlRestClientException exception) {
+      if (exception.getCause() instanceof ProcessingException) {
+        writer.println();
+        writer.println("**************** WARNING ******************");
+        writer.println("Remote server address may not be valid:");
+        writer.println(CommonUtils.getErrorMessageWithCause(exception));
+        writer.println("*******************************************");
+        writer.println();
+      } else {
+        throw exception;
+      }
     }
   }
 }

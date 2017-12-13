@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.util.CommonUtils;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -110,6 +111,10 @@ public class Cli implements Closeable, AutoCloseable {
         } else {
           terminal.writer().println(exception.getClass().getName());
           // TODO: Maybe ask the user if they'd like to see the stack trace here?
+        }
+        String causeMsg = CommonUtils.getErrorCauseMessage(exception);
+        if (causeMsg != "") {
+          terminal.writer().println(causeMsg);
         }
       }
       terminal.flush();

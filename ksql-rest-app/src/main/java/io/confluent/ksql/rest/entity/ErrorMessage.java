@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
+import io.confluent.ksql.util.CommonUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,8 +44,14 @@ public class ErrorMessage {
     this.stackTrace = stackTrace;
   }
 
+  private static String buildErrorMessage(Throwable exception) {
+    String msg = exception.getMessage() != null ? exception.getMessage() : " ServerError:" + exception.toString();
+    String causeMsg = CommonUtils.getErrorCauseMessage(exception);
+    return causeMsg == "" ? msg : msg + "\r\n" + causeMsg;
+  }
+
   public ErrorMessage(Throwable exception) {
-    this(exception.getMessage() != null ? exception.getMessage() : " ServerError:" + exception.toString(), getStackTraceStrings(exception));
+    this(buildErrorMessage(exception), getStackTraceStrings(exception));
   }
 
   public static List<String> getStackTraceStrings(Throwable exception) {

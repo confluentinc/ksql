@@ -33,7 +33,7 @@ public class SerDeUtil {
                                                                                                                       .SCHEMA_REGISTRY_URL_PROPERTY)));
   }
 
-  public static synchronized Schema getSchemaFromAvro(String avroSchemaString) {
+  public static Schema getSchemaFromAvro(String avroSchemaString) {
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
 

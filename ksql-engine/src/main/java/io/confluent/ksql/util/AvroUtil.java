@@ -70,6 +70,7 @@ public class AvroUtil {
       String avroSchemaString = schemaMetadata.getSchema();
       streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
       Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
+      // If the schema is not specified infer it from the Avro schema in Schema Registry.
       if (abstractStreamCreateStatement.getElements().isEmpty()) {
         return new Pair<>(addAvroFields(abstractStreamCreateStatement, schema,
                                         schemaMetadata.getId()), SqlFormatter.formatSql(abstractStreamCreateStatement));

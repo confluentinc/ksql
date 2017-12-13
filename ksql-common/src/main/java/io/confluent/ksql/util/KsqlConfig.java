@@ -131,7 +131,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Type.STRING,
             defaultSchemaRegistryUrl,
             ConfigDef.Importance.MEDIUM,
-            "The default url for schema registry service."
+            "The URL for the schema registry, defaults to http://localhost:8081"
            )
     ;
   }

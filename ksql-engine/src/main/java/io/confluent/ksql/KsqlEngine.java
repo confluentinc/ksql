@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
@@ -56,8 +58,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaRegistryClientFactory;
-
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.kafka.streams.StreamsConfig;
@@ -97,6 +97,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   public final FunctionRegistry functionRegistry;
 
+  public static SchemaRegistryClient schemaRegistryClient;
+
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
@@ -109,8 +111,23 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.persistentQueries = new HashMap<>();
     this.liveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
-    SchemaRegistryClientFactory.setSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig
-                                                                                    .SCHEMA_REGISTRY_URL_PROPERTY));
+    String schemaRegistryUrl = (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY);
+    this.schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 1000);
+
+  }
+
+  // For test purpose
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, SchemaRegistryClient schemaRegistryClient) {
+    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+    this.ksqlConfig = ksqlConfig;
+    this.metaStore = new MetaStoreImpl();
+    this.topicClient = topicClient;
+    this.ddlCommandExec = new DDLCommandExec(metaStore);
+    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
+    this.persistentQueries = new HashMap<>();
+    this.liveQueries = new HashSet<>();
+    this.functionRegistry = new FunctionRegistry();
+    this.schemaRegistryClient = schemaRegistryClient;
 
   }
 
@@ -457,4 +474,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
+  public static SchemaRegistryClient getSchemaRegistryClient() {
+    return schemaRegistryClient;
+  }
 }

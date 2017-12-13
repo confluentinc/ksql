@@ -186,7 +186,7 @@ public class SchemaUtil {
     }
   }
 
-  public static synchronized Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
+  public static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
@@ -199,7 +199,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static synchronized Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
+  public static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       String fieldName = field.name();
@@ -212,7 +212,7 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static synchronized Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
+  public static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
     Set indexSet = new HashSet();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
@@ -224,7 +224,7 @@ public class SchemaUtil {
     return indexSet;
   }
 
-  public static synchronized String getSchemaDefinitionString(Schema schema) {
+  public static String getSchemaDefinitionString(Schema schema) {
     StringBuilder stringBuilder = new StringBuilder("[");
     boolean addComma = false;
     for (Field field : schema.fields()) {
@@ -262,58 +262,46 @@ public class SchemaUtil {
     }
   }
 
-  public static  synchronized String buildAvroSchema(final Schema schema, String name) {
-    StringBuilder stringBuilder = new StringBuilder("{\n\t\"namespace\": \"ksql\",\n");
-    stringBuilder.append("\t\"name\": \"" + name + "\",\n");
-    stringBuilder.append("\t\"type\": \"record\",\n");
-    stringBuilder.append("\t\"fields\": [\n");
-    boolean addCamma = false;
-    Set<String> fieldNameSet = new HashSet<>();
+  public static String buildAvroSchema(final Schema schema, String name) {
+
+    org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler = org.apache.avro.SchemaBuilder
+        .record(name).namespace("ksql")
+        .fields();
     for (Field field : schema.fields()) {
-      if (addCamma) {
-        stringBuilder.append(",\n");
-      } else {
-        addCamma = true;
-      }
-      String fieldName = field.name().replace(".", "_");
-      while (fieldNameSet.contains(fieldName)) {
-        fieldName = fieldName + "_";
-      }
-      fieldNameSet.add(fieldName);
-      stringBuilder
-          .append("\t\t{\"name\": \"" + fieldName + "\", \"type\": "
-                  + getAvroTypeName(field.schema()) + "}");
+      fieldAssembler.name(field.name().replace(".", "_")).type(getAvroSchema(field.schema())).noDefault();
     }
-    stringBuilder.append("\n\t]\n");
-    stringBuilder.append("}");
-    return stringBuilder.toString();
+
+    return fieldAssembler.endRecord().toString();
   }
 
-  private static String getAvroTypeName(final Schema schema) {
+  private static org.apache.avro.Schema getAvroSchema(Schema schema) {
     switch (schema.type()) {
       case STRING:
-        return "\"string\"";
+        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING);
       case BOOLEAN:
-        return "\"boolean\"";
+        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN);
       case INT32:
-        return "\"int\"";
+        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT);
       case INT64:
-        return "\"long\"";
+        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG);
       case FLOAT64:
-        return "\"double\"";
+        return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE);
       default:
         if (schema.type() == Schema.Type.ARRAY) {
-          return "{\"type\": \"array\", \"items\": "
-                 + getAvroTypeName(schema.valueSchema()) + "}";
+          return org.apache.avro.Schema.createArray(getAvroSchema(schema.valueSchema()));
         } else if (schema.type() == Schema.Type.MAP) {
-          return "{\"type\": \"map\", \"values\": "
-                 + getAvroTypeName(schema.valueSchema()) + "}";
+          return org.apache.avro.Schema.createMap(getAvroSchema(schema.valueSchema()));
         }
         throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
     }
   }
 
-  public static synchronized Schema getAvroSerdeKsqlSchema(Schema schema) {
+  /**
+   * Rename field names to be consistent with the internal column names.
+   * @param schema
+   * @return
+   */
+  public static Schema getAvroSerdeKsqlSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       schemaBuilder.field(field.name().replace(".", "_"), field.schema());
@@ -322,7 +310,13 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static synchronized Schema getSchemaWithNoAlias(Schema schema) {
+  /**
+   * Remove the alias when reading/writing from outside
+   *
+   * @param schema
+   * @return
+   */
+  public static Schema getSchemaWithNoAlias(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field: schema.fields()) {
       String name = field.name();

@@ -4,6 +4,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -49,7 +50,7 @@ public class JoinIntTest {
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    ksqlContext = KsqlContext.create(ksqlStreamConfigProps);
+    ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps));
 
     /**
      * Setup test data

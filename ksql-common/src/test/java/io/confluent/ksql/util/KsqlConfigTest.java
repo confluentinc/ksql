@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;

@@ -38,7 +38,7 @@ public class StreamsSelectAndProjectIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);
 
     /**

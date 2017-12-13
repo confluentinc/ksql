@@ -18,7 +18,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaRegistryClientFactory;
 import io.confluent.ksql.util.SchemaUtil;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -39,8 +38,7 @@ public class UdfAvroIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness(format);
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    SchemaRegistryClientFactory.setSchemaRegistryClient(testHarness.schemaRegistryClient);
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
     testHarness.createTopic(topicName);
 
     /**

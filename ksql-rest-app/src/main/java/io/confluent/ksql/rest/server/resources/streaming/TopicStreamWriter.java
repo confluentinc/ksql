@@ -20,11 +20,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.util.SchemaRegistryClientFactory;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -79,8 +79,7 @@ public class TopicStreamWriter implements StreamingOutput {
         break;
       case AVRO:
         KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, SchemaRegistryClientFactory
-            .getSchemaRegistryClient(), false);
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, KsqlEngine.getSchemaRegistryClient(), false);
         break;
       default:
         throw new RuntimeException(String.format(

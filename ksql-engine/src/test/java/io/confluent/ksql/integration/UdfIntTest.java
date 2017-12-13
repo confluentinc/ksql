@@ -37,7 +37,7 @@ public class UdfIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness(format);
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);
 
     /**

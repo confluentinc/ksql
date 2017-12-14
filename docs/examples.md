@@ -281,6 +281,69 @@ CREATE STREAM pageviews_interest_contact AS \
   FROM pageviews_enriched;
 ```
 
+### Avro format and Schema Registry Integration
+
+KSQL can read from and write into kafka topics with avro format for the message values where the
+avro schemas are managed by the Schema Registry service. To read message values that are in
+avro format KSQL will automatically fetch the avro schema from the Schema Registry service and
+reads the message. When writing messages into the sink topics, KSQL will register the avro schema
+ of the message value into the Schema Registry service.
+
+Note that KSQL considers the message keys in kafka topics are in STRING format and regardless
+of the format that the message key has, KSQL will read it as a String. Therefore, KSQL will
+ignore any schema on the message key in kafka topics with avro format.
+
+ In order to use Schema Regirsty in KSQL you need to provide the url for the Schema Registry
+ service to the KSQL engine. You can do this by setting the `ksql.schema.registry.url` property
+ in the properties file that you use to start the KSQL engine. Here is an example:
+
+ `ksql.schema.registry.url=http://myschemaregistry.com:8081`
+
+ If the `ksql.schema.registry.url` property is not set explicitly KSQL will use the default value
+  of `http://localhost:8081` as the schema registry url.
+
+ Note that currently KSQL does not support nested columns and if you have avro messages with
+ nested fields you won't be able to use those fields in KSQL streams/tables.
+
+Assuming that the Schema Registry service is up and running and the url for it is set correctly
+in KSQL engine you can use `CREATE STREAM` AND `CREATE TABLE` statements to create new streams
+and tables over existing Kakfa topics with Avro format. Here are an example of declaring a new
+`pageviews` stream:
+
+```sql
+     CREATE STREAM pageviews
+     (viewtime bigint, userid varchar, pageid varchar)
+     WITH (kafka_topic='pageviews', value_format='AVRO');
+```
+
+Note that the value format is set to `AVRO` telling KSQL that this stream will read from a kafka
+topic with avro format and KSQL needs to fetch and use the corresponding avro schema from the
+Schema Registry service in order to deserialize the messages from the topic.
+
+You can also create a stream in avro format from a non avro stream by setting the `value_format`
+in the `WITH` clause section of `CSAS` and `CTAS` statements. Here is an example of creating a
+new stream in avro format from an existing stream in JSON format:
+
+```sql
+     CREATE STREAM pageviews_avro
+     WITH (value_format = 'AVRO') AS
+     SELECT * FROM pageviews_json;
+```
+
+WHen you declare a stream or table on an existing topic with avro format and you would like to
+have all of the avro fields in the stream/table schema you can omit the declration of the columns
+ in the `CREATE STREAM` and `CREATE TABLE` statements. KSQL will fetch the avro schema for the
+ given topic and infere the schema for the stream/table from the avro schema for the topic. Here
+ is an example:
+
+ ```sql
+      CREATE STREAM pageviews
+      WITH (kafka_topic='pageviews', value_format='AVRO');
+ ```
+As you see the column definitions are omitted in the above statement and KSQL will create a new
+pageview stream with the columns that are the same as the fields in the avro schema of
+`pageviews` topic.
+
 
 ## Configuring KSQL
 

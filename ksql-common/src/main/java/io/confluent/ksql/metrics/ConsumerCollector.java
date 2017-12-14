@@ -96,9 +96,9 @@ public class ConsumerCollector implements MetricCollector {
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
     synchronized (this.metrics) {
-      addSensor(key, "events-per-sec", new Rate(), sensors, false);
-      addSensor(key, "c-total-events", new Total(), sensors, false);
-      addSensor(key, "c-total-failed", new Total(), sensors, true);
+      addSensor(key, "messages-per-sec", new Rate(), sensors, false);
+      addSensor(key, "c-total-messages", new Total(), sensors, false);
+      addSensor(key, "c-failed-messages", new Total(), sensors, true);
     }
     return sensors;
   }

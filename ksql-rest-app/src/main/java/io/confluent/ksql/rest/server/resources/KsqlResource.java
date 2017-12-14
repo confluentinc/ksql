@@ -327,7 +327,7 @@ public class KsqlResource {
         throw new KsqlException(String.format("Could not find STREAM/TABLE/QUERY '%s' in the Metastore", name));
       }
       KsqlStructuredDataOutputNode outputNode = (KsqlStructuredDataOutputNode) metadata.getOutputNode();
-      return new SourceDescription(outputNode, metadata.getStatementString(), name, extended ? metadata.getTopoplogy() : "", extended ? metadata.getExecutionPlan(): "", extended, ksqlEngine.getTopicClient());
+      return new SourceDescription(outputNode, metadata.getStatementString(), name, metadata.getTopoplogy(), metadata.getExecutionPlan(), true, ksqlEngine.getTopicClient());
     }
 
     List<PersistentQueryMetadata> queries = ksqlEngine.getPersistentQueries().values().stream().filter(meta -> ((KsqlStructuredDataOutputNode) meta.getOutputNode()).getKafkaTopicName().equals(dataSource.getKsqlTopic().getTopicName())).collect(Collectors.toList());
@@ -338,7 +338,7 @@ public class KsqlResource {
     return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
   }
   private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
+    return queries.stream().map(q -> "id:" + q.getId().toString() + " - " + q.getStatementString()).collect(Collectors.toList());
   }
 
 

@@ -131,10 +131,7 @@ public class SourceDescription extends KsqlEntity {
             name,
             Collections.EMPTY_LIST,
             Collections.EMPTY_LIST,
-            outputNode.getSchema().fields().stream().map(
-                field -> {
-                  return new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field));
-                }).collect(Collectors.toList()),
+            Collections.EMPTY_LIST,
             "QUERY",
             Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
             Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),

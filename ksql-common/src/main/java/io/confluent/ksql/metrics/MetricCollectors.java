@@ -68,7 +68,7 @@ public class MetricCollectors {
 
     Map<String, TopicSensors.Stat> aggregateStats = getAggregateMetrics(allStats);
 
-    return format(aggregateStats.values(), isError ? "last-failed" : "last-event");
+    return format(aggregateStats.values(), isError ? "last-failed" : "last-message");
   }
 
   public static void recordError(String topic) {
@@ -87,8 +87,8 @@ public class MetricCollectors {
 
   private static String format(Collection<TopicSensors.Stat> stats, String lastEventTimestampMsg) {
     StringBuilder results = new StringBuilder();
-    stats.forEach(stat -> results.append(stat.formatted()).append("  "));
-    if (stats.size() > 0) results.append(String.format("%14s: ",lastEventTimestampMsg)).append(stats.iterator().next().timestamp());
+    stats.forEach(stat -> results.append(stat.formatted()).append(" "));
+    if (stats.size() > 0) results.append(String.format("%16s: ",lastEventTimestampMsg)).append(String.format("%9s", stats.iterator().next().timestamp()));
     return results.toString();
   }
 

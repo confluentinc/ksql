@@ -19,7 +19,9 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +33,21 @@ public class MetastoreTest {
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+  }
+
+
+  @Test(expected = KsqlException.class)
+  public void testShouldPrevent_CTAS() {
+
+    StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
+    StructuredDataSource failingSource = new KsqlStream("sqlexpression", "CSAS_fail",
+            structuredDataSource1.getSchema(),
+            structuredDataSource1.getKeyField(),
+            structuredDataSource1.getTimestampField(),
+            structuredDataSource1.getKsqlTopic());
+
+    metaStore.putSource(failingSource);
+
   }
 
   @Test

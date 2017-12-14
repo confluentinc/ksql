@@ -60,6 +60,10 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
 
   @Override
   public void putSource(final StructuredDataSource dataSource) {
+
+    if (dataSource.getName().startsWith("CSAS_") || dataSource.getName().startsWith("CTAS_")) {
+      throw new KsqlException("Streams/Tables cannot start with CSAS_ or CTAS_ please use a different name");
+    }
     if (getSource(dataSource.getName()) == null) {
       dataSourceMap.put(dataSource.getName(), dataSource);
     } else {

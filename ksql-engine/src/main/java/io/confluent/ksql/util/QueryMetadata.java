@@ -86,6 +86,7 @@ public class QueryMetadata {
   }
 
   public void close() {
+
     kafkaStreams.close();
     if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
       kafkaStreams.cleanUp();

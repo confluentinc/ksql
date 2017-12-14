@@ -92,6 +92,18 @@ public class MetricCollectors {
     return results.toString();
   }
 
+  public static double currentProductionRate() {
+    return collectorMap.values().stream()
+        .mapToDouble(MetricCollector::currentMessageProductionRate)
+        .sum();
+  }
+
+  public static double currentConsumptionRate() {
+    return collectorMap.values().stream()
+        .mapToDouble(MetricCollector::currentMessageConsumptionRate)
+        .sum();
+  }
+
   public static Metrics getMetrics() {
     return metrics;
   }

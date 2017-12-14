@@ -119,6 +119,8 @@ public class StreamedQueryResourceTest {
                                 );
     expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
+    mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
+    expectLastCall();
 
     StatementParser mockStatementParser = mock(StatementParser.class);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));

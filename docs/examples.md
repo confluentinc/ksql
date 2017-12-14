@@ -13,6 +13,7 @@
   - [Joining](#joining)
   - [Aggregating, windowing, and sessionization](#aggregating)
   - [Working with arrays and maps](#working-with-arrays-and-maps)
+  - [Avro format and Schema Registry Integration](#avro)
 - [Configuring KSQL](#configuring-ksql)
 - [Running KSQL](#running-ksql)
 
@@ -281,6 +282,7 @@ CREATE STREAM pageviews_interest_contact AS \
   FROM pageviews_enriched;
 ```
 
+<a name="avro"></a>
 ### Avro format and Schema Registry Integration
 
 KSQL can read from and write into kafka topics with avro format for the message values where the

@@ -327,6 +327,7 @@ public class StatementExecutor {
   }
 
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
+
     final QueryId queryId = terminateQuery.getQueryId();
     final QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
     if (!ksqlEngine.terminateQuery(queryId, true)) {

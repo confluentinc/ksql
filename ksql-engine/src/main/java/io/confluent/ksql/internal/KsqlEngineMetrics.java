@@ -20,9 +20,13 @@ import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.Max;
+import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
 
 import java.io.Closeable;
+import java.util.Collection;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -32,6 +36,9 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor numActiveQueries;
   private final Sensor messagesIn;
   private final Sensor messagesOut;
+  private final Sensor numIdleQueries;
+  private final Sensor messageConsumptionByQuery;
+  private final Sensor errorRate;
 
   private final KsqlEngine ksqlEngine;
 
@@ -41,8 +48,86 @@ public class KsqlEngineMetrics implements Closeable {
     this.ksqlEngine = ksqlEngine;
 
     this.metricGroupName = metricGroupPrefix + "-query-stats";
-    this.numActiveQueries = metrics.sensor(metricGroupName + "-active-queries");
-    numActiveQueries.add(
+
+    this.numActiveQueries = configureNumActiveQueries(metrics);
+    this.messagesIn = configureMessagesIn(metrics);
+    this.messagesOut =  configureMessagesOut(metrics);
+    this.numIdleQueries = configureIdleQueriesSensor(metrics);
+    this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
+    this.errorRate = configureErrorRate(metrics);
+  }
+
+  @Override
+  public void close() {
+    Metrics metrics = MetricCollectors.getMetrics();
+    metrics.removeSensor(numActiveQueries.name());
+    metrics.removeSensor(messagesIn.name());
+    metrics.removeSensor(messagesOut.name());
+    metrics.removeSensor(numIdleQueries.name());
+    metrics.removeSensor(messageConsumptionByQuery.name());
+    metrics.removeSensor(errorRate.name());
+  }
+
+  public void updateMetrics() {
+    recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
+    recordMessagesProduced(MetricCollectors.currentProductionRate());
+    recordMessageConsumptionByQueryStats(MetricCollectors.currentConsumptionRateByQuery());
+    recordErrorRate(MetricCollectors.currentErrorRate());
+  }
+
+  private void recordMessageConsumptionByQueryStats(Collection<Double> messagesConsumedByQuery) {
+    numIdleQueries.record(messagesConsumedByQuery.stream().filter(value -> value == 0.0).count());
+    messagesConsumedByQuery.forEach(this.messageConsumptionByQuery::record);
+  }
+
+  private void recordMessagesProduced(double value) {
+    this.messagesOut.record(value);
+  }
+
+  private void recordMessagesConsumed(double value) {
+    this.messagesIn.record(value);
+  }
+
+  private void recordErrorRate(double value) {
+    this.errorRate.record(value);
+  }
+
+  private Sensor configureErrorRate(Metrics metrics) {
+    Sensor sensor = metrics.sensor(metricGroupName + "-error-rate");
+    sensor.add(
+        metrics.metricName("error-rate", this.metricGroupName,
+                           "The number of messages which were consumed but not processed. "
+                           + "Messages may not be processed if, for instance, the message "
+                           + "contents could not be deserialized due to an incompatible schema. "
+                           + "Alternately, a consumed messages may not have been produced, hence "
+                           + "being effectively dropped. Such messages would also be counted "
+                           + "toward the error rate."),
+        new Value());
+    return sensor;
+  }
+
+  private Sensor configureMessagesOut(Metrics metrics) {
+    Sensor sensor = metrics.sensor(metricGroupName + "-messages-produced");
+    sensor.add(
+        metrics.metricName("messages-produced-per-sec", this.metricGroupName,
+                           "The number of messages produced per second across all queries"),
+        new Value());
+
+    return sensor;
+  }
+
+  private Sensor configureMessagesIn(Metrics metrics) {
+    Sensor sensor = metrics.sensor(metricGroupName + "-messages-consumed");
+    sensor.add(
+        metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
+                           "The number of messages consumed per second across all queries"),
+        new Value());
+    return sensor;
+  }
+
+  private Sensor configureNumActiveQueries(Metrics metrics) {
+    Sensor sensor = metrics.sensor(metricGroupName + "-active-queries");
+    sensor.add(
         metrics.metricName("num-active-queries", this.metricGroupName,
                            "The current number of active queries running in this engine"),
         new MeasurableStat() {
@@ -57,7 +142,7 @@ public class KsqlEngineMetrics implements Closeable {
           }
         });
 
-    numActiveQueries.add(
+    sensor.add(
         metrics.metricName("num-persistent-queries", this.metricGroupName,
                            "The current number of persistent queries running in this engine"),
         new MeasurableStat() {
@@ -72,34 +157,21 @@ public class KsqlEngineMetrics implements Closeable {
           }
         }
     );
+    return sensor;
 
-    this.messagesIn = metrics.sensor(metricGroupName + "-messages-consumed");
-    this.messagesIn.add(
-        metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
-                           "The number of messages consumed per second across all queries"),
-        new Value());
-
-
-    this.messagesOut = metrics.sensor(metricGroupName + "-messages-produced");
-    this.messagesOut.add(
-        metrics.metricName("messages-produced-per-sec", this.metricGroupName,
-                           "The number of messages produced per second across all queries"),
-        new Value());
   }
 
-  public void recordMessagesProduced(double value) {
-    this.messagesOut.record(value);
+  private Sensor configureIdleQueriesSensor(Metrics metrics) {
+    Sensor sensor = metrics.sensor("num-idle-queries");
+    sensor.add(metrics.metricName("num-idle-queries", this.metricGroupName), new Value());
+    return sensor;
   }
 
-  public void recordMessagesConsumed(double value) {
-    this.messagesIn.record(value);
-  }
-
-  @Override
-  public void close() {
-    Metrics metrics = MetricCollectors.getMetrics();
-    metrics.removeSensor(numActiveQueries.name());
-    metrics.removeSensor(messagesIn.name());
-    metrics.removeSensor(messagesOut.name());
+  private Sensor configureMessageConsumptionByQuerySensor(Metrics metrics) {
+    Sensor sensor = metrics.sensor("message-consumption-by-query");
+    sensor.add(metrics.metricName("messages-consumed-max", this.metricGroupName), new Max());
+    sensor.add(metrics.metricName("messages-consumed-min", this.metricGroupName), new Min());
+    sensor.add(metrics.metricName("messages-consumed-avg", this.metricGroupName), new Avg());
+    return sensor;
   }
 }

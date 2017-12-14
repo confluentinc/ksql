@@ -4,12 +4,11 @@ KSQL
 ====
 
 .. toctree::
-   :caption: Table of Contents
    :maxdepth: 3
    :hidden:
 
    quickstart/index
-   config-ksql
+   installation/index
    concepts
    syntax-reference
    ksql-clickstream-demo/index

@@ -44,6 +44,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private Throwable streamsException;
+  private final KsqlEngine ksqlEngine;
 
 
   QueryStreamWriter(
@@ -66,6 +67,7 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
 
     this.queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    this.ksqlEngine = ksqlEngine;
     queryMetadata.getKafkaStreams().start();
   }
 
@@ -106,6 +108,7 @@ class QueryStreamWriter implements StreamingOutput {
       out.flush();
 
     } finally {
+      ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
     }
   }

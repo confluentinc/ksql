@@ -26,8 +26,10 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -59,6 +61,7 @@ import io.confluent.ksql.util.QueryMetadata;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
+
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +78,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class KsqlEngine implements Closeable, QueryTerminator {
 
@@ -93,9 +99,14 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final QueryEngine queryEngine;
 
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> liveQueries;
+  private final Set<QueryMetadata> livePersistentQueries;
+  private final Set<QueryMetadata> allLiveQueries;
+
+  private final KsqlEngineMetrics engineMetrics;
+  private final ScheduledExecutorService aggregateMetricsCollector;
 
   public final FunctionRegistry functionRegistry;
+
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
@@ -107,8 +118,16 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ddlCommandExec = new DDLCommandExec(metaStore);
     this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
     this.persistentQueries = new HashMap<>();
-    this.liveQueries = new HashSet<>();
+    this.livePersistentQueries = new HashSet<>();
+    this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
+    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
+
+    this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
+    aggregateMetricsCollector.scheduleAtFixedRate(() -> {
+      engineMetrics.recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
+      engineMetrics.recordMessagesProduced(MetricCollectors.currentProductionRate());
+    }, 1000, 1000, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -157,10 +176,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     for (QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        liveQueries.add(queryMetadata);
+        livePersistentQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueries.put(persistentQueryMetadata.getId(), persistentQueryMetadata);
       }
+      allLiveQueries.add(queryMetadata);
     }
 
     return runningQueries;
@@ -355,8 +375,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
   }
 
-  public Set<QueryMetadata> getLiveQueries() {
-    return liveQueries;
+  public Set<QueryMetadata> getLivePersistentQueries() {
+    return livePersistentQueries;
   }
 
   public MetaStore getMetaStore() {
@@ -381,7 +401,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     if (queryMetadata == null) {
       return false;
     }
-    liveQueries.remove(queryMetadata);
+    livePersistentQueries.remove(queryMetadata);
+    allLiveQueries.remove(queryMetadata);
     if (closeStreams) {
       queryMetadata.close();
     }
@@ -400,7 +421,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       log.info("Terminating persistent query {}", metadata.getId());
       metadata.close();
       persistentQueries.remove(metadata.getId());
-      liveQueries.remove(metadata);
+      livePersistentQueries.remove(metadata);
+      allLiveQueries.remove(metadata);
     }
   }
 
@@ -423,30 +445,44 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return ksqlConfig;
   }
 
+  public long numberOfLiveQueries() {
+    return this.allLiveQueries.size();
+  }
+
+  public long numberOfPersistentQueries() {
+    return this.livePersistentQueries.size();
+  }
+
+
   @Override
   public void close() throws IOException {
-    for (QueryMetadata queryMetadata : liveQueries) {
+    for (QueryMetadata queryMetadata : livePersistentQueries) {
       queryMetadata.close();
     }
     topicClient.close();
+    engineMetrics.close();
   }
 
 
   @Override
   public boolean terminateAllQueries() {
     try {
-      for (QueryMetadata queryMetadata : liveQueries) {
+      for (QueryMetadata queryMetadata : livePersistentQueries) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
           persistentQueryMetadata.close();
-
         }
+        allLiveQueries.remove(queryMetadata);
       }
     } catch (Exception e) {
       return false;
     }
 
     return true;
+  }
+
+  public void removeTemporaryQuery(QueryMetadata queryMetadata) {
+    this.allLiveQueries.remove(queryMetadata);
   }
 
   public DDLCommandResult executeDdlStatement(String sqlExpression, final DDLStatement statement,

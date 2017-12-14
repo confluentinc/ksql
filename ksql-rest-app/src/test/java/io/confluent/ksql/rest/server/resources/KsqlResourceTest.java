@@ -48,9 +48,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,6 +69,20 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.*;
 
 public class KsqlResourceTest {
+  private KsqlRestConfig ksqlRestConfig;
+  private KsqlEngine ksqlEngine;
+
+  @Before
+  public void setUp() {
+    ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
+    KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlStreamsProperties());
+    ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient());
+  }
+
+  @After
+  public void tearDown() throws IOException {
+    ksqlEngine.close();
+  }
 
   private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
     public TestCommandProducer(Map configs, Serializer keySerializer, Serializer valueSerializer) {
@@ -89,7 +106,8 @@ public class KsqlResourceTest {
 
     public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
 
-    public static KsqlResource get() throws Exception {
+    public static KsqlResource get(KsqlEngine ksqlEngine,
+                                   KsqlRestConfig restConfig) throws Exception {
 
       Properties defaultKsqlConfig = getDefaultKsqlConfig();
 
@@ -106,10 +124,6 @@ public class KsqlResourceTest {
           getJsonSerializer(false)
       );
 
-      KsqlRestConfig restConfig = new KsqlRestConfig(defaultKsqlConfig);
-      KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlStreamsProperties());
-
-      KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient());
       CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
           commandConsumer, commandProducer, new CommandIdAssigner(ksqlEngine.getMetaStore()));
       StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine, new StatementParser(ksqlEngine));
@@ -193,7 +207,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testInstantRegisterTopic() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
 
     final String ksqlTopic = "FOO";
     final String kafkaTopic = "bar";
@@ -238,7 +252,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testErroneousStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "DESCRIBE nonexistent_table;";
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of("nonexistent_table"), false, false);
 
@@ -255,7 +269,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testListRegisteredTopics() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "LIST REGISTERED TOPICS;";
     final ListRegisteredTopics ksqlStatement = new ListRegisteredTopics(Optional.empty());
 
@@ -286,7 +300,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testShowQueries() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "SHOW QUERIES;";
     final ListQueries ksqlStatement = new ListQueries(Optional.empty());
     final String testKafkaTopic = "lol";
@@ -310,7 +324,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testDescribeStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String tableName = "TEST_TABLE";
     final String ksqlString = String.format("DESCRIBE %s;", tableName);
     final ShowColumns ksqlStatement = new ShowColumns(QualifiedName.of(tableName), false, false);
@@ -331,7 +345,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testListStreamsStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "LIST STREAMS;";
     final ListStreams ksqlStatement = new ListStreams(Optional.empty());
 
@@ -354,7 +368,7 @@ public class KsqlResourceTest {
 
   @Test
   public void testListTablesStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "LIST TABLES;";
     final ListTables ksqlStatement = new ListTables(Optional.empty());
 
@@ -377,7 +391,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultType() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     String ksqlString1 = "CREATE STREAM s1 AS SELECT * FROM test_table;";
 
     Response response1 = testResource.handleKsqlStatements(new KsqlRequest(ksqlString1, Collections
@@ -403,7 +417,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCTASStatementResultType() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "CREATE TABLE s1 AS SELECT * FROM test_stream;";
 
     Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
@@ -418,7 +432,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectDropStreamStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "DROP TABLE test_stream;";
     Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
         .emptyMap()));
@@ -431,7 +445,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectDropTableStatement() throws Exception {
-    KsqlResource testResource = TestKsqlResourceUtil.get();
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
     final String ksqlString = "DROP STREAM test_table;";
     Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, Collections
         .emptyMap()));

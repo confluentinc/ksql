@@ -46,4 +46,18 @@ interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
   Collection<TopicSensors.Stat> stats(String topic, boolean isError);
 
   void recordError(String topic);
+
+  /**
+   * Get the current message production across all topics tracked by this collector.
+   */
+  default double currentMessageProductionRate() {
+    return 0;
+  }
+
+  /**
+   * Get the current message consumption rate across all topics tracked by this collector.
+   */
+  default double currentMessageConsumptionRate() {
+    return 0;
+  }
 }

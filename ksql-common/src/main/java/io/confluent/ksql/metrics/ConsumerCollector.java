@@ -140,6 +140,18 @@ public class ConsumerCollector implements MetricCollector {
 
 
   @Override
+  public double currentMessageConsumptionRate() {
+    final List<TopicSensors.Stat> allStats = new ArrayList<>();
+    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
+
+    return allStats
+        .stream()
+        .filter(stat -> stat.name().contains("events-per-sec"))
+        .mapToDouble(TopicSensors.Stat::getValue)
+        .sum();
+  }
+
+  @Override
   public String toString() {
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }

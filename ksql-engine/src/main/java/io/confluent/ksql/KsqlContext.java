@@ -48,23 +48,9 @@ public class KsqlContext {
 
   public static KsqlContext create(KsqlConfig ksqlConfig)
       throws ExecutionException, InterruptedException {
-    if (ksqlConfig == null) {
-      ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    }
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
-    }
-    if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
-    }
-    AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
-    return new KsqlContext(adminClient, topicClient, ksqlEngine);
+    return  create(ksqlConfig, null);
   }
 
-  // For test purpose
   public static KsqlContext create(KsqlConfig ksqlConfig, SchemaRegistryClient schemaRegistryClient)
       throws ExecutionException, InterruptedException {
     if (ksqlConfig == null) {
@@ -79,8 +65,12 @@ public class KsqlContext {
     }
     AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient);
-    return new KsqlContext(adminClient, topicClient, ksqlEngine);
+    if (schemaRegistryClient == null) {
+      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient));
+    } else {
+      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient));
+    }
+
   }
 
 

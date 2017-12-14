@@ -268,14 +268,14 @@ public class SchemaUtil {
         .record(name).namespace("ksql")
         .fields();
     for (Field field : schema.fields()) {
-      fieldAssembler.name(field.name().replace(".", "_")).type(getAvroSchema(field.schema())).noDefault();
+      fieldAssembler.name(field.name().replace(".", "_")).type(getAvroSchemaForField(field.schema())).noDefault();
     }
 
     return fieldAssembler.endRecord().toString();
   }
 
-  private static org.apache.avro.Schema getAvroSchema(Schema schema) {
-    switch (schema.type()) {
+  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
+    switch (fieldSchema.type()) {
       case STRING:
         return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING);
       case BOOLEAN:
@@ -287,12 +287,12 @@ public class SchemaUtil {
       case FLOAT64:
         return org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE);
       default:
-        if (schema.type() == Schema.Type.ARRAY) {
-          return org.apache.avro.Schema.createArray(getAvroSchema(schema.valueSchema()));
-        } else if (schema.type() == Schema.Type.MAP) {
-          return org.apache.avro.Schema.createMap(getAvroSchema(schema.valueSchema()));
+        if (fieldSchema.type() == Schema.Type.ARRAY) {
+          return org.apache.avro.Schema.createArray(getAvroSchemaForField(fieldSchema.valueSchema()));
+        } else if (fieldSchema.type() == Schema.Type.MAP) {
+          return org.apache.avro.Schema.createMap(getAvroSchemaForField(fieldSchema.valueSchema()));
         }
-        throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
+        throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
     }
   }
 

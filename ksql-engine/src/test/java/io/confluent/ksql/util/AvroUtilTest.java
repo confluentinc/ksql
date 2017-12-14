@@ -18,6 +18,7 @@
 package io.confluent.ksql.util;
 
 import org.apache.kafka.connect.data.Schema;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -110,8 +111,7 @@ public class AvroUtilTest {
   public void shouldValidatePersistentQueryResultCorrectly()
       throws IOException, RestClientException {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
-        ());
+    KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
                                                                                   null,
@@ -125,7 +125,10 @@ public class AvroUtilTest {
                                                                                   resultSchema,
                                                                                   resultTopic,
                                                                                   null);
-    expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(true);
+    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
+    expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
+        .andReturn(true);
     replay(schemaRegistryClient);
     avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
   }

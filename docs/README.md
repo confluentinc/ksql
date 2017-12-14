@@ -1,7 +1,7 @@
 # KSQL Documentation
 
-| Overview |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
+| Overview |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions) |
+|---|----|-----|----|----|----|----|
 
 > *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
 
@@ -28,5 +28,14 @@ You can use KSQL in standalone, client-server, application, and embedded modes. 
 
 * Beginners: Try the [interactive quick start](/docs/quickstart#quick-start). The quick start configures a single instance in a lightweight Docker container or in a Kafka cluster. It demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
 * Advanced users: Try the [end-to-end Clickstream Analysis demo](/ksql-clickstream-demo#clickstream-analysis).
+
+## Interoperability
+
+This table shows the version compatibility matrix of which Kafka clusters can be used to read from and write into while running KSQL queries.
+
+|        KSQL        |        0.1       |        0.2       |
+|:------------------:|:----------------:|:----------------:|
+|    Apache Kafka    | 0.10.1 and later | 0.10.1 and later |
+| Confluent Platform | 3.1.0 and later  | 3.1.0 and later  |
 
 

@@ -136,7 +136,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     statementExecutor.handleStatement(ctasCommand, ctasCommandId);
 
-    Command terminateCommand = new Command("TERMINATE 'CSAS_USER1PV';",
+    Command terminateCommand = new Command("TERMINATE CSAS_USER1PV;",
                                       new HashMap<>());
 
     CommandId terminateCommandId =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);

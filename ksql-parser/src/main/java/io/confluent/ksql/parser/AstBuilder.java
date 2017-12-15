@@ -550,8 +550,7 @@ public class AstBuilder
 
   @Override
   public Node visitTerminateQuery(SqlBaseParser.TerminateQueryContext context) {
-    return new TerminateQuery(getLocation(context),
-                              unquote(context.STRING().getText(), "'"));
+    return new TerminateQuery(getLocation(context), context.qualifiedName().getText());
   }
 
   @Override
@@ -1157,12 +1156,17 @@ public class AstBuilder
 
   @Override
   public Node visitExplain(SqlBaseParser.ExplainContext ctx) {
-    Statement statement = (Statement) visit(ctx.statement());
+    SqlBaseParser.QualifiedNameContext qualifiedName = ctx.qualifiedName();
+    String queryId = null;
+    if (qualifiedName != null) queryId = qualifiedName.getText();
+
+    Statement statement = null;
+    if (ctx.statement() != null) statement = (Statement) visit(ctx.statement());
+
     // Only simple explain is supported for now.
     //TODO: Expand to support other parts of EXPLAIN
 
-    Explain explain = new Explain(statement, false, Arrays.asList());
-    return explain;
+    return new Explain(queryId, statement, false, Arrays.asList());
   }
 
   // ***************** helpers *****************

@@ -338,7 +338,7 @@ public class KsqlResourceTest {
     );
 
     SourceDescription expectedDescription =
-        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topology", "executionPlan", "", null);
+        new SourceDescription(testResource.getKsqlEngine().getMetaStore().getSource(tableName), false, "serdes", "topo", "exec-plan", Collections.EMPTY_LIST, Collections.EMPTY_LIST,null);
 
     assertEquals(expectedDescription, testDescription);
   }

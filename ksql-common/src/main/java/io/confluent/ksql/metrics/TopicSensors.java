@@ -70,14 +70,14 @@ class TopicSensors<R> {
     }
     public String formatted() {
       if (value == Math.round(value)) {
-        return String.format("%s:%10.0f", name, value);
+        return String.format("%16s:%10.0f", name, value);
       }    else{
-        return String.format("%s:%10.2f", name, value);
+        return String.format("%16s:%10.2f", name, value);
       }
     }
 
     public String timestamp() {
-      if (timestamp == 0) return "";
+      if (timestamp == 0) return "n/a";
       return SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(timestamp));
     }
 

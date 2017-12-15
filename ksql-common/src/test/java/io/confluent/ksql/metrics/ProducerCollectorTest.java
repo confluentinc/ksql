@@ -23,7 +23,7 @@ public class ProducerCollectorTest {
 
     Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);
 
-    assertThat( stats.toString(), containsString("name='events-per-sec',"));
+    assertThat( stats.toString(), containsString("name='messages-per-sec',"));
   }
 
   @Test
@@ -37,7 +37,7 @@ public class ProducerCollectorTest {
 
     Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
 
-    assertThat( stats.toString(), containsString("total-failed"));
+    assertThat( stats.toString(), containsString("failed-messages"));
     assertThat( stats.toString(), containsString("value=1000"));
   }
 

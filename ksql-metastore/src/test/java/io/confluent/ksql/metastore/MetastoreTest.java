@@ -19,7 +19,9 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +34,7 @@ public class MetastoreTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
   }
+
 
   @Test
   public void testTopicMap() {

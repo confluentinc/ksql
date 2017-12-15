@@ -82,9 +82,107 @@ Default behavior:
 DESCRIBE (stream_name|table_name);
 ```
 
+
 **Description**
 
 List the columns in a stream or table along with their data type and other attributes.
+
+```sqlite-psql
+ksql> describe ip_sum; <<== DESCRIBE A TABLE
+ 
+ Field   | Type                     
+-------------------------------------
+ ROWTIME | BIGINT           (system)
+ ROWKEY  | VARCHAR(STRING)  (system)
+ IP      | VARCHAR(STRING)  (key)   
+ KBYTES  | BIGINT                   
+-------------------------------------
+For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>
+
+```
+
+**DESCRIBE EXTENDED**
+
+Display DESCRIBE information with additional runtime statistics, kafka-topic details and the set of Queries that populate the Table or Stream
+
+```sqlite-psql
+ksql> DESCRIBE EXTENDED ip_sum;
+Type                 : TABLE
+Key field            : CLICKSTREAM.IP
+Timestamp field      : Not set - using <ROWTIME>
+Key format           : STRING
+Value format         : JSON
+Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
+ 
+ Field   | Type                     
+-------------------------------------
+ ROWTIME | BIGINT           (system)
+ ROWKEY  | VARCHAR(STRING)  (system)
+ IP      | VARCHAR(STRING)  (key)   
+ KBYTES  | BIGINT                   
+-------------------------------------
+ 
+Queries that write into this TABLE
+-----------------------------------
+id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+ 
+For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+ 
+Local runtime statistics
+------------------------
+messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
+ failed-messages:         0      last-failed:       n/a
+(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+```
+ 
+### EXPLAIN
+
+**Synopsis**
+```sqlite-psql
+EXPLAIN sql-expression;
+```
+
+```sqlite-psql
+EXPLAIN query-id;
+```
+
+
+**Description**
+
+EXPLAIN shows the execution plan for a query that is provided by the user, alternatively it can be used to view richer information about a running query.
+
+```sqlite-psql
+ksql> EXPLAIN ctas_ip_sum;
+ 
+Type                 : QUERY
+SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+ 
+ 
+Local runtime statistics
+------------------------
+messages-per-sec:     104.38   total-messages:       14238     last-message: 12/14/17 4:30:42 PM GMT
+ failed-messages:          0      last-failed:         n/a
+(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+ 
+Execution plan     
+--------------     
+ > [ PROJECT ] Schema: [IP : STRING , KBYTES : INT64].
+         > [ AGGREGATE ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64 , KSQL_AGG_VARIABLE_0 : INT64].
+                 > [ PROJECT ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64].
+                         > [ REKEY ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+                                 > [ SOURCE ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+ 
+ 
+Processing topology
+-------------------
+Sub-topologies:
+  Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [clickstream])
+      --> KSTREAM-MAP-0000000001
+    Processor: KSTREAM-MAP-0000000001 (stores: [])
+      --> KSTREAM-TRANSFORMVALUES-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+```
 
 
 ### CREATE STREAM

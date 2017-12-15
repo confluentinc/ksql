@@ -121,7 +121,7 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getKsqlTopic().getKafkaTopicName(),
         topology,
         executionPlan,
-        (extended & topicClient != null ? getParitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
+        (extended & topicClient != null ? getPartitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
         (extended & topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
     );
   }
@@ -142,12 +142,12 @@ public class SourceDescription extends KsqlEntity {
             outputNode.getKafkaTopicName(),
             topoplogy,
             executionPlan,
-            getParitions(topicClient,  outputNode.getKafkaTopicName()),
+            getPartitions(topicClient,  outputNode.getKafkaTopicName()),
             getReplication(topicClient, outputNode.getKafkaTopicName())
     );
   }
 
-  private static int getParitions(KafkaTopicClient topicClient, String kafkaTopicName) {
+  private static int getPartitions(KafkaTopicClient topicClient, String kafkaTopicName) {
     Map<String, TopicDescription> stringTopicDescriptionMap = topicClient.describeTopics(Arrays.asList(kafkaTopicName));
     TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().size();

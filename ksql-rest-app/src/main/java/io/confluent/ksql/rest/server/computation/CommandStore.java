@@ -127,17 +127,7 @@ public class CommandStore implements Closeable {
         while (!records.isEmpty()) {
             log.debug("Received {} records from poll", records.count());
             for (ConsumerRecord<CommandId, Command> record : records) {
-                final CommandId key = record.key();
-                if (key.getAction() != CommandId.Action.DROP) {
-                    restoreCommands.addCommand(record.key(), record.value());
-                } else if (key.getAction() == CommandId.Action.DROP){
-                    if(!restoreCommands.remove(new CommandId(key.getType(),
-                        key.getEntity(),
-                        CommandId.Action.CREATE))) {
-                        log.warn("drop command {} found without a corresponding create command for"
-                            + " {} {}", key, key.getType(), key.getAction());
-                    }
-                }
+                restoreCommands.addCommand(record.key(), record.value());
             }
             records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
         }

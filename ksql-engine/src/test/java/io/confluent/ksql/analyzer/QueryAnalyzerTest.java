@@ -75,7 +75,7 @@ public class QueryAnalyzerTest {
         metaStore);
     final Query query = (Query) statements.get(0);
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression",query);
-    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final DereferenceExpression itemId = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ITEMID");
     final DereferenceExpression orderUnits = new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("ORDERS")), "ORDERUNITS");
     final Map<String, Expression> expectedRequiredColumns = new HashMap<>();
@@ -96,7 +96,7 @@ public class QueryAnalyzerTest {
     final Query query = (Query) statements.get(0);
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
-      queryAnalyzer.analyizeAggregate(query, analysis);
+      queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
     } catch (KsqlException e) {
       // ok
@@ -113,7 +113,7 @@ public class QueryAnalyzerTest {
     final Query query = (Query) statements.get(0);
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
     try {
-      queryAnalyzer.analyizeAggregate(query, analysis);
+      queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
     } catch (KsqlException e) {
       // ok
@@ -128,7 +128,7 @@ public class QueryAnalyzerTest {
         metaStore);
     final Query query = (Query) statements.get(0);
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
-    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final Expression havingExpression = aggregateAnalysis.getHavingExpression();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,

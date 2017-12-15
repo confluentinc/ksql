@@ -44,7 +44,7 @@ statement
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
     | (LIST | SHOW) QUERIES                                                 #listQueries
-    | TERMINATE QUERY? STRING                                               #terminateQuery
+    | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
     | LOAD expression                                                       #loadProperties
@@ -65,7 +65,7 @@ statement
     | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
     | EXPLAIN ANALYZE?
-            ('(' explainOption (',' explainOption)* ')')? statement         #explain
+            ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
     | RUN SCRIPT STRING                                                     #runScript
     ;

@@ -365,35 +365,35 @@ public abstract class Console implements Closeable {
   }
 
 
-  private void printTable(List<String> columnHeaders, List<List<String>> rowValues, List<String> footer) {
-    if (columnHeaders.size() == 0) {
-      throw new RuntimeException("Cannot print table without columns");
+  private void printTable(List<String> columnHeaders, List<List<String>> rowValues, List<String> header, List<String> footer) {
+
+
+    header.forEach(m -> writer().println(m));
+
+    if (columnHeaders.size() > 0) {
+      addResult(columnHeaders, rowValues);
+
+      Integer[] columnLengths = new Integer[columnHeaders.size()];
+      int separatorLength = -1;
+
+      for (int i = 0; i < columnLengths.length; i++) {
+        int columnLength = getColumnLength(columnHeaders, rowValues, i);
+        columnLengths[i] = columnLength;
+        separatorLength += columnLength + 3;
+      }
+
+      String rowFormatString = constructRowFormatString(columnLengths);
+
+      writer().printf(rowFormatString, columnHeaders.toArray());
+
+      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+      for (List<String> row : rowValues) {
+        writer().printf(rowFormatString, row.toArray());
+      }
+      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
     }
 
-    addResult(columnHeaders, rowValues);
-
-    Integer[] columnLengths = new Integer[columnHeaders.size()];
-    int separatorLength = -1;
-
-    for (int i = 0; i < columnLengths.length; i++) {
-      int columnLength = getColumnLength(columnHeaders, rowValues, i);
-      columnLengths[i] = columnLength;
-      separatorLength += columnLength + 3;
-    }
-
-    String rowFormatString = constructRowFormatString(columnLengths);
-
-    writer().printf(rowFormatString, columnHeaders.toArray());
-
-    writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
-    for (List<String> row : rowValues) {
-      writer().printf(rowFormatString, row.toArray());
-    }
-    writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
-    for (String msg : footer) {
-      writer().println(msg);
-    }
-
+    footer.forEach(m -> writer().println(m));
 
     flush();
   }
@@ -413,9 +413,11 @@ public abstract class Console implements Closeable {
   }
 
   private void printAsTable(KsqlEntity ksqlEntity) {
+    List<String> header = new ArrayList<>();
     List<String> footer = new ArrayList<>();
-    List<String> columnHeaders;
-    List<List<String>> rowValues;
+    List<String> columnHeaders = new ArrayList<>();
+    List<List<String>> rowValues = new ArrayList<>();
+
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
       columnHeaders = Arrays.asList("Message");
@@ -445,15 +447,19 @@ public abstract class Console implements Closeable {
               runningQuery.getKafkaTopic(),
               runningQuery.getQueryString()
           )).collect(Collectors.toList());
+      footer.add("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
       List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
-      columnHeaders = Arrays.asList("Field", "Type");
-      rowValues = fields.stream()
-          .map(field -> Arrays.asList(field.getName(), field.getType()))
-          .collect(Collectors.toList());
 
-      printExtendedInformation(footer, sourceDescription);
+      if (!fields.isEmpty()) {
+        columnHeaders = Arrays.asList("Field", "Type");
+        rowValues = fields.stream()
+                .map(field -> Arrays.asList(field.getName(), formatFieldType(field, sourceDescription.getKey())))
+                .collect(Collectors.toList());
+      }
+
+      printExtendedInformation(header, footer, sourceDescription);
 
 
     } else if (ksqlEntity instanceof TopicDescription) {
@@ -519,38 +525,58 @@ public abstract class Console implements Closeable {
           ksqlEntity.getClass().getCanonicalName()
       ));
     }
-    printTable(columnHeaders, rowValues, footer);
+    printTable(columnHeaders, rowValues, header, footer);
   }
 
-  private void printExtendedInformation(List<String> footer, SourceDescription sourceDescription) {
-    if (sourceDescription.isExtended()) {
-      footer.add(String.format("\n%15s : %s","Type", sourceDescription.getType()));
-      footer.add(String.format("%15s : %s","SQL", sourceDescription.getStatementText()));
-      footer.add(String.format("%15s : %s","Key Field", sourceDescription.getKey()));
-      footer.add(String.format("%15s : %s","Timestamp Field", sourceDescription.getTimestamp()));
-      footer.add(String.format("%15s : %s","Key Format", "STRING"));
-      footer.add(String.format("%15s : %s","Value Format", sourceDescription.getSerdes()));
-      footer.add(String.format("%15s : %s","Query Ids", sourceDescription.getQueries()));
+  private String formatFieldType(SourceDescription.FieldSchemaInfo field, String keyField) {
 
-      footer.add(String.format("\n%15s\n%15s","Kafka topic","-----------"));
-      footer.add(String.format(" %15s : %s","Topic name", sourceDescription.getKafkaTopic()));
-      footer.add(String.format(" %15s : %d","Partitions", sourceDescription.getPartitions()));
-      footer.add(String.format(" %15s : %d","Replication", sourceDescription.getReplication()));
+    if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) return String.format("%-16s %s", field.getType(),"(system)");
+    else if (keyField.contains("." + field.getName())) return String.format("%-16s %s", field.getType(),"(key)");
+    else return field.getType();
+  }
 
-
-      footer.add(String.format("\n%15s\n%s","Query runtime statistics","------------------------"));
-      footer.add(String.format("%15s : %s","Statistics:", sourceDescription.getStatistics()));
-      footer.add(String.format("%15s : %s","Errors:", sourceDescription.getErrorStats()));
-
-
-      if (sourceDescription.getExecutionPlan() != null) {
-        footer.add(String.format("\n%15s\n%15s\n%s","Query execution plan", "--------------------", sourceDescription.getExecutionPlan()));
+  private void printExtendedInformation(List<String> header, List<String> footer, SourceDescription source) {
+    if (source.isExtended()) {
+      header.add(String.format("%-20s : %s","Type", source.getType()));
+      if (source.getStatementText().length() > 0) {
+        header.add(String.format("%-20s : %s","SQL", source.getStatementText()));
       }
-      if (sourceDescription.getTopology() != null) {
-        footer.add(String.format("\n%15s\n%15s\n%s","Processing topology", "-------------------", sourceDescription.getTopology()));
+
+      if (!source.getType().equals("QUERY")) {
+        header.add(String.format("%-20s : %s", "Key field", source.getKey()));
+        header.add(String.format("%-20s : %s", "Timestamp field", source.getTimestamp().length() == 0 ? "Not set - using <ROWTIME>" : source.getTimestamp()));
+        header.add(String.format("%-20s : %s", "Key format", "STRING"));
+        header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
+        if (source.getKafkaTopic().length() > 0) {
+          header.add(String.format("%-20s : %s (partitions: %d, replication: %d)", "Kafka output topic", source.getKafkaTopic(), source.getPartitions(), source.getReplication()));
+        }
+      }
+      header.add("");
+
+
+      if (!source.getWriteQueries().isEmpty()) {
+        footer.add(String.format("\n%-20s\n%-20s", "Queries that write into this "+source.getType(), "-----------------------------------"));
+        for (String writeQuery : source.getWriteQueries()) {
+          footer.add(writeQuery);
+        }
+        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>; for more information");
+      }
+
+
+      footer.add(String.format("\n%-20s\n%s","Local runtime statistics","------------------------"));
+      footer.add(source.getStatistics());
+      footer.add(source.getErrorStats());
+      footer.add(String.format("(%s)", "Statistics of the local KSQL server interaction with the Kafka topic " + source.getKafkaTopic()));
+
+
+      if (source.getExecutionPlan().length() > 0) {
+        footer.add(String.format("\n%-20s\n%-20s\n%s","Execution plan", "--------------", source.getExecutionPlan()));
+      }
+      if (source.getTopology().length() > 0) {
+        footer.add(String.format("\n%-20s\n%-20s\n%s","Processing topology", "-------------------", source.getTopology()));
       }
     } else {
-      footer.add("For more detail use: DESCRIBE EXTENDED <Stream,Table>");
+      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
     }
   }
 

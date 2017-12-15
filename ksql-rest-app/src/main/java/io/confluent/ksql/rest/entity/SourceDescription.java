@@ -29,6 +29,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,8 +40,10 @@ import java.util.stream.Collectors;
 @JsonSubTypes({})
 public class SourceDescription extends KsqlEntity {
 
+
   private final String name;
-  private final String queries;
+  private final List<String> readQueries;
+  private final List<String> writeQueries;
   private final  List<FieldSchemaInfo> schema;
   private final String type;
   private final String key;
@@ -60,7 +63,8 @@ public class SourceDescription extends KsqlEntity {
   public SourceDescription(
       @JsonProperty("statementText") String statementText,
       @JsonProperty("name")          String name,
-      @JsonProperty("queries")          String queries,
+      @JsonProperty("readQueries")   List<String> readQueries,
+      @JsonProperty("writeQueries")  List<String> writeQueries,
       @JsonProperty("schema")        List<FieldSchemaInfo> schema,
       @JsonProperty("type")          String type,
       @JsonProperty("key")           String key,
@@ -78,7 +82,8 @@ public class SourceDescription extends KsqlEntity {
   ) {
     super(statementText);
     this.name = name;
-    this.queries = queries;
+    this.readQueries = readQueries;
+    this.writeQueries = writeQueries;
     this.schema = schema;
     this.type = type;
     this.key = key;
@@ -94,12 +99,13 @@ public class SourceDescription extends KsqlEntity {
     this.replication = replication;
   }
 
-  public SourceDescription(StructuredDataSource dataSource, boolean extended, String serdes, String topology, String executionPlan, String queries, KafkaTopicClient topicClient) {
+  public SourceDescription(StructuredDataSource dataSource, boolean extended, String serdes, String topology, String executionPlan, List<String> readQueries, List<String> writeQueries, KafkaTopicClient topicClient) {
 
     this(
-        dataSource.getSqlExpression(),
+        "",
         dataSource.getName(),
-        queries,
+        readQueries,
+        writeQueries,
         dataSource.getSchema().fields().stream().map(
             field -> {
               return new FieldSchemaInfo(field.name(), SchemaUtil
@@ -115,13 +121,33 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getKsqlTopic().getKafkaTopicName(),
         topology,
         executionPlan,
-        (extended & topicClient != null ? getParitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
+        (extended & topicClient != null ? getPartitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
         (extended & topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
-
+    );
+  }
+  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, KafkaTopicClient topicClient) {
+    this(
+            statementString,
+            name,
+            Collections.EMPTY_LIST,
+            Collections.EMPTY_LIST,
+            Collections.EMPTY_LIST,
+            "QUERY",
+            Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
+            Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),
+            MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false),
+            MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true),
+            true,
+            outputNode.getTopicSerde().getSerDe().name(),
+            outputNode.getKafkaTopicName(),
+            topoplogy,
+            executionPlan,
+            getPartitions(topicClient,  outputNode.getKafkaTopicName()),
+            getReplication(topicClient, outputNode.getKafkaTopicName())
     );
   }
 
-  private static int getParitions(KafkaTopicClient topicClient, String kafkaTopicName) {
+  private static int getPartitions(KafkaTopicClient topicClient, String kafkaTopicName) {
     Map<String, TopicDescription> stringTopicDescriptionMap = topicClient.describeTopics(Arrays.asList(kafkaTopicName));
     TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().size();
@@ -133,29 +159,7 @@ public class SourceDescription extends KsqlEntity {
 
   }
 
-  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, boolean extended, KafkaTopicClient topicClient) {
-    this(
-            statementString,
-            name,
-            "",
-            outputNode.getSchema().fields().stream().map(
-              field -> {
-                return new FieldSchemaInfo(field.name(), SchemaUtil.getSchemaFieldName(field));
-              }).collect(Collectors.toList()),
-            "QUERY",
-            Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
-            Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),
-            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false) : ""),
-            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true) : ""),
-            extended,
-            outputNode.getTopicSerde().getSerDe().name(),
-            outputNode.getKafkaTopicName(),
-            topoplogy,
-            executionPlan,
-            (extended & topicClient != null ? getParitions(topicClient,  outputNode.getKafkaTopicName()) : 0),
-            (extended & topicClient != null ? getReplication(topicClient, outputNode.getKafkaTopicName()) : 0)
-    );
-  }
+
 
   public String getName() {
     return name;
@@ -185,8 +189,12 @@ public class SourceDescription extends KsqlEntity {
     return key;
   }
 
-  public String getQueries() {
-    return queries;
+  public List<String> getWriteQueries() {
+    return writeQueries;
+  }
+
+  public List<String> getReadQueries() {
+    return readQueries;
   }
 
   public String getTimestamp() {

@@ -73,13 +73,14 @@ public class StatementExecutor {
   }
 
   void handleRestoration(final RestoreCommands restoreCommands) throws Exception {
-    restoreCommands.forEach(((commandId, command, terminatedQueries) -> {
+    restoreCommands.forEach(((commandId, command, terminatedQueries, wasDropped) -> {
       log.info("Executing prior statement: '{}'", command);
       try {
         handleStatementWithTerminatedQueries(
             command,
             commandId,
-            terminatedQueries);
+            terminatedQueries,
+            wasDropped);
       } catch (Exception exception) {
         log.warn("Failed to execute statement due to exception", exception);
       }
@@ -96,7 +97,7 @@ public class StatementExecutor {
       Command command,
       CommandId commandId
   ) throws Exception {
-    handleStatementWithTerminatedQueries(command, commandId, null);
+    handleStatementWithTerminatedQueries(command, commandId, null, false);
   }
 
   /**
@@ -162,13 +163,14 @@ public class StatementExecutor {
    * @param commandId The ID to be used to track the status of the command
    * @param terminatedQueries An optional map from terminated query IDs to the commands that
    *                          requested their termination
+   * @param wasDropped was this table/stream subsequently dropped
    * @throws Exception TODO: Refine this.
    */
   private void handleStatementWithTerminatedQueries(
       Command command,
       CommandId commandId,
-      Map<QueryId, CommandId> terminatedQueries
-  ) throws Exception {
+      Map<QueryId, CommandId> terminatedQueries,
+      boolean wasDropped) throws Exception {
     try {
       String statementString = command.getStatement();
       statusStore.put(
@@ -180,7 +182,7 @@ public class StatementExecutor {
           commandId,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
-      executeStatement(statement, command, commandId, terminatedQueries);
+      executeStatement(statement, command, commandId, terminatedQueries, wasDropped);
     } catch (WakeupException exception) {
       throw exception;
     } catch (Exception exception) {
@@ -195,8 +197,8 @@ public class StatementExecutor {
       Statement statement,
       Command command,
       CommandId commandId,
-      Map<QueryId, CommandId> terminatedQueries
-  ) throws Exception {
+      Map<QueryId, CommandId> terminatedQueries,
+      boolean wasDropped) throws Exception {
     String statementStr = command.getStatement();
 
     DDLCommandResult result = null;
@@ -210,7 +212,8 @@ public class StatementExecutor {
           command,
           commandId,
           terminatedQueries,
-          statementStr);
+          statementStr,
+          wasDropped);
       if (successMessage == null) return;
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
@@ -251,7 +254,8 @@ public class StatementExecutor {
                                       final Command command,
                                       final CommandId commandId,
                                       final Map<QueryId, CommandId> terminatedQueries,
-                                      final String statementStr) throws Exception {
+                                      final String statementStr,
+                                      final boolean wasDropped) throws Exception {
     QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     Query query = ksqlEngine.addInto(
@@ -261,7 +265,7 @@ public class StatementExecutor {
         statement.getProperties(),
         statement.getPartitionByColumn()
     );
-    if (startQuery(statementStr, query, commandId, terminatedQueries, command)) {
+    if (startQuery(statementStr, query, commandId, terminatedQueries, command, wasDropped)) {
       return statement instanceof CreateTableAsSelect
           ? "Table created and running"
           : "Stream created and running";
@@ -275,8 +279,8 @@ public class StatementExecutor {
       Query query,
       CommandId commandId,
       Map<QueryId, CommandId> terminatedQueries,
-      Command command
-  ) throws Exception {
+      Command command,
+      boolean wasDropped) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
       Relation into = querySpecification.getInto();
@@ -312,6 +316,9 @@ public class StatementExecutor {
         );
         ksqlEngine.terminateQuery(queryId, false);
         return false;
+      } else if (wasDropped){
+        ksqlEngine.terminateQuery(queryId, false);
+        return false;
       } else {
         persistentQueryMetadata.getKafkaStreams().start();
         return true;
@@ -327,6 +334,7 @@ public class StatementExecutor {
   }
 
   private void terminateQuery(TerminateQuery terminateQuery) throws Exception {
+
     final QueryId queryId = terminateQuery.getQueryId();
     final QueryMetadata queryMetadata = ksqlEngine.getPersistentQueries().get(queryId);
     if (!ksqlEngine.terminateQuery(queryId, true)) {

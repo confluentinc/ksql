@@ -89,7 +89,7 @@ class QueryEngine {
   private PlanNode buildQueryLogicalPlan(String sqlExpression, final Query query, final MetaStore tempMetaStore) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(tempMetaStore, ksqlEngine.getFunctionRegistry());
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
-    final AggregateAnalysis aggAnalysis = queryAnalyzer.analyizeAggregate(query, analysis);
+    final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final PlanNode logicalPlan
         = new LogicalPlanner(analysis, aggAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
     if (logicalPlan instanceof KsqlStructuredDataOutputNode) {

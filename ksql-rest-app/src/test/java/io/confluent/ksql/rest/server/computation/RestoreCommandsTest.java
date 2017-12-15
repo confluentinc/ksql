@@ -27,19 +27,24 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.Pair;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class RestoreCommandsTest {
 
   private final RestoreCommands restoreCommands = new RestoreCommands();
   private final CommandId createId = new CommandId(CommandId.Type.TABLE, "foo", CommandId.Action.CREATE);
+  private final CommandId dropId = new CommandId(CommandId.Type.TABLE, "foo", CommandId.Action.DROP);
   private final CommandId terminateId = new CommandId(CommandId.Type.TERMINATE,
       "queryId",
       CommandId.Action.EXECUTE);
   private final Command createCommand = new Command("create table foo", Collections.emptyMap());
+  private final Command dropCommand = new Command("drop table foo", Collections.emptyMap());
   private final Command terminateCommand = new Command("terminate query 'queryId'", Collections.emptyMap());
 
   @Test
@@ -49,7 +54,7 @@ public class RestoreCommandsTest {
     restoreCommands.addCommand(terminateId,
         terminateCommand);
 
-    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
+    restoreCommands.forEach((commandId, command, terminatedQueries, droppedEntities) -> {
       assertThat(commandId, equalTo(createId));
       assertThat(command, equalTo(createCommand));
       assertThat(terminatedQueries, equalTo(Collections.singletonMap(new QueryId("queryId"),
@@ -64,14 +69,18 @@ public class RestoreCommandsTest {
     restoreCommands.addCommand(terminateId,
         terminateCommand);
     // drop
-    restoreCommands.remove(createId);
+    restoreCommands.addCommand(dropId, dropCommand);
     // recreate
     restoreCommands.addCommand(createId, createCommand);
-    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
-      assertThat(commandId, equalTo(createId));
-      assertThat(command, equalTo(createCommand));
-      assertThat(terminatedQueries, equalTo(Collections.emptyMap()));
+    final List<Pair<CommandId,  Map<QueryId, CommandId>>> results = new ArrayList<>();
+    restoreCommands.forEach((commandId, command, terminatedQueries, droppedEntities) -> {
+      results.add(new Pair<>(commandId, terminatedQueries));
     });
+
+    assertThat(results, equalTo(Arrays.asList(
+        new Pair<>(createId, Collections.singletonMap(new QueryId("queryId"), terminateId)),
+        new Pair<>(dropId, Collections.<QueryId, CommandId>emptyMap()),
+        new Pair<>(createId, Collections.<QueryId, CommandId>emptyMap()))));
   }
 
   @Test
@@ -81,7 +90,7 @@ public class RestoreCommandsTest {
     restoreCommands.addCommand(createId,
         createCommand);
 
-    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
+    restoreCommands.forEach((commandId, command, terminatedQueries, dropped) -> {
       assertThat(commandId, equalTo(createId));
       assertThat(command, equalTo(createCommand));
       assertThat(terminatedQueries, equalTo(Collections.emptyMap()));
@@ -100,7 +109,7 @@ public class RestoreCommandsTest {
         new Command("create stream one", Collections.emptyMap()));
 
     final List<CommandId> results = new ArrayList<>();
-    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
+    restoreCommands.forEach((commandId, command, terminatedQueries, dropped) -> {
       results.add(commandId);
     });
     assertThat(results, equalTo(Arrays.asList(createId, createStreamOneId)));
@@ -113,7 +122,7 @@ public class RestoreCommandsTest {
     // terminate
     restoreCommands.addCommand(terminateId, terminateCommand);
     // drop
-    restoreCommands.remove(createId);
+    restoreCommands.addCommand(dropId, dropCommand);
     // recreate
     restoreCommands.addCommand(createId, createCommand);
     // another one for good measure
@@ -122,16 +131,35 @@ public class RestoreCommandsTest {
     restoreCommands.addCommand(terminateId, terminateCommand);
 
     final Map<CommandId, Map<QueryId, CommandId>> commandIdToTerminate = new HashMap<>();
-    restoreCommands.forEach((commandId, command, terminatedQueries) -> {
-      if (commandIdToTerminate.containsKey(commandId)) {
-        fail("Should not have same commandId twice. CommandId=" + commandId);
-      }
-      commandIdToTerminate.put(commandId, terminatedQueries);
-    });
+    restoreCommands.forEach((commandId, command, terminatedQueries, dropped)
+        -> commandIdToTerminate.put(commandId, terminatedQueries));
 
     assertThat(commandIdToTerminate.get(createId), equalTo(Collections.singletonMap(new QueryId("queryId"),
         terminateId)));
   }
 
+  @Test
+  public void shouldBeDroppedWhenDropCommandAfterCreate() {
+    restoreCommands.addCommand(createId, createCommand);
+    restoreCommands.addCommand(dropId, dropCommand);
+
+    final Map<CommandId, Boolean> results = new HashMap<>();
+    restoreCommands.forEach((commandId, command, terminatedQueries, dropped)
+        -> results.put(commandId, dropped));
+
+    assertTrue(results.get(createId));
+  }
+
+  @Test
+  public void shouldNotBeDroppedWhenDropCommandBeforeCreate() {
+    restoreCommands.addCommand(dropId, dropCommand);
+    restoreCommands.addCommand(createId, createCommand);
+
+    final Map<CommandId, Boolean> results = new HashMap<>();
+    restoreCommands.forEach((commandId, command, terminatedQueries, dropped)
+        -> results.put(commandId, dropped));
+
+    assertFalse(results.get(createId));
+  }
 
 }

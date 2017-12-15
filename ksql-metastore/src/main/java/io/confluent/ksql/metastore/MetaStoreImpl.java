@@ -60,6 +60,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
 
   @Override
   public void putSource(final StructuredDataSource dataSource) {
+
     if (getSource(dataSource.getName()) == null) {
       dataSourceMap.put(dataSource.getName(), dataSource);
     } else {

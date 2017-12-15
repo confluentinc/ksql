@@ -447,6 +447,7 @@ public abstract class Console implements Closeable {
               runningQuery.getKafkaTopic(),
               runningQuery.getQueryString()
           )).collect(Collectors.toList());
+      footer.add("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
       SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
       List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();

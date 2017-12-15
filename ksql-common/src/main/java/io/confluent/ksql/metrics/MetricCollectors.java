@@ -49,8 +49,8 @@ public class MetricCollectors {
 
   // visible for testing.
   // We need to call this from the MetricCollectorsTest because otherwise tests clobber each
-  // others metric data
-  static void initialize() {
+  // others metric data. We also need it from the KsqlEngineMetricsTest
+  public static void initialize() {
     MetricConfig metricConfig = new MetricConfig().samples(100).timeWindow(1000, TimeUnit.MILLISECONDS);
     List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
@@ -59,8 +59,9 @@ public class MetricCollectors {
 
   // visible for testing.
   // needs to be called from the tear down method of MetricCollectorsTest so that the tests don't
-  // clobber each other.
-  static void cleanUp() {
+  // clobber each other. We also need to call it from the KsqlEngineMetrics test for the same
+  // reason.
+  public static void cleanUp() {
     if (metrics != null) {
       metrics.close();
     }

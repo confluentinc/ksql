@@ -47,19 +47,18 @@ public class KsqlEngineMetrics implements Closeable {
   private final KsqlEngine ksqlEngine;
 
   public KsqlEngineMetrics(String metricGroupPrefix, KsqlEngine ksqlEngine) {
-    Metrics metrics = MetricCollectors.getMetrics();
-
     this.ksqlEngine = ksqlEngine;
-
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
+
+    Metrics metrics = MetricCollectors.getMetrics();
+
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
     this.messagesOut =  configureMessagesOut(metrics);
     this.numIdleQueries = configureIdleQueriesSensor(metrics);
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
     this.errorRate = configureErrorRate(metrics);
-
   }
 
   @Override

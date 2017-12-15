@@ -558,7 +558,7 @@ public abstract class Console implements Closeable {
         for (String writeQuery : source.getWriteQueries()) {
           footer.add(writeQuery);
         }
-        footer.add("\nFor query topology and execution plan please run: DESCRIBE EXTENDED <QueryId> for more information");
+        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>; for more information");
       }
 
 
@@ -575,7 +575,7 @@ public abstract class Console implements Closeable {
         footer.add(String.format("\n%-20s\n%-20s\n%s","Processing topology", "-------------------", source.getTopology()));
       }
     } else {
-      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table,QueryId>");
+      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
     }
   }
 

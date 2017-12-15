@@ -36,20 +36,6 @@ public class MetastoreTest {
   }
 
 
-  @Test(expected = KsqlException.class)
-  public void testShouldPrevent_CTAS() {
-
-    StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource failingSource = new KsqlStream("sqlexpression", "CSAS_fail",
-            structuredDataSource1.getSchema(),
-            structuredDataSource1.getKeyField(),
-            structuredDataSource1.getTimestampField(),
-            structuredDataSource1.getKsqlTopic());
-
-    metaStore.putSource(failingSource);
-
-  }
-
   @Test
   public void testTopicMap() {
     KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe(null));

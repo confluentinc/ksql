@@ -125,7 +125,7 @@ public class SourceDescription extends KsqlEntity {
         (extended & topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
     );
   }
-  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, boolean extended, KafkaTopicClient topicClient) {
+  public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, KafkaTopicClient topicClient) {
     this(
             statementString,
             name,
@@ -135,15 +135,15 @@ public class SourceDescription extends KsqlEntity {
             "QUERY",
             Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
             Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),
-            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false) : ""),
-            (extended ? MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true) : ""),
-            extended,
+            MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false),
+            MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true),
+            true,
             outputNode.getTopicSerde().getSerDe().name(),
             outputNode.getKafkaTopicName(),
             topoplogy,
             executionPlan,
-            (extended & topicClient != null ? getParitions(topicClient,  outputNode.getKafkaTopicName()) : 0),
-            (extended & topicClient != null ? getReplication(topicClient, outputNode.getKafkaTopicName()) : 0)
+            getParitions(topicClient,  outputNode.getKafkaTopicName()),
+            getReplication(topicClient, outputNode.getKafkaTopicName())
     );
   }
 

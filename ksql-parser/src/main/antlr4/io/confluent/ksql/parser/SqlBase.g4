@@ -65,7 +65,7 @@ statement
     | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
     | EXPLAIN ANALYZE?
-            ('(' explainOption (',' explainOption)* ')')? statement         #explain
+            ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
     | RUN SCRIPT STRING                                                     #runScript
     ;

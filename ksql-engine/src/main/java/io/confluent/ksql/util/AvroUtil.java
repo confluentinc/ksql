@@ -31,7 +31,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
@@ -159,14 +158,12 @@ public class AvroUtil {
     } catch (IOException e) {
       String errorMessage = String.format("Could not check Schema compatibility: %s", e
           .getMessage());
-      log.error(errorMessage);
-      log.error(ExceptionUtil.stackTraceToString(e));
+      log.error(errorMessage, e);
       throw new KsqlException(errorMessage);
     } catch (RestClientException e) {
       String errorMessage = String.format("Could not connect to Schema Registry service: %s", e
           .getMessage());
-      log.error(errorMessage);
-      log.error(ExceptionUtil.stackTraceToString(e));
+      log.error(errorMessage, e);
       throw new KsqlException(errorMessage);
     }
   }

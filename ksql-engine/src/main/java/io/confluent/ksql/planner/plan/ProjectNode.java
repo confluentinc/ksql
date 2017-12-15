@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
@@ -115,8 +116,10 @@ public class ProjectNode
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
-    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, props)
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
+    return getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil,
+                                   functionRegistry, props, schemaRegistryClient)
         .select(getProjectNameExpressionPairList());
   }
 }

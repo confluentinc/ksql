@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -64,7 +65,8 @@ public class PhysicalPlanBuilderTest {
         functionRegistry,
         Collections.emptyMap(),
         false,
-        metaStore
+        metaStore,
+                                                  new MockSchemaRegistryClient()
     );
 
     planBuilder = new LogicalPlanBuilder(metaStore);

@@ -17,6 +17,7 @@
 package io.confluent.ksql.structured;
 
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
@@ -55,8 +56,8 @@ public class SchemaKTableTest {
     StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
             .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-                , SerDeUtil.getRowSerDe(ksqlTable.getKsqlTopic().getKsqlTopicSerDe(), null, new
-                    KsqlConfig(Collections.emptyMap()), false)));
+                , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(null, new
+                    KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClient())));
 
   }
 
@@ -69,7 +70,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -101,7 +102,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(),
                                            new ArrayList<>(), false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -135,7 +136,7 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry);
+                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);

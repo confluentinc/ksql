@@ -38,10 +38,8 @@ import java.util.Set;
 public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
-  private final boolean isInternal;
 
-  String rowAvroSchemaString;
-  KafkaAvroDeserializer kafkaAvroDeserializer;
+  private KafkaAvroDeserializer kafkaAvroDeserializer;
 
   public KsqlGenericRowAvroDeserializer(Schema schema,
                                         SchemaRegistryClient schemaRegistryClient, boolean isInternal) {
@@ -50,7 +48,6 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   public KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
       kafkaAvroDeserializer, boolean isInternal) {
-    this.isInternal = isInternal;
     if (isInternal) {
       this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
     } else {

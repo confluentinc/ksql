@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -48,8 +49,9 @@ public class QueuedSchemaKStream extends SchemaKStream {
                               final Type type,
                               final FunctionRegistry functionRegistry,
                               final Optional<Integer> limit,
-                              final OutputNode outputNode) {
-    super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry);
+                              final OutputNode outputNode,
+                              final SchemaRegistryClient schemaRegistryClient) {
+    super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry, schemaRegistryClient);
     setOutputNode(outputNode);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
@@ -65,7 +67,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
             Type.SINK,
             schemaKStream.functionRegistry,
             limit,
-            schemaKStream.outputNode()
+            schemaKStream.outputNode(),
+            schemaKStream.schemaRegistryClient
     );
   }
 

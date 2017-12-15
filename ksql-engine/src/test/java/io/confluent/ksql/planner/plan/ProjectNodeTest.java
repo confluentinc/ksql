@@ -27,6 +27,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -71,7 +73,7 @@ public class ProjectNodeTest {
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props);
+        props, new MockSchemaRegistryClient());
   }
 
   @Test
@@ -99,7 +101,7 @@ public class ProjectNodeTest {
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props);
+        props, new MockSchemaRegistryClient());
 
     EasyMock.verify(stream);
   }
@@ -111,7 +113,7 @@ public class ProjectNodeTest {
         anyObject(KafkaTopicClient.class),
         anyObject(MetastoreUtil.class),
         anyObject(FunctionRegistry.class),
-        eq(props))).andReturn(stream);
+        eq(props), anyObject(SchemaRegistryClient.class))).andReturn(stream);
   }
 
 

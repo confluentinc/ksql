@@ -154,7 +154,7 @@ class QueryEngine {
         ksqlEngine.getFunctionRegistry(),
         overriddenStreamsProperties,
         updateMetastore,
-        ksqlEngine.getMetaStore()
+        ksqlEngine.getMetaStore(), ksqlEngine.getSchemaRegistryClient()
     );
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));

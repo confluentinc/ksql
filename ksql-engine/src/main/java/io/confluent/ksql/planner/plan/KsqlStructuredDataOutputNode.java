@@ -19,6 +19,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -31,7 +32,6 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.SerDeUtil;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -85,14 +85,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
 
     final SchemaKStream schemaKStream = getSource().buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props);
+        props, schemaRegistryClient);
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder
         = Builder.from(this);
@@ -119,15 +120,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final SchemaKStream result = createOutputStream(schemaKStream,
         outputNodeBuilder,
         functionRegistry,
-        outputProperties);
+        outputProperties, schemaRegistryClient);
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
     result.into(
         noRowKey.getKafkaTopicName(),
-        SerDeUtil.getRowSerDe(
-            noRowKey.getKsqlTopic().getKsqlTopicSerDe(),
-            noRowKey.getSchema(), ksqlConfig, false),
+            noRowKey.getKsqlTopic().getKsqlTopicSerDe()
+                .getGenericRowSerde(noRowKey.getSchema(), ksqlConfig, false, schemaRegistryClient),
         rowkeyIndexes
     );
 
@@ -140,7 +140,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private SchemaKStream createOutputStream(final SchemaKStream schemaKStream,
                                            final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
                                            final FunctionRegistry functionRegistry,
-                                           final Map<String, Object> outputProperties) {
+                                           final Map<String, Object> outputProperties,
+                                           final SchemaRegistryClient schemaRegistryClient) {
 
     if (schemaKStream instanceof SchemaKTable) {
       return schemaKStream;
@@ -151,7 +152,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         this
             .getKeyField(),
         Collections.singletonList(schemaKStream),
-        SchemaKStream.Type.SINK, functionRegistry
+        SchemaKStream.Type.SINK, functionRegistry, schemaRegistryClient
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {

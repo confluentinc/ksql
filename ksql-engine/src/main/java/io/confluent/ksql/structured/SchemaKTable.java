@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -51,8 +52,9 @@ public class SchemaKTable extends SchemaKStream {
                       final List<SchemaKStream> sourceSchemaKStreams,
                       boolean isWindowed,
                       Type type,
-                      final FunctionRegistry functionRegistry) {
-    super(schema, null, keyField, sourceSchemaKStreams, type, functionRegistry);
+                      final FunctionRegistry functionRegistry,
+                      final SchemaRegistryClient schemaRegistryClient) {
+    super(schema, null, keyField, sourceSchemaKStreams, type, functionRegistry, schemaRegistryClient);
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
@@ -107,7 +109,7 @@ public class SchemaKTable extends SchemaKStream {
                                               functionRegistry);
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            Type.FILTER, functionRegistry);
+                            Type.FILTER, functionRegistry, schemaRegistryClient);
   }
 
   @Override
@@ -118,7 +120,7 @@ public class SchemaKTable extends SchemaKStream {
     KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
 
     return new SchemaKTable(schemaAndMapper.left, projectedKTable, keyField,
-        Collections.singletonList(this), isWindowed, Type.PROJECT, functionRegistry);
+        Collections.singletonList(this), isWindowed, Type.PROJECT, functionRegistry, schemaRegistryClient);
   }
 
   @Override

@@ -16,10 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -27,11 +23,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class SerDeUtil {
 
-  public static Serde<GenericRow> getRowSerDe(final KsqlTopicSerDe topicSerDe, Schema schema,
-                                              KsqlConfig ksqlConfig, boolean isInternal) {
-    return topicSerDe.getGenericRowSerde(schema, ksqlConfig, isInternal,
-                                         KsqlEngine.getSchemaRegistryClient());
-  }
 
   public static Schema getSchemaFromAvro(String avroSchemaString) {
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();

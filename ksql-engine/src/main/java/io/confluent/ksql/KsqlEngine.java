@@ -57,6 +57,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -107,35 +108,14 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   public final FunctionRegistry functionRegistry;
 
-  public static SchemaRegistryClient schemaRegistryClient;
+  public SchemaRegistryClient schemaRegistryClient;
 
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
-    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
 
-    this.ksqlConfig = ksqlConfig;
-
-    this.metaStore = new MetaStoreImpl();
-    this.topicClient = topicClient;
-    this.ddlCommandExec = new DDLCommandExec(metaStore);
-    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
-    this.persistentQueries = new HashMap<>();
-    this.livePersistentQueries = new HashSet<>();
-    this.allLiveQueries = new HashSet<>();
-    this.functionRegistry = new FunctionRegistry();
-    String schemaRegistryUrl = (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY);
-    this.schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 1000);
-
-    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
-    this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
-    aggregateMetricsCollector.scheduleAtFixedRate(() -> {
-      engineMetrics.recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
-      engineMetrics.recordMessagesProduced(MetricCollectors.currentProductionRate());
-    }, 1000, 1000, TimeUnit.MILLISECONDS);
-
+    this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000));
   }
 
-  // For test purpose
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, SchemaRegistryClient schemaRegistryClient) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
     this.ksqlConfig = ksqlConfig;
@@ -517,7 +497,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
   }
 
-  public static SchemaRegistryClient getSchemaRegistryClient() {
-    return schemaRegistryClient;
+  public SchemaRegistryClient getSchemaRegistryClient() {
+    if (schemaRegistryClient != null) {
+      return schemaRegistryClient;
+    }
+    throw new KsqlException("Cannot access the Schema Registry. Schema Registry client is null.");
   }
 }

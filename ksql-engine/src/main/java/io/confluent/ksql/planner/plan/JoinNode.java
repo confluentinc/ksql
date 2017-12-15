@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -153,7 +154,8 @@ public class JoinNode extends PlanNode {
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
     if (!isLeftJoin()) {
       throw new KsqlException("Join type is not supported yet: " + getType());
     }
@@ -163,14 +165,14 @@ public class JoinNode extends PlanNode {
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props);
+        props, schemaRegistryClient);
 
     final SchemaKStream stream = streamForJoin(getLeft().buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props), getLeftKeyFieldName());
+        props, schemaRegistryClient), getLeftKeyFieldName());
 
     final KsqlTopicSerDe joinSerDe = getResultTopicSerde(this);
     return stream.leftJoin(table,
@@ -187,13 +189,16 @@ public class JoinNode extends PlanNode {
       final KafkaTopicClient kafkaTopicClient,
       final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
+      final Map<String, Object> props,
+      final SchemaRegistryClient schemaRegistryClient) {
 
     Map<String, Object> joinTableProps = new HashMap<>();
     joinTableProps.putAll(props);
     joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, joinTableProps);
+    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient,
+                                                          metastoreUtil, functionRegistry,
+                                                          joinTableProps, schemaRegistryClient);
     if (!(schemaKStream instanceof SchemaKTable)) {
       throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
           + getLeft() + "-" + getRight());

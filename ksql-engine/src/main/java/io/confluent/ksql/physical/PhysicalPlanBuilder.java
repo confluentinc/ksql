@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -62,6 +63,7 @@ public class PhysicalPlanBuilder {
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
+  private final SchemaRegistryClient schemaRegistryClient;
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -70,7 +72,8 @@ public class PhysicalPlanBuilder {
                              final FunctionRegistry functionRegistry,
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
-                             final MetaStore metaStore) {
+                             final MetaStore metaStore,
+                             final SchemaRegistryClient schemaRegistryClient) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -79,6 +82,7 @@ public class PhysicalPlanBuilder {
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
+    this.schemaRegistryClient = schemaRegistryClient;
   }
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
@@ -86,7 +90,7 @@ public class PhysicalPlanBuilder {
         ksqlConfig,
         kafkaTopicClient,
         metastoreUtil,
-        functionRegistry, overriddenStreamsProperties);
+        functionRegistry, overriddenStreamsProperties, schemaRegistryClient);
     final OutputNode outputNode = resultStream.outputNode();
     boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 

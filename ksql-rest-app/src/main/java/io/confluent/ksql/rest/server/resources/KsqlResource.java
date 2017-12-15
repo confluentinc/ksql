@@ -199,8 +199,8 @@ public class KsqlResource {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
             statement;
         Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-            new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
-                                           KsqlEngine.getSchemaRegistryClient());
+            maybeAddFieldsFromSchemaRegistry(streamCreateStatement, streamsProperties);
+
         if (avroCheckResult.getRight() != null) {
           statement = avroCheckResult.getLeft();
           statementText = avroCheckResult.getRight();
@@ -383,7 +383,7 @@ public class KsqlResource {
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
         new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                      KsqlEngine.getSchemaRegistryClient());
+                                                      ksqlEngine.getSchemaRegistryClient());
       }
 
       return queryMetadata.getExecutionPlan();
@@ -397,7 +397,7 @@ public class KsqlResource {
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
         new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                      KsqlEngine.getSchemaRegistryClient());
+                                                      ksqlEngine.getSchemaRegistryClient());
       }
       return queryMetadata.getExecutionPlan();
     });
@@ -458,5 +458,15 @@ public class KsqlResource {
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
+  }
+
+  private Pair<AbstractStreamCreateStatement, String> maybeAddFieldsFromSchemaRegistry(
+      AbstractStreamCreateStatement streamCreateStatement,
+      Map<String, Object> streamsProperties
+  ) {
+    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+        new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
+                                             ksqlEngine.getSchemaRegistryClient());
+    return avroCheckResult;
   }
 }

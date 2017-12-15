@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -29,6 +30,7 @@ import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -37,7 +39,6 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SerDeUtil;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -180,10 +181,15 @@ public class AggregateNode extends PlanNode {
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
     final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
-    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, props);
-    final SchemaKStream rekeyedSchemaKStream = aggregateReKey(sourceSchemaKStream, functionRegistry);
+    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder, ksqlConfig,
+                                                                      kafkaTopicClient,
+                                                                      metastoreUtil,
+                                                                      functionRegistry, props, schemaRegistryClient);
+    final SchemaKStream rekeyedSchemaKStream = aggregateReKey(sourceSchemaKStream,
+                                                              functionRegistry, schemaRegistryClient);
 
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
@@ -193,11 +199,10 @@ public class AggregateNode extends PlanNode {
 
     final SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
 
-    final Serde<GenericRow> genericRowSerde =
-        SerDeUtil.getRowSerDe(streamSourceNode.getStructuredDataSource()
-                .getKsqlTopic()
-                .getKsqlTopicSerDe(),
-            aggregateArgExpanded.getSchema(), ksqlConfig, true);
+    KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
+        .getKsqlTopic()
+        .getKsqlTopicSerDe();
+    final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(aggregateArgExpanded.getSchema(), ksqlConfig, true, schemaRegistryClient);
 
     final SchemaKGroupedStream schemaKGroupedStream =
         aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
@@ -214,10 +219,7 @@ public class AggregateNode extends PlanNode {
 
     final Schema aggStageSchema = buildAggregateSchema(aggregateArgExpanded.getSchema(), functionRegistry);
 
-    final Serde<GenericRow> aggValueGenericRowSerde = SerDeUtil.getRowSerDe(streamSourceNode
-            .getStructuredDataSource()
-            .getKsqlTopic()
-            .getKsqlTopicSerDe(), aggStageSchema, ksqlConfig, true);
+    final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(aggStageSchema, ksqlConfig, true, schemaRegistryClient);
 
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
         new KudafInitializer(resultColumns),
@@ -235,7 +237,7 @@ public class AggregateNode extends PlanNode {
         schemaKTable.getSourceSchemaKStreams(),
         schemaKTable.isWindowed(),
         SchemaKStream.Type.AGGREGATE,
-        functionRegistry);
+        functionRegistry, schemaRegistryClient);
 
 
     if (getHavingExpressions() != null) {
@@ -245,7 +247,7 @@ public class AggregateNode extends PlanNode {
     return result.select(getFinalSelectExpressions());
   }
 
-  private SchemaKStream aggregateReKey(final SchemaKStream sourceSchemaKStream, final FunctionRegistry functionRegistry) {
+  private SchemaKStream aggregateReKey(final SchemaKStream sourceSchemaKStream, final FunctionRegistry functionRegistry, SchemaRegistryClient schemaRegistryClient) {
     StringBuilder aggregateKeyName = new StringBuilder();
     List<Integer> newKeyIndexes = new ArrayList<>();
     boolean addSeparator = false;
@@ -277,7 +279,7 @@ public class AggregateNode extends PlanNode {
 
     return new SchemaKStream(sourceSchemaKStream.getSchema(), rekeyedKStream, newKeyField,
         Collections.singletonList(sourceSchemaKStream), SchemaKStream.Type.REKEY,
-        functionRegistry);
+        functionRegistry, schemaRegistryClient);
   }
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(final SchemaKStream aggregateArgExpanded,

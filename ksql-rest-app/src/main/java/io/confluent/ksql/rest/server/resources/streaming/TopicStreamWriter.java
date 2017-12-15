@@ -57,15 +57,19 @@ public class TopicStreamWriter implements StreamingOutput {
   KsqlTopic ksqlTopic;
   private final ObjectMapper objectMapper;
 
+  private final KsqlEngine ksqlEngine;
+
   private long messagesWritten;
 
   public TopicStreamWriter(
+      KsqlEngine ksqlEngine,
       Map<String, Object> consumerProperties,
       KsqlTopic ksqlTopic,
       long interval,
       long disconnectCheckInterval,
       boolean fromBeginning
   ) {
+    this.ksqlEngine = ksqlEngine;
     this.ksqlTopic = ksqlTopic;
     this.kafkaTopic = ksqlTopic.getKafkaTopicName();
     this.messagesWritten = 0;
@@ -79,7 +83,7 @@ public class TopicStreamWriter implements StreamingOutput {
         break;
       case AVRO:
         KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, KsqlEngine.getSchemaRegistryClient(), false);
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, ksqlEngine.getSchemaRegistryClient(), false);
         break;
       default:
         throw new RuntimeException(String.format(

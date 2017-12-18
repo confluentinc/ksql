@@ -411,7 +411,7 @@ public class KsqlResource {
         new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());
       }
-
+      queryMetadata.close();
       return queryMetadata.getExecutionPlan();
     });
 
@@ -425,6 +425,7 @@ public class KsqlResource {
         new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());
       }
+      queryMetadata.close();
       return queryMetadata.getExecutionPlan();
     });
 

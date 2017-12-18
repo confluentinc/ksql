@@ -63,16 +63,17 @@ public class AvroUtil {
     String kafkaTopicName = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     try {
-      SchemaMetadata schemaMetadata = fetchSchemaMetadata(abstractStreamCreateStatement,
-                                                          schemaRegistryClient, kafkaTopicName);
-
-      String avroSchemaString = schemaMetadata.getSchema();
-      streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-      Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
       // If the schema is not specified infer it from the Avro schema in Schema Registry.
       if (abstractStreamCreateStatement.getElements().isEmpty()) {
-        return new Pair<>(addAvroFields(abstractStreamCreateStatement, schema,
-                                        schemaMetadata.getId()), SqlFormatter.formatSql(abstractStreamCreateStatement));
+        SchemaMetadata schemaMetadata = fetchSchemaMetadata(abstractStreamCreateStatement,
+                                                            schemaRegistryClient, kafkaTopicName);
+
+        String avroSchemaString = schemaMetadata.getSchema();
+        streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
+        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
+        AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(abstractStreamCreateStatement, schema,
+                                                                                        schemaMetadata.getId());
+        return new Pair<>(abstractStreamCreateStatementCopy, SqlFormatter.formatSql(abstractStreamCreateStatementCopy));
       } else {
         return new Pair<>(abstractStreamCreateStatement, null);
       }

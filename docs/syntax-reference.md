@@ -265,7 +265,7 @@ The WITH clause supports the following properties:
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO` |
-| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
+| KEY          (required) | Associates the message key in the Kafka topic with a column in the KSQL table. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Example:
@@ -273,9 +273,10 @@ Example:
 ```sql
 CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
   WITH (VALUE_FORMAT = 'JSON',
-        KAFKA_TOPIC = 'my-users-topic');
+        KAFKA_TOPIC = 'my-users-topic',
+        key = 'user_id');
 ```
-
+Note that setting `key` property is required for TABLE declration.  
 
 ### CREATE STREAM AS SELECT
 

@@ -43,12 +43,14 @@ public class KsqlGenericRowAvroDeserializerTest {
                      + " \"name\": \"orders\","
                      + " \"type\": \"record\","
                      + " \"fields\": ["
-                     + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
-                     + "     {\"name\": \"orderid\",  \"type\": \"long\"},"
-                     + "     {\"name\": \"itemid\", \"type\": \"string\"},"
-                     + "     {\"name\": \"orderunits\", \"type\": \"double\"},"
-                     + "     {\"name\": \"arraycol\", \"type\": {\"type\": \"array\", \"items\": \"double\"}},"
-                     + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
+                     + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
+                     + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
+                     + "     {\"name\": \"itemId\", \"type\": \"string\"},"
+                     + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
+                     + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
+                     + "\"double\"}},"
+                     + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
+                     + "\"double\"}}"
                      + " ]"
                      + "}";
   GenericRecord genericRecord = null;
@@ -59,22 +61,22 @@ public class KsqlGenericRowAvroDeserializerTest {
     Schema.Parser parser = new Schema.Parser();
     Schema avroSchema = parser.parse(schemaStr);
     genericRecord  = new GenericData.Record(avroSchema);
-    genericRecord.put("ordertime", 1511897796092l);
-    genericRecord.put("orderid", 1l);
-    genericRecord.put("itemid", "item_1");
-    genericRecord.put("orderunits", 10.0);
-    genericRecord.put("arraycol", new GenericData.Array(Schema.createArray(
+    genericRecord.put("orderTime", 1511897796092l);
+    genericRecord.put("orderId", 1l);
+    genericRecord.put("itemId", "item_1");
+    genericRecord.put("orderUnits", 10.0);
+    genericRecord.put("arrayCol", new GenericData.Array(Schema.createArray(
         Schema.create(Schema.Type.DOUBLE)),
                                                         Collections.singletonList(100.0)));
-    genericRecord.put("mapcol", Collections.singletonMap("key1", 100.0));
+    genericRecord.put("mapCol", Collections.singletonMap("key1", 100.0));
 
     schema = SchemaBuilder.struct()
-        .field("ordertime", org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("orderid", org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("itemid", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-        .field("orderunits", org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
-        .field("arraycol", SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
-        .field("mapcol", SchemaBuilder.map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA, org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+        .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
+        .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.STRING_SCHEMA, org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA))
         .build();
   }
 

@@ -276,7 +276,7 @@ CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, regio
         KAFKA_TOPIC = 'my-users-topic',
         key = 'user_id');
 ```
-Note that setting `key` property is required for TABLE declration.  
+Note that setting `key` property is required for TABLE declration.
 
 ### CREATE STREAM AS SELECT
 

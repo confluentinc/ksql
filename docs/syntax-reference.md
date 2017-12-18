@@ -216,8 +216,7 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.
-  Supported formats: `JSON`, `DELIMITED` and `AVRO`|
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `DELIMITED` and `AVRO`|
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 

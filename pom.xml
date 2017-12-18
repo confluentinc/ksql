@@ -158,6 +158,18 @@
             </dependency>
 
             <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-schema-registry-client</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.confluent.support</groupId>
                 <artifactId>support-metrics-common</artifactId>
                 <version>${confluent.version}</version>

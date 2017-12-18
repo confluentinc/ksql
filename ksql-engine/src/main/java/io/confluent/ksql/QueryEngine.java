@@ -19,6 +19,7 @@ package io.confluent.ksql;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.DDLCommand;
 import io.confluent.ksql.ddl.commands.DDLCommandFactory;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
@@ -27,20 +28,28 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StringUtil;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -48,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -148,13 +158,13 @@ class QueryEngine {
 
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(builder,
-        ksqlConfigClone,
+        ksqlConfigClone.cloneWithPropertyOverwrite(overriddenStreamsProperties),
         ksqlEngine.getTopicClient(),
         new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
         overriddenStreamsProperties,
         updateMetastore,
-        ksqlEngine.getMetaStore()
+        ksqlEngine.getMetaStore(), ksqlEngine.getSchemaRegistryClient()
     );
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));
@@ -162,8 +172,20 @@ class QueryEngine {
 
 
   DDLCommandResult handleDdlStatement(
-          String sqlExpression, final DDLStatement statement,
+          String sqlExpression, DDLStatement statement,
           final Map<String, Object> overriddenProperties) {
+
+    if (statement instanceof AbstractStreamCreateStatement) {
+      AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
+          statement;
+      Pair<DDLStatement, String> avroCheckResult =
+          maybeAddFieldsFromSchemaRegistry(streamCreateStatement);
+
+      if (avroCheckResult.getRight() != null) {
+        statement = avroCheckResult.getLeft();
+        sqlExpression = avroCheckResult.getRight();
+      }
+    }
     DDLCommand command = ddlCommandFactory.create(sqlExpression, statement, overriddenProperties);
     return ksqlEngine.getDDLCommandExec().execute(command);
   }
@@ -182,4 +204,36 @@ class QueryEngine {
     KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
     return new KsqlStream("QueryEngine-DDLCommand-Not-Needed", name, dataSource.schema(), null, null, ksqlTopic);
   }
+
+  private Pair<DDLStatement, String> maybeAddFieldsFromSchemaRegistry(
+      AbstractStreamCreateStatement streamCreateStatement) {
+    if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
+      String ksqlRegisteredTopicName = StringUtil.cleanQuotes(streamCreateStatement.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
+      KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
+      if (ksqlTopic == null) {
+        throw new KsqlException(String.format("Could not find %s topic in the metastore.",
+                                              ksqlRegisteredTopicName));
+      }
+      Map<String, Expression> newProperties = new HashMap<>();
+      newProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic
+                                                                                   .getKafkaTopicName()));
+      newProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral(ksqlTopic
+                                                                               .getKsqlTopicSerDe().getSerDe().toString()));
+      streamCreateStatement = streamCreateStatement.copyWith(streamCreateStatement.getElements(),
+                                                             newProperties);
+    }
+    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+        new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, new HashMap<>(),
+                                             ksqlEngine.getSchemaRegistryClient());
+    if (avroCheckResult.getRight() != null) {
+      if (avroCheckResult.getLeft() instanceof CreateStream) {
+        return new Pair<>((CreateStream) avroCheckResult.getLeft(), avroCheckResult.getRight());
+      } else if (avroCheckResult.getLeft() instanceof CreateTable) {
+        return new Pair<>((CreateTable) avroCheckResult.getLeft(), avroCheckResult.getRight());
+      }
+    }
+    return new Pair<>(null, null);
+  }
+
+
 }

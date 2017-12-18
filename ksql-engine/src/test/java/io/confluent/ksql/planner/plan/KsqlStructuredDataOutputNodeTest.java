@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -184,7 +185,7 @@ public class KsqlStructuredDataOutputNodeTest {
         topicClient,
         new MetastoreUtil(),
         new FunctionRegistry(),
-        new HashMap<>());
+        new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 }

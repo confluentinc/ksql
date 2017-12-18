@@ -18,10 +18,10 @@ package io.confluent.ksql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSortedMap;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateView;
@@ -60,6 +60,7 @@ import io.confluent.ksql.parser.tree.ShowSchemas;
 import io.confluent.ksql.parser.tree.ShowSession;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Union;
 import io.confluent.ksql.parser.tree.Values;
@@ -69,6 +70,7 @@ import io.confluent.ksql.parser.tree.WithQuery;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -410,6 +412,80 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitCreateStream(CreateStream node, Integer indent) {
+      builder.append("CREATE STREAM ");
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+      builder.append(node.getName())
+          .append(" \n");
+      if (!node.getElements().isEmpty()) {
+        builder.append("(");
+        boolean addComma = false;
+        for (TableElement tableElement: node.getElements()) {
+          if (addComma) {
+            builder.append(", ");
+          } else {
+            addComma = true;
+          }
+          builder.append(tableElement.getName())
+              .append(" ")
+              .append(tableElement.getType());
+        }
+        builder.append(")").append(" WITH (");
+        addComma = false;
+        for (Map.Entry property: node.getProperties().entrySet()) {
+          if (addComma) {
+            builder.append(", ");
+          } else {
+            addComma = true;
+          }
+          builder.append(property.getKey().toString()).append("=").append(property.getValue()
+                                                                              .toString());
+        }
+        builder.append(");");
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitCreateTable(CreateTable node, Integer indent) {
+      builder.append("CREATE TABLE ");
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+      builder.append(node.getName())
+          .append(" ");
+      if (!node.getElements().isEmpty()) {
+        builder.append("(");
+        boolean addComma = false;
+        for (TableElement tableElement: node.getElements()) {
+          if (addComma) {
+            builder.append(", ");
+          } else {
+            addComma = true;
+          }
+          builder.append(tableElement.getName())
+              .append(" ")
+              .append(tableElement.getType());
+        }
+        builder.append(")").append(" WITH (");
+        addComma = false;
+        for (Map.Entry property: node.getProperties().entrySet()) {
+          if (addComma) {
+            builder.append(", ");
+          } else {
+            addComma = true;
+          }
+          builder.append(property.getKey().toString()).append("=").append(property.getValue()
+                                                                              .toString());
+        }
+        builder.append(");");
+      }
+      return null;
+    }
+
+    @Override
     protected Void visitCreateView(CreateView node, Integer indent) {
       builder.append("CREATE ");
       if (node.isReplace()) {
@@ -590,33 +666,6 @@ public final class SqlFormatter {
       return null;
     }
 
-    @Override
-    protected Void visitCreateTable(CreateTable node, Integer indent) {
-      builder.append("CREATE TABLE ");
-      if (node.isNotExists()) {
-        builder.append("IF NOT EXISTS ");
-      }
-      String tableName = formatName(node.getName());
-      builder.append(tableName).append(" (\n");
-
-      String columnList = node.getElements().stream()
-              .map(column -> INDENT + formatName(column.getName()) + " " + column.getType())
-              .collect(joining(",\n"));
-      builder.append(columnList);
-      builder.append("\n").append(")");
-
-      if (!node.getProperties().isEmpty()) {
-        builder.append("\nWITH (\n");
-        // Always output the table properties in sorted order
-        String propertyList = ImmutableSortedMap.copyOf(node.getProperties()).entrySet().stream()
-                .map(entry -> INDENT + formatName(entry.getKey()) + " = " + entry.getValue())
-                .collect(joining(",\n"));
-        builder.append(propertyList);
-        builder.append("\n").append(")");
-      }
-
-      return null;
-    }
 
     private static String formatName(String name) {
       if (NAME_PATTERN.matcher(name).matches()) {

@@ -71,11 +71,7 @@ public class RegisterTopicCommand implements DDLCommand {
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        if (!overriddenProperties.containsKey(DdlConfig.AVRO_SCHEMA)) {
-          throw new KsqlException("Avro schema file path should be set for avro topics.");
-        }
-        String avroSchema = overriddenProperties.get(DdlConfig.AVRO_SCHEMA).toString();
-        return new KsqlAvroTopicSerDe(avroSchema);
+        return new KsqlAvroTopicSerDe();
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe(null);
       case DataSource.DELIMITED_SERDE_NAME:

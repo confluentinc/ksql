@@ -1,14 +1,9 @@
 package io.confluent.ksql.integration;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.OrderDataProvider;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.IntegrationTest;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,13 +15,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.anyOf;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.OrderDataProvider;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 
 @Category({IntegrationTest.class})
-public class StreamsSelectAndProjectIntTest {
+public class StreamsSelectAndProjectAvroIntTest {
 
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
@@ -36,9 +34,9 @@ public class StreamsSelectAndProjectIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
+    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.AVRO.name());
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
     testHarness.createTopic(topicName);
 
     /**
@@ -82,7 +80,6 @@ public class StreamsSelectAndProjectIntTest {
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
     Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema , expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
-
     assertThat(results2, equalTo(expectedResults));
   }
 
@@ -97,7 +94,6 @@ public class StreamsSelectAndProjectIntTest {
     Map<String, GenericRow> results = testHarness.consumeData("PROJECT_KEY_TIMESTAMP", resultSchema , dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8").timestamp(), "ITEM_8")));
-
     assertThat(results, equalTo(expectedResults));
   }
 
@@ -112,7 +108,7 @@ public class StreamsSelectAndProjectIntTest {
 
     GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
-    Assert.assertEquals( "ITEM_1", value.getColumns().get(2));
+    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
   }
 
 
@@ -145,7 +141,10 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   private void createOrdersStream() throws Exception {
-    ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
+    ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
+                    + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, "
+                    + "double>) WITH (kafka_topic='TestTopic', value_format='AVRO', "
+                    + "key='ordertime');");
   }
 
 }

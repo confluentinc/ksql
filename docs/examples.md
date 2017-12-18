@@ -13,6 +13,7 @@
   - [Joining](#joining)
   - [Aggregating, windowing, and sessionization](#aggregating)
   - [Working with arrays and maps](#working-with-arrays-and-maps)
+  - [Avro format and integration with Confluent Schema Registry](#avro)
 - [Configuring KSQL](#configuring-ksql)
 - [Running KSQL](#running-ksql)
 
@@ -280,6 +281,91 @@ CREATE STREAM pageviews_interest_contact AS \
          regionid \
   FROM pageviews_enriched;
 ```
+
+<a name="avro"></a>
+### Avro format and integration with Confluent Schema Registry
+
+#### Supported functionality
+
+KSQL can read and write messages in Avro format by integrating with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/docs/intro.html).
+KSQL will automatically retrieve (read) and register (write) Avro schemas as needed and thus save
+you from both having to manually define columsn and data types in KSQL as well as from manual
+interaction with the schema registry.
+
+Currently KSQL supports Avro data in the values of Kafka messages:
+
+|                 |    Message Key	  |        Message Value         |
+|-----------------|-------------------|------------------------------|
+|   Avro format	  | Not supported yet | Supported (read and write)   |
+
+What is not supported yet:
+
+
+* Message keys in Avro format. Message keys in KSQL are always interpreted as STRING format,
+which means KSQL will ignore any Avro schemas that have been registered for message keys.
+
+* Avro schemas with nested fields because KSQL does not yet supported nested columns.
+
+
+#### Configuring KSQL for Avro
+
+ To use Avro in KSQL you must configure the schema registry's API endpoint via setting the
+ `ksql.schema.registry.url` config variable in the `properties` file that you use to start KSQL
+ (default: `http://localhost:8081`).
+
+ #### Using Avro in KSQL
+
+ First you must ensure that:
+
+1. Confluent Schema Registry is up and running.
+
+2. `ksql.schema.registry.url` is set correctly in KSQL (see previous section).
+
+ Then you can use `CREATE STREAM` and `CREATE TABLE` statements to read from Kafka topics with
+ Avro-formatted data and `CREATE STREAM AS` and `CREATE TABLE AS` statements to write Avro-formatted data into Kafka topics.
+
+Example: Create a new stream `pageviews` by reading from a Kafka topic with Avro-formatted messages.
+
+```sql
+CREATE STREAM pageviews
+  WITH (kafka_topic='pageviews-avro-topic',
+        value_format='AVRO');
+```
+
+ Note how in the above example you don't need to define any columns or data types in the CREATE
+ statement because KSQL will automatically infer this information from the latest registered Avro
+  schema for topic `pageviews-avro-topic` (i.e., the latest schema at the time the statement is first executed).
+
+ If you want to create a STREAM or TABLE with only a subset of all the available fields in the
+ Avro schema, then you must explicitly define the columns and data types.
+
+Example: Create a new stream `pageviews_reduced`, similar to the previous example, but with only a
+  few of all the available fields in the Avro data (here, only the two columns `viewtime` and `pageid` are picked).
+
+```sql
+CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
+  WITH (kafka_topic='pageviews-avro-topic',
+        value_format='AVRO');
+```
+
+ KSQL allows you to work with streams and tables regardless of their underlying data format. This
+  means that you can easily mix and match streams and tables with different data formats
+  (e.g. join a stream backed by Avro data with a table backed by JSON data) and also convert easily between data formats.
+
+Example: Convert a JSON stream into an Avro stream.
+
+```sql
+CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
+  WITH (kafka_topic='pageviews-json-topic', value_format='JSON');
+
+CREATE STREAM pageviews_avro
+  WITH (value_format = 'AVRO') AS
+  SELECT * FROM pageviews_json;
+```
+
+ Note how you only need to set `value_format` to Avro to achieve the data conversion. Also, KSQL
+ will automatically generate an appropriate Avro schema for the new `pageviews_avro` stream,
+ and it will also register the schema with Confluent Schema Registry.
 
 
 ## Configuring KSQL

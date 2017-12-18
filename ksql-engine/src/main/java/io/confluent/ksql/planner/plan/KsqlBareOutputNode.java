@@ -25,6 +25,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import java.util.Map;
 import java.util.Optional;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -58,13 +59,14 @@ public class KsqlBareOutputNode extends OutputNode {
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
     final SchemaKStream schemaKStream = getSource().buildStream(builder,
         ksqlConfig,
         kafkaTopicClient,
         metastoreUtil,
         functionRegistry,
-        props);
+        props, schemaRegistryClient);
 
     schemaKStream.setOutputNode(this);
     return schemaKStream.toQueue(getLimit());

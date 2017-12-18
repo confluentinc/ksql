@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -123,7 +125,8 @@ public class JoinNodeTest {
                                        KafkaTopicClient kafkaTopicClient,
                                        MetastoreUtil metastoreUtil,
                                        FunctionRegistry functionRegistry,
-                                       Map<String, Object> props) {
+                                       Map<String, Object> props,
+                                       SchemaRegistryClient schemaRegistryClient) {
         if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) &&
             props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString().equalsIgnoreCase
                 ("EARLIEST")) {
@@ -141,7 +144,7 @@ public class JoinNodeTest {
         , rightTable, joinNode.getLeftKeyFieldName(), joinNode.getRightKeyFieldName(), joinNode
                                              .getLeftAlias(), joinNode.getRightAlias());
     testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry,
-                          new HashMap<>());
+                          new HashMap<>(), new MockSchemaRegistryClient());
 
   }
 
@@ -178,7 +181,7 @@ public class JoinNodeTest {
         topicClient,
         new MetastoreUtil(),
         new FunctionRegistry(),
-        new HashMap<>());
+        new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 }

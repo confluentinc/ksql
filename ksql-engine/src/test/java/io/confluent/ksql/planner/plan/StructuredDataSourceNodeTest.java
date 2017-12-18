@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -79,7 +80,7 @@ public class StructuredDataSourceNodeTest {
         new FakeKafkaTopicClient(),
         new MetastoreUtil(),
         new FunctionRegistry(),
-        new HashMap<>());
+        new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 

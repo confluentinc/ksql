@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ public class QueryMetadata {
   private final KafkaTopicClient kafkaTopicClient;
   private final KsqlConfig ksqlConfig;
   private final String topoplogy;
+
 
   public QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,

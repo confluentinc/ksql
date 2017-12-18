@@ -20,19 +20,20 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.SerDeUtil;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -131,18 +132,20 @@ public class StructuredDataSourceNode
                                    final KafkaTopicClient kafkaTopicClient,
                                    final MetastoreUtil metastoreUtil,
                                    final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props) {
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
     if (getTimestampField() != null) {
       int timestampColumnIndex = getTimeStampColumnIndex();
       ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
     }
 
+    KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
+        .getKsqlTopic().getKsqlTopicSerDe();
     Serde<GenericRow>
         genericRowSerde =
-        SerDeUtil.getRowSerDe(getStructuredDataSource()
-                .getKsqlTopic().getKsqlTopicSerDe(),
+        ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                getSchema()));
+                getSchema()), ksqlConfig, false, schemaRegistryClient);
 
     if (getDataSourceType()
         == StructuredDataSource.DataSourceType.KTABLE) {
@@ -153,13 +156,13 @@ public class StructuredDataSourceNode
           getAutoOffsetReset(props),
           table,
           genericRowSerde,
-          SerDeUtil.getRowSerDe(table.getKsqlTopic().getKsqlTopicSerDe(),
-              getSchema())
+          table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+              getSchema(), ksqlConfig, true, schemaRegistryClient)
       );
       return new SchemaKTable(getSchema(), kTable,
           getKeyField(), new ArrayList<>(),
           table.isWindowed(),
-          SchemaKStream.Type.SOURCE, functionRegistry);
+          SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient);
     }
 
     return new SchemaKStream(getSchema(),
@@ -169,7 +172,7 @@ public class StructuredDataSourceNode
             .map(nonWindowedMapper))
             .transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry);
+        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient);
   }
 
   private Topology.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {

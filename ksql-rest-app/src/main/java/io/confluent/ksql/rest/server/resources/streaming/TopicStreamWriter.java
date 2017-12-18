@@ -20,11 +20,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -42,7 +42,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,15 +57,19 @@ public class TopicStreamWriter implements StreamingOutput {
   KsqlTopic ksqlTopic;
   private final ObjectMapper objectMapper;
 
+  private final KsqlEngine ksqlEngine;
+
   private long messagesWritten;
 
   public TopicStreamWriter(
+      KsqlEngine ksqlEngine,
       Map<String, Object> consumerProperties,
       KsqlTopic ksqlTopic,
       long interval,
       long disconnectCheckInterval,
       boolean fromBeginning
   ) {
+    this.ksqlEngine = ksqlEngine;
     this.ksqlTopic = ksqlTopic;
     this.kafkaTopic = ksqlTopic.getKafkaTopicName();
     this.messagesWritten = 0;
@@ -80,13 +83,7 @@ public class TopicStreamWriter implements StreamingOutput {
         break;
       case AVRO:
         KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        Map<String, Object> avroSerdeProps = new HashMap<>();
-        avroSerdeProps.put(
-            KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG,
-            avroTopicSerDe.getSchemaString()
-        );
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null);
-        valueDeserializer.configure(avroSerdeProps, false);
+        valueDeserializer = new KsqlGenericRowAvroDeserializer(null, ksqlEngine.getSchemaRegistryClient(), false);
         break;
       default:
         throw new RuntimeException(String.format(

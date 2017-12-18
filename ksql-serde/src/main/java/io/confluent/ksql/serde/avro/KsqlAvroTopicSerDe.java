@@ -16,19 +16,33 @@
 
 package io.confluent.ksql.serde.avro;
 
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.KsqlConfig;
 
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
-  private final String schemaString;
-
-  public KsqlAvroTopicSerDe(final String schemaString) {
+  public KsqlAvroTopicSerDe() {
     super(DataSource.DataSourceSerDe.AVRO);
-    this.schemaString = schemaString;
   }
 
-  public String getSchemaString() {
-    return schemaString;
+  @Override
+  public Serde<GenericRow> getGenericRowSerde(Schema schema,
+                                              KsqlConfig ksqlConfig,
+                                              boolean isInternal,
+                                              SchemaRegistryClient schemaRegistryClient) {
+    final Serializer<GenericRow> genericRowSerializer =
+        new KsqlGenericRowAvroSerializer(schema, schemaRegistryClient, ksqlConfig, isInternal);
+    final Deserializer<GenericRow> genericRowDeserializer =
+        new KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient, isInternal);
+    return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 }

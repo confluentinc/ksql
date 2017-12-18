@@ -1,10 +1,5 @@
 package io.confluent.ksql.integration;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -19,11 +14,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.SchemaUtil;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @Category({IntegrationTest.class})
-public class UdfIntTest {
+public class UdfAvroIntTest {
 
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
@@ -31,13 +32,13 @@ public class UdfIntTest {
   private String topicName = "TestTopic";
   private OrderDataProvider dataProvider;
 
-  String format = DataSource.DataSourceSerDe.JSON.name();
+  String format = DataSource.DataSourceSerDe.AVRO.name();
 
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness(format);
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
     testHarness.createTopic(topicName);
 
     /**
@@ -74,7 +75,6 @@ public class UdfIntTest {
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "ITEM_8", 800.0, 1110.0, 12.0, true)));
 
     Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
-
     assertThat(results, equalTo(expectedResults));
   }
 
@@ -101,7 +101,6 @@ public class UdfIntTest {
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, 80, "true", 8.0, "80.0")));
 
     Map<String, GenericRow> results = testHarness.consumeData(streamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
-
     assertThat(results, equalTo(expectedResults));
   }
 
@@ -131,7 +130,6 @@ public class UdfIntTest {
             recordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
 
     Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
-
     assertThat(results, equalTo(expectedResults));
   }
 

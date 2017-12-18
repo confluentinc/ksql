@@ -79,7 +79,10 @@ public class KsqlContextTest {
                                                                                   type,
                                                                                   "KSQL_query_" + queryid,
                                                                                   null,
-                                                                                  null, "topology");
+                                                                                  null,
+                                                                                  null,
+                                                                                  null,
+                                                                                  "topology");
 
     return Arrays.asList(persistentQueryMetadata);
 

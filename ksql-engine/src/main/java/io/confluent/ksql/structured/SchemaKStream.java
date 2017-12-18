@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
@@ -24,10 +25,10 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.SerDeUtil;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -62,13 +63,16 @@ public class SchemaKStream {
   protected final Type type;
   protected final FunctionRegistry functionRegistry;
   private OutputNode output;
+  protected final SchemaRegistryClient schemaRegistryClient;
+
 
   public SchemaKStream(final Schema schema,
                        final KStream<String, GenericRow> kstream,
                        final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams,
                        final Type type,
-                       final FunctionRegistry functionRegistry) {
+                       final FunctionRegistry functionRegistry,
+                       final SchemaRegistryClient schemaRegistryClient) {
     this.schema = schema;
     this.kstream = kstream;
     this.keyField = keyField;
@@ -76,6 +80,7 @@ public class SchemaKStream {
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.type = type;
     this.functionRegistry = functionRegistry;
+    this.schemaRegistryClient = schemaRegistryClient;
   }
 
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
@@ -107,7 +112,7 @@ public class SchemaKStream {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false, functionRegistry);
     KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
     return new SchemaKStream(schema, filteredKStream, keyField, Arrays.asList(this),
-                             Type.FILTER, functionRegistry);
+                             Type.FILTER, functionRegistry, schemaRegistryClient);
   }
 
   public SchemaKStream select(final Schema selectSchema) {
@@ -123,7 +128,7 @@ public class SchemaKStream {
         });
 
     return new SchemaKStream(selectSchema, projectedKStream, keyField, Collections.singletonList(this),
-                             Type.PROJECT, functionRegistry);
+                             Type.PROJECT, functionRegistry, schemaRegistryClient);
   }
 
   public SchemaKStream select(final List<Pair<String, Expression>> expressionPairList) {
@@ -131,7 +136,7 @@ public class SchemaKStream {
 
     return new SchemaKStream(schemaAndMapper.left,
         kstream.mapValues(schemaAndMapper.right), keyField, Collections.singletonList(this),
-                             Type.PROJECT, functionRegistry);
+                             Type.PROJECT, functionRegistry, schemaRegistryClient);
   }
 
   Pair<Schema, SelectValueMapper> createSelectValueMapperAndSchema(final List<Pair<String, Expression>> expressionPairList)  {
@@ -157,7 +162,8 @@ public class SchemaKStream {
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable,
                                 final Schema joinSchema,
                                 final Field joinKey,
-                                KsqlTopicSerDe joinSerDe) {
+                                KsqlTopicSerDe joinSerDe,
+                                KsqlConfig ksqlConfig) {
 
     KStream joinedKStream =
         kstream.leftJoin(
@@ -174,10 +180,12 @@ public class SchemaKStream {
               }
 
               return new GenericRow(columns);
-            }, Joined.with(Serdes.String(), SerDeUtil.getRowSerDe(joinSerDe, this.getSchema()), null));
+            }, Joined.with(Serdes.String(),
+                           joinSerDe.getGenericRowSerde(this.getSchema(),
+                                                 ksqlConfig, false, schemaRegistryClient), null));
 
     return new SchemaKStream(joinSchema, joinedKStream, joinKey,
-                             Arrays.asList(this, schemaKTable), Type.JOIN, functionRegistry);
+                             Arrays.asList(this, schemaKTable), Type.JOIN, functionRegistry, schemaRegistryClient);
   }
 
   public SchemaKStream selectKey(final Field newKeyField) {
@@ -199,13 +207,13 @@ public class SchemaKStream {
     });
 
     return new SchemaKStream(schema, keyedKStream, newKeyField, Collections.singletonList(this),
-                             Type.REKEY, functionRegistry);
+                             Type.REKEY, functionRegistry, schemaRegistryClient);
   }
 
   public SchemaKGroupedStream groupByKey(final Serde<String> keySerde,
                                          final Serde<GenericRow> valSerde) {
     KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
-    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Collections.singletonList(this), functionRegistry);
+    return new SchemaKGroupedStream(schema, kgroupedStream, keyField, Collections.singletonList(this), functionRegistry, schemaRegistryClient);
   }
 
   public Field getKeyField() {

@@ -16,11 +16,13 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -47,8 +49,9 @@ public class QueuedSchemaKStream extends SchemaKStream {
                               final Type type,
                               final FunctionRegistry functionRegistry,
                               final Optional<Integer> limit,
-                              final OutputNode outputNode) {
-    super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry);
+                              final OutputNode outputNode,
+                              final SchemaRegistryClient schemaRegistryClient) {
+    super(schema, kstream, keyField, sourceSchemaKStreams, type, functionRegistry, schemaRegistryClient);
     setOutputNode(outputNode);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
   }
@@ -64,7 +67,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
             Type.SINK,
             schemaKStream.functionRegistry,
             limit,
-            schemaKStream.outputNode()
+            schemaKStream.outputNode(),
+            schemaKStream.schemaRegistryClient
     );
   }
 
@@ -95,7 +99,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
 
   @Override
   public SchemaKStream leftJoin(SchemaKTable schemaKTable, Schema joinSchema,
-                                Field joinKey, KsqlTopicSerDe joinSerDe) {
+                                Field joinKey, KsqlTopicSerDe joinSerDe, KsqlConfig ksqlConfig) {
     throw new UnsupportedOperationException();
   }
 

@@ -25,6 +25,9 @@ public class KsqlConstants {
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
+  public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
+  public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
+
   public static int defaultSinkNumberOfPartitions = 4;
   public static short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.

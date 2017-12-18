@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
@@ -41,16 +42,19 @@ public class SchemaKGroupedStream {
   private final Field keyField;
   private final List<SchemaKStream> sourceSchemaKStreams;
   private final FunctionRegistry functionRegistry;
+  private final SchemaRegistryClient schemaRegistryClient;
 
   SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
                        final Field keyField,
                        final List<SchemaKStream> sourceSchemaKStreams,
-                       final FunctionRegistry functionRegistry) {
+                       final FunctionRegistry functionRegistry,
+                       final SchemaRegistryClient schemaRegistryClient) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.functionRegistry = functionRegistry;
+    this.schemaRegistryClient = schemaRegistryClient;
   }
 
   @SuppressWarnings("unchecked")
@@ -72,7 +76,7 @@ public class SchemaKGroupedStream {
       aggKtable = kgroupedStream.aggregate(initializer, aggregator, Materialized.with(Serdes.String(), topicValueSerDe));
     }
     return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, windowExpression != null,
-                            SchemaKStream.Type.AGGREGATE, functionRegistry);
+                            SchemaKStream.Type.AGGREGATE, functionRegistry, schemaRegistryClient);
 
   }
 

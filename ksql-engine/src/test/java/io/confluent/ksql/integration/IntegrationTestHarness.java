@@ -1,8 +1,12 @@
 package io.confluent.ksql.integration;
 
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
@@ -10,6 +14,7 @@ import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,6 +32,7 @@ import org.apache.kafka.test.TestUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -49,11 +55,14 @@ public class IntegrationTestHarness {
   KafkaTopicClientImpl topicClient;
   private AdminClient adminClient;
 
+  public SchemaRegistryClient schemaRegistryClient;
+
   private TopicConsumer topicConsumer;
   private String dataFormat;
 
   public IntegrationTestHarness(String format) {
     dataFormat = format;
+    this.schemaRegistryClient = new MockSchemaRegistryClient();
   }
 
 
@@ -198,6 +207,10 @@ public class IntegrationTestHarness {
   private Serializer getSerializer(Schema schema) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
       return new KsqlDelimitedSerializer();
+    } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
+      return new KsqlGenericRowAvroSerializer
+          (schema, this.schemaRegistryClient, new
+               KsqlConfig(Collections.emptyMap()), false);
     } else {
       return new KsqlJsonSerializer(schema);
     }
@@ -206,6 +219,8 @@ public class IntegrationTestHarness {
   private Deserializer<GenericRow> getDeserializer(Schema schema) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
       return new KsqlDelimitedDeserializer(schema);
+    } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
+      return new KsqlGenericRowAvroDeserializer(schema, this.schemaRegistryClient, false);
     } else {
       return new KsqlJsonDeserializer(schema);
     }

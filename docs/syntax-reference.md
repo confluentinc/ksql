@@ -205,8 +205,8 @@ The supported column data types are:
 * `BIGINT`
 * `DOUBLE`
 * `VARCHAR` (or `STRING`)
-* `ARRAY<ArrayType>` (JSON only)
-* `MAP<VARCHAR, ValueType>` (JSON only)
+* `ARRAY<ArrayType>` (JSON and AVRO only)
+* `MAP<VARCHAR, ValueType>` (JSON and AVRO only)
 
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
@@ -216,9 +216,12 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `DELIMITED` and `AVRO`|
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Note that to use Avro format you need to have the Schema Registry service up and
+running and set `ksql.schema.registry.url` to the schema registry url in the KSQL properties file.
 
 Example:
 
@@ -249,8 +252,8 @@ The supported column data types are:
 * `BIGINT`
 * `DOUBLE`
 * `VARCHAR` (or `STRING`)
-* `ARRAY<ArrayType>` (JSON only)
-* `MAP<VARCHAR, ValueType>` (JSON only)
+* `ARRAY<ArrayType>` (JSON and AVRO only)
+* `MAP<VARCHAR, ValueType>` (JSON and AVRO only)
 
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
@@ -260,8 +263,8 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
-| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO` |
+| KEY          (required) | Associates the message key in the Kafka topic with a column in the KSQL table. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Example:
@@ -269,9 +272,10 @@ Example:
 ```sql
 CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
   WITH (VALUE_FORMAT = 'JSON',
-        KAFKA_TOPIC = 'my-users-topic');
+        KAFKA_TOPIC = 'my-users-topic',
+        key = 'user_id');
 ```
-
+Note that setting `key` property is required for TABLE declration.
 
 ### CREATE STREAM AS SELECT
 
@@ -298,7 +302,7 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this stream.  If this property is not set, then the name of the stream will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
@@ -331,7 +335,7 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this table.  If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |

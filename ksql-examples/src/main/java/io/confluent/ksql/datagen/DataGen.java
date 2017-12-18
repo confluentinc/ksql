@@ -58,9 +58,6 @@ public class DataGen {
     DataGenProducer dataProducer;
 
     switch (arguments.format) {
-      case AVRO:
-        dataProducer = new AvroProducer();
-        break;
       case JSON:
         dataProducer = new JsonProducer();
         break;

@@ -25,6 +25,8 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -71,10 +73,10 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
@@ -211,6 +213,17 @@ public class KsqlResource {
             || statement instanceof DropStream
             || statement instanceof DropTable
     ) {
+      if (statement instanceof AbstractStreamCreateStatement) {
+        AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
+            statement;
+        Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+            maybeAddFieldsFromSchemaRegistry(streamCreateStatement, streamsProperties);
+
+        if (avroCheckResult.getRight() != null) {
+          statement = avroCheckResult.getLeft();
+          statementText = avroCheckResult.getRight();
+        }
+      }
       //Sanity check for the statement before distributing it.
       validateStatement(statement, statementText, streamsProperties);
       return distributeStatement(statementText, statement, streamsProperties);
@@ -304,10 +317,6 @@ public class KsqlResource {
                                         name));
     }
     String schemaString = null;
-    if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
-      KsqlAvroTopicSerDe ksqlAvroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-      schemaString = ksqlAvroTopicSerDe.getSchemaString();
-    }
     TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic.getKafkaTopicName(),
         ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(), schemaString
     );
@@ -396,8 +405,13 @@ public class KsqlResource {
       QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
-                + "use CREATE TABLE AS SELECT statement instead.");
+                                + "use CREATE TABLE AS SELECT statement instead.");
       }
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      ksqlEngine.getSchemaRegistryClient());
+      }
+
       return queryMetadata.getExecutionPlan();
     });
 
@@ -406,6 +420,10 @@ public class KsqlResource {
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
                 + "use CREATE STREAM AS SELECT statement instead.");
+      }
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      ksqlEngine.getSchemaRegistryClient());
       }
       return queryMetadata.getExecutionPlan();
     });
@@ -468,4 +486,13 @@ public class KsqlResource {
     }
   }
 
+  private Pair<AbstractStreamCreateStatement, String> maybeAddFieldsFromSchemaRegistry(
+      AbstractStreamCreateStatement streamCreateStatement,
+      Map<String, Object> streamsProperties
+  ) {
+    Pair<AbstractStreamCreateStatement, String> avroCheckResult =
+        new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
+                                             ksqlEngine.getSchemaRegistryClient());
+    return avroCheckResult;
+  }
 }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
@@ -31,7 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,22 +46,31 @@ public class KsqlContext {
   private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
 
-  public static KsqlContext create(Map<String, Object> streamsProperties)
+  public static KsqlContext create(KsqlConfig ksqlConfig)
       throws ExecutionException, InterruptedException {
-    if (streamsProperties == null) {
-      streamsProperties = new HashMap<>();
+    return  create(ksqlConfig, null);
+  }
+
+  public static KsqlContext create(KsqlConfig ksqlConfig, SchemaRegistryClient schemaRegistryClient)
+      throws ExecutionException, InterruptedException {
+    if (ksqlConfig == null) {
+      ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }
+    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
     if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
     }
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
       streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
     }
-    KsqlConfig ksqlConfig = new KsqlConfig(streamsProperties);
     AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
-    KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
-    return new KsqlContext(adminClient, topicClient, ksqlEngine);
+    if (schemaRegistryClient == null) {
+      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient));
+    } else {
+      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient));
+    }
+
   }
 
 
@@ -117,4 +126,5 @@ public class KsqlContext {
     topicClient.close();
     adminClient.close();
   }
+
 }

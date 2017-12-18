@@ -93,6 +93,7 @@ public class StreamedQueryResource {
     Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
     properties.putAll(clientLocalProperties);
     TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
+        ksqlEngine,
         properties,
         ksqlTopic,
         interval,

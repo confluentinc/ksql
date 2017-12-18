@@ -37,6 +37,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
+  public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
@@ -66,6 +67,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
+
+  public static final String
+      defaultSchemaRegistryUrl = "http://localhost:8081";
 
 
 
@@ -123,6 +127,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             + "config value which will be added to a windows maintainMs to ensure data is not "
             + "deleted from the log prematurely. Allows for clock drift. Default is 1 day"
             )
+    .define(SCHEMA_REGISTRY_URL_PROPERTY,
+            ConfigDef.Type.STRING,
+            defaultSchemaRegistryUrl,
+            ConfigDef.Importance.MEDIUM,
+            "The URL for the schema registry, defaults to http://localhost:8081"
+           )
     ;
   }
 
@@ -199,4 +209,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return new KsqlConfig(clonedProperties);
   }
 
+  public KsqlConfig cloneWithPropertyOverwrite(Map<String, Object> props) {
+    Map<String, Object> clonedProperties = new HashMap<>();
+    clonedProperties.putAll(ksqlConfigProps);
+    clonedProperties.putAll(ksqlStreamConfigProps);
+    clonedProperties.putAll(props);
+    return new KsqlConfig(clonedProperties);
+  }
 }

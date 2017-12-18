@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -123,7 +124,7 @@ public class KsqlBareOutputNodeTest {
         new FakeKafkaTopicClient(),
         new MetastoreUtil(),
         new FunctionRegistry(),
-        new HashMap<>());
+        new HashMap<>(), new MockSchemaRegistryClient());
   }
 
   private TopologyDescription.Node getNodeByName(String nodeName) {

@@ -106,9 +106,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
 
-  public final FunctionRegistry functionRegistry;
+  private final FunctionRegistry functionRegistry;
 
-  public SchemaRegistryClient schemaRegistryClient;
+  private SchemaRegistryClient schemaRegistryClient;
 
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {

@@ -72,9 +72,11 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     GenericRow genericRow = null;
     try {
       GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize(topic, bytes);
+      Map<String, String> caseInsensitiveFieldNameMap = getCaseInsensitiveFieldMap(genericRecord);
       List columns = new ArrayList();
       for (Field field : schema.fields()) {
-        columns.add(enforceFieldType(field.schema(), genericRecord.get(field.name())));
+        columns.add(enforceFieldType(field.schema(), genericRecord
+            .get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))));
       }
       genericRow = new GenericRow(columns);
     } catch (Exception e) {
@@ -131,6 +133,13 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     }
   }
 
+  Map<String, String> getCaseInsensitiveFieldMap(GenericRecord genericRecord) {
+    Map<String, String> fieldMap = new HashMap<>();
+    for (org.apache.avro.Schema.Field field: genericRecord.getSchema().getFields()) {
+      fieldMap.put(field.name().toUpperCase(), field.name());
+    }
+    return fieldMap;
+  }
 
   @Override
   public void close() {

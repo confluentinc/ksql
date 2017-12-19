@@ -309,6 +309,7 @@ What is not supported yet:
 
 To use Avro in KSQL you must configure the schema registry's API endpoint via setting the `ksql.schema.registry.url`
 config variable in the KSQL configuration file that you use to start KSQL (default: `http://localhost:8081`).
+You should not use `SET` to configure the registry endpoint.
 
 
 #### Using Avro in KSQL

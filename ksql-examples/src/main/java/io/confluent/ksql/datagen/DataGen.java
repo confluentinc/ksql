@@ -62,7 +62,7 @@ public class DataGen {
     switch (arguments.format) {
       case AVRO:
         dataProducer = new AvroProducer(
-            new KsqlConfig(Collections.singletonMap(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaregistryurl)));
+            new KsqlConfig(Collections.singletonMap(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaRegistryUrl)));
         break;
       case JSON:
         dataProducer = new JsonProducer();
@@ -116,7 +116,7 @@ public class DataGen {
     public final String keyName;
     public final int iterations;
     public final long maxInterval;
-    public final String schemaregistryurl;
+    public final String schemaRegistryUrl;
 
     public Arguments(
         boolean help,
@@ -127,7 +127,7 @@ public class DataGen {
         String keyName,
         int iterations,
         long maxInterval,
-        String schemaregistryurl
+        String schemaRegistryUrl
     ) {
       this.help = help;
       this.bootstrapServer = bootstrapServer;
@@ -137,7 +137,7 @@ public class DataGen {
       this.keyName = keyName;
       this.iterations = iterations;
       this.maxInterval = maxInterval;
-      this.schemaregistryurl = schemaregistryurl;
+      this.schemaRegistryUrl = schemaRegistryUrl;
     }
 
     public static class ArgumentParseException extends RuntimeException {
@@ -157,7 +157,7 @@ public class DataGen {
       private String keyName;
       private int iterations;
       private long maxInterval;
-      private String schemaregistryurl;
+      private String schemaRegistryUrl;
 
       public Builder() {
         quickstart = null;
@@ -169,7 +169,7 @@ public class DataGen {
         keyName = null;
         iterations = 1000000;
         maxInterval = -1;
-        schemaregistryurl = "http://localhost:8081";
+        schemaRegistryUrl = "http://localhost:8081";
       }
 
       private enum Quickstart {
@@ -231,7 +231,7 @@ public class DataGen {
           throw new ArgumentParseException(exception.getMessage());
         }
         return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName,
-                             iterations, maxInterval, schemaregistryurl);
+                             iterations, maxInterval, schemaRegistryUrl);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -307,8 +307,8 @@ public class DataGen {
           case "maxInterval":
             maxInterval = parseIterations(argValue);
             break;
-          case "schemaregistryurl":
-            schemaregistryurl = argValue;
+          case "schemaRegistryUrl":
+            schemaRegistryUrl = argValue;
             break;
           default:
             throw new ArgumentParseException(String.format(

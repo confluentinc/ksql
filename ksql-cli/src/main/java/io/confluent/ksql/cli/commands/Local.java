@@ -55,6 +55,9 @@ public class Local extends AbstractCliCommands {
   private static final String COMMAND_TOPIC_SUFFIX_OPTION_NAME = "--command-topic-suffix";
   private static final String COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT = "commands";
 
+  private static final String SCHEMA_REGISTRY_URL_OPTION_NAME = "--schema-registry-url";
+  private static final String SCHEMA_REGISTRY_URL_OPTION_DEFAULT = "http://localhost:8081";
+
   @Port(acceptablePorts = PortType.ANY)
   @Option(
       name = PORT_NUMBER_OPTION_NAME,
@@ -97,6 +100,14 @@ public class Local extends AbstractCliCommands {
           + "be overridden if also given via  flags)"
   )
   String propertiesFile;
+
+  @Option(
+      name = SCHEMA_REGISTRY_URL_OPTION_NAME,
+      description = "The url of the schema registry server to be used. It defaults to " +
+                    SCHEMA_REGISTRY_URL_OPTION_DEFAULT + ". Avro support requires a functioning "
+                    + "schema registry which the KSQL instance can connect to."
+  )
+  String schemaRegistryUrl;
 
   @Override
   public LocalCli getCli() throws Exception {
@@ -145,6 +156,7 @@ public class Local extends AbstractCliCommands {
         COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
     );
     properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    properties.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, SCHEMA_REGISTRY_URL_OPTION_DEFAULT);
   }
 
   private void addFileProperties(Properties properties) throws IOException {
@@ -173,6 +185,10 @@ public class Local extends AbstractCliCommands {
     }
     if (commandTopicSuffix != null) {
       properties.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, commandTopicSuffix);
+    }
+
+    if (schemaRegistryUrl != null) {
+      properties.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, schemaRegistryUrl);
     }
   }
 }

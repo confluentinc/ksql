@@ -308,7 +308,7 @@ public class DataGen {
             maxInterval = parseIterations(argValue);
             break;
           case "schemaregistryurl":
-            schemaregistryurl = schemaregistryurl;
+            schemaregistryurl = argValue;
             break;
           default:
             throw new ArgumentParseException(String.format(

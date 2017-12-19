@@ -209,7 +209,7 @@ Before proceeding, please check:
 
 **Important:** Queries will continuously run as KSQL applications until they are manually terminated. Exiting KSQL does not terminate persistent queries.
 
-1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
+1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `CTAS_PAGEVIEWS_REGIONS`:
 
    ```bash
    ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;

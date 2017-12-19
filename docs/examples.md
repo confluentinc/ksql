@@ -36,8 +36,8 @@ CREATE STREAM pageviews \
   (viewtime BIGINT, \
    userid VARCHAR, \
    pageid VARCHAR) \
-  WITH (kafka_topic='pageviews-topic', \
-        value_format='DELIMITED');
+  WITH (KAFKA_TOPIC='pageviews-topic', \
+        VALUE_FORMAT='DELIMITED');
 ```
 
 The above statement creates a stream with three columns on the Kafka topic that is named `pageviews`.  You should also
@@ -54,9 +54,9 @@ CREATE STREAM pageviews \
   (viewtime BIGINT, \
    userid VARCHAR, \
    pageid VARCHAR) \
-  WITH (kafka_topic='pageviews-topic', \
-        value_format='DELIMITED', \
-        key='pageid');
+  WITH (KAFKA_TOPIC='pageviews-topic', \
+        VALUE_FORMAT='DELIMITED', \
+        KEY='pageid');
 ```
 
 **Associating Kafka message timestamps:**
@@ -71,10 +71,10 @@ CREATE STREAM pageviews \
   (viewtime BIGINT, \
    userid VARCHAR, \
    pageid VARCHAR) \
-  WITH (kafka_topic='pageviews-topic', \
-        value_format='DELIMITED', \
-        key='pageid', \
-        timestamp='viewtime');
+  WITH (KAFKA_TOPIC='pageviews-topic', \
+        VALUE_FORMAT='DELIMITED', \
+        KEY='pageid', \
+        TIMESTAMP='viewtime');
 ```
 
 
@@ -92,8 +92,8 @@ CREATE TABLE users \
    userid VARCHAR, \
    interests array<VARCHAR>, \
    contact_info map<VARCHAR, VARCHAR>) \
-  WITH (kafka_topic='users-topic', \
-        value_format='JSON');
+  WITH (KAFKA_TOPIC='users-topic', \
+        VALUE_FORMAT='JSON');
 ```
 
 As you can see the above table has, next to columns with primitive data types, a column of `array` type and another
@@ -121,9 +121,9 @@ The following statement will generate a new stream, `pageviews_transformed` with
 
 ```sql
 CREATE STREAM pageviews_transformed \
-  WITH (timestamp='viewtime', \
-        partitions=5, \
-        value_format='JSON') AS \
+  WITH (TIMESTAMP='viewtime', \
+        PARTITIONS=5, \
+        VALUE_FORMAT='JSON') AS \
   SELECT viewtime, \
          userid, \
          pageid, \
@@ -136,9 +136,9 @@ Use a `[ WHERE condition ]` clause to select a subset of data.  If you want to r
 
 ```sql
 CREATE STREAM pageviews_transformed_priority_1 \
-  WITH (timestamp='viewtime', \
-        partitions=5, \
-        value_format='JSON') AS \
+  WITH (TIMESTAMP='viewtime', \
+        PARTITIONS=5, \
+        VALUE_FORMAT='JSON') AS \
   SELECT viewtime, \
          userid, \
          pageid, \
@@ -150,9 +150,9 @@ CREATE STREAM pageviews_transformed_priority_1 \
 
 ```sql
 CREATE STREAM pageviews_transformed_priority_2 \
-  WITH (timestamp='viewtime', \
-        partitions=5, \
-        value_format='JSON') AS \
+  WITH (TIMESTAMP='viewtime', \
+        PARTITIONS=5, \
+        VALUE_FORMAT='JSON') AS \
   SELECT viewtime, \
          userid, \
          pageid, \
@@ -328,8 +328,8 @@ Example: Create a new stream `pageviews` by reading from a Kafka topic with Avro
 
 ```sql
 CREATE STREAM pageviews
-  WITH (kafka_topic='pageviews-avro-topic',
-        value_format='AVRO');
+  WITH (KAFKA_TOPIC='pageviews-avro-topic',
+        VALUE_FORMAT='AVRO');
 ```
 
  Note how in the above example you don't need to define any columns or data types in the CREATE
@@ -344,8 +344,8 @@ Example: Create a new stream `pageviews_reduced`, similar to the previous exampl
 
 ```sql
 CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
-  WITH (kafka_topic='pageviews-avro-topic',
-        value_format='AVRO');
+  WITH (KAFKA_TOPIC='pageviews-avro-topic',
+        VALUE_FORMAT='AVRO');
 ```
 
  KSQL allows you to work with streams and tables regardless of their underlying data format. This
@@ -356,14 +356,14 @@ Example: Convert a JSON stream into an Avro stream.
 
 ```sql
 CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
-  WITH (kafka_topic='pageviews-json-topic', value_format='JSON');
+  WITH (KAFKA_TOPIC='pageviews-json-topic', VALUE_FORMAT='JSON');
 
 CREATE STREAM pageviews_avro
-  WITH (value_format = 'AVRO') AS
+  WITH (VALUE_FORMAT = 'AVRO') AS
   SELECT * FROM pageviews_json;
 ```
 
- Note how you only need to set `value_format` to Avro to achieve the data conversion. Also, KSQL
+ Note how you only need to set `VALUE_FORMAT` to Avro to achieve the data conversion. Also, KSQL
  will automatically generate an appropriate Avro schema for the new `pageviews_avro` stream,
  and it will also register the schema with Confluent Schema Registry.
 

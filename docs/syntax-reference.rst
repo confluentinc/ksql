@@ -80,20 +80,6 @@ KSQL statements
     :local:
     :depth: 1
 
-DESCRIBE
---------
-
-**Synopsis**
-
-.. code:: sql
-
-    DESCRIBE (stream_name|table_name);
-
-**Description**
-
-List the columns in a stream or table along with their data type and
-other attributes.
-
 CREATE STREAM
 -------------
 
@@ -309,6 +295,124 @@ The WITH clause supports the following properties:
 |              | operations such as windowing will process a record    |
 |              | according to this timestamp.                          |
 +--------------+-------------------------------------------------------+
+
+
+DESCRIBE
+--------
+
+**Synopsis**
+
+.. code:: sql
+
+    DESCRIBE [EXTENDED] (stream_name|table_name);
+
+**Description**
+
+List the columns in a stream or table along with their data type and
+other attributes.
+
+* DESCRIBE: List the columns in a stream or table along with their data type and other attributes.
+* DESCRIBE EXTENDED: Display DESCRIBE information with additional runtime statistics, Kafka topic details, and the
+  set of queries that populate the table or stream.
+
+Example of describing a table:
+
+.. code:: bash
+
+    ksql> DESCRIBE ip_sum;
+
+     Field   | Type
+    -------------------------------------
+     ROWTIME | BIGINT           (system)
+     ROWKEY  | VARCHAR(STRING)  (system)
+     IP      | VARCHAR(STRING)  (key)
+     KBYTES  | BIGINT
+    -------------------------------------
+    For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>
+
+Example of describing a table with extended information:
+
+.. code:: bash
+
+    ksql> DESCRIBE EXTENDED ip_sum;
+    Type                 : TABLE
+    Key field            : CLICKSTREAM.IP
+    Timestamp field      : Not set - using <ROWTIME>
+    Key format           : STRING
+    Value format         : JSON
+    Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
+
+     Field   | Type
+    -------------------------------------
+     ROWTIME | BIGINT           (system)
+     ROWKEY  | VARCHAR(STRING)  (system)
+     IP      | VARCHAR(STRING)  (key)
+     KBYTES  | BIGINT
+    -------------------------------------
+
+    Queries that write into this TABLE
+    -----------------------------------
+    id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+
+    For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+
+    Local runtime statistics
+    ------------------------
+    messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
+     failed-messages:         0      last-failed:       n/a
+    (Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+
+
+EXPLAIN
+-------
+
+**Synopsis**
+
+.. code:: sql
+
+    EXPLAIN (sql_expression|query_id);
+
+**Description**
+
+Show the execution plan for a SQL expression or, given the id of a running query, show the execution plan plus
+additional runtime information and metrics. Statements such as DESCRIBE EXTENDED, for example, show the ids of
+queries related to a stream or table.
+
+Example of explaining a running query:
+
+.. code:: bash
+
+    ksql> EXPLAIN ctas_ip_sum;
+
+    Type                 : QUERY
+    SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+
+
+    Local runtime statistics
+    ------------------------
+    messages-per-sec:     104.38   total-messages:       14238     last-message: 12/14/17 4:30:42 PM GMT
+     failed-messages:          0      last-failed:         n/a
+    (Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+
+    Execution plan
+    --------------
+     > [ PROJECT ] Schema: [IP : STRING , KBYTES : INT64].
+             > [ AGGREGATE ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64 , KSQL_AGG_VARIABLE_0 : INT64].
+                     > [ PROJECT ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64].
+                             > [ REKEY ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+                                     > [ SOURCE ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+
+
+    Processing topology
+    -------------------
+    Sub-topologies:
+      Sub-topology: 0
+        Source: KSTREAM-SOURCE-0000000000 (topics: [clickstream])
+          --> KSTREAM-MAP-0000000001
+        Processor: KSTREAM-MAP-0000000001 (stores: [])
+          --> KSTREAM-TRANSFORMVALUES-0000000002
+          <-- KSTREAM-SOURCE-0000000000
+
 
 DROP STREAM
 -----------

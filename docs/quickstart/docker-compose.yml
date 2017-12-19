@@ -53,7 +53,7 @@ services:
 
   # Runs the Kafka KSQL data generator for topic called "pageviews"
   ksql-datagen-pageviews:
-    image: "confluentinc/ksql-examples:0.2"
+    image: "confluentinc/ksql-examples:0.3"
     hostname: ksql-datagen-pageviews
     depends_on:
       - kafka
@@ -68,9 +68,9 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
+                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.1.0-SNAPSHOT-standalone.jar
                        quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
+                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.1.0-SNAPSHOT-standalone.jar
                        quickstart=pageviews format=delimited topic=pageviews bootstrap-server=kafka:29092 maxInterval=1000'"
     environment:
       KSQL_CONFIG_DIR: "/etc/ksql"
@@ -83,7 +83,7 @@ services:
 
   # Runs the Kafka KSQL data generator for topic called "users"
   ksql-datagen-users:
-    image: "confluentinc/ksql-examples:0.2"
+    image: "confluentinc/ksql-examples:0.3"
     hostname: ksql-datagen-users
     depends_on:
       - kafka
@@ -98,9 +98,9 @@ services:
                        cub sr-ready schema-registry 8081 20 && \
                        echo Waiting a few seconds for topic creation to finish... && \
                        sleep 2 && \
-                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
+                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.1.0-SNAPSHOT-standalone.jar
                        quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=100 iterations=1000 && \
-                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.0.0-SNAPSHOT-standalone.jar
+                       java -jar /usr/share/java/ksql-examples/ksql-examples-4.1.0-SNAPSHOT-standalone.jar
                        quickstart=users format=json topic=users bootstrap-server=kafka:29092 maxInterval=1000'"
     environment:
       KSQL_CONFIG_DIR: "/etc/ksql"
@@ -113,7 +113,7 @@ services:
 
   # Runs the Kafka KSQL application
   ksql-cli:
-    image: "confluentinc/ksql-cli:0.2"
+    image: "confluentinc/ksql-cli:0.3"
     hostname: ksql-cli
     depends_on:
       - kafka

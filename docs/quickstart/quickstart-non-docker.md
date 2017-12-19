@@ -13,7 +13,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 **Prerequisites:**
 - KSQL is in developer preview. Do not run KSQL against a production cluster.
-- [Confluent Platform 3.3.0](http://docs.confluent.io/current/installation.html) is installed. This installation includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
+- [Confluent Platform 4.0.0](http://docs.confluent.io/current/installation.html) is installed. This installation includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
   - If you installed Confluent Platform via tar or zip, navigate into the installation directory. The paths and commands used throughout this quick start assume that your are in this installation directory.
 - [Maven](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/downloads)
@@ -21,7 +21,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 
 ## Start Kafka
 
-Navigate to the `confluent-3.3.0` directory and start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on `localhost:2181`, Kafka broker is listening on `localhost:9092`, and Confluent Schema Registry is listening on `localhost:8081`.
+Navigate to the `confluent-4.0.0` directory and start the Confluent Platform using the new Confluent CLI (part of the free Confluent Open Source distribution). ZooKeeper is listening on `localhost:2181`, Kafka broker is listening on `localhost:9092`, and Confluent Schema Registry is listening on `localhost:8081`.
 
 ```bash
 $ ./bin/confluent start
@@ -54,6 +54,7 @@ connect is [UP]
 
     ```bash
     $ cd ksql
+    $ git checkout v0.3 -b 0.3
     $ mvn clean compile install -DskipTests
     ```
 

@@ -307,9 +307,9 @@ What is not supported yet:
 
 #### Configuring KSQL for Avro
 
-To use Avro in KSQL you must configure the schema registry's API endpoint via setting the `ksql.schema.registry.url`
-config variable in the KSQL configuration file that you use to start KSQL (default: `http://localhost:8081`).
-You should not use `SET` to configure the registry endpoint.
+You must configure the API endpoint of Confluent Schema Registry by setting `ksql.schema.registry.url`
+(default: `http://localhost:8081`) in the KSQL configuration file that you use to start KSQL.
+You *should not* use `SET` to configure the registry endpoint.
 
 
 #### Using Avro in KSQL
@@ -317,7 +317,6 @@ You should not use `SET` to configure the registry endpoint.
 First you must ensure that:
 
 1. Confluent Schema Registry is up and running.
-
 2. `ksql.schema.registry.url` is set correctly in KSQL (see previous section).
 
 Then you can use `CREATE STREAM` and `CREATE TABLE` statements to read from Kafka topics with Avro-formatted data and

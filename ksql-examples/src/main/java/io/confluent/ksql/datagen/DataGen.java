@@ -17,11 +17,13 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -58,6 +60,10 @@ public class DataGen {
     DataGenProducer dataProducer;
 
     switch (arguments.format) {
+      case AVRO:
+        dataProducer = new AvroProducer(
+            new KsqlConfig(Collections.singletonMap(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaregistryurl)));
+        break;
       case JSON:
         dataProducer = new JsonProducer();
         break;
@@ -110,6 +116,7 @@ public class DataGen {
     public final String keyName;
     public final int iterations;
     public final long maxInterval;
+    public final String schemaregistryurl;
 
     public Arguments(
         boolean help,
@@ -119,7 +126,8 @@ public class DataGen {
         String topicName,
         String keyName,
         int iterations,
-        long maxInterval
+        long maxInterval,
+        String schemaregistryurl
     ) {
       this.help = help;
       this.bootstrapServer = bootstrapServer;
@@ -129,6 +137,7 @@ public class DataGen {
       this.keyName = keyName;
       this.iterations = iterations;
       this.maxInterval = maxInterval;
+      this.schemaregistryurl = schemaregistryurl;
     }
 
     public static class ArgumentParseException extends RuntimeException {
@@ -148,6 +157,7 @@ public class DataGen {
       private String keyName;
       private int iterations;
       private long maxInterval;
+      private String schemaregistryurl;
 
       public Builder() {
         quickstart = null;
@@ -159,6 +169,7 @@ public class DataGen {
         keyName = null;
         iterations = 1000000;
         maxInterval = -1;
+        schemaregistryurl = "http://localhost:8081";
       }
 
       private enum Quickstart {
@@ -201,7 +212,7 @@ public class DataGen {
 
       public Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0, -1);
+          return new Arguments(true, null, null, null, null, null, 0, -1, null);
         }
 
         if (quickstart != null) {
@@ -220,7 +231,7 @@ public class DataGen {
           throw new ArgumentParseException(exception.getMessage());
         }
         return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName,
-                             iterations, maxInterval);
+                             iterations, maxInterval, schemaregistryurl);
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -295,6 +306,9 @@ public class DataGen {
             break;
           case "maxInterval":
             maxInterval = parseIterations(argValue);
+            break;
+          case "schemaregistryurl":
+            schemaregistryurl = schemaregistryurl;
             break;
           default:
             throw new ArgumentParseException(String.format(

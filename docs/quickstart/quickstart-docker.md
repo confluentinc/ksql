@@ -41,7 +41,7 @@ Proceed to [starting KSQL](#start-ksql).
 1.  From the host machine, start KSQL CLI on the container.
 
     ```bash
-    $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092 --schema-registry-url schema-registry:8081
+    $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092 --schema-registry-url http://schema-registry:8081
     ```
 
 2.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.

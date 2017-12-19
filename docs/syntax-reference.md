@@ -105,12 +105,11 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `DELIMITED` and `AVRO`|
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`|
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
-Note that to use Avro format you need to have the Schema Registry service up and
-running and set `ksql.schema.registry.url` to the schema registry url in the KSQL properties file.
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
 Example:
 
@@ -152,9 +151,11 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO` |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`. |
 | KEY          (required) | Associates the message key in the Kafka topic with a column in the KSQL table. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
 Example:
 
@@ -191,12 +192,14 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this stream.  If this property is not set, then the name of the stream will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
-Note: The `KEY` property is not supported -- use PARTITION BY instead.
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
+
+> Note: The `KEY` property is not supported by CREATE STREAM AS -- use PARTITION BY instead.
 
 
 ### CREATE TABLE AS SELECT
@@ -224,10 +227,12 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this table.  If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
 
 ### DESCRIBE

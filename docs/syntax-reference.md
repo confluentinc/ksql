@@ -163,9 +163,9 @@ Example:
 CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
   WITH (VALUE_FORMAT = 'JSON',
         KAFKA_TOPIC = 'my-users-topic',
-        key = 'user_id');
+        KEY = 'user_id');
 ```
-Note that setting `key` property is required for TABLE declration.
+
 
 ### CREATE STREAM AS SELECT
 

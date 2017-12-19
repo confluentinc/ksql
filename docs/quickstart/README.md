@@ -161,10 +161,10 @@ Before proceeding, please check:
    ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
    ```
 
-5. Create a new persistent query that counts the pageviews for each region and gender combination in a [tumbling window](http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows) of 30 seconds when the count is greater than 1. Results from this query are written to a Kafka topic called `PAGEVIEWS_REGIONS`.
+5. Create a new persistent query that counts the pageviews for each region and gender combination in a [tumbling window](http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows) of 30 seconds when the count is greater than 1. Results from this query are written to a Kafka topic called `PAGEVIEWS_REGIONS` in the Avro format. KSQL will register the avro schema with the configured schema registry when it writes the first message to the `PAGEVIEWS_REGIONS` topic. 
 
    ```bash
-   ksql> CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+   ksql> CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
    ksql> DESCRIBE pageviews_regions;
 

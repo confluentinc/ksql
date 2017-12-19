@@ -294,35 +294,33 @@ interaction with the schema registry.
 
 Currently KSQL supports Avro data in the values of Kafka messages:
 
-|                 |    Message Key	  |        Message Value         |
-|-----------------|-------------------|------------------------------|
-|   Avro format	  | Not supported yet | Supported (read and write)   |
+|              | Message Key       | Message Value              |
+|--------------|-------------------|----------------------------|
+| Avro format  | Not supported yet | Supported (read and write) |
 
 What is not supported yet:
 
-
 * Message keys in Avro format. Message keys in KSQL are always interpreted as STRING format,
-which means KSQL will ignore any Avro schemas that have been registered for message keys.
-
+  which means KSQL will ignore any Avro schemas that have been registered for message keys.
 * Avro schemas with nested fields because KSQL does not yet supported nested columns.
 
 
 #### Configuring KSQL for Avro
 
- To use Avro in KSQL you must configure the schema registry's API endpoint via setting the
- `ksql.schema.registry.url` config variable in the `properties` file that you use to start KSQL
- (default: `http://localhost:8081`).
+To use Avro in KSQL you must configure the schema registry's API endpoint via setting the `ksql.schema.registry.url`
+config variable in the KSQL configuration file that you use to start KSQL (default: `http://localhost:8081`).
 
- #### Using Avro in KSQL
 
- First you must ensure that:
+#### Using Avro in KSQL
+
+First you must ensure that:
 
 1. Confluent Schema Registry is up and running.
 
 2. `ksql.schema.registry.url` is set correctly in KSQL (see previous section).
 
- Then you can use `CREATE STREAM` and `CREATE TABLE` statements to read from Kafka topics with
- Avro-formatted data and `CREATE STREAM AS` and `CREATE TABLE AS` statements to write Avro-formatted data into Kafka topics.
+Then you can use `CREATE STREAM` and `CREATE TABLE` statements to read from Kafka topics with Avro-formatted data and
+`CREATE STREAM AS` and `CREATE TABLE AS` statements to write Avro-formatted data into Kafka topics.
 
 Example: Create a new stream `pageviews` by reading from a Kafka topic with Avro-formatted messages.
 
@@ -332,15 +330,15 @@ CREATE STREAM pageviews
         VALUE_FORMAT='AVRO');
 ```
 
- Note how in the above example you don't need to define any columns or data types in the CREATE
- statement because KSQL will automatically infer this information from the latest registered Avro
-  schema for topic `pageviews-avro-topic` (i.e., the latest schema at the time the statement is first executed).
+Note how in the above example you don't need to define any columns or data types in the CREATE
+statement because KSQL will automatically infer this information from the latest registered Avro
+schema for topic `pageviews-avro-topic` (i.e., the latest schema at the time the statement is first executed).
 
- If you want to create a STREAM or TABLE with only a subset of all the available fields in the
- Avro schema, then you must explicitly define the columns and data types.
+If you want to create a STREAM or TABLE with only a subset of all the available fields in the
+Avro schema, then you must explicitly define the columns and data types.
 
 Example: Create a new stream `pageviews_reduced`, similar to the previous example, but with only a
-  few of all the available fields in the Avro data (here, only the two columns `viewtime` and `pageid` are picked).
+few of all the available fields in the Avro data (here, only the two columns `viewtime` and `pageid` are picked).
 
 ```sql
 CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
@@ -348,9 +346,9 @@ CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
         VALUE_FORMAT='AVRO');
 ```
 
- KSQL allows you to work with streams and tables regardless of their underlying data format. This
-  means that you can easily mix and match streams and tables with different data formats
-  (e.g. join a stream backed by Avro data with a table backed by JSON data) and also convert easily between data formats.
+KSQL allows you to work with streams and tables regardless of their underlying data format. This
+means that you can easily mix and match streams and tables with different data formats
+(e.g. join a stream backed by Avro data with a table backed by JSON data) and also convert easily between data formats.
 
 Example: Convert a JSON stream into an Avro stream.
 
@@ -363,9 +361,9 @@ CREATE STREAM pageviews_avro
   SELECT * FROM pageviews_json;
 ```
 
- Note how you only need to set `VALUE_FORMAT` to Avro to achieve the data conversion. Also, KSQL
- will automatically generate an appropriate Avro schema for the new `pageviews_avro` stream,
- and it will also register the schema with Confluent Schema Registry.
+Note how you only need to set `VALUE_FORMAT` to Avro to achieve the data conversion. Also, KSQL
+will automatically generate an appropriate Avro schema for the new `pageviews_avro` stream,
+and it will also register the schema with Confluent Schema Registry.
 
 
 ## Configuring KSQL
@@ -391,10 +389,10 @@ Common configuration properties that you might want to change from their default
   The default value in KSQL is `10000000` (~ 10 MB);
 
 - fail.on.deserialization.error:
-  When set to false (the default), any errors that occur when deserializing a record will result in the the error being logged and the record being dropped.
+  When set to false (the default), any errors that occur when deserializing a record will result in the the error being
+  logged and the record being dropped.
   If you wish to halt processing on deserialization errors you should set this to true.
-  
-  
+
 
 ## Running KSQL
 

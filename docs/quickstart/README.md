@@ -80,8 +80,7 @@ Before proceeding, please check:
 2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
 
    ```bash
-   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar,
-   userid varchar) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
+   ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
 
    ksql> DESCRIBE users_original;
 
@@ -154,7 +153,7 @@ Before proceeding, please check:
    ^CQuery terminated
    ksql> 
    ```
-
+ 
 4. Create a new persistent query where another condition is met, using `LIKE`. Results from this query are written to a Kafka topic called `pageviews_enriched_r8_r9`.
 
    ```bash
@@ -196,11 +195,11 @@ Before proceeding, please check:
    ```bash
    ksql> SHOW QUERIES;
 
-    Query ID | Kafka Topic              | Query String                                                                                                                                                                                                                      
+    Query ID                      | Kafka Topic              | Query String
    -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    1        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE'; 
-    2        | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';                                
-    3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;   
+    CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
+    CSAS_PAGEVIEWS_FEMALE         | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+    CSAS_PAGEVIEWS_FEMALE_LIKE_89 | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
    ```
 
 
@@ -213,7 +212,7 @@ Before proceeding, please check:
 1. From the output of `SHOW QUERIES;` identify a query ID you would like to terminate. For example, if you wish to terminate query ID `2`:
 
    ```bash
-   ksql> TERMINATE 2;
+   ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
    ```
 
 2. To exit from KSQL, type 'exit'.

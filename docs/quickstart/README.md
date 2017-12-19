@@ -153,7 +153,7 @@ Before proceeding, please check:
    ^CQuery terminated
    ksql> 
    ```
-
+ 
 4. Create a new persistent query where another condition is met, using `LIKE`. Results from this query are written to a Kafka topic called `pageviews_enriched_r8_r9`.
 
    ```bash

@@ -233,6 +233,7 @@ The WITH clause supports the following properties:
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
+Also since KSQL column names are case insensitive, avro field names will be considered case insensitive in KSQL.
 
 
 ### DESCRIBE

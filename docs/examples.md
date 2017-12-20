@@ -331,6 +331,15 @@ CREATE STREAM pageviews
         VALUE_FORMAT='AVRO');
 ```
 
+Example: Create a new table `users` by reading from a Kafka topic with Avro-formatted messages.
+
+```sql
+CREATE TABLE users
+  WITH (KAFKA_TOPIC='users-avro-topic',
+        VALUE_FORMAT='AVRO',
+        KEY='userid');
+```
+
 Note how in the above example you don't need to define any columns or data types in the CREATE
 statement because KSQL will automatically infer this information from the latest registered Avro
 schema for topic `pageviews-avro-topic` (i.e., the latest schema at the time the statement is first executed).

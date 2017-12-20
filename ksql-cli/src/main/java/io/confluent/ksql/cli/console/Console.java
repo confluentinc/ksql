@@ -559,7 +559,7 @@ public abstract class Console implements Closeable {
         for (String writeQuery : source.getWriteQueries()) {
           footer.add(writeQuery);
         }
-        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>; for more information");
+        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
       }
 
 

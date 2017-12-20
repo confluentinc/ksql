@@ -111,7 +111,7 @@ public class AvroUtil {
       int schemaId) {
     List<TableElement> elements = new ArrayList<>();
     for (Field field: schema.fields()) {
-      TableElement tableElement = new TableElement(field.name(), SchemaUtil
+      TableElement tableElement = new TableElement(field.name().toUpperCase(), SchemaUtil
           .getSQLTypeName(field.schema()));
       elements.add(tableElement);
     }

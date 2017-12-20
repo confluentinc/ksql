@@ -233,6 +233,7 @@ The WITH clause supports the following properties:
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
+Also since KSQL column names are case insensitive, avro field names will be considered case insensitive in KSQL.
 
 
 ### DESCRIBE
@@ -289,13 +290,13 @@ Queries that write into this TABLE
 -----------------------------------
 id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
 
-For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+For query topology and execution plan please run: EXPLAIN <QueryId>
 
 Local runtime statistics
 ------------------------
 messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
  failed-messages:         0      last-failed:       n/a
-(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
 ```
 
 
@@ -327,7 +328,7 @@ Local runtime statistics
 ------------------------
 messages-per-sec:     104.38   total-messages:       14238     last-message: 12/14/17 4:30:42 PM GMT
  failed-messages:          0      last-failed:         n/a
-(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
 
 Execution plan
 --------------

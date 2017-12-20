@@ -93,7 +93,8 @@ CREATE TABLE users \
    interests array<VARCHAR>, \
    contact_info map<VARCHAR, VARCHAR>) \
   WITH (KAFKA_TOPIC='users-topic', \
-        VALUE_FORMAT='JSON');
+        VALUE_FORMAT='JSON',
+        KEY = 'userid');
 ```
 
 As you can see the above table has, next to columns with primitive data types, a column of `array` type and another
@@ -328,6 +329,15 @@ Example: Create a new stream `pageviews` by reading from a Kafka topic with Avro
 CREATE STREAM pageviews
   WITH (KAFKA_TOPIC='pageviews-avro-topic',
         VALUE_FORMAT='AVRO');
+```
+
+Example: Create a new table `users` by reading from a Kafka topic with Avro-formatted messages.
+
+```sql
+CREATE TABLE users
+  WITH (KAFKA_TOPIC='users-avro-topic',
+        VALUE_FORMAT='AVRO',
+        KEY='userid');
 ```
 
 Note how in the above example you don't need to define any columns or data types in the CREATE

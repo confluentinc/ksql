@@ -41,7 +41,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public boolean isTopicExists(String topic) {
-    return false;
+    return true;
   }
 
   @Override

@@ -78,12 +78,12 @@ public class AvroUtilTest {
     Pair<AbstractStreamCreateStatement, String> checkResult = avroUtil.checkAndSetAvroSchema(abstractStreamCreateStatement, new HashMap<>(), schemaRegistryClient);
     AbstractStreamCreateStatement newAbstractStreamCreateStatement = checkResult.getLeft();
     assertThat(newAbstractStreamCreateStatement.getElements(), equalTo(Arrays.asList(
-        new TableElement("ordertime", "BIGINT"),
-        new TableElement("orderid", "BIGINT"),
-        new TableElement("itemid", "VARCHAR"),
-        new TableElement("orderunits", "DOUBLE"),
-        new TableElement("arraycol", "ARRAY<DOUBLE>"),
-        new TableElement("mapcol", "MAP<VARCHAR,DOUBLE>")
+        new TableElement("ORDERTIME", "BIGINT"),
+        new TableElement("ORDERID", "BIGINT"),
+        new TableElement("ITEMID", "VARCHAR"),
+        new TableElement("ORDERUNITS", "DOUBLE"),
+        new TableElement("ARRAYCOL", "ARRAY<DOUBLE>"),
+        new TableElement("MAPCOL", "MAP<VARCHAR,DOUBLE>")
         )));
   }
 

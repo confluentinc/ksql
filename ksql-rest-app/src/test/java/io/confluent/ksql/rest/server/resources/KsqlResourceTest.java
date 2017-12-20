@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -38,6 +41,8 @@ import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -71,12 +76,15 @@ import static org.junit.Assert.*;
 public class KsqlResourceTest {
   private KsqlRestConfig ksqlRestConfig;
   private KsqlEngine ksqlEngine;
+  private SchemaRegistryClient schemaRegistryClient;
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException, RestClientException {
+    schemaRegistryClient = new MockSchemaRegistryClient();
+    registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlStreamsProperties());
-    ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient());
+    ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient(), schemaRegistryClient);
   }
 
   @After
@@ -454,6 +462,54 @@ public class KsqlResourceTest {
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
     assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Incompatible data source type is TABLE, but statement was DROP STREAM"));
+  }
+
+  @Test
+  public void shouldCreateTableWithInference() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
+    final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
+                              + "VALUE_FORMAT = 'avro', KEY = 'orderid');";
+
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
+    KsqlEntityList result = (KsqlEntityList) response.getEntity();
+    assertThat("Incorrect response.", result.size(), equalTo(1));
+    assertTrue(result.get(0) instanceof CommandStatusEntity);
+    CommandStatusEntity commandStatusEntity = (CommandStatusEntity) result.get(0);
+    assertTrue(commandStatusEntity.getCommandId().getType().name().equalsIgnoreCase("TABLE"));
+  }
+
+  @Test
+  public void shouldFailCreateTableWithInferenceWithIncorrectKey() throws Exception {
+    KsqlResource testResource = TestKsqlResourceUtil.get(ksqlEngine, ksqlRestConfig);
+    final String ksqlString = "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', "
+                              + "VALUE_FORMAT = 'avro', KEY = 'orderid1');";
+
+    Response response = testResource.handleKsqlStatements(new KsqlRequest(ksqlString, new HashMap<>()));
+    KsqlEntityList result = (KsqlEntityList) response.getEntity();
+    assertThat("Incorrect response.", result.size(), equalTo(1));
+    assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
+  }
+
+  private void registerSchema(SchemaRegistryClient schemaRegistryClient)
+      throws IOException, RestClientException {
+    String ordersAveroSchemaStr = "{"
+                                  + "\"namespace\": \"kql\","
+                                  + " \"name\": \"orders\","
+                                  + " \"type\": \"record\","
+                                  + " \"fields\": ["
+                                  + "     {\"name\": \"ordertime\", \"type\": \"long\"},"
+                                  + "     {\"name\": \"orderid\",  \"type\": \"long\"},"
+                                  + "     {\"name\": \"itemid\", \"type\": \"string\"},"
+                                  + "     {\"name\": \"orderunits\", \"type\": \"double\"},"
+                                  + "     {\"name\": \"arraycol\", \"type\": {\"type\": \"array\", \"items\": \"double\"}},"
+                                  + "     {\"name\": \"mapcol\", \"type\": {\"type\": \"map\", \"values\": \"double\"}}"
+                                  + " ]"
+                                  + "}";
+    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
+    schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+                                  avroSchema);
+
   }
 
 }

@@ -381,7 +381,7 @@ public class KsqlParserTest {
     String
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-        + "WITH (kafka_topic = 'users_topic', value_format='json');";
+        + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     CreateTable createTable = (CreateTable)statement;

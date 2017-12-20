@@ -2,7 +2,8 @@ REGISTER TOPIC users_topic WITH (value_format = 'json', kafka_topic='user_topic_
 REGISTER TOPIC pageview_topic WITH (value_format = 'json', kafka_topic='pageview_topic_json');
 
 CREATE STREAM pageview (viewtime bigint, pageid varchar, userid varchar) WITH (registered_topic = 'pageview_topic');
-CREATE TABLE users (registertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic');
+CREATE TABLE users (registertime bigint, userid varchar, regionid varchar, gender varchar) WITH
+(registered_topic = 'users_topic', KEY = 'userid');
 
 
 -- Enrich the pageview stream

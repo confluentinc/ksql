@@ -93,7 +93,8 @@ CREATE TABLE users \
    interests array<VARCHAR>, \
    contact_info map<VARCHAR, VARCHAR>) \
   WITH (KAFKA_TOPIC='users-topic', \
-        VALUE_FORMAT='JSON');
+        VALUE_FORMAT='JSON',
+        KEY = 'userid');
 ```
 
 As you can see the above table has, next to columns with primitive data types, a column of `array` type and another

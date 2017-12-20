@@ -9,10 +9,14 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +30,18 @@ public class MetricCollectorsTest {
 
   private static final String TEST_TOPIC = "shared-topic";
 
+  @Before
+  public void setUp() {
+    MetricCollectors.initialize();
+  }
+
   @After
   public void tearDown() {
-    MetricCollectors.getMetrics().close();
+    MetricCollectors.cleanUp();
   }
 
   @Test
   public void shouldAggregateStats() throws Exception {
-
     List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
     Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
@@ -119,5 +127,105 @@ public class MetricCollectorsTest {
     // Same as the above test, the kafka `Rate` measurable stat reports the rate as a tenth
     // of what it should be because all the samples haven't been filled out yet.
     assertEquals(10, Math.floor(MetricCollectors.currentConsumptionRate()), 0);
+  }
+
+  @Test
+  public void shouldAggregateConsumptionStatsByQuery() throws Exception {
+    ConsumerCollector collector1 = new ConsumerCollector();
+    collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
+
+    ConsumerCollector collector2 = new ConsumerCollector();
+    collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
+
+    ConsumerCollector collector3 = new ConsumerCollector();
+    collector3.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group2"));
+
+    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    for (int i = 0; i < 500; i++) {
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
+          .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
+    }
+    records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
+    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    collector1.onConsume(consumerRecords);
+    collector2.onConsume(consumerRecords);
+    collector3.onConsume(consumerRecords);
+
+    List<Double> consumptionByQuery = new ArrayList<>(
+        MetricCollectors.currentConsumptionRateByQuery());
+    consumptionByQuery.sort(Comparator.naturalOrder());
+
+    // Each query will have a unique consumer group id. In this case we have two queries and 3
+    // consumers. So we should expect two results from the currentConsumptionRateByQuery call.
+    assertEquals(2, consumptionByQuery.size());
+
+    // Same as the above test, the kafka `Rate` measurable stat reports the rate as a tenth
+    // of what it should be because all the samples haven't been filled out yet.
+    assertEquals(5.0, Math.floor(consumptionByQuery.get(0)), 0.1);
+    assertEquals(10.0, Math.floor(consumptionByQuery.get(1)), 0.1);
+  }
+
+  @Test
+  public void shouldNotIncludeRestoreConsumersWhenComputingPerQueryStats() throws Exception {
+    ConsumerCollector collector1 = new ConsumerCollector();
+    collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
+
+    ConsumerCollector collector2 = new ConsumerCollector();
+    collector2.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
+
+    ConsumerCollector collector3 = new ConsumerCollector();
+    collector3.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group2"));
+
+    // The restore consumer doesn't have a group id, and hence we should not count it as part of
+    // the overall query stats.
+    ConsumerCollector collector4 = new ConsumerCollector();
+    collector4.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG,
+                                         "restore-consumer-client"));
+
+
+    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    for (int i = 0; i < 500; i++) {
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
+          .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
+    }
+    records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
+    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    collector1.onConsume(consumerRecords);
+    collector2.onConsume(consumerRecords);
+    collector3.onConsume(consumerRecords);
+    collector4.onConsume(consumerRecords);
+
+    List<Double> consumptionByQuery = new ArrayList<>(
+        MetricCollectors.currentConsumptionRateByQuery());
+    consumptionByQuery.sort(Comparator.naturalOrder());
+
+    // Each query will have a unique consumer group id. In this case we have two queries and 3
+    // consumers. So we should expect two results from the currentConsumptionRateByQuery call.
+    assertEquals(2, consumptionByQuery.size());
+
+    // Same as the above test, the kafka `Rate` measurable stat reports the rate as a tenth
+    // of what it should be because all the samples haven't been filled out yet.
+    assertEquals(5.0, Math.floor(consumptionByQuery.get(0)), 0.1);
+    assertEquals(10.0, Math.floor(consumptionByQuery.get(1)), 0.1);
+  }
+
+  @Test
+  public void shouldAggregateErrorRatesAcrossProducersAndConsumers() {
+    ConsumerCollector consumerCollector = new ConsumerCollector();
+    consumerCollector.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "groupfoo1"));
+
+    ProducerCollector producerCollector = new ProducerCollector();
+    producerCollector.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "clientfoo2"));
+
+    for (int i = 0; i < 1000; i++) {
+      consumerCollector.recordError(TEST_TOPIC);
+      producerCollector.recordError(TEST_TOPIC);
+    }
+
+    // we have 2000 errors in one sample out of a 100. So the effective error rate computed
+    // should be 20 for this run.
+    assertEquals(20.0, Math.floor(MetricCollectors.currentErrorRate()), 0.1);
   }
 }

@@ -31,7 +31,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -131,10 +130,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
-    aggregateMetricsCollector.scheduleAtFixedRate(() -> {
-      engineMetrics.recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
-      engineMetrics.recordMessagesProduced(MetricCollectors.currentProductionRate());
-    }, 1000, 1000, TimeUnit.MILLISECONDS);
+    aggregateMetricsCollector.scheduleAtFixedRate(engineMetrics::updateMetrics, 1000, 1000,
+                                                  TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -468,8 +465,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
     topicClient.close();
     engineMetrics.close();
+    aggregateMetricsCollector.shutdown();
   }
-
 
   @Override
   public boolean terminateAllQueries() {

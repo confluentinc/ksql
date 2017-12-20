@@ -244,9 +244,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     try {
       short replicationFactor = 1;
-      if(restConfig.getOriginals().containsKey(KsqlConstants.SINK_NUMBER_OF_REPLICAS)) {
+      if(restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
-                                                     .get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
+                                                     .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY).toString());
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {

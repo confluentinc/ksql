@@ -52,7 +52,6 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Version;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -244,9 +243,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     try {
       short replicationFactor = 1;
-      if(restConfig.getOriginals().containsKey(KsqlConstants.SINK_NUMBER_OF_REPLICAS)) {
+      if(restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
-                                                     .get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
+                                                     .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY).toString());
       }
       client.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {

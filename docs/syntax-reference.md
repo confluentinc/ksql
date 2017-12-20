@@ -289,13 +289,13 @@ Queries that write into this TABLE
 -----------------------------------
 id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
 
-For query topology and execution plan please run: EXPLAIN <QueryId>; for more information
+For query topology and execution plan please run: EXPLAIN <QueryId>
 
 Local runtime statistics
 ------------------------
 messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
  failed-messages:         0      last-failed:       n/a
-(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
 ```
 
 

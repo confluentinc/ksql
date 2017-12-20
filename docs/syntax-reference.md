@@ -327,7 +327,7 @@ Local runtime statistics
 ------------------------
 messages-per-sec:     104.38   total-messages:       14238     last-message: 12/14/17 4:30:42 PM GMT
  failed-messages:          0      last-failed:         n/a
-(Statistics of the local Ksql Server interaction with the Kafka topic IP_SUM)
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
 
 Execution plan
 --------------

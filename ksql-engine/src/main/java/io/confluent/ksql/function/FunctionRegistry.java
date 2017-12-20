@@ -20,6 +20,7 @@ import io.confluent.ksql.function.udaf.count.CountAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
+import io.confluent.ksql.function.udaf.topk.TopkAggFunctionDeterminer;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
@@ -161,6 +162,8 @@ public class FunctionRegistry {
 
     addAggregateFunctionDeterminer(new MaxAggFunctionDeterminer());
     addAggregateFunctionDeterminer(new MinAggFunctionDeterminer());
+
+    addAggregateFunctionDeterminer(new TopkAggFunctionDeterminer());
 
   }
 

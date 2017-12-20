@@ -338,6 +338,7 @@ public class AggregateNode extends PlanNode {
                 functionCall
                     .getArguments(), aggregateArgExpanded.getSchema());
         int udafIndex = expressionNames.get(functionCall.getArguments().get(0).toString());
+
         KsqlAggregateFunction aggregateFunction = aggregateFunctionInfo.getClass()
             .getDeclaredConstructor(Integer.class).newInstance(udafIndex);
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);

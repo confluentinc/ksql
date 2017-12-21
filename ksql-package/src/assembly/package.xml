@@ -16,22 +16,12 @@
             <directory>${project.parent.basedir}</directory>
             <outputDirectory></outputDirectory>
             <includes>
-                <include>README*</include>
                 <include>LICENSE*</include>
-                <include>ksq-lrocket.png</include>
-                <include>screencast.jpg</include>
                 <include>licenses/</include>
                 <include>notices/</include>
                 <include>bin/</include>
                 <include>config/</include>
-                <include>docs/</include>
-                <include>ksql-clickstream-demo/</include>
             </includes>
-            <excludes>
-                <exclude>ksql-clickstream-demo/pom.xml</exclude>
-                <exclude>ksql-clickstream-demo/src/</exclude>
-                <exclude>ksql-clickstream-demo/target/</exclude>
-            </excludes>
         </fileSet>
     </fileSets>
     <dependencySets>

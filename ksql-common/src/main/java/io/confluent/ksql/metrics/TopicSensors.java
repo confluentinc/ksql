@@ -19,6 +19,7 @@ import io.confluent.common.utils.Time;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.Rate;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
@@ -55,6 +56,13 @@ class TopicSensors<R> {
 
   Collection<Stat> stats(boolean isError) {
     return sensors.stream().filter(sensor -> sensor.errorMetric == isError).map(sensor -> sensor.asStat()).collect(Collectors.toList());
+  }
+
+  Collection<Stat> errorRateStats() {
+    return sensors.stream()
+        .filter(sensor -> sensor.isError() && sensor.isRate())
+        .map(SensorMetric::asStat)
+        .collect(Collectors.toList());
   }
 
   static class Stat {
@@ -133,7 +141,7 @@ class TopicSensors<R> {
     }
   }
 
-  abstract static class SensorMetric<P> {
+  static class SensorMetric<P> {
     private final Sensor sensor;
     private final KafkaMetric metric;
     private Time time;
@@ -166,6 +174,10 @@ class TopicSensors<R> {
     public void close(Metrics metrics) {
       metrics.removeSensor(sensor.name());
       metrics.removeMetric(metric.metricName());
+    }
+
+    public boolean isRate() {
+      return metric.measurable() instanceof Rate;
     }
 
     @Override

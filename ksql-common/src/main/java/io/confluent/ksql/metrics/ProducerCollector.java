@@ -86,6 +86,7 @@ public class ProducerCollector implements MetricCollector {
       addSensor(key, "messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "total-messages", new Total(), sensors, false);
       addSensor(key, "failed-messages", new Total(), sensors, true);
+      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
     }
     return sensors;
   }
@@ -136,6 +137,17 @@ public class ProducerCollector implements MetricCollector {
     return allStats
         .stream()
         .filter(stat -> stat.name().contains("messages-per-sec"))
+        .mapToDouble(TopicSensors.Stat::getValue)
+        .sum();
+  }
+
+  @Override
+  public double errorRate() {
+    final List<TopicSensors.Stat> allStats = new ArrayList<>();
+    topicSensors.values().forEach(record -> allStats.addAll(record.errorRateStats()));
+
+    return allStats
+        .stream()
         .mapToDouble(TopicSensors.Stat::getValue)
         .sum();
   }

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to streams/tables/queries for ksql entities (Stream, Table, Query)
@@ -38,16 +39,34 @@ public class MetricCollectors {
 
 
   private static final Map<String, MetricCollector> collectorMap = new ConcurrentHashMap<>();
-  private static final Metrics metrics;
+  private static Metrics metrics;
 
   static {
+    initialize();
+  }
+
+  private static Time time = new io.confluent.common.utils.SystemTime();
+
+  // visible for testing.
+  // We need to call this from the MetricCollectorsTest because otherwise tests clobber each
+  // others metric data. We also need it from the KsqlEngineMetricsTest
+  public static void initialize() {
     MetricConfig metricConfig = new MetricConfig().samples(100).timeWindow(1000, TimeUnit.MILLISECONDS);
     List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
   }
 
-  private static Time time = new io.confluent.common.utils.SystemTime();
+  // visible for testing.
+  // needs to be called from the tear down method of MetricCollectorsTest so that the tests don't
+  // clobber each other. We also need to call it from the KsqlEngineMetrics test for the same
+  // reason.
+  public static void cleanUp() {
+    if (metrics != null) {
+      metrics.close();
+    }
+    collectorMap.clear();
+  }
 
   static String addCollector(String id, MetricCollector collector) {
     while (collectorMap.containsKey(id)) {
@@ -92,6 +111,16 @@ public class MetricCollectors {
     return results.toString();
   }
 
+  public static Collection<Double> currentConsumptionRateByQuery() {
+    return collectorMap.values()
+        .stream()
+        .filter(collector -> collector.getGroupId() != null)
+        .collect(Collectors.groupingBy(MetricCollector::getGroupId,
+                                       Collectors.summingDouble(
+                                           MetricCollector::currentMessageConsumptionRate)))
+        .values();
+  }
+
   public static double currentProductionRate() {
     return collectorMap.values().stream()
         .mapToDouble(MetricCollector::currentMessageProductionRate)
@@ -101,6 +130,12 @@ public class MetricCollectors {
   public static double currentConsumptionRate() {
     return collectorMap.values().stream()
         .mapToDouble(MetricCollector::currentMessageConsumptionRate)
+        .sum();
+  }
+
+  public static double currentErrorRate() {
+    return collectorMap.values().stream()
+        .mapToDouble(MetricCollector::errorRate)
         .sum();
   }
 

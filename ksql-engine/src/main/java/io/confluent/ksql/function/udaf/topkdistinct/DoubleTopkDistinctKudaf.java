@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.function.udaf.topk;
+package io.confluent.ksql.function.udaf.topkdistinct;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -29,18 +29,17 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
 
-
-public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
+public class DoubleTopkDistinctKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
   Integer tkVal;
   Double[] topkArray;
   Double[] tempTopkArray;
   Double[] tempMergeTopkArray;
 
-  public DoubleTopkKudaf(Integer argIndexInValue, Integer tkVal) {
+  public DoubleTopkDistinctKudaf(Integer argIndexInValue, Integer tkVal) {
     super(argIndexInValue, new Double[tkVal], SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
           Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "TOPK", DoubleTopkKudaf.class);
+          "TOPKDISTINCT", DoubleTopkDistinctKudaf.class);
     this.tkVal = tkVal;
     this.topkArray = new Double[tkVal];
     this.tempTopkArray = new Double[tkVal + 1];
@@ -52,7 +51,9 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
     if (currentVal == null) {
       return currentAggVal;
     }
-
+    if (valueExists(currentVal, currentAggVal)) {
+      return currentAggVal;
+    }
     int nullIndex = getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
@@ -90,8 +91,17 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(udafIndex, tkValFromArg);
-    return doubleTopkKudaf;
+    DoubleTopkDistinctKudaf doubleTopkDistinctKudaf = new DoubleTopkDistinctKudaf(udafIndex, tkValFromArg);
+    return doubleTopkDistinctKudaf;
+  }
+
+  private boolean valueExists(Double value, Double[] valueArray) {
+    for (Double d: valueArray) {
+      if (d == value) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private int getNullIndex(Double[] doubleArray) {

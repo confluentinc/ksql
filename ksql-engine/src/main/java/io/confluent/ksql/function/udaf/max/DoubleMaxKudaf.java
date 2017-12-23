@@ -20,8 +20,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.parser.tree.Expression;
 
 public class DoubleMaxKudaf extends KsqlAggregateFunction<Double, Double> {
 
@@ -47,5 +50,12 @@ public class DoubleMaxKudaf extends KsqlAggregateFunction<Double, Double> {
       }
       return aggTwo;
     };
+  }
+
+  @Override
+  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
+                                                           List<Expression> functionArguments) {
+    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    return new DoubleMaxKudaf(udafIndex);
   }
 }

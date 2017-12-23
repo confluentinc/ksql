@@ -30,25 +30,25 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
 
 
-public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
+public class LongTopkKudaf extends KsqlAggregateFunction<Long, Long[]> {
 
   Integer tkVal;
-  Double[] topkArray;
-  Double[] tempTopkArray;
-  Double[] tempMergeTopkArray;
+  Long[] topkArray;
+  Long[] tempTopkArray;
+  Long[] tempMergeTopkArray;
 
-  public DoubleTopkKudaf(Integer argIndexInValue, Integer tkVal) {
-    super(argIndexInValue, new Double[tkVal], SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-          Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "TOPK", DoubleTopkKudaf.class);
+  public LongTopkKudaf(Integer argIndexInValue, Integer tkVal) {
+    super(argIndexInValue, new Long[tkVal], SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
+          Arrays.asList(Schema.INT64_SCHEMA),
+          "TOPK", LongTopkKudaf.class);
     this.tkVal = tkVal;
-    this.topkArray = new Double[tkVal];
-    this.tempTopkArray = new Double[tkVal + 1];
-    this.tempMergeTopkArray = new Double[tkVal * 2];
+    this.topkArray = new Long[tkVal];
+    this.tempTopkArray = new Long[tkVal + 1];
+    this.tempMergeTopkArray = new Long[tkVal * 2];
   }
 
   @Override
-  public Double[] aggregate(Double currentVal, Double[] currentAggVal) {
+  public Long[] aggregate(Long currentVal, Long[] currentAggVal) {
     if (currentVal == null) {
       return currentAggVal;
     }
@@ -68,7 +68,7 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
   }
 
   @Override
-  public Merger<String, Double[]> getMerger() {
+  public Merger<String, Long[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
       for (int i = 0; i < tkVal; i++) {
         tempMergeTopkArray[i] = aggOne[i];
@@ -82,7 +82,7 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double[]> getInstance(Map<String, Integer> expressionNames,
+  public KsqlAggregateFunction<Long, Long[]> getInstance(Map<String, Integer> expressionNames,
                                                              List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
@@ -90,13 +90,13 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(udafIndex, tkValFromArg);
-    return doubleTopkKudaf;
+    LongTopkKudaf longTopkKudaf = new LongTopkKudaf(udafIndex, tkValFromArg);
+    return longTopkKudaf;
   }
 
-  private int getNullIndex(Double[] doubleArray) {
-    for (int i = 0; i < doubleArray.length; i++) {
-      if (doubleArray[i] == null) {
+  private int getNullIndex(Long[] longArray) {
+    for (int i = 0; i < longArray.length; i++) {
+      if (longArray[i] == null) {
         return i;
       }
     }

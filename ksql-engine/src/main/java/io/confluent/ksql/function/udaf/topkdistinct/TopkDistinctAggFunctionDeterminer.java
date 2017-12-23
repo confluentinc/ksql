@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.function.udaf.topk;
+package io.confluent.ksql.function.udaf.topkdistinct;
 
 import org.apache.kafka.connect.data.Schema;
 
@@ -25,12 +25,12 @@ import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
-public class TopkAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
 
-  public TopkAggFunctionDeterminer() {
-    super("TOPK", Arrays.asList(new DoubleTopkKudaf(-1, 0),
-                                new LongTopkKudaf(-1, 0),
-                                new StringTopkKudaf(-1, 0)));
+  public TopkDistinctAggFunctionDeterminer() {
+    super("TOPKDISTINCT", Arrays.asList(new DoubleTopkDistinctKudaf(-1, 0),
+                                new LongTopkDistinctKudaf(-1, 0),
+                                new StringTopkDistinctKudaf(-1, 0)));
   }
 
   @Override

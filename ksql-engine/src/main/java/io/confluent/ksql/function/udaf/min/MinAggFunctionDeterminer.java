@@ -35,7 +35,7 @@ public class MinAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
     // For now we only support aggregate functions with one arg.
     for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
-      if (ksqlAggregateFunction.getArguments().get(0) == argTypeList.get(0)) {
+      if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }
     }

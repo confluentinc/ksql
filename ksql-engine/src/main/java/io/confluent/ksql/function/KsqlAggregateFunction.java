@@ -20,6 +20,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
+import java.util.Map;
+
+import io.confluent.ksql.parser.tree.Expression;
 
 public abstract class KsqlAggregateFunction<V, A> {
 
@@ -48,6 +51,21 @@ public abstract class KsqlAggregateFunction<V, A> {
     this.arguments = arguments;
     this.functionName = functionName;
     this.kudafClass = kudafClass;
+  }
+
+  public abstract KsqlAggregateFunction<V, A> getInstance(final Map<String, Integer> expressionNames,
+                                                          final List<Expression> functionArguments);
+
+  public boolean hasSameArgTypes(List<Schema> argTypeList) {
+    if (this.getArguments().size() != argTypeList.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.getArguments().size(); i++) {
+      if (this.getArguments().get(i) != argTypeList.get(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public abstract A aggregate(V currentVal, A currentAggVal);

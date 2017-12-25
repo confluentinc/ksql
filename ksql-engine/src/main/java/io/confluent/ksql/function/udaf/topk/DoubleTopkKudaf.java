@@ -27,15 +27,15 @@ import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 
-public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
+public class  DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
   Integer tkVal;
   Double[] topkArray;
   Double[] tempTopkArray;
-  Double[] tempMergeTopkArray;
 
   public DoubleTopkKudaf(Integer argIndexInValue, Integer tkVal) {
     super(argIndexInValue, new Double[tkVal], SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
@@ -44,7 +44,6 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
     this.tkVal = tkVal;
     this.topkArray = new Double[tkVal];
     this.tempTopkArray = new Double[tkVal + 1];
-    this.tempMergeTopkArray = new Double[tkVal * 2];
   }
 
   @Override
@@ -53,12 +52,11 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
       return currentAggVal;
     }
 
-    int nullIndex = getNullIndex(currentAggVal);
+    int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
       return currentAggVal;
     }
-
     for (int i = 0; i < tkVal; i++) {
       tempTopkArray[i] = currentAggVal[i];
     }
@@ -70,13 +68,21 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
   @Override
   public Merger<String, Double[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
-      for (int i = 0; i < tkVal; i++) {
+      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
+      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
+      Double[] tempMergeTopkArray = new Double[nullIndex1 + nullIndex2];
+
+      for (int i = 0; i < nullIndex1; i++) {
         tempMergeTopkArray[i] = aggOne[i];
       }
-      for (int i = tkVal; i < 2 * tkVal; i++) {
-        tempMergeTopkArray[i] = aggTwo[i - tkVal];
+      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
+        tempMergeTopkArray[i] = aggTwo[i - nullIndex1];
       }
       Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
+      if (tempMergeTopkArray.length < tkVal) {
+        tempMergeTopkArray = ArrayUtil.padWithNull(Double.class, tempMergeTopkArray, tkVal);
+        return tempMergeTopkArray;
+      }
       return Arrays.copyOf(tempMergeTopkArray, tkVal);
     };
   }
@@ -92,15 +98,6 @@ public class DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
     DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(udafIndex, tkValFromArg);
     return doubleTopkKudaf;
-  }
-
-  private int getNullIndex(Double[] doubleArray) {
-    for (int i = 0; i < doubleArray.length; i++) {
-      if (doubleArray[i] == null) {
-        return i;
-      }
-    }
-    return -1;
   }
 
 }

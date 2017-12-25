@@ -52,4 +52,24 @@ public class DoubleTopkKudafTest {
         new Double[]{60.0, 55.0, 50.0}));
   }
 
+  @Test
+  public void shouldMergeTopKWithNulls() {
+    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    Double[] array1 = new Double[]{50.0, 45.0, null};
+    Double[] array2 = new Double[]{60.0, null, null};
+
+    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
+        new Double[]{60.0, 50.0, 45.0}));
+  }
+
+  @Test
+  public void shouldMergeTopKWithMoreNulls() {
+    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    Double[] array1 = new Double[]{50.0, null, null};
+    Double[] array2 = new Double[]{60.0, null, null};
+
+    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
+        new Double[]{60.0, 50.0, null}));
+  }
+
 }

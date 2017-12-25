@@ -27,6 +27,7 @@ import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
@@ -34,7 +35,6 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
   Integer tkVal;
   Long[] topkArray;
   Long[] tempTopkArray;
-  Long[] tempMergeTopkArray;
 
   public LongTopkDistinctKudaf(Integer argIndexInValue, Integer tkVal) {
     super(argIndexInValue, new Long[tkVal], SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
@@ -43,7 +43,6 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
     this.tkVal = tkVal;
     this.topkArray = new Long[tkVal];
     this.tempTopkArray = new Long[tkVal + 1];
-    this.tempMergeTopkArray = new Long[tkVal * 2];
   }
 
   @Override
@@ -51,10 +50,10 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
     if (currentVal == null) {
       return currentAggVal;
     }
-    if (valueExists(currentVal, currentAggVal)) {
+    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
       return currentAggVal;
     }
-    int nullIndex = getNullIndex(currentAggVal);
+    int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
       return currentAggVal;
@@ -71,13 +70,28 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
   @Override
   public Merger<String, Long[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
-      for (int i = 0; i < tkVal; i++) {
+
+      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
+      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
+      Long[] tempMergeTopkArray = new Long[nullIndex1 + nullIndex2];
+
+      for (int i = 0; i < nullIndex1; i++) {
         tempMergeTopkArray[i] = aggOne[i];
       }
-      for (int i = tkVal; i < 2 * tkVal; i++) {
-        tempMergeTopkArray[i] = aggTwo[i - tkVal];
+      int duplicateCount = 0;
+      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
+        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
+          duplicateCount ++;
+        } else {
+          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
+        }
       }
+      tempMergeTopkArray = ArrayUtil.getNoNullArray(Long.class, tempMergeTopkArray);
       Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
+      if (tempMergeTopkArray.length < tkVal) {
+        tempMergeTopkArray = ArrayUtil.padWithNull(Long.class, tempMergeTopkArray, tkVal);
+        return tempMergeTopkArray;
+      }
       return Arrays.copyOf(tempMergeTopkArray, tkVal);
     };
   }
@@ -93,24 +107,6 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
     LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(udafIndex, tkValFromArg);
     return longTopkDistinctKudaf;
-  }
-
-  private boolean valueExists(Long value, Long[] valueArray) {
-    for (Long l: valueArray) {
-      if (l == value) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private int getNullIndex(Long[] longArray) {
-    for (int i = 0; i < longArray.length; i++) {
-      if (longArray[i] == null) {
-        return i;
-      }
-    }
-    return -1;
   }
 
 }

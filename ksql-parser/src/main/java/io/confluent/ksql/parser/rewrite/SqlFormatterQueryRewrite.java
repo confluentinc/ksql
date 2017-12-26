@@ -163,7 +163,7 @@ public final class SqlFormatterQueryRewrite {
       append(indent, "INTO");
       builder.append('\n');
       append(indent, "  ");
-      process(node.getInto(), indent);
+      process(node.getInto().getLeft(), indent);
       builder.append('\n');
 
       append(indent, "FROM");

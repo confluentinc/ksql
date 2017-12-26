@@ -23,6 +23,7 @@ import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Query;
@@ -215,6 +216,14 @@ public class StatementExecutor {
           statementStr,
           wasDropped);
       if (successMessage == null) return;
+    } else if (statement instanceof InsertInto) {
+      handleInsertInto((InsertInto) statement,
+                       command,
+                       commandId,
+                       terminatedQueries,
+                       statementStr,
+                       false
+                       );
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";
@@ -275,6 +284,28 @@ public class StatementExecutor {
     return null;
   }
 
+  private String handleInsertInto(final InsertInto statement,
+                                      final Command command,
+                                      final CommandId commandId,
+                                      final Map<QueryId, CommandId> terminatedQueries,
+                                      final String statementStr,
+                                      final boolean wasDropped) throws Exception {
+    QuerySpecification querySpecification =
+        (QuerySpecification) statement.getQuery().getQueryBody();
+    Query query = ksqlEngine.addInto(
+        statement.getQuery(),
+        querySpecification,
+        statement.getTarget().getSuffix(),
+        new HashMap<>(),
+        Optional.empty(),
+        false
+    );
+    if (startQuery(statementStr, query, commandId, terminatedQueries, command, wasDropped)) {
+      return "Insert Into query is running.";
+    }
+
+    return null;
+  }
   private boolean startQuery(
       String queryString,
       Query query,
@@ -284,10 +315,11 @@ public class StatementExecutor {
       boolean wasDropped) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-      Relation into = querySpecification.getInto();
+      Relation into = querySpecification.getInto().getLeft();
       if (into instanceof Table) {
         Table table = (Table) into;
-        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null) {
+        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null &&
+            querySpecification.getInto().getRight()) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()

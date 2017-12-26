@@ -39,6 +39,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
@@ -64,6 +65,7 @@ public class PhysicalPlanBuilder {
   private final MetaStore metaStore;
   private final boolean updateMetastore;
   private final SchemaRegistryClient schemaRegistryClient;
+  private final QueryIdGenerator queryIdGenerator;
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -73,7 +75,8 @@ public class PhysicalPlanBuilder {
                              final Map<String, Object> overriddenStreamsProperties,
                              final boolean updateMetastore,
                              final MetaStore metaStore,
-                             final SchemaRegistryClient schemaRegistryClient) {
+                             final SchemaRegistryClient schemaRegistryClient,
+                             final QueryIdGenerator queryIdGenerator) {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -83,6 +86,7 @@ public class PhysicalPlanBuilder {
     this.metaStore = metaStore;
     this.updateMetastore = updateMetastore;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.queryIdGenerator = queryIdGenerator;
   }
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
@@ -116,8 +120,27 @@ public class PhysicalPlanBuilder {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
 
-      return buildPlanForStructuredOutputNode(statementPlanPair.getLeft(), resultStream,
-          (KsqlStructuredDataOutputNode) outputNode, serviceId, persistanceQueryPrefix, statementPlanPair.getLeft());
+      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
+          outputNode;
+      ksqlStructuredDataOutputNode = new KsqlStructuredDataOutputNode(
+          ksqlStructuredDataOutputNode.getId(),
+          ksqlStructuredDataOutputNode.getSource(),
+          ksqlStructuredDataOutputNode.getSchema(),
+          ksqlStructuredDataOutputNode.getTimestampField(),
+          ksqlStructuredDataOutputNode.getKeyField(),
+          ksqlStructuredDataOutputNode.getKsqlTopic(),
+          ksqlStructuredDataOutputNode.getKafkaTopicName(),
+          ksqlStructuredDataOutputNode.getOutputProperties(),
+          ksqlStructuredDataOutputNode.getLimit(),
+          ((KsqlStructuredDataOutputNode) statementPlanPair.getRight()).isDoCreateInto()
+           );
+      return buildPlanForStructuredOutputNode(
+          statementPlanPair.getLeft(),
+          resultStream,
+          ksqlStructuredDataOutputNode,
+          serviceId,
+          persistanceQueryPrefix,
+          statementPlanPair.getLeft());
 
     } else {
       throw new KsqlException("Sink data source of type: " + outputNode.getClass() + " is not supported.");
@@ -182,11 +205,16 @@ public class PhysicalPlanBuilder {
 
     }
 
-    if (updateMetastore) {
+    if (updateMetastore && outputNode.isDoCreateInto()) {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
     }
 
-    final QueryId queryId = sinkDataSource.getPersistentQueryId();
+    final QueryId queryId;
+    if (outputNode.isDoCreateInto()) {
+      queryId = sinkDataSource.getPersistentQueryId();
+    } else {
+      queryId = new QueryId("Query_" + queryIdGenerator.getNextId());
+    }
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);

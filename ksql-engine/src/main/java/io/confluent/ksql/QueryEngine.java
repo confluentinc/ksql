@@ -115,9 +115,10 @@ class QueryEngine {
                          ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
                          : ksqlStructuredDataOutputNode.getTimestampField(),
                          ksqlStructuredDataOutputNode.getKsqlTopic());
-
-      tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
-      tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      if (analysis.isDoCreateInto()) {
+        tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
+        tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
+      }
     }
     return logicalPlan;
   }
@@ -164,7 +165,7 @@ class QueryEngine {
         ksqlEngine.getFunctionRegistry(),
         overriddenStreamsProperties,
         updateMetastore,
-        ksqlEngine.getMetaStore(), ksqlEngine.getSchemaRegistryClient()
+        ksqlEngine.getMetaStore(), ksqlEngine.getSchemaRegistryClient(), ksqlEngine.getQueryIdGenerator()
     );
 
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(statementPlanPair));

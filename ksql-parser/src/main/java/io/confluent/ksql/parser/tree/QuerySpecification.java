@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.confluent.ksql.util.Pair;
+
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
@@ -27,7 +29,7 @@ public class QuerySpecification
     extends QueryBody {
 
   private final Select select;
-  private final Relation into;
+  private final Pair<Relation, Boolean> into;
   private final Relation from;
   private final Optional<WindowExpression> windowExpression;
   private final Optional<Expression> where;
@@ -38,7 +40,7 @@ public class QuerySpecification
 
   public QuerySpecification(
       Select select,
-      Relation into,
+      Pair<Relation, Boolean> into,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
@@ -53,7 +55,7 @@ public class QuerySpecification
   public QuerySpecification(
       NodeLocation location,
       Select select,
-      Relation into,
+      Pair<Relation, Boolean> into,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
@@ -68,7 +70,7 @@ public class QuerySpecification
   private QuerySpecification(
       Optional<NodeLocation> location,
       Select select,
-      Relation into,
+      Pair<Relation, Boolean> into,
       Relation from,
       Optional<WindowExpression> windowExpression,
       Optional<Expression> where,
@@ -102,7 +104,7 @@ public class QuerySpecification
     return select;
   }
 
-  public Relation getInto() {
+  public Pair<Relation, Boolean> getInto() {
     return into;
   }
 

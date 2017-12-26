@@ -26,6 +26,7 @@ import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -66,7 +67,8 @@ public class PhysicalPlanBuilderTest {
         Collections.emptyMap(),
         false,
         metaStore,
-                                                  new MockSchemaRegistryClient()
+                                                  new MockSchemaRegistryClient(),
+                                                  new QueryIdGenerator()
     );
 
     planBuilder = new LogicalPlanBuilder(metaStore);

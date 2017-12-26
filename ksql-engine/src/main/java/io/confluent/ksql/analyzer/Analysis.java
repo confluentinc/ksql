@@ -33,6 +33,7 @@ public class Analysis {
   private StructuredDataSource into;
   private Map<String, Object> intoProperties = new HashMap<>();
   private String intoFormat = null;
+  private boolean doCreateInto;
   // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
   private String intoKafkaTopicName = null;
   private List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
@@ -58,8 +59,13 @@ public class Analysis {
     return into;
   }
 
-  public void setInto(StructuredDataSource into) {
+  public void setInto(StructuredDataSource into, boolean doCreateInto) {
     this.into = into;
+    this.doCreateInto = doCreateInto;
+  }
+
+  public boolean isDoCreateInto() {
+    return doCreateInto;
   }
 
 

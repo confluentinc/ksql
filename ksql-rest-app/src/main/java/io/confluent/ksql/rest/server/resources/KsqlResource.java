@@ -431,6 +431,16 @@ public class KsqlResource {
       return queryMetadata.getExecutionPlan();
     });
 
+    ddlCommandTasks.put(InsertInto.class, (statement, statementText, properties) -> {
+      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery());
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
+                                                      ksqlEngine.getSchemaRegistryClient());
+      }
+      queryMetadata.close();
+      return queryMetadata.getExecutionPlan();
+    });
+
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
       RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand((RegisterTopic) statement, properties);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);

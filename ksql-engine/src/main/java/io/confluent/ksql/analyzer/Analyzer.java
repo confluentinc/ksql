@@ -85,10 +85,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     process(node.getFrom(),
             new AnalysisContext(AnalysisContext.ParentType.FROM));
 
-    process(node.getInto(), new AnalysisContext(
+    process(node.getInto().getLeft(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
-      analyzeNonStdOutSink();
+      analyzeNonStdOutSink(node.getInto().getRight());
     }
 
     process(node.getSelect(), new AnalysisContext(
@@ -118,7 +118,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private void analyzeNonStdOutSink() {
+  private void analyzeNonStdOutSink(boolean doCreateInto) {
     List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
 
     StructuredDataSource intoStructuredDataSource = analysis.getInto();
@@ -155,7 +155,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     KsqlStream intoKsqlStream = new KsqlStream(sqlExpression, intoStructuredDataSource.getName(),
                                                null, null, null,
                                                newIntoKsqlTopic);
-    analysis.setInto(intoKsqlStream);
+    analysis.setInto(intoKsqlStream, doCreateInto);
   }
 
   private void analyzeExpressions() {
@@ -384,13 +384,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (node.isStdOut) {
       into = new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
               null, StructuredDataSource.DataSourceType.KSTREAM);
+      analysis.setInto(into, false);
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = analyzeNonStdOutTable(node);
+      analysis.setInto(into, true);
     } else {
       throw new KsqlException("INTO clause is not set correctly!");
     }
-
-    analysis.setInto(into);
     return null;
   }
 

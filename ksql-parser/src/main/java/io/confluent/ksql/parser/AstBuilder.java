@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -150,6 +152,12 @@ public class AstBuilder
   }
 
   @Override
+  public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
+    return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
+                                   (Query) visitQuery(context.query()));
+  }
+
+  @Override
   public Node visitDropTopic(SqlBaseParser.DropTopicContext context) {
     return new DropTopic(getLocation(context), getQualifiedName(context.qualifiedName()),
                          context.EXISTS() != null);
@@ -259,7 +267,7 @@ public class AstBuilder
     return new QuerySpecification(
         getLocation(context),
         select,
-        into,
+        new Pair<>(into, true),
         from,
         visitIfPresent(context.windowExpression(), WindowExpression.class),
         visitIfPresent(context.where, Expression.class),

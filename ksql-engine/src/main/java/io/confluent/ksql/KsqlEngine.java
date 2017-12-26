@@ -60,6 +60,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -110,6 +111,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   private SchemaRegistryClient schemaRegistryClient;
 
+  private final QueryIdGenerator queryIdGenerator;
+
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
 
@@ -133,6 +136,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(engineMetrics::updateMetrics, 1000, 1000,
                                                   TimeUnit.MILLISECONDS);
+    this.queryIdGenerator = new QueryIdGenerator();
   }
 
   /**
@@ -391,7 +395,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
             querySpecification.getSelect(),
-            intoTable,
+            new Pair<>(intoTable, doCreateTable),
             querySpecification.getFrom(),
             querySpecification.getWindowExpression(),
             querySpecification.getWhere(),
@@ -523,5 +527,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       return schemaRegistryClient;
     }
     throw new KsqlException("Cannot access the Schema Registry. Schema Registry client is null.");
+  }
+
+  public QueryIdGenerator getQueryIdGenerator() {
+    return queryIdGenerator;
   }
 }

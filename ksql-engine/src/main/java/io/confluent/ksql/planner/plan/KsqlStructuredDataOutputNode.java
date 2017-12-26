@@ -49,6 +49,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final Field keyField;
   final Field timestampField;
   final Map<String, Object> outputProperties;
+  final boolean doCreateInto;
 
 
   @JsonCreator
@@ -61,17 +62,23 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                                       @JsonProperty("topicName") final String topicName,
                                       @JsonProperty("outputProperties") final Map<String, Object>
                                             outputProperties,
-                                      @JsonProperty("limit") final Optional<Integer> limit) {
+                                      @JsonProperty("limit") final Optional<Integer> limit,
+                                      @JsonProperty("doCreateInto") final boolean doCreateInto) {
     super(id, source, schema, limit);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
     this.timestampField = timestampField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
+    this.doCreateInto = doCreateInto;
   }
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
+  }
+
+  public boolean isDoCreateInto() {
+    return doCreateInto;
   }
 
   @Override
@@ -123,7 +130,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         outputProperties, schemaRegistryClient);
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
-    createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+    if (doCreateInto) {
+      createSinkTopic(noRowKey.getKafkaTopicName(), ksqlConfig, kafkaTopicClient);
+    }
+
     result.into(
         noRowKey.getKafkaTopicName(),
             noRowKey.getKsqlTopic().getKsqlTopicSerDe()
@@ -210,6 +220,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private String topicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
+    private boolean doCreateInto;
 
     public KsqlStructuredDataOutputNode build() {
       return new KsqlStructuredDataOutputNode(id,
@@ -220,7 +231,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           ksqlTopic,
           topicName,
           outputProperties,
-          limit);
+          limit,
+          doCreateInto);
     }
 
     public static Builder from(final KsqlStructuredDataOutputNode original) {

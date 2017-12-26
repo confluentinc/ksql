@@ -97,7 +97,8 @@ public class LogicalPlanner {
                                               intoDataSource.getKsqlTopic(),
                                              intoDataSource.getKsqlTopic()
                                                  .getTopicName(), analysis.getIntoProperties(),
-                                              analysis.getLimitClause());
+                                              analysis.getLimitClause(),
+                                              analysis.isDoCreateInto());
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");

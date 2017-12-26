@@ -107,7 +107,8 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe(schema)),
         "output",
         props,
-        Optional.empty());
+        Optional.empty(),
+        true);
   }
 
   @Test

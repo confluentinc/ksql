@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -599,6 +600,28 @@ public class KsqlParserTest {
     DropTable dropTable = (DropTable) statement1;
     Assert.assertTrue(dropStream.getName().toString().equalsIgnoreCase("STREAM1"));
     Assert.assertTrue(dropTable.getName().toString().equalsIgnoreCase("TABLE1"));
+  }
+
+  @Test
+  public void testInsertInto() throws Exception {
+    String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
+                            + "100;";
+    Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0);
+
+
+    Assert.assertTrue("testSimpleQuery fails", statement instanceof InsertInto);
+    InsertInto insertInto = (InsertInto) statement;
+    Assert.assertTrue("", insertInto.getTarget().toString().equals("TEST2"));
+    Query query = insertInto.getQuery();
+    Assert.assertTrue("testInsertInto fails", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    Assert.assertTrue("testInsertInto fails", querySpecification.getSelect().getSelectItems().size() == 3);
+    assertThat(querySpecification.getFrom(), not(nullValue()));
+    Assert.assertTrue("testInsertInto fails", querySpecification.getWhere().isPresent());
+    Assert.assertTrue("testInsertInto fails", querySpecification.getWhere().get() instanceof ComparisonExpression);
+    ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
+    Assert.assertTrue("testInsertInto fails", comparisonExpression.getType().getValue().equalsIgnoreCase(">"));
+
   }
 
 }

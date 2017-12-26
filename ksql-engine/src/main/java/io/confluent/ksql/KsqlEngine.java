@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -259,7 +260,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               querySpecification,
               createStreamAsSelect.getName().getSuffix(),
               createStreamAsSelect.getProperties(),
-              createStreamAsSelect.getPartitionByColumn()
+              createStreamAsSelect.getPartitionByColumn(),
+              true
       );
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
               querySpecification.getSelect(),
@@ -276,13 +278,34 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               querySpecification,
               createTableAsSelect.getName().getSuffix(),
               createTableAsSelect.getProperties(),
-              Optional.empty()
+              Optional.empty(),
+              true
       );
 
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
               querySpecification.getSelect(),
               createTableAsSelect.getName().getSuffix()
       ).cloneWithTimeKeyColumns());
+      return new Pair<>(statementString, query);
+    } else if (statement instanceof InsertInto) {
+      InsertInto insertInto = (InsertInto) statement;
+      if (tempMetaStore.getSource(insertInto.getTarget().getSuffix().toString()) == null) {
+        throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
+                                              + "statement.", insertInto.getTarget().getSuffix()
+            .toString()));
+      }
+      QuerySpecification querySpecification =
+          (QuerySpecification) insertInto.getQuery().getQueryBody();
+
+      Query query = addInto(
+          insertInto.getQuery(),
+          querySpecification,
+          insertInto.getTarget().getSuffix(),
+          new HashMap<>(),
+          Optional.empty(),
+          false
+      );
+
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.tryExecute(
@@ -354,7 +377,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   public Query addInto(final Query query, final QuerySpecification querySpecification,
                        final String intoName,
                        final Map<String, Expression> intoProperties,
-                       final Optional<Expression> partitionByExpression) {
+                       final Optional<Expression> partitionByExpression,
+                       final boolean doCreateTable) {
     Table intoTable = new Table(QualifiedName.of(intoName));
     if (partitionByExpression.isPresent()) {
       Map<String, Expression> newIntoProperties = new HashMap<>();

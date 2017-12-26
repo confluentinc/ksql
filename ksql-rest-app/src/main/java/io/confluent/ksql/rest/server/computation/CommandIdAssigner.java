@@ -21,6 +21,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -48,6 +49,8 @@ public class CommandIdAssigner {
       return getSelectStreamCommandId((CreateStreamAsSelect) command);
     } else if (command instanceof CreateTableAsSelect) {
       return getSelectTableCommandId((CreateTableAsSelect) command);
+    } else if (command instanceof InsertInto) {
+      return getInsertIntoCommandId((InsertInto) command);
     } else if (command instanceof TerminateQuery) {
       return getTerminateCommandId((TerminateQuery) command);
     } else if (command instanceof DropTopic) {
@@ -88,6 +91,11 @@ public class CommandIdAssigner {
 
   private CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
     return getTableCommandId(createTableAsSelect.getName().toString());
+  }
+
+  private CommandId getInsertIntoCommandId(InsertInto insertInto) {
+    return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(), CommandId.Action
+        .CREATE);
   }
 
   public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {

@@ -26,6 +26,7 @@ import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -208,6 +209,7 @@ public class KsqlResource {
             || statement instanceof CreateTable
             || statement instanceof CreateStreamAsSelect
             || statement instanceof CreateTableAsSelect
+            || statement instanceof InsertInto
             || statement instanceof TerminateQuery
             || statement instanceof DropTopic
             || statement instanceof DropStream

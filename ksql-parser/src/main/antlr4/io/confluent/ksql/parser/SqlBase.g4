@@ -61,6 +61,7 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
+    | INSERT INTO qualifiedName query                                       #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable

@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExplainOption;
 import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Intersect;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
@@ -617,6 +618,15 @@ public final class SqlFormatterQueryRewrite {
         builder.append("\n").append(")");
       }
 
+      return null;
+    }
+
+
+    @Override
+    protected Void visitInsertInto(InsertInto node, Integer indent) {
+      builder.append("INSERT INTO ");
+      builder.append(node.getTarget());
+      process(node.getQuery(), indent);
       return null;
     }
 

@@ -263,7 +263,8 @@ public class StatementExecutor {
         querySpecification,
         statement.getName().getSuffix(),
         statement.getProperties(),
-        statement.getPartitionByColumn()
+        statement.getPartitionByColumn(),
+        true
     );
     if (startQuery(statementStr, query, commandId, terminatedQueries, command, wasDropped)) {
       return statement instanceof CreateTableAsSelect

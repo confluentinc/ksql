@@ -329,4 +329,31 @@ public class SchemaUtil {
 
     return schemaBuilder.build();
   }
+
+  public static boolean areEqualSchemas(Schema schema1, Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()) {
+      return false;
+    }
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!schema1.fields().get(i).equals(schema2.fields().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static String schemaString(Schema schema) {
+    StringBuilder stringBuilder = new StringBuilder("[ ");
+    boolean addCamma = false;
+    for (Field field: schema.fields()) {
+      if (addCamma) {
+        stringBuilder.append(", ");
+      } else {
+        addCamma = true;
+      }
+      stringBuilder.append(String.format("(%s : %s)", field.name(), field.schema()));
+    }
+    stringBuilder.append("]");
+    return stringBuilder.toString();
+  }
 }

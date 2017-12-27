@@ -42,10 +42,12 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -202,11 +204,21 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic());
-
     }
 
     if (updateMetastore && outputNode.isDoCreateInto()) {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+    } else {
+      StructuredDataSource structuredDataSource = metaStore.getSource(sinkDataSource.getName());
+      Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(sinkDataSource
+                                                                                 .cloneWithTimeKeyColumns().getSchema());
+      if (SchemaUtil.areEqualSchemas(resultSchema,
+                                     structuredDataSource.getSchema())) {
+        throw new KsqlException(String.format("Incompatible schema between results and sink. "
+                                              + "Result schema is %s, but the sink schema is %s"
+                                              + ".", SchemaUtil.schemaString(resultSchema), SchemaUtil
+            .schemaString(structuredDataSource.getSchema())));
+      }
     }
 
     final QueryId queryId;

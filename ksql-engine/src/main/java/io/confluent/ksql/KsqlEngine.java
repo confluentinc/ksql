@@ -121,29 +121,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, String metricGroupPrefix) {
 
-    this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get
-        (KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000), metricGroupPrefix);
+    this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000), metricGroupPrefix);
   }
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, SchemaRegistryClient schemaRegistryClient) {
     this(ksqlConfig, topicClient, schemaRegistryClient, null);
-//    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
-//    this.ksqlConfig = ksqlConfig;
-//    this.metaStore = new MetaStoreImpl();
-//    this.topicClient = topicClient;
-//    this.ddlCommandExec = new DDLCommandExec(metaStore);
-//    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
-//    this.persistentQueries = new HashMap<>();
-//    this.livePersistentQueries = new HashSet<>();
-//    this.allLiveQueries = new HashSet<>();
-//    this.functionRegistry = new FunctionRegistry();
-//    this.schemaRegistryClient = schemaRegistryClient;
-//
-//    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
-//    this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
-//    aggregateMetricsCollector.scheduleAtFixedRate(engineMetrics::updateMetrics, 1000, 1000,
-//                                                  TimeUnit.MILLISECONDS);
-//    this.queryIdGenerator = new QueryIdGenerator();
   }
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient,

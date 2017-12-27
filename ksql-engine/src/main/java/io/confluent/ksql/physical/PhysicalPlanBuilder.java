@@ -213,8 +213,7 @@ public class PhysicalPlanBuilder {
       Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(sinkDataSource
                                                                                  .cloneWithTimeKeyColumns().getSchema());
       if (!SchemaUtil.areEqualSchemas(resultSchema,
-                                      SchemaUtil.removeImplicitRowTimeRowKeyFromSchema
-                                          (structuredDataSource.getSchema()))) {
+                                      SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(structuredDataSource.getSchema()))) {
         throw new KsqlException(String.format("Incompatible schema between results and sink. "
                                               + "Result schema is %s, but the sink schema is %s"
                                               + ".", SchemaUtil.schemaString(resultSchema), SchemaUtil

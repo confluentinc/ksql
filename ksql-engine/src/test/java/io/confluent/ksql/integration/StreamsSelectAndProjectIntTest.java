@@ -140,7 +140,8 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void testInsertInto() throws Exception {
 
-    ksqlContext.sql("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM ORDERS;");
+    ksqlContext.sql("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM "
+                    + "ORDERS WHERE ITEMID = 'HELLO';");
 
     ksqlContext.sql("INSERT INTO PROJECT_STREAM SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM ORDERS;");
 
@@ -151,6 +152,29 @@ public class StreamsSelectAndProjectIntTest {
     GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+  }
+
+  @Test
+  public void testInsertSelectStar() throws Exception {
+
+    ksqlContext.sql("CREATE STREAM EASYORDERS AS SELECT * FROM orders WHERE ITEMID = 'HELLO';");
+    ksqlContext.sql("INSERT INTO EASYORDERS SELECT * FROM orders;");
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider.schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+
+    assertThat(easyOrdersData, equalTo(dataProvider.data()));
+  }
+
+
+  @Test
+  public void testInsertSelectWithFilter() throws Exception {
+
+    ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 100000;");
+    ksqlContext.sql("INSERT INTO bigorders SELECT * FROM orders WHERE ORDERUNITS > 40;");
+
+    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS", dataProvider.schema(), 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+
+    Assert.assertEquals(4, results.size());
   }
 
   @Test

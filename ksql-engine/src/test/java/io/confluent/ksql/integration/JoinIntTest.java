@@ -107,6 +107,48 @@ public class JoinIntTest {
     }, 60000, "failed to complete join correctly");
   }
 
+  @Test
+  public void shouldInsertLeftJoinOrderAndItems() throws Exception {
+    final String testStreamName = "OrderedWithDescription".toUpperCase();
+
+    final String csasQueryString = String.format(
+        "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM orders LEFT JOIN items " +
+        " on orders.ITEMID = items.ID WHERE orders.ITEMID = 'Hello' ;",
+        testStreamName
+    );
+
+    final String insertQueryString = String.format(
+        "INSERT INTO %s SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM orders LEFT JOIN "
+        + "items " +
+        " on orders.ITEMID = items.ID WHERE orders.ITEMID = 'ITEM_1' ;",
+        testStreamName
+    );
+
+    ksqlContext.sql(csasQueryString);
+    ksqlContext.sql(insertQueryString);
+
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
+
+    Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
+
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS));
+      final boolean success = results.equals(expectedResults);
+      if (!success) {
+        try {
+          // The join may not be triggered fist time around due to order in which the
+          // consumer pulls the records back. So we publish again to make the stream
+          // trigger the join.
+          testHarness.publishTestData(orderStreamTopic, orderDataProvider, now);
+        } catch(Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return success;
+    }, 60000, "failed to complete join correctly");
+  }
+
   private void createStreams() throws Exception {
     ksqlContext.sql("CREATE STREAM orders (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='" + orderStreamTopic + "', value_format='JSON');");
     ksqlContext.sql("CREATE TABLE items (ID varchar, DESCRIPTION varchar) WITH (kafka_topic='" +

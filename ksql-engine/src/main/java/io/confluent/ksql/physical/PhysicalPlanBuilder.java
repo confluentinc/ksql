@@ -212,8 +212,9 @@ public class PhysicalPlanBuilder {
       StructuredDataSource structuredDataSource = metaStore.getSource(sinkDataSource.getName());
       Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(sinkDataSource
                                                                                  .cloneWithTimeKeyColumns().getSchema());
-      if (SchemaUtil.areEqualSchemas(resultSchema,
-                                     structuredDataSource.getSchema())) {
+      if (!SchemaUtil.areEqualSchemas(resultSchema,
+                                      SchemaUtil.removeImplicitRowTimeRowKeyFromSchema
+                                          (structuredDataSource.getSchema()))) {
         throw new KsqlException(String.format("Incompatible schema between results and sink. "
                                               + "Result schema is %s, but the sink schema is %s"
                                               + ".", SchemaUtil.schemaString(resultSchema), SchemaUtil
@@ -225,7 +226,7 @@ public class PhysicalPlanBuilder {
     if (outputNode.isDoCreateInto()) {
       queryId = sinkDataSource.getPersistentQueryId();
     } else {
-      queryId = new QueryId("Query_" + queryIdGenerator.getNextId());
+      queryId = new QueryId("InsertQuery_" + queryIdGenerator.getNextId());
     }
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 

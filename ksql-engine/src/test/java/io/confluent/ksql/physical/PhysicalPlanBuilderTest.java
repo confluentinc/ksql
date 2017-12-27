@@ -15,6 +15,7 @@
 package io.confluent.ksql.physical;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
@@ -24,6 +25,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -37,6 +39,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -48,12 +51,13 @@ public class PhysicalPlanBuilderTest {
   private PhysicalPlanBuilder physicalPlanBuilder;
   private MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
   private LogicalPlanBuilder planBuilder;
+  private Map<String, Object> configMap;
 
   @Before
   public void before() {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final FunctionRegistry functionRegistry = new FunctionRegistry();
-    Map<String, Object> configMap = new HashMap<>();
+    configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
@@ -72,6 +76,7 @@ public class PhysicalPlanBuilderTest {
     );
 
     planBuilder = new LogicalPlanBuilder(metaStore);
+
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
@@ -105,6 +110,71 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(lines[3], "\t\t\t\t\t\t > [ REKEY ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
     Assert.assertEquals(lines[4], "\t\t\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
     Assert.assertEquals(lines[5], "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
+  }
+
+  @Test
+  public void shouldCreateExecutionPlanForInsert() throws Exception {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldCreateExecutionPlanForInsert");
+
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+                                                                            csasQuery + "\n " +
+                                                                            insertIntoQuery, new
+        HashMap<>());
+    Assert.assertTrue(queryMetadataList.size() == 2);
+    final String planText = queryMetadataList.get(1).getExecutionPlan();
+    String[] lines = planText.split("\n");
+    Assert.assertTrue(lines.length == 3);
+    Assert.assertEquals(lines[0], " > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
+    Assert.assertEquals(lines[1], "\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
+    Assert.assertEquals(lines[2], "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : INT64 , TEST1.ROWKEY : STRING , TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : FLOAT64].");
+  }
+
+  @Test
+  public void shouldFailIfInsertSinkDoesNOtExist() throws Exception {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldFailIfInsertSinkDoesNOtExist");
+    try {
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+                                                                              insertIntoQuery, new
+                                                                                  HashMap<>());
+    } catch (KsqlException ksqlException) {
+      Assert.assertEquals(ksqlException.getMessage(),"Parsing failed on KsqlEngine msg:Sink, S1,"
+                                                     + " does not exist for the INSERT INTO statement.");
+      return;
+    }
+    Assert.fail();
+
+  }
+
+  @Test
+  public void shouldFailInsertIfTheResultSchemaDoesNotMatch() throws Exception {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+                          + "DOUBLE) "
+                          + "WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldFailInsertIfTheResultSchemaDoesNotMatch");
+
+    try {
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+                                                                              csasQuery + "\n " +
+                                                                              insertIntoQuery, new
+                                                                                  HashMap<>());
+    } catch (KsqlException ksqlException) {
+      return;
+    }
+    Assert.fail();
   }
 
 }

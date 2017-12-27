@@ -119,7 +119,35 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000));
   }
 
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, String metricGroupPrefix) {
+
+    this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get
+        (KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000), metricGroupPrefix);
+  }
+
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, SchemaRegistryClient schemaRegistryClient) {
+    this(ksqlConfig, topicClient, schemaRegistryClient, null);
+//    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+//    this.ksqlConfig = ksqlConfig;
+//    this.metaStore = new MetaStoreImpl();
+//    this.topicClient = topicClient;
+//    this.ddlCommandExec = new DDLCommandExec(metaStore);
+//    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
+//    this.persistentQueries = new HashMap<>();
+//    this.livePersistentQueries = new HashSet<>();
+//    this.allLiveQueries = new HashSet<>();
+//    this.functionRegistry = new FunctionRegistry();
+//    this.schemaRegistryClient = schemaRegistryClient;
+//
+//    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
+//    this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
+//    aggregateMetricsCollector.scheduleAtFixedRate(engineMetrics::updateMetrics, 1000, 1000,
+//                                                  TimeUnit.MILLISECONDS);
+//    this.queryIdGenerator = new QueryIdGenerator();
+  }
+
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient,
+                    SchemaRegistryClient schemaRegistryClient, String metricGroupPrefix) {
     Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
     this.ksqlConfig = ksqlConfig;
     this.metaStore = new MetaStoreImpl();
@@ -132,7 +160,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.functionRegistry = new FunctionRegistry();
     this.schemaRegistryClient = schemaRegistryClient;
 
-    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
+    if (metricGroupPrefix == null) {
+      metricGroupPrefix = "ksql-engine";
+    }
+    this.engineMetrics = new KsqlEngineMetrics(metricGroupPrefix, this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(engineMetrics::updateMetrics, 1000, 1000,
                                                   TimeUnit.MILLISECONDS);
@@ -293,7 +324,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       return new Pair<>(statementString, query);
     } else if (statement instanceof InsertInto) {
       InsertInto insertInto = (InsertInto) statement;
-      if (tempMetaStore.getSource(insertInto.getTarget().getSuffix().toString()) == null) {
+      if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix().toString()) == null) {
         throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
                                               + "statement.", insertInto.getTarget().getSuffix()
             .toString()));

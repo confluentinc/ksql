@@ -13,6 +13,7 @@
   - [Joining](#joining)
   - [Aggregating, windowing, and sessionization](#aggregating)
   - [Working with arrays and maps](#working-with-arrays-and-maps)
+  - [Insert into an existing stream/table](#insert-into)
   - [Avro format and integration with Confluent Schema Registry](#avro)
 - [Configuring KSQL](#configuring-ksql)
 - [Running KSQL](#running-ksql)
@@ -282,6 +283,40 @@ CREATE STREAM pageviews_interest_contact AS \
          regionid \
   FROM pageviews_enriched;
 ```
+
+<a name="insert-into"></a>
+### Insert into an existing stream/table
+You can use `INSERT INTO` statement to insert data into an existing stream or table. Consider the
+ following example where we have `region_5_pageveiws` that contains the pageviews in region 5
+ where the users are female:
+
+ ```sql
+ CREATE STREAM region_5_pageveiws AS \
+   SELECT viewtime, \
+          userid, \
+          pageid, \
+          timestring, \
+          gender, \
+          regionid \
+   FROM pageviews_enriched
+   WHERE regionid = 'region_5' AND gender = 'Female';
+ ```
+
+Now consider we want to have pageviews from all users in region 5 in `region_5_pageveiws` stream.
+ You can write the following `INSERT INTO` statement to add the page views from the male users
+ into the existing `region_5_pageveiws` stream:
+
+ ```sql
+  INSERT INTO region_5_pageveiws \
+    SELECT viewtime, \
+           userid, \
+           pageid, \
+           timestring, \
+           gender, \
+           regionid \
+    FROM pageviews_enriched
+    WHERE regionid = 'region_5' AND gender = 'Male';
+  ```
 
 <a name="avro"></a>
 ### Avro format and integration with Confluent Schema Registry

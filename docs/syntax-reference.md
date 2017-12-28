@@ -236,6 +236,32 @@ Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.
 Also since KSQL column names are case insensitive, avro field names will be considered case insensitive in KSQL.
 
 
+### INSERT INTO
+
+**Synopsis**
+
+```sql
+INSERT INTO stream_name/table_name
+  SELECT  select_expr [, ...]
+  FROM from_item [, ...]
+  [ WINDOW window_expression ]
+  [ WHERE condition ]
+  [ GROUP BY grouping_expression ]
+  [ HAVING having_expression ]
+  [PARTITION BY column_name];
+```
+
+**Description**
+
+Insert the results of the `SELECT` query into the given stream/table. The stream/table should
+exist in the system and the schema of the results in the `SELECT` query should match the schema
+of the given stream/table.
+`PARTITION BY` clause is valid only to insert into a stream. `WINDOW`, `GROUP BY` and `HAVING`
+clauses are valid only to insert into a table.
+
+
+
+
 ### DESCRIBE
 
 **Synopsis**

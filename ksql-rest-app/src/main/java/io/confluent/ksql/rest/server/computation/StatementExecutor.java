@@ -217,13 +217,14 @@ public class StatementExecutor {
           wasDropped);
       if (successMessage == null) return;
     } else if (statement instanceof InsertInto) {
-      handleInsertInto((InsertInto) statement,
+      successMessage = handleInsertInto((InsertInto) statement,
                        command,
                        commandId,
                        terminatedQueries,
                        statementStr,
                        false
                        );
+      if (successMessage == null) return;
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";

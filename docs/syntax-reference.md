@@ -634,7 +634,7 @@ settings for Kafka's [producer client](https://kafka.apache.org/documentation/#p
 ```sql
 SET '<property-name>'='<property-value>';
 ```
-
+ 
 Examples:
 
 ```

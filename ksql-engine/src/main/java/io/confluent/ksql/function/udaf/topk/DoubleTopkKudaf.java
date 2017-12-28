@@ -48,6 +48,7 @@ public class  DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
   @Override
   public Double[] aggregate(Double currentVal, Double[] currentAggVal) {
+    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     if (currentVal == null) {
       return currentAggVal;
     }
@@ -67,6 +68,7 @@ public class  DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
   @Override
   public Merger<String, Double[]> getMerger() {
+    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     return (aggKey, aggOne, aggTwo) -> {
       int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
       int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);

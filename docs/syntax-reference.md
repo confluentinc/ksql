@@ -615,12 +615,14 @@ Terminate a persistent query. Persistent queries run continuously until they are
 
 # Aggregate functions
 
-| Function   | Example                   | Description                                            |
-|------------|---------------------------|--------------------------------------------------------|
-| COUNT      | `COUNT(col1)`             | Count the number of rows                               |
-| MAX        | `MAX(col1)`               | Return the maximum value for a given column and window |
-| MIN        | `MIN(col1)`               | Return the minimum value for a given column and window |
-| SUM        | `SUM(col1)`               | Sums the column values                                 |
+| Function    | Example                   | Description                                                     |
+|-------------|---------------------------|-----------------------------------------------------------------|
+| COUNT       | `COUNT(col1)`             | Count the number of rows                                        |
+| MAX         | `MAX(col1)`               | Return the maximum value for a given column and window          |
+| MIN         | `MIN(col1)`               | Return the minimum value for a given column and window          |
+| SUM         | `SUM(col1)`               | Sums the column values                                          |
+| TOPK        | `TOPK(col1, k)`           | Return the TopK values for the given column and window          |
+| TOPKDISTINCT| `TOPKDISTINCT(col1, k)`   | Return the distinct TopK values for the given column and window |
 
 
 # Configuring KSQL

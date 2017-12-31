@@ -210,6 +210,13 @@ public class PhysicalPlanBuilder {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
     } else {
       StructuredDataSource structuredDataSource = metaStore.getSource(sinkDataSource.getName());
+      if (structuredDataSource.getDataSourceType() != sinkDataSource.getDataSourceType()) {
+        throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
+                                              + " (%s)"
+                                              + " type is %s but select query result is %s.",
+                                              sinkDataSource.getName(), sinkDataSource
+                                                  .getDataSourceType(), structuredDataSource.getDataSourceType()));
+      }
       Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(sinkDataSource
                                                                                  .cloneWithTimeKeyColumns().getSchema());
       if (!SchemaUtil.areEqualSchemas(resultSchema,
@@ -219,6 +226,7 @@ public class PhysicalPlanBuilder {
                                               + ".", SchemaUtil.schemaString(resultSchema), SchemaUtil
             .schemaString(structuredDataSource.getSchema())));
       }
+
     }
 
     final QueryId queryId;

@@ -172,6 +172,58 @@ public class PhysicalPlanBuilderTest {
                                                                               insertIntoQuery, new
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
+      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible schema between results and sink. Result schema is [ (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64}), (COL3 : Schema{FLOAT64})], but the sink schema is [ (ROWTIME : Schema{INT64}), (ROWKEY : Schema{STRING}), (COL0 : Schema{INT64}), (COL1 : Schema{STRING}), (COL2 : Schema{FLOAT64})]."));
+      return;
+    }
+    Assert.fail();
+  }
+
+  @Test
+  public void shouldCreatePlanForInsertIntoTableFromTabl() throws Exception {
+    String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+                          + "DOUBLE) "
+                          + "WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
+    String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
+    String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldCreatePlanForInsertIntoTableFromTabl");
+
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createTable + "\n " +
+                                                                            csasQuery + "\n " +
+                                                                            insertIntoQuery, new
+                                                                                HashMap<>());
+      Assert.assertTrue(queryMetadataList.size() == 2);
+    final String planText = queryMetadataList.get(1).getExecutionPlan();
+    String[] lines = planText.split("\n");
+    Assert.assertTrue(lines.length == 2);
+    Assert.assertEquals(lines[0], " > [ PROJECT ] Schema: [ROWTIME : INT64 , ROWKEY : STRING , COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64 , COL3 : FLOAT64].");
+    Assert.assertEquals(lines[1], "\t\t > [ SOURCE ] Schema: [T1.ROWTIME : INT64 , T1.ROWKEY : STRING , T1.COL0 : INT64 , T1.COL1 : STRING , T1.COL2 : FLOAT64 , T1.COL3 : FLOAT64].");
+  }
+
+  @Test
+  public void shouldFailInsertIfTheResultTypesDontMatch() throws Exception {
+    String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+                          + "DOUBLE) "
+                          + "WITH ( "
+                          + "KAFKA_TOPIC = 't1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
+    String createStream = "CREATE STREAM S1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+                          + "DOUBLE) "
+                          + "WITH ( "
+                          + "KAFKA_TOPIC = 's1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
+    String insertIntoQuery = "INSERT INTO T2 SELECT col0, col1, col2, col3 FROM S1;";
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldFailInsertIfTheResultTypesDontMatch");
+
+    try {
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createTable + "\n " +
+                                                                              createStream + "\n " +
+                                                                              csasQuery + "\n " +
+                                                                              insertIntoQuery, new
+                                                                                  HashMap<>());
+    } catch (KsqlException ksqlException) {
+      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible data sink and query result. Data sink (T2) type is KSTREAM but select query result is KTABLE."));
       return;
     }
     Assert.fail();

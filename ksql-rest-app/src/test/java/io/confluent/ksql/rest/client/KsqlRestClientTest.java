@@ -16,21 +16,23 @@
 
 package io.confluent.ksql.rest.client;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ExecutionPlan;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
@@ -65,7 +67,6 @@ public class KsqlRestClientTest {
 
   @Test
   public void testKsqlResource() {
-
     RestResponse<KsqlEntityList> results = ksqlRestClient.makeKsqlRequest("Test request");
     Assert.assertNotNull(results);
     Assert.assertTrue(results.isSuccessful());
@@ -76,11 +77,71 @@ public class KsqlRestClientTest {
 
 
   @Test
-  public void testStreamQuery() {
+  public void testStreamQuery() throws InterruptedException {
+    MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
     RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
         ("Select *");
     Assert.assertNotNull(queryResponse);
     Assert.assertTrue(queryResponse.isSuccessful());
+    List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
+    Assert.assertEquals(1, writers.size());
+    MockStreamedQueryResource.TestStreamWriter writer = writers.get(0);
+    writer.enq("hello");
+    KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+    Thread t = new Thread() {
+      public void run() {
+        queryStream.hasNext();
+     }
+    };
+    t.start();
+    t.join(10000);
+    Assert.assertFalse(t.isAlive());
+    Assert.assertTrue(queryStream.hasNext());
+    StreamedRow sr = queryStream.next();
+    Assert.assertNotNull(sr);
+    GenericRow row = sr.getRow();
+    Assert.assertEquals(1, row.getColumns().
+            size());
+    Assert.assertEquals("hello", row.getColumns().
+            get(0));
+    writer.finished();
+  }
+
+  @Test
+  public void testInterruptStreamedQuery() throws InterruptedException {
+    MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
+    RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
+            ("Select *");
+    Assert.assertNotNull(queryResponse);
+    Assert.assertTrue(queryResponse.isSuccessful());
+    List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
+    Assert.assertEquals(1, writers.size());
+    MockStreamedQueryResource.TestStreamWriter writer = writers.get(0);
+    writer.enq("hello");
+    KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+    Assert.assertTrue(queryStream.hasNext());
+    StreamedRow sr = queryStream.next();
+    Assert.assertNotNull(sr);
+    GenericRow row = sr.getRow();
+    Assert.assertEquals(1, row.getColumns().size());
+    Assert.assertEquals("hello", row.getColumns().get(0));
+    List<Boolean> threw = new java.util.LinkedList<>();
+    threw.add(false);
+    Thread t = new Thread() {
+      public void run() {
+        try {
+          queryStream.hasNext();
+        } catch (IllegalStateException e) {
+          threw.set(0, true);
+        }
+      }
+    };
+    t.start();
+    Thread.sleep(100);
+    queryStream.close();
+    t.join(10000);
+    Assert.assertTrue(threw.get(0));
+    writer.finished();
   }
 
   @Test

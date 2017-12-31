@@ -38,6 +38,8 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -202,7 +204,31 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      this.responseScanner = new Scanner((InputStream) response.getEntity(), StandardCharsets.UTF_8.name());
+      InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
+      Object lk = this;
+      String errMsg = closedIllegalStateMsg("hasNext()");
+      this.responseScanner = new Scanner(new Readable() {
+        public int read(CharBuffer buf) throws IOException {
+          int wait = 1;
+          while (true) {
+            if (closed) throw new IllegalStateException(errMsg);
+            if (isr.ready()) {
+              break;
+            }
+            synchronized(lk) {
+              if (closed) throw new IllegalStateException(errMsg);
+              try {
+                wait = java.lang.Math.min(wait * 2, 200);
+                lk.wait(wait);
+              } catch (InterruptedException e) {
+                // this is expected
+                // just check the closed flag
+              }
+            }
+          }
+          return isr.read(buf);
+        }
+      });
 
       this.bufferedRow = null;
       this.closed = false;
@@ -256,15 +282,22 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         throw closedIllegalStateException("close()");
       }
 
-      closed = true;
+      synchronized(this) {
+        closed = true;
+        this.notifyAll();
+      }
       responseScanner.close();
       response.close();
     }
 
-    private IllegalStateException closedIllegalStateException(String methodName) {
-      return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
+    private String closedIllegalStateMsg(String methodName) {
+      return "Cannot call " + methodName + " when QueryStream is closed";
     }
 
+    private IllegalStateException closedIllegalStateException(String methodName) {
+      String msg = closedIllegalStateMsg(methodName);
+      return new IllegalStateException(msg);
+    }
   }
 
   public Map<String, Object> getLocalProperties() {

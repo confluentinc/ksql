@@ -132,11 +132,17 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
         String fieldName = fieldNames.next();
-        keyMap.put(fieldName.toUpperCase(), fieldName);
+        if (fieldName.startsWith("@")) {
+          keyMap.put(fieldName.toUpperCase().substring(1), fieldName);
+        } else {
+          keyMap.put(fieldName.toUpperCase(), fieldName);
+        }
+
       }
     }
 
   }
+
 
   @Override
   public void close() {

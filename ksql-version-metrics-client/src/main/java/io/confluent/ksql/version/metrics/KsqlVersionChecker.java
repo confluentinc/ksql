@@ -42,9 +42,10 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
   }
 
-
   @Override
   protected ZkClientProvider zkClientProvider() {
+    //This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
+    // returning null here and also turning off topic metrics collection in KsqlVersionCheckerConfig.
     return null;
   }
 

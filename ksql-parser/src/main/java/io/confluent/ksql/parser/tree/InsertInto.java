@@ -26,19 +26,21 @@ public final class InsertInto
     extends Statement {
   private final QualifiedName target;
   private final Query query;
+  private final Optional<Expression> partitionByColumn;
 
-  public InsertInto(QualifiedName target, Query query) {
-    this(Optional.empty(), target, query);
+  public InsertInto(QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
+    this(Optional.empty(), target, query, partitionByColumn);
   }
 
-  public InsertInto(NodeLocation location, QualifiedName target, Query query) {
-    this(Optional.of(location), target, query);
+  public InsertInto(NodeLocation location, QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
+    this(Optional.of(location), target, query, partitionByColumn);
   }
 
-  private InsertInto(Optional<NodeLocation> location, QualifiedName target, Query query) {
+  private InsertInto(Optional<NodeLocation> location, QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
     super(location);
     this.target = requireNonNull(target, "target is null");
     this.query = requireNonNull(query, "query is null");
+    this.partitionByColumn = partitionByColumn;
   }
 
   public QualifiedName getTarget() {
@@ -47,6 +49,10 @@ public final class InsertInto
 
   public Query getQuery() {
     return query;
+  }
+
+  public Optional<Expression> getPartitionByColumn() {
+    return partitionByColumn;
   }
 
   @Override

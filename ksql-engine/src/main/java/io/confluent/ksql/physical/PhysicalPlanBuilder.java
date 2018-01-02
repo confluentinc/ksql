@@ -47,6 +47,7 @@ import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -226,6 +227,7 @@ public class PhysicalPlanBuilder {
                                               + ".", SchemaUtil.schemaString(resultSchema), SchemaUtil
             .schemaString(structuredDataSource.getSchema())));
       }
+      enforceKeyEquivalence(structuredDataSource.getKeyField(), sinkDataSource.getKeyField());
 
     }
 
@@ -290,6 +292,27 @@ public class PhysicalPlanBuilder {
     newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), ConsumerCollector.class.getCanonicalName());
     newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), ProducerCollector.class.getCanonicalName());
     return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
+  }
+
+  private boolean enforceKeyEquivalence(Field sinkKeyField, Field resultKeyField) {
+    if (sinkKeyField == null && resultKeyField == null) {
+      return true;
+    }
+    if (sinkKeyField != null && resultKeyField != null) {
+      if (sinkKeyField.name().equalsIgnoreCase(resultKeyField.name()) && sinkKeyField.schema() ==
+                                                                         resultKeyField.schema()) {
+        return true;
+      }
+    }
+
+    throw new KsqlException(String.format("Incompatible key fields for sink and results. Sink"
+                                          + " key field is %s (type: %s) while result key "
+                                          + "fiels is %s (type: %s)", sinkKeyField ==
+                                                                      null? null:sinkKeyField.name(),
+                                          sinkKeyField ==
+                                          null? null:sinkKeyField.schema().toString(), resultKeyField ==
+                                                                                       null? null:resultKeyField.name(), resultKeyField ==
+                                                                                                                         null? null:resultKeyField.schema().toString()));
   }
 
 }

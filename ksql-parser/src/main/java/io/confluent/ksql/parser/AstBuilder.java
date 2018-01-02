@@ -153,8 +153,13 @@ public class AstBuilder
 
   @Override
   public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
+    Optional<Expression> partitionByColumn = Optional.empty();
+    if (context.identifier() != null) {
+      partitionByColumn = Optional.of(new QualifiedNameReference(
+          QualifiedName.of(getIdentifierText(context.identifier()))));
+    }
     return new InsertInto(getLocation(context), getQualifiedName(context.qualifiedName()),
-                                   (Query) visitQuery(context.query()));
+                                   (Query) visitQuery(context.query()), partitionByColumn);
   }
 
   @Override

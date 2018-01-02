@@ -319,7 +319,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           querySpecification,
           insertInto.getTarget().getSuffix(),
           new HashMap<>(),
-          Optional.empty(),
+          insertInto.getPartitionByColumn(),
           false
       );
 

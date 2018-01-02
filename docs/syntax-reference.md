@@ -256,8 +256,10 @@ INSERT INTO stream_name/table_name
 Insert the results of the `SELECT` query into the given stream/table. The stream/table should
 exist in the system and the schema of the results in the `SELECT` query should match the schema
 of the given stream/table.
-`PARTITION BY` clause is valid only to insert into a stream. `WINDOW`, `GROUP BY` and `HAVING`
-clauses are valid only to insert into a table.
+`PARTITION BY` clause is valid only to insert into a stream. The column in the `PARTITION BY`
+clause should be the same as the key column in the sink stream.
+
+`WINDOW`, `GROUP BY` and `HAVING` clauses are valid only to insert into a table.
 
 
 

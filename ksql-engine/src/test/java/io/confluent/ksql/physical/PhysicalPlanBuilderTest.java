@@ -136,7 +136,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailIfInsertSinkDoesNOtExist() throws Exception {
+  public void shouldFailIfInsertSinkDoesNotExist() throws Exception {
     String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
                           + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
@@ -179,7 +179,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreatePlanForInsertIntoTableFromTabl() throws Exception {
+  public void shouldCreatePlanForInsertIntoTableFromTable() throws Exception {
     String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
                           + "DOUBLE) "
                           + "WITH ( "
@@ -193,7 +193,7 @@ public class PhysicalPlanBuilderTest {
                                                                             csasQuery + "\n " +
                                                                             insertIntoQuery, new
                                                                                 HashMap<>());
-      Assert.assertTrue(queryMetadataList.size() == 2);
+    Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 2);
@@ -224,6 +224,53 @@ public class PhysicalPlanBuilderTest {
                                                                                   HashMap<>());
     } catch (KsqlException ksqlException) {
       Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible data sink and query result. Data sink (T2) type is KSTREAM but select query result is KTABLE."));
+      return;
+    }
+    Assert.fail();
+  }
+
+  @Test
+  public void shouldCheckSinkAndResultKeysDoNotMatch() throws Exception {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldCheckSinkAndResultKeysDoNotMatch");
+
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+                                                                            csasQuery + "\n " +
+                                                                            insertIntoQuery, new
+                                                                                HashMap<>());
+    Assert.assertTrue(queryMetadataList.size() == 2);
+    final String planText = queryMetadataList.get(1).getExecutionPlan();
+    String[] lines = planText.split("\n");
+    Assert.assertTrue(lines.length == 4);
+    Assert.assertEquals(lines[0], " > [ REKEY ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 : FLOAT64].");
+    Assert.assertEquals(lines[1], "\t\t > [ SINK ] Schema: [COL0 : INT64 , COL1 : STRING , COL2 "
+                                  + ": FLOAT64].");
+    Assert.assertEquals(lines[2], "\t\t\t\t > [ PROJECT ] Schema: [COL0 : INT64 , COL1 : STRING"
+                                   + " , COL2 : FLOAT64].");
+  }
+
+  @Test
+  public void shouldFailIfSinkAndResultKeysDoNotMatch() throws Exception {
+    String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+                          + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
+    String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+
+    KsqlEngine ksqlEngine = new KsqlEngine(new KsqlConfig(configMap), new
+        FakeKafkaTopicClient(), "shouldFailIfSinkAndResultKeysDoNotMatch");
+
+    try {
+      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+                                                                              csasQuery + "\n " +
+                                                                              insertIntoQuery, new
+                                                                                  HashMap<>());
+    } catch (Exception ksqlException) {
+      Assert.assertTrue(ksqlException.getMessage().equalsIgnoreCase("Incompatible key fields for sink and results. Sink key field is COL0 (type: Schema{INT64}) while result key fiels is null (type: null)"));
       return;
     }
     Assert.fail();

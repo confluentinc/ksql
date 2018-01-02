@@ -48,7 +48,7 @@ public class  DoubleTopkKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
   @Override
   public Double[] aggregate(Double currentVal, Double[] currentAggVal) {
-    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
+    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later 
     if (currentVal == null) {
       return currentAggVal;
     }

@@ -194,7 +194,7 @@ The WITH clause supports the following properties:
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this stream.  If this property is not set, then the name of the stream will be used as default. |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
-| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
@@ -229,7 +229,7 @@ The WITH clause supports the following properties:
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this table.  If this property is not set, then the name of the table will be used as default. |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
-| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
@@ -636,7 +636,7 @@ settings for Kafka's [producer client](https://kafka.apache.org/documentation/#p
 ```sql
 SET '<property-name>'='<property-value>';
 ```
-
+ 
 Examples:
 
 ```

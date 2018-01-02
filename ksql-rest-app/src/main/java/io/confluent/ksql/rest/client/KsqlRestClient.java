@@ -203,6 +203,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     public QueryStream(Response response) {
       this.response = response;
 
+      this.closed = false;
       this.objectMapper = new ObjectMapper();
       InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
       Object lk = this;
@@ -210,6 +211,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.responseScanner = new Scanner(new Readable() {
         public int read(CharBuffer buf) throws IOException {
           int wait = 1;
+          // poll the input stream's readiness between interruptable sleeps
+          // this ensures we cannot block indefinitely on read()
           while (true) {
             if (closed) throw new IllegalStateException(errMsg);
             if (isr.ready()) {
@@ -231,7 +234,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       });
 
       this.bufferedRow = null;
-      this.closed = false;
     }
 
     @Override

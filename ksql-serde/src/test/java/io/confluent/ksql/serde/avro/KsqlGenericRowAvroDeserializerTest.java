@@ -179,7 +179,7 @@ public class KsqlGenericRowAvroDeserializerTest {
 
 
   @Test
-  public void shouldDeserializeIfThereAreRedundantFields1() {
+  public void shouldDeserializeWithMissingFields() {
     String schemaStr1 = "{"
                         + "\"namespace\": \"kql\","
                         + " \"name\": \"orders\","
@@ -202,13 +202,15 @@ public class KsqlGenericRowAvroDeserializerTest {
     KsqlGenericRowAvroDeserializer ksqlGenericRowAvroDeserializer = new
         KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient, false);
 
-    try {
-      GenericRow row = ksqlGenericRowAvroDeserializer.deserialize("t1", serializedRow);
-    } catch (Exception e) {
-      assertThat(e.getMessage(), equalTo("io.confluent.ksql.util.KsqlException: No value for ARRAYCOL fiels."));
-      return;
-    }
-    Assert.fail();
+    GenericRow row = ksqlGenericRowAvroDeserializer.deserialize("t1", serializedRow);
+    assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(6));
+    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092l));
+    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(1), equalTo
+        (1l));
+    assertThat("Incorrect deserializarion", (String)row.getColumns().get(2), equalTo
+        ( "item_1"));
+    Assert.assertNull(row.getColumns().get(4));
+    Assert.assertNull(row.getColumns().get(5));
   }
 
   private byte[] getSerializedRow(String topicName, SchemaRegistryClient schemaRegistryClient,

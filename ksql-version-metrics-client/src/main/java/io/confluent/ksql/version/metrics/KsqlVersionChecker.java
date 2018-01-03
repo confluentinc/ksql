@@ -21,7 +21,7 @@ import io.confluent.ksql.version.metrics.collector.BasicCollector;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
 import io.confluent.support.metrics.common.Collector;
-import io.confluent.support.metrics.common.kafka.ZkUtilsProvider;
+import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
 
 
@@ -42,12 +42,11 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
   }
 
-
   @Override
-  protected ZkUtilsProvider zkUtilsProvider() {
+  protected ZkClientProvider zkClientProvider() {
     //This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
     // returning null here and also turning off topic metrics collection in KsqlVersionCheckerConfig.
-    return () -> null;
+    return null;
   }
 
   @Override

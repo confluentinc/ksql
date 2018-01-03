@@ -45,8 +45,8 @@ public class DelimitedConsumer {
   private static Serde<GenericRow> getGenericRowSerde() {
     if (genericRowSerde == null) {
       Map<String, Object> serdeProps = new HashMap<>();
-
-      final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer();
+      // Set the schema when using this class.
+      final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(null);
       genericRowSerializer.configure(serdeProps, false);
 
       final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(null);

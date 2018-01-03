@@ -32,6 +32,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
@@ -77,71 +79,74 @@ public class KsqlRestClientTest {
 
 
   @Test
-  public void testStreamQuery() throws InterruptedException {
-    MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
-    RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
-        ("Select *");
-    Assert.assertNotNull(queryResponse);
-    Assert.assertTrue(queryResponse.isSuccessful());
-    List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
-    Assert.assertEquals(1, writers.size());
-    MockStreamedQueryResource.TestStreamWriter writer = writers.get(0);
-    writer.enq("hello");
-    KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-    Thread t = new Thread() {
-      public void run() {
-        queryStream.hasNext();
-     }
-    };
-    t.start();
-    t.join(10000);
-    Assert.assertFalse(t.isAlive());
-    Assert.assertTrue(queryStream.hasNext());
-    StreamedRow sr = queryStream.next();
-    Assert.assertNotNull(sr);
-    GenericRow row = sr.getRow();
-    Assert.assertEquals(1, row.getColumns().
-            size());
-    Assert.assertEquals("hello", row.getColumns().
-            get(0));
-    writer.finished();
-  }
-
-  @Test
-  public void testInterruptStreamedQuery() throws InterruptedException {
+  public void testStreamRowFromServer() throws InterruptedException {
     MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
     RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
             ("Select *");
     Assert.assertNotNull(queryResponse);
     Assert.assertTrue(queryResponse.isSuccessful());
+
+    // Get the stream writer from the mock server and load it up with a row
     List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
     Assert.assertEquals(1, writers.size());
     MockStreamedQueryResource.TestStreamWriter writer = writers.get(0);
-    writer.enq("hello");
-    KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-    Assert.assertTrue(queryStream.hasNext());
-    StreamedRow sr = queryStream.next();
-    Assert.assertNotNull(sr);
-    GenericRow row = sr.getRow();
-    Assert.assertEquals(1, row.getColumns().size());
-    Assert.assertEquals("hello", row.getColumns().get(0));
-    List<Boolean> threw = new java.util.LinkedList<>();
-    threw.add(false);
-    Thread t = new Thread() {
-      public void run() {
+    try {
+      writer.enq("hello");
+
+      // Try and receive the row. Do this from another thread to avoid blocking indefinitely
+      KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+      Thread t = new Thread(() -> queryStream.hasNext());
+      t.setDaemon(true);
+      t.start();
+      t.join(10000);
+      Assert.assertFalse(t.isAlive());
+      Assert.assertTrue(queryStream.hasNext());
+
+      StreamedRow sr = queryStream.next();
+      Assert.assertNotNull(sr);
+      GenericRow row = sr.getRow();
+      Assert.assertEquals(1, row.getColumns().
+              size());
+      Assert.assertEquals("hello", row.getColumns().
+              get(0));
+    } finally {
+      writer.finished();
+    }
+  }
+
+  @Test
+  public void shouldInterruptScannerOnClose() throws InterruptedException {
+    MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
+    RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
+            ("Select *");
+    Assert.assertNotNull(queryResponse);
+    Assert.assertTrue(queryResponse.isSuccessful());
+
+    List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
+    Assert.assertEquals(1, writers.size());
+    try {
+      // Try and receive a row. This will block since there is no data to return
+      KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+      CountDownLatch threw = new CountDownLatch(1);
+      Thread t = new Thread(() -> {
         try {
           queryStream.hasNext();
         } catch (IllegalStateException e) {
-          threw.set(0, true);
+          threw.countDown();
         }
-      }
-    };
-    t.start();
-    Thread.sleep(100);
-    queryStream.close();
-    t.join(10000);
-    Assert.assertTrue(threw.get(0));
-    writer.finished();
+      });
+      t.setDaemon(true);
+      t.start();
+
+      // Let the thread run and then close the stream. Verify that it was interrupted
+      Thread.sleep(100);
+      queryStream.close();
+      Assert.assertTrue(threw.await(10, TimeUnit.SECONDS));
+      t.join(10000);
+      Assert.assertFalse(t.isAlive());
+    } finally {
+      writers.get(0).finished();
+    }
   }
 
   @Test

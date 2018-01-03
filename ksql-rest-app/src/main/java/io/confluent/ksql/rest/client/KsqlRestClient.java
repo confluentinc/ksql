@@ -39,7 +39,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -198,39 +197,36 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     private final Scanner responseScanner;
 
     private StreamedRow bufferedRow;
-    private boolean closed;
+    private boolean closed = false;
 
     public QueryStream(Response response) {
       this.response = response;
 
-      this.closed = false;
       this.objectMapper = new ObjectMapper();
       InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
-      Object lk = this;
-      String errMsg = closedIllegalStateMsg("hasNext()");
-      this.responseScanner = new Scanner(new Readable() {
-        public int read(CharBuffer buf) throws IOException {
-          int wait = 1;
-          // poll the input stream's readiness between interruptable sleeps
-          // this ensures we cannot block indefinitely on read()
-          while (true) {
-            if (closed) throw new IllegalStateException(errMsg);
-            if (isr.ready()) {
-              break;
-            }
-            synchronized(lk) {
-              if (closed) throw new IllegalStateException(errMsg);
-              try {
-                wait = java.lang.Math.min(wait * 2, 200);
-                lk.wait(wait);
-              } catch (InterruptedException e) {
-                // this is expected
-                // just check the closed flag
-              }
-            }
+      QueryStream stream = this;
+      this.responseScanner = new Scanner((buf) -> {
+        int wait = 1;
+        // poll the input stream's readiness between interruptable sleeps
+        // this ensures we cannot block indefinitely on read()
+        while (true) {
+          if (isr.ready()) {
+            break;
           }
-          return isr.read(buf);
+          synchronized(stream) {
+            if (closed) throw stream.closedIllegalStateException("hasNext()");
+            try {
+              wait = java.lang.Math.min(wait * 2, 200);
+              stream.wait(wait);
+            } catch (InterruptedException e) {
+              // this is expected
+              // just check the closed flag
+            }
+            // re-check the closed flag before checking if the stream is ready on next iteration
+            if (closed) throw stream.closedIllegalStateException("hasNext()");
+          }
         }
+        return isr.read(buf);
       });
 
       this.bufferedRow = null;
@@ -292,13 +288,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       response.close();
     }
 
-    private String closedIllegalStateMsg(String methodName) {
-      return "Cannot call " + methodName + " when QueryStream is closed";
-    }
-
     private IllegalStateException closedIllegalStateException(String methodName) {
-      String msg = closedIllegalStateMsg(methodName);
-      return new IllegalStateException(msg);
+      return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
     }
   }
 

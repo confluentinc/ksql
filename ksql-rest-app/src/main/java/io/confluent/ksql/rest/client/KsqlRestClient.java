@@ -197,7 +197,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     private final Scanner responseScanner;
 
     private StreamedRow bufferedRow;
-    private boolean closed = false;
+    private volatile boolean closed = false;
 
     public QueryStream(Response response) {
       this.response = response;
@@ -210,6 +210,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         // poll the input stream's readiness between interruptable sleeps
         // this ensures we cannot block indefinitely on read()
         while (true) {
+          if (closed) throw stream.closedIllegalStateException("hasNext()");
           if (isr.ready()) {
             break;
           }
@@ -222,8 +223,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
               // this is expected
               // just check the closed flag
             }
-            // re-check the closed flag before checking if the stream is ready on next iteration
-            if (closed) throw stream.closedIllegalStateException("hasNext()");
           }
         }
         return isr.read(buf);

@@ -43,7 +43,6 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
   Schema.Parser parser;
   Schema avroSchema;
-  GenericDatumWriter<GenericRecord> writer;
   List<Schema.Field> fields;
 
   KafkaAvroSerializer kafkaAvroSerializer;
@@ -61,7 +60,6 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
     fields = avroSchema.getFields();
-    writer = new GenericDatumWriter<>(avroSchema);
     Map map = new HashMap();
     // Automatically register the schema in the Schema Registry if it has not been registered.
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);

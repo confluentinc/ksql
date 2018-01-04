@@ -81,7 +81,7 @@ public class MockStreamedQueryResource {
         } catch (InterruptedException e) {
           throw new RuntimeException("take interrupted");
         }
-        if (data == "") {
+        if (data.equals("")) {
           break;
         }
         writeRow(data, out);

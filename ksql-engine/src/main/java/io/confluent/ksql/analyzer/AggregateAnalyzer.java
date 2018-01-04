@@ -65,12 +65,12 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
               QualifiedName.of(analysis.getFromDataSources().get(0).getRight()));
           argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         }
-        aggregateAnalysis.aggregateFunctionArguments.add(argExpression);
+        aggregateAnalysis.addAggregateFunctionArgument(argExpression);
         node.getArguments().add(argExpression);
       } else {
-        aggregateAnalysis.aggregateFunctionArguments.add(node.getArguments().get(0));
+        aggregateAnalysis.addAggregateFunctionArgument(node.getArguments().get(0));
       }
-      aggregateAnalysis.functionList.add(node);
+      aggregateAnalysis.addFunction(node);
       hasAggregateFunction = true;
     }
 
@@ -84,9 +84,8 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   protected Node visitDereferenceExpression(final DereferenceExpression node,
                                              final AnalysisContext context) {
     String name = node.toString();
-    if (aggregateAnalysis.getRequiredColumnsMap().get(name) == null) {
-      aggregateAnalysis.getRequiredColumnsList().add(node);
-      aggregateAnalysis.getRequiredColumnsMap().put(name, node);
+    if (!aggregateAnalysis.hasRequiredColumn(name)) {
+      aggregateAnalysis.addRequiredColumn(name, node);
     }
     return null;
   }

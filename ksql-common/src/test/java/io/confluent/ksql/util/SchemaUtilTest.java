@@ -196,12 +196,18 @@ public class SchemaUtilTest {
     int index1 = SchemaUtil.getFieldIndexByName(schema, "orderid".toUpperCase());
     int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());
     int index3 = SchemaUtil.getFieldIndexByName(schema, "mapcol".toUpperCase());
-    int index4 = SchemaUtil.getFieldIndexByName(schema, "mapcol1".toUpperCase());
+
 
     assertThat("Incorrect index.", index1, equalTo(1));
     assertThat("Incorrect index.", index2, equalTo(2));
     assertThat("Incorrect index.", index3, equalTo(5));
-    assertThat("Incorrect index.", index4, equalTo(-1));
+
+  }
+
+  @Test
+  public void shouldHandleInvalidFieldIndexCorrectly() {
+    int index = SchemaUtil.getFieldIndexByName(schema, "mapcol1".toUpperCase());
+    assertThat("Incorrect index.", index, equalTo(-1));
   }
 
   @Test

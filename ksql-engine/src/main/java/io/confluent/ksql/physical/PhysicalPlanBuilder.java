@@ -241,25 +241,25 @@ public class PhysicalPlanBuilder {
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+        ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
     newStreamsProperties.put(
-            StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-            ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
+        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+        ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     newStreamsProperties.put(
-            StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-            ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+        ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
     if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
       newStreamsProperties.put(
-              KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-              ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
+          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
       newStreamsProperties.put(
-              StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
     updateListProperty(newStreamsProperties, StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-            ConsumerCollector.class.getCanonicalName());
+        ConsumerCollector.class.getCanonicalName());
     updateListProperty(newStreamsProperties, StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-            ProducerCollector.class.getCanonicalName());
+        ProducerCollector.class.getCanonicalName());
     return new StreamsConfig(newStreamsProperties);
   }
 

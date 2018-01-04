@@ -72,6 +72,7 @@ public class KsqlContextTest {
     queryStreams.start();
     expectLastCall();
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
+                                                                                   null,
                                                                                    queryStreams,
                                                                                   null,
                                                                                   "",

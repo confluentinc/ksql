@@ -50,6 +50,9 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
 
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -132,12 +135,14 @@ public class PhysicalPlanBuilder {
 
     final String applicationId = addTimeSuffix(getBareQueryApplicationId(serviceId, transientQueryPrefix));
 
-    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
+    StreamsConfig streamsConfig = buildStreamsConfig(applicationId, ksqlConfig, overriddenStreamsProperties);
+    KafkaStreams streams = buildStreams(builder, streamsConfig);
 
     SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
     return new QueuedQueryMetadata(
         statement,
+        streamsConfig,
         streams,
         bareOutputNode,
         schemaKStream.getExecutionPlan(""),
@@ -189,12 +194,13 @@ public class PhysicalPlanBuilder {
     final QueryId queryId = sinkDataSource.getPersistentQueryId();
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
-    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
+    StreamsConfig streamsConfig = buildStreamsConfig(applicationId, ksqlConfig, overriddenStreamsProperties);
+    KafkaStreams streams = buildStreams(builder, streamsConfig);
 
     TopologyDescription topologyDescription = builder.build().describe();
 
     return new PersistentQueryMetadata(statement,
-        streams, outputNode, schemaKStream
+        streamsConfig, streams, outputNode, schemaKStream
         .getExecutionPlan(""), queryId,
         (schemaKStream instanceof SchemaKTable) ? DataSource
             .DataSourceType.KTABLE : DataSource.DataSourceType
@@ -214,34 +220,51 @@ public class PhysicalPlanBuilder {
     return String.format("%s_%d", original, System.currentTimeMillis());
   }
 
-  private KafkaStreams buildStreams(
-      final StreamsBuilder builder,
-      final String applicationId,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
-  ) {
+  private void updateListProperty(Map<String, Object> properties, String key, Object value) {
+    Object obj = properties.getOrDefault(key, new java.util.LinkedList<String>());
+    List valueList;
+    if (obj instanceof String) {
+      String asString = (String)obj;
+      valueList = new LinkedList<>(Arrays.asList(asString));
+    } else if (obj instanceof List) {
+      valueList = (List) obj;
+    } else {
+      throw new KsqlException("Expecting list or string for property: " + key);
+    }
+    valueList.add(value);
+    properties.put(key, valueList);
+  }
+
+  private StreamsConfig buildStreamsConfig(final String applicationId, final KsqlConfig ksqlConfig,
+                                           final Map<String, Object> overriddenProperties) {
     Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlStreamConfigProps();
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-        ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+            ksqlConfig.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
     newStreamsProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
+            StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
+            ksqlConfig.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     newStreamsProperties.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
-        ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
+            StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+            ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
     if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
       newStreamsProperties.put(
-          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
+              KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+              ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX));
       newStreamsProperties.put(
-          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
+              StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-    newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), ConsumerCollector.class.getCanonicalName());
-    newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), ProducerCollector.class.getCanonicalName());
-    return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
+    updateListProperty(newStreamsProperties, StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            ConsumerCollector.class.getCanonicalName());
+    updateListProperty(newStreamsProperties, StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            ProducerCollector.class.getCanonicalName());
+    return new StreamsConfig(newStreamsProperties);
+  }
+
+  private KafkaStreams buildStreams(final StreamsBuilder builder, final StreamsConfig config) {
+    return new KafkaStreams(builder.build(), config);
   }
 
 }

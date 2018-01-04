@@ -14,10 +14,13 @@
 
 package io.confluent.ksql.physical;
 
+import com.sun.prism.impl.Disposer;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource;
@@ -29,14 +32,20 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.internals.ConsumerInterceptors;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,24 +61,30 @@ public class PhysicalPlanBuilderTest {
   public void before() {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final FunctionRegistry functionRegistry = new FunctionRegistry();
+    physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
+    planBuilder = new LogicalPlanBuilder(metaStore);
+  }
+
+  private PhysicalPlanBuilder buildPhysicalPlanBuilder(Map<String, Object> overrideProperties) {
+    final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    final FunctionRegistry functionRegistry = new FunctionRegistry();
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("application.id", "KSQL");
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
-    physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder,
-        new KsqlConfig(configMap),
-        new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
-        functionRegistry,
-        Collections.emptyMap(),
-        false,
-        metaStore,
-                                                  new MockSchemaRegistryClient()
+    return new PhysicalPlanBuilder(streamsBuilder,
+            new KsqlConfig(configMap),
+            new FakeKafkaTopicClient(),
+            new MetastoreUtil(),
+            functionRegistry,
+            overrideProperties,
+            false,
+            metaStore,
+            new MockSchemaRegistryClient()
     );
 
-    planBuilder = new LogicalPlanBuilder(metaStore);
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
@@ -105,4 +120,107 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(lines[5], "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.COL0 : INT64 , TEST1.COL1 : STRING , TEST1.COL2 : STRING , TEST1.COL3 : FLOAT64 , TEST1.COL4 : ARRAY , TEST1.COL5 : MAP].");
   }
 
+  @Test
+  public void shouldAddMetricsInterceptors() throws Exception {
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+    StreamsConfig config = queryMetadata.getStreamsConfig();
+
+    Object val = config.originals().get(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    List<String> consumerInterceptors = (List<String>) val;
+    Assert.assertEquals(1, consumerInterceptors.size());
+    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(0)));
+
+    val = config.originals().get(
+            StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    List<String> producerInterceptors = (List<String>) val;
+    Assert.assertEquals(1, producerInterceptors.size());
+    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(0)));
+  }
+
+  public static class DummyConsumerInterceptor implements ConsumerInterceptor {
+    public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+      return consumerRecords;
+    }
+    public void close() {  }
+    public void onCommit(Map map) {  }
+    public void configure(Map<String, ?> map) {  }
+  }
+
+  public static class DummyProducerInterceptor implements ProducerInterceptor {
+    public void onAcknowledgement(RecordMetadata rm, Exception e) {}
+    public ProducerRecord onSend(ProducerRecord producerRecords) {
+      return producerRecords;
+    }
+    public void close() {  }
+    public void configure(Map<String, ?> map) {  }
+  }
+
+  @Test
+  public void shouldAddMetricsInterceptorsToExistingList() throws Exception {
+    // Initialize override properties with lists for producer/consumer interceptors
+    Map<String, Object> overrideProperties = new HashMap<>();
+    List<String> consumerInterceptors = new LinkedList<>();
+    consumerInterceptors.add(DummyConsumerInterceptor.class.getName());
+    overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            consumerInterceptors);
+    List<String> producerInterceptors = new LinkedList<>();
+    producerInterceptors.add(DummyProducerInterceptor.class.getName());
+    overrideProperties.put(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            producerInterceptors);
+
+    physicalPlanBuilder = buildPhysicalPlanBuilder(overrideProperties);
+
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+
+    StreamsConfig config = queryMetadata.getStreamsConfig();
+    Object val = config.originals().get(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    consumerInterceptors = (List<String>) val;
+    Assert.assertEquals(2, consumerInterceptors.size());
+    Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
+    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(1)));
+
+    val = config.originals().get(
+            StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    producerInterceptors = (List<String>) val;
+    Assert.assertEquals(2, producerInterceptors.size());
+    Assert.assertEquals(DummyProducerInterceptor.class.getName(), producerInterceptors.get(0));
+    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(1)));
+  }
+
+  @Test
+  public void shouldAddMetricsInterceptorsToExistingString() throws Exception {
+    // Initialize override properties with class name strings for producer/consumer interceptors
+    Map<String, Object> overrideProperties = new HashMap<>();
+    overrideProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyConsumerInterceptor.class.getName());
+    overrideProperties.put(StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyProducerInterceptor.class.getName());
+    physicalPlanBuilder = buildPhysicalPlanBuilder(overrideProperties);
+
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+
+    StreamsConfig config = queryMetadata.getStreamsConfig();
+
+    Object val = config.originals().get(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    List<String> consumerInterceptors = (List<String>) val;
+    Assert.assertEquals(2, consumerInterceptors.size());
+    Assert.assertEquals(DummyConsumerInterceptor.class.getName(), consumerInterceptors.get(0));
+    Assert.assertEquals(ConsumerCollector.class, Class.forName(consumerInterceptors.get(1)));
+
+    val = config.originals().get(
+            StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG));
+    Assert.assertTrue(val instanceof List);
+    List<String> producerInterceptors = (List<String>) val;
+    Assert.assertEquals(2, producerInterceptors.size());
+    Assert.assertEquals(DummyProducerInterceptor.class.getName(), producerInterceptors.get(0));
+    Assert.assertEquals(ProducerCollector.class, Class.forName(producerInterceptors.get(1)));
+  }
 }

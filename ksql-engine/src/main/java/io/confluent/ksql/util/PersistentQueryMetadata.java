@@ -23,6 +23,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Objects;
 
@@ -34,6 +35,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
 
   public PersistentQueryMetadata(final String statementString,
+                                 final StreamsConfig streamsConfig,
                                  final KafkaStreams kafkaStreams,
                                  final OutputNode outputNode,
                                  final String executionPlan,
@@ -45,7 +47,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final Schema resultSchema,
                                  final KsqlTopic resultTopic,
                                  final String topology) {
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
+    super(statementString, streamsConfig, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, ksqlConfig, topology);
     this.id = id;
     this.resultSchema = resultSchema;

@@ -31,6 +31,9 @@ import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+
 public class KsqlJsonDeserializerTest {
 
   Schema orderSchema;
@@ -52,8 +55,8 @@ public class KsqlJsonDeserializerTest {
   public void shouldDeserializeJsonCorrectly() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, Object> orderRow = new HashMap<>();
-    orderRow.put("ordertime", 1511897796092l);
-    orderRow.put("@orderid", 1l);
+    orderRow.put("ordertime", 1511897796092L);
+    orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
     orderRow.put("orderunits", 10.0);
     orderRow.put("arraycol", new Double[]{10.0, 20.0});
@@ -64,11 +67,12 @@ public class KsqlJsonDeserializerTest {
     KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
-    Assert.assertTrue(genericRow.getColumns().size() == 6);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
-    Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
+    assertThat("Incorrect columns count.", genericRow.getColumns().size(), equalTo(6));
+    assertThat("Incorrect deserialization", (Long) genericRow.getColumns().get(0) ==
+                                           1511897796092L);
+    assertThat("Incorrect deserialization", (Long) genericRow.getColumns().get(1) == 1L);
+    assertThat("Incorrect deserialization", ((String) genericRow.getColumns().get(2)).equals("Item_1"));
+    assertThat("Incorrect deserialization", (Double) genericRow.getColumns().get(3) == 10.0);
 
   }
 

@@ -22,7 +22,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -33,7 +32,6 @@ public class QueuedQueryMetadata extends QueryMetadata {
 
   public QueuedQueryMetadata(
       final String statementString,
-      final StreamsConfig streamsConfig,
       final KafkaStreams kafkaStreams,
       final OutputNode outputNode,
       final String executionPlan,
@@ -43,7 +41,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final KafkaTopicClient kafkaTopicClient,
       final KsqlConfig ksqlConfig
   ) {
-    super(statementString, streamsConfig, kafkaStreams, outputNode, executionPlan, dataSourceType,
+    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, ksqlConfig, "not-applicable-for-queued");
     this.rowQueue = rowQueue;
   }

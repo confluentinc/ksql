@@ -116,7 +116,6 @@ public class AvroUtilTest {
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
                                                                                   null,
                                                                                   null,
-                                                                                  null,
                                                                                   "",
                                                                                   null,
                                                                                   DataSource.DataSourceType.KSTREAM,
@@ -142,7 +141,6 @@ public class AvroUtilTest {
         ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
-                                                                                  null,
                                                                                   null,
                                                                                   null,
                                                                                   "",

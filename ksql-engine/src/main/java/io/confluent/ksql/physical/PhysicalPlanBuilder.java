@@ -67,6 +67,29 @@ public class PhysicalPlanBuilder {
   private final MetaStore metaStore;
   private final boolean updateMetastore;
   private final SchemaRegistryClient schemaRegistryClient;
+  private final KafkaStreamsBuilder kafkaStreamsBuilder;
+
+  public PhysicalPlanBuilder(final StreamsBuilder builder,
+                             final KsqlConfig ksqlConfig,
+                             final KafkaTopicClient kafkaTopicClient,
+                             final MetastoreUtil metastoreUtil,
+                             final FunctionRegistry functionRegistry,
+                             final Map<String, Object> overriddenStreamsProperties,
+                             final boolean updateMetastore,
+                             final MetaStore metaStore,
+                             final SchemaRegistryClient schemaRegistryClient,
+                             final KafkaStreamsBuilder kafkaStreamsBuilder) {
+    this.builder = builder;
+    this.ksqlConfig = ksqlConfig;
+    this.kafkaTopicClient = kafkaTopicClient;
+    this.metastoreUtil = metastoreUtil;
+    this.functionRegistry = functionRegistry;
+    this.overriddenStreamsProperties = overriddenStreamsProperties;
+    this.metaStore = metaStore;
+    this.updateMetastore = updateMetastore;
+    this.schemaRegistryClient = schemaRegistryClient;
+    this.kafkaStreamsBuilder = kafkaStreamsBuilder;
+  }
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -77,16 +100,10 @@ public class PhysicalPlanBuilder {
                              final boolean updateMetastore,
                              final MetaStore metaStore,
                              final SchemaRegistryClient schemaRegistryClient) {
-    this.builder = builder;
-    this.ksqlConfig = ksqlConfig;
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
-    this.functionRegistry = functionRegistry;
-    this.overriddenStreamsProperties = overriddenStreamsProperties;
-    this.metaStore = metaStore;
-    this.updateMetastore = updateMetastore;
-    this.schemaRegistryClient = schemaRegistryClient;
+    this(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, overriddenStreamsProperties,
+        updateMetastore, metaStore, schemaRegistryClient, new KafkaStreamsBuilderImpl());
   }
+
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
     final SchemaKStream resultStream = statementPlanPair.getRight().buildStream(builder,
@@ -135,14 +152,12 @@ public class PhysicalPlanBuilder {
 
     final String applicationId = addTimeSuffix(getBareQueryApplicationId(serviceId, transientQueryPrefix));
 
-    StreamsConfig streamsConfig = buildStreamsConfig(applicationId, ksqlConfig, overriddenStreamsProperties);
-    KafkaStreams streams = buildStreams(builder, streamsConfig);
+    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
     SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
     return new QueuedQueryMetadata(
         statement,
-        streamsConfig,
         streams,
         bareOutputNode,
         schemaKStream.getExecutionPlan(""),
@@ -194,13 +209,12 @@ public class PhysicalPlanBuilder {
     final QueryId queryId = sinkDataSource.getPersistentQueryId();
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
-    StreamsConfig streamsConfig = buildStreamsConfig(applicationId, ksqlConfig, overriddenStreamsProperties);
-    KafkaStreams streams = buildStreams(builder, streamsConfig);
+    KafkaStreams streams = buildStreams(builder, applicationId, ksqlConfig, overriddenStreamsProperties);
 
     TopologyDescription topologyDescription = builder.build().describe();
 
     return new PersistentQueryMetadata(statement,
-        streamsConfig, streams, outputNode, schemaKStream
+        streams, outputNode, schemaKStream
         .getExecutionPlan(""), queryId,
         (schemaKStream instanceof SchemaKTable) ? DataSource
             .DataSourceType.KTABLE : DataSource.DataSourceType
@@ -223,9 +237,11 @@ public class PhysicalPlanBuilder {
   private void updateListProperty(Map<String, Object> properties, String key, Object value) {
     Object obj = properties.getOrDefault(key, new java.util.LinkedList<String>());
     List valueList;
+    // The property value is either a comma-separated string of class names, or a list of class names
     if (obj instanceof String) {
+      // If its a string just split it on the separator so we dont have to worry about adding a separator
       String asString = (String)obj;
-      valueList = new LinkedList<>(Arrays.asList(asString));
+      valueList = new LinkedList<>(Arrays.asList(asString.split("\\s*,\\s*")));
     } else if (obj instanceof List) {
       valueList = (List) obj;
     } else {
@@ -235,8 +251,12 @@ public class PhysicalPlanBuilder {
     properties.put(key, valueList);
   }
 
-  private StreamsConfig buildStreamsConfig(final String applicationId, final KsqlConfig ksqlConfig,
-                                           final Map<String, Object> overriddenProperties) {
+  private KafkaStreams buildStreams(
+      final StreamsBuilder builder,
+      final String applicationId,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
     Map<String, Object> newStreamsProperties = ksqlConfig.getKsqlStreamConfigProps();
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
@@ -260,12 +280,7 @@ public class PhysicalPlanBuilder {
         ConsumerCollector.class.getCanonicalName());
     updateListProperty(newStreamsProperties, StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ProducerCollector.class.getCanonicalName());
-    return new StreamsConfig(newStreamsProperties);
+    return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
-
-  private KafkaStreams buildStreams(final StreamsBuilder builder, final StreamsConfig config) {
-    return new KafkaStreams(builder.build(), config);
-  }
-
 }
 

@@ -33,7 +33,6 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
@@ -111,10 +110,9 @@ public class StreamedQueryResourceTest {
     KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
     KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    StreamsConfig mockStreamsConfig = mock(StreamsConfig.class);
 
     final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(queryString, mockStreamsConfig, mockKafkaStreams, mockOutputNode, "",
+        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
                                 rowQueue, DataSource.DataSourceType.KSTREAM, "",
                                 mockKafkaTopicClient,
                                 new KsqlConfig(Collections.EMPTY_MAP)

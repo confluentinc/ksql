@@ -20,7 +20,6 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ public class QueryMetadata {
 
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
   private final String statementString;
-  private final StreamsConfig streamsConfig;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
   private final String executionPlan;
@@ -42,7 +40,6 @@ public class QueryMetadata {
 
 
   public QueryMetadata(final String statementString,
-                       final StreamsConfig streamsConfig,
                        final KafkaStreams kafkaStreams,
                        final OutputNode outputNode,
                        final String executionPlan,
@@ -52,7 +49,6 @@ public class QueryMetadata {
                        final KsqlConfig ksqlConfig,
                        String topoplogy) {
     this.statementString = statementString;
-    this.streamsConfig = streamsConfig;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
@@ -65,10 +61,6 @@ public class QueryMetadata {
 
   public String getStatementString() {
     return statementString;
-  }
-
-  public StreamsConfig getStreamsConfig() {
-    return streamsConfig;
   }
 
   public KafkaStreams getKafkaStreams() {

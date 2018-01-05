@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import java.io.IOException;
 import java.util.HashMap;
@@ -119,7 +120,7 @@ public class SchemaUtilTest {
       Class class8 = SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
       Assert.fail();
     } catch (KsqlException ksqlException) {
-      assertThat("Invalid type retured.",ksqlException.getMessage().equals("Type is not "
+      assertThat("Invalid type retured.",ksqlException.getMessage(), equalTo("Type is not "
                                                                           + "supported: "
                                                                    + "BYTES"));
       return;
@@ -130,8 +131,8 @@ public class SchemaUtilTest {
   public void shouldGetTheCorrectFieldName() {
     Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
     Assert.assertTrue(field.isPresent());
-    assertThat("", field.get().schema() == Schema.INT64_SCHEMA);
-    assertThat("", field.get().name().equalsIgnoreCase("orderid"));
+    assertThat(field.get().schema(), sameInstance(Schema.INT64_SCHEMA));
+    assertThat("", field.get().name().toLowerCase(), equalTo("orderid"));
 
     Optional<Field> field1 = SchemaUtil.getFieldByName(schema, "orderid");
     Assert.assertFalse(field1.isPresent());
@@ -140,43 +141,43 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetTheCorrectSchemaForBoolean() {
     Schema schema = SchemaUtil.getTypeSchema("BOOLEAN");
-    assertThat("", schema == Schema.BOOLEAN_SCHEMA);
+    assertThat(schema,  sameInstance(Schema.BOOLEAN_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForInt() {
     Schema schema = SchemaUtil.getTypeSchema("INT");
-    assertThat("", schema == Schema.INT32_SCHEMA);
+    assertThat(schema, sameInstance(Schema.INT32_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForLong() {
     Schema schema = SchemaUtil.getTypeSchema("BIGINT");
-    assertThat("", schema == Schema.INT64_SCHEMA);
+    assertThat(schema, sameInstance(Schema.INT64_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForDouble() {
     Schema schema = SchemaUtil.getTypeSchema("DOUBLE");
-    assertThat("", schema == Schema.FLOAT64_SCHEMA);
+    assertThat(schema, sameInstance(Schema.FLOAT64_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForString() {
     Schema schema = SchemaUtil.getTypeSchema("VARCHAR");
-    assertThat("", schema == Schema.STRING_SCHEMA);
+    assertThat(schema, sameInstance(Schema.STRING_SCHEMA));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForArray() {
     Schema schema = SchemaUtil.getTypeSchema("ARRAY<DOUBLE>");
-    assertThat("", schema.type() == Schema.Type.ARRAY);
+    assertThat(schema.type(), sameInstance(Schema.Type.ARRAY));
   }
 
   @Test
   public void shouldGetTheCorrectSchemaForMap() {
     Schema schema = SchemaUtil.getTypeSchema("MAP<VARCHAR, DOUBLE>");
-    assertThat("", schema.type() == Schema.Type.MAP);
+    assertThat(schema.type(), sameInstance(Schema.Type.MAP));
   }
 
   @Test
@@ -232,16 +233,11 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetTheCorrectJavaCastClass() {
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.BOOLEAN_SCHEMA).equals(""
-                                                                                        + "(Boolean)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.INT32_SCHEMA).equals(""
-                                                                                            + "(Integer)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.INT64_SCHEMA).equals(""
-                                                                                            + "(Long)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.FLOAT64_SCHEMA).equals(""
-                                                                                              + "(Double)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.STRING_SCHEMA).equals(""
-                                                                                             + "(String)"));
+    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.BOOLEAN_SCHEMA), equalTo("(Boolean)"));
+    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.INT32_SCHEMA), equalTo("(Integer)"));
+    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.INT64_SCHEMA), equalTo("(Long)"));
+    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.FLOAT64_SCHEMA), equalTo("(Double)"));
+    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.STRING_SCHEMA), equalTo("(String)"));
   }
 
   @Test
@@ -249,17 +245,13 @@ public class SchemaUtilTest {
     Schema withImplicit = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
 
     assertThat("Invalid field count.", withImplicit.fields().size() == 8);
-    assertThat("Field name should be ROWTIME.", withImplicit.fields().get(0).name().equals
-        (SchemaUtil
-                                                                              .ROWTIME_NAME));
-    assertThat("Field name should ne ROWKEY.", withImplicit.fields().get(1).name().equals
-        (SchemaUtil
-                                                                               .ROWKEY_NAME));
+    assertThat("Field name should be ROWTIME.", withImplicit.fields().get(0).name(), equalTo(SchemaUtil.ROWTIME_NAME));
+    assertThat("Field name should ne ROWKEY.", withImplicit.fields().get(1).name(), equalTo(SchemaUtil.ROWKEY_NAME));
 
     Schema withoutImplicit = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(withImplicit);
     assertThat("Invalid field count.", withoutImplicit.fields().size() == 6);
-    assertThat("Invalid field name.", withoutImplicit.fields().get(0).name().equals("ORDERTIME"));
-    assertThat("Invalid field name.", withoutImplicit.fields().get(1).name().equals("ORDERID"));
+    assertThat("Invalid field name.", withoutImplicit.fields().get(0).name(), equalTo("ORDERTIME"));
+    assertThat("Invalid field name.", withoutImplicit.fields().get(1).name(), equalTo("ORDERID"));
   }
 
   @Test
@@ -281,13 +273,13 @@ public class SchemaUtilTest {
     String sqlType6 = SchemaUtil.getSQLTypeName(SchemaBuilder.array(Schema.FLOAT64_SCHEMA));
     String sqlType7 = SchemaUtil.getSQLTypeName(SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
 
-    assertThat("Invalid SQL type.", sqlType1.equals("BOOLEAN"));
-    assertThat("Invalid SQL type.", sqlType2.equals("INT"));
-    assertThat("Invalid SQL type.", sqlType3.equals("BIGINT"));
-    assertThat("Invalid SQL type.", sqlType4.equals("DOUBLE"));
-    assertThat("Invalid SQL type.", sqlType5.equals("VARCHAR"));
-    assertThat("Invalid SQL type.", sqlType6.equals("ARRAY<DOUBLE>"));
-    assertThat("Invalid SQL type.", sqlType7.equals("MAP<VARCHAR,DOUBLE>"));
+    assertThat("Invalid SQL type.", sqlType1, equalTo("BOOLEAN"));
+    assertThat("Invalid SQL type.", sqlType2, equalTo("INT"));
+    assertThat("Invalid SQL type.", sqlType3, equalTo("BIGINT"));
+    assertThat("Invalid SQL type.", sqlType4, equalTo("DOUBLE"));
+    assertThat("Invalid SQL type.", sqlType5, equalTo("VARCHAR"));
+    assertThat("Invalid SQL type.", sqlType6, equalTo("ARRAY<DOUBLE>"));
+    assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR,DOUBLE>"));
   }
 
 }

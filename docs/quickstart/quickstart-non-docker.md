@@ -15,8 +15,6 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 - KSQL is in developer preview. Do not run KSQL against a production cluster.
 - [Confluent Platform 4.0.0](http://docs.confluent.io/current/installation.html) is installed. This installation includes a Kafka broker, ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
   - If you installed Confluent Platform via tar or zip, navigate into the installation directory. The paths and commands used throughout this quick start assume that your are in this installation directory.
-- [Maven](https://maven.apache.org/install.html)
-- [Git](https://git-scm.com/downloads)
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK \>= 1.8 on your local machine
 
 ## Start Kafka
@@ -50,17 +48,19 @@ connect is [UP]
     $ git clone git@github.com:confluentinc/ksql.git
     ```
 
-1.  Change directory to the `ksql` directory and compile the code.
+1. Download the [KSQL 0.3 release tarball](https://s3-us-west-2.amazonaws.com/ksql-releases/releases/0.3/ksql.tgz).
+
+1. Unpack the release tarball.
+
+    ```bash
+    $ tar -xzf ksql.tgz
+    ```
+
+1.  Change directory to the `ksql` directory.
 
     ```bash
     $ cd ksql
-    $ git checkout v0.3 -b 0.3
-    $ mvn clean compile install -DskipTests
     ```
-
-    > Tip: When using a Maven proxy or mirror, such as Artifactory, make sure that it is correctly configured to
-    > retrieve snapshot artifacts and access snapshot repositories. For more information, see
-    > [Could not find artifact](https://github.com/confluentinc/ksql/issues/537).
 
 1.  Start KSQL. The `local` argument starts KSQL in [standalone mode](/docs/concepts.md#modes-of-operation).
 
@@ -82,20 +82,18 @@ Minimally, to use the [quick start exercises](/docs/quickstart#quick-start), you
 1.  Produce Kafka data to the `pageviews` topic using the data generator. The following example continuously generates data with a value in DELIMITED format.
 
     ```bash
-    $ java -jar ksql-examples/target/ksql-examples-4.1.0-SNAPSHOT-standalone.jar \
-        quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
+    $ ./bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
     ```
 
 1.  Produce Kafka data to the `users` topic using the data generator. The following example continuously generates data with a value in JSON format.
 
     ```bash
-    $ java -jar ksql-examples/target/ksql-examples-4.1.0-SNAPSHOT-standalone.jar \
-        quickstart=users format=json topic=users maxInterval=10000
+    $ ./bin/ksql-datagen quickstart=users format=json topic=users maxInterval=10000
     ```
 
 Optionally, you can return to the [main KSQL quick start page](/docs/quickstart#quick-start) to start querying the Kafka cluster. Or you can do additional testing with topic data produced from the command line tools.
 
-1.  You can produce Kafka data with the Kafka command line `kafka-console-producer`. The following example generates data with a value in DELIMITED format.
+1.  You can produce Kafka data with the Kafka command line `kafka-console-producer` provided with the Confluent Platform. The following example generates data with a value in DELIMITED format.
 
     ```bash
     $ kafka-console-producer --broker-list localhost:9092  \

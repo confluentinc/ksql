@@ -20,6 +20,8 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.fail;
+
 
 public class SerDeUtilTest {
 
@@ -115,6 +117,80 @@ public class SerDeUtilTest {
                                                                                        .FLOAT64_SCHEMA));
     assertThat("Incorrect field schema.", schema.fields().get(7).schema(), equalTo(Schema
                                                                                        .STRING_SCHEMA));
+  }
+
+
+  @Test
+  public void shouldFailForUnsupportedUnion() {
+
+    String avroSchemaStr = "{\n"
+                           + "  \"type\": \"record\",\n"
+                           + "  \"name\": \"LOGON\",\n"
+                           + "  \"namespace\": \"ORCL.SOE2\",\n"
+                           + "  \"fields\": [\n"
+                           + "    {\n"
+                           + "      \"name\": \"table\",\n"
+                           + "      \"type\": [\n"
+                           + "        \"string\"\n"
+                           + "      ],\n"
+                           + "      \"default\": null\n"
+                           + "    },\n"
+                           + "    {\n"
+                           + "      \"name\": \"LOGON_DATE\",\n"
+                           + "      \"type\": [\n"
+                           + "        \"null\",\n"
+                           + "        \"int\",\n"
+                           + "        \"long\"\n"
+                           + "      ],\n"
+                           + "      \"default\": null\n"
+                           + "    }\n"
+                           + "  ],\n"
+                           + "  \"connect.name\": \"ORCL.SOE2.LOGON\"\n"
+                           + "}";
+
+    try {
+      Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaStr);
+      fail();
+    } catch (KsqlException ksqlException) {
+      assertThat("", ksqlException.getMessage(), equalTo("Union type cannot have more than two "
+                                                        + "types and one of them should be null."));
+    }
+  }
+
+  @Test
+  public void shouldFailForUnionWithNoNull() {
+
+    String avroSchemaStr = "{\n"
+                           + "  \"type\": \"record\",\n"
+                           + "  \"name\": \"LOGON\",\n"
+                           + "  \"namespace\": \"ORCL.SOE2\",\n"
+                           + "  \"fields\": [\n"
+                           + "    {\n"
+                           + "      \"name\": \"table\",\n"
+                           + "      \"type\": [\n"
+                           + "        \"string\"\n"
+                           + "      ],\n"
+                           + "      \"default\": null\n"
+                           + "    },\n"
+                           + "    {\n"
+                           + "      \"name\": \"LOGON_DATE\",\n"
+                           + "      \"type\": [\n"
+                           + "        \"string\",\n"
+                           + "        \"long\"\n"
+                           + "      ],\n"
+                           + "      \"default\": null\n"
+                           + "    }\n"
+                           + "  ],\n"
+                           + "  \"connect.name\": \"ORCL.SOE2.LOGON\"\n"
+                           + "}";
+
+    try {
+      Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaStr);
+      fail();
+    } catch (KsqlException ksqlException) {
+      assertThat("", ksqlException.getMessage(), equalTo("Union type cannot have more than two "
+                                                         + "types and one of them should be null."));
+    }
   }
 
 }

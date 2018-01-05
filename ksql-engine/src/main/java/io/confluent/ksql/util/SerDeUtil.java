@@ -66,8 +66,8 @@ public class SerDeUtil {
             return getKSQLSchemaForAvroSchema(schemaList.get(0));
           }
         }
-        throw new KsqlException(String.format("Cannot find correct type for avro type: %s",
-                                              avroSchema.getFullName()));
+        throw new KsqlException(String.format("Union type cannot have more than two types and "
+                                              + "one of them should be null."));
         
       default:
         throw new KsqlException(String.format("Cannot find correct type for avro type: %s",

@@ -74,8 +74,8 @@ public class KsqlGenericRowAvroDeserializerTest {
     Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(schemaStr);
     genericRecord  = new GenericData.Record(avroSchema);
-    genericRecord.put("orderTime", 1511897796092l);
-    genericRecord.put("orderId", 1l);
+    genericRecord.put("orderTime", 1511897796092L);
+    genericRecord.put("orderId", 1L);
     genericRecord.put("itemId", "item_1");
     genericRecord.put("orderUnits", 10.0);
     genericRecord.put("arrayCol", new GenericData.Array(Schema.createArray(
@@ -108,8 +108,8 @@ public class KsqlGenericRowAvroDeserializerTest {
     GenericRow genericRow = ksqlGenericRowAvroDeserializer.deserialize("", new byte[]{});
 
     assertThat("Column number does not match.", genericRow.getColumns().size(), equalTo(6));
-    assertThat("Invalid column value.", genericRow.getColumns().get(0), equalTo(1511897796092l));
-    assertThat("Invalid column value.", genericRow.getColumns().get(1), equalTo(1l));
+    assertThat("Invalid column value.", genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat("Invalid column value.", genericRow.getColumns().get(1), equalTo(1L));
     assertThat("Invalid column value.", ((Double[])genericRow.getColumns().get(4))[0], equalTo
         (100.0));
     assertThat("Invalid column value.", ((Map<String, Double>)genericRow.getColumns().get(5))
@@ -119,9 +119,10 @@ public class KsqlGenericRowAvroDeserializerTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldDeserializeCorrectly() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092l, 1l, "item_1", 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -134,12 +135,13 @@ public class KsqlGenericRowAvroDeserializerTest {
     GenericRow row = ksqlGenericRowAvroDeserializer.deserialize("t1", serializedRow);
     Assert.assertNotNull(row);
     assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(6));
-    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092l));
-    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(1), equalTo
-        (1l));
-    assertThat("Incorrect deserializarion", (String)row.getColumns().get(2), equalTo
+    assertThat("Incorrect deserializarion", row.getColumns().get(0), equalTo(1511897796092L));
+    assertThat("Incorrect deserializarion", row.getColumns().get(1), equalTo
+        (1L));
+    assertThat("Incorrect deserializarion", row.getColumns().get(2), equalTo
         ( "item_1"));
-
+    assertThat("Incorrect deserializarion", row.getColumns().get(3), equalTo
+        ( 10.0));
     assertThat("Incorrect deserializarion", ((Double[])row.getColumns().get(4)).length, equalTo
         (1));
     assertThat("Incorrect deserializarion", ((Map)row.getColumns().get(5)).size(), equalTo
@@ -158,7 +160,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
         .build();
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092l, 1l, "item_1", 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
 
     GenericRow genericRow = new GenericRow(columns);
@@ -170,9 +172,9 @@ public class KsqlGenericRowAvroDeserializerTest {
     GenericRow row = ksqlGenericRowAvroDeserializer.deserialize("t1", serializedRow);
     Assert.assertNotNull(row);
     assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(4));
-    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092l));
+    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092L));
     assertThat("Incorrect deserializarion", (Long)row.getColumns().get(1), equalTo
-        (1l));
+        (1L));
     assertThat("Incorrect deserializarion", (String)row.getColumns().get(2), equalTo
         ( "item_1"));
   }
@@ -194,7 +196,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     Schema.Parser parser = new Schema.Parser();
     Schema avroSchema1 = parser.parse(schemaStr1);
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    List columns = Arrays.asList(1511897796092l, 1l, "item_1", 10.0);
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
     GenericRow genericRow = new GenericRow(columns);
     byte[] serializedRow = getSerializedRow("t1", schemaRegistryClient, avroSchema1, genericRow);
@@ -204,9 +206,9 @@ public class KsqlGenericRowAvroDeserializerTest {
 
     GenericRow row = ksqlGenericRowAvroDeserializer.deserialize("t1", serializedRow);
     assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(6));
-    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092l));
+    assertThat("Incorrect deserializarion", (Long)row.getColumns().get(0), equalTo(1511897796092L));
     assertThat("Incorrect deserializarion", (Long)row.getColumns().get(1), equalTo
-        (1l));
+        (1L));
     assertThat("Incorrect deserializarion", (String)row.getColumns().get(2), equalTo
         ( "item_1"));
     Assert.assertNull(row.getColumns().get(4));

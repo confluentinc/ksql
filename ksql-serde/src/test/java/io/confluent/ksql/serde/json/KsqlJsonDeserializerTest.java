@@ -52,8 +52,8 @@ public class KsqlJsonDeserializerTest {
   public void shouldDeserializeJsonCorrectly() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, Object> orderRow = new HashMap<>();
-    orderRow.put("ordertime", 1511897796092l);
-    orderRow.put("@orderid", 1l);
+    orderRow.put("ordertime", 1511897796092L);
+    orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
     orderRow.put("orderunits", 10.0);
     orderRow.put("arraycol", new Double[]{10.0, 20.0});
@@ -65,8 +65,8 @@ public class KsqlJsonDeserializerTest {
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     Assert.assertTrue(genericRow.getColumns().size() == 6);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
+    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
+    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
     Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
     Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
 
@@ -76,8 +76,8 @@ public class KsqlJsonDeserializerTest {
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, Object> orderRow = new HashMap<>();
-    orderRow.put("ordertime", 1511897796092l);
-    orderRow.put("@orderid", 1l);
+    orderRow.put("ordertime", 1511897796092L);
+    orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
     orderRow.put("orderunits", 10.0);
     orderRow.put("arraycol", new Double[]{10.0, 20.0});
@@ -95,8 +95,8 @@ public class KsqlJsonDeserializerTest {
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
+    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
+    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
     Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
     Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
 
@@ -106,8 +106,8 @@ public class KsqlJsonDeserializerTest {
   public void shouldDeserializeEvenWithMissingFields() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, Object> orderRow = new HashMap<>();
-    orderRow.put("ordertime", 1511897796092l);
-    orderRow.put("@orderid", 1l);
+    orderRow.put("ordertime", 1511897796092L);
+    orderRow.put("@orderid", 1L);
     orderRow.put("itemid", "Item_1");
     orderRow.put("orderunits", 10.0);
 
@@ -117,8 +117,8 @@ public class KsqlJsonDeserializerTest {
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     Assert.assertTrue(genericRow.getColumns().size() == 6);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
+    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
+    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
     Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
     Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
     Assert.assertNull(genericRow.getColumns().get(4));

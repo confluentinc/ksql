@@ -49,7 +49,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    List columns = Arrays.asList(1511897796092l, 1l, "item_1", 10.0, new Double[]{100.0},
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
     GenericRow genericRow = new GenericRow(columns);
     KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
@@ -61,7 +61,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowWithNull() {
-    List columns = Arrays.asList(1511897796092l, 1l, "item_1", 10.0, null,
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
                                  null);
     GenericRow genericRow = new GenericRow(columns);
     KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);

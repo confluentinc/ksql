@@ -53,8 +53,8 @@ public class KsqlDelimitedDeserializerTest {
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
+    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
+    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
     Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("item_1"));
     Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
 
@@ -69,8 +69,8 @@ public class KsqlDelimitedDeserializerTest {
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092l);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1l);
+    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
+    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
     Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("item_1"));
     Assert.assertNull(genericRow.getColumns().get(3));
   }

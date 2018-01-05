@@ -122,13 +122,11 @@ public class LogicalPlanner {
     return new AggregateNode(new PlanNodeId("Aggregate"),
                              sourcePlanNode,
                              aggregateSchema,
-                             analysis.getSelectExpressions(),
-                             analysis.getGroupByExpressions(),
+        analysis.getGroupByExpressions(),
                              analysis.getWindowExpression(),
                              aggregateAnalysis.getAggregateFunctionArguments(),
                              aggregateAnalysis.getFunctionList(),
                              aggregateAnalysis.getRequiredColumnsList(),
-                             aggregateAnalysis.getNonAggResultColumns(),
                              aggregateAnalysis.getFinalSelectExpressions(),
                              aggregateAnalysis.getHavingExpression());
   }

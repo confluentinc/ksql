@@ -65,6 +65,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);

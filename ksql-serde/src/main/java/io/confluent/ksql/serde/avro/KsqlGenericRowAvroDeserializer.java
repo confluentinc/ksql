@@ -46,7 +46,7 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     this(schema, new KafkaAvroDeserializer(schemaRegistryClient), isInternal);
   }
 
-  public KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
+  KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
       kafkaAvroDeserializer, boolean isInternal) {
     if (isInternal) {
       this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
@@ -62,6 +62,7 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
   public void configure(final Map<String, ?> map, final boolean b) {
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
 
@@ -69,7 +70,7 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       return null;
     }
 
-    GenericRow genericRow = null;
+    GenericRow genericRow;
     try {
       GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize(topic, bytes);
       Map<String, String> caseInsensitiveFieldNameMap = getCaseInsensitiveFieldMap(genericRecord);
@@ -85,14 +86,7 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
     return genericRow;
   }
 
-  private byte[] removeSchemaRegistryMetaBytes(final byte[] data) {
-    byte[] avroBytes = new byte[data.length - 5];
-    for (int i = 5; i < data.length; i++) {
-      avroBytes[i-5] = data[i];
-    }
-    return avroBytes;
-  }
-
+  @SuppressWarnings("unchecked")
   private Object enforceFieldType(Schema fieldSchema, Object value) {
 
     switch (fieldSchema.type()) {

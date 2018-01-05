@@ -26,18 +26,9 @@ public class AllColumns
 
   private final Optional<QualifiedName> prefix;
 
-  public AllColumns() {
-    super(Optional.empty());
-    prefix = Optional.empty();
-  }
-
   public AllColumns(NodeLocation location) {
     super(Optional.of(location));
     prefix = Optional.empty();
-  }
-
-  public AllColumns(QualifiedName prefix) {
-    this(Optional.empty(), prefix);
   }
 
   public AllColumns(NodeLocation location, QualifiedName prefix) {
@@ -79,10 +70,7 @@ public class AllColumns
 
   @Override
   public String toString() {
-    if (prefix.isPresent()) {
-      return prefix.get() + ".*";
-    }
+    return prefix.map(qualifiedName -> qualifiedName + ".*").orElse("*");
 
-    return "*";
   }
 }

@@ -68,7 +68,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -287,13 +286,13 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     } else if (statement instanceof RegisterTopic) {
       ddlCommandExec.tryExecute(
               new RegisterTopicCommand(
-                      (RegisterTopic) statement,
-                      overriddenProperties),
+                      (RegisterTopic) statement
+              ),
               tempMetaStoreForParser);
       ddlCommandExec.tryExecute(
               new RegisterTopicCommand(
-                      (RegisterTopic) statement,
-                      overriddenProperties),
+                      (RegisterTopic) statement
+              ),
               tempMetaStore);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStream) {
@@ -459,7 +458,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     for (QueryMetadata queryMetadata : livePersistentQueries) {
       queryMetadata.close();
     }

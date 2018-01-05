@@ -173,7 +173,7 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
-    return new RegisterTopicCommand(this.topicName, false, properties, overriddenProperties);
+    return new RegisterTopicCommand(this.topicName, false, properties);
   }
 
 

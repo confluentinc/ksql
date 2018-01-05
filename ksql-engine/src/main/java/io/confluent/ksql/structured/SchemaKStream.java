@@ -159,6 +159,7 @@ public class SchemaKStream {
     }
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKStream leftJoin(final SchemaKTable schemaKTable,
                                 final Schema joinSchema,
                                 final Field joinKey,
@@ -168,8 +169,7 @@ public class SchemaKStream {
     KStream joinedKStream =
         kstream.leftJoin(
             schemaKTable.getKtable(), (ValueJoiner<GenericRow, GenericRow, GenericRow>) (leftGenericRow, rightGenericRow) -> {
-              List<Object> columns = new ArrayList<>();
-              columns.addAll(leftGenericRow.getColumns());
+              List<Object> columns = new ArrayList<>(leftGenericRow.getColumns());
               if (rightGenericRow == null) {
                 for (int i = leftGenericRow.getColumns().size();
                      i < joinSchema.fields().size(); i++) {
@@ -188,6 +188,7 @@ public class SchemaKStream {
                              Arrays.asList(this, schemaKTable), Type.JOIN, functionRegistry, schemaRegistryClient);
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKStream selectKey(final Field newKeyField) {
     if (keyField != null &&
         keyField.name().equals(newKeyField.name())) {
@@ -234,10 +235,14 @@ public class SchemaKStream {
 
   public String getExecutionPlan(String indent) {
     StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(indent + " > [ " + type + " ] Schema: " + SchemaUtil
-        .getSchemaDefinitionString(schema) + ".\n");
+    stringBuilder.append(indent)
+        .append(" > [ ")
+        .append(type).append(" ] Schema: ")
+        .append(SchemaUtil
+        .getSchemaDefinitionString(schema)).append(".\n");
     for (SchemaKStream schemaKStream: sourceSchemaKStreams) {
-      stringBuilder.append("\t" + indent + schemaKStream.getExecutionPlan(indent + "\t"));
+      stringBuilder.append("\t")
+          .append(indent).append(schemaKStream.getExecutionPlan(indent + "\t"));
     }
     return stringBuilder.toString();
   }

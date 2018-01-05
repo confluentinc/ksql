@@ -35,7 +35,7 @@ public class CommandFactories implements DDLCommandFactory {
   private final Map<Class<? extends DDLStatement>, DDLCommandFactory> factories = new HashMap<>();
 
   public CommandFactories(final KafkaTopicClient topicClient, final QueryTerminator queryTerminator) {
-    factories.put(RegisterTopic.class, (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement, properties));
+    factories.put(RegisterTopic.class, (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(CreateStream.class, (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(sqlExpression, (CreateStream) ddlStatement, properties, topicClient));
     factories.put(CreateTable.class, (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(sqlExpression, (CreateTable)ddlStatement, properties, topicClient));
     factories.put(DropStream.class, (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(

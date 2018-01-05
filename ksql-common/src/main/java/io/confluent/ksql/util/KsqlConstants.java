@@ -25,17 +25,14 @@ public class KsqlConstants {
       "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
-  public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
-  public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
-
-  public static int defaultSinkNumberOfPartitions = 4;
-  public static short defaultSinkNumberOfReplications = 1;
+  public static final int defaultSinkNumberOfPartitions = 4;
+  public static final short defaultSinkNumberOfReplications = 1;
   // TODO: Find out the best default value.
-  public static long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
+  public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
-  public static String defaultAutoOffsetRestConfig = "latest";
-  public static long defaultCommitIntervalMsConfig = 2000;
-  public static long defaultCacheMaxBytesBufferingConfig = 10000000;
-  public static int defaultNumberOfStreamsThreads = 4;
+  public static final String defaultAutoOffsetRestConfig = "latest";
+  public static final long defaultCommitIntervalMsConfig = 2000;
+  public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
+  public static final int defaultNumberOfStreamsThreads = 4;
 
 }

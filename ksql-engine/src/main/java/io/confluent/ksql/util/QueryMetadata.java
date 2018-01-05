@@ -35,7 +35,6 @@ public class QueryMetadata {
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
   private final KafkaTopicClient kafkaTopicClient;
-  private final KsqlConfig ksqlConfig;
   private final String topoplogy;
 
 
@@ -46,7 +45,6 @@ public class QueryMetadata {
                        final DataSource.DataSourceType dataSourceType,
                        final String queryApplicationId,
                        final KafkaTopicClient kafkaTopicClient,
-                       final KsqlConfig ksqlConfig,
                        String topoplogy) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
@@ -55,7 +53,6 @@ public class QueryMetadata {
     this.dataSourceType = dataSourceType;
     this.queryApplicationId = queryApplicationId;
     this.kafkaTopicClient = kafkaTopicClient;
-    this.ksqlConfig = ksqlConfig;
     this.topoplogy = topoplogy;
   }
 

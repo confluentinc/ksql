@@ -248,7 +248,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
     log.info("Building AST for {}.", statementString);
 
-    if(statement instanceof Query) {
+    if (statement instanceof Query) {
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStreamAsSelect) {
       CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;

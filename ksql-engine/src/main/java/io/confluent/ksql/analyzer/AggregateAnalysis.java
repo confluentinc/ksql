@@ -16,20 +16,18 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class AggregateAnalysis {
 
-  private final List<Expression> requiredColumnsList = new ArrayList<>();
-  private final Map<String, Expression> requiredColumnsMap = new HashMap<>();
+  private final Map<String, Expression> requiredColumnsMap = new LinkedHashMap<>();
   private final List<Expression> nonAggResultColumns = new ArrayList<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
@@ -42,7 +40,7 @@ public class AggregateAnalysis {
   }
 
   public List<Expression> getRequiredColumnsList() {
-    return Collections.unmodifiableList(requiredColumnsList);
+    return new ArrayList<>(requiredColumnsMap.values());
   }
 
   public Map<String, Expression> getRequiredColumnsMap() {
@@ -81,8 +79,7 @@ public class AggregateAnalysis {
     return requiredColumnsMap.containsKey(column);
   }
 
-  public void addRequiredColumn(final String name, final DereferenceExpression node) {
-    requiredColumnsList.add(node);
+  public void addRequiredColumn(final String name, final Expression node) {
     requiredColumnsMap.put(name, node);
   }
 

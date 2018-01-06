@@ -28,20 +28,27 @@ import io.confluent.ksql.util.KsqlException;
 public class TopkAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
 
   public TopkAggFunctionDeterminer() {
-    super("TOPK", Arrays.asList(new DoubleTopkKudaf(-1, 0),
-                                new LongTopkKudaf(-1, 0),
-                                new StringTopkKudaf(-1, 0)));
+    super("TOPK", Arrays.asList());
   }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    // For now we only support aggregate functions with one arg.
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
-      if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
-        return ksqlAggregateFunction;
-      }
+    if (argTypeList.isEmpty()) {
+      throw new KsqlException("TopK function should have two arguments.");
     }
-    throw new KsqlException("No TopK aggregate function with " + argTypeList.get(0) + " "
-                            + " argument type exists!");
+    Schema argSchema = argTypeList.get(0);
+    switch (argSchema.type()) {
+      case INT32:
+        return new TopkKudaf<Integer>(-1, 0, Integer.class);
+      case INT64:
+        return new TopkKudaf<Long>(-1, 0, Long.class);
+      case FLOAT64:
+        return new TopkKudaf<Double>(-1, 0, Double.class);
+      case STRING:
+        return new TopkKudaf<String>(-1, 0, String.class);
+      default:
+        throw new KsqlException("No TopK aggregate function with " + argTypeList.get(0) + " "
+                                + " argument type exists!");
+    }
   }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
 
@@ -57,15 +58,10 @@ public abstract class KsqlAggregateFunction<V, A> {
                                                           final List<Expression> functionArguments);
 
   public boolean hasSameArgTypes(List<Schema> argTypeList) {
-    if (this.getArguments().size() != argTypeList.size()) {
-      return false;
+    if (argTypeList == null) {
+      throw new KsqlException("Argument type list is null.");
     }
-    for (int i = 0; i < this.getArguments().size(); i++) {
-      if (this.getArguments().get(i) != argTypeList.get(i)) {
-        return false;
-      }
-    }
-    return true;
+    return this.arguments.equals(argTypeList);
   }
 
   public abstract A aggregate(V currentVal, A currentAggVal);

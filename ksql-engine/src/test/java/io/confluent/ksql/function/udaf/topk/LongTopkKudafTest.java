@@ -27,48 +27,57 @@ public class LongTopkKudafTest {
   Long[] valueArray;
   @Before
   public void setup() {
-    valueArray = new Long[]{10l, 30l, 45l, 10l, 50l, 60l, 20l, 60l, 80l, 35l, 25l};
+    valueArray = new Long[]{10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L};
 
   }
 
   @Test
   public void shouldAggregateTopK() {
-    LongTopkKudaf longTopkKudaf = new LongTopkKudaf(0, 3);
+    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
     Long[] currentVal = new Long[]{null, null, null};
     for (Long l: valueArray) {
       currentVal = longTopkKudaf.aggregate(l, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80l, 60l, 60l}));
+    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, 60L, 60L}));
+  }
+
+  @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
+    Long[] currentVal = new Long[]{null, null, null};
+    currentVal = longTopkKudaf.aggregate(80L, currentVal);
+
+    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, null, null}));
   }
 
   @Test
   public void shouldMergeTopK() {
-    LongTopkKudaf longTopkKudaf = new LongTopkKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, 45l, 25l};
-    Long[] array2 = new Long[]{60l, 55l, 48l};
+    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, 45L, 25L};
+    Long[] array2 = new Long[]{60L, 55L, 48l};
 
     assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 55l, 50l}));
+        new Long[]{60L, 55L, 50L}));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    LongTopkKudaf longTopkKudaf = new LongTopkKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, 45l, null};
-    Long[] array2 = new Long[]{60l, null, null};
+    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, 45L, null};
+    Long[] array2 = new Long[]{60L, null, null};
 
     assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 50l, 45l}));
+        new Long[]{60L, 50L, 45L}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    LongTopkKudaf longTopkKudaf = new LongTopkKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, null, null};
-    Long[] array2 = new Long[]{60l, null, null};
+    TopkKudaf<Long> longTopkKudaf = new TopkKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, null, null};
+    Long[] array2 = new Long[]{60L, null, null};
 
     assertThat("Invalid results.", longTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 50l, null}));
+        new Long[]{60L, 50L, null}));
   }
 }

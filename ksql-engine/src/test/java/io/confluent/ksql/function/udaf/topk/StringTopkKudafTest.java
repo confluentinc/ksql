@@ -35,7 +35,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    StringTopkKudaf stringTopkKudaf = new StringTopkKudaf(0, 3);
+    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
     String[] currentVal = new String[]{null, null, null};
     for (String s: valueArray) {
       currentVal = stringTopkKudaf.aggregate(s, currentVal);
@@ -45,8 +45,17 @@ public class StringTopkKudafTest {
   }
 
   @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
+    String[] currentVal = new String[]{null, null, null};
+    currentVal = stringTopkKudaf.aggregate("why", currentVal);
+
+    assertThat("Invalid results.", currentVal, equalTo(new String[]{"why", null, null}));
+  }
+
+  @Test
   public void shouldMergeTopK() {
-    StringTopkKudaf stringTopkKudaf = new StringTopkKudaf(0, 3);
+    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
     String[] array1 = new String[]{"123", "Hello", "paper"};
     String[] array2 = new String[]{"Hi", "456", "Zzz"};
 
@@ -56,7 +65,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    StringTopkKudaf stringTopkKudaf = new StringTopkKudaf(0, 3);
+    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", null, null};
 
@@ -66,7 +75,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    StringTopkKudaf stringTopkKudaf = new StringTopkKudaf(0, 3);
+    TopkKudaf<String> stringTopkKudaf = new TopkKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", null, null};
     String[] array2 = new String[]{"60", null, null};
 

@@ -14,12 +14,13 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.function.udaf.topkdistinct;
+package io.confluent.ksql.function.udaf.topk;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,66 +31,63 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
-public class DoubleTopkDistinctKudaf extends KsqlAggregateFunction<Double, Double[]> {
 
-  Integer tkVal;
-  Double[] topkArray;
-  Double[] tempTopkArray;
+public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
 
-  public DoubleTopkDistinctKudaf(Integer argIndexInValue, Integer tkVal) {
-    super(argIndexInValue, new Double[tkVal], SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
+  private Integer tkVal;
+  private T[] tempTopkArray;
+  private Class<T> ttClass;
+
+  TopkKudaf(int argIndexInValue,
+            Integer tkVal,
+            Class<T> ttClass) {
+    super(argIndexInValue,
+          (T[]) Array.newInstance(ttClass,tkVal),
+          SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
           Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "TOPKDISTINCT", DoubleTopkDistinctKudaf.class);
+          "TOPK",
+          TopkKudaf.class);
     this.tkVal = tkVal;
-    this.topkArray = new Double[tkVal];
-    this.tempTopkArray = new Double[tkVal + 1];
+    this.tempTopkArray = (T[]) Array.newInstance(ttClass,tkVal + 1);
+    this.ttClass = ttClass;
   }
 
+
   @Override
-  public Double[] aggregate(Double currentVal, Double[] currentAggVal) {
+  public T[] aggregate(T currentVal, T[] currentAggVal) {
+    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     if (currentVal == null) {
       return currentAggVal;
     }
-    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
-      return currentAggVal;
-    }
+
     int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
       return currentAggVal;
     }
-
-    for (int i = 0; i < tkVal; i++) {
-      tempTopkArray[i] = currentAggVal[i];
-    }
+    System.arraycopy(currentAggVal, 0, tempTopkArray, 0, tkVal);
     tempTopkArray[tkVal] = currentVal;
     Arrays.sort(tempTopkArray, Collections.reverseOrder());
     return Arrays.copyOf(tempTopkArray, tkVal);
   }
 
   @Override
-  public Merger<String, Double[]> getMerger() {
+  public Merger<String, T[]> getMerger() {
+    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     return (aggKey, aggOne, aggTwo) -> {
-
       int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
       int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
-      Double[] tempMergeTopkArray = new Double[nullIndex1 + nullIndex2];
+      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
 
       for (int i = 0; i < nullIndex1; i++) {
         tempMergeTopkArray[i] = aggOne[i];
       }
-      int duplicateCount = 0;
       for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
-          duplicateCount ++;
-        } else {
-          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
-        }
+        tempMergeTopkArray[i] = aggTwo[i - nullIndex1];
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(Double.class, tempMergeTopkArray);
       Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
       if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(Double.class, tempMergeTopkArray, tkVal);
+        tempMergeTopkArray = ArrayUtil.padWithNull((Class<T>) ttClass, tempMergeTopkArray, tkVal);
         return tempMergeTopkArray;
       }
       return Arrays.copyOf(tempMergeTopkArray, tkVal);
@@ -97,7 +95,7 @@ public class DoubleTopkDistinctKudaf extends KsqlAggregateFunction<Double, Doubl
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double[]> getInstance(Map<String, Integer> expressionNames,
+  public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
                                                              List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
@@ -105,8 +103,6 @@ public class DoubleTopkDistinctKudaf extends KsqlAggregateFunction<Double, Doubl
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    DoubleTopkDistinctKudaf doubleTopkDistinctKudaf = new DoubleTopkDistinctKudaf(udafIndex, tkValFromArg);
-    return doubleTopkDistinctKudaf;
+    return new TopkKudaf(udafIndex, tkValFromArg, ttClass);
   }
-
 }

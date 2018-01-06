@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,23 +31,28 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
-public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
+public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
 
-  Integer tkVal;
-  Long[] topkArray;
-  Long[] tempTopkArray;
+  private Integer tkVal;
+  private T[] tempTopkArray;
+  private Class<T> ttClass;
 
-  public LongTopkDistinctKudaf(Integer argIndexInValue, Integer tkVal) {
-    super(argIndexInValue, new Long[tkVal], SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-          Arrays.asList(Schema.INT64_SCHEMA),
-          "TOPKDISTINCT", LongTopkDistinctKudaf.class);
+  TopkDistinctKudaf(Integer argIndexInValue,
+                    Integer tkVal,
+                    Class<T> ttClass) {
+    super(argIndexInValue,
+          (T[]) Array.newInstance(ttClass, tkVal),
+          SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
+          Arrays.asList(Schema.FLOAT64_SCHEMA),
+          "TOPKDISTINCT", TopkDistinctKudaf.class);
+
     this.tkVal = tkVal;
-    this.topkArray = new Long[tkVal];
-    this.tempTopkArray = new Long[tkVal + 1];
+    this.tempTopkArray = (T[]) Array.newInstance(ttClass,tkVal + 1);
+    this.ttClass = ttClass;
   }
 
   @Override
-  public Long[] aggregate(Long currentVal, Long[] currentAggVal) {
+  public T[] aggregate(T currentVal, T[] currentAggVal) {
     if (currentVal == null) {
       return currentAggVal;
     }
@@ -59,21 +65,19 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
       return currentAggVal;
     }
 
-    for (int i = 0; i < tkVal; i++) {
-      tempTopkArray[i] = currentAggVal[i];
-    }
+    System.arraycopy(currentAggVal, 0, tempTopkArray, 0, tkVal);
     tempTopkArray[tkVal] = currentVal;
     Arrays.sort(tempTopkArray, Collections.reverseOrder());
     return Arrays.copyOf(tempTopkArray, tkVal);
   }
 
   @Override
-  public Merger<String, Long[]> getMerger() {
+  public Merger<String, T[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
 
       int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
       int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
-      Long[] tempMergeTopkArray = new Long[nullIndex1 + nullIndex2];
+      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
 
       for (int i = 0; i < nullIndex1; i++) {
         tempMergeTopkArray[i] = aggOne[i];
@@ -86,10 +90,10 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
           tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
         }
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(Long.class, tempMergeTopkArray);
+      tempMergeTopkArray = ArrayUtil.getNoNullArray(ttClass, tempMergeTopkArray);
       Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
       if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(Long.class, tempMergeTopkArray, tkVal);
+        tempMergeTopkArray = ArrayUtil.padWithNull(ttClass, tempMergeTopkArray, tkVal);
         return tempMergeTopkArray;
       }
       return Arrays.copyOf(tempMergeTopkArray, tkVal);
@@ -97,7 +101,7 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long[]> getInstance(Map<String, Integer> expressionNames,
+  public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
                                                              List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
@@ -105,8 +109,7 @@ public class LongTopkDistinctKudaf extends KsqlAggregateFunction<Long, Long[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(udafIndex, tkValFromArg);
-    return longTopkDistinctKudaf;
+    return new TopkDistinctKudaf(udafIndex, tkValFromArg, ttClass);
   }
 
 }

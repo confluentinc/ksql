@@ -33,7 +33,7 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
     Double[] currentVal = new Double[]{null, null, null};
     for (Double d: valueArray) {
       currentVal = doubleTopkKudaf.aggregate(d, currentVal);
@@ -43,8 +43,17 @@ public class DoubleTopkKudafTest {
   }
 
   @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
+    Double[] currentVal = new Double[]{null, null, null};
+    currentVal = doubleTopkKudaf.aggregate(10.0, currentVal);
+
+    assertThat("Invalid results.", currentVal, equalTo(new Double[]{10.0, null, null}));
+  }
+
+  @Test
   public void shouldMergeTopK() {
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, 45.0, 25.0};
     Double[] array2 = new Double[]{60.0, 55.0, 48.0};
 
@@ -54,7 +63,7 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, 45.0, null};
     Double[] array2 = new Double[]{60.0, null, null};
 
@@ -64,7 +73,7 @@ public class DoubleTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    DoubleTopkKudaf doubleTopkKudaf = new DoubleTopkKudaf(0, 3);
+    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, null, null};
     Double[] array2 = new Double[]{60.0, null, null};
 

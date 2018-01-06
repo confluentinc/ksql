@@ -34,7 +34,7 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    StringTopkDistinctKudaf stringTopkDistinctKudaf = new StringTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] currentVal = new String[]{null, null, null};
     for (String d: valueArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
@@ -44,8 +44,17 @@ public class StringTopkDistinctKudafTest {
   }
 
   @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
+    String[] currentVal = new String[]{null, null, null};
+    currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
+
+    assertThat("Invalid results.", currentVal, equalTo(new String[]{"80", null, null}));
+  }
+
+  @Test
   public void shouldMergeTopK() {
-    StringTopkDistinctKudaf stringTopkDistinctKudaf = new StringTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", "25"};
     String[] array2 = new String[]{"60", "50", "48"};
 
@@ -55,7 +64,7 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    StringTopkDistinctKudaf stringTopkDistinctKudaf = new StringTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", null, null};
 
@@ -65,7 +74,7 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    StringTopkDistinctKudaf stringTopkDistinctKudaf = new StringTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", "50", null};
 
@@ -75,7 +84,7 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    StringTopkDistinctKudaf stringTopkDistinctKudaf = new StringTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"60", null, null};
     String[] array2 = new String[]{"60", null, null};
 

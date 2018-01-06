@@ -27,59 +27,68 @@ public class LongTopkDistinctKudafTest {
   Long[] valueArray;
   @Before
   public void setup() {
-    valueArray = new Long[]{10l, 30l, 45l, 10l, 50l, 60l, 20l, 60l, 80l, 35l, 25l,
-                              60l, 80l};
+    valueArray = new Long[]{10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
+                              60L, 80L};
 
   }
 
   @Test
   public void shouldAggregateTopK() {
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(0, 3);
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
     Long[] currentVal = new Long[]{null, null, null};
     for (Long d: valueArray) {
       currentVal = longTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80l, 60l, 50l}));
+    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, 60L, 50L}));
   }
 
   @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
+    Long[] currentVal = new Long[]{null, null, null};
+    currentVal = longTopkDistinctKudaf.aggregate(80L, currentVal);
+
+    assertThat("Invalid results.", currentVal, equalTo(new Long[]{80L, null, null}));
+  }
+  
+  @Test
   public void shouldMergeTopK() {
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, 45l, 25l};
-    Long[] array2 = new Long[]{60l, 50l, 48l};
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, 45L, 25L};
+    Long[] array2 = new Long[]{60L, 50L, 48l};
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 50l, 48l}));
+        new Long[]{60L, 50L, 48l}));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, 45l, null};
-    Long[] array2 = new Long[]{60l, null, null};
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, 45L, null};
+    Long[] array2 = new Long[]{60L, null, null};
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 50l, 45l}));
+        new Long[]{60L, 50L, 45L}));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(0, 3);
-    Long[] array1 = new Long[]{50l, 45l, null};
-    Long[] array2 = new Long[]{60l, 50l, null};
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{50L, 45L, null};
+    Long[] array2 = new Long[]{60L, 50L, null};
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, 50l, 45l}));
+        new Long[]{60L, 50L, 45L}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    LongTopkDistinctKudaf longTopkDistinctKudaf = new LongTopkDistinctKudaf(0, 3);
-    Long[] array1 = new Long[]{60l, null, null};
-    Long[] array2 = new Long[]{60l, null, null};
+    TopkDistinctKudaf<Long> longTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Long.class);
+    Long[] array1 = new Long[]{60L, null, null};
+    Long[] array2 = new Long[]{60L, null, null};
 
     assertThat("Invalid results.", longTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Long[]{60l, null, null}));
+        new Long[]{60L, null, null}));
   }
 }

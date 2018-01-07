@@ -364,13 +364,12 @@ public class AggregateNode extends PlanNode {
     }
     for (int aggFunctionVarSuffix = 0;
          aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
-      Schema fieldSchema;
       String udafName = getFunctionList().get(aggFunctionVarSuffix).getName()
           .getSuffix();
       KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
           getFunctionList()
               .get(aggFunctionVarSuffix).getArguments(), schema);
-      fieldSchema = aggregateFunction.getReturnType();
+      Schema fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
           + aggFunctionVarSuffix, fieldSchema);
     }

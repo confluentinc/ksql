@@ -152,7 +152,7 @@ public class SerDeUtilTest {
       Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaStr);
       fail();
     } catch (KsqlException ksqlException) {
-      assertThat("", ksqlException.getMessage(), equalTo("Union type cannot have more than two "
+      assertThat(ksqlException.getMessage(), equalTo("Union type cannot have more than two "
                                                         + "types and one of them should be null."));
     }
   }
@@ -188,7 +188,7 @@ public class SerDeUtilTest {
       Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaStr);
       fail();
     } catch (KsqlException ksqlException) {
-      assertThat("", ksqlException.getMessage(), equalTo("Union type cannot have more than two "
+      assertThat(ksqlException.getMessage(), equalTo("Union type cannot have more than two "
                                                          + "types and one of them should be null."));
     }
   }

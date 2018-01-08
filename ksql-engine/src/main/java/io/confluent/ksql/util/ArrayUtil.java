@@ -57,7 +57,7 @@ public class ArrayUtil {
 
   public static <T> boolean containsValue(T value, T[] array) {
     for (T v: array) {
-      if (v != null && v.toString().equals(value.toString())) {
+      if (v != null && v.equals(value)) {
         return true;
       }
     }

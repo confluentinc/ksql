@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import org.junit.Assert;
 import org.junit.Test;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -48,4 +49,18 @@ public class ArrayUtilTest {
     assertThat(ArrayUtil.padWithNull(Double.class, doubles3, 2), equalTo(new Double[]{10.0, 9.0, 8.0}));
   }
 
+
+  @Test
+  public void shouldCheckArrayItemsCorrectly() {
+    Double[] doubles = new Double[]{10.0, null, null};
+    Long[] longs = new Long[]{10L, 35L, 70L, null};
+    Integer[] integers = new Integer[]{10, 35, 70, null};
+    String[] strings = new String[]{"Hello", "hi", "bye", null};
+
+    Assert.assertTrue(ArrayUtil.containsValue(10.0, doubles));
+    Assert.assertTrue(ArrayUtil.containsValue(35L, longs));
+    Assert.assertTrue(ArrayUtil.containsValue(70, integers));
+    Assert.assertTrue(ArrayUtil.containsValue("hi", strings));
+
+  }
 }

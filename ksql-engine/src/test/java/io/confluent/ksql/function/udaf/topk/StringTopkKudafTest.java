@@ -28,8 +28,7 @@ public class StringTopkKudafTest {
   @Before
   public void setup() {
     valueArray = new String[]{"10", "ab", "cde", "efg", "aa", "32", "why", "How are you", "Test",
-                              "123",
-                              "432"};
+                              "123", "432"};
 
   }
 

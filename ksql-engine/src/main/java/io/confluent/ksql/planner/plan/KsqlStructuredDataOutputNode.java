@@ -245,7 +245,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withKsqlTopic(original.getKsqlTopic())
           .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
-          .withLimit(original.getLimit());
+          .withLimit(original.getLimit())
+          .withDoCreateInto(original.isDoCreateInto());
     }
 
     Builder withLimit(final Optional<Integer> limit) {
@@ -290,6 +291,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     Builder withId(final PlanNodeId id) {
       this.id = id;
+      return this;
+    }
+
+    Builder withDoCreateInto(final boolean doCreateInto) {
+      this.doCreateInto = doCreateInto;
       return this;
     }
 

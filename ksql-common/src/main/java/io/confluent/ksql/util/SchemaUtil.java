@@ -344,12 +344,12 @@ public class SchemaUtil {
 
   public static String schemaString(Schema schema) {
     StringBuilder stringBuilder = new StringBuilder("[ ");
-    boolean addCamma = false;
+    boolean addComma = false;
     for (Field field: schema.fields()) {
-      if (addCamma) {
+      if (addComma) {
         stringBuilder.append(", ");
       } else {
-        addCamma = true;
+        addComma = true;
       }
       stringBuilder.append(String.format("(%s : %s)", field.name(), field.schema()));
     }

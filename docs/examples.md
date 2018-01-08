@@ -291,7 +291,7 @@ You can use `INSERT INTO` statement to insert data into an existing stream or ta
  where the users are female:
 
  ```sql
- CREATE STREAM region_5_pageveiws AS \
+ CREATE STREAM region_5_pageviews AS \
    SELECT viewtime, \
           userid, \
           pageid, \
@@ -302,12 +302,12 @@ You can use `INSERT INTO` statement to insert data into an existing stream or ta
    WHERE regionid = 'region_5' AND gender = 'Female';
  ```
 
-Now consider we want to have pageviews from all users in region 5 in `region_5_pageveiws` stream.
+Now consider we want to have pageviews from all users in region 5 in `region_5_pageviews` stream.
  You can write the following `INSERT INTO` statement to add the page views from the male users
- into the existing `region_5_pageveiws` stream:
+ into the existing `region_5_pageviews` stream:
 
  ```sql
-  INSERT INTO region_5_pageveiws \
+  INSERT INTO region_5_pageviews \
     SELECT viewtime, \
            userid, \
            pageid, \

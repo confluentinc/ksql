@@ -18,11 +18,10 @@ package io.confluent.ksql.util;
 
 public class QueryIdGenerator {
 
-  long queryIdCounter = -1;
+  private long queryIdCounter = -1;
 
   public long getNextId() {
-    queryIdCounter++;
-    return queryIdCounter;
+    return ++queryIdCounter;
   }
 
 }

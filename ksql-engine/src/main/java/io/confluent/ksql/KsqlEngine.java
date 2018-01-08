@@ -119,7 +119,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000));
   }
 
-  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, String metricGroupPrefix) {
+  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, final String
+      metricGroupPrefix) {
 
     this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000), metricGroupPrefix);
   }
@@ -306,7 +307,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       return new Pair<>(statementString, query);
     } else if (statement instanceof InsertInto) {
       InsertInto insertInto = (InsertInto) statement;
-      if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix().toString()) == null) {
+      if (tempMetaStoreForParser.getSource(insertInto.getTarget().getSuffix()) == null) {
         throw new KsqlException(String.format("Sink, %s, does not exist for the INSERT INTO "
                                               + "statement.", insertInto.getTarget().getSuffix()
             .toString()));

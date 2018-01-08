@@ -221,7 +221,7 @@ public class PhysicalPlanBuilder {
             .KSTREAM,
         applicationId,
         kafkaTopicClient,
-        ksqlConfig, outputNode.getSchema(),
+        outputNode.getSchema(),
         sinkDataSource.getKsqlTopic(), topologyDescription.toString());
   }
 

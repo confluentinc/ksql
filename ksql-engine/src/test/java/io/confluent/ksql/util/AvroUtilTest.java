@@ -23,7 +23,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -121,8 +120,7 @@ public class AvroUtilTest {
                                                                                   DataSource.DataSourceType.KSTREAM,
                                                                                   "",
                                                                                   mock(KafkaTopicClient.class),
-                                                                                  new KsqlConfig(Collections.EMPTY_MAP),
-                                                                                  resultSchema,
+        resultSchema,
                                                                                   resultTopic,
                                                                                   null);
     org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
@@ -148,8 +146,7 @@ public class AvroUtilTest {
                                                                                   DataSource.DataSourceType.KSTREAM,
                                                                                   "",
                                                                                   mock(KafkaTopicClient.class),
-                                                                                  new KsqlConfig(Collections.EMPTY_MAP),
-                                                                                  resultSchema,
+        resultSchema,
                                                                                   resultTopic,
                                                                                   null);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);

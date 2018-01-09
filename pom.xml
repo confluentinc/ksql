@@ -271,6 +271,7 @@
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
+                        <tarLongFileMode>posix</tarLongFileMode>
                         <descriptors>
                             <descriptor>src/assembly/package.xml</descriptor>
                         </descriptors>

@@ -38,7 +38,7 @@ public class StringToTimestamp implements Kudf {
                                       + " date value and format.");
     }
     try {
-      if(dateFormat == null) {
+      if (dateFormat == null) {
         dateFormat = new SimpleDateFormat(args[1].toString());
       }
       return dateFormat.parse(args[0].toString()).getTime();

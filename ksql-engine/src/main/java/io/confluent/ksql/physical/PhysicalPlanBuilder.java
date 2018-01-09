@@ -54,6 +54,9 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
 
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -69,6 +72,32 @@ public class PhysicalPlanBuilder {
   private final boolean updateMetastore;
   private final SchemaRegistryClient schemaRegistryClient;
   private final QueryIdGenerator queryIdGenerator;
+  private final KafkaStreamsBuilder kafkaStreamsBuilder;
+
+
+  public PhysicalPlanBuilder(final StreamsBuilder builder,
+                             final KsqlConfig ksqlConfig,
+                             final KafkaTopicClient kafkaTopicClient,
+                             final MetastoreUtil metastoreUtil,
+                             final FunctionRegistry functionRegistry,
+                             final Map<String, Object> overriddenStreamsProperties,
+                             final boolean updateMetastore,
+                             final MetaStore metaStore,
+                             final SchemaRegistryClient schemaRegistryClient,
+                             final QueryIdGenerator queryIdGenerator,
+                             final KafkaStreamsBuilder kafkaStreamsBuilder) {
+    this.builder = builder;
+    this.ksqlConfig = ksqlConfig;
+    this.kafkaTopicClient = kafkaTopicClient;
+    this.metastoreUtil = metastoreUtil;
+    this.functionRegistry = functionRegistry;
+    this.overriddenStreamsProperties = overriddenStreamsProperties;
+    this.metaStore = metaStore;
+    this.updateMetastore = updateMetastore;
+    this.schemaRegistryClient = schemaRegistryClient;
+    this.queryIdGenerator = queryIdGenerator;
+    this.kafkaStreamsBuilder = kafkaStreamsBuilder;
+  }
 
   public PhysicalPlanBuilder(final StreamsBuilder builder,
                              final KsqlConfig ksqlConfig,
@@ -80,17 +109,12 @@ public class PhysicalPlanBuilder {
                              final MetaStore metaStore,
                              final SchemaRegistryClient schemaRegistryClient,
                              final QueryIdGenerator queryIdGenerator) {
-    this.builder = builder;
-    this.ksqlConfig = ksqlConfig;
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
-    this.functionRegistry = functionRegistry;
-    this.overriddenStreamsProperties = overriddenStreamsProperties;
-    this.metaStore = metaStore;
-    this.updateMetastore = updateMetastore;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.queryIdGenerator = queryIdGenerator;
+    this(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry, overriddenStreamsProperties,
+        updateMetastore, metaStore, schemaRegistryClient, queryIdGenerator, new
+             KafkaStreamsBuilderImpl());
+
   }
+
 
   public QueryMetadata buildPhysicalPlan(final Pair<String, PlanNode> statementPlanPair) throws Exception {
     final SchemaKStream resultStream = statementPlanPair.getRight().buildStream(builder,
@@ -251,7 +275,7 @@ public class PhysicalPlanBuilder {
             .KSTREAM,
         applicationId,
         kafkaTopicClient,
-        ksqlConfig, outputNode.getSchema(),
+        outputNode.getSchema(),
         sinkDataSource.getKsqlTopic(), topologyDescription.toString());
   }
 
@@ -262,6 +286,23 @@ public class PhysicalPlanBuilder {
 
   private String addTimeSuffix(String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
+  }
+
+  private void updateListProperty(Map<String, Object> properties, String key, Object value) {
+    Object obj = properties.getOrDefault(key, new LinkedList<String>());
+    List valueList;
+    // The property value is either a comma-separated string of class names, or a list of class names
+    if (obj instanceof String) {
+      // If its a string just split it on the separator so we dont have to worry about adding a separator
+      String asString = (String)obj;
+      valueList = new LinkedList<>(Arrays.asList(asString.split("\\s*,\\s*")));
+    } else if (obj instanceof List) {
+      valueList = (List) obj;
+    } else {
+      throw new KsqlException("Expecting list or string for property: " + key);
+    }
+    valueList.add(value);
+    properties.put(key, valueList);
   }
 
   private KafkaStreams buildStreams(
@@ -289,9 +330,11 @@ public class PhysicalPlanBuilder {
       newStreamsProperties.put(
           StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
     }
-    newStreamsProperties.put(StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), ConsumerCollector.class.getCanonicalName());
-    newStreamsProperties.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), ProducerCollector.class.getCanonicalName());
-    return new KafkaStreams(builder.build(), new StreamsConfig(newStreamsProperties));
+    updateListProperty(newStreamsProperties, StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ConsumerCollector.class.getCanonicalName());
+    updateListProperty(newStreamsProperties, StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ProducerCollector.class.getCanonicalName());
+    return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 
   private void enforceKeyEquivalence(Field sinkKeyField, Field resultKeyField) {

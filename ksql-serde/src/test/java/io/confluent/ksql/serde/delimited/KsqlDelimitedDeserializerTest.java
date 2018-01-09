@@ -17,16 +17,14 @@
 package io.confluent.ksql.serde.delimited;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.GenericRow;
 
@@ -52,11 +50,11 @@ public class KsqlDelimitedDeserializerTest {
     KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
-    Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("item_1"));
-    Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
 
   }
 
@@ -68,10 +66,10 @@ public class KsqlDelimitedDeserializerTest {
     KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
-    Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("item_1"));
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
     Assert.assertNull(genericRow.getColumns().get(3));
   }
 

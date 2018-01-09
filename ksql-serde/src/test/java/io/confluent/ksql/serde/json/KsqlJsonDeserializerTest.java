@@ -24,6 +24,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,11 +66,11 @@ public class KsqlJsonDeserializerTest {
     KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
-    Assert.assertTrue(genericRow.getColumns().size() == 6);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
-    Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
+    assertThat(genericRow.getColumns().size(), equalTo(6));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat(((String) genericRow.getColumns().get(2)), equalTo("Item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
 
   }
 
@@ -94,11 +96,11 @@ public class KsqlJsonDeserializerTest {
     KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
-    Assert.assertTrue(genericRow.getColumns().size() == 4);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
-    Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat(((String) genericRow.getColumns().get(2)), equalTo("Item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
 
   }
 
@@ -116,11 +118,11 @@ public class KsqlJsonDeserializerTest {
     KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema);
 
     GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
-    Assert.assertTrue(genericRow.getColumns().size() == 6);
-    Assert.assertTrue((Long) genericRow.getColumns().get(0) == 1511897796092L);
-    Assert.assertTrue((Long) genericRow.getColumns().get(1) == 1L);
-    Assert.assertTrue(((String) genericRow.getColumns().get(2)).equals("Item_1"));
-    Assert.assertTrue((Double) genericRow.getColumns().get(3) == 10.0);
+    assertThat(genericRow.getColumns().size(), equalTo(6));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("Item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
     Assert.assertNull(genericRow.getColumns().get(4));
     Assert.assertNull(genericRow.getColumns().get(5));
   }

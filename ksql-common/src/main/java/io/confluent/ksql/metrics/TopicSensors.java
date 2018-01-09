@@ -15,6 +15,7 @@
  **/
 package io.confluent.ksql.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -76,6 +77,8 @@ class TopicSensors<R> {
       this.value = value;
       this.timestamp = timestamp;
     }
+
+    @SuppressFBWarnings("FE_FLOATING_POINT_EQUALITY")
     public String formatted() {
       if (value == Math.round(value)) {
         return String.format("%16s:%10.0f", name, value);

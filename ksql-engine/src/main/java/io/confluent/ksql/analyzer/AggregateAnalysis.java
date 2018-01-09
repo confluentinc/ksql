@@ -20,43 +20,43 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class AggregateAnalysis {
 
-  private List<Expression> requiredColumnsList = new ArrayList<>();
+  private final Map<String, Expression> requiredColumnsMap = new LinkedHashMap<>();
+  private final List<Expression> nonAggResultColumns = new ArrayList<>();
+  private final List<Expression> finalSelectExpressions = new ArrayList<>();
+  private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
+  private final List<FunctionCall> functionList = new ArrayList<>();
   private Expression havingExpression = null;
-  private Map<String, Expression> requiredColumnsMap = new HashMap<>();
-  private List<Expression> nonAggResultColumns = new ArrayList<>();
-  private List<Expression> finalSelectExpressions = new ArrayList<>();
-  List<Expression> aggregateFunctionArguments = new ArrayList<>();
-  List<FunctionCall> functionList = new ArrayList<>();
 
 
   public List<Expression> getAggregateFunctionArguments() {
-    return aggregateFunctionArguments;
+    return Collections.unmodifiableList(aggregateFunctionArguments);
   }
 
   public List<Expression> getRequiredColumnsList() {
-    return requiredColumnsList;
+    return new ArrayList<>(requiredColumnsMap.values());
   }
 
   public Map<String, Expression> getRequiredColumnsMap() {
-    return requiredColumnsMap;
+    return Collections.unmodifiableMap(requiredColumnsMap);
   }
 
   public List<FunctionCall> getFunctionList() {
-    return functionList;
+    return Collections.unmodifiableList(functionList);
   }
 
   public List<Expression> getNonAggResultColumns() {
-    return nonAggResultColumns;
+    return Collections.unmodifiableList(nonAggResultColumns);
   }
 
   public List<Expression> getFinalSelectExpressions() {
-    return finalSelectExpressions;
+    return Collections.unmodifiableList(finalSelectExpressions);
   }
 
   public Expression getHavingExpression() {
@@ -65,5 +65,29 @@ public class AggregateAnalysis {
 
   public void setHavingExpression(Expression havingExpression) {
     this.havingExpression = havingExpression;
+  }
+
+  public void addAggregateFunctionArgument(final Expression argument) {
+    aggregateFunctionArguments.add(argument);
+  }
+
+  public void addFunction(final FunctionCall functionCall) {
+    functionList.add(functionCall);
+  }
+
+  public boolean hasRequiredColumn(final String column) {
+    return requiredColumnsMap.containsKey(column);
+  }
+
+  public void addRequiredColumn(final String name, final Expression node) {
+    requiredColumnsMap.put(name, node);
+  }
+
+  public void addNonAggResultColumns(final Expression expression) {
+    nonAggResultColumns.add(expression);
+  }
+
+  public void addFinalSelectExpression(final Expression expression) {
+    finalSelectExpressions.add(expression);
   }
 }

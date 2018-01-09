@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -121,9 +118,7 @@ public class SchemaUtilTest {
       Assert.fail();
     } catch (KsqlException ksqlException) {
       assertThat("Invalid type retured.",ksqlException.getMessage(), equalTo("Type is not "
-                                                                          + "supported: "
-                                                                   + "BYTES"));
-      return;
+                                                                          + "supported: BYTES"));
     }
   }
 
@@ -187,8 +182,7 @@ public class SchemaUtilTest {
       Schema schema8 = SchemaUtil.getTypeSchema("BYTES");
       Assert.fail();
     } catch (Exception e) {
-      assertThat("", e.getMessage().equals("Unsupported type: BYTES"));
-      return;
+      assertThat(e.getMessage(), equalTo("Unsupported type: BYTES"));
     }
   }
 
@@ -220,7 +214,7 @@ public class SchemaUtilTest {
     for (int i = 0; i < schemaWithAlias.fields().size(); i++) {
       Field fieldWithAlias = schemaWithAlias.fields().get(i);
       Field field = schema.fields().get(i);
-      Assert.assertTrue(fieldWithAlias.name().equals(alias + "." + field.name()));
+      assertThat(fieldWithAlias.name(), equalTo(alias + "." + field.name()));
     }
     Schema schemaWithoutAlias = SchemaUtil.getSchemaWithNoAlias(schemaWithAlias);
     assertThat("Incorrect schema field count.", schemaWithAlias.fields().size() == schema.fields().size());
@@ -258,8 +252,7 @@ public class SchemaUtilTest {
   public void shouldGetTheSchemaDefString() {
     String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
     assertThat("Invalid schema def.", schemaDef.equals("[ORDERTIME : INT64 , ORDERID : INT64 , "
-                                                   + "ITEMID : STRING , "
-                                 + "ORDERUNITS : "
+                                                   + "ITEMID : STRING , ORDERUNITS : "
                        + "FLOAT64 , ARRAYCOL : ARRAY , MAPCOL : MAP]"));
   }
 

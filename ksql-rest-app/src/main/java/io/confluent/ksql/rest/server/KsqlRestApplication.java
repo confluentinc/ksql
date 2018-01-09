@@ -243,7 +243,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     try {
       short replicationFactor = 1;
-      if(restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
+      if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
                                                      .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY).toString());
       }

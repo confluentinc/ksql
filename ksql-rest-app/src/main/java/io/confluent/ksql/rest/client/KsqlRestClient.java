@@ -38,6 +38,7 @@ import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -196,16 +197,38 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     private final Scanner responseScanner;
 
     private StreamedRow bufferedRow;
-    private boolean closed;
+    private volatile boolean closed = false;
 
     public QueryStream(Response response) {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      this.responseScanner = new Scanner((InputStream) response.getEntity(), StandardCharsets.UTF_8.name());
+      InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
+      QueryStream stream = this;
+      this.responseScanner = new Scanner((buf) -> {
+        int wait = 1;
+        // poll the input stream's readiness between interruptable sleeps
+        // this ensures we cannot block indefinitely on read()
+        while (true) {
+          if (closed) throw stream.closedIllegalStateException("hasNext()");
+          if (isr.ready()) {
+            break;
+          }
+          synchronized(stream) {
+            if (closed) throw stream.closedIllegalStateException("hasNext()");
+            try {
+              wait = java.lang.Math.min(wait * 2, 200);
+              stream.wait(wait);
+            } catch (InterruptedException e) {
+              // this is expected
+              // just check the closed flag
+            }
+          }
+        }
+        return isr.read(buf);
+      });
 
       this.bufferedRow = null;
-      this.closed = false;
     }
 
     @Override
@@ -256,7 +279,10 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         throw closedIllegalStateException("close()");
       }
 
-      closed = true;
+      synchronized(this) {
+        closed = true;
+        this.notifyAll();
+      }
       responseScanner.close();
       response.close();
     }
@@ -264,7 +290,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     private IllegalStateException closedIllegalStateException(String methodName) {
       return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
     }
-
   }
 
   public Map<String, Object> getLocalProperties() {

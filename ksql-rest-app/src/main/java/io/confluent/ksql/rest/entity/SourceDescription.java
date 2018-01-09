@@ -121,8 +121,8 @@ public class SourceDescription extends KsqlEntity {
         dataSource.getKsqlTopic().getKafkaTopicName(),
         topology,
         executionPlan,
-        (extended & topicClient != null ? getPartitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
-        (extended & topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
+        (extended && topicClient != null ? getPartitions(topicClient,  dataSource.getKsqlTopic().getKafkaTopicName()) : 0),
+        (extended && topicClient != null ? getReplication(topicClient, dataSource.getKsqlTopic().getKafkaTopicName()) : 0)
     );
   }
   public SourceDescription(KsqlStructuredDataOutputNode outputNode, String statementString, String name, String topoplogy, String executionPlan, KafkaTopicClient topicClient) {

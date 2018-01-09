@@ -235,7 +235,7 @@ public class PhysicalPlanBuilder {
   }
 
   private void updateListProperty(Map<String, Object> properties, String key, Object value) {
-    Object obj = properties.getOrDefault(key, new java.util.LinkedList<String>());
+    Object obj = properties.getOrDefault(key, new LinkedList<String>());
     List valueList;
     // The property value is either a comma-separated string of class names, or a list of class names
     if (obj instanceof String) {

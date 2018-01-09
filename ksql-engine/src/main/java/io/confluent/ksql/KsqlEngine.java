@@ -161,7 +161,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     List<Pair<String, Statement>> queries = parseQueries(queriesString, overriddenProperties, tempMetaStore);
 
     return planQueries(queries, overriddenProperties, tempMetaStore);
-
   }
 
   public List<QueryMetadata> planQueries(final List<Pair<String, Statement>> statementList,
@@ -173,9 +172,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     // Physical plan creation from logical plans.
     List<QueryMetadata> runningQueries = queryEngine.buildPhysicalPlans(
         logicalPlans,
-            statementList,
-            overriddenProperties,
-            true
+        statementList,
+        overriddenProperties,
+        true
     );
 
     for (QueryMetadata queryMetadata : runningQueries) {

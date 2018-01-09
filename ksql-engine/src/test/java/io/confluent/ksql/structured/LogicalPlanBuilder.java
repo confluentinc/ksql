@@ -55,9 +55,9 @@ public class LogicalPlanBuilder {
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(expression);
+        aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.getFinalSelectExpressions().add(
+      aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }

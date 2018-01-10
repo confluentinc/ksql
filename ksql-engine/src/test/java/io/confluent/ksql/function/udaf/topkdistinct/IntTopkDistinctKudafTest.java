@@ -34,10 +34,10 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] currentVal = new Integer[]{null, null, null};
     for (Integer d: valueArray) {
-      currentVal = doubleTopkDistinctKudaf.aggregate(d, currentVal);
+      currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, 60, 50}));
@@ -45,50 +45,50 @@ public class IntTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] currentVal = new Integer[]{null, null, null};
-    currentVal = doubleTopkDistinctKudaf.aggregate(80, currentVal);
+    currentVal = intTopkDistinctKudaf.aggregate(80, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, null, null}));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, 45, 25};
     Integer[] array2 = new Integer[]{60, 50, 48};
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 50, 48}));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, 45, null};
     Integer[] array2 = new Integer[]{60, null, null};
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 50, 45}));
   }
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, 45, null};
     Integer[] array2 = new Integer[]{60, 50, null};
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 50, 45}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkDistinctKudaf<Integer> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
+    TopkDistinctKudaf<Integer> intTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{60, null, null};
     Integer[] array2 = new Integer[]{60, null, null};
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, null, null}));
   }
 }

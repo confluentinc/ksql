@@ -15,6 +15,7 @@ public class JsonArrayContainsKudfTest
         jsonUdf.init();
     }
 
+    @Test
     public void testEmptyArray()
     {
         assertEquals(false, jsonUdf.evaluate("[]", true));
@@ -26,6 +27,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate("[]", ""));
     }
 
+    @Test
     public void testNullArray()
     {
         assertEquals(true, jsonUdf.evaluate("[null]", null));
@@ -51,6 +53,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate(json, 5));
     }
 
+    @Test
     public void testIfJsonArrayContainsLongValue()
     {
         assertEquals(true, jsonUdf.evaluate("[1]", 1L));
@@ -62,6 +65,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate("[{}, \"abc\", null, {\"1\":1}]", 1L));
     }
 
+    @Test
     public void testIfArrayContainsDoubleValue()
     {
         assertEquals(true, jsonUdf.evaluate("[-1.0, 2.0, 3.0]", 2.0));
@@ -72,6 +76,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate("[[2.0], 3.0]", 2.0));
     }
 
+    @Test
     public void testIfArrayContainsStringValue()
     {
         assertEquals(true, jsonUdf.evaluate("[\"abc\"]", "abc"));
@@ -84,6 +89,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate("[\"abc\", \"dba\"]", "abd"));
     }
 
+    @Test
     public void testIfArrayContainsBooleanValue()
     {
         assertEquals(true, jsonUdf.evaluate("[false, false, true, false]", true));
@@ -92,6 +98,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate("[false, false]", true));
     }
 
+    @Test
     public void testIfStringArrayContainsValue()
     {
         assertEquals(true, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "DC"));
@@ -99,6 +106,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "1"}, 1));
     }
 
+    @Test
     public void testIfIntegerArrayContainsValue()
     {
         assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2));
@@ -110,6 +118,7 @@ public class JsonArrayContainsKudfTest
 //        assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2L));
     }
 
+    @Test
     public void testIfLongArrayContainsValue()
     {
         assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 2L));
@@ -121,6 +130,7 @@ public class JsonArrayContainsKudfTest
 //        assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 1));
     }
 
+    @Test
     public void testIfDoubleArrayContainsValue()
     {
         assertEquals(true, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 2.0));

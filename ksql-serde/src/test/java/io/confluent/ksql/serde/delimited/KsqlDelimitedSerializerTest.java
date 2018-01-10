@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,24 +46,24 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeRowCorrectly() {
+  public void shouldSerializeRowCorrectly() throws IOException {
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
     GenericRow genericRow = new GenericRow(columns);
     KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     String delimitedString = new String(bytes);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,'item_1',10.0"));
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0\r\n"));
   }
 
   @Test
-  public void shouldSerializeRowWithNull() {
+  public void shouldSerializeRowWithNull() throws IOException {
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
     GenericRow genericRow = new GenericRow(columns);
     KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     String delimitedString = new String(bytes);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,'item_1',null"));
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,\r\n"));
   }
 }

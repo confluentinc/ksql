@@ -29,6 +29,6 @@ public class DelimitedProducer extends DataGenProducer {
       org.apache.kafka.connect.data.Schema kafkaSchema,
       String topicName
   ) {
-    return new KsqlDelimitedSerializer();
+    return new KsqlDelimitedSerializer(kafkaSchema);
   }
 }

@@ -238,11 +238,13 @@ public class SchemaKStream {
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] Schema: ")
-        .append(SchemaUtil
-        .getSchemaDefinitionString(schema)).append(".\n");
+        .append(SchemaUtil.getSchemaDefinitionString(schema))
+        .append(".\n");
     for (SchemaKStream schemaKStream: sourceSchemaKStreams) {
-      stringBuilder.append("\t")
-          .append(indent).append(schemaKStream.getExecutionPlan(indent + "\t"));
+      stringBuilder
+          .append("\t")
+          .append(indent)
+          .append(schemaKStream.getExecutionPlan(indent + "\t"));
     }
     return stringBuilder.toString();
   }

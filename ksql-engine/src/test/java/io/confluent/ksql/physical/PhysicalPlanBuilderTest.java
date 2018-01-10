@@ -446,9 +446,9 @@ public class PhysicalPlanBuilderTest {
     public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
       return consumerRecords;
     }
-    public void close() {  }
-    public void onCommit(Map map) {  }
-    public void configure(Map<String, ?> map) {  }
+    public void close() { }
+    public void onCommit(Map map) { }
+    public void configure(Map<String, ?> map) { }
   }
 
   @Test

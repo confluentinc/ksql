@@ -153,11 +153,26 @@ public class FunctionRegistry {
         "EXTRACTJSONFIELD", JsonExtractStringKudf.class);
     addFunction(getStringFromJson);
 
-    Schema array = SchemaBuilder.array(Schema.STRING_SCHEMA).build();
     KsqlFunction jsonArrayContainsString = new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(array, Schema.STRING_SCHEMA),
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
             "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class);
     addFunction(jsonArrayContainsString);
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(), Schema.STRING_SCHEMA),
+            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(), Schema.INT32_SCHEMA),
+            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(), Schema.INT64_SCHEMA),
+            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
+            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
 
 
     /***************************************

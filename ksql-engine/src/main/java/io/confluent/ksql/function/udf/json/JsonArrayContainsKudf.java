@@ -25,6 +25,7 @@ import io.confluent.ksql.util.KsqlException;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;
@@ -51,13 +52,29 @@ public class JsonArrayContainsKudf
     if (args.length != 2) {
       throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. Given: " + Arrays.toString(args));
     }
-    String jsonString = args[0].toString();
-    Object search = args[1];
-
-    return ifContains(jsonString, search);
+    Object searchValue = args[1];
+    if(args[0] instanceof String) {
+      String jsonString = args[0].toString();
+      return ifJsonStringArrayContains(jsonString, searchValue);
+    } else if(args[0] instanceof Object[]) {
+      Object[] array = (Object[]) args[0];
+      return ifArrayContains(array, searchValue);
+    }
+    throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
-  private boolean ifContains(String json, Object searchValue)
+  private Object ifArrayContains(Object[] array, Object searchValue)
+  {
+    //TODO: Refactor this to ArrayUtil.containsValue from TopK PR#575
+    for (Object value : array) {
+      if(Objects.equals(value, searchValue)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean ifJsonStringArrayContains(String json, Object searchValue)
   {
     JsonToken valueType = getType(searchValue);
     try (JsonParser parser = JSON_FACTORY.createParser(json)) {
@@ -97,7 +114,7 @@ public class JsonArrayContainsKudf
       }
     }
     catch (IOException e) {
-      throw new KsqlException("Invalid JSON format.", e);
+      throw new KsqlException("Invalid JSON format: " + json, e);
     }
     return false;
   }

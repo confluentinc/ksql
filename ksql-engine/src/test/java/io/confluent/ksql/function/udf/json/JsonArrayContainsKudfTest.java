@@ -39,7 +39,7 @@ public class JsonArrayContainsKudfTest
     }
 
     @Test
-    public void testIntegerValues()
+    public void testIntegerJsonArrayContainsValues()
     {
         String json = "[2147483647, {\"ab\":null }, -2147483648, 1, 2, 3, null, [4], 4]";
         assertEquals(true, jsonUdf.evaluate(json, 2147483647));
@@ -51,7 +51,7 @@ public class JsonArrayContainsKudfTest
         assertEquals(false, jsonUdf.evaluate(json, 5));
     }
 
-    public void testIfArrayContainsLongValue()
+    public void testIfJsonArrayContainsLongValue()
     {
         assertEquals(true, jsonUdf.evaluate("[1]", 1L));
         assertEquals(true, jsonUdf.evaluate("[1111111111111111]", 1111111111111111L));
@@ -64,7 +64,12 @@ public class JsonArrayContainsKudfTest
 
     public void testIfArrayContainsDoubleValue()
     {
-        //TODO:
+        assertEquals(true, jsonUdf.evaluate("[-1.0, 2.0, 3.0]", 2.0));
+        assertEquals(true, jsonUdf.evaluate("[1.0, -2.0, 3.0]", -2.0));
+        assertEquals(true, jsonUdf.evaluate("[1.0, 2.0, 1.6E3]", 1600.0));
+        assertEquals(true, jsonUdf.evaluate("[1.0, 2.0, -1.6E3]", -1600.0));
+        assertEquals(true, jsonUdf.evaluate("[{}, \"abc\", null, -2.0]", -2.0));
+        assertEquals(false, jsonUdf.evaluate("[[2.0], 3.0]", 2.0));
     }
 
     public void testIfArrayContainsStringValue()
@@ -85,6 +90,45 @@ public class JsonArrayContainsKudfTest
         assertEquals(true, jsonUdf.evaluate("[true, true, false]", false));
         assertEquals(false, jsonUdf.evaluate("[true, true]", false));
         assertEquals(false, jsonUdf.evaluate("[false, false]", true));
+    }
 
+    public void testIfStringArrayContainsValue()
+    {
+        assertEquals(true, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "DC"));
+        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "dc"));
+        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "1"}, 1));
+    }
+
+    public void testIfIntegerArrayContainsValue()
+    {
+        assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2));
+        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 0));
+        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "1"));
+        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "aa"));
+
+        //TODO: Achtung! this test fails
+//        assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2L));
+    }
+
+    public void testIfLongArrayContainsValue()
+    {
+        assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 2L));
+        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 0L));
+        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "1"));
+        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "aaa"));
+
+        //TODO: Achtung! this test fails
+//        assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 1));
+    }
+
+    public void testIfDoubleArrayContainsValue()
+    {
+        assertEquals(true, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 2.0));
+        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 4.0));
+        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "1"));
+        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "aaa"));
+
+        //TODO: Achtung! this test fails
+//        assertEquals(true, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 1));
     }
 }

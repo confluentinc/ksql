@@ -8,8 +8,10 @@
     <id>package</id>
     <formats>
         <format>dir</format>
+        <format>tgz</format>
     </formats>
-    <includeBaseDirectory>false</includeBaseDirectory>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>ksql</baseDirectory>
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>

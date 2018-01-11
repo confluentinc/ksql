@@ -80,7 +80,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private Object enforceFieldType(Schema fieldSchema, String delimitedField) {
 
-    if (delimitedField.length() == 0) {
+    if (delimitedField.isEmpty()) {
       return null;
     }
     switch (fieldSchema.type()) {

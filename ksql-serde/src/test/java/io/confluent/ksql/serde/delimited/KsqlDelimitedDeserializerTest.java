@@ -55,7 +55,6 @@ public class KsqlDelimitedDeserializerTest {
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
     assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
     assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
-
   }
 
   @Test

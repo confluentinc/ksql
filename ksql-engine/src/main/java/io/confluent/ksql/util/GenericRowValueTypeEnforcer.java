@@ -37,22 +37,24 @@ public class GenericRowValueTypeEnforcer {
   }
 
   private Object enforceFieldType(Schema schema, final Object value) {
-    if (schema == Schema.FLOAT64_SCHEMA) {
-      return enforceDouble(value);
-    } else if (schema == Schema.INT64_SCHEMA) {
-      return enforceLong(value);
-    } else if (schema == Schema.INT32_SCHEMA) {
-      return enforceInteger(value);
-    } else if (schema == Schema.STRING_SCHEMA) {
-      return enforceString(value);
-    } else if (schema == Schema.BOOLEAN_SCHEMA) {
-      return enforceBoolean(value);
-    } else if (schema.type() == Schema.Type.ARRAY) {
-      return value;
-    } else if (schema.type() == Schema.Type.MAP) {
-      return value;
-    } else {
-      throw new KsqlException("Type is not supported: " + schema);
+
+    switch (schema.type()) {
+      case INT32:
+        return enforceInteger(value);
+      case INT64:
+        return enforceLong(value);
+      case FLOAT64:
+        return enforceDouble(value);
+      case STRING:
+        return enforceString(value);
+      case BOOLEAN:
+        return enforceBoolean(value);
+      case ARRAY:
+        return value;
+      case MAP:
+        return value;
+      default:
+        throw new KsqlException("Type is not supported: " + schema);
     }
   }
 

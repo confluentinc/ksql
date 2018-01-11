@@ -180,15 +180,15 @@ public class ExpressionTypeManager
                                             final Schema rightSchema) {
     if (leftSchema == rightSchema) {
       return leftSchema;
-    } else if ((leftSchema == Schema.STRING_SCHEMA) || (rightSchema == Schema.STRING_SCHEMA)) {
+    } else if ((leftSchema.type() == Schema.Type.STRING) || (rightSchema.type() == Schema.Type.STRING)) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.BOOLEAN_SCHEMA) || (rightSchema == Schema.BOOLEAN_SCHEMA)) {
+    } else if ((leftSchema.type() == Schema.Type.BOOLEAN) || (rightSchema.type() == Schema.Type.BOOLEAN)) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.FLOAT64_SCHEMA) || (rightSchema == Schema.FLOAT64_SCHEMA)) {
+    } else if ((leftSchema.type() == Schema.Type.FLOAT64) || (rightSchema.type() == Schema.Type.FLOAT64)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT64_SCHEMA) || (rightSchema == Schema.INT64_SCHEMA)) {
+    } else if ((leftSchema.type() == Schema.Type.INT64) || (rightSchema.type() == Schema.Type.INT64)) {
       return Schema.INT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT32_SCHEMA) || (rightSchema == Schema.INT32_SCHEMA)) {
+    } else if ((leftSchema.type() == Schema.Type.INT32) || (rightSchema.type() == Schema.Type.INT32)) {
       return Schema.INT32_SCHEMA;
     }
     throw new PlanException("Unsupported types.");

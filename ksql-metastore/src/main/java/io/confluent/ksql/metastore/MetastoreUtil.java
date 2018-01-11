@@ -137,13 +137,13 @@ public class MetastoreUtil {
   }
 
   private String getKsqlTypeInJson(final Schema schemaType) {
-    if (schemaType == Schema.INT64_SCHEMA) {
+    if (schemaType.type() == Schema.Type.INT64) {
       return "LONG";
-    } else if (schemaType == Schema.STRING_SCHEMA) {
+    } else if (schemaType.type() == Schema.Type.STRING) {
       return "STRING";
-    } else if (schemaType == Schema.FLOAT64_SCHEMA) {
+    } else if (schemaType.type() == Schema.Type.FLOAT64) {
       return "DOUBLE";
-    } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
+    } else if (schemaType.type() == Schema.Type.BOOLEAN) {
       return "BOOL";
     }
     throw new KsqlException("Unsupported type: " + schemaType);

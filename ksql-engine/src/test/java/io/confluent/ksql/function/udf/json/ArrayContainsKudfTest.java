@@ -3,10 +3,10 @@ package io.confluent.ksql.function.udf.json;
 import junit.framework.TestCase;
 import org.junit.Test;
 
-public class JsonArrayContainsKudfTest
+public class ArrayContainsKudfTest
         extends TestCase
 {
-    private JsonArrayContainsKudf jsonUdf = new JsonArrayContainsKudf();
+    private ArrayContainsKudf jsonUdf = new ArrayContainsKudf();
 
     @Override
     public void setUp()

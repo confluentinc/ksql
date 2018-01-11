@@ -37,7 +37,7 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_INT;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 
-public class JsonArrayContainsKudf
+public class ArrayContainsKudf
         implements Kudf {
   private static final JsonFactory JSON_FACTORY = new JsonFactory()
           .disable(CANONICALIZE_FIELD_NAMES);

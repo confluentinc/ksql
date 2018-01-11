@@ -22,7 +22,7 @@ import io.confluent.ksql.function.udaf.min.MinAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
-import io.confluent.ksql.function.udf.json.JsonArrayContainsKudf;
+import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
@@ -155,24 +155,24 @@ public class FunctionRegistry {
 
     KsqlFunction jsonArrayContainsString = new KsqlFunction(
             Schema.BOOLEAN_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
-            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class);
+            "ARRAYCONTAINS", ArrayContainsKudf.class);
     addFunction(jsonArrayContainsString);
 
     addFunction(new KsqlFunction(
             Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(), Schema.STRING_SCHEMA),
-            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
             Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(), Schema.INT32_SCHEMA),
-            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
             Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(), Schema.INT64_SCHEMA),
-            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
             Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
-            "JSON_ARRAY_CONTAINS", JsonArrayContainsKudf.class));
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
 
 
     /***************************************

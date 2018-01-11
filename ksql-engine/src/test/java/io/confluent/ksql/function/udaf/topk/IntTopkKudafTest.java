@@ -33,10 +33,10 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    TopkKudaf<Integer> doubleTopkKudaf = new TopkKudaf(0, 3, Integer.class);
+    TopkKudaf<Integer> intTopkKudaf = new TopkKudaf(0, 3, Integer.class);
     Integer[] currentVal = new Integer[]{null, null, null};
     for (Integer d: valueArray) {
-      currentVal = doubleTopkKudaf.aggregate(d, currentVal);
+      currentVal = intTopkKudaf.aggregate(d, currentVal);
     }
 
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, 60, 60}));
@@ -44,40 +44,40 @@ public class IntTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkKudaf<Integer> doubleTopkKudaf = new TopkKudaf(0, 3, Integer.class);
+    TopkKudaf<Integer> intTopkKudaf = new TopkKudaf(0, 3, Integer.class);
     Integer[] currentVal = new Integer[]{null, null, null};
-    currentVal = doubleTopkKudaf.aggregate(10, currentVal);
+    currentVal = intTopkKudaf.aggregate(10, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{10, null, null}));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkKudaf<Integer> doubleTopkKudaf = new TopkKudaf(0, 3, Integer.class);
+    TopkKudaf<Integer> intTopkKudaf = new TopkKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, 45, 25};
     Integer[] array2 = new Integer[]{60, 55, 48};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 55, 50}));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkKudaf<Integer> doubleTopkKudaf = new TopkKudaf(0, 3, Integer.class);
+    TopkKudaf<Integer> intTopkKudaf = new TopkKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, 45, null};
     Integer[] array2 = new Integer[]{60, null, null};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 50, 45}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkKudaf<Integer> doubleTopkKudaf = new TopkKudaf(0, 3, Integer.class);
+    TopkKudaf<Integer> intTopkKudaf = new TopkKudaf(0, 3, Integer.class);
     Integer[] array1 = new Integer[]{50, null, null};
     Integer[] array2 = new Integer[]{60, null, null};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
+    assertThat("Invalid results.", intTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
         new Integer[]{60, 50, null}));
   }
 

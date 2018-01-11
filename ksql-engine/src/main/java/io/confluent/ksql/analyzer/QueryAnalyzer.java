@@ -76,7 +76,7 @@ public class QueryAnalyzer {
     aggregateAnalyzer.process(analysis.getHavingExpression(),
         new AnalysisContext());
     if (!aggregateAnalyzer.isHasAggregateFunction()) {
-      aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+      aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
     }
     aggregateAnalysis
         .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
@@ -92,10 +92,9 @@ public class QueryAnalyzer {
       aggregateAnalyzer
           .process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(expression);
+        aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.getFinalSelectExpressions()
-          .add(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
   }

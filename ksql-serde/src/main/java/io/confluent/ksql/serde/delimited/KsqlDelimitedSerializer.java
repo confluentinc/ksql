@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -27,6 +28,11 @@ import java.util.Map;
 
 public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
+  private final Schema schema;
+
+  public KsqlDelimitedSerializer(Schema schema) {
+    this.schema = schema;
+  }
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
@@ -45,7 +51,14 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
         if (i != 0) {
           recordString.append(",");
         }
-        recordString.append(genericRow.getColumns().get(i).toString());
+        if (genericRow.getColumns().get(i) == null) {
+          recordString.append("null");
+        } else if (schema.fields().get(i).schema() == Schema.STRING_SCHEMA) {
+          recordString.append("'" + genericRow.getColumns().get(i).toString() + "'");
+        } else {
+          recordString.append(genericRow.getColumns().get(i).toString());
+        }
+
       }
       return recordString.toString().getBytes(StandardCharsets.UTF_8);
     } catch (Exception e) {

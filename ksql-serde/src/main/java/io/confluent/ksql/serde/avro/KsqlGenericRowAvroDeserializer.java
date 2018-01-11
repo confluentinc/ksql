@@ -76,8 +76,14 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       Map<String, String> caseInsensitiveFieldNameMap = getCaseInsensitiveFieldMap(genericRecord);
       List columns = new ArrayList();
       for (Field field : schema.fields()) {
-        columns.add(enforceFieldType(field.schema(), genericRecord
-            .get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))));
+        // Set the missing fields to null. We can make this configurable later.
+        if (genericRecord.get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase())) == null) {
+          columns.add(null);
+        } else {
+          columns.add(enforceFieldType(field.schema(), genericRecord
+              .get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))));
+        }
+
       }
       genericRow = new GenericRow(columns);
     } catch (Exception e) {

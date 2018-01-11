@@ -36,10 +36,9 @@ import java.util.Map;
 
 public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
-  private Schema avroSchema;
-  private List<Schema.Field> fields;
-
-  private KafkaAvroSerializer kafkaAvroSerializer;
+  private final Schema avroSchema;
+  private final List<Schema.Field> fields;
+  private final KafkaAvroSerializer kafkaAvroSerializer;
 
   public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema,
                                       SchemaRegistryClient schemaRegistryClient, KsqlConfig
@@ -48,7 +47,9 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
     fields = avroSchema.getFields();
+
     Map<String, Object> map = new HashMap<>();
+
     // Automatically register the schema in the Schema Registry if it has not been registered.
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
     map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));

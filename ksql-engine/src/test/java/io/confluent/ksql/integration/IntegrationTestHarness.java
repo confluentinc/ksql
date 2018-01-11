@@ -204,7 +204,7 @@ public class IntegrationTestHarness {
 
   private Serializer getSerializer(Schema schema) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
-      return new KsqlDelimitedSerializer();
+      return new KsqlDelimitedSerializer(schema);
     } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
       return new KsqlGenericRowAvroSerializer
           (schema, this.schemaRegistryClient, new

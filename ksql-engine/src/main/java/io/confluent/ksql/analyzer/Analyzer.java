@@ -346,8 +346,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-    if (metaStore.getSource(structuredDataSourceName)
-        == null) {
+    if (metaStore.getSource(structuredDataSourceName) == null) {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 

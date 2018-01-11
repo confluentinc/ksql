@@ -32,10 +32,7 @@ public class KudafInitializer implements Initializer<GenericRow> {
 
   @Override
   public GenericRow apply() {
-    List rowColumns = new ArrayList();
-    for (Object obj: initialGenericRowColumns) {
-      rowColumns.add(obj);
-    }
+    List rowColumns = new ArrayList(initialGenericRowColumns);
     return new GenericRow(rowColumns);
   }
 

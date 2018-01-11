@@ -120,15 +120,15 @@ public class LogicalPlanner {
     }
 
     return new AggregateNode(new PlanNodeId("Aggregate"),
-                             sourcePlanNode,
-                             aggregateSchema,
+        sourcePlanNode,
+        aggregateSchema,
         analysis.getGroupByExpressions(),
-                             analysis.getWindowExpression(),
-                             aggregateAnalysis.getAggregateFunctionArguments(),
-                             aggregateAnalysis.getFunctionList(),
-                             aggregateAnalysis.getRequiredColumnsList(),
-                             aggregateAnalysis.getFinalSelectExpressions(),
-                             aggregateAnalysis.getHavingExpression());
+        analysis.getWindowExpression(),
+        aggregateAnalysis.getAggregateFunctionArguments(),
+        aggregateAnalysis.getFunctionList(),
+        aggregateAnalysis.getRequiredColumnsList(),
+        aggregateAnalysis.getFinalSelectExpressions(),
+        aggregateAnalysis.getHavingExpression());
   }
 
   private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {

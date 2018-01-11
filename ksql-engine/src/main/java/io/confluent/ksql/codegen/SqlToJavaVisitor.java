@@ -261,19 +261,20 @@ public class SqlToJavaVisitor {
 
         case "INTEGER": {
           Schema rightSchema = expr.getRight();
-          String exprStr = getCastToIntegerString(rightSchema, expr.getLeft());
+          String exprStr = getCastString(rightSchema, expr.getLeft(), "intValue", "Integer.parseInt");
           return new Pair<>(exprStr, returnType);
         }
 
         case "BIGINT": {
           Schema rightSchema = expr.getRight();
-          String exprStr = getCastToLongString(rightSchema, expr.getLeft());
+          String exprStr = getCastString(rightSchema, expr.getLeft(), "longValue", "Long"
+                                                                                 + ".parseLong");
           return new Pair<>(exprStr, returnType);
         }
 
         case "DOUBLE": {
           Schema rightSchema = expr.getRight();
-          String exprStr = getCastToDoubleString(rightSchema, expr.getLeft());
+          String exprStr = getCastString(rightSchema, expr.getLeft(), "doubleValue", "Double.parseDouble");
           return new Pair<>(exprStr, returnType);
         }
         default:
@@ -413,53 +414,35 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String getCastToIntegerString(Schema schema, String exprStr) {
+    private String getCastString(Schema schema,
+                                 String exprStr,
+                                 String javaTypeMethod,
+                                 String javaStringParserMethod) {
       switch (schema.type()) {
         case INT32:
-          return exprStr;
+          if (javaTypeMethod.equals("intValue")) {
+            return exprStr;
+          } else {
+            return "(new Integer(" + exprStr + ")." + javaTypeMethod + "())";
+          }
         case INT64:
-          return "(new Long(" + exprStr + ").intValue())";
+          if (javaTypeMethod.equals("longValue")) {
+            return exprStr;
+          } else {
+            return "(new Long(" + exprStr + ")." + javaTypeMethod + "())";
+          }
         case FLOAT64:
-          return "(new Double(" + exprStr + ").intValue())";
+          if (javaTypeMethod.equals("doubleValue")) {
+            return exprStr;
+          } else {
+            return "(new Double(" + exprStr + ")." + javaTypeMethod + "())";
+          }
         case STRING:
-          return "Integer.parseInt(" + exprStr + ")";
-        default:
-          throw new KsqlFunctionException(
-              "Invalid cast operation: Cannot cast " + exprStr + " to Integer.");
-      }
-    }
+          return  javaStringParserMethod + "(" + exprStr + ")";
 
-    private String getCastToLongString(Schema schema, String exprStr) {
-
-      switch (schema.type()) {
-        case INT32:
-          return "(new Integer(" + exprStr + ").longValue())";
-        case INT64:
-          return exprStr;
-        case FLOAT64:
-          return "(new Double(" + exprStr + ").longValue())";
-        case STRING:
-          return "Long.parseLong(" + exprStr + ")";
-        default:
-          throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
-                                          + exprStr + " to Long.");
-      }
-    }
-
-    private String getCastToDoubleString(Schema schema, String exprStr) {
-
-      switch (schema.type()) {
-        case INT32:
-          return "(new Integer(" + exprStr + ").doubleValue())";
-        case INT64:
-          return "(new Long(" + exprStr + ").doubleValue())";
-        case FLOAT64:
-          return exprStr;
-        case STRING:
-          return  "Double.parseDouble(" + exprStr + ")";
         default:
           throw new KsqlFunctionException("Invalid cast operation: Cannot cast "
-                                          + exprStr + " to Double.");
+                                          + exprStr + " to " + schema.type() + ".");
       }
     }
   }

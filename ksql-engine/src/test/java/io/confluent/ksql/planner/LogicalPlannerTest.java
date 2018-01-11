@@ -43,6 +43,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class LogicalPlannerTest {
@@ -97,14 +98,13 @@ public class LogicalPlannerTest {
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
 //    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof ProjectNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSources().get(0) instanceof FilterNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(0) instanceof StructuredDataSourceNode);
+    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(FilterNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0),
+        instanceOf(StructuredDataSourceNode.class));
 
-    Assert.assertTrue(logicalPlan.getSchema().fields().size() == 3);
-    Assert.assertNotNull(
-        ((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
+    assertThat(logicalPlan.getSchema().fields().size(), equalTo( 3));
+    Assert.assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
   }
 
   @Test
@@ -112,15 +112,15 @@ public class LogicalPlannerTest {
     String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-//    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof ProjectNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSources().get(0) instanceof JoinNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(0) instanceof StructuredDataSourceNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(1) instanceof StructuredDataSourceNode);
+//    assertThat(logicalPlan instanceof OutputKafkaTopicNode);
+    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
+                          .get(0), instanceOf(StructuredDataSourceNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
+                          .get(1), instanceOf(StructuredDataSourceNode.class));
 
-    Assert.assertTrue(logicalPlan.getSchema().fields().size() == 4);
+    assertThat(logicalPlan.getSchema().fields().size(), equalTo(4));
 
   }
 
@@ -132,22 +132,20 @@ public class LogicalPlannerTest {
         + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-//    Assert.assertTrue(logicalPlan instanceof OutputKafkaTopicNode);
-    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof ProjectNode);
+    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    Assert.assertTrue(projectNode.getKeyField().name().equalsIgnoreCase("t1.col1"));
-    Assert.assertTrue(projectNode.getSchema().fields().size() == 5);
+    assertThat(projectNode.getKeyField().name(), equalTo("t1.col1".toUpperCase()));
+    assertThat(projectNode.getSchema().fields().size(), equalTo(5));
 
-    Assert.assertTrue(projectNode.getSources().get(0) instanceof FilterNode);
+    assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
     FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
-    Assert.assertTrue(filterNode.getPredicate().toString()
-                          .equalsIgnoreCase("((T1.COL1 > 10) AND (T2.COL4 = 10.8))"));
+    assertThat(filterNode.getPredicate().toString(), equalTo("((T1.COL1 > 10) AND (T2.COL4 = 10.8))"));
 
-    Assert.assertTrue(filterNode.getSources().get(0) instanceof JoinNode);
+    assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
     JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
-    Assert.assertTrue(joinNode.getSources().get(0) instanceof StructuredDataSourceNode);
-    Assert.assertTrue(joinNode.getSources().get(1) instanceof StructuredDataSourceNode);
+    assertThat(joinNode.getSources().get(0), instanceOf(StructuredDataSourceNode.class));
+    assertThat(joinNode.getSources().get(1), instanceOf(StructuredDataSourceNode.class));
 
   }
 
@@ -159,18 +157,17 @@ public class LogicalPlannerTest {
 
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof AggregateNode);
+    assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
     AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
-    Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" TUMBLING ( SIZE 2 SECONDS ) "));
-    Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
-    Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
-    Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
-    Assert.assertTrue(aggregateNode.getSchema().fields().get(1).schema().type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(aggregateNode.getSchema().fields().get(2).schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSchema().fields().size() == 3);
+    assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
+    assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
+    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
+    assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
+    assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
+    assertThat(aggregateNode.getRequiredColumnList().size(), equalTo(2));
+    assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
+    assertThat(aggregateNode.getSchema().fields().get(2).schema().type(), equalTo(Schema.Type.INT64));
+    assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(3));
 
   }
 
@@ -182,17 +179,16 @@ public class LogicalPlannerTest {
 
     PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-    Assert.assertTrue(logicalPlan.getSources().get(0) instanceof AggregateNode);
+    assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
     AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    Assert.assertTrue(aggregateNode.getFunctionList().size() == 2);
-    Assert.assertTrue(aggregateNode.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString().equalsIgnoreCase(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
-    Assert.assertTrue(aggregateNode.getGroupByExpressions().size() == 1);
-    Assert.assertTrue(aggregateNode.getGroupByExpressions().get(0).toString().equalsIgnoreCase("TEST1.COL0"));
-    Assert.assertTrue(aggregateNode.getRequiredColumnList().size() == 2);
-    Assert.assertTrue(aggregateNode.getSchema().fields().get(1).schema().type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(logicalPlan.getSources().get(0).getSchema().fields().size() == 2);
+    assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
+    assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
+    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
+    assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
+    assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
+    assertThat(aggregateNode.getRequiredColumnList().size(), equalTo(2));
+    assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
+    assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(2));
 
   }
 }

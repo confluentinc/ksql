@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.function.udaf.min;
+package io.confluent.ksql.function.udaf.topkdistinct;
 
 import org.apache.kafka.connect.data.Schema;
 
@@ -25,20 +25,31 @@ import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
-public class MinAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
 
-  public MinAggFunctionDeterminer() {
-    super("MIN", Arrays.asList(new DoubleMinKudaf(-1), new LongMinKudaf(-1)));
+  public TopkDistinctAggFunctionDeterminer() {
+    super("TOPKDISTINCT", Arrays.asList());
   }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
-      if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
-        return ksqlAggregateFunction;
-      }
+    if (argTypeList.isEmpty()) {
+      throw new KsqlException("TopK function should have two arguments.");
     }
-    throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
-                            + " argument type exists!");
+    Schema argSchema = argTypeList.get(0);
+    switch (argSchema.type()) {
+      case INT32:
+        return new TopkDistinctKudaf<Integer>(-1, 0, Integer.class);
+      case INT64:
+        return new TopkDistinctKudaf<Long>(-1, 0, Long.class);
+      case FLOAT64:
+        return new TopkDistinctKudaf<Double>(-1, 0, Double.class);
+      case STRING:
+        return new TopkDistinctKudaf<String>(-1, 0, String.class);
+      default:
+        throw new KsqlException("No TopK aggregate function with " + argTypeList.get(0) + " "
+                                + " argument type exists!");
+    }
+
   }
 }

@@ -369,9 +369,8 @@ public class AggregateNode extends PlanNode {
       KsqlAggregateFunction aggregateFunction = functionRegistry.getAggregateFunction(udafName,
           getFunctionList()
               .get(aggFunctionVarSuffix).getArguments(), schema);
-      Schema fieldSchema = aggregateFunction.getReturnType();
       schemaBuilder.field(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
-          + aggFunctionVarSuffix, fieldSchema);
+          + aggFunctionVarSuffix, aggregateFunction.getReturnType());
     }
 
     return schemaBuilder.build();

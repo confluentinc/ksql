@@ -53,7 +53,7 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
         }
         if (genericRow.getColumns().get(i) == null) {
           recordString.append("null");
-        } else if (schema.fields().get(i).schema() == Schema.STRING_SCHEMA) {
+        } else if (schema.fields().get(i).schema().type() == Schema.Type.STRING) {
           recordString.append("'" + genericRow.getColumns().get(i).toString() + "'");
         } else {
           recordString.append(genericRow.getColumns().get(i).toString());

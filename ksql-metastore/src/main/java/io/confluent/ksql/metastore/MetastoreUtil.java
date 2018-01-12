@@ -132,17 +132,19 @@ public class MetastoreUtil {
     }
   }
 
-  private String getKsqlTypeInJson(final Schema schemaType) {
-    if (schemaType == Schema.INT64_SCHEMA) {
-      return "LONG";
-    } else if (schemaType == Schema.STRING_SCHEMA) {
-      return "STRING";
-    } else if (schemaType == Schema.FLOAT64_SCHEMA) {
-      return "DOUBLE";
-    } else if (schemaType == Schema.BOOLEAN_SCHEMA) {
-      return "BOOL";
+  private String getKsqlTypeInJson(final Schema schema) {
+    switch (schema.type()) {
+      case INT64:
+        return "LONG";
+      case FLOAT64:
+        return "DOUBLE";
+      case STRING:
+        return "STRING";
+      case BOOLEAN:
+        return "BOOL";
+      default:
+        throw new KsqlException("Unsupported type: " + schema.type());
     }
-    throw new KsqlException("Unsupported type: " + schemaType);
   }
 
   MetaStore loadMetaStoreFromJsonFile(final String metaStoreJsonFilePath)

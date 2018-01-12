@@ -62,15 +62,12 @@ public class AggregateNode extends PlanNode {
 
   private final PlanNode source;
   private final Schema schema;
-  private final List<Expression> projectExpressions;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
 
   private final List<FunctionCall> functionList;
   private final List<Expression> requiredColumnList;
-
-  private final List<Expression> nonAggResultColumns;
 
   private final List<Expression> finalSelectExpressions;
 
@@ -80,17 +77,12 @@ public class AggregateNode extends PlanNode {
   public AggregateNode(@JsonProperty("id") final PlanNodeId id,
                        @JsonProperty("source") final PlanNode source,
                        @JsonProperty("schema") final Schema schema,
-                       @JsonProperty("projectExpressions")
-                         final List<Expression> projectExpressions,
                        @JsonProperty("groupby") final List<Expression> groupByExpressions,
                        @JsonProperty("window") final WindowExpression windowExpression,
-                       @JsonProperty("aggregateFunctionArguments")
-                         final List<Expression> aggregateFunctionArguments,
+                       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
                        @JsonProperty("functionList") final List<FunctionCall> functionList,
                        @JsonProperty("requiredColumnList") final List<Expression>
                              requiredColumnList,
-                       @JsonProperty("nonAggResultColumns") final List<Expression>
-                             nonAggResultColumns,
                        @JsonProperty("finalSelectExpressions") final List<Expression>
                              finalSelectExpressions,
                        @JsonProperty("havingExpressions") final Expression
@@ -99,13 +91,11 @@ public class AggregateNode extends PlanNode {
 
     this.source = source;
     this.schema = schema;
-    this.projectExpressions = projectExpressions;
     this.groupByExpressions = groupByExpressions;
     this.windowExpression = windowExpression;
     this.aggregateFunctionArguments = aggregateFunctionArguments;
     this.functionList = functionList;
     this.requiredColumnList = requiredColumnList;
-    this.nonAggResultColumns = nonAggResultColumns;
     this.finalSelectExpressions = finalSelectExpressions;
     this.havingExpressions = havingExpressions;
   }
@@ -133,10 +123,6 @@ public class AggregateNode extends PlanNode {
     return groupByExpressions;
   }
 
-  public List<Expression> getProjectExpressions() {
-    return projectExpressions;
-  }
-
   public WindowExpression getWindowExpression() {
     return windowExpression;
   }
@@ -153,7 +139,7 @@ public class AggregateNode extends PlanNode {
     return requiredColumnList;
   }
 
-  public List<Pair<String, Expression>> getFinalSelectExpressions() {
+  private List<Pair<String, Expression>> getFinalSelectExpressions() {
     List<Pair<String, Expression>> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
       throw new KsqlException("Incompatible aggregate schema, field count must match, "

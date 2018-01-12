@@ -165,8 +165,7 @@ public class PhysicalPlanBuilder {
         (sourceSchemaKstream instanceof SchemaKTable) ?
             DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        kafkaTopicClient,
-        ksqlConfig
+        kafkaTopicClient
     );
   }
 

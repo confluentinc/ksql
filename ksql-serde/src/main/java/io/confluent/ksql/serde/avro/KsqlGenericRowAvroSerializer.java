@@ -36,30 +36,20 @@ import java.util.Map;
 
 public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
-  public static final String AVRO_SERDE_SCHEMA_CONFIG = "avro.serde.schema";
-
-  private final org.apache.kafka.connect.data.Schema schema;
-
-  Schema.Parser parser;
-  Schema avroSchema;
-  List<Schema.Field> fields;
-
-  KafkaAvroSerializer kafkaAvroSerializer;
+  private final Schema avroSchema;
+  private final List<Schema.Field> fields;
+  private final KafkaAvroSerializer kafkaAvroSerializer;
 
   public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema,
                                       SchemaRegistryClient schemaRegistryClient, KsqlConfig
-                                          ksqlConfig, boolean isInternal) {
-    if (isInternal) {
-      this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
-    } else {
-      this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
-    }
-
+                                          ksqlConfig) {
     String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
-    parser = new Schema.Parser();
+    Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
     fields = avroSchema.getFields();
-    Map map = new HashMap();
+
+    Map<String, Object> map = new HashMap<>();
+
     // Automatically register the schema in the Schema Registry if it has not been registered.
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
     map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));

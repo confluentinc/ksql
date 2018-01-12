@@ -61,7 +61,7 @@ public class KsqlGenericRowAvroSerializerTest {
   public void shouldSerializeRowCorrectly() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
-        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()), false);
+        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));
@@ -94,7 +94,7 @@ public class KsqlGenericRowAvroSerializerTest {
   public void shouldFailIfGenericRowDoesNotMatchTheSchema() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
-        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()), false);
+        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
@@ -112,7 +112,7 @@ public class KsqlGenericRowAvroSerializerTest {
   public void shouldFailForIncompatibleType() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
-        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()), false);
+        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", "10.0", new Double[]{100.0},
                                  Collections.singletonMap("key1", 100.0));

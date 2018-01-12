@@ -23,11 +23,9 @@ import java.util.List;
 
 public class GenericRowValueTypeEnforcer {
 
-  private final Schema schema;
   private final List<Field> fields;
 
   public GenericRowValueTypeEnforcer(final Schema schema) {
-    this.schema = schema;
     this.fields = schema.fields();
   }
 

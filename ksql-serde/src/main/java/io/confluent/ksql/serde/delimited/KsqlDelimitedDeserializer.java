@@ -59,7 +59,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       if (csvRecord == null || csvRecord.size() == 0) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
-      List<Object> columns = new ArrayList();
+      List<Object> columns = new ArrayList<>();
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
       }

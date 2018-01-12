@@ -35,8 +35,8 @@ import static java.lang.String.format;
 
 public class SqlToJavaVisitor {
 
-  Schema schema;
-  FunctionRegistry functionRegistry;
+  private Schema schema;
+  private FunctionRegistry functionRegistry;
 
   public SqlToJavaVisitor(Schema schema, FunctionRegistry functionRegistry) {
     this.schema = schema;
@@ -45,13 +45,13 @@ public class SqlToJavaVisitor {
 
   public String process(final Expression expression) {
 
-    return formatExpression(expression, true);
+    return formatExpression(expression);
   }
 
-  private String formatExpression(final Expression expression, final boolean unmangleNames) {
+  private String formatExpression(final Expression expression) {
     Pair<String, Schema>
         expressionFormatterResult =
-        new SqlToJavaVisitor.Formatter(functionRegistry).process(expression, unmangleNames);
+        new SqlToJavaVisitor.Formatter(functionRegistry).process(expression, true);
     return expressionFormatterResult.getLeft();
   }
 
@@ -60,7 +60,7 @@ public class SqlToJavaVisitor {
       extends AstVisitor<Pair<String, Schema>, Boolean> {
 
     FunctionRegistry functionRegistry;
-    public Formatter(FunctionRegistry functionRegistry) {
+    Formatter(FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
     }
 

@@ -68,8 +68,8 @@ public abstract class TestRunner {
         return actualResult.data.containsAll(expectedResult.data);
       }, 10000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
     } catch (AssertionError e) {
-      System.err.println("CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults);
-      throw e;
+      throw new AssertionError(
+          "CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults, e);
     } catch (InterruptedException e) {
       fail("Test got interrutped when waiting for result " + expectedResult.toString());
     }

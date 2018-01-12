@@ -4,13 +4,13 @@ ARG DOCKER_UPSTREAM_REGISTRY
 
 FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/docker-demo-base:3.3.0
 
-ARG PROJECT_VERSION
+ARG KSQL_VERSION
 ARG ARTIFACT_ID
 
 EXPOSE 3000
 
 ENV ES_JAVA_OPTS="-Xms512M -Xmx512M"
-ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar
+ENV KSQL_CLASSPATH=/usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${KSQL_VERSION}-standalone.jar
 ENV KSQL_CONFIG_DIR="/etc/ksql"
 ENV KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
 
@@ -21,9 +21,9 @@ RUN wget -q https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_
     && rm grafana_4.4.3_amd64.deb \
     && rm elasticsearch-5.5.2.deb
 
-ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar /usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${PROJECT_VERSION}-standalone.jar
-ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/* /usr/bin/
-ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/
+ADD target/${ARTIFACT_ID}-${KSQL_VERSION}-standalone.jar /usr/share/java/${ARTIFACT_ID}/${ARTIFACT_ID}-${KSQL_VERSION}-standalone.jar
+ADD target/${ARTIFACT_ID}-${KSQL_VERSION}-package/bin/* /usr/bin/
+ADD target/${ARTIFACT_ID}-${KSQL_VERSION}-package/etc/* /etc/ksql/
 
 ADD demo/*sh /usr/share/doc/ksql-clickstream-demo/
 ADD demo/*sql /usr/share/doc/ksql-clickstream-demo/

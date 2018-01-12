@@ -30,6 +30,10 @@
     <artifactId>ksql-clickstream-demo</artifactId>
     <name>KSQL Clickstream Analysis Demo</name>
 
+    <properties>
+        <docker.skip-build>false</docker.skip-build>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>

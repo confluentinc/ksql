@@ -430,7 +430,7 @@ public class KsqlResource {
     });
 
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
-      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand((RegisterTopic) statement, properties);
+      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand((RegisterTopic) statement);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
       return statement.toString();
     });

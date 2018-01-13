@@ -20,13 +20,20 @@ package io.confluent.ksql.rest.server;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+
+import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.eq;
 
 
 public class BrokerCompatibilityCheckTest {
@@ -55,8 +62,20 @@ public class BrokerCompatibilityCheckTest {
     compatibilityCheck.checkCompatibility();
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldThrowKsqlExceptionIfNoTopicsAvailableToCheck() {
-    BrokerCompatibilityCheck.create(Collections.emptyMap(), Collections.emptySet());
+  @Test
+  public void shouldCreateTopicIfNoTopicsAvailableToCheck() {
+    final KafkaTopicClient topicClient = EasyMock.createMock(KafkaTopicClient.class);
+    final Map<String, Object> streamsConfig = new HashMap<>();
+    streamsConfig.put(StreamsConfig.APPLICATION_ID_CONFIG, "app");
+    streamsConfig.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9090");
+    EasyMock.expect(topicClient.listTopicNames()).andReturn(Collections.emptySet());
+    topicClient.createTopic(anyString(), eq(1), eq((short)1));
+    EasyMock.expectLastCall();
+
+    EasyMock.replay(topicClient);
+
+    BrokerCompatibilityCheck.create(streamsConfig, topicClient);
+
+    EasyMock.verify(topicClient);
   }
 }

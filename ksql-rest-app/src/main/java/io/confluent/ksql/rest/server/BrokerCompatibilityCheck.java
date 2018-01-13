@@ -20,6 +20,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 
@@ -28,11 +29,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
 
 public class BrokerCompatibilityCheck implements Closeable {
 
+  private static final String KSQL_COMPATIBILITY_CHECK = "__ksql_compatibility_check";
   private final Consumer<?, ?> consumer;
   private final TopicPartition topicPartition;
 
@@ -43,13 +46,16 @@ public class BrokerCompatibilityCheck implements Closeable {
   }
 
 
-  public static BrokerCompatibilityCheck create(final Map<String, Object> streamsConfig, final Set<String> topicNames) {
+  public static BrokerCompatibilityCheck create(final Map<String, Object> streamsConfig,
+                                                final KafkaTopicClient topicClient) {
+    Set<String> topicNames = topicClient.listTopicNames();
     // the offsetsForTime call needs a partition that exists else it can block forever
     if (topicNames.isEmpty()) {
-      throw new KsqlException("Unable to check broker compatibility against a broker without any topics");
+      topicClient.createTopic(KSQL_COMPATIBILITY_CHECK, 1, (short)1);
+      topicNames = Utils.mkSet(KSQL_COMPATIBILITY_CHECK);
     }
     final Map<String, Object> consumerConfigs = new StreamsConfig(streamsConfig)
-        .getConsumerConfigs("__ksql_compatibility_check", "ksql_server");
+        .getConsumerConfigs(KSQL_COMPATIBILITY_CHECK, "ksql_server");
 
     // remove this otherwise it will try and instantiate the StreamsPartitionAssignor
     consumerConfigs.remove("partition.assignment.strategy");

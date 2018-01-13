@@ -75,7 +75,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
@@ -230,12 +229,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
-    KafkaTopicClient client = ksqlEngine.getTopicClient();
+    KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    final Set<String> topicNames = client.listTopicNames();
     try(BrokerCompatibilityCheck compatibilityCheck =
             BrokerCompatibilityCheck.create(
-                ksqlConfig.getKsqlStreamConfigProps(), topicNames)) {
+                ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
       compatibilityCheck.checkCompatibility();
     }
 
@@ -247,7 +245,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         replicationFactor = Short.parseShort(restConfig.getOriginals()
                                                      .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY).toString());
       }
-      client.createTopic(commandTopic, 1, replicationFactor);
+      topicClient.createTopic(commandTopic, 1, replicationFactor);
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: " + e.getMessage());
     }

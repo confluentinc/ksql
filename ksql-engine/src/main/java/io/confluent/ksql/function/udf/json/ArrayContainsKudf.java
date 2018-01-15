@@ -47,8 +47,7 @@ public class ArrayContainsKudf
   }
 
   @Override
-  public Object evaluate(Object... args)
-  {
+  public Object evaluate(Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. Given: " + Arrays.toString(args));
     }
@@ -63,8 +62,7 @@ public class ArrayContainsKudf
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
-  private Object ifArrayContains(Object[] array, Object searchValue)
-  {
+  private Object ifArrayContains(Object[] array, Object searchValue) {
     //TODO: Refactor this to ArrayUtil.containsValue from TopK PR#575
     for (Object value : array) {
       if(Objects.equals(value, searchValue)) {
@@ -74,8 +72,7 @@ public class ArrayContainsKudf
     return false;
   }
 
-  private boolean ifJsonStringArrayContains(String json, Object searchValue)
-  {
+  private boolean ifJsonStringArrayContains(String json, Object searchValue) {
     JsonToken valueType = getType(searchValue);
     try (JsonParser parser = JSON_FACTORY.createParser(json)) {
       if (parser.nextToken() != START_ARRAY) {
@@ -122,8 +119,7 @@ public class ArrayContainsKudf
   /**
    * Returns JsonToken type of the targetValue
    */
-  private JsonToken getType(Object searchValue)
-  {
+  private JsonToken getType(Object searchValue) {
     if(searchValue instanceof Long || searchValue instanceof Integer) {
       return VALUE_NUMBER_INT;
     } else if(searchValue instanceof Double) {

@@ -29,7 +29,7 @@ import java.util.Set;
 
 public class KsqlConfig extends AbstractConfig implements Cloneable {
 
-  public static final String KSQL_CONFIG_PREPERTY_PREFIX = "ksql.";
+  public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
 
@@ -156,7 +156,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     for (Map.Entry<?, ?> entry : originals().entrySet()) {
       final String key = entry.getKey().toString();
-      if (!key.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+      if (!key.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
         ksqlStreamConfigProps.put(key, entry.getValue());
       }
     }
@@ -187,7 +187,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   public Object get(String propertyName) {
-    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
       return ksqlConfigProps.get(propertyName);
     } else {
       return ksqlStreamConfigProps.get(propertyName);
@@ -195,7 +195,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   public void put(String propertyName, Object propertyValue) {
-    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
       ksqlConfigProps.put(propertyName, propertyValue);
     } else {
       ksqlStreamConfigProps.put(propertyName, propertyValue);

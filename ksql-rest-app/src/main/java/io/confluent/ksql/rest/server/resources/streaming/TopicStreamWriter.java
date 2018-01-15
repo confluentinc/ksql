@@ -197,7 +197,7 @@ public class TopicStreamWriter implements StreamingOutput {
                 format = getFormatter(topicName, record, schemaRegistryClient);
               }
               if (messagesWritten++ % interval == 0) {
-                out.write(format.print(record).getBytes());
+                out.write(format.print(record).getBytes(StandardCharsets.UTF_8));
                 out.flush();
               }
             }

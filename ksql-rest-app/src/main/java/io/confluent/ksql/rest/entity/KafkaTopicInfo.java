@@ -29,18 +29,25 @@ public class KafkaTopicInfo {
   private final String registered;
   private final String partitionCount;
   private final String replicaInfo;
+  private final int consumerGroupCount;
+  private final int consumerCount;
+
 
   @JsonCreator
   public KafkaTopicInfo(
       @JsonProperty("name") String name,
       @JsonProperty("registered") String registered,
       @JsonProperty("partitionCount") String partitionCount,
-      @JsonProperty("replicaInfo") String replicaInfo
+      @JsonProperty("replicaInfo") String replicaInfo,
+      @JsonProperty("consumerCount") int consumerCount,
+      @JsonProperty("consumerGroupCount") int consumerGroupCount
   ) {
     this.name = name;
     this.registered = registered;
     this.partitionCount = partitionCount;
     this.replicaInfo = replicaInfo;
+    this.consumerGroupCount = consumerGroupCount;
+    this.consumerCount = consumerCount;
   }
 
   public String getName() {
@@ -57,6 +64,14 @@ public class KafkaTopicInfo {
 
   public String getReplicaInfo() {
     return replicaInfo;
+  }
+
+  public int getConsumerCount() {
+    return consumerCount;
+  }
+
+  public int getConsumerGroupCount() {
+    return consumerGroupCount;
   }
 
   @Override

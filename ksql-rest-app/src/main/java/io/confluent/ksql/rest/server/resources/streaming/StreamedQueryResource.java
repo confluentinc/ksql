@@ -17,7 +17,6 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -83,19 +82,18 @@ public class StreamedQueryResource {
 
   private TopicStreamWriter getTopicStreamWriter(final Map<String, Object> clientLocalProperties, final PrintTopic printTopic) {
     String topicName = printTopic.getTopic().toString();
-    Long interval =
-        Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
-    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(topicName);
-    Objects.requireNonNull(
-        ksqlTopic,
-        String.format("Could not find topic '%s' in the metastore", topicName)
-    );
+    Long interval = Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
+
+    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+      throw new RuntimeException(String.format("Could not find topic '%s', KSQL uses uppercase.\n" +
+        "To print a case-sensitive topic apply quotations, for example: print \"topic\";", topicName));
+    }
     Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
     properties.putAll(clientLocalProperties);
     TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-        ksqlEngine,
+        ksqlEngine.getSchemaRegistryClient(),
         properties,
-        ksqlTopic,
+        topicName,
         interval,
         disconnectCheckInterval,
         printTopic.getFromBeginning()

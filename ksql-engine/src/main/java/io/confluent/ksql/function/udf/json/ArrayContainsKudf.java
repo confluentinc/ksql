@@ -21,11 +21,11 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Objects;
 
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;
@@ -53,28 +53,16 @@ public class ArrayContainsKudf
     }
     Object searchValue = args[1];
     if(args[0] instanceof String) {
-      String jsonString = args[0].toString();
-      return ifJsonStringArrayContains(jsonString, searchValue);
+      return jsonStringArrayContains(searchValue, (String) args[0]);
     } else if(args[0] instanceof Object[]) {
-      Object[] array = (Object[]) args[0];
-      return ifArrayContains(array, searchValue);
+      return ArrayUtil.containsValue(searchValue, (Object[]) args[0]);
     }
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
-  private Object ifArrayContains(Object[] array, Object searchValue) {
-    //TODO: Refactor this to ArrayUtil.containsValue from TopK PR#575
-    for (Object value : array) {
-      if(Objects.equals(value, searchValue)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean ifJsonStringArrayContains(String json, Object searchValue) {
+  private boolean jsonStringArrayContains(Object searchValue, String jsonArray) {
     JsonToken valueType = getType(searchValue);
-    try (JsonParser parser = JSON_FACTORY.createParser(json)) {
+    try (JsonParser parser = JSON_FACTORY.createParser(jsonArray)) {
       if (parser.nextToken() != START_ARRAY) {
         return false;
       }
@@ -82,7 +70,7 @@ public class ArrayContainsKudf
       while (parser.currentToken() != null) {
         JsonToken token = parser.nextToken();
         if (token == null) {
-          return token == searchValue;
+          return searchValue == null;
         }
         if (token == END_ARRAY) {
           return false;
@@ -111,7 +99,7 @@ public class ArrayContainsKudf
       }
     }
     catch (IOException e) {
-      throw new KsqlException("Invalid JSON format: " + json, e);
+      throw new KsqlException("Invalid JSON format: " + jsonArray, e);
     }
     return false;
   }

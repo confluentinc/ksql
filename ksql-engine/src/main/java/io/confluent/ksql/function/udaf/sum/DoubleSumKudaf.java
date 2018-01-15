@@ -17,14 +17,18 @@
 package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.parser.tree.Expression;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
 
-  public DoubleSumKudaf(Integer argIndexInValue) {
+  DoubleSumKudaf(Integer argIndexInValue) {
     super(argIndexInValue, 0.0, Schema.FLOAT64_SCHEMA,
           Arrays.asList(Schema.FLOAT64_SCHEMA),
           "SUM", DoubleSumKudaf.class);
@@ -38,6 +42,13 @@ public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
   @Override
   public Merger<String, Double> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
+  }
+
+  @Override
+  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
+                                                           List<Expression> functionArguments) {
+    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    return new DoubleSumKudaf(udafIndex);
   }
 
 

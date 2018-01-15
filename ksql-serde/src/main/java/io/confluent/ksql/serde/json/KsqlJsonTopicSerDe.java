@@ -33,10 +33,8 @@ import java.util.Map;
 
 public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
 
-  Schema rowSchema;
-  public KsqlJsonTopicSerDe(Schema rowSchema) {
+  public KsqlJsonTopicSerDe() {
     super(DataSource.DataSourceSerDe.JSON);
-    this.rowSchema = rowSchema;
   }
 
 

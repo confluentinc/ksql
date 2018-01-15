@@ -59,12 +59,19 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       if (csvRecord == null || csvRecord.size() == 0) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
-      List<Object> columns = new ArrayList();
+      List<Object> columns = new ArrayList<>();
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
       }
       for (int i = 0; i < csvRecord.size(); i++) {
-        columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
+        if (csvRecord.get(i) == null) {
+          columns.add(null);
+        } else if (csvRecord.get(i).toString().equalsIgnoreCase("null")) {
+          columns.add(null);
+        } else {
+          columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
+        }
+
       }
       return new GenericRow(columns);
     } catch (Exception e) {
@@ -85,7 +92,11 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       case FLOAT64:
         return Double.parseDouble(delimitedField);
       case STRING:
-        return delimitedField;
+        if (delimitedField.startsWith("'") && delimitedField.endsWith("'")) {
+          return delimitedField.substring(0, delimitedField.length()-1).substring(1);
+        } else {
+          throw new KsqlException("String type is in incorrect format: " + delimitedField);
+        }
       case ARRAY:
       case MAP:
       default:

@@ -65,6 +65,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
@@ -132,11 +133,20 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
         String fieldName = fieldNames.next();
-        keyMap.put(fieldName.toUpperCase(), fieldName);
+        if (fieldName.startsWith("@")) {
+          if (fieldName.length() == 1) {
+            throw new KsqlException("Field name cannot be '@'.");
+          }
+          keyMap.put(fieldName.toUpperCase().substring(1), fieldName);
+        } else {
+          keyMap.put(fieldName.toUpperCase(), fieldName);
+        }
+
       }
     }
 
   }
+
 
   @Override
   public void close() {

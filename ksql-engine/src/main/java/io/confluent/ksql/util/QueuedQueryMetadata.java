@@ -38,8 +38,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
-      final KafkaTopicClient kafkaTopicClient,
-      final KsqlConfig ksqlConfig
+      final KafkaTopicClient kafkaTopicClient
   ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, "not-applicable-for-queued");

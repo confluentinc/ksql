@@ -45,6 +45,6 @@ public class AvroProducer extends DataGenProducer {
   protected Serializer<GenericRow> getSerializer(Schema avroSchema,
                                                  org.apache.kafka.connect.data.Schema kafkaSchema,
                                                  String topicName) {
-    return new KsqlGenericRowAvroSerializer(kafkaSchema, schemaRegistryClient, ksqlConfig, false);
+    return new KsqlGenericRowAvroSerializer(kafkaSchema, schemaRegistryClient, ksqlConfig);
   }
 }

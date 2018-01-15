@@ -17,14 +17,18 @@
 package io.confluent.ksql.function.udaf.count;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.parser.tree.Expression;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
 
-  public CountKudaf(Integer argIndexInValue) {
+  CountKudaf(Integer argIndexInValue) {
     super(argIndexInValue, 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
           "COUNT", CountKudaf.class);
   }
@@ -37,5 +41,17 @@ public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
   @Override
   public Merger<String, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
+  }
+
+  @Override
+  public KsqlAggregateFunction<Object, Long> getInstance(Map<String, Integer> expressionNames,
+                                                         List<Expression> functionArguments) {
+    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    return new CountKudaf(udafIndex);
+  }
+
+  @Override
+  public boolean hasSameArgTypes(List<Schema> argTypeList) {
+    return false;
   }
 }

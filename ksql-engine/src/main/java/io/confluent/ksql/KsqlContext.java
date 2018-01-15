@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class KsqlContext {
 
@@ -46,13 +45,11 @@ public class KsqlContext {
   private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
 
-  public static KsqlContext create(KsqlConfig ksqlConfig)
-      throws ExecutionException, InterruptedException {
+  public static KsqlContext create(KsqlConfig ksqlConfig) {
     return  create(ksqlConfig, null);
   }
 
-  public static KsqlContext create(KsqlConfig ksqlConfig, SchemaRegistryClient schemaRegistryClient)
-      throws ExecutionException, InterruptedException {
+  public static KsqlContext create(KsqlConfig ksqlConfig, SchemaRegistryClient schemaRegistryClient) {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }

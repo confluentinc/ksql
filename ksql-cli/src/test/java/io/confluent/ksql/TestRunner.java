@@ -66,12 +66,13 @@ public abstract class TestRunner {
         finalResults.clear();
         finalResults.addAll(actualResult.data);
         return actualResult.data.containsAll(expectedResult.data);
-      }, 10000, "Did not get the expected result '" + expectedResult + ", in a timely fashion. Received " +
-              "following results instead: " + finalResults);
+      }, 10000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
+    } catch (AssertionError e) {
+      throw new AssertionError(
+          "CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults, e);
     } catch (InterruptedException e) {
       fail("Test got interrutped when waiting for result " + expectedResult.toString());
     }
-
   }
 
   protected static TestResult run(String command, boolean requireOrder) throws CliTestFailedException {

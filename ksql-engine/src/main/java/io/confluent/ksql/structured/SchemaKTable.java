@@ -59,6 +59,7 @@ public class SchemaKTable extends SchemaKStream {
     this.isWindowed = isWindowed;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable into(final String kafkaTopicName,
                            final Serde<GenericRow> topicValueSerDe,
@@ -103,6 +104,7 @@ public class SchemaKTable extends SchemaKStream {
     return new QueuedSchemaKStream(this, limit);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable filter(final Expression filterExpression)  {
     SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed,
@@ -112,6 +114,7 @@ public class SchemaKTable extends SchemaKStream {
                             Type.FILTER, functionRegistry, schemaRegistryClient);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
 

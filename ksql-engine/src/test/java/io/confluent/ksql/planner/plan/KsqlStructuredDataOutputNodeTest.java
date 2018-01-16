@@ -76,7 +76,7 @@ public class KsqlStructuredDataOutputNodeTest {
           schema.field("key"),
           schema.field("timestamp"),
           new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe(schema))),
+              new KsqlJsonTopicSerDe())),
       schema);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
@@ -104,7 +104,7 @@ public class KsqlStructuredDataOutputNodeTest {
         schema,
         schema.field("timestamp"),
         schema.field("key"),
-        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe(schema)),
+        new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
         Optional.empty(),

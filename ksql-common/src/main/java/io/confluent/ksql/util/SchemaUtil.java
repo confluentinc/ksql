@@ -34,7 +34,6 @@ public class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
-  public static final int ROWTIME_NAME_INDEX = 0;
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -146,7 +145,7 @@ public class SchemaUtil {
     return newSchema;
   }
 
-  public static final ImmutableMap<String, String> TYPE_MAP =
+  private static final ImmutableMap<String, String> TYPE_MAP =
       new ImmutableMap.Builder<String, String>()
           .put("STRING", "VARCHAR(STRING)")
           .put("INT64", "BIGINT")
@@ -213,7 +212,7 @@ public class SchemaUtil {
   }
 
   public static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
-    Set indexSet = new HashSet();
+    Set<Integer> indexSet = new HashSet<>();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
       if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
@@ -233,7 +232,9 @@ public class SchemaUtil {
       } else {
         addComma = true;
       }
-      stringBuilder.append(field.name() + " : " + field.schema().type());
+      stringBuilder.append(field.name())
+          .append(" : ")
+          .append(field.schema().type());
     }
     stringBuilder.append("]");
     return stringBuilder.toString();

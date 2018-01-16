@@ -209,6 +209,11 @@ public class CliTest extends TestRunner {
     );
   }
 
+  private static void selectWithLimit(String selectQuery, int limit, TestResult.OrderedResult expectedResults) {
+    selectQuery += " LIMIT " + limit + ";";
+    test(selectQuery, expectedResults);
+  }
+
   @Test
   public void testPropertySetUnset() {
     test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
@@ -317,6 +322,21 @@ public class CliTest extends TestRunner {
         orderDataProvider.schema(),
         expectedResults
         );
+  }
+
+  @Test
+  public void testSelectLimit() throws Exception {
+    TestResult.OrderedResult expectedResult = TestResult.build();
+    Map<String, GenericRow> streamData = orderDataProvider.data();
+    int limit = 3;
+    for (int i = 1; i <= limit; i++) {
+      GenericRow srcRow = streamData.get(Integer.toString(i));
+      List<Object> columns = srcRow.getColumns();
+      GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
+      expectedResult.addRow(resultRow);
+    }
+    selectWithLimit(
+        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(), limit, expectedResult);
   }
 
   @Test

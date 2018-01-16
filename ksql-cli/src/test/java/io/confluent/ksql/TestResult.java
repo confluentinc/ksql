@@ -34,9 +34,21 @@ public abstract class TestResult {
   Collection<List<String>> data;
   private boolean sealed = false;
 
+  protected TestResult() {}
+
+  protected TestResult(TestResult model) {
+    sealed = model.sealed;
+  }
+
   static class OrderedResult extends TestResult {
     private OrderedResult() {
       data = new ArrayList<>();
+    }
+
+    private OrderedResult(OrderedResult model) {
+      super(model);
+      data = new ArrayList<>();
+      data.addAll(model.data);
     }
 
     private OrderedResult(String singleRow) {
@@ -51,11 +63,22 @@ public abstract class TestResult {
     public String toString() {
       return data.toString();
     }
+
+    @Override
+    public OrderedResult copy() {
+      return new OrderedResult(this);
+    }
   }
 
   static class UnorderedResult extends TestResult {
     private UnorderedResult() {
       data = new HashSet<>();
+    }
+
+    private UnorderedResult(UnorderedResult model) {
+      super(model);
+      data = new HashSet<>();
+      data.addAll(model.data);
     }
 
     private UnorderedResult(Map<String, Object> map) {
@@ -75,6 +98,11 @@ public abstract class TestResult {
       }
       return map.values().toString();
     }
+
+    @Override
+    public UnorderedResult copy() {
+      return new UnorderedResult(this);
+    }
   }
 
   static UnorderedResult build(Map<String, Object> map) {
@@ -89,9 +117,13 @@ public abstract class TestResult {
     return new OrderedResult(StringUtil.join(", ", Arrays.asList(cols)));
   }
 
+  static OrderedResult build() { return new OrderedResult(); }
+
   static TestResult init(boolean requireOrder) {
     return requireOrder ? new OrderedResult() : new UnorderedResult();
   }
+
+  public abstract TestResult copy();
 
   void addRow(GenericRow row) {
     if (sealed) {

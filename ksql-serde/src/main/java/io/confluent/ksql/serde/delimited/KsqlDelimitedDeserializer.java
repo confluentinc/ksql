@@ -59,12 +59,17 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       if (csvRecord == null || csvRecord.size() == 0) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
-      List<Object> columns = new ArrayList();
+      List<Object> columns = new ArrayList<>();
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException(String.format("Unexpected field count, csvFields:%d schemaFields:%d line: %s", csvRecord.size(), schema.fields().size(), recordCsvString));
       }
       for (int i = 0; i < csvRecord.size(); i++) {
-        columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
+        if (csvRecord.get(i) == null) {
+          columns.add(null);
+        } else {
+          columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
+        }
+
       }
       return new GenericRow(columns);
     } catch (Exception e) {
@@ -75,6 +80,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private Object enforceFieldType(Schema fieldSchema, String delimitedField) {
 
+    if (delimitedField.isEmpty()) {
+      return null;
+    }
     switch (fieldSchema.type()) {
       case BOOLEAN:
         return Boolean.parseBoolean(delimitedField);

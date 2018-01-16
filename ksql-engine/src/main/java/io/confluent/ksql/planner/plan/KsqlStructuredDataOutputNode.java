@@ -44,13 +44,12 @@ import java.util.Set;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
-  final String kafkaTopicName;
-  final KsqlTopic ksqlTopic;
+  private final String kafkaTopicName;
+  private final KsqlTopic ksqlTopic;
   private final Field keyField;
   final Field timestampField;
   final Map<String, Object> outputProperties;
   final boolean doCreateInto;
-
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(@JsonProperty("id") final PlanNodeId id,
@@ -109,7 +108,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     outputNodeBuilder.withSchema(schema);
 
     if (getTopicSerde() instanceof KsqlAvroTopicSerDe) {
-      addAvroSchemaToResultTopic(outputNodeBuilder, schema, metastoreUtil);
+      addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
     final Map<String, Object> outputProperties = getOutputProperties();
@@ -178,9 +177,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
     return result;
   }
-  private void addAvroSchemaToResultTopic(final KsqlStructuredDataOutputNode.Builder builder,
-                                          final Schema schema,
-                                          final MetastoreUtil metastoreUtil) {
+  private void addAvroSchemaToResultTopic(final Builder builder) {
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
         new KsqlAvroTopicSerDe();
     builder.withKsqlTopic(new KsqlTopic(getKsqlTopic()

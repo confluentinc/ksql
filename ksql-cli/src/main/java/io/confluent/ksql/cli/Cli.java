@@ -77,14 +77,14 @@ public class Cli implements Closeable, AutoCloseable {
   private final Long streamedQueryTimeoutMs;
 
   final KsqlRestClient restClient;
-  final Console terminal;
+  private final Console terminal;
 
   public Cli(
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
       KsqlRestClient restClient,
       Console terminal
-  ) throws IOException {
+  ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
 
@@ -403,7 +403,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws IOException, InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 
@@ -430,12 +430,9 @@ public class Cli implements Closeable, AutoCloseable {
           }
         });
 
-        terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
-          @Override
-          public void handle(Terminal.Signal signal) {
-            terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-            queryStreamFuture.cancel(true);
-          }
+        terminal.handle(Terminal.Signal.INT, signal -> {
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+          queryStreamFuture.cancel(true);
         });
 
         try {

@@ -389,4 +389,8 @@ public class CliTest extends TestRunner {
     localCli.runNonInteractively("clear");
   }
 
+  @Test
+  public void shouldHandleRegisterTopic() throws Exception {
+    localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
+  }
 }

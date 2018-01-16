@@ -110,7 +110,7 @@ public class ConsoleTest {
           new StreamsList("e", Arrays.asList(new StreamsList.StreamInfo("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new TablesList.TableInfo("TestTable", "TestTopic", "JSON", false))),
           new KsqlTopicsList("e", Arrays.asList(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
-          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", "1", "1", 1, 1))),
+          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", 1, "1",1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
       terminal.printKsqlEntityList(entityList);

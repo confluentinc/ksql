@@ -510,7 +510,7 @@ public abstract class Console implements Closeable {
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
               topicInfo.getRegistered(),
-              topicInfo.getPartitionCount(),
+              Integer.toString(topicInfo.getPartitionCount()),
               topicInfo.getReplicaInfo(),
               Integer.toString(topicInfo.getConsumerCount()),
               Integer.toString(topicInfo.getConsumerGroupCount())

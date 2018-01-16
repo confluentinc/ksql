@@ -27,7 +27,7 @@ public class KafkaTopicInfo {
 
   private final String name;
   private final String registered;
-  private final String partitionCount;
+  private final int partitionCount;
   private final String replicaInfo;
   private final int consumerGroupCount;
   private final int consumerCount;
@@ -37,7 +37,7 @@ public class KafkaTopicInfo {
   public KafkaTopicInfo(
       @JsonProperty("name") String name,
       @JsonProperty("registered") String registered,
-      @JsonProperty("partitionCount") String partitionCount,
+      @JsonProperty("partitionCount") int partitionCount,
       @JsonProperty("replicaInfo") String replicaInfo,
       @JsonProperty("consumerCount") int consumerCount,
       @JsonProperty("consumerGroupCount") int consumerGroupCount
@@ -58,7 +58,7 @@ public class KafkaTopicInfo {
     return registered;
   }
 
-  public String getPartitionCount() {
+  public int getPartitionCount() {
     return partitionCount;
   }
 
@@ -79,14 +79,11 @@ public class KafkaTopicInfo {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     KafkaTopicInfo that = (KafkaTopicInfo) o;
-    return Objects.equals(name, that.name) &&
-        Objects.equals(partitionCount, that.partitionCount) &&
-        Objects.equals(replicaInfo, that.replicaInfo) &&
-        Objects.equals(registered, that.registered);
+    return Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, partitionCount, replicaInfo, registered);
+    return Objects.hash(name);
   }
 }

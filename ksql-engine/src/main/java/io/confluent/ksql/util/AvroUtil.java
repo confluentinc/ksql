@@ -116,8 +116,7 @@ public class AvroUtil {
       elements.add(tableElement);
     }
     StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
-    Map<String, Expression> properties = new HashMap<>();
-    properties.putAll(abstractStreamCreateStatement.getProperties());
+    Map<String, Expression> properties = new HashMap<>(abstractStreamCreateStatement.getProperties());
     if (!abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
       properties.put(KsqlConstants.AVRO_SCHEMA_ID, schemaIdLiteral);
     }

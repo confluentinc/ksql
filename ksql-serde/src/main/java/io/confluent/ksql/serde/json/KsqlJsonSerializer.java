@@ -55,7 +55,7 @@ public class KsqlJsonSerializer implements Serializer<GenericRow> {
     }
   }
 
-  public Map<String, Object> dataToMap(final GenericRow data) {
+  private Map<String, Object> dataToMap(final GenericRow data) {
     if (data == null) {
       return null;
     }

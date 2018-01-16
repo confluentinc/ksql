@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -413,7 +414,15 @@ public class Cli implements Closeable, AutoCloseable {
           public void run() {
             for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
               try {
-                terminal.printStreamedRow(queryStream.next());
+                StreamedRow row = queryStream.next();
+                terminal.printStreamedRow(row);
+                if (row.getErrorMessage() != null) {
+                  // got an error in the stream, which means we have reached the end.
+                  // the stream interface that queryStream uses isn't smart enough to figure
+                  // out when the socket is closed, so just break here since we know there will
+                  // be nothing more to read.
+                  break;
+                }
               } catch (IOException exception) {
                 throw new RuntimeException(exception);
               }

@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 public class SetPropertyCommand implements DDLCommand {
   private final SetProperty statement;
 
-  public SetPropertyCommand(final SetProperty statement, final Map<String, Object> properties) {
+  SetPropertyCommand(final SetProperty statement, final Map<String, Object> properties) {
     this.statement = statement;
     properties.put(statement.getPropertyName(), statement.getPropertyValue());
   }

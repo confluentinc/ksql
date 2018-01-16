@@ -64,9 +64,9 @@ public class AggregateAnalyzerTest {
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(expression);
+        aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.getFinalSelectExpressions().add(
+      aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
@@ -74,7 +74,7 @@ public class AggregateAnalyzerTest {
     if (analysis.getHavingExpression() != null) {
       aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+        aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
       }
       aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
                                                                                analysis.getHavingExpression()));

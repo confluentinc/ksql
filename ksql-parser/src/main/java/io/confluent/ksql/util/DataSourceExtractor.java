@@ -41,20 +41,20 @@ import static java.util.stream.Collectors.toList;
 
 public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
 
-  final MetaStore metaStore;
+  private final MetaStore metaStore;
 
-  Schema joinLeftSchema;
-  Schema joinRightSchema;
+  private Schema joinLeftSchema;
+  private Schema joinRightSchema;
 
-  String fromAlias;
-  String leftAlias;
-  String rightAlias;
+  private String fromAlias;
+  private String leftAlias;
+  private String rightAlias;
 
-  Set<String> commonFieldNames = new HashSet<>();
-  Set<String> leftFieldNames = new HashSet<>();
-  Set<String> rightFieldNames = new HashSet<>();
+  private Set<String> commonFieldNames = new HashSet<>();
+  private Set<String> leftFieldNames = new HashSet<>();
+  private Set<String> rightFieldNames = new HashSet<>();
 
-  boolean isJoin = false;
+  private boolean isJoin = false;
 
   public DataSourceExtractor(final MetaStore metaStore) {
 
@@ -187,11 +187,6 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
     return rightFieldNames;
   }
 
-  private static String unquote(String value, String quote) {
-    return value.substring(1, value.length() - 1)
-        .replace(quote + quote, quote);
-  }
-
   private static QualifiedName getQualifiedName(SqlBaseParser.QualifiedNameContext context) {
     List<String> parts = context
         .identifier().stream()
@@ -213,12 +208,12 @@ public class DataSourceExtractor extends SqlBaseBaseVisitor<Node> {
         .collect(toList());
   }
 
-  public static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
+  private static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  public static NodeLocation getLocation(Token token) {
+  private static NodeLocation getLocation(Token token) {
     requireNonNull(token, "token is null");
     return new NodeLocation(token.getLine(), token.getCharPositionInLine());
   }

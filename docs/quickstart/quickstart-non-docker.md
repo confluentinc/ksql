@@ -42,12 +42,6 @@ connect is [UP]
 
 ## Start KSQL
 
-1.  Clone the Confluent KSQL repository.
-
-    ```bash
-    $ git clone git@github.com:confluentinc/ksql.git
-    ```
-
 1. Download the [KSQL 0.3 release tarball](https://s3-us-west-2.amazonaws.com/ksql-releases/releases/0.3/ksql.tgz).
 
 1. Unpack the release tarball.

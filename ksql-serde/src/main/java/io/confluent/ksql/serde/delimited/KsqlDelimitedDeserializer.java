@@ -66,8 +66,6 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       for (int i = 0; i < csvRecord.size(); i++) {
         if (csvRecord.get(i) == null) {
           columns.add(null);
-        } else if (csvRecord.get(i).toString().equalsIgnoreCase("null")) {
-          columns.add(null);
         } else {
           columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
         }
@@ -82,6 +80,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private Object enforceFieldType(Schema fieldSchema, String delimitedField) {
 
+    if (delimitedField.isEmpty()) {
+      return null;
+    }
     switch (fieldSchema.type()) {
       case BOOLEAN:
         return Boolean.parseBoolean(delimitedField);
@@ -92,11 +93,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       case FLOAT64:
         return Double.parseDouble(delimitedField);
       case STRING:
-        if (delimitedField.startsWith("'") && delimitedField.endsWith("'")) {
-          return delimitedField.substring(0, delimitedField.length()-1).substring(1);
-        } else {
-          throw new KsqlException("String type is in incorrect format: " + delimitedField);
-        }
+        return delimitedField;
       case ARRAY:
       case MAP:
       default:

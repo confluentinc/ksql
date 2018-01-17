@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.tools;
+package io.confluent.ksql.tools.printmetrics;
 
 import sun.tools.jconsole.LocalVirtualMachine;
 
@@ -37,31 +37,25 @@ public class PrintMetrics {
             + "pid=<KSQL PID>");
   }
 
-  public static class PrintMetricsException extends RuntimeException {
-    public PrintMetricsException(String message) {
-      super(message);
-    }
-  }
-
   private static void printMetrics(int pid) throws IOException {
     // get all the jvms running locally and find the one we are interested in
     Map<Integer, LocalVirtualMachine> jvms = LocalVirtualMachine.getAllVirtualMachines();
-    LocalVirtualMachine jvm = null;
+    LocalVirtualMachine ksqlJvm = null;
     if (pid == -1) {
-      for (LocalVirtualMachine j : jvms.values()) {
-        System.out.println(j.displayName());
-        if (j.displayName().startsWith("io.confluent.ksql.rest.server.KsqlRestApplication")) {
-          jvm = j;
+      for (LocalVirtualMachine jvm : jvms.values()) {
+        System.out.println(jvm.displayName());
+        if (jvm.displayName().startsWith("io.confluent.ksql.rest.server.KsqlRestApplication")) {
+          ksqlJvm = jvm;
         }
       }
     } else {
-      jvm = jvms.get(pid);
+      ksqlJvm = jvms.get(pid);
     }
-    if (jvm == null) {
+    if (ksqlJvm == null) {
       throw new PrintMetricsException("Could not find vm with pid " + pid);
     }
 
-    String jvmAddress = jvm.connectorAddress();
+    String jvmAddress = ksqlJvm.connectorAddress();
     JMXServiceURL jmxURL;
     try {
       jmxURL =new JMXServiceURL(jvmAddress);
@@ -117,12 +111,6 @@ public class PrintMetrics {
     public Arguments(boolean help, int pid) {
       this.help = help;
       this.pid = pid;
-    }
-
-    public static class ArgumentParseException extends RuntimeException {
-      public ArgumentParseException(String message) {
-        super(message);
-      }
     }
 
     public static Arguments parse(String[] args) {

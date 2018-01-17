@@ -80,12 +80,11 @@ public class TopicStreamWriter implements StreamingOutput {
         String time = dateFormat.format(new Date(consumerRecord.timestamp()));
         GenericRecord record = (GenericRecord) avroDeserializer.deserialize(topicName, consumerRecord.value().get());
         String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
-        return new StringBuilder().append(time).append(", ").append(key).append(", ")
-          .append(record.toString()).append("\n").toString();
+        return time + ", " + key + ", " + record.toString() + "\n";
       }
     },
     JSON {
-      ObjectMapper objectMapper = new ObjectMapper();
+      final ObjectMapper objectMapper = new ObjectMapper();
       @Override
       public boolean isFormat(String topicName, ConsumerRecord<String, Bytes> record,
           SchemaRegistryClient schemaRegistryClient) {
@@ -102,24 +101,24 @@ public class TopicStreamWriter implements StreamingOutput {
         JsonNode jsonNode = objectMapper.readTree(record.value().toString());
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-        objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key().toString(): "null");
+        objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key() : "null");
         objectNode.setAll((ObjectNode) jsonNode);
         StringWriter stringWriter = new StringWriter();
         objectMapper.writeValue(stringWriter, objectNode);
         return stringWriter.toString() + "\n";
       }
     },
-    DELIMITED {
+    STRING {
       @Override
       public boolean isFormat(String topicName, ConsumerRecord<String, Bytes> record, SchemaRegistryClient schemaRegistryClient) {
         /**
-         * DELIMITED always returns true because its last in the enum list
+         * STRING always returns true because its last in the enum list
          */
         return true;
       }
     };
 
-    DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
+    final DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
 
     static Format getFormatter(String topicName, ConsumerRecord<String, Bytes> record, SchemaRegistryClient schemaRegistryClient) {
       Format result = Format.UNDEFINED;
@@ -135,10 +134,10 @@ public class TopicStreamWriter implements StreamingOutput {
     }
 
     String print(ConsumerRecord<String, Bytes> record) throws IOException {
-      StringBuilder result = new StringBuilder();
-      result.append(dateFormat.format(new Date(record.timestamp()))).append(" , ").append(record.key().toString())
-        .append(" , ").append(record.value().toString()).append("\n");
-      return result.toString();
+      String key = record.key() != null ? record.key() : "null";
+      String result = dateFormat.format(new Date(record.timestamp())) + " , " + key +
+              " , " + record.value().toString() + "\n";
+      return result;
     }
 
   }
@@ -147,7 +146,7 @@ public class TopicStreamWriter implements StreamingOutput {
   private final Long interval;
   private final long disconnectCheckInterval;
   private final KafkaConsumer<String, Bytes> topicConsumer;
-  private SchemaRegistryClient schemaRegistryClient;
+  private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
 
   private long messagesWritten;

@@ -103,6 +103,11 @@ public class KafkaTopicsList extends KsqlEntity {
     return new KafkaTopicsList(statementText, kafkaTopicInfoList);
   }
 
+  /**
+   *
+   * @param consumerGroupClient
+   * @return all topics with their associated consumerCount and consumerGroupCount
+   */
   private static Map<String, List<Integer>> getTopicConsumerAndGroupCounts(KafkaConsumerGroupClient consumerGroupClient) {
 
     List<String> consumerGroups = consumerGroupClient.listGroups();

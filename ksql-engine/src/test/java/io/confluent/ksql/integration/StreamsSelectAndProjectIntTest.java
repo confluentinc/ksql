@@ -232,6 +232,28 @@ public class StreamsSelectAndProjectIntTest {
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
   }
 
+  @Test
+  public void testSelectProjectAvroJson() throws Exception {
+
+    String resultStream = "PROJECT_STREAM_AVRO";
+    ksqlContext.sql(String.format("CREATE STREAM %s WITH ( value_format = 'JSON') AS SELECT "
+                                  + "ITEMID, "
+                                  + "ORDERUNITS, "
+                                  + "PRICEARRAY FROM %s;", resultStream, avroStreamName));
+
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
+
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, resultSchema,
+                                                                     dataProvider.data().size(),
+                                                                     new StringDeserializer(),
+                                                                     IntegrationTestHarness
+                                                                         .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.JSON.name());
+
+    GenericRow value = easyOrdersData.values().iterator().next();
+    // skip over first to values (rowKey, rowTime)
+    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+  }
+
 
   @Test
   public void testSelectStarAvro() throws Exception {

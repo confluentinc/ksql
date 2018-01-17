@@ -56,10 +56,8 @@ public class IntegrationTestHarness {
   public SchemaRegistryClient schemaRegistryClient;
 
   private TopicConsumer topicConsumer;
-  private String dataFormat;
 
-  public IntegrationTestHarness(String format) {
-    dataFormat = format;
+  public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
   }
 
@@ -133,6 +131,13 @@ public class IntegrationTestHarness {
    * @return
    */
   public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer, long resultsPollMaxTimeMs) {
+    return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
+                 DataSource.DataSourceSerDe.JSON.name());
+  }
+
+  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages,
+                                            Deserializer<K> keyDeserializer, long
+                                                resultsPollMaxTimeMs, String format) {
 
     topic = topic.toUpperCase();
 
@@ -143,7 +148,9 @@ public class IntegrationTestHarness {
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig, keyDeserializer, getDeserializer(schema))) {
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig,
+                                                                     keyDeserializer,
+                                                                     getDeserializer(schema, format))) {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
@@ -198,11 +205,17 @@ public class IntegrationTestHarness {
   }
 
   public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider, Long timestamp) throws InterruptedException, ExecutionException, TimeoutException {
-    createTopic(topicName);
-    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema()), timestamp);
+    return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON.name());
   }
 
-  private Serializer getSerializer(Schema schema) {
+  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider
+      dataProvider, Long timestamp, String format) throws InterruptedException, ExecutionException,
+                                             TimeoutException {
+    createTopic(topicName);
+    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema(), format), timestamp);
+  }
+
+  private Serializer getSerializer(Schema schema, String dataFormat) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
       return new KsqlDelimitedSerializer(schema);
     } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
@@ -214,7 +227,7 @@ public class IntegrationTestHarness {
     }
   }
 
-  private Deserializer<GenericRow> getDeserializer(Schema schema) {
+  private Deserializer<GenericRow> getDeserializer(Schema schema, String dataFormat) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
       return new KsqlDelimitedDeserializer(schema);
     } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {

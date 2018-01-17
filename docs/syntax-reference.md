@@ -384,7 +384,7 @@ PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
 
 **Description**
 
-Print Kafka-topic contents to the ksql-cli. Note, SQL grammar defaults to uppercase formatting, to print topics containing lower-case characters, use quotations as shown in the example.
+Print Kafka-topic contents to the KSQL CLI. Note, SQL grammar defaults to uppercase formatting, to print topics containing lower-case characters, use quotations as shown in the example.
 
 For example:
 ```sql

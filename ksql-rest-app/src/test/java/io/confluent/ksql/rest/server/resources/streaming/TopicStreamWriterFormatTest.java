@@ -96,7 +96,7 @@ public class TopicStreamWriterFormatTest {
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
-    TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient);
+    assertTrue(TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
 
   @Test
@@ -115,9 +115,6 @@ public class TopicStreamWriterFormatTest {
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
 
 
-    TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient);
+    assertFalse(TopicStreamWriter.Format.JSON.isFormat("topic", record, schemaRegistryClient));
   }
-
-
-
 }

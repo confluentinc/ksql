@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public interface KafkaConsumerGroupClient extends AutoCloseable{
+public interface KafkaConsumerGroupClient extends AutoCloseable {
 
   List<String> listGroups();
 

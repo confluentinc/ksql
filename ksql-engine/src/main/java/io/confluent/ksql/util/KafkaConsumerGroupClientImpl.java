@@ -26,8 +26,10 @@ import java.util.Properties;
 
 /**
  * Acts as a ConsumerGroup facade over the scala layer
+ * Note: This functionality will very shortly be added to the java admin client, maybe even in the upcoming 1.1. release: https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=74686265
+ * Also, the Scala admin client is on the path to deprecation. See issue #642
  */
-public class KafkaConsumerGroupClientImpl implements  KafkaConsumerGroupClient {
+public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   private static final int ADMIN_CLIENT_TIMEOUT_MS = 1000;
   private final AdminClient adminClient;
   private final KsqlConfig ksqlConfig;

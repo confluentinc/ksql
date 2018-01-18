@@ -57,7 +57,7 @@ public class TopicStreamWriter implements StreamingOutput {
   public enum Format {
 
     UNDEFINED {
-  },
+    },
     AVRO {
       private String topicName;
       private KafkaAvroDeserializer avroDeserializer;

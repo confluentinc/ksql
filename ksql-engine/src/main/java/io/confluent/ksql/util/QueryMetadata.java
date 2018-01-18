@@ -114,4 +114,9 @@ public class QueryMetadata {
   public int hashCode() {
     return Objects.hash(kafkaStreams, outputNode, queryApplicationId);
   }
+
+  public void start() {
+    log.info("Starting query with application id: {}", queryApplicationId);
+    kafkaStreams.start();
+  }
 }

@@ -111,15 +111,25 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
 
-    this(ksqlConfig, topicClient, new CachedSchemaRegistryClient((String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), 1000));
+    this(ksqlConfig,
+        topicClient,
+        new CachedSchemaRegistryClient(
+            (String) ksqlConfig.get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
+            1000),
+        new MetaStoreImpl());
   }
 
-  public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient, SchemaRegistryClient schemaRegistryClient) {
-    Objects.requireNonNull(ksqlConfig, "Streams properties map cannot be null as it may be mutated later on");
+  public KsqlEngine(final KsqlConfig ksqlConfig,
+                    final KafkaTopicClient topicClient,
+                    final SchemaRegistryClient schemaRegistryClient,
+                    final MetaStore metaStore) {
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
+    Objects.requireNonNull(topicClient, "topicClient can't be null");
+    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient can't be null");
     this.ksqlConfig = ksqlConfig;
-    this.metaStore = new MetaStoreImpl();
+    this.metaStore = metaStore;
     this.topicClient = topicClient;
-    this.ddlCommandExec = new DDLCommandExec(metaStore);
+    this.ddlCommandExec = new DDLCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
@@ -162,9 +172,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return planQueries(queries, overriddenProperties, tempMetaStore);
   }
 
-  public List<QueryMetadata> planQueries(final List<Pair<String, Statement>> statementList,
-                                         final Map<String, Object> overriddenProperties,
-                                         final MetaStore tempMetaStore) throws Exception {
+  private List<QueryMetadata> planQueries(final List<Pair<String, Statement>> statementList,
+                                          final Map<String, Object> overriddenProperties,
+                                          final MetaStore tempMetaStore) throws Exception {
     // Logical plan creation from the ASTs
     List<Pair<String, PlanNode>> logicalPlans = queryEngine.buildLogicalPlans(tempMetaStore, statementList);
 
@@ -205,9 +215,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   }
 
 
-  public List<Pair<String, Statement>> parseQueries(final String queriesString,
-                                                    final Map<String, Object> overriddenProperties,
-                                                    final MetaStore tempMetaStore) {
+  private List<Pair<String, Statement>> parseQueries(final String queriesString,
+                                                     final Map<String, Object> overriddenProperties,
+                                                     final MetaStore tempMetaStore) {
     try {
       MetaStore tempMetaStoreForParser = tempMetaStore.clone();
       // Parse and AST creation
@@ -497,5 +507,15 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       return schemaRegistryClient;
     }
     throw new KsqlException("Cannot access the Schema Registry. Schema Registry client is null.");
+  }
+
+  public List<QueryMetadata> createQueries(final String queries) throws Exception {
+    final MetaStore metaStoreCopy = metaStore.clone();
+    return planQueries(
+        parseQueries(queries,
+            Collections.emptyMap(),
+            metaStoreCopy),
+        new HashMap<>(),
+        metaStoreCopy);
   }
 }

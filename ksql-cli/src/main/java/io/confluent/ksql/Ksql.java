@@ -23,11 +23,9 @@ import io.confluent.ksql.cli.commands.Remote;
 import io.confluent.ksql.cli.commands.Standalone;
 import io.confluent.ksql.util.CommonUtils;
 
-import java.io.IOException;
-
 public class Ksql {
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     Runnable runnable = null;
     com.github.rvesse.airline.Cli<Runnable> cli =
         com.github.rvesse.airline.Cli.<Runnable>builder("Cli")

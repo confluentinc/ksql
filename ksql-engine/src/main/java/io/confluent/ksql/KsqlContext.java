@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -65,7 +66,7 @@ public class KsqlContext {
     if (schemaRegistryClient == null) {
       return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient));
     } else {
-      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient));
+      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient, new MetaStoreImpl()));
     }
 
   }

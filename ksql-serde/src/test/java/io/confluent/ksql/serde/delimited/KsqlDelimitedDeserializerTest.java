@@ -45,7 +45,7 @@ public class KsqlDelimitedDeserializerTest {
 
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
-    String rowString = "1511897796092,1,'item_1',10.0";
+    String rowString = "1511897796092,1,item_1,10.0\r\n";
 
     KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
@@ -55,13 +55,12 @@ public class KsqlDelimitedDeserializerTest {
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
     assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
     assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
-
   }
 
   @Test
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
 
-    String rowString = "1511897796092,1,'item_1',null";
+    String rowString = "1511897796092,1,item_1,\r\n";
 
     KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 

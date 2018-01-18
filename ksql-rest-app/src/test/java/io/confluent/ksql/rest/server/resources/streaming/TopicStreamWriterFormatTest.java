@@ -90,8 +90,8 @@ public class TopicStreamWriterFormatTest {
     /**
      * Test data
      */
-    String json = "{    \"name\": \"myrecord\",\n" +
-            "    \"type\": \"record\"\n" +
+    String json = "{    \"name\": \"myrecord\"," +
+            "    \"type\": \"record\"" +
             "}";
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));
@@ -108,8 +108,8 @@ public class TopicStreamWriterFormatTest {
     /**
      * Test data
      */
-    String json = "{  BAD DATA  \"name\": \"myrecord\",\n" +
-            "    \"type\": \"record\"\n" +
+    String json = "{  BAD DATA  \"name\": \"myrecord\"," +
+            "    \"type\": \"record\"" +
             "}";
 
     ConsumerRecord<String, Bytes> record = new ConsumerRecord<String, Bytes>("topic", 1, 1, "key", new Bytes(json.getBytes()));

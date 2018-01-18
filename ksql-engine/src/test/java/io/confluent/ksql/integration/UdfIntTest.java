@@ -71,10 +71,44 @@ public class UdfIntTest {
     testHarness.stop();
   }
 
+  @Test
+  public void testApplyUdfsToColumnsJson() throws Exception {
+    testApplyUdfsToColumns("SelectUDFsStreamJson".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
+
+  @Test
+  public void testApplyUdfsToColumnsAvro() throws Exception {
+    testApplyUdfsToColumns("SelectUDFsStreamAvro".toUpperCase(), avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+  @Test
+  public void testShouldCastSelectedColumnsJson() throws Exception {
+    testShouldCastSelectedColumns("CastExpressionStream".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
+
+  @Test
+  public void testShouldCastSelectedColumnsAvro() throws Exception {
+    testShouldCastSelectedColumns("CastExpressionStreamAvro".toUpperCase(), avroStreamName,
+                                  DataSource.DataSourceSerDe.AVRO);
+  }
+
+
+  @Test
+  public void testTimestampColumnSelectionJson() throws Exception {
+    testTimestampColumnSelection("ORIGINALSTREAM", "TIMESTAMPSTREAM", jsonStreamName,
+                                 DataSource.DataSourceSerDe.JSON, jsonRecordMetadataMap);
+  }
+
+
+  @Test
+  public void testTimestampColumnSelectionAvro() throws Exception {
+    testTimestampColumnSelection("ORIGINALSTREAM_AVRO", "TIMESTAMPSTREAM_AVRO", avroStreamName,
+                                 DataSource.DataSourceSerDe.AVRO, avroRecordMetadataMap);
+  }
 
   private void testApplyUdfsToColumns(String resultStreamName,
-                                     String inputStreamName,
-                                     DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
+                                      String inputStreamName,
+                                      DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
 
     final String queryString = String.format(
         "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
@@ -98,19 +132,8 @@ public class UdfIntTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-
-  @Test
-  public void testApplyUdfsToColumnsJson() throws Exception {
-    testApplyUdfsToColumns("SelectUDFsStreamJson".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
-  }
-
-  @Test
-  public void testApplyUdfsToColumnsAvro() throws Exception {
-    testApplyUdfsToColumns("SelectUDFsStreamAvro".toUpperCase(), avroStreamName, DataSource.DataSourceSerDe.AVRO);
-  }
-
   private void testShouldCastSelectedColumns(String resultStreamName, String inputStreamName,
-                                            DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
+                                             DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
     final String selectColumns =
         " CAST (ORDERUNITS AS INTEGER), CAST( PRICEARRAY[1]>1000 AS STRING), CAST (SUBSTRING"
         + "(ITEMID, 5) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
@@ -136,20 +159,9 @@ public class UdfIntTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  @Test
-  public void testShouldCastSelectedColumnsJson() throws Exception {
-    testShouldCastSelectedColumns("CastExpressionStream".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
-  }
-
-  @Test
-  public void testShouldCastSelectedColumnsAvro() throws Exception {
-    testShouldCastSelectedColumns("CastExpressionStreamAvro".toUpperCase(), avroStreamName,
-                                  DataSource.DataSourceSerDe.AVRO);
-  }
-
   private void testTimestampColumnSelection(String stream1Name, String stream2Name, String
       inputStreamName, DataSource.DataSourceSerDe dataSourceSerDe, Map<String, RecordMetadata>
-      recordMetadataMap) throws Exception {
+                                                recordMetadataMap) throws Exception {
 
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
@@ -180,21 +192,9 @@ public class UdfIntTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  @Test
-  public void testTimestampColumnSelectionJson() throws Exception {
-    testTimestampColumnSelection("ORIGINALSTREAM", "TIMESTAMPSTREAM", jsonStreamName,
-                                 DataSource.DataSourceSerDe.JSON, jsonRecordMetadataMap);
-  }
-
 
   @Test
-  public void testTimestampColumnSelectionAvro() throws Exception {
-    testTimestampColumnSelection("ORIGINALSTREAM_AVRO", "TIMESTAMPSTREAM_AVRO", avroStreamName,
-                                 DataSource.DataSourceSerDe.AVRO, avroRecordMetadataMap);
-  }
-
-  @Test
-  public void testApplyUdfsToColumns() throws Exception {
+  public void testApplyUdfsToColumnsDelimited() throws Exception {
     final String testStreamName = "SelectUDFsStreamDelimited".toUpperCase();
 
     final String queryString = String.format(

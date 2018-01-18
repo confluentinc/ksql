@@ -128,8 +128,8 @@ public class CliTest extends TestRunner {
 
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
-    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1"),
-        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1")));
+    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1", "0", "0"),
+        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);

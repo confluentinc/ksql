@@ -505,13 +505,15 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof KafkaTopicsList) {
       List<KafkaTopicInfo> topicInfos = ((KafkaTopicsList) ksqlEntity).getTopics();
-      columnHeaders = Arrays.asList("Kafka Topic", "Registered", "Partitions", "Partition Replicas");
+      columnHeaders = Arrays.asList("Kafka Topic", "Registered", "Partitions", "Partition Replicas", "Consumers", "Consumer Groups");
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
               topicInfo.getRegistered(),
-              topicInfo.getPartitionCount(),
-              topicInfo.getReplicaInfo()
+              Integer.toString(topicInfo.getPartitionCount()),
+              topicInfo.getReplicaInfo(),
+              Integer.toString(topicInfo.getConsumerCount()),
+              Integer.toString(topicInfo.getConsumerGroupCount())
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof ExecutionPlan) {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;

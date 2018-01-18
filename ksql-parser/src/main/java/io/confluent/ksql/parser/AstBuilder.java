@@ -580,10 +580,17 @@ public class AstBuilder
   @Override
   public Node visitPrintTopic(SqlBaseParser.PrintTopicContext context) {
     boolean fromBeginning = context.FROM() != null;
+
+    QualifiedName topicName = null;
+    if (context.STRING() != null) {
+      topicName = QualifiedName.of(unquote(context.STRING().getText(), "'"));
+    } else {
+      topicName = getQualifiedName(context.qualifiedName());
+    }
     if (context.number() == null) {
       return new PrintTopic(
           getLocation(context),
-          getQualifiedName(context.qualifiedName()),
+          topicName,
           fromBeginning,
           null
       );

@@ -74,6 +74,8 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.util.AvroUtil;
+import io.confluent.ksql.util.KafkaConsumerGroupClient;
+import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -279,9 +281,13 @@ public class KsqlResource {
 
   private KafkaTopicsList listTopics(String statementText) {
     KafkaTopicClient client = ksqlEngine.getTopicClient();
-    return KafkaTopicsList.build(statementText, getKsqlTopics(),
-                                 client.describeTopics(client.listTopicNames()),
-                                 ksqlEngine.getKsqlConfig());
+    try (KafkaConsumerGroupClient kafkaConsumerGroupClient = new KafkaConsumerGroupClientImpl(ksqlEngine.getKsqlConfig())) {
+      return KafkaTopicsList.build(statementText, getKsqlTopics(),
+              client.describeTopics(client.listTopicNames()),
+              ksqlEngine.getKsqlConfig(),
+              kafkaConsumerGroupClient
+      );
+    }
   }
 
   private Collection<KsqlTopic> getKsqlTopics() {

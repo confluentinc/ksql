@@ -58,10 +58,9 @@ public class UdfIntTest {
      */
     orderDataProvider = new OrderDataProvider();
     itemDataProvider = new ItemDataProvider();
-    jsonRecordMetadataMap = testHarness.publishTestData(jsonTopicName, orderDataProvider, null, DataSource.DataSourceSerDe.JSON.name());
-    avroRecordMetadataMap = testHarness.publishTestData(avroTopicName, orderDataProvider, null, DataSource.DataSourceSerDe.AVRO.name());
-    delimitedRecordMetadataMap = testHarness.publishTestData(delimitedTopicName, itemDataProvider, null, DataSource
-        .DataSourceSerDe.DELIMITED.name());
+    jsonRecordMetadataMap = testHarness.publishTestData(jsonTopicName, orderDataProvider, null, DataSource.DataSourceSerDe.JSON);
+    avroRecordMetadataMap = testHarness.publishTestData(avroTopicName, orderDataProvider, null, DataSource.DataSourceSerDe.AVRO);
+    delimitedRecordMetadataMap = testHarness.publishTestData(delimitedTopicName, itemDataProvider, null, DataSource.DataSourceSerDe.DELIMITED);
     createOrdersStream();
 
   }
@@ -73,147 +72,85 @@ public class UdfIntTest {
   }
 
 
-  @Test
-  public void testApplyUdfsToColumnsJson() throws Exception {
-    final String testStreamName = "SelectUDFsStreamJson".toUpperCase();
-
-    final String queryString = String.format(
-            "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-            testStreamName,
-            "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000",
-            jsonStreamName,
-            "ORDERUNITS > 20 AND ITEMID LIKE '%_8'"
-    );
-
-    ksqlContext.sql(queryString);
-
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
-
-    Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "ITEM_8", 800.0, 1110.0, 12.0, true)));
-
-    Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 4,
-                                                              new StringDeserializer(),
-                                                              IntegrationTestHarness
-                                                                  .RESULTS_POLL_MAX_TIME_MS,
-                                                              DataSource.DataSourceSerDe.JSON.name());
-
-    assertThat(results, equalTo(expectedResults));
-  }
-
-  @Test
-  public void testApplyUdfsToColumnsAvro() throws Exception {
-    final String testStreamName = "SelectUDFsStreamAvro".toUpperCase();
+  private void testApplyUdfsToColumns(String resultStreamName,
+                                     String inputStreamName,
+                                     DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
 
     final String queryString = String.format(
         "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        testStreamName,
+        resultStreamName,
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000",
-        avroStreamName,
+        inputStreamName,
         "ORDERUNITS > 20 AND ITEMID LIKE '%_8'"
     );
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStreamName).getSchema();
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "ITEM_8", 800.0, 1110.0, 12.0, true)));
 
-    Map<String, GenericRow> results = testHarness.consumeData(testStreamName, resultSchema, 4,
+    Map<String, GenericRow> results = testHarness.consumeData(resultStreamName, resultSchema, 4,
                                                               new StringDeserializer(),
-                                                              IntegrationTestHarness
-                                                                  .RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
-    assertThat(results, equalTo(expectedResults));
-  }
-
-  @Test
-  public void testShouldCastSelectedColumns() throws Exception {
-    final String streamName = "CastExpressionStream".toUpperCase();
-
-    final String selectColumns =
-            " CAST (ORDERUNITS AS INTEGER), CAST( PRICEARRAY[1]>1000 AS STRING), CAST (SUBSTRING"
-                    + "(ITEMID, 5) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
-
-    final String queryString = String.format(
-            "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-            streamName,
-            selectColumns,
-            jsonStreamName,
-            "ORDERUNITS > 20 AND ITEMID LIKE '%_8'"
-    );
-
-    ksqlContext.sql(queryString);
-
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
-
-    Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, 80, "true", 8.0, "80.0")));
-
-    Map<String, GenericRow> results = testHarness.consumeData(streamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
-
-    assertThat(results, equalTo(expectedResults));
-  }
-
-  @Test
-  public void testTimestampColumnSelection() throws Exception {
-
-    final String stream1Name = "ORIGINALSTREAM";
-    final String stream2Name = "TIMESTAMPSTREAM";
-    final String query1String =
-            String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
-                            + "ROWTIME+10000 AS "
-                            + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
-                            + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
-                            + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
-                            + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
-                            + "FROM %s ;", stream1Name,
-                          jsonStreamName, stream2Name, stream1Name);
-
-    ksqlContext.sql(query1String);
-
-    Schema resultSchema = SchemaUtil
-            .removeImplicitRowTimeRowKeyFromSchema(ksqlContext.getMetaStore().getSource(stream2Name).getSchema());
-
-    Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("8", jsonRecordMetadataMap.get("8").timestamp() +
-                    10000, "8", jsonRecordMetadataMap.get("8").timestamp() + 10000,
-                                                          jsonRecordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
-
-    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+                                                              IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+                                                              dataSourceSerde);
 
     assertThat(results, equalTo(expectedResults));
   }
 
 
   @Test
-  public void testShouldCastSelectedColumnsAvro() throws Exception {
-    final String streamName = "CastExpressionStreamAvro".toUpperCase();
+  public void testApplyUdfsToColumnsJson() throws Exception {
+    testApplyUdfsToColumns("SelectUDFsStreamJson".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
 
+  @Test
+  public void testApplyUdfsToColumnsAvro() throws Exception {
+    testApplyUdfsToColumns("SelectUDFsStreamAvro".toUpperCase(), avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+  private void testShouldCastSelectedColumns(String resultStreamName, String inputStreamName,
+                                            DataSource.DataSourceSerDe dataSourceSerde) throws Exception {
     final String selectColumns =
         " CAST (ORDERUNITS AS INTEGER), CAST( PRICEARRAY[1]>1000 AS STRING), CAST (SUBSTRING"
         + "(ITEMID, 5) AS DOUBLE), CAST(ORDERUNITS AS VARCHAR) ";
 
     final String queryString = String.format(
         "CREATE STREAM %s AS SELECT %s FROM %s WHERE %s;",
-        streamName,
+        resultStreamName,
         selectColumns,
-        avroStreamName,
+        inputStreamName,
         "ORDERUNITS > 20 AND ITEMID LIKE '%_8'"
     );
 
     ksqlContext.sql(queryString);
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStreamName).getSchema();
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, 80, "true", 8.0, "80.0")));
 
-    Map<String, GenericRow> results = testHarness.consumeData(streamName, resultSchema, 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> results = testHarness.consumeData(resultStreamName, resultSchema, 4,
+                                                              new StringDeserializer(),
+                                                              IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, dataSourceSerde);
+
     assertThat(results, equalTo(expectedResults));
   }
 
   @Test
-  public void testTimestampColumnSelectionAvro() throws Exception {
+  public void testShouldCastSelectedColumnsJson() throws Exception {
+    testShouldCastSelectedColumns("CastExpressionStream".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
 
-    final String stream1Name = "ORIGINALSTREAM_AVRO";
-    final String stream2Name = "TIMESTAMPSTREAM_AVRO";
+  @Test
+  public void testShouldCastSelectedColumnsAvro() throws Exception {
+    testShouldCastSelectedColumns("CastExpressionStreamAvro".toUpperCase(), avroStreamName,
+                                  DataSource.DataSourceSerDe.AVRO);
+  }
+
+  private void testTimestampColumnSelection(String stream1Name, String stream2Name, String
+      inputStreamName, DataSource.DataSourceSerDe dataSourceSerDe, Map<String, RecordMetadata>
+      recordMetadataMap) throws Exception {
+
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
                       + "ROWTIME+10000 AS "
@@ -222,7 +159,7 @@ public class UdfIntTest {
                       + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
                       + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
                       + "FROM %s ;", stream1Name,
-                      avroStreamName, stream2Name, stream1Name);
+                      inputStreamName, stream2Name, stream1Name);
 
     ksqlContext.sql(query1String);
 
@@ -230,13 +167,30 @@ public class UdfIntTest {
         .removeImplicitRowTimeRowKeyFromSchema(ksqlContext.getMetaStore().getSource(stream2Name).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList("8", avroRecordMetadataMap.get("8")
-                                                                   .timestamp() +
-                                                               10000, "8", avroRecordMetadataMap.get("8").timestamp() + 10000,
-                                                          avroRecordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
+    expectedResults.put("8", new GenericRow(Arrays.asList("8", recordMetadataMap.get("8").timestamp() +
+                                                               10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
+                                                          recordMetadataMap.get("8").timestamp() + 100, "ORDER_6", "ITEM_8")));
 
-    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> results = testHarness.consumeData(stream2Name, resultSchema,
+                                                              expectedResults.size(), new
+                                                                  StringDeserializer(),
+                                                              IntegrationTestHarness
+                                                                  .RESULTS_POLL_MAX_TIME_MS, dataSourceSerDe);
+
     assertThat(results, equalTo(expectedResults));
+  }
+
+  @Test
+  public void testTimestampColumnSelectionJson() throws Exception {
+    testTimestampColumnSelection("ORIGINALSTREAM", "TIMESTAMPSTREAM", jsonStreamName,
+                                 DataSource.DataSourceSerDe.JSON, jsonRecordMetadataMap);
+  }
+
+
+  @Test
+  public void testTimestampColumnSelectionAvro() throws Exception {
+    testTimestampColumnSelection("ORIGINALSTREAM_AVRO", "TIMESTAMPSTREAM_AVRO", avroStreamName,
+                                 DataSource.DataSourceSerDe.AVRO, avroRecordMetadataMap);
   }
 
   @Test
@@ -256,7 +210,7 @@ public class UdfIntTest {
     Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList( "ITEM_1", "home cinema")));
 
     Map<String, GenericRow> results = testHarness.consumeData(testStreamName, itemDataProvider.schema
-        (), 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.DELIMITED.name());
+        (), 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.DELIMITED);
 
     assertThat(results, equalTo(expectedResults));
   }

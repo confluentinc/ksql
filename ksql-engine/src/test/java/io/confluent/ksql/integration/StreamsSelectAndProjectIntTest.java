@@ -50,8 +50,8 @@ public class StreamsSelectAndProjectIntTest {
      * Setup test data
      */
     dataProvider = new OrderDataProvider();
-    jsonRecordMetadataMap = testHarness.publishTestData(jsonTopicName, dataProvider, null , DataSource.DataSourceSerDe.JSON.name());
-    avroRecordMetadataMap = testHarness.publishTestData(avroTopicName, dataProvider, null , DataSource.DataSourceSerDe.AVRO.name());
+    jsonRecordMetadataMap = testHarness.publishTestData(jsonTopicName, dataProvider, null , DataSource.DataSourceSerDe.JSON);
+    avroRecordMetadataMap = testHarness.publishTestData(avroTopicName, dataProvider, null , DataSource.DataSourceSerDe.AVRO);
     createOrdersStream();
   }
 
@@ -193,7 +193,7 @@ public class StreamsSelectAndProjectIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
-    Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema , expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema , expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
     assertThat(results2, equalTo(expectedResults));
   }
 
@@ -210,7 +210,7 @@ public class StreamsSelectAndProjectIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> results = testHarness.consumeData(resultStream, resultSchema , dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> results = testHarness.consumeData(resultStream, resultSchema , dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "8", avroRecordMetadataMap.get("8").timestamp(), "ITEM_8")));
     assertThat(results, equalTo(expectedResults));
@@ -225,7 +225,7 @@ public class StreamsSelectAndProjectIntTest {
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, resultSchema, dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, resultSchema, dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
 
     GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
@@ -239,7 +239,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s;",
                                   resultStream, avroStreamName));
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, dataProvider.schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, dataProvider.schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
 
     assertThat(easyOrdersData, equalTo(dataProvider.data()));
   }
@@ -253,7 +253,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s WHERE "
                                   + "ORDERUNITS >  40;", resultStream, avroStreamName));
 
-    Map<String, GenericRow> results = testHarness.consumeData(resultStream, dataProvider.schema(), 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO.name());
+    Map<String, GenericRow> results = testHarness.consumeData(resultStream, dataProvider.schema(), 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, DataSource.DataSourceSerDe.AVRO);
 
     Assert.assertEquals(4, results.size());
   }

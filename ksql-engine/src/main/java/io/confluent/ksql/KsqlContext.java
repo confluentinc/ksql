@@ -16,16 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -37,6 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+
 public class KsqlContext {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlContext.class);
@@ -47,10 +46,13 @@ public class KsqlContext {
   private final KafkaTopicClient topicClient;
 
   public static KsqlContext create(KsqlConfig ksqlConfig) {
-    return  create(ksqlConfig, null);
+    return create(ksqlConfig, null);
   }
 
-  public static KsqlContext create(KsqlConfig ksqlConfig, SchemaRegistryClient schemaRegistryClient) {
+  public static KsqlContext create(
+      KsqlConfig ksqlConfig,
+      SchemaRegistryClient schemaRegistryClient
+  ) {
     if (ksqlConfig == null) {
       ksqlConfig = new KsqlConfig(Collections.emptyMap());
     }
@@ -59,14 +61,26 @@ public class KsqlContext {
       streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID_OPTION_DEFAULT);
     }
     if (!streamsProperties.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-      streamsProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT);
+      streamsProperties.put(
+          StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+          KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
+      );
     }
     AdminClient adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     KafkaTopicClient topicClient = new KafkaTopicClientImpl(adminClient);
     if (schemaRegistryClient == null) {
       return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient));
     } else {
-      return new KsqlContext(adminClient, topicClient, new KsqlEngine(ksqlConfig, topicClient, schemaRegistryClient, new MetaStoreImpl()));
+      return new KsqlContext(
+          adminClient,
+          topicClient,
+          new KsqlEngine(
+              ksqlConfig,
+              topicClient,
+              schemaRegistryClient,
+              new MetaStoreImpl()
+          )
+      );
     }
 
   }
@@ -75,12 +89,12 @@ public class KsqlContext {
   /**
    * Create a KSQL context object with the given properties.
    * A KSQL context has it's own metastore valid during the life of the object.
-   *
-   * @param adminClient
-   * @param topicClient
-   * @param ksqlEngine
    */
-  KsqlContext(final AdminClient adminClient, final KafkaTopicClient topicClient, final KsqlEngine ksqlEngine) {
+  KsqlContext(
+      final AdminClient adminClient,
+      final KafkaTopicClient topicClient,
+      final KsqlEngine ksqlEngine
+  ) {
     this.adminClient = adminClient;
     this.topicClient = topicClient;
     this.ksqlEngine = ksqlEngine;
@@ -92,15 +106,12 @@ public class KsqlContext {
 
   /**
    * Execute the ksql statement in this context.
-   *
-   * @param sql
-   * @throws Exception
    */
   public void sql(String sql) throws Exception {
     List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(sql, Collections
         .emptyMap());
 
-    for (QueryMetadata queryMetadata: queryMetadataList) {
+    for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.getKafkaStreams().start();

@@ -16,11 +16,12 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KsqlException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Execute DDL Commands
@@ -36,20 +37,18 @@ public class DDLCommandExec {
 
   /**
    * execute on temp metaStore
-   * @param ddlCommand
-   * @return
    */
   public DDLCommandResult tryExecute(DDLCommand ddlCommand, MetaStore tempMetaStore) {
     if (tempMetaStore == metaStore) {
-      throw new KsqlException("Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore.");
+      throw new KsqlException(
+          "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
+      );
     }
     return executeOnMetaStore(ddlCommand, tempMetaStore);
   }
 
   /**
    * execute on real metaStore
-   * @param ddlCommand
-   * @return
    */
   public DDLCommandResult execute(DDLCommand ddlCommand) {
     return executeOnMetaStore(ddlCommand, this.metaStore);

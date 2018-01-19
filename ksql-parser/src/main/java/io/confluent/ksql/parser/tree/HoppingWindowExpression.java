@@ -36,14 +36,22 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   private final long advanceBy;
   private final TimeUnit advanceByUnit;
 
-  public HoppingWindowExpression(long size, TimeUnit sizeUnit,
-                                  long advanceBy, TimeUnit advanceByUnit) {
+  public HoppingWindowExpression(
+      long size,
+      TimeUnit sizeUnit,
+      long advanceBy,
+      TimeUnit advanceByUnit
+  ) {
     this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
-  private HoppingWindowExpression(Optional<NodeLocation> location, long size,
-                                  TimeUnit sizeUnit,
-                                  long advanceBy, TimeUnit advanceByUnit) {
+  private HoppingWindowExpression(
+      Optional<NodeLocation> location,
+      long size,
+      TimeUnit sizeUnit,
+      long advanceBy,
+      TimeUnit advanceByUnit
+  ) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
@@ -54,8 +62,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   @Override
   public String toString() {
     return " HOPPING ( SIZE " + size + " " + sizeUnit + " , ADVANCE BY "
-           + advanceBy + " "
-           + "" + advanceByUnit + " ) ";
+           + advanceBy + " " + "" + advanceByUnit + " ) ";
   }
 
   @Override
@@ -74,16 +81,20 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
     return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
            && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
-               .advanceByUnit == advanceByUnit;
+                                                                    .advanceByUnit == advanceByUnit;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public KTable applyAggregate(KGroupedStream groupedStream, Initializer initializer, UdafAggregator aggregator, Materialized<String, GenericRow, ?> materialized) {
-    return groupedStream.windowedBy(TimeWindows.of(
-        sizeUnit.toMillis(size))
-        .advanceBy(
-            advanceByUnit.toMillis(advanceBy)))
-        .aggregate(initializer, aggregator, materialized);
+  public KTable applyAggregate(
+      KGroupedStream groupedStream,
+      Initializer initializer,
+      UdafAggregator aggregator,
+      Materialized<String, GenericRow, ?> materialized
+  ) {
+    return groupedStream.windowedBy(
+        TimeWindows.of(sizeUnit.toMillis(size))
+            .advanceBy(advanceByUnit.toMillis(advanceBy))
+    ).aggregate(initializer, aggregator, materialized);
   }
 }

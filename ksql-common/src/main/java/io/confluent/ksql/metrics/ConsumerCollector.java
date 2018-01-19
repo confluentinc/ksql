@@ -17,7 +17,7 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.utils.Time;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import io.confluent.common.utils.Time;
+
 public class ConsumerCollector implements MetricCollector {
 
   private final Map<String, TopicSensors> topicSensors = new HashMap<>();
@@ -50,9 +52,16 @@ public class ConsumerCollector implements MetricCollector {
     if (id != null) {
       this.groupId = id;
     }
-    if (id == null) id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
-    if (id.contains(""))
-      configure(MetricCollectors.getMetrics(), MetricCollectors.addCollector(id, this), MetricCollectors.getTime());
+    if (id == null) {
+      id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
+    }
+    if (id.contains("")) {
+      configure(
+          MetricCollectors.getMetrics(),
+          MetricCollectors.addCollector(id, this),
+          MetricCollectors.getTime()
+      );
+    }
   }
 
   ConsumerCollector configure(final Metrics metrics, final String id, final Time time) {
@@ -90,7 +99,7 @@ public class ConsumerCollector implements MetricCollector {
 
   private void record(String topic, boolean isError) {
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
-            new TopicSensors<>(topic, buildSensors(k))
+        new TopicSensors<>(topic, buildSensors(k))
     ).increment(null, isError);
   }
 
@@ -102,7 +111,8 @@ public class ConsumerCollector implements MetricCollector {
 
     List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
 
-    // Note: synchronized due to metrics registry not handling concurrent add/check-exists activity in a reliable way
+    // Note: synchronized due to metrics registry not handling concurrent add/check-exists
+    // activity in a reliable way
     synchronized (this.metrics) {
       addSensor(key, "messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "c-total-messages", new Total(), sensors, false);
@@ -112,15 +122,26 @@ public class ConsumerCollector implements MetricCollector {
     return sensors;
   }
 
-  private void addSensor(String key, String metricNameString, MeasurableStat stat, List<TopicSensors.SensorMetric<ConsumerRecord>> sensors, boolean isError) {
+  private void addSensor(
+      String key,
+      String metricNameString,
+      MeasurableStat stat,
+      List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      boolean isError
+  ) {
     String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
-    MetricName metricName = new MetricName(metricNameString, "consumer-metrics", "consumer-" + name, ImmutableMap.of("key", key, "id", id));
+    MetricName metricName = new MetricName(
+        metricNameString,
+        "consumer-metrics",
+        "consumer-" + name,
+        ImmutableMap.of("key", key, "id", id)
+    );
     Sensor existingSensor = metrics.getSensor(name);
     Sensor sensor = metrics.sensor(name);
 
     // re-use the existing measurable stats to share between consumers
-    if (existingSensor == null ||  metrics.metrics().get(metricName) == null) {
+    if (existingSensor == null || metrics.metrics().get(metricName) == null) {
       sensor.add(metricName, stat);
     }
 
@@ -143,7 +164,11 @@ public class ConsumerCollector implements MetricCollector {
   @Override
   public Collection<TopicSensors.Stat> stats(String topic, boolean isError) {
     final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors.values().stream().filter(counter -> counter.isTopic(topic)).forEach(record -> list.addAll(record.stats(isError)));
+    topicSensors
+        .values()
+        .stream()
+        .filter(counter -> counter.isTopic(topic))
+        .forEach(record -> list.addAll(record.stats(isError)));
     return list;
   }
 

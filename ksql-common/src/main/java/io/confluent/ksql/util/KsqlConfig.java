@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -26,6 +25,8 @@ import org.apache.kafka.streams.StreamsConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 
 public class KsqlConfig extends AbstractConfig implements Cloneable {
 
@@ -72,7 +73,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
 
-
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
 
@@ -80,59 +80,66 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   static {
     CONFIG_DEF = new ConfigDef()
-    .define(KSQL_SERVICE_ID_CONFIG,
+        .define(
+            KSQL_SERVICE_ID_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queries in "
-            + "this service.")
-
-    .define(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
+            "Indicates the ID of the ksql service. It will be used as prefix for "
+            + "all KSQL queries in this service."
+        ).define(
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for persitent queries. For instance if the prefix is "
-            + "query_ the query name will be ksql_query_1.")
-    .define(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
+            "Second part of the prefix for persitent queries. For instance if "
+            + "the prefix is query_ the query name will be ksql_query_1."
+        ).define(
+            KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for transient queries. For instance if the prefix is "
-            + "transient_ the query name would be "
+            "Second part of the prefix for transient queries. For instance if "
+            + "the prefix is transient_ the query name would be "
             + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
             + " and '_transient' is the second part of the prefix for the query id the third and "
-            + "4th parts are a random long value and the current timestamp. ")
-    .define(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
+            + "4th parts are a random long value and the current timestamp. "
+        ).define(
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Suffix for state store names in Tables. For instance if the suffix is _ksql_statestore the state "
-            + "store name would be ksql_query_1_ksql_statestore _ksql_statestore ")
-    .define(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+            "Suffix for state store names in Tables. For instance if the suffix is "
+            + "_ksql_statestore the state "
+            + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
+        ).define(
+            SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,
             KsqlConstants.defaultSinkNumberOfPartitions,
             ConfigDef.Importance.MEDIUM,
-            "The default number of partitions for the topics created by KSQL.")
-    .define(SINK_NUMBER_OF_REPLICAS_PROPERTY,
+            "The default number of partitions for the topics created by KSQL."
+        ).define(
+            SINK_NUMBER_OF_REPLICAS_PROPERTY,
             ConfigDef.Type.SHORT,
             KsqlConstants.defaultSinkNumberOfReplications,
             ConfigDef.Importance.MEDIUM,
             "The default number of replicas for the topics created by KSQL."
-            )
-    .define(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
+        ).define(
+            SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
-            "The default window change log additional retention time. This is a streams "
-            + "config value which will be added to a windows maintainMs to ensure data is not "
-            + "deleted from the log prematurely. Allows for clock drift. Default is 1 day"
-            )
-    .define(SCHEMA_REGISTRY_URL_PROPERTY,
+            "The default window change log additional retention time. This "
+            + "is a streams config value which will be added to a windows maintainMs to ensure "
+            + "data is not deleted from the log prematurely. Allows for clock drift. "
+            + "Default is 1 day"
+        ).define(
+            SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
             defaultSchemaRegistryUrl,
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry, defaults to http://localhost:8081"
-           )
+        )
     ;
   }
 
@@ -163,7 +170,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
     final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
-      ksqlStreamConfigProps.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogMetricAndContinueExceptionHandler.class);
+      ksqlStreamConfigProps.put(
+          StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+          LogMetricAndContinueExceptionHandler.class
+      );
     }
   }
 
@@ -178,7 +188,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     Set<String> adminClientConfigProperties = AdminClientConfig.configNames();
     Map<String, Object> adminClientConfigs = new HashMap<>();
-    for (Map.Entry<String, Object> entry: ksqlStreamConfigProps.entrySet()) {
+    for (Map.Entry<String, Object> entry : ksqlStreamConfigProps.entrySet()) {
       if (adminClientConfigProperties.contains(entry.getKey())) {
         adminClientConfigs.put(entry.getKey(), entry.getValue());
       }

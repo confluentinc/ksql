@@ -34,11 +34,18 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
 
   public KsqlVersionChecker(
       BaseSupportConfig ksqlVersionCheckerConfig,
-      Runtime serverRuntime, KsqlModuleType moduleType, boolean enableSettlingTime
+      Runtime serverRuntime,
+      KsqlModuleType moduleType,
+      boolean enableSettlingTime
   ) {
 
-    super(ksqlVersionCheckerConfig, null, new KsqlVersionCheckerResponseHandler(), enableSettlingTime);
-    Objects.requireNonNull(serverRuntime,"serverRuntime is required");
+    super(
+        ksqlVersionCheckerConfig,
+        null,
+        new KsqlVersionCheckerResponseHandler(),
+        enableSettlingTime
+    );
+    Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
     this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
   }
@@ -46,7 +53,8 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   @Override
   protected ZkClientProvider zkClientProvider() {
     //This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
-    // returning null here and also turning off topic metrics collection in KsqlVersionCheckerConfig.
+    // returning null here and also turning off topic metrics collection in
+    // KsqlVersionCheckerConfig.
     return null;
   }
 

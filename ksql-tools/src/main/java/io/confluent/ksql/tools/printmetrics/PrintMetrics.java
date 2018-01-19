@@ -18,10 +18,6 @@ package io.confluent.ksql.tools.printmetrics;
 
 import sun.tools.jconsole.LocalVirtualMachine;
 
-import javax.management.*;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.LinkedList;
@@ -29,12 +25,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+
 public class PrintMetrics {
+
   public static void printHelp() {
     System.err.println(
         "usage: PrintMetrics "
-            + "[help] "
-            + "pid=<KSQL PID>");
+        + "[help] "
+        + "pid=<KSQL PID>");
   }
 
   private static void printMetrics(int pid) throws IOException {
@@ -58,8 +63,8 @@ public class PrintMetrics {
     String jvmAddress = ksqlJvm.connectorAddress();
     JMXServiceURL jmxURL;
     try {
-      jmxURL =new JMXServiceURL(jvmAddress);
-    } catch(MalformedURLException e) {
+      jmxURL = new JMXServiceURL(jvmAddress);
+    } catch (MalformedURLException e) {
       throw new PrintMetricsException(String.format("No JVM at PID %d", pid));
     }
     JMXConnector connector = JMXConnectorFactory.connect(jmxURL);
@@ -79,7 +84,9 @@ public class PrintMetrics {
       try {
         info = connection.getMBeanInfo(n);
       } catch (Exception error) {
-        throw new PrintMetricsException("Unexpected error getting mbean info " + error.getMessage());
+        throw new PrintMetricsException(
+            "Unexpected error getting mbean info " + error.getMessage()
+        );
       }
       MBeanAttributeInfo[] attributes = info.getAttributes();
       for (MBeanAttributeInfo attributeInfo : attributes) {
@@ -87,7 +94,9 @@ public class PrintMetrics {
         try {
           attribute = connection.getAttribute(n, attributeInfo.getName());
         } catch (Exception error) {
-          throw new PrintMetricsException("Unexpected error getting attribute " + error.getMessage());
+          throw new PrintMetricsException(
+              "Unexpected error getting attribute " + error.getMessage()
+          );
         }
         System.out.println(attributeInfo.getName() + ": " + attribute);
       }
@@ -105,6 +114,7 @@ public class PrintMetrics {
   }
 
   static class Arguments {
+
     public boolean help;
     public int pid;
 
@@ -126,7 +136,8 @@ public class PrintMetrics {
         if (splitOnEquals.length != 2) {
           throw new ArgumentParseException(String.format(
               "Invalid argument format in '%s'; expected <name>=<value>",
-              arg));
+              arg
+          ));
         }
 
         String argName = splitOnEquals[0].trim();

@@ -18,23 +18,26 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.ws.rs.core.StreamingOutput;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 
 class QueryStreamWriter implements StreamingOutput {
 
@@ -51,8 +54,8 @@ class QueryStreamWriter implements StreamingOutput {
       KsqlEngine ksqlEngine,
       long disconnectCheckInterval,
       String queryString,
-      Map<String, Object> overriddenProperties)
-      throws Exception {
+      Map<String, Object> overriddenProperties
+  ) throws Exception {
     QueryMetadata queryMetadata =
         ksqlEngine.buildMultipleQueries(queryString, overriddenProperties).get(0);
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
@@ -75,8 +78,10 @@ class QueryStreamWriter implements StreamingOutput {
   public void write(OutputStream out) throws IOException {
     try {
       while (true) {
-
-        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(disconnectCheckInterval, TimeUnit.MILLISECONDS);
+        KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
+            disconnectCheckInterval,
+            TimeUnit.MILLISECONDS
+        );
         if (value != null) {
           write(out, value.value);
         } else {

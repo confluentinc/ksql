@@ -16,13 +16,14 @@
 
 package io.confluent.ksql.cli.console;
 
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+
+import io.confluent.ksql.rest.client.KsqlRestClient;
 
 public class JLineTerminal extends Console {
 
@@ -37,7 +38,10 @@ public class JLineTerminal extends Console {
       throw new RuntimeException("JLineTerminal failed to start!", e);
     }
     // Ignore ^C when not reading a line
-    terminal.handle(org.jline.terminal.Terminal.Signal.INT, org.jline.terminal.Terminal.SignalHandler.SIG_IGN);
+    terminal.handle(
+        org.jline.terminal.Terminal.Signal.INT,
+        org.jline.terminal.Terminal.SignalHandler.SIG_IGN
+    );
   }
 
   @Override
@@ -73,7 +77,10 @@ public class JLineTerminal extends Console {
   }
 
   @Override
-  public Terminal.SignalHandler handle(Terminal.Signal signal, Terminal.SignalHandler signalHandler) {
+  public Terminal.SignalHandler handle(
+      Terminal.Signal signal,
+      Terminal.SignalHandler signalHandler
+  ) {
     return terminal.handle(signal, signalHandler);
   }
 

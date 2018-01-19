@@ -20,5 +20,10 @@ import java.util.Map;
 import io.confluent.ksql.parser.tree.DDLStatement;
 
 public interface DDLCommandFactory {
-  DDLCommand create(String sqlExpression, final DDLStatement ddlStatement, final Map<String, Object> properties);
+
+  DDLCommand create(
+      String sqlExpression,
+      final DDLStatement ddlStatement,
+      final Map<String, Object> properties
+  );
 }

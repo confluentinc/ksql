@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.cli.console;
 
-import io.confluent.ksql.util.CliUtils;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -32,6 +31,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import io.confluent.ksql.util.CliUtils;
+
 public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JLineReader.class);
@@ -46,6 +47,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   // Have to enable event expansion or multi-line parsing won't work, so a quick 'n dirty workaround
   // will have to do to prevent strings like !! from being expanded by the line reader
   private static class NoOpExpander extends DefaultExpander {
+
     @Override
     public String expandHistory(History history, String line) {
       return line;
@@ -57,7 +59,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
-    parser.setEscapeChars(new char[] {'\\'});
+    parser.setEscapeChars(new char[]{'\\'});
 
     final Expander expander = new NoOpExpander();
     // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
@@ -71,12 +73,19 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
-    Path historyFilePath = Paths.get(System.getProperty("history-file",  System.getProperty("user.home") + "/.ksql-history")).toAbsolutePath();
+    Path historyFilePath = Paths.get(System.getProperty(
+        "history-file",
+        System.getProperty("user.home")
+        + "/.ksql-history"
+    )).toAbsolutePath();
     if (CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
       LOGGER.info("Command history saved at: " + historyFilePath);
     } else {
-      terminal.writer().println(String.format("WARNING: Unable to create command history file '%s', command history will not be saved.", historyFilePath));
+      terminal.writer().println(String.format(
+          "WARNING: Unable to create command history file '%s', command history will not be saved.",
+          historyFilePath
+      ));
     }
 
     this.lineReader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);

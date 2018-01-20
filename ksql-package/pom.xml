@@ -10,31 +10,16 @@
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ksql-package</artifactId>
+    <artifactId>package-ksql</artifactId>
     <packaging>pom</packaging>
     <name>ksql-package</name>
 
     <!-- Dependencies are required only to ensure this module is built last. -->
     <dependencies>
         <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-serde</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-metastore</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-engine</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -42,11 +27,44 @@
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-examples</artifactId>
+            <artifactId>ksql-clickstream-demo</artifactId>
+            <version>4.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-parser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-metastore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-engine</artifactId>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-rest-app</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-serde</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-version-metrics-client</artifactId>
+        </dependency>
+
+        <!-- kafka -> zookeeper -> jline ends up including junit 3.8.1 here. Explicitly list the
+             dependency and scope it to test to avoid pulling it in -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -57,8 +75,14 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptors>
+                        <descriptor>src/assembly/development.xml</descriptor>
                         <descriptor>src/assembly/package.xml</descriptor>
                     </descriptors>
+                    <archive>
+                        <manifest>
+                            <mainClass>io.confluent.ksql.Ksql</mainClass>
+                        </manifest>
+                    </archive>
                     <attach>false</attach>
                 </configuration>
                 <executions>
@@ -73,4 +97,22 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>standalone</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/standalone.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

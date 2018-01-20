@@ -128,8 +128,8 @@ public class CliTest extends TestRunner {
 
   private static void testListOrShowCommands() {
     TestResult.OrderedResult testResult = (TestResult.OrderedResult) TestResult.init(true);
-    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1"),
-        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1")));
+    testResult.addRows(Arrays.asList(Arrays.asList(commandTopicName, "true", "1", "1", "0", "0"),
+        Arrays.asList(orderDataProvider.topicName(), "false", "1", "1", "0", "0")));
     testListOrShow("topics", testResult);
     testListOrShow("registered topics", build(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
     testListOrShow("streams", EMPTY_RESULT);
@@ -207,6 +207,11 @@ public class CliTest extends TestRunner {
         String.format("drop stream %s", name),
         build("Source " + name + " was dropped")
     );
+  }
+
+  private static void selectWithLimit(String selectQuery, int limit, TestResult.OrderedResult expectedResults) {
+    selectQuery += " LIMIT " + limit + ";";
+    test(selectQuery, expectedResults);
   }
 
   @Test
@@ -320,6 +325,21 @@ public class CliTest extends TestRunner {
   }
 
   @Test
+  public void testSelectLimit() throws Exception {
+    TestResult.OrderedResult expectedResult = TestResult.build();
+    Map<String, GenericRow> streamData = orderDataProvider.data();
+    int limit = 3;
+    for (int i = 1; i <= limit; i++) {
+      GenericRow srcRow = streamData.get(Integer.toString(i));
+      List<Object> columns = srcRow.getColumns();
+      GenericRow resultRow = new GenericRow(Arrays.asList(columns.get(1), columns.get(2)));
+      expectedResult.addRow(resultRow);
+    }
+    selectWithLimit(
+        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(), limit, expectedResult);
+  }
+
+  @Test
   public void testSelectUDFs() throws Exception {
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
@@ -369,4 +389,8 @@ public class CliTest extends TestRunner {
     localCli.runNonInteractively("clear");
   }
 
+  @Test
+  public void shouldHandleRegisterTopic() throws Exception {
+    localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
+  }
 }

@@ -61,7 +61,6 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
@@ -110,8 +109,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     if (node.getLimit().isPresent()) {
       String limitStr = node.getLimit().get();
-      Integer limitInt = Integer.parseInt(limitStr);
-      analysis.setLimitClause(Optional.of(limitInt));
+      analysis.setLimitClause(Integer.parseInt(limitStr));
     }
     analyzeExpressions();
 
@@ -135,7 +133,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           intoTopicSerde = new KsqlAvroTopicSerDe();
           break;
         case DataSource.JSON_SERDE_NAME:
-          intoTopicSerde = new KsqlJsonTopicSerDe(null);
+          intoTopicSerde = new KsqlJsonTopicSerDe();
           break;
         case DataSource.DELIMITED_SERDE_NAME:
           intoTopicSerde = new KsqlDelimitedTopicSerDe();
@@ -348,8 +346,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-    if (metaStore.getSource(structuredDataSourceName)
-        == null) {
+    if (metaStore.getSource(structuredDataSourceName) == null) {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 

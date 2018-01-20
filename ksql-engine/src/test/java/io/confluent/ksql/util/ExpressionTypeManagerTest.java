@@ -68,10 +68,10 @@ public class ExpressionTypeManagerTest {
         Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
         Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
         Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
-        Assert.assertTrue(exprType0 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType2 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType3 == Schema.INT64_SCHEMA);
-        Assert.assertTrue(exprType4 == Schema.INT64_SCHEMA);
+        Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType3.type() == Schema.Type.INT64);
+        Assert.assertTrue(exprType4.type() == Schema.Type.INT64);
     }
 
     @Test
@@ -83,9 +83,9 @@ public class ExpressionTypeManagerTest {
         Schema exprType0 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(0));
         Schema exprType1 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(1));
         Schema exprType2 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(2));
-        Assert.assertTrue(exprType0 == Schema.BOOLEAN_SCHEMA);
-        Assert.assertTrue(exprType1 == Schema.BOOLEAN_SCHEMA);
-        Assert.assertTrue(exprType2 == Schema.BOOLEAN_SCHEMA);
+        Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
+        Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
+        Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
     }
 
     @Test
@@ -100,11 +100,11 @@ public class ExpressionTypeManagerTest {
         Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
         Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
 
-        Assert.assertTrue(exprType0 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType1 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType2 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType3 == Schema.FLOAT64_SCHEMA);
-        Assert.assertTrue(exprType4 == Schema.INT64_SCHEMA);
+        Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType1.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType3.type() == Schema.Type.FLOAT64);
+        Assert.assertTrue(exprType4.type() == Schema.Type.INT64);
     }
 
     @Test
@@ -119,10 +119,10 @@ public class ExpressionTypeManagerTest {
         Schema exprType3 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(3));
         Schema exprType4 = expressionTypeManager.getExpressionType(analysis.getSelectExpressions().get(4));
 
-        Assert.assertTrue(exprType0 == Schema.STRING_SCHEMA);
-        Assert.assertTrue(exprType1 == Schema.STRING_SCHEMA);
-        Assert.assertTrue(exprType2 == Schema.STRING_SCHEMA);
-        Assert.assertTrue(exprType3 == Schema.STRING_SCHEMA);
-        Assert.assertTrue(exprType4 == Schema.STRING_SCHEMA);
+        Assert.assertTrue(exprType0.type() == Schema.Type.STRING);
+        Assert.assertTrue(exprType1.type() == Schema.Type.STRING);
+        Assert.assertTrue(exprType2.type() == Schema.Type.STRING);
+        Assert.assertTrue(exprType3.type() == Schema.Type.STRING);
+        Assert.assertTrue(exprType4.type() == Schema.Type.STRING);
     }
 }

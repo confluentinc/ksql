@@ -21,8 +21,6 @@ public class KsqlConstants {
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
 
-  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
-      "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";

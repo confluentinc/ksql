@@ -24,7 +24,7 @@ import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.util.CommonUtils;
 
 import javax.ws.rs.ProcessingException;
-import java.io.IOException;
+
 import java.io.PrintWriter;
 
 public class RemoteCli extends Cli {
@@ -34,7 +34,7 @@ public class RemoteCli extends Cli {
       Long streamedQueryTimeoutMs,
       KsqlRestClient restClient,
       Console terminal
-  ) throws IOException {
+  ) {
     super(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,
@@ -42,34 +42,9 @@ public class RemoteCli extends Cli {
         terminal
     );
 
-    validateClient(terminal.writer());
+    validateClient(terminal.writer(), restClient);
 
-    terminal.registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "server";
-      }
-
-      @Override
-      public void printHelp() {
-        terminal.writer().println("\tserver:          Show the current server");
-        terminal.writer().println("\tserver <server>: Change the current server to <server>");
-        terminal.writer().println("\t                 example: "
-            + "\"server http://my.awesome.server.com:9098\""
-        );
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        if (commandStrippedLine.isEmpty()) {
-          terminal.writer().println(restClient.getServerAddress());
-        } else {
-          String serverAddress = commandStrippedLine.trim();
-          restClient.setServerAddress(serverAddress);
-          validateClient(terminal.writer());
-        }
-      }
-    });
+    terminal.registerCliSpecificCommand(new RemoteCliSpecificCommand(restClient, terminal.writer()));
   }
 
   // Visible for testing
@@ -77,7 +52,8 @@ public class RemoteCli extends Cli {
     return restClient.hasUserCredentials();
   }
 
-  private void validateClient(PrintWriter writer) {
+  private static void validateClient(final PrintWriter writer,
+                                     final KsqlRestClient restClient) {
     try {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
@@ -95,6 +71,43 @@ public class RemoteCli extends Cli {
         writer.println();
       } else {
         throw exception;
+      }
+    }
+  }
+
+  static class RemoteCliSpecificCommand implements CliSpecificCommand {
+    private final KsqlRestClient restClient;
+    private final PrintWriter writer;
+
+    RemoteCliSpecificCommand(final KsqlRestClient restClient,
+                             final PrintWriter writer) {
+
+      this.writer = writer;
+      this.restClient = restClient;
+    }
+
+    @Override
+    public String getName() {
+      return "server";
+    }
+
+    @Override
+    public void printHelp() {
+      writer.println("\tserver:          Show the current server");
+      writer.println("\tserver <server>: Change the current server to <server>");
+      writer.println("\t                 example: "
+          + "\"server http://my.awesome.server.com:9098\""
+      );
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) {
+      if (commandStrippedLine.isEmpty()) {
+        writer.println(restClient.getServerAddress());
+      } else {
+        String serverAddress = commandStrippedLine.trim();
+        restClient.setServerAddress(serverAddress);
+        validateClient(writer, restClient);
       }
     }
   }

@@ -36,8 +36,8 @@ import java.util.Optional;
 
 public class CodeGenRunner {
 
-  final Schema schema;
-  final FunctionRegistry functionRegistry;
+  private final Schema schema;
+  private final FunctionRegistry functionRegistry;
 
   public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;

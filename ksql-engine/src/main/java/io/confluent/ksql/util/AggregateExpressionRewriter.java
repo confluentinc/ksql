@@ -31,7 +31,7 @@ public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
 
   public static final String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
   private int aggVariableIndex = 0;
-  final FunctionRegistry functionRegistry;
+  private final FunctionRegistry functionRegistry;
 
   public AggregateExpressionRewriter(final FunctionRegistry functionRegistry) {
     this.functionRegistry = functionRegistry;

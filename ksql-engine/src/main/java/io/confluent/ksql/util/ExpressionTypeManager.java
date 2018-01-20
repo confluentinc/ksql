@@ -178,17 +178,19 @@ public class ExpressionTypeManager
 
   private Schema resolveArithmaticType(final Schema leftSchema,
                                             final Schema rightSchema) {
-    if (leftSchema == rightSchema) {
+    Schema.Type leftType = leftSchema.type();
+    Schema.Type rightType = rightSchema.type();
+
+    if (leftType == rightType) {
       return leftSchema;
-    } else if ((leftSchema == Schema.STRING_SCHEMA) || (rightSchema == Schema.STRING_SCHEMA)) {
+    } else if (((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING))
+        || ((leftType == Schema.Type.BOOLEAN) || (rightType == Schema.Type.BOOLEAN))) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.BOOLEAN_SCHEMA) || (rightSchema == Schema.BOOLEAN_SCHEMA)) {
-      throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.FLOAT64_SCHEMA) || (rightSchema == Schema.FLOAT64_SCHEMA)) {
+    } else if ((leftType == Schema.Type.FLOAT64) || (rightType == Schema.Type.FLOAT64)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT64_SCHEMA) || (rightSchema == Schema.INT64_SCHEMA)) {
+    } else if ((leftType == Schema.Type.INT64) || (rightType == Schema.Type.INT64)) {
       return Schema.INT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT32_SCHEMA) || (rightSchema == Schema.INT32_SCHEMA)) {
+    } else if ((leftType == Schema.Type.INT32) || (rightType == Schema.Type.INT32)) {
       return Schema.INT32_SCHEMA;
     }
     throw new PlanException("Unsupported types.");

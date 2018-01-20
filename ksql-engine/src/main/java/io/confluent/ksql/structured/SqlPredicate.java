@@ -121,8 +121,7 @@ public class SqlPredicate {
                 .getColumns().get(columnIndexes[i]));
           }
         }
-        boolean result = (Boolean) ee.evaluate(values);
-        return result;
+        return (Boolean) ee.evaluate(values);
       } catch (Exception e) {
         log.error(e.getMessage(), e);
       }
@@ -154,8 +153,7 @@ public class SqlPredicate {
                 .getColumns().get(columnIndexes[i]));
           }
         }
-        boolean result = (Boolean) ee.evaluate(values);
-        return result;
+        return (Boolean) ee.evaluate(values);
       } catch (Exception e) {
         log.error(e.getMessage(), e);
       }

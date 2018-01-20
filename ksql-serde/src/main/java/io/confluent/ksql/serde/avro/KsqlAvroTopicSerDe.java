@@ -40,7 +40,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
                                               boolean isInternal,
                                               SchemaRegistryClient schemaRegistryClient) {
     final Serializer<GenericRow> genericRowSerializer =
-        new KsqlGenericRowAvroSerializer(schema, schemaRegistryClient, ksqlConfig, isInternal);
+        new KsqlGenericRowAvroSerializer(schema, schemaRegistryClient, ksqlConfig);
     final Deserializer<GenericRow> genericRowDeserializer =
         new KsqlGenericRowAvroDeserializer(schema, schemaRegistryClient, isInternal);
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

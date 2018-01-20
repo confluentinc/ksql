@@ -14,7 +14,6 @@ import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 
-import org.apache.avro.util.Utf8;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -32,7 +31,6 @@ import org.apache.kafka.test.TestUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -206,11 +204,11 @@ public class IntegrationTestHarness {
 
   private Serializer getSerializer(Schema schema) {
     if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
-      return new KsqlDelimitedSerializer();
+      return new KsqlDelimitedSerializer(schema);
     } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
       return new KsqlGenericRowAvroSerializer
           (schema, this.schemaRegistryClient, new
-               KsqlConfig(Collections.emptyMap()), false);
+               KsqlConfig(Collections.emptyMap()));
     } else {
       return new KsqlJsonSerializer(schema);
     }

@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -76,14 +77,14 @@ public class Cli implements Closeable, AutoCloseable {
   private final Long streamedQueryTimeoutMs;
 
   final KsqlRestClient restClient;
-  final Console terminal;
+  private final Console terminal;
 
   public Cli(
       Long streamedQueryRowLimit,
       Long streamedQueryTimeoutMs,
       KsqlRestClient restClient,
       Console terminal
-  ) throws IOException {
+  ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
 
@@ -402,7 +403,7 @@ public class Cli implements Closeable, AutoCloseable {
   }
 
   private void handleStreamedQuery(String query)
-      throws IOException, InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException {
     RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 
@@ -413,7 +414,15 @@ public class Cli implements Closeable, AutoCloseable {
           public void run() {
             for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
               try {
-                terminal.printStreamedRow(queryStream.next());
+                StreamedRow row = queryStream.next();
+                terminal.printStreamedRow(row);
+                if (row.getErrorMessage() != null) {
+                  // got an error in the stream, which means we have reached the end.
+                  // the stream interface that queryStream uses isn't smart enough to figure
+                  // out when the socket is closed, so just break here since we know there will
+                  // be nothing more to read.
+                  break;
+                }
               } catch (IOException exception) {
                 throw new RuntimeException(exception);
               }
@@ -421,12 +430,9 @@ public class Cli implements Closeable, AutoCloseable {
           }
         });
 
-        terminal.handle(Terminal.Signal.INT, new Terminal.SignalHandler() {
-          @Override
-          public void handle(Terminal.Signal signal) {
-            terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-            queryStreamFuture.cancel(true);
-          }
+        terminal.handle(Terminal.Signal.INT, signal -> {
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+          queryStreamFuture.cancel(true);
         });
 
         try {

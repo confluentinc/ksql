@@ -82,11 +82,11 @@ public class SchemaKTableTest {
                       projectedSchemaKStream.getSchema().fields().get(2));
 
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("COL0").schema() == Schema.INT64_SCHEMA);
+                          .field("COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("COL2").schema() == Schema.STRING_SCHEMA);
+                          .field("COL2").schema().type() == Schema.Type.STRING);
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("COL3").schema() == Schema.FLOAT64_SCHEMA);
+                          .field("COL3").schema().type() == Schema.Type.FLOAT64);
 
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);
@@ -116,7 +116,7 @@ public class SchemaKTableTest {
                       projectedSchemaKStream.getSchema().fields().get(2));
 
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("COL0").schema() == Schema.INT64_SCHEMA);
+                          .field("COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema() == Schema
         .INT32_SCHEMA);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema() == Schema
@@ -150,13 +150,13 @@ public class SchemaKTableTest {
                       filteredSchemaKStream.getSchema().fields().get(3));
 
     Assert.assertTrue(filteredSchemaKStream.getSchema()
-                          .field("TEST1.COL0").schema() == Schema.INT64_SCHEMA);
+                          .field("TEST1.COL0").schema().type() == Schema.Type.INT64);
     Assert.assertTrue(filteredSchemaKStream.getSchema()
-                          .field("TEST1.COL1").schema() == Schema.STRING_SCHEMA);
+                          .field("TEST1.COL1").schema().type() == Schema.Type.STRING);
     Assert.assertTrue(filteredSchemaKStream.getSchema()
-                          .field("TEST1.COL2").schema() == Schema.STRING_SCHEMA);
+                          .field("TEST1.COL2").schema().type() == Schema.Type.STRING);
     Assert.assertTrue(filteredSchemaKStream.getSchema()
-                          .field("TEST1.COL3").schema() == Schema.FLOAT64_SCHEMA);
+                          .field("TEST1.COL3").schema().type() == Schema.Type.FLOAT64);
 
     Assert.assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);

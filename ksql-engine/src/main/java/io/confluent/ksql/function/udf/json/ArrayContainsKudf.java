@@ -26,7 +26,6 @@ import io.confluent.ksql.util.KsqlException;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Objects;
 
 import static com.fasterxml.jackson.core.JsonFactory.Feature.CANONICALIZE_FIELD_NAMES;
 import static com.fasterxml.jackson.core.JsonToken.END_ARRAY;

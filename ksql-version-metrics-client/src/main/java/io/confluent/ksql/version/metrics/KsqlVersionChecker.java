@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.confluent.ksql.version.metrics.collector.BasicCollector;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
+import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
@@ -32,7 +33,7 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
-      KsqlVersionCheckerConfig ksqlVersionCheckerConfig,
+      BaseSupportConfig ksqlVersionCheckerConfig,
       Runtime serverRuntime, KsqlModuleType moduleType, boolean enableSettlingTime
   ) {
 

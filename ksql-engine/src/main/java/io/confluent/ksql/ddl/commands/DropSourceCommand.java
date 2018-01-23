@@ -30,9 +30,11 @@ public class DropSourceCommand implements DDLCommand {
   private final DataSource.DataSourceType dataSourceType;
   private final QueryTerminator queryTerminator;
 
-  public DropSourceCommand(final AbstractStreamDropStatement statement,
-                           final DataSource.DataSourceType dataSourceType,
-                           final QueryTerminator queryTerminator) {
+  public DropSourceCommand(
+      final AbstractStreamDropStatement statement,
+      final DataSource.DataSourceType dataSourceType,
+      final QueryTerminator queryTerminator
+  ) {
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
     this.queryTerminator = queryTerminator;
@@ -45,17 +47,17 @@ public class DropSourceCommand implements DDLCommand {
       throw new KsqlException("Source " + sourceName + " does not exist.");
     }
     if (dataSource.getDataSourceType() != dataSourceType) {
-      throw new KsqlException(String.format("Incompatible data source type is %s, but statement "
-                                            + "was DROP %s", dataSource.getDataSourceType() == DataSource
-                                                .DataSourceType.KSTREAM ? "STREAM": "TABLE",
-                                            dataSourceType == DataSource
-                                                .DataSourceType.KSTREAM ? "STREAM": "TABLE"));
+      throw new KsqlException(String.format(
+          "Incompatible data source type is %s, but statement was DROP %s",
+          dataSource.getDataSourceType() == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE",
+          dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
+      ));
     }
-    DropTopicCommand dropTopicCommand = new DropTopicCommand(
-        dataSource.getKsqlTopic().getTopicName());
+    DropTopicCommand dropTopicCommand =
+        new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     dropTopicCommand.run(metaStore);
     metaStore.deleteSource(sourceName);
     queryTerminator.terminateQueryForEntity(sourceName);
-    return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
+    return new DDLCommandResult(true, "Source " + sourceName + " was dropped");
   }
 }

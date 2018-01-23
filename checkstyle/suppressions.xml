@@ -32,7 +32,6 @@
     <!-- These checks may be included in the future -->
     <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
     <suppress files="." checks="NonEmptyAtclauseDescription"/>
-    <suppress files="." checks="LineLengthCheck"/>
     <suppress files="." checks="MethodLengthCheck"/>
     <suppress files="." checks="EmptyLineSeparator"/>
     <suppress files="." checks="NeedBraces"/>

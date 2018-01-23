@@ -36,7 +36,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
-  public KsqlVersionCheckerAgent(){
+  public KsqlVersionCheckerAgent() {
     this(true);
   }
 
@@ -47,13 +47,19 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   @Override
   public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
-    BaseSupportConfig ksqlVersionCheckerConfig = new PhoneHomeConfig(ksqlProperties, "ksql");
-    if(ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
+    BaseSupportConfig ksqlVersionCheckerConfig =
+        new PhoneHomeConfig(ksqlProperties, "ksql");
+    if (ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       try {
         Runtime serverRuntime = Runtime.getRuntime();
 
         ksqlVersionChecker =
-            new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType, enableSettlingTime);
+            new KsqlVersionChecker(
+                ksqlVersionCheckerConfig,
+                serverRuntime,
+                moduleType,
+                enableSettlingTime
+            );
         ksqlVersionChecker.init();
         versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
         long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();

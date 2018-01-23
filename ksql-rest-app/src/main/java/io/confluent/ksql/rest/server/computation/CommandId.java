@@ -24,6 +24,7 @@ import java.util.Objects;
 
 @JsonSubTypes({})
 public class CommandId {
+
   private final Type type;
   private final String entity;
   private final Action action;
@@ -41,17 +42,21 @@ public class CommandId {
     EXECUTE
   }
 
-  public CommandId(final Type type,
-                   final String entity,
-                   final Action action) {
+  public CommandId(
+      final Type type,
+      final String entity,
+      final Action action
+  ) {
     this.type = type;
     this.entity = entity;
     this.action = action;
   }
 
-  public CommandId(final String type,
-                   final String entity,
-                   final String action) {
+  public CommandId(
+      final String type,
+      final String entity,
+      final String action
+  ) {
     this(Type.valueOf(type.toUpperCase()), entity, Action.valueOf(action.toUpperCase()));
   }
 
@@ -79,17 +84,26 @@ public class CommandId {
   @Override
   @JsonValue
   public String toString() {
-    return String.format("%s/%s/%s", type.toString().toLowerCase(), entity, action.toString().toLowerCase());
+    return String.format(
+        "%s/%s/%s",
+        type.toString().toLowerCase(),
+        entity,
+        action.toString().toLowerCase()
+    );
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     CommandId commandId = (CommandId) o;
     return type == commandId.type &&
-        Objects.equals(entity, commandId.entity) &&
-        action == commandId.action;
+           Objects.equals(entity, commandId.entity) &&
+           action == commandId.action;
   }
 
   @Override

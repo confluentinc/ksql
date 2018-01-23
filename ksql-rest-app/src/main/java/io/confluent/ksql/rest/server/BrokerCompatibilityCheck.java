@@ -39,19 +39,23 @@ public class BrokerCompatibilityCheck implements Closeable {
   private final Consumer<?, ?> consumer;
   private final TopicPartition topicPartition;
 
-  BrokerCompatibilityCheck(final Consumer<?, ?> consumer,
-                           final TopicPartition topicPartition) {
+  BrokerCompatibilityCheck(
+      final Consumer<?, ?> consumer,
+      final TopicPartition topicPartition
+  ) {
     this.consumer = consumer;
     this.topicPartition = topicPartition;
   }
 
 
-  public static BrokerCompatibilityCheck create(final Map<String, Object> streamsConfig,
-                                                final KafkaTopicClient topicClient) {
+  public static BrokerCompatibilityCheck create(
+      final Map<String, Object> streamsConfig,
+      final KafkaTopicClient topicClient
+  ) {
     Set<String> topicNames = topicClient.listTopicNames();
     // the offsetsForTime call needs a partition that exists else it can block forever
     if (topicNames.isEmpty()) {
-      topicClient.createTopic(KSQL_COMPATIBILITY_CHECK, 1, (short)1);
+      topicClient.createTopic(KSQL_COMPATIBILITY_CHECK, 1, (short) 1);
       topicNames = Utils.mkSet(KSQL_COMPATIBILITY_CHECK);
     }
     final Map<String, Object> consumerConfigs = new StreamsConfig(streamsConfig)
@@ -61,7 +65,10 @@ public class BrokerCompatibilityCheck implements Closeable {
     consumerConfigs.remove("partition.assignment.strategy");
     final KafkaConsumer<String, String> consumer
         = new KafkaConsumer<>(consumerConfigs, new StringDeserializer(), new StringDeserializer());
-    return new BrokerCompatibilityCheck(consumer,  new TopicPartition(topicNames.iterator().next(), 0));
+    return new BrokerCompatibilityCheck(
+        consumer,
+        new TopicPartition(topicNames.iterator().next(), 0)
+    );
   }
 
   /**
@@ -78,8 +85,10 @@ public class BrokerCompatibilityCheck implements Closeable {
     try {
       consumer.offsetsForTimes(Collections.singletonMap(topicPartition, 0L));
     } catch (final UnsupportedVersionException e) {
-      throw new KsqlException("The kafka brokers are incompatible with. "
-           + "KSQL requires broker versions >= 0.10.1.x");
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
     }
   }
 

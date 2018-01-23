@@ -45,9 +45,9 @@ public class ErrorMessage {
   }
 
   private static String buildErrorMessage(Throwable exception) {
-    String msg = exception.getMessage() != null ? exception.getMessage() : " ServerError:" + exception.toString();
+    String msg = exception.getMessage() != null ? exception.getMessage() : " ServerError: " + exception.toString();
     String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-    return causeMsg == "" ? msg : msg + "\r\n" + causeMsg;
+    return causeMsg.isEmpty() ? msg : msg + "\r\n" + causeMsg;
   }
 
   public ErrorMessage(Throwable exception) {

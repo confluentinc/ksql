@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
@@ -36,13 +37,11 @@ public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
   @Override
   public void handle(HttpResponse response) {
     int statusCode = response.getStatusLine().getStatusCode();
-    try {
-      if (statusCode == HttpStatus.SC_OK && response.getEntity().getContent() != null) {
 
+    try(InputStream inputStream = response.getEntity().getContent();
         BufferedReader br = new BufferedReader(
-            new InputStreamReader((response.getEntity().getContent()), StandardCharsets.UTF_8)
-        );
-
+                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+      if (statusCode == HttpStatus.SC_OK && inputStream != null) {
         StringBuilder content = new StringBuilder();
         String line;
         while (null != (line = br.readLine())) {

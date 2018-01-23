@@ -213,15 +213,17 @@ public class PhysicalPlanBuilder {
     TopologyDescription topologyDescription = builder.build().describe();
 
     return new PersistentQueryMetadata(statement,
-        streams, outputNode, schemaKStream
-        .getExecutionPlan(""), queryId,
-        (schemaKStream instanceof SchemaKTable) ? DataSource
-            .DataSourceType.KTABLE : DataSource.DataSourceType
-            .KSTREAM,
-        applicationId,
-        kafkaTopicClient,
-        outputNode.getSchema(),
-        sinkDataSource.getKsqlTopic(), topologyDescription.toString());
+                                       streams,
+                                       outputNode,
+                                       sinkDataSource,
+                                       schemaKStream.getExecutionPlan(""),
+                                       queryId,
+                                       (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+                                       applicationId,
+                                       kafkaTopicClient,
+                                       outputNode.getSchema(),
+                                       sinkDataSource.getKsqlTopic(),
+                                       topologyDescription.toString());
   }
 
   private String getBareQueryApplicationId(String serviceId, String transientQueryPrefix) {

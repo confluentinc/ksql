@@ -31,10 +31,12 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 
@@ -112,9 +114,18 @@ public class AvroUtilTest {
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
+
+    OutputNode outputNode = mock(OutputNode.class);
+    expect(outputNode.accept(anyObject(), anyObject())).andReturn(null);
+    replay(outputNode);
+    StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
+    expect(structuredDataSource.getName()).andReturn("");
+    replay(structuredDataSource);
+
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
                                                                                   null,
-                                                                                  null,
+                                                                                  outputNode,
+                                                                                  structuredDataSource,
                                                                                   "",
                                                                                   null,
                                                                                   DataSource.DataSourceType.KSTREAM,
@@ -138,9 +149,18 @@ public class AvroUtilTest {
     KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe
         ());
     Schema resultSchema = SerDeUtil.getSchemaFromAvro(ordersAveroSchemaStr);
+
+    OutputNode outputNode = mock(OutputNode.class);
+    expect(outputNode.accept(anyObject(), anyObject())).andReturn(null);
+    replay(outputNode);
+    StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
+    expect(structuredDataSource.getName()).andReturn("");
+    replay(structuredDataSource);
+
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata("",
                                                                                   null,
-                                                                                  null,
+                                                                                  outputNode,
+                                                                                  structuredDataSource,
                                                                                   "",
                                                                                   null,
                                                                                   DataSource.DataSourceType.KSTREAM,

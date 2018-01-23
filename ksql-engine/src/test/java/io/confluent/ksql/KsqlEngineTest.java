@@ -17,19 +17,23 @@
 package io.confluent.ksql;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -74,4 +78,35 @@ public class KsqlEngineTest {
     ksqlEngine.createQueries("blah;");
   }
 
+  @Test
+  public void shouldUpdateReferentialIntegrityTableCorrectly() throws Exception {
+    final List<QueryMetadata> queries
+        = ksqlEngine.createQueries("create table bar as select * from test2;" +
+                                   "create table foo as select * from test2;");
+    ReferentialIntegrityTable referentialIntegrityTable = ksqlEngine.getReferentialIntegrityTable();
+    Assert.assertTrue(referentialIntegrityTable.getSourceForQuery("TEST2").contains("CTAS_BAR"));
+    Assert.assertTrue(referentialIntegrityTable.getSourceForQuery("TEST2").contains("CTAS_FOO"));
+    Assert.assertTrue(referentialIntegrityTable.getSinkForQuery("BAR").contains("CTAS_BAR"));
+    Assert.assertTrue(referentialIntegrityTable.getSinkForQuery("FOO").contains("CTAS_FOO"));
+  }
+
+  @Test
+  public void shouldFailIfRererentialIntegrityIsViolated() {
+    try {
+      ksqlEngine.createQueries("create table bar as select * from test2;" +
+                                     "create table foo as select * from test2;");
+      ksqlEngine.createQueries("drop table foo;");
+      Assert.fail();
+    } catch (Exception e) {
+      assertThat(e.getMessage(), equalTo("Exception while processing statements :Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CTAS_FOO]. You need to terminate them before dropping this source."));
+    }
+  }
+
+  @Test
+  public void shouldEnforceRererentialIntegrityCorrectly() throws Exception {
+    ksqlEngine.createQueries("create table bar as select * from test2;" +
+                             "create table foo as select * from test2;");
+    ksqlEngine.terminateQuery(new QueryId("CTAS_FOO"), true);
+    ksqlEngine.createQueries("drop table foo;");
+  }
 }

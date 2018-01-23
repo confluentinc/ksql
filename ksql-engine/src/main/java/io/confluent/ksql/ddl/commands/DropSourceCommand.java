@@ -16,26 +16,27 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.QueryTerminator;
+import java.util.stream.Collectors;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 
 public class DropSourceCommand implements DDLCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
-  private final QueryTerminator queryTerminator;
+  private final ReferentialIntegrityTable referentialIntegrityTable;
 
   public DropSourceCommand(final AbstractStreamDropStatement statement,
                            final DataSource.DataSourceType dataSourceType,
-                           final QueryTerminator queryTerminator) {
+                           final ReferentialIntegrityTable referentialIntegrityTable) {
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
-    this.queryTerminator = queryTerminator;
+    this.referentialIntegrityTable = referentialIntegrityTable;
   }
 
   @Override
@@ -51,11 +52,22 @@ public class DropSourceCommand implements DDLCommand {
                                             dataSourceType == DataSource
                                                 .DataSourceType.KSTREAM ? "STREAM": "TABLE"));
     }
+    if (!referentialIntegrityTable.isSafeToDrop(sourceName)) {
+      String sourceForQueriesMessage = referentialIntegrityTable.getSourceForQuery(sourceName).stream()
+          .collect(Collectors.joining(", "));
+      String sinkForQueriesMessage = referentialIntegrityTable.getSinkForQuery(sourceName)
+          .stream()
+          .collect(Collectors.joining(", "));
+      throw new KsqlException(String.format("Cannot drop the data source. The following queries "
+                                            + "read from this source: [%s] and the following "
+                                            + "queries write into this source: [%s]. You need to "
+                                            + "terminate them before dropping this source.",
+                                            sourceForQueriesMessage, sinkForQueriesMessage));
+    }
     DropTopicCommand dropTopicCommand = new DropTopicCommand(
         dataSource.getKsqlTopic().getTopicName());
     dropTopicCommand.run(metaStore);
     metaStore.deleteSource(sourceName);
-    queryTerminator.terminateQueryForEntity(sourceName);
     return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
   }
 }

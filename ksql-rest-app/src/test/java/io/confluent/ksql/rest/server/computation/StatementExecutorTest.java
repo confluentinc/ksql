@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import org.easymock.EasyMockSupport;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -38,6 +40,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 public class StatementExecutorTest extends EasyMockSupport {
 
@@ -174,6 +177,99 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+  }
+
+
+  @Test
+  public void shouldEnforceReferentialIntegrity() throws Exception {
+
+
+    Command csCommand = new Command("CREATE STREAM pageview "
+                                    + "(viewtime bigint, pageid varchar, userid varchar) "
+                                    + "WITH (kafka_topic = 'pageview_topic_json', value_format = 'json');",
+                                    new HashMap<>());
+    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
+    statementExecutor.handleStatement(csCommand, csCommandId);
+
+    Command csasCommand = new Command("CREATE STREAM user1pv "
+                                      + " AS select * from pageview WHERE userid = 'user1';",
+                                      new HashMap<>());
+
+    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+    statementExecutor.handleStatement(csasCommand, csasCommandId);
+
+
+    Command ctasCommand = new Command("CREATE TABLE table1 "
+                                      + " AS select pageid, count(pageid) from pageview "
+                                      + "WINDOW TUMBLING ( SIZE 10 SECONDS) GROUP BY pageid;",
+                                      new HashMap<>());
+
+    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
+    statementExecutor.handleStatement(ctasCommand, ctasCommandId);
+
+
+    Command dropStreamCommand1 = new Command("drop stream pageview;", new HashMap<>());
+    CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM, "_PAGEVIEW",
+                                                    CommandId.Action.DROP);
+    statementExecutor.handleStatement(dropStreamCommand1, dropStreamCommandId1);
+
+    Optional<CommandStatus> dropStreamCommandStatus1 = statementExecutor.getStatus(dropStreamCommandId1);
+
+    Assert.assertTrue(dropStreamCommandStatus1.isPresent());
+    assertThat(dropStreamCommandStatus1.get().getStatus(), CoreMatchers.equalTo(CommandStatus.Status.ERROR));
+    Assert.assertTrue(dropStreamCommandStatus1.get().getMessage().startsWith("io.confluent.ksql.util.KsqlException: Cannot drop the data source. The following queries read from this source: [CSAS_USER1PV, CTAS_TABLE1] and the following queries write into this source: []. You need to terminate them before dropping this source."));
+
+
+    Command dropStreamCommand2 = new Command("drop stream user1pv;", new HashMap<>());
+    CommandId dropStreamCommandId2 =  new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
+    statementExecutor.handleStatement(dropStreamCommand2, dropStreamCommandId2);
+
+    Optional<CommandStatus> dropStreamCommandStatus2 = statementExecutor.getStatus(dropStreamCommandId2);
+
+    Assert.assertTrue(dropStreamCommandStatus2.isPresent());
+    assertThat(dropStreamCommandStatus2.get().getStatus(), CoreMatchers.equalTo(CommandStatus.Status.ERROR));
+    Assert.assertTrue(dropStreamCommandStatus2.get().getMessage().startsWith("io.confluent.ksql.util.KsqlException: Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CSAS_USER1PV]. You need to terminate them before dropping this source."));
+
+    Command dropTableCommand1 = new Command("drop table table1;", new HashMap<>());
+    CommandId dropTableCommandId1 =  new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
+    statementExecutor.handleStatement(dropTableCommand1, dropTableCommandId1);
+
+    Optional<CommandStatus> dropTableCommandStatus1 = statementExecutor.getStatus(dropTableCommandId1);
+
+    Assert.assertTrue(dropTableCommandStatus1.isPresent());
+    assertThat(dropTableCommandStatus1.get().getStatus(), CoreMatchers.equalTo(CommandStatus.Status.ERROR));
+    Assert.assertTrue(dropTableCommandStatus1.get().getMessage().startsWith("io.confluent.ksql.util.KsqlException: Cannot drop the data source. The following queries read from this source: [] and the following queries write into this source: [CTAS_TABLE1]. You need to terminate them before dropping this source."));
+
+
+    Command terminateCommand1 = new Command("TERMINATE CSAS_USER1PV;", new HashMap<>());
+    CommandId terminateCommandId1 =  new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
+    statementExecutor.handleStatement(terminateCommand1, terminateCommandId1);
+    Optional<CommandStatus> terminateCommandStatus1 = statementExecutor.getStatus(terminateCommandId1);
+    assertThat(terminateCommandStatus1.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+
+    Command terminateCommand2 = new Command("TERMINATE CTAS_TABLE1;", new HashMap<>());
+    CommandId terminateCommandId2 =  new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
+    statementExecutor.handleStatement(terminateCommand2, terminateCommandId2);
+    Optional<CommandStatus> terminateCommandStatus2 = statementExecutor.getStatus(terminateCommandId2);
+    assertThat(terminateCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+
+    Command dropTableCommand2 = new Command("drop table table1;", new HashMap<>());
+    CommandId dropTableCommandId2 =  new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
+    statementExecutor.handleStatement(dropTableCommand2, dropTableCommandId2);
+
+    Optional<CommandStatus> dropTableCommandStatus2 = statementExecutor.getStatus(dropTableCommandId2);
+
+    Assert.assertTrue(dropTableCommandStatus2.isPresent());
+    assertThat(dropTableCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+
+
+    Command dropStreamCommand3 = new Command("drop stream pageview;", new HashMap<>());
+    CommandId dropStreamCommandId3 =  new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
+    statementExecutor.handleStatement(dropStreamCommand3, dropStreamCommandId3);
+
+    Optional<CommandStatus> dropStreamCommandStatus3 = statementExecutor.getStatus(dropStreamCommandId3);
+    assertThat(dropStreamCommandStatus3.get().getStatus(), CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
+
   }
 
 }

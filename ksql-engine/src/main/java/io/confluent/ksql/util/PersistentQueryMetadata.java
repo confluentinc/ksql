@@ -17,6 +17,8 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -24,7 +26,9 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class PersistentQueryMetadata extends QueryMetadata {
 
@@ -32,10 +36,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final Schema resultSchema;
   private final KsqlTopic resultTopic;
 
+  private final Set<String> sourceNames;
+  private final Set<String> sinkNames;
+
 
   public PersistentQueryMetadata(final String statementString,
                                  final KafkaStreams kafkaStreams,
                                  final OutputNode outputNode,
+                                 final StructuredDataSource sinkDataSource,
                                  final String executionPlan,
                                  final QueryId id,
                                  final DataSource.DataSourceType dataSourceType,
@@ -49,10 +57,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.id = id;
     this.resultSchema = resultSchema;
     this.resultTopic = resultTopic;
+    PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
+    planSourceExtractorVisitor.process(outputNode, null);
+    this.sourceNames = planSourceExtractorVisitor.getSourceNames();
+    this.sinkNames = new HashSet<>();
+    this.sinkNames.add(sinkDataSource.getName());
 
   }
 
-  public QueryId getId() {
+  public QueryId getQueryId() {
     return id;
   }
 
@@ -66,6 +79,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public String getEntity() {
     return getOutputNode().getId().toString();
+  }
+
+  public Set<String> getSourceNames() {
+    return sourceNames;
+  }
+
+  public Set<String> getSinkNames() {
+    return sinkNames;
   }
 
   public DataSource.DataSourceSerDe getResultTopicSerde() {

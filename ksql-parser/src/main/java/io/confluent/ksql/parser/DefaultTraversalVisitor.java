@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.planner;
+package io.confluent.ksql.parser;
 
 
 import io.confluent.ksql.parser.tree.AliasedRelation;

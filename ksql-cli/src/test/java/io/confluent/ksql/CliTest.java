@@ -198,8 +198,17 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
+    terminateQuery("CSAS_" + resultKStreamName);
+
     dropStream(resultKStreamName);
     assertThat(results, equalTo(expectedResults));
+  }
+
+  private static void terminateQuery(String queryId) {
+    test(
+        String.format("terminate %s", queryId),
+        build("Query terminated.")
+    );
   }
 
   private static void dropStream(String name) {

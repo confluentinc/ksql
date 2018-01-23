@@ -169,7 +169,7 @@ public class JsonFormatTest {
 
     assertThat(results, equalTo(expectedResults));
 
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+    ksqlEngine.terminateQuery(queryMetadata.getQueryId(), true);
   }
 
   @Test
@@ -195,7 +195,7 @@ public class JsonFormatTest {
     Thread.sleep(2000);
 
     Assert.assertTrue(kafkaTopicClient.isTopicExists(streamName));
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+    ksqlEngine.terminateQuery(queryMetadata.getQueryId(), true);
   }
 
   @Test
@@ -221,7 +221,7 @@ public class JsonFormatTest {
 
     assertThat(results, equalTo(expectedResults));
 
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+    ksqlEngine.terminateQuery(queryMetadata.getQueryId(), true);
   }
 
   //*********************************************************//

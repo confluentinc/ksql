@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -50,7 +51,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class CommandFactoriesTest {
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
-  private final CommandFactories commandFactories = new CommandFactories(topicClient, EasyMock.createMock(QueryTerminator.class));
+  private final CommandFactories commandFactories = new CommandFactories(topicClient, EasyMock
+      .createMock(ReferentialIntegrityTable.class));
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";
 

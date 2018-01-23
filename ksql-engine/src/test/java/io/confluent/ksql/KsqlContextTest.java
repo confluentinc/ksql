@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaStreams;
+import org.easymock.Mock;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -26,6 +27,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -71,15 +77,25 @@ public class KsqlContextTest {
     KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
+
+
+    OutputNode outputNode = mock(OutputNode.class);
+    expect(outputNode.accept(anyObject(), anyObject())).andReturn(null);
+    replay(outputNode);
+    StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
+    expect(structuredDataSource.getName()).andReturn("");
+    replay(structuredDataSource);
+
     PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
                                                                                    queryStreams,
-                                                                                  null,
+                                                                                   outputNode,
+                                                                                  structuredDataSource,
                                                                                   "",
                                                                                   queryid,
                                                                                   type,
                                                                                   "KSQL_query_" + queryid,
                                                                                   null,
-        null,
+                                                                                  null,
                                                                                   null,
                                                                                   "topology");
 

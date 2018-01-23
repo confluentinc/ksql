@@ -304,7 +304,7 @@ public class KsqlResource {
       runningQueries.add(new Queries.RunningQuery(
           persistentQueryMetadata.getStatementString(),
           ksqlStructuredDataOutputNode.getKafkaTopicName(),
-          persistentQueryMetadata.getId()
+          persistentQueryMetadata.getQueryId()
       ));
     }
     return new Queries(statementText, runningQueries);
@@ -338,10 +338,10 @@ public class KsqlResource {
   }
 
   private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
+    return queries.stream().map(q -> q.getQueryId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
   }
   private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> "id:" + q.getId().toString() + " - " + q.getStatementString()).collect(Collectors.toList());
+    return queries.stream().map(q -> "id:" + q.getQueryId().toString() + " - " + q.getStatementString()).collect(Collectors.toList());
   }
 
 
@@ -457,13 +457,17 @@ public class KsqlResource {
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, ksqlEngine);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement,
+                                                                  DataSource.DataSourceType.KSTREAM,
+                                                                  ksqlEngine.getReferentialIntegrityTable());
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, ksqlEngine);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement,
+                                                                  DataSource.DataSourceType.KTABLE,
+                                                                  ksqlEngine.getReferentialIntegrityTable());
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });

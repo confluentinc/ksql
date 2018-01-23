@@ -18,7 +18,6 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -30,18 +29,19 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 public class CommandFactories implements DDLCommandFactory {
   private final Map<Class<? extends DDLStatement>, DDLCommandFactory> factories = new HashMap<>();
 
-  public CommandFactories(final KafkaTopicClient topicClient, final QueryTerminator queryTerminator) {
+  public CommandFactories(final KafkaTopicClient topicClient, final ReferentialIntegrityTable referentialIntegrityTable) {
     factories.put(RegisterTopic.class, (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement));
     factories.put(CreateStream.class, (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(sqlExpression, (CreateStream) ddlStatement, properties, topicClient));
     factories.put(CreateTable.class, (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(sqlExpression, (CreateTable)ddlStatement, properties, topicClient));
     factories.put(DropStream.class, (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator));
+        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, referentialIntegrityTable));
     factories.put(DropTable.class, (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator));
+        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, referentialIntegrityTable));
     factories.put(DropTopic.class, (sqlExpression, ddlStatement, properties) -> new DropTopicCommand(((DropTopic) ddlStatement)));
     factories.put(SetProperty.class, (sqlExpression, ddlStatement, properties) -> new SetPropertyCommand((SetProperty) ddlStatement, properties));
   }

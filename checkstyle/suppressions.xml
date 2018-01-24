@@ -15,7 +15,6 @@
     <!-- Suppress some checks on all files -->
     <suppress files="." checks="ExplicitInitializationCheck"/>
     <suppress files="." checks="FinalClassCheck"/>
-    <suppress files="." checks="AvoidStarImport"/>
     <suppress files="." checks="AbbreviationAsWordInName"/>
     <suppress files="." checks="WhitespaceAround"/>
     <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>

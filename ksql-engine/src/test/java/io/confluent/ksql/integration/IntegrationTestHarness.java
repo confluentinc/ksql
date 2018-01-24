@@ -130,14 +130,20 @@ public class IntegrationTestHarness {
    * @param <K>
    * @return
    */
-  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer, long resultsPollMaxTimeMs) {
-    return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
-                 DataSource.DataSourceSerDe.JSON.name());
+  public <K> Map<K, GenericRow> consumeData(String topic,
+                                            Schema schema,
+                                            int expectedNumMessages,
+                                            Deserializer<K> keyDeserializer,
+                                            long resultsPollMaxTimeMs) {
+    return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs, DataSource.DataSourceSerDe.JSON);
   }
 
-  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages,
-                                            Deserializer<K> keyDeserializer, long
-                                                resultsPollMaxTimeMs, String format) {
+  public <K> Map<K, GenericRow> consumeData(String topic,
+                                            Schema schema,
+                                            int expectedNumMessages,
+                                            Deserializer<K> keyDeserializer,
+                                            long resultsPollMaxTimeMs,
+                                            DataSource.DataSourceSerDe dataSourceSerDe) {
 
     topic = topic.toUpperCase();
 
@@ -150,7 +156,7 @@ public class IntegrationTestHarness {
 
     try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig,
                                                                      keyDeserializer,
-                                                                     getDeserializer(schema, format))) {
+                                                                     getDeserializer(schema, dataSourceSerDe))) {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
@@ -205,36 +211,40 @@ public class IntegrationTestHarness {
   }
 
   public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider, Long timestamp) throws InterruptedException, ExecutionException, TimeoutException {
-    return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON.name());
+    return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON);
   }
 
-  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider
-      dataProvider, Long timestamp, String format) throws InterruptedException, ExecutionException,
-                                             TimeoutException {
+  public Map<String, RecordMetadata> publishTestData(String topicName,
+                                                     TestDataProvider dataProvider,
+                                                     Long timestamp,
+                                                     DataSource.DataSourceSerDe dataSourceSerDe) throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
-    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema(), format), timestamp);
+    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema(), dataSourceSerDe), timestamp);
   }
 
-  private Serializer getSerializer(Schema schema, String dataFormat) {
-    if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
-      return new KsqlDelimitedSerializer(schema);
-    } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
-      return new KsqlGenericRowAvroSerializer
-          (schema, this.schemaRegistryClient, new
-               KsqlConfig(Collections.emptyMap()));
-    } else {
-      return new KsqlJsonSerializer(schema);
+  private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {
+    switch (dataSourceSerDe) {
+      case JSON:
+        return new KsqlJsonSerializer(schema);
+      case AVRO:
+        return new KsqlGenericRowAvroSerializer(schema, this.schemaRegistryClient, new KsqlConfig(Collections.emptyMap()));
+      case DELIMITED:
+        return new KsqlDelimitedSerializer(schema);
+      default:
+        throw new KsqlException("Format not supported: " + dataSourceSerDe);
     }
   }
 
-  private Deserializer<GenericRow> getDeserializer(Schema schema, String dataFormat) {
-    if (dataFormat.equals(DataSource.DELIMITED_SERDE_NAME)) {
-      return new KsqlDelimitedDeserializer(schema);
-    } else if (dataFormat.equals(DataSource.AVRO_SERDE_NAME)) {
-      return new KsqlGenericRowAvroDeserializer(schema, this.schemaRegistryClient, false);
-    } else {
-      return new KsqlJsonDeserializer(schema);
+  private Deserializer<GenericRow> getDeserializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {
+    switch (dataSourceSerDe) {
+      case JSON:
+        return new KsqlJsonDeserializer(schema);
+      case AVRO:
+        return new KsqlGenericRowAvroDeserializer(schema, this.schemaRegistryClient, false);
+      case DELIMITED:
+        return new KsqlDelimitedDeserializer(schema);
+      default:
+        throw new KsqlException("Format not supported: " + dataSourceSerDe);
     }
-
   }
 }

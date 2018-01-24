@@ -19,9 +19,6 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -34,6 +31,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
@@ -61,7 +62,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     try {
       return getGenericRow(bytes);
     } catch (Exception e) {
-      throw new SerializationException("KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
+      throw new SerializationException(
+          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
+          e
+      );
     }
   }
 
@@ -71,7 +75,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       String jsonFieldName = field.name().substring(field.name().indexOf(".") + 1);
       JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
       if (fieldJsonNode == null) {
@@ -115,8 +119,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
         while (iterator.hasNext()) {
           Map.Entry<String, JsonNode> entry = iterator.next();
-          mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(),
-                                                        entry.getValue()));
+          mapField.put(
+              entry.getKey(),
+              enforceFieldType(
+                fieldSchema.valueSchema(),
+                entry.getValue()
+            )
+          );
         }
         return mapField;
       default:
@@ -127,6 +136,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   static class CaseInsensitiveJsonNode {
+
     Map<String, String> keyMap = new HashMap<>();
 
     CaseInsensitiveJsonNode(JsonNode jsonNode) {

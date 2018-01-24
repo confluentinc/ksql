@@ -23,7 +23,7 @@ public class ProducerCollectorTest {
 
     Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);
 
-    assertThat( stats.toString(), containsString("name='messages-per-sec',"));
+    assertThat( stats.toString(), containsString("name=messages-per-sec,"));
   }
 
   @Test

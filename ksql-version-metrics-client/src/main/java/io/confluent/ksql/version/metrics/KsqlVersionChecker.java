@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.confluent.ksql.version.metrics.collector.BasicCollector;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
+import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
 import io.confluent.support.metrics.common.time.TimeUtils;
@@ -32,12 +33,19 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   private AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
-      KsqlVersionCheckerConfig ksqlVersionCheckerConfig,
-      Runtime serverRuntime, KsqlModuleType moduleType, boolean enableSettlingTime
+      BaseSupportConfig ksqlVersionCheckerConfig,
+      Runtime serverRuntime,
+      KsqlModuleType moduleType,
+      boolean enableSettlingTime
   ) {
 
-    super(ksqlVersionCheckerConfig, null, new KsqlVersionCheckerResponseHandler(), enableSettlingTime);
-    Objects.requireNonNull(serverRuntime,"serverRuntime is required");
+    super(
+        ksqlVersionCheckerConfig,
+        null,
+        new KsqlVersionCheckerResponseHandler(),
+        enableSettlingTime
+    );
+    Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
     this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
   }
@@ -45,7 +53,8 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
   @Override
   protected ZkClientProvider zkClientProvider() {
     //This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
-    // returning null here and also turning off topic metrics collection in KsqlVersionCheckerConfig.
+    // returning null here and also turning off topic metrics collection in
+    // KsqlVersionCheckerConfig.
     return null;
   }
 

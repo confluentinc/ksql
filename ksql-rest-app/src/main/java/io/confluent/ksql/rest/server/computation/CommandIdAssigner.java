@@ -21,11 +21,11 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 
@@ -91,22 +91,35 @@ public class CommandIdAssigner {
   }
 
   public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
-    return new CommandId(CommandId.Type.TERMINATE, terminateQuery.getQueryId().toString(), CommandId.Action.EXECUTE);
+    return new CommandId(
+        CommandId.Type.TERMINATE,
+        terminateQuery.getQueryId().toString(),
+        CommandId.Action.EXECUTE
+    );
   }
 
   public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
-    return new CommandId(CommandId.Type.TOPIC,
-                         dropTopicQuery.getTopicName().getSuffix(), CommandId.Action.DROP);
+    return new CommandId(
+        CommandId.Type.TOPIC,
+        dropTopicQuery.getTopicName().getSuffix(),
+        CommandId.Action.DROP
+    );
   }
 
   private CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
-    return new CommandId(CommandId.Type.STREAM,
-                         dropStreamQuery.getName().getSuffix(), CommandId.Action.DROP);
+    return new CommandId(
+        CommandId.Type.STREAM,
+        dropStreamQuery.getName().getSuffix(),
+        CommandId.Action.DROP
+    );
   }
 
   private CommandId getDropTableCommandId(DropTable dropTableQuery) {
-    return new CommandId(CommandId.Type.TABLE,
-                         dropTableQuery.getName().getSuffix(), CommandId.Action.DROP);
+    return new CommandId(
+        CommandId.Type.TABLE,
+        dropTableQuery.getName().getSuffix(),
+        CommandId.Action.DROP
+    );
   }
 
   private CommandId getStreamCommandId(String streamName) {

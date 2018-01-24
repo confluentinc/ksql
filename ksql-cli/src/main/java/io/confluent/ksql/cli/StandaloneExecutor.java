@@ -17,25 +17,14 @@
 package io.confluent.ksql.cli;
 
 
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
-import org.apache.kafka.clients.admin.AdminClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 
 public class StandaloneExecutor {
 
@@ -43,27 +32,24 @@ public class StandaloneExecutor {
 
   private final KsqlEngine ksqlEngine;
 
-  public StandaloneExecutor(Map streamProperties) throws ExecutionException, InterruptedException {
-    KsqlConfig ksqlConfig = new KsqlConfig(streamProperties);
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
+  public StandaloneExecutor(final KsqlEngine ksqlEngine) {
+    this.ksqlEngine = ksqlEngine;
   }
 
   public void executeStatements(String queries) throws Exception {
-    MetaStore tempMetaStore = ksqlEngine.getMetaStore().clone();
-    List<Pair<String, Statement>> queryList = ksqlEngine.parseQueries(queries,
-                                                                      Collections.emptyMap(),
-                                                                      tempMetaStore);
-    List<QueryMetadata> queryMetadataList = ksqlEngine.planQueries(
-        queryList, new HashMap<>(), tempMetaStore);
-    for (QueryMetadata queryMetadata: queryMetadataList) {
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
+    for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.getKafkaStreams().start();
+        persistentQueryMetadata.start();
       } else {
-        System.err.println("Ignoring statemenst: " + queryMetadata.getStatementString());
-        System.err.println("Only CREATE statements can run in KSQL embedded mode.");
-        log.warn("Ignoring statemenst: {}", queryMetadata.getStatementString());
-        log.warn("Only CREATE statements can run in KSQL embedded mode.");
+        final String message = String.format(
+            "Ignoring statements: %s" +
+            "\nOnly CREATE statements can run KSQL embedded mode.",
+            queryMetadata.getStatementString()
+        );
+        System.err.println(message);
+        log.warn(message);
       }
     }
   }

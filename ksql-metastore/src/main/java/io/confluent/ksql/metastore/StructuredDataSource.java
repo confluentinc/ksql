@@ -16,11 +16,12 @@
 
 package io.confluent.ksql.metastore;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public abstract class StructuredDataSource implements DataSource {
 
@@ -34,10 +35,15 @@ public abstract class StructuredDataSource implements DataSource {
   final String sqlExpression;
 
 
-  public StructuredDataSource(String sqlExpression, final String datasourceName, final Schema schema,
-                              final Field keyField,
-                              final Field timestampField,
-                              final DataSourceType dataSourceType, final KsqlTopic ksqlTopic) {
+  public StructuredDataSource(
+      String sqlExpression,
+      final String datasourceName,
+      final Schema schema,
+      final Field keyField,
+      final Field timestampField,
+      final DataSourceType dataSourceType,
+      final KsqlTopic ksqlTopic
+  ) {
     this.sqlExpression = sqlExpression;
     this.dataSourceName = datasourceName;
     this.schema = schema;

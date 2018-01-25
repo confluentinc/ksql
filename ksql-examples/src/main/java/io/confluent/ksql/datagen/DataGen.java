@@ -112,7 +112,7 @@ public class DataGen {
         + "key=<name of key column> "
         + "[iterations=<number of rows> (defaults to 1,000,000)] "
         + "[maxInterval=<Max time in ms between rows> (defaults to 500)] "
-        + "[propertiesFile=<file specifying Kafka client properties]"
+        + "[propertiesFile=<file specifying Kafka client properties>]"
     );
   }
 

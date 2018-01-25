@@ -17,6 +17,8 @@
 package io.confluent.ksql.util;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Objects;
 
 public class ArrayUtil {
 
@@ -56,11 +58,6 @@ public class ArrayUtil {
   }
 
   public static <T> boolean containsValue(T value, T[] array) {
-    for (T v: array) {
-      if (v != null && v.equals(value)) {
-        return true;
-      }
-    }
-    return false;
+    return Arrays.stream(array).anyMatch(o -> Objects.equals(o, value));
   }
 }

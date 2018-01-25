@@ -33,7 +33,7 @@ public class LocalCli extends Cli {
       KsqlRestClient restClient,
       Console terminal,
       KsqlRestApplication restServer
-  ) throws Exception {
+  ) {
     super(
         streamedQueryRowLimit,
         streamedQueryTimeoutMs,

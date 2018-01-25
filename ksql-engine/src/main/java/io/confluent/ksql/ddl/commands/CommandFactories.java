@@ -32,27 +32,77 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
 public class CommandFactories implements DDLCommandFactory {
+
   private final Map<Class<? extends DDLStatement>, DDLCommandFactory> factories = new HashMap<>();
 
-  public CommandFactories(final KafkaTopicClient topicClient, final QueryTerminator queryTerminator) {
-    factories.put(RegisterTopic.class, (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand((RegisterTopic)ddlStatement));
-    factories.put(CreateStream.class, (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(sqlExpression, (CreateStream) ddlStatement, properties, topicClient));
-    factories.put(CreateTable.class, (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(sqlExpression, (CreateTable)ddlStatement, properties, topicClient));
-    factories.put(DropStream.class, (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-        (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator));
-    factories.put(DropTable.class, (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-        (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator));
-    factories.put(DropTopic.class, (sqlExpression, ddlStatement, properties) -> new DropTopicCommand(((DropTopic) ddlStatement)));
-    factories.put(SetProperty.class, (sqlExpression, ddlStatement, properties) -> new SetPropertyCommand((SetProperty) ddlStatement, properties));
+  public CommandFactories(
+      final KafkaTopicClient topicClient,
+      final QueryTerminator queryTerminator
+  ) {
+    factories.put(
+        RegisterTopic.class,
+        (sqlExpression, ddlStatement, properties) -> new RegisterTopicCommand(
+            (RegisterTopic) ddlStatement
+        )
+    );
+    factories.put(
+        CreateStream.class,
+        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
+            sqlExpression,
+            (CreateStream) ddlStatement,
+            properties,
+            topicClient
+        )
+    );
+    factories.put(
+        CreateTable.class,
+        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
+            sqlExpression,
+            (CreateTable) ddlStatement,
+            properties,
+            topicClient
+        )
+    );
+    factories.put(
+        DropStream.class,
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator
+        )
+    );
+    factories.put(
+        DropTable.class,
+        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
+            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator
+        )
+    );
+    factories.put(
+        DropTopic.class,
+        (sqlExpression, ddlStatement, properties) -> new DropTopicCommand(
+            (DropTopic) ddlStatement
+        )
+    );
+    factories.put(
+        SetProperty.class,
+        (sqlExpression, ddlStatement, properties) -> new SetPropertyCommand(
+            (SetProperty) ddlStatement,
+            properties
+        )
+    );
   }
 
   @Override
-  public DDLCommand create(String sqlExpression, final DDLStatement ddlStatement, final Map<String, Object> properties) {
+  public DDLCommand create(
+      String sqlExpression,
+      final DDLStatement ddlStatement,
+      final Map<String, Object> properties
+  ) {
     if (!factories.containsKey(ddlStatement.getClass())) {
-      throw new KsqlException("Unable to find ddl command factory for statement:"
+      throw new KsqlException(
+          "Unable to find ddl command factory for statement:"
           + ddlStatement.getClass()
           + " valid statements:"
-          + factories.keySet());
+          + factories.keySet()
+      );
     }
     return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement, properties);
   }

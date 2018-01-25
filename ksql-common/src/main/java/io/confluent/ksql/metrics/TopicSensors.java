@@ -15,8 +15,8 @@
  **/
 package io.confluent.ksql.metrics;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.common.utils.Time;
+import com.google.common.base.MoreObjects;
+
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -28,6 +28,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.common.utils.Time;
 
 class TopicSensors<R> {
 
@@ -56,7 +59,11 @@ class TopicSensors<R> {
   }
 
   Collection<Stat> stats(boolean isError) {
-    return sensors.stream().filter(sensor -> sensor.errorMetric == isError).map(sensor -> sensor.asStat()).collect(Collectors.toList());
+    return sensors
+        .stream()
+        .filter(sensor -> sensor.errorMetric == isError)
+        .map(sensor -> sensor.asStat())
+        .collect(Collectors.toList());
   }
 
   Collection<Stat> errorRateStats() {
@@ -67,6 +74,7 @@ class TopicSensors<R> {
   }
 
   static class Stat {
+
     private final String name;
     private double value;
     private final long timestamp;
@@ -82,25 +90,40 @@ class TopicSensors<R> {
     public String formatted() {
       if (value == Math.round(value)) {
         return String.format("%16s:%10.0f", name, value);
-      }    else{
+      } else {
         return String.format("%16s:%10.2f", name, value);
       }
     }
 
     public String timestamp() {
-      if (timestamp == 0) return "n/a";
-      return SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault()).format(new Date(timestamp));
+      if (timestamp == 0) {
+        return "n/a";
+      }
+      return SimpleDateFormat.getDateTimeInstance(
+          3,
+          1,
+          Locale.getDefault()
+      ).format(new Date(timestamp)
+      );
     }
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
 
       Stat stat = (Stat) o;
 
-      if (Double.compare(stat.value, value) != 0) return false;
-      if (Double.compare(stat.timestamp, timestamp) != 0) return false;
+      if (Double.compare(stat.value, value) != 0) {
+        return false;
+      }
+      if (Double.compare(stat.timestamp, timestamp) != 0) {
+        return false;
+      }
       return name != null ? name.equals(stat.name) : stat.name == null;
     }
 
@@ -119,11 +142,12 @@ class TopicSensors<R> {
 
     @Override
     public String toString() {
-      return "Stat{" +
-              "name='" + name + '\'' +
-              ", value=" + value +
-              ", timestamp=" + timestamp +
-              '}';
+      return MoreObjects
+          .toStringHelper(this)
+          .add("name", name)
+          .add("value", value)
+          .add("timestamp", timestamp)
+          .toString();
     }
 
     public String name() {
@@ -145,6 +169,7 @@ class TopicSensors<R> {
   }
 
   static class SensorMetric<P> {
+
     private final Sensor sensor;
     private final KafkaMetric metric;
     private Time time;
@@ -164,7 +189,6 @@ class TopicSensors<R> {
 
     /**
      * Anon class must call down to this for timestamp recording
-     * @param object
      */
     void record(P object) {
       this.lastEvent = time.milliseconds();

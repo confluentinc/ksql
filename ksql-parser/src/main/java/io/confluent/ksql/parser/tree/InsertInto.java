@@ -28,15 +28,26 @@ public final class InsertInto
   private final Query query;
   private final Optional<Expression> partitionByColumn;
 
-  public InsertInto(QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
+  public InsertInto(
+      QualifiedName target,
+      Query query, Optional<Expression> partitionByColumn
+  ) {
     this(Optional.empty(), target, query, partitionByColumn);
   }
 
-  public InsertInto(NodeLocation location, QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
+  public InsertInto(
+      NodeLocation location,
+      QualifiedName target,
+      Query query, Optional<Expression> partitionByColumn
+  ) {
     this(Optional.of(location), target, query, partitionByColumn);
   }
 
-  private InsertInto(Optional<NodeLocation> location, QualifiedName target, Query query, Optional<Expression> partitionByColumn) {
+  private InsertInto(
+      Optional<NodeLocation> location,
+      QualifiedName target,
+      Query query,
+      Optional<Expression> partitionByColumn) {
     super(location);
     this.target = requireNonNull(target, "target is null");
     this.query = requireNonNull(query, "query is null");

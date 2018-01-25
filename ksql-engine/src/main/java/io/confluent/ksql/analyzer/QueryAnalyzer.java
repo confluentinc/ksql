@@ -25,6 +25,7 @@ import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
 
 public class QueryAnalyzer {
+
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
 
@@ -47,10 +48,12 @@ public class QueryAnalyzer {
     AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
 
-    processSelectExpressions(analysis,
+    processSelectExpressions(
+        analysis,
         aggregateAnalysis,
         aggregateAnalyzer,
-        aggregateExpressionRewriter);
+        aggregateExpressionRewriter
+    );
 
     if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty() &&
         analysis.getGroupByExpressions().isEmpty()) {
@@ -59,42 +62,55 @@ public class QueryAnalyzer {
 
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
-      processHavingExpression(analysis,
+      processHavingExpression(
+          analysis,
           aggregateAnalysis,
           aggregateAnalyzer,
-          aggregateExpressionRewriter);
+          aggregateExpressionRewriter
+      );
     }
 
     enforceAggregateRules(query, aggregateAnalysis);
     return aggregateAnalysis;
   }
 
-  private void processHavingExpression(final Analysis analysis,
-                                       final AggregateAnalysis aggregateAnalysis,
-                                       final AggregateAnalyzer aggregateAnalyzer,
-                                       final AggregateExpressionRewriter aggregateExpressionRewriter) {
-    aggregateAnalyzer.process(analysis.getHavingExpression(),
-        new AnalysisContext());
+  private void processHavingExpression(
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer,
+      final AggregateExpressionRewriter aggregateExpressionRewriter
+  ) {
+    aggregateAnalyzer.process(
+        analysis.getHavingExpression(),
+        new AnalysisContext()
+    );
     if (!aggregateAnalyzer.isHasAggregateFunction()) {
       aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
     }
     aggregateAnalysis
-        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-            analysis.getHavingExpression()));
+        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(
+            aggregateExpressionRewriter,
+            analysis.getHavingExpression()
+        ));
     aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
-  private void processSelectExpressions(final Analysis analysis,
-                                        final AggregateAnalysis aggregateAnalysis,
-                                        final AggregateAnalyzer aggregateAnalyzer,
-                                        final AggregateExpressionRewriter aggregateExpressionRewriter) {
-    for (Expression expression: analysis.getSelectExpressions()) {
+  private void processSelectExpressions(
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer,
+      final AggregateExpressionRewriter aggregateExpressionRewriter
+  ) {
+    for (Expression expression : analysis.getSelectExpressions()) {
       aggregateAnalyzer
           .process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
+      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(
+          aggregateExpressionRewriter,
+          expression
+      ));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
   }

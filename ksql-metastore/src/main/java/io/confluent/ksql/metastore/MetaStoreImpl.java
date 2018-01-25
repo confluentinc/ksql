@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.util.KsqlException;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import io.confluent.ksql.util.KsqlException;
 
 public class MetaStoreImpl implements MetaStore, Cloneable {
 
@@ -32,7 +32,10 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     this.dataSourceMap = new HashMap<>();
   }
 
-  private MetaStoreImpl(Map<String, KsqlTopic> topicMap, Map<String, StructuredDataSource> dataSourceMap) {
+  private MetaStoreImpl(
+      Map<String, KsqlTopic> topicMap,
+      Map<String, StructuredDataSource> dataSourceMap
+  ) {
     this.topicMap = (topicMap != null) ? topicMap : new HashMap<>();
     this.dataSourceMap = (dataSourceMap != null) ? dataSourceMap : new HashMap<>();
   }

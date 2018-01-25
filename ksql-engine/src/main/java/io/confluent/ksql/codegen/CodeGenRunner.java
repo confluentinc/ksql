@@ -16,15 +16,6 @@
 
 package io.confluent.ksql.codegen;
 
-import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.parser.tree.AstVisitor;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -33,6 +24,27 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.Cast;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.IsNotNullPredicate;
+import io.confluent.ksql.parser.tree.IsNullPredicate;
+import io.confluent.ksql.parser.tree.LikePredicate;
+import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
+import io.confluent.ksql.parser.tree.NotExpression;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class CodeGenRunner {
 
@@ -51,7 +63,8 @@ public class CodeGenRunner {
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
-      final Expression expression) throws Exception {
+      final Expression expression
+  ) throws Exception {
     CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression);
 
@@ -75,14 +88,17 @@ public class CodeGenRunner {
 
     String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
 
-    IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+    IExpressionEvaluator ee =
+        CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
     // The expression will have two "int" parameters: "a" and "b".
     ee.setParameters(parameterNames, parameterTypes);
 
     // And the expression (i.e. "result") type is also "int".
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema,
-                                                                            functionRegistry);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        schema,
+        functionRegistry
+    );
     Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
@@ -113,8 +129,10 @@ public class CodeGenRunner {
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
       KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
-      parameterMap.put(node.getName().getSuffix(),
-                       ksqlFunction.getKudfClass());
+      parameterMap.put(
+          node.getName().getSuffix(),
+          ksqlFunction.getKudfClass()
+      );
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
@@ -160,8 +178,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       return null;
     }
 
@@ -180,8 +200,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       process(node.getIndex(), context);
       return null;
     }
@@ -193,8 +215,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       return null;
     }
   }

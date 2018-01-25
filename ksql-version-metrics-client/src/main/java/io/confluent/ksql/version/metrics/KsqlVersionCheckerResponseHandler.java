@@ -16,22 +16,32 @@
 
 package io.confluent.ksql.version.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 
 import io.confluent.support.metrics.submitters.ResponseHandler;
 
 public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlVersionChecker.class);
+  private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(KsqlVersionChecker.class);
+
+  private final Logger log;
+
+  KsqlVersionCheckerResponseHandler() {
+    this(DEFAULT_LOGGER);
+  }
+
+  @VisibleForTesting
+  KsqlVersionCheckerResponseHandler(Logger log) {
+    this.log = log;
+  }
 
   @Override
   public void handle(HttpResponse response) {
@@ -39,15 +49,7 @@ public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
     try {
       if (statusCode == HttpStatus.SC_OK && response.getEntity().getContent() != null) {
 
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader((response.getEntity().getContent()), StandardCharsets.UTF_8)
-        );
-
-        StringBuilder content = new StringBuilder();
-        String line;
-        while (null != (line = br.readLine())) {
-          content.append(line);
-        }
+        String content = EntityUtils.toString(response.getEntity());
         if (content.length() > 0) {
           log.warn(content.toString());
         }

@@ -32,17 +32,32 @@ public class Explain
   private final boolean analyze;
   private final List<ExplainOption> options;
 
-  public Explain(String queryId, Statement statement, boolean analyze, List<ExplainOption> options) {
+  public Explain(
+      String queryId,
+      Statement statement,
+      boolean analyze,
+      List<ExplainOption> options
+  ) {
     this(Optional.empty(), analyze, queryId, statement, options);
   }
 
-  public Explain(NodeLocation location, boolean analyze, String queryId, Statement statement,
-                 List<ExplainOption> options) {
+  public Explain(
+      NodeLocation location,
+      boolean analyze,
+      String queryId,
+      Statement statement,
+      List<ExplainOption> options
+  ) {
     this(Optional.of(location), analyze, queryId, statement, options);
   }
 
-  private Explain(Optional<NodeLocation> location, boolean analyze, String queryId, Statement statement,
-                  List<ExplainOption> options) {
+  private Explain(
+      Optional<NodeLocation> location,
+      boolean analyze,
+      String queryId,
+      Statement statement,
+      List<ExplainOption> options
+  ) {
     super(location);
     this.statement = statement;// requireNonNull(statement, "statement is null");
     this.analyze = analyze;

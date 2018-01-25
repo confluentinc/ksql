@@ -85,6 +85,15 @@ public class DataGen {
     props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KSQLDataGenProducer");
 
+    try {
+        if (arguments.propertiesFile != null) {
+            props.load(arguments.propertiesFile);
+        }
+    } catch (IOException exception) {
+        System.err.printf("IOException encountered: %s%n", exception.getMessage());
+        return;
+    }
+
     dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
                                arguments.iterations, arguments.maxInterval
     );
@@ -102,7 +111,8 @@ public class DataGen {
         + "topic=<kafka topic name> "
         + "key=<name of key column> "
         + "[iterations=<number of rows> (defaults to 1,000,000)] "
-        + "[maxInterval=<Max time in ms between rows> (defaults to 500)]"
+        + "[maxInterval=<Max time in ms between rows> (defaults to 500)] "
+        + "[propertiesFile=<file specifying Kafka client properties]"
     );
   }
 
@@ -124,6 +134,7 @@ public class DataGen {
     public final int iterations;
     public final long maxInterval;
     public final String schemaRegistryUrl;
+    public final InputStream propertiesFile;
 
     public Arguments(
         boolean help,
@@ -134,7 +145,8 @@ public class DataGen {
         String keyName,
         int iterations,
         long maxInterval,
-        String schemaRegistryUrl
+        String schemaRegistryUrl,
+        InputStream propertiesFile
     ) {
       this.help = help;
       this.bootstrapServer = bootstrapServer;
@@ -145,6 +157,7 @@ public class DataGen {
       this.iterations = iterations;
       this.maxInterval = maxInterval;
       this.schemaRegistryUrl = schemaRegistryUrl;
+      this.propertiesFile = propertiesFile;
     }
 
     public static class ArgumentParseException extends RuntimeException {
@@ -167,6 +180,7 @@ public class DataGen {
       private int iterations;
       private long maxInterval;
       private String schemaRegistryUrl;
+      private InputStream propertiesFile;
 
       public Builder() {
         quickstart = null;
@@ -179,6 +193,7 @@ public class DataGen {
         iterations = 1000000;
         maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
+        propertiesFile = null;
       }
 
       private enum Quickstart {
@@ -221,7 +236,7 @@ public class DataGen {
 
       public Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0, -1, null);
+          return new Arguments(true, null, null, null, null, null, 0, -1, null, null);
         }
 
         if (quickstart != null) {
@@ -248,7 +263,8 @@ public class DataGen {
             keyName,
             iterations,
             maxInterval,
-            schemaRegistryUrl
+            schemaRegistryUrl,
+            propertiesFile
         );
       }
 
@@ -327,6 +343,9 @@ public class DataGen {
             break;
           case "schemaRegistryUrl":
             schemaRegistryUrl = argValue;
+            break;
+          case "propertiesFile":
+            propertiesFile = new FileInputStream(argValue);
             break;
           default:
             throw new ArgumentParseException(String.format(

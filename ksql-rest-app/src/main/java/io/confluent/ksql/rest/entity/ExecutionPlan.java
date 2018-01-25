@@ -18,11 +18,13 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
 
 @JsonTypeName("executionPlan")
+@JsonSubTypes({})
 public class ExecutionPlan extends KsqlEntity {
 
   private final String executionPlan;

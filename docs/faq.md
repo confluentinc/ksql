@@ -1,7 +1,7 @@
 # Frequently Asked Questions
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ | [Roadmap](/docs/roadmap.md#roadmap) |
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | FAQ |
+|---|----|-----|----|----|----|----|
 
 
 **What are the benefits of KSQL?**
@@ -50,8 +50,8 @@ KSQL currently supports formats:
 
 * DELIMITED (e.g. CSV)
 * JSON
+* Avro (requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file)
 
-_Support for Apache Avro is expected soon._
 
 **Is KSQL fully compliant to ANSI SQL?**
 

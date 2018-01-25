@@ -17,14 +17,31 @@
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsBuilder;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class JoinNode extends PlanNode {
+
 
   public enum Type {
     CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
@@ -97,6 +114,8 @@ public class JoinNode extends PlanNode {
     return Arrays.asList(left, right);
   }
 
+
+
   public PlanNode getLeft() {
     return left;
   }
@@ -123,5 +142,96 @@ public class JoinNode extends PlanNode {
 
   public Type getType() {
     return type;
+  }
+
+  public boolean isLeftJoin() {
+    return type == Type.LEFT;
+  }
+
+  @Override
+  public SchemaKStream buildStream(final StreamsBuilder builder,
+                                   final KsqlConfig ksqlConfig,
+                                   final KafkaTopicClient kafkaTopicClient,
+                                   final MetastoreUtil metastoreUtil,
+                                   final FunctionRegistry functionRegistry,
+                                   final Map<String, Object> props,
+                                   final SchemaRegistryClient schemaRegistryClient) {
+    if (!isLeftJoin()) {
+      throw new KsqlException("Join type is not supported yet: " + getType());
+    }
+
+    final SchemaKTable table = tableForJoin(builder,
+        ksqlConfig,
+        kafkaTopicClient,
+        metastoreUtil,
+        functionRegistry,
+        props, schemaRegistryClient);
+
+    final SchemaKStream stream = streamForJoin(getLeft().buildStream(builder,
+        ksqlConfig,
+        kafkaTopicClient,
+        metastoreUtil,
+        functionRegistry,
+        props, schemaRegistryClient), getLeftKeyFieldName());
+
+    final KsqlTopicSerDe joinSerDe = getResultTopicSerde(this);
+    return stream.leftJoin(table,
+        getSchema(),
+        getSchema().field(getLeftAlias() + "." + stream.getKeyField().name()),
+        joinSerDe, ksqlConfig);
+
+  }
+
+  // package private for test
+  SchemaKTable tableForJoin(
+      final StreamsBuilder builder,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final MetastoreUtil metastoreUtil,
+      final FunctionRegistry functionRegistry,
+      final Map<String, Object> props,
+      final SchemaRegistryClient schemaRegistryClient) {
+
+    Map<String, Object> joinTableProps = new HashMap<>();
+    joinTableProps.putAll(props);
+    joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    final SchemaKStream schemaKStream = right.buildStream(builder, ksqlConfig, kafkaTopicClient,
+                                                          metastoreUtil, functionRegistry,
+                                                          joinTableProps, schemaRegistryClient);
+    if (!(schemaKStream instanceof SchemaKTable)) {
+      throw new KsqlException("Unsupported Join. Only stream-table joins are supported, but was "
+          + getLeft() + "-" + getRight());
+    }
+
+    return (SchemaKTable) schemaKStream;
+  }
+
+
+  private KsqlTopicSerDe getResultTopicSerde(final PlanNode node) {
+    if (node instanceof StructuredDataSourceNode) {
+      StructuredDataSourceNode structuredDataSourceNode = (StructuredDataSourceNode) node;
+      return structuredDataSourceNode.getStructuredDataSource().getKsqlTopic().getKsqlTopicSerDe();
+    } else if (node instanceof JoinNode) {
+      JoinNode joinNode = (JoinNode) node;
+
+      return getResultTopicSerde(joinNode.getLeft());
+    } else {
+      return getResultTopicSerde(node.getSources().get(0));
+    }
+  }
+
+  private SchemaKStream streamForJoin(final SchemaKStream stream, final String leftKeyFieldName) {
+    if (stream.getKeyField() == null
+        || !stream.getKeyField().name().equals(leftKeyFieldName)) {
+      final Field field = SchemaUtil.getFieldByName(stream.getSchema(),
+          leftKeyFieldName).orElseThrow(() -> new KsqlException("couldn't find key field: "
+          + leftKeyFieldName
+          + " in schema:"
+          + schema));
+      return
+          stream.selectKey(field);
+    }
+    return stream;
   }
 }

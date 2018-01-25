@@ -20,6 +20,7 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,9 +34,10 @@ public class MetastoreTest {
     metaStore = MetaStoreFixture.getNewMetaStore();
   }
 
+
   @Test
   public void testTopicMap() {
-    KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe(null));
+    KsqlTopic ksqlTopic1 = new KsqlTopic("testTopic", "testTopicKafka", new KsqlJsonTopicSerDe());
     metaStore.putTopic(ksqlTopic1);
     KsqlTopic ksqlTopic2 = metaStore.getTopic("testTopic");
     Assert.assertNotNull(ksqlTopic2);
@@ -59,7 +61,7 @@ public class MetastoreTest {
   @Test
   public void testDelete() {
     StructuredDataSource structuredDataSource1 = metaStore.getSource("ORDERS");
-    StructuredDataSource structuredDataSource2 = new KsqlStream("testStream",
+    StructuredDataSource structuredDataSource2 = new KsqlStream("sqlexpression", "testStream",
                                                                structuredDataSource1.getSchema(),
                                                                structuredDataSource1.getKeyField(),
                                                                structuredDataSource1.getTimestampField(),

@@ -17,6 +17,29 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Scanner;
+
+import javax.naming.AuthenticationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ErrorMessage;
@@ -27,20 +50,6 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Scanner;
-
 public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private final Client client;
@@ -48,6 +57,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private String serverAddress;
 
   private final Map<String, Object> localProperties;
+
+  private boolean hasUserCredentials = false;
 
   public KsqlRestClient(String serverAddress) {
     this.serverAddress = serverAddress;
@@ -65,6 +76,27 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
+  // Visible for testing
+  KsqlRestClient(Client client, String serverAddress) {
+    this.client = client;
+    this.serverAddress = serverAddress;
+    this.localProperties = new HashMap<>();
+  }
+
+  public void setupAuthenticationCredentials(String userName, String password) {
+    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(
+        Objects.requireNonNull(userName),
+        Objects.requireNonNull(password)
+    );
+    client.register(feature);
+    hasUserCredentials = true;
+  }
+
+  // Visible for testing
+  public boolean hasUserCredentials() {
+    return hasUserCredentials;
+  }
+
   public String getServerAddress() {
     return serverAddress;
   }
@@ -75,9 +107,21 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   public RestResponse<ServerInfo> makeRootRequest() {
     Response response = makeGetRequest("/");
-    ServerInfo result = response.readEntity(ServerInfo.class);
-    response.close();
-    return RestResponse.successful(result);
+    try {
+      if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
+        return RestResponse.erroneous(
+            new ErrorMessage(
+                new AuthenticationException(
+                    "Could not authenticate successfully with the supplied credentials."
+                )
+            )
+        );
+      }
+      ServerInfo result = response.readEntity(ServerInfo.class);
+      return RestResponse.successful(result);
+    } finally {
+      response.close();
+    }
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(String ksql) {
@@ -137,40 +181,78 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   private Response makePostRequest(String path, Object jsonEntity) {
-    return client.target(serverAddress)
-        .path(path)
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(Entity.json(jsonEntity));
+    try {
+      return client.target(serverAddress)
+          .path(path)
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .post(Entity.json(jsonEntity));
+    } catch (Exception exception) {
+      throw new KsqlRestClientException("Error issuing POST to KSQL server", exception);
+    }
   }
 
   private Response makeGetRequest(String path) {
-    return client.target(serverAddress).path(path)
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .get();
+    try {
+      return client.target(serverAddress).path(path)
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .get();
+    } catch (Exception exception) {
+      throw new KsqlRestClientException("Error issuing GET to KSQL server", exception);
+    }
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+
     private final Response response;
     private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
 
     private StreamedRow bufferedRow;
-    private boolean closed;
+    private volatile boolean closed = false;
 
     public QueryStream(Response response) {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      this.responseScanner = new Scanner((InputStream) response.getEntity());
+      InputStreamReader isr = new InputStreamReader(
+          (InputStream) response.getEntity(),
+          StandardCharsets.UTF_8
+      );
+      QueryStream stream = this;
+      this.responseScanner = new Scanner((buf) -> {
+        int wait = 1;
+        // poll the input stream's readiness between interruptable sleeps
+        // this ensures we cannot block indefinitely on read()
+        while (true) {
+          if (closed) {
+            throw stream.closedIllegalStateException("hasNext()");
+          }
+          if (isr.ready()) {
+            break;
+          }
+          synchronized (stream) {
+            if (closed) {
+              throw stream.closedIllegalStateException("hasNext()");
+            }
+            try {
+              wait = java.lang.Math.min(wait * 2, 200);
+              stream.wait(wait);
+            } catch (InterruptedException e) {
+              // this is expected
+              // just check the closed flag
+            }
+          }
+        }
+        return isr.read(buf);
+      });
 
       this.bufferedRow = null;
-      this.closed = false;
     }
 
     @Override
     public boolean hasNext() {
       if (closed) {
-        throw new IllegalStateException("Cannot call hasNext() once closed");
+        throw closedIllegalStateException("hasNext()");
       }
 
       if (bufferedRow != null) {
@@ -197,7 +279,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public StreamedRow next() {
       if (closed) {
-        throw new IllegalStateException("Cannot call next() once closed");
+        throw closedIllegalStateException("next()");
       }
 
       if (!hasNext()) {
@@ -212,12 +294,19 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     @Override
     public void close() {
       if (closed) {
-        throw new IllegalStateException("Cannot call close() when already closed");
+        throw closedIllegalStateException("close()");
       }
 
-      closed = true;
+      synchronized (this) {
+        closed = true;
+        this.notifyAll();
+      }
       responseScanner.close();
       response.close();
+    }
+
+    private IllegalStateException closedIllegalStateException(String methodName) {
+      return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
     }
   }
 
@@ -232,10 +321,6 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public boolean unsetProperty(String property) {
-    if (localProperties.containsKey(property)) {
-      Object value = localProperties.remove(property);
-      return true;
-    }
-    return false;
+    return localProperties.remove(property) != null;
   }
 }

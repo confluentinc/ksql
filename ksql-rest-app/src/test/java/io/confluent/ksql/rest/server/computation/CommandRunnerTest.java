@@ -16,93 +16,69 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.junit.Assert;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.mock.MockCommandStore;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
-import io.confluent.ksql.rest.server.mock.MockKsqkEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.Pair;
+
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.verify;
 
 public class CommandRunnerTest {
 
-  private MockKsqkEngine mockKsqkEngine = new MockKsqkEngine(
-      TestUtils.getMockKsqlConfig(), new MockKafkaTopicClient());
-  private StatementParser statementParser = new StatementParser(mockKsqkEngine);
-  StatementExecutor statementExecutor = new StatementExecutor(mockKsqkEngine, statementParser);
-  CommandRunner commandRunner = null;
-
-  private CommandRunner getCommanRunner() {
-    if (commandRunner != null) {
-      return commandRunner;
+  private Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> getRecordMap() {
+    List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
+    List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
+    for (Pair commandPair: commandList) {
+      recordList.add(new ConsumerRecord<>("T", 1, 1, (CommandId) commandPair
+          .getLeft(), (Command) commandPair.getRight()));
     }
-    Map<String, Object> commandConsumerProperties = new HashMap<>();
-    commandConsumerProperties.put("bootstrap.servers", "localhost:9092");
-    Serializer<Command> commandSerializer = new KafkaJsonSerializer<>();
-    Deserializer<Command> commandDeserializer = new KafkaJsonDeserializer<>();
-    Serializer<CommandId> commandIdSerializer = new KafkaJsonSerializer<>();
-    Deserializer<CommandId> commandIdDeserializer = new KafkaJsonDeserializer<>();
-
-    KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        commandIdDeserializer,
-        commandDeserializer
-    );
-
-    CommandRunner commandRunner = new CommandRunner(statementExecutor, new MockCommandStore
-        ("CT", commandConsumer, null,
-         new CommandIdAssigner(new MetaStoreImpl())));
-    return commandRunner;
-  }
-
-
-  @Test
-  public void testThread() throws InterruptedException {
-    CommandRunner commandRunner = getCommanRunner();
-    new Thread(commandRunner).start();
-    Thread.sleep(5000);
-    commandRunner.close();
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
-
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 4);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
+    Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
+    recordMap.put(new TopicPartition("T", 1), recordList);
+    return recordMap;
   }
 
   @Test
-  public void testPriorCommandsRun() throws Exception {
-    CommandRunner commandRunner = getCommanRunner();
+  public void shouldFetchAndRunNewCommandsFromCommandTopic() throws Exception {
+    StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    statementExecutor.handleStatement(anyObject(), anyObject());
+    expectLastCall().times(4);
+    replay(statementExecutor);
+
+    CommandStore commandStore = mock(CommandStore.class);
+    expect(commandStore.getNewCommands()).andReturn(new ConsumerRecords<>(getRecordMap()));
+    replay(commandStore);
+    CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+    commandRunner.fetchAndRunCommands();
+    verify(statementExecutor);
+  }
+
+  @Test
+  public void shouldFetchAndRunPriorCommandsFromCommandTopic() throws Exception {
+    StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    statementExecutor.handleRestoration(anyObject());
+    expectLastCall();
+    replay(statementExecutor);
+    CommandStore commandStore = mock(CommandStore.class);
+    expect(commandStore.getRestoreCommands()).andReturn(new RestoreCommands());
+    replay(commandStore);
+    CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
     commandRunner.processPriorCommands();
-    CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen");
-    CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen");
-    CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen");
-    CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen");
-    Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 4);
-    Assert.assertEquals(statusStore.get(topicCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csCommandId).getStatus(), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(statusStore.get(csasCommandId).getStatus(), CommandStatus.Status.ERROR);
-    Assert.assertEquals(statusStore.get(ctasCommandId).getStatus(), CommandStatus.Status.ERROR);
+
+    verify(statementExecutor);
   }
 
 }

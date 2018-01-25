@@ -23,12 +23,16 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>4.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-clickstream-demo</artifactId>
     <name>KSQL Clickstream Analysis Demo</name>
+
+    <properties>
+        <docker.skip-build>false</docker.skip-build>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -41,6 +45,12 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-cli</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -74,36 +84,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>packaging</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>${dockerfile-maven-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>default</id>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <buildArgs>
-                                        <ARTIFACT_ID>${project.artifactId}</ARTIFACT_ID>
-                                        <KSQL_VERSION>${project.version}</KSQL_VERSION>
-                                        <DOCKER_REGISTRY>${docker.registry}</DOCKER_REGISTRY>
-                                    </buildArgs>
-                                    <tag>${docker.tag}</tag>
-                                    <repository>${docker.registry}confluentinc/${project.artifactId}</repository>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

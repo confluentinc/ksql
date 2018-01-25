@@ -18,16 +18,30 @@ package io.confluent.ksql.serde;
 
 public interface DataSource {
 
-  public static enum DataSourceType { KTOPIC, KSTREAM, KTABLE }
+  enum DataSourceType {
+    KTOPIC("TOPIC"),
+    KSTREAM("STREAM"),
+    KTABLE("TABLE");
 
-  public static enum DataSourceSerDe { JSON, AVRO, DELIMITED }
+    private final String kqlType;
 
-  public static final String AVRO_SERDE_NAME = "AVRO";
-  public static final String JSON_SERDE_NAME = "JSON";
-  public static final String DELIMITED_SERDE_NAME = "DELIMITED";
+    DataSourceType(String ksqlType) {
+      this.kqlType = ksqlType;
+    }
 
-  public String getName();
+    public String getKqlType() {
+      return kqlType;
+    }
+  }
 
-  public DataSourceType getDataSourceType();
+  enum DataSourceSerDe { JSON, AVRO, DELIMITED }
+
+  String AVRO_SERDE_NAME = "AVRO";
+  String JSON_SERDE_NAME = "JSON";
+  String DELIMITED_SERDE_NAME = "DELIMITED";
+
+  String getName();
+
+  DataSourceType getDataSourceType();
 
 }

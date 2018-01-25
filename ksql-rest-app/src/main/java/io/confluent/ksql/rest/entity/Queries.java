@@ -18,13 +18,17 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import io.confluent.ksql.query.QueryId;
+
 @JsonTypeName("queries")
+@JsonSubTypes({})
 public class Queries extends KsqlEntity {
   private final List<RunningQuery> queries;
 
@@ -44,13 +48,13 @@ public class Queries extends KsqlEntity {
   public static class RunningQuery {
     private final String queryString;
     private final String kafkaTopic;
-    private final long id;
+    private final QueryId id;
 
     @JsonCreator
     public RunningQuery(
         @JsonProperty("queryString") String queryString,
         @JsonProperty("kafkaTopic") String kafkaTopic,
-        @JsonProperty("id") long id
+        @JsonProperty("id") QueryId id
     ) {
       this.queryString = queryString;
       this.kafkaTopic = kafkaTopic;
@@ -65,7 +69,7 @@ public class Queries extends KsqlEntity {
       return kafkaTopic;
     }
 
-    public long getId() {
+    public QueryId getId() {
       return id;
     }
 

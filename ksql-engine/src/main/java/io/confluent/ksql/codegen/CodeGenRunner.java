@@ -16,15 +16,6 @@
 
 package io.confluent.ksql.codegen;
 
-import io.confluent.ksql.function.KsqlFunction;
-import io.confluent.ksql.function.KsqlFunctions;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.parser.tree.AstVisitor;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -34,19 +25,48 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.Cast;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.IsNotNullPredicate;
+import io.confluent.ksql.parser.tree.IsNullPredicate;
+import io.confluent.ksql.parser.tree.LikePredicate;
+import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
+import io.confluent.ksql.parser.tree.NotExpression;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.SchemaUtil;
+
 public class CodeGenRunner {
 
-  public Map<String, Class> getParameterInfo(final Expression expression, final Schema schema) {
-    Visitor visitor = new Visitor(schema);
+  private final Schema schema;
+  private final FunctionRegistry functionRegistry;
+
+  public CodeGenRunner(Schema schema, FunctionRegistry functionRegistry) {
+    this.functionRegistry = functionRegistry;
+    this.schema = schema;
+  }
+
+  public Map<String, Class> getParameterInfo(final Expression expression) {
+    Visitor visitor = new Visitor(schema, functionRegistry);
     visitor.process(expression, null);
     return visitor.parameterMap;
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
-      final Expression expression,
-      final Schema schema) throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner();
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression, schema);
+      final Expression expression
+  ) throws Exception {
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
+    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];
@@ -54,27 +74,31 @@ public class CodeGenRunner {
     Kudf[] kudfObjects = new Kudf[parameterMap.size()];
 
     int index = 0;
-    for (String parameterName : parameterMap.keySet()) {
-      parameterNames[index] = parameterName;
-      parameterTypes[index] = parameterMap.get(parameterName);
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, parameterName);
+    for (Map.Entry<String, Class> entry : parameterMap.entrySet()) {
+      parameterNames[index] = entry.getKey();
+      parameterTypes[index] = entry.getValue();
+      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, entry.getKey());
       if (columnIndexes[index] < 0) {
-        kudfObjects[index] = (Kudf) parameterMap.get(parameterName).newInstance();
+        kudfObjects[index] = (Kudf) entry.getValue().newInstance();
       } else {
         kudfObjects[index] = null;
       }
       index++;
     }
 
-    String javaCode = new SqlToJavaVisitor().process(expression, schema);
+    String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
 
-    IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+    IExpressionEvaluator ee =
+        CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
 
     // The expression will have two "int" parameters: "a" and "b".
     ee.setParameters(parameterNames, parameterTypes);
 
     // And the expression (i.e. "result") type is also "int".
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema);
+    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        schema,
+        functionRegistry
+    );
     Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
     ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
@@ -85,14 +109,16 @@ public class CodeGenRunner {
     return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
-  private class Visitor extends AstVisitor<Object, Object> {
+  private static class Visitor extends AstVisitor<Object, Object> {
 
     final Schema schema;
     final Map<String, Class> parameterMap;
+    final FunctionRegistry functionRegistry;
 
-    Visitor(Schema schema) {
+    Visitor(Schema schema, FunctionRegistry functionRegistry) {
       this.schema = schema;
       this.parameterMap = new HashMap<>();
+      this.functionRegistry = functionRegistry;
     }
 
     protected Object visitLikePredicate(LikePredicate node, Object context) {
@@ -102,9 +128,11 @@ public class CodeGenRunner {
 
     protected Object visitFunctionCall(FunctionCall node, Object context) {
       String functionName = node.getName().getSuffix();
-      KsqlFunction ksqlFunction = KsqlFunctions.getFunction(functionName);
-      parameterMap.put(node.getName().getSuffix(),
-                       ksqlFunction.getKudfClass());
+      KsqlFunction ksqlFunction = functionRegistry.getFunction(functionName);
+      parameterMap.put(
+          node.getName().getSuffix(),
+          ksqlFunction.getKudfClass()
+      );
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
@@ -150,8 +178,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.toString());
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       return null;
     }
 
@@ -170,8 +200,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + arrayBaseName);
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       process(node.getIndex(), context);
       return null;
     }
@@ -183,8 +215,10 @@ public class CodeGenRunner {
         throw new RuntimeException(
             "Cannot find the select field in the available fields: " + node.getName().getSuffix());
       }
-      parameterMap.put(schemaField.get().name().replace(".", "_"),
-                       SchemaUtil.getJavaType(schemaField.get().schema()));
+      parameterMap.put(
+          schemaField.get().name().replace(".", "_"),
+          SchemaUtil.getJavaType(schemaField.get().schema())
+      );
       return null;
     }
   }

@@ -18,12 +18,13 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@JsonSubTypes({})
 public class KsqlRequest {
   private final String ksql;
   private final Map<String, Object> streamsProperties;
@@ -62,4 +63,5 @@ public class KsqlRequest {
   public int hashCode() {
     return Objects.hash(getKsql(), getStreamsProperties());
   }
+
 }

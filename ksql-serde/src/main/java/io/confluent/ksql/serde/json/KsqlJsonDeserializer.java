@@ -19,18 +19,11 @@ package io.confluent.ksql.serde.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
-import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,28 +32,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
+public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   //TODO: Possibily use Streaming API instead of ObjectMapper for better performance
   private ObjectMapper objectMapper = new ObjectMapper();
 
   private final Schema schema;
-
-  private static ConfigDef configDef;
-
-  static {
-    configDef = new ConfigDef()
-        .define(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-            ConfigDef.Type.BOOLEAN,
-            false,
-            ConfigDef.Importance.MEDIUM,
-            "Whether or not KSQL should fail when there are deserialization errors." +
-                "The default is false, errors will be logged");
-  }
-
-  private Boolean failOnDeserializationError = Boolean.FALSE;
 
   /**
    * Default constructor needed by Kafka
@@ -71,10 +52,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
-    final Map<String, Object> config = configDef.parse(map);
-    failOnDeserializationError = (Boolean) config.getOrDefault(
-        KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
-        Boolean.FALSE);
   }
 
   @Override
@@ -85,21 +62,20 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     try {
       return getGenericRow(bytes);
     } catch (Exception e) {
-      if (failOnDeserializationError) {
-        throw new SerializationException("KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
-      } else {
-        log.warn("KsqlJsonDeserializer failed to deserialize data for topic: {}", topic, e);
-        return null;
-      }
+      throw new SerializationException(
+          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic,
+          e
+      );
     }
   }
 
+  @SuppressWarnings("unchecked")
   private GenericRow getGenericRow(byte[] rowJsonBytes) throws IOException {
     JsonNode jsonNode = objectMapper.readTree(rowJsonBytes);
     CaseInsensitiveJsonNode caseInsensitiveJsonNode = new CaseInsensitiveJsonNode(jsonNode);
     Map<String, String> keyMap = caseInsensitiveJsonNode.keyMap;
     List columns = new ArrayList();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       String jsonFieldName = field.name().substring(field.name().indexOf(".") + 1);
       JsonNode fieldJsonNode = jsonNode.get(keyMap.get(jsonFieldName));
       if (fieldJsonNode == null) {
@@ -143,8 +119,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         Iterator<Map.Entry<String, JsonNode>> iterator = fieldJsonNode.fields();
         while (iterator.hasNext()) {
           Map.Entry<String, JsonNode> entry = iterator.next();
-          mapField.put(entry.getKey(), enforceFieldType(fieldSchema.valueSchema(),
-                                                        entry.getValue()));
+          mapField.put(
+              entry.getKey(),
+              enforceFieldType(
+                fieldSchema.valueSchema(),
+                entry.getValue()
+            )
+          );
         }
         return mapField;
       default:
@@ -154,20 +135,28 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   }
 
-  class CaseInsensitiveJsonNode {
-    JsonNode jsonNode;
+  static class CaseInsensitiveJsonNode {
+
     Map<String, String> keyMap = new HashMap<>();
 
     CaseInsensitiveJsonNode(JsonNode jsonNode) {
-      this.jsonNode = jsonNode;
       Iterator<String> fieldNames = jsonNode.fieldNames();
       while (fieldNames.hasNext()) {
         String fieldName = fieldNames.next();
-        keyMap.put(fieldName.toUpperCase(), fieldName);
+        if (fieldName.startsWith("@")) {
+          if (fieldName.length() == 1) {
+            throw new KsqlException("Field name cannot be '@'.");
+          }
+          keyMap.put(fieldName.toUpperCase().substring(1), fieldName);
+        } else {
+          keyMap.put(fieldName.toUpperCase(), fieldName);
+        }
+
       }
     }
 
   }
+
 
   @Override
   public void close() {

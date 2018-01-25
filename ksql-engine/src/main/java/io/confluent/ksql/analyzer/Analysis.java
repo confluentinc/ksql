@@ -46,7 +46,7 @@ public class Analysis {
 
   private Expression havingExpression = null;
 
-  private Optional<Integer> limitClause = Optional.empty();
+  private Integer limitClause = null;
 
 
   void addSelectItem(final Expression expression, final String alias) {
@@ -132,11 +132,19 @@ public class Analysis {
   }
 
   public Optional<Integer> getLimitClause() {
-    return limitClause;
+    return Optional.ofNullable(limitClause);
   }
 
-  public void setLimitClause(Optional<Integer> limitClause) {
+  public void setLimitClause(Integer limitClause) {
     this.limitClause = limitClause;
+  }
+
+  public Pair<StructuredDataSource, String> getFromDataSource(int index) {
+    return fromDataSources.get(index);
+  }
+
+  void addDataSource(Pair<StructuredDataSource, String> fromDataSource) {
+    fromDataSources.add(fromDataSource);
   }
 }
 

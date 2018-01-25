@@ -14,17 +14,34 @@
  * limitations under the License.
  **/
 
+
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 
 public class AvroProducer extends DataGenProducer {
+
+  private final KsqlConfig ksqlConfig;
+  private final SchemaRegistryClient schemaRegistryClient;
+
+  public AvroProducer(KsqlConfig ksqlConfig) {
+    if (ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) == null) {
+      throw new KsqlException("Schema registry url is not set.");
+    }
+    this.ksqlConfig = ksqlConfig;
+    this.schemaRegistryClient = new CachedSchemaRegistryClient(
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
+        100
+    );
+  }
 
   @Override
   protected Serializer<GenericRow> getSerializer(
@@ -32,10 +49,6 @@ public class AvroProducer extends DataGenProducer {
       org.apache.kafka.connect.data.Schema kafkaSchema,
       String topicName
   ) {
-    Serializer<GenericRow> result = new KsqlGenericRowAvroSerializer(kafkaSchema);
-    Map<String, String> serializerConfiguration = new HashMap<>();
-    serializerConfiguration.put(KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG, avroSchema.toString());
-    result.configure(serializerConfiguration, false);
-    return result;
+    return new KsqlGenericRowAvroSerializer(kafkaSchema, schemaRegistryClient, ksqlConfig);
   }
 }

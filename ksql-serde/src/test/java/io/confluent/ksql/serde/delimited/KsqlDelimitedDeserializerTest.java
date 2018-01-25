@@ -1,50 +1,75 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+/**
+ * Copyright 2017 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ **/
 
 package io.confluent.ksql.serde.delimited;
 
-import org.apache.kafka.common.errors.SerializationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collections;
-
-import io.confluent.ksql.util.KsqlConfig;
-
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericRow;
 
 public class KsqlDelimitedDeserializerTest {
 
-  private final Schema schema = SchemaBuilder.struct().field("test", SchemaBuilder.STRING_SCHEMA).build();
-  private final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
+  Schema orderSchema;
+
+  @Before
+  public void before() {
+
+    orderSchema = SchemaBuilder.struct()
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+        .build();
+  }
 
   @Test
-  public void shouldReturnNullForBadDataByDefault() {
-    assertThat(deserializer.deserialize("topic", "".getBytes()), nullValue());
+  public void shouldDeserializeDelimitedCorrectly() {
+    String rowString = "1511897796092,1,item_1,10.0\r\n";
+
+    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+
+    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
   }
 
-  @Test(expected = SerializationException.class)
-  public void shouldThrowSerializationExceptionWhenFailOnErrorIsTrue() {
-    deserializer.configure(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true), false);
-    deserializer.deserialize("topic", "".getBytes());
-  }
+  @Test
+  public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
 
+    String rowString = "1511897796092,1,item_1,\r\n";
+
+    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+
+    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    Assert.assertNull(genericRow.getColumns().get(3));
+  }
 
 }

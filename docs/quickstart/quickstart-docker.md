@@ -1,7 +1,7 @@
 # Docker Setup for KSQL
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  |
+|---|----|-----|----|----|----|----|
 
 This part of the quick start will guide you through the steps to setup a Kafka cluster and start KSQL for Docker environments. After you complete these steps, you can start using KSQL to query the Kafka cluster.
 
@@ -41,7 +41,7 @@ Proceed to [starting KSQL](#start-ksql).
 1.  From the host machine, start KSQL CLI on the container.
 
     ```bash
-    $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
+    $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092 --schema-registry-url http://schema-registry:8081
     ```
 
 2.  Return to the [main KSQL quick start](README.md#create-a-stream-and-table) to start querying the data in the Kafka cluster.

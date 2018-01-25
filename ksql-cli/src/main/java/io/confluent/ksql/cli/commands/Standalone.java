@@ -21,11 +21,15 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.cli.StandaloneExecutor;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
@@ -37,12 +41,7 @@ import java.util.Properties;
 public class Standalone extends AbstractCliCommands {
 
   private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
-
-  private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_NAME = "--bootstrap-server";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
-
-  private static final String APPLICATION_ID_OPTION_NAME = "--application-id";
-  private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
 
   @Option(
       name = PROPERTIES_FILE_OPTION_NAME,
@@ -51,19 +50,19 @@ public class Standalone extends AbstractCliCommands {
                     + "but these options will "
                     + "be overridden if also given via  flags)"
   )
-  String propertiesFile;
+  private String propertiesFile;
 
   @Once
   @Required
   @Arguments(
       title = "query-file",
-      description = "Path to the query file in the local machine.)"
+      description = "Path to the query file on the local machine."
   )
-  String queryFile;
+  private String queryFile;
 
   @Override
-  protected Cli getCli() throws Exception {
-    return null;
+  protected Cli getCli() {
+    throw new UnsupportedOperationException("getCli isn't supported in Standalone mode");
   }
 
   @Override
@@ -71,9 +70,8 @@ public class Standalone extends AbstractCliCommands {
     try {
       CliUtils cliUtils = new CliUtils();
       String queries = cliUtils.readQueryFile(queryFile);
-      StandaloneExecutor standaloneExecutor = new StandaloneExecutor(getStandaloneProperties());
+      StandaloneExecutor standaloneExecutor = new StandaloneExecutor(createEngine());
       standaloneExecutor.executeStatements(queries);
-
     } catch (Exception e) {
       if (e.getCause() instanceof FileNotFoundException) {
         System.err.println("Query file " + queryFile + " does not exist");
@@ -81,6 +79,12 @@ public class Standalone extends AbstractCliCommands {
         e.printStackTrace();
       }
     }
+  }
+
+  private KsqlEngine createEngine() throws IOException {
+    final KsqlConfig ksqlConfig = new KsqlConfig(getStandaloneProperties());
+    return new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(AdminClient.create(
+        ksqlConfig.getKsqlAdminClientConfigProps())));
   }
 
   private Properties getStandaloneProperties() throws IOException {
@@ -97,7 +101,9 @@ public class Standalone extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      properties.load(new FileInputStream(propertiesFile));
+      try(final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
+        properties.load(inputStream);
+      }
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
         properties
             .put(StreamsConfig.APPLICATION_ID_CONFIG,

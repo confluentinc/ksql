@@ -18,6 +18,27 @@ package io.confluent.ksql.cli.console;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.History;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -42,28 +63,9 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
 
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.History;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 public abstract class Console implements Closeable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Console.class);
+  private static final Logger log = LoggerFactory.getLogger(Console.class);
 
   private LineReader lineReader;
   private final ObjectMapper objectMapper;
@@ -73,7 +75,10 @@ public abstract class Console implements Closeable {
   private OutputFormat outputFormat;
 
   public Console(OutputFormat outputFormat, KsqlRestClient restClient) {
-    Objects.requireNonNull(outputFormat, "Must provide the terminal with a beginning output format");
+    Objects.requireNonNull(
+        outputFormat,
+        "Must provide the terminal with a beginning output format"
+    );
     Objects.requireNonNull(restClient, "Must provide the terminal with a REST client");
 
     this.outputFormat = outputFormat;
@@ -99,7 +104,10 @@ public abstract class Console implements Closeable {
 
   protected abstract void puts(InfoCmp.Capability capability);
 
-  public abstract Terminal.SignalHandler handle(Terminal.Signal signal, Terminal.SignalHandler signalHandler);
+  public abstract Terminal.SignalHandler handle(
+      Terminal.Signal signal,
+      Terminal.SignalHandler signalHandler
+  );
 
   /* public */
 
@@ -127,7 +135,7 @@ public abstract class Console implements Closeable {
   }
 
   public void printError(String shortMsg, String fullMsg) {
-    LOGGER.error(fullMsg);
+    log.error(fullMsg);
     writer().println(shortMsg);
   }
 
@@ -206,14 +214,16 @@ public abstract class Console implements Closeable {
       public void execute(String line) {
         writer().println();
         writer().println("Description:");
-        writer().println("\tThe KSQL CLI provides a terminal-based interactive shell"
-             + " for running queries. Each command must be on a separate line. "
-             + "For KSQL command syntax, see the documentation at "
-             + "https://github.com/confluentinc/ksql/docs/.");
+        writer().println(
+            "\tThe KSQL CLI provides a terminal-based interactive shell"
+            + " for running queries. Each command must be on a separate line. "
+            + "For KSQL command syntax, see the documentation at "
+            + "https://github.com/confluentinc/ksql/docs/."
+        );
         writer().println();
         for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
           cliSpecificCommand.printHelp();
-          writer().println();      
+          writer().println();
         }
         writer().println();
         writer().println("Keyboard shortcuts:");
@@ -226,23 +236,28 @@ public abstract class Console implements Closeable {
         writer().println("\tSearch your command history.");
         writer().println("Up and Down arrow keys:");
         writer().println("\tScroll up or down through your command history.");
-        writer().println();        
+        writer().println();
         writer().println("Default behavior:");
         writer().println();
-        writer().println("    Lines are read one at a time and are sent to the "
+        writer().println(
+            "    Lines are read one at a time and are sent to the "
             + "server as KSQL unless one of the following is true:"
         );
         writer().println();
-        writer().println("    1. The line is empty or entirely whitespace. In this"
+        writer().println(
+            "    1. The line is empty or entirely whitespace. In this"
             + " case, no request is made to the server."
         );
         writer().println();
-        writer().println("    2. The line ends with backslash ('\\'). In this case, lines are "
-            + "continuously read and stripped of their trailing newline and '\\' until one is "
-            + "encountered that does not end with '\\'; then, the concatenation of all lines read "
+        writer().println(
+            "    2. The line ends with backslash ('\\'). In this case, lines are "
+            + "continuously read and stripped of their trailing newline and '\\' "
+            + "until one is "
+            + "encountered that does not end with '\\'; then, the concatenation of "
+            + "all lines read "
             + "during this time is sent to the server as KSQL."
         );
-        writer().println();       
+        writer().println();
       }
     });
 
@@ -277,12 +292,9 @@ public abstract class Console implements Closeable {
         writer().println("output:");
         writer().println("\tView the current output format.");
         writer().println("");
-        writer() .printf(
-            "output <format>:",
-            OutputFormat.VALID_FORMATS
-        );
+        writer().println("output <format>");
         writer().println("");
-        writer() .printf(
+        writer().printf(
             "\tSet the output format to <format> (valid formats: %s)%n",
             OutputFormat.VALID_FORMATS
         );
@@ -312,7 +324,7 @@ public abstract class Console implements Closeable {
             "history:");
         writer().println(
             "\tShow previous lines entered during the current CLI session. You can"
-                + " use up and down arrow keys to view previous lines."
+            + " use up and down arrow keys to view previous lines."
         );
       }
 
@@ -367,40 +379,66 @@ public abstract class Console implements Closeable {
   }
 
 
-  private void printTable(List<String> columnHeaders, List<List<String>> rowValues) {
-    if (columnHeaders.size() == 0) {
-      throw new RuntimeException("Cannot print table without columns");
-    }
+  private void printTable(
+      List<String> columnHeaders,
+      List<List<String>> rowValues,
+      List<String> header,
+      List<String> footer
+  ) {
 
-    addResult(columnHeaders, rowValues);
+    header.forEach(m -> writer().println(m));
 
-    Integer[] columnLengths = new Integer[columnHeaders.size()];
-    int separatorLength = -1;
+    if (columnHeaders.size() > 0) {
+      addResult(columnHeaders, rowValues);
 
-    for (int i = 0; i < columnLengths.length; i++) {
-      int columnLength = columnHeaders.get(i).length();
-      for (List<String> row : rowValues) {
-        columnLength = Math.max(columnLength, row.get(i).length());
+      Integer[] columnLengths = new Integer[columnHeaders.size()];
+      int separatorLength = -1;
+
+      for (int i = 0; i < columnLengths.length; i++) {
+        int columnLength = getColumnLength(columnHeaders, rowValues, i);
+        columnLengths[i] = columnLength;
+        separatorLength += columnLength + 3;
       }
-      columnLengths[i] = columnLength;
-      separatorLength += columnLength + 3;
+
+      String rowFormatString = constructRowFormatString(columnLengths);
+
+      writer().printf(rowFormatString, columnHeaders.toArray());
+
+      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
+      for (List<String> row : rowValues) {
+        writer().printf(rowFormatString, row.toArray());
+      }
+      writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
     }
 
-    String rowFormatString = constructRowFormatString(columnLengths);
-
-    writer().printf(rowFormatString, columnHeaders.toArray());
-
-    writer().println(new String(new char[separatorLength]).replaceAll(".", "-"));
-    for (List<String> row : rowValues) {
-      writer().printf(rowFormatString, row.toArray());
-    }
+    footer.forEach(m -> writer().println(m));
 
     flush();
   }
 
+  private int getColumnLength(List<String> columnHeaders, List<List<String>> rowValues, int i) {
+    int columnLength = columnHeaders.get(i).length();
+    for (List<String> row : rowValues) {
+      columnLength = Math.max(columnLength, getMultiLineStringLength(row.get(i)));
+    }
+    return columnLength;
+  }
+
+  private int getMultiLineStringLength(String s) {
+    String[] split = s.split("\n");
+    String longest = Collections.max(
+        Arrays.asList(split),
+        Comparator.comparing(line -> line.length())
+    );
+    return longest.length();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
-    List<String> columnHeaders;
-    List<List<String>> rowValues;
+    List<String> header = new ArrayList<>();
+    List<String> footer = new ArrayList<>();
+    List<String> columnHeaders = new ArrayList<>();
+    List<List<String>> rowValues = new ArrayList<>();
+
     if (ksqlEntity instanceof CommandStatusEntity) {
       CommandStatusEntity commandStatusEntity = (CommandStatusEntity) ksqlEntity;
       columnHeaders = Arrays.asList("Message");
@@ -413,7 +451,12 @@ public abstract class Console implements Closeable {
       printErrorMessage(errorMessage);
       return;
     } else if (ksqlEntity instanceof PropertiesList) {
-      PropertiesList propertiesList = CliUtils.propertiesListWithOverrides((PropertiesList) ksqlEntity, restClient.getLocalProperties());
+      PropertiesList
+          propertiesList =
+          CliUtils.propertiesListWithOverrides(
+              (PropertiesList) ksqlEntity,
+              restClient.getLocalProperties()
+          );
       Map<String, Object> properties = propertiesList.getProperties();
       columnHeaders = Arrays.asList("Property", "Value");
       rowValues = properties.entrySet().stream()
@@ -426,16 +469,28 @@ public abstract class Console implements Closeable {
       columnHeaders = Arrays.asList("Query ID", "Kafka Topic", "Query String");
       rowValues = runningQueries.stream()
           .map(runningQuery -> Arrays.asList(
-              Long.toString(runningQuery.getId()),
+              runningQuery.getId().toString(),
               runningQuery.getKafkaTopic(),
               runningQuery.getQueryString()
           )).collect(Collectors.toList());
+      footer.add("For detailed information on a Query run: EXPLAIN <Query ID>;");
     } else if (ksqlEntity instanceof SourceDescription) {
-      List<SourceDescription.FieldSchemaInfo> fields = ((SourceDescription) ksqlEntity).getSchema();
-      columnHeaders = Arrays.asList("Field", "Type");
-      rowValues = fields.stream()
-          .map(field -> Arrays.asList(field.getName(), field.getType()))
-          .collect(Collectors.toList());
+      SourceDescription sourceDescription = (SourceDescription) ksqlEntity;
+      List<SourceDescription.FieldSchemaInfo> fields = sourceDescription.getSchema();
+
+      if (!fields.isEmpty()) {
+        columnHeaders = Arrays.asList("Field", "Type");
+        rowValues = fields.stream()
+            .map(field -> Arrays.asList(
+                field.getName(),
+                formatFieldType(field, sourceDescription.getKey())
+            ))
+            .collect(Collectors.toList());
+      }
+
+      printExtendedInformation(header, footer, sourceDescription);
+
+
     } else if (ksqlEntity instanceof TopicDescription) {
       columnHeaders = new ArrayList<>();
       columnHeaders.add("Topic Name");
@@ -456,7 +511,8 @@ public abstract class Console implements Closeable {
       columnHeaders = Arrays.asList("Stream Name", "Kafka Topic", "Format");
       rowValues = streamInfos.stream()
           .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic(),
-                                           streamInfo.getFormat()))
+                                           streamInfo.getFormat()
+          ))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TablesList) {
       List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
@@ -466,7 +522,8 @@ public abstract class Console implements Closeable {
               tableInfo.getName(),
               tableInfo.getTopic(),
               tableInfo.getFormat(),
-              Boolean.toString(tableInfo.getIsWindowed()))
+              Boolean.toString(tableInfo.getIsWindowed())
+               )
           ).collect(Collectors.toList());
     } else if (ksqlEntity instanceof KsqlTopicsList) {
       List<KsqlTopicInfo> topicInfos = ((KsqlTopicsList) ksqlEntity).getTopics();
@@ -479,13 +536,22 @@ public abstract class Console implements Closeable {
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof KafkaTopicsList) {
       List<KafkaTopicInfo> topicInfos = ((KafkaTopicsList) ksqlEntity).getTopics();
-      columnHeaders = Arrays.asList("Kafka Topic", "Registered", "Partitions", "Partition Replicas");
+      columnHeaders = Arrays.asList(
+          "Kafka Topic",
+          "Registered",
+          "Partitions",
+          "Partition Replicas",
+          "Consumers",
+          "Consumer Groups"
+      );
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
               topicInfo.getRegistered(),
-              topicInfo.getPartitionCount(),
-              topicInfo.getReplicaInfo()
+              Integer.toString(topicInfo.getPartitionCount()),
+              topicInfo.getReplicaInfo(),
+              Integer.toString(topicInfo.getConsumerCount()),
+              Integer.toString(topicInfo.getConsumerGroupCount())
           )).collect(Collectors.toList());
     } else if (ksqlEntity instanceof ExecutionPlan) {
       ExecutionPlan executionPlan = (ExecutionPlan) ksqlEntity;
@@ -499,31 +565,131 @@ public abstract class Console implements Closeable {
           ksqlEntity.getClass().getCanonicalName()
       ));
     }
-    printTable(columnHeaders, rowValues);
+    printTable(columnHeaders, rowValues, header, footer);
+  }
+
+  private String formatFieldType(SourceDescription.FieldSchemaInfo field, String keyField) {
+
+    if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
+      return String.format("%-16s %s", field.getType(), "(system)");
+    } else if (keyField.contains("." + field.getName())) {
+      return String.format("%-16s %s", field.getType(), "(key)");
+    } else {
+      return field.getType();
+    }
+  }
+
+  private void printExtendedInformation(
+      List<String> header,
+      List<String> footer,
+      SourceDescription source
+  ) {
+    if (source.isExtended()) {
+      header.add(String.format("%-20s : %s", "Type", source.getType()));
+      if (source.getStatementText().length() > 0) {
+        header.add(String.format("%-20s : %s", "SQL", source.getStatementText()));
+      }
+
+      if (!source.getType().equals("QUERY")) {
+        header.add(String.format("%-20s : %s", "Key field", source.getKey()));
+        header.add(String.format(
+            "%-20s : %s",
+            "Timestamp field",
+            source.getTimestamp().length() == 0
+            ? "Not set - using <ROWTIME>"
+            : source.getTimestamp()
+        ));
+        header.add(String.format("%-20s : %s", "Key format", "STRING"));
+        header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
+        if (source.getKafkaTopic().length() > 0) {
+          header.add(String.format(
+              "%-20s : %s (partitions: %d, replication: %d)",
+              "Kafka output topic",
+              source.getKafkaTopic(),
+              source.getPartitions(),
+              source.getReplication()
+          ));
+        }
+      }
+      header.add("");
+
+      if (!source.getWriteQueries().isEmpty()) {
+        footer.add(String.format(
+            "\n%-20s\n%-20s",
+            "Queries that write into this " + source.getType(),
+            "-----------------------------------"
+        ));
+        for (String writeQuery : source.getWriteQueries()) {
+          footer.add(writeQuery);
+        }
+        footer.add("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
+      }
+
+      footer.add(String.format(
+          "\n%-20s\n%s",
+          "Local runtime statistics",
+          "------------------------"
+      ));
+      footer.add(source.getStatistics());
+      footer.add(source.getErrorStats());
+      footer.add(String.format(
+          "(%s)",
+          "Statistics of the local KSQL server interaction with the Kafka topic "
+          + source.getKafkaTopic()
+      ));
+
+      if (source.getExecutionPlan().length() > 0) {
+        footer.add(String.format(
+            "\n%-20s\n%-20s\n%s",
+            "Execution plan",
+            "--------------",
+            source.getExecutionPlan()
+        ));
+      }
+      if (source.getTopology().length() > 0) {
+        footer.add(String.format(
+            "\n%-20s\n%-20s\n%s",
+            "Processing topology",
+            "-------------------",
+            source.getTopology()
+        ));
+      }
+    } else {
+      footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+    }
   }
 
   private void printAsTable(GenericRow row) {
     addResult(row);
     writer().println(
-        String.join(" | ", row.getColumns().stream().map(Objects::toString).collect(Collectors.toList()))
+        String.join(
+            " | ",
+            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        )
     );
     flush();
   }
 
   private void printAsJson(Object o) throws IOException {
     if (o instanceof PropertiesList) {
-      o =  CliUtils.propertiesListWithOverrides((PropertiesList) o, restClient.getLocalProperties());
+      o = CliUtils.propertiesListWithOverrides((PropertiesList) o, restClient.getLocalProperties());
     } else if (o instanceof KsqlEntityList) {
       List<KsqlEntity> newEntities = new ArrayList<>();
       for (KsqlEntity ksqlEntity : (KsqlEntityList) o) {
         if (ksqlEntity instanceof PropertiesList) {
-          ksqlEntity =  CliUtils.propertiesListWithOverrides((PropertiesList) ksqlEntity, restClient.getLocalProperties());
+          ksqlEntity = CliUtils.propertiesListWithOverrides(
+              (PropertiesList) ksqlEntity,
+              restClient.getLocalProperties()
+          );
         }
         newEntities.add(ksqlEntity);
       }
       o = newEntities;
     } else {
-      LOGGER.warn(String.format("Unexpected result class: '%s' found in printAsJson", o.getClass().getCanonicalName()));
+      log.warn(
+          "Unexpected result class: '{}' found in printAsJson",
+          o.getClass().getCanonicalName()
+      );
     }
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
     writer().println();
@@ -538,7 +704,7 @@ public abstract class Console implements Closeable {
   }
 
   private static String constructSingleColumnFormatString(Integer length) {
-    return String.format("%%%ds", (-1*length));
+    return String.format("%%%ds", (-1 * length));
   }
 
 }

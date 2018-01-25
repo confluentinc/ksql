@@ -1,0 +1,85 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!-- Findbugs filtering.
+
+Findbugs is a static code analysis tool run as part of the "check" phase of the build.
+This file dictates which categories of bugs and individual false positives that we supress.
+
+For a detailed description of findbugs bug categories, see http://findbugs.sourceforge.net/bugDescriptions.html
+-->
+<FindBugsFilter>
+    <!-- exclude generated code -->
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseLexer"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$BooleanExpressionContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$PrimaryExpressionContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$QueryTermContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$TypeContext"/>
+    </Match>
+
+    <Match>
+        <Class name="io.confluent.ksql.parser.SqlBaseParser$ValueExpressionContext "/>
+    </Match>
+
+
+    <!-- other issues we should fix in the future -->
+    <Match>
+        <Class name="io.confluent.ksql.util.KsqlConfig"/>
+        <Method name="clone"/>
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.metastore.MetaStoreImpl"/>
+        <Method name="clone"/>
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.util.ExpressionMetadata"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.util.GenericRowValueTypeEnforcer"/>
+        <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+        <Method name="enforceBoolean"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.avro.random.generator.Generator$BooleanIterator"/>
+        <Bug pattern="IT_NO_SUCH_ELEMENT"/>
+    </Match>
+    <Match>
+        <Class name="io.confluent.ksql.metastore.MetaStoreUtil"/>
+        <Method name="buildAvroSchema"/>
+        <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
+    </Match>
+</FindBugsFilter>

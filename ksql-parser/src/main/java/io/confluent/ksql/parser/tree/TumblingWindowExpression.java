@@ -16,9 +16,18 @@
 
 package io.confluent.ksql.parser.tree;
 
+import org.apache.kafka.streams.kstream.Initializer;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.TimeWindows;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
 
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
@@ -26,27 +35,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   private final TimeUnit sizeUnit;
 
   public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
-    this(Optional.empty(), "", size, sizeUnit);
+    this(Optional.empty(), size, sizeUnit);
   }
 
-  public TumblingWindowExpression(NodeLocation location, String windowName,
-                                  long size, TimeUnit sizeUnit) {
-    this(Optional.of(location), windowName, size, sizeUnit);
-  }
-
-  private TumblingWindowExpression(Optional<NodeLocation> location, String windowName, long size,
-                                  TimeUnit sizeUnit) {
+  private TumblingWindowExpression(Optional<NodeLocation> location, long size,
+                                   TimeUnit sizeUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
-  }
-
-  public long getSize() {
-    return size;
-  }
-
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
   }
 
   @Override
@@ -69,5 +65,16 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     }
     TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public KTable applyAggregate(final KGroupedStream groupedStream,
+                               final Initializer initializer,
+                               final UdafAggregator aggregator,
+                               final Materialized<String, GenericRow, ?> materialized) {
+    return groupedStream.windowedBy(TimeWindows.of(sizeUnit.toMillis(size)))
+        .aggregate(initializer, aggregator, materialized);
+
   }
 }

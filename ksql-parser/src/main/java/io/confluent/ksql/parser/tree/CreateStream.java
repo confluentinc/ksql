@@ -27,7 +27,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateStream extends AbstractStreamCreateStatement {
+public class CreateStream extends AbstractStreamCreateStatement implements DDLStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;
@@ -60,6 +60,12 @@ public class CreateStream extends AbstractStreamCreateStatement {
 
   public List<TableElement> getElements() {
     return elements;
+  }
+
+  @Override
+  public AbstractStreamCreateStatement copyWith(List<TableElement> elements,
+                                                Map<String, Expression> properties) {
+    return new CreateStream(name, elements, notExists, properties);
   }
 
   public boolean isNotExists() {

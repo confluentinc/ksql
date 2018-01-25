@@ -1,7 +1,7 @@
 # Clickstream Analysis using Docker
 
-| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) | 
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) |[Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | [Syntax Reference](/docs/syntax-reference.md#syntax-reference) |[Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  |
+|---|----|-----|----|----|----|----|
 
 These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. For instructions without using Docker, see [this documentation](/ksql-clickstream-demo/non-docker-clickstream.md).
 
@@ -11,16 +11,18 @@ These steps will guide you through how to setup your environment and run the cli
     - [All platforms](https://docs.docker.com/engine/installation/)
 - [Git](https://git-scm.com/downloads)
 
+1.  Please ensure that your Docker installation is configured with at least 4 GB of memory.
+
 1.  Download and start the KSQL clickstream container. This container image is large and contains Confluent, Grafana, and Elasticsearch. Depending on your network speed, this may take up to 10-15 minutes. The `-p` flag will forward the Grafana dashboard to port 33000 on your local host.
 
 	```bash
-	$ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo bash
+	$ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:0.3 bash
 	```
 
 	Your output should resemble:
 
 	```bash
-	Unable to find image 'confluentinc/ksql-clickstream-demo:latest' locally
+	Unable to find image 'confluentinc/ksql-clickstream-demo:0.3' locally
 	latest: Pulling from confluentinc/ksql-clickstream-demo
 	ad74af05f5a2: Already exists 
 	d02e292e7b5e: Already exists 

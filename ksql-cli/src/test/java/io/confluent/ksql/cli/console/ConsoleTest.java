@@ -17,9 +17,9 @@
 package io.confluent.ksql.cli.console;
 
 import io.confluent.ksql.FakeException;
-import io.confluent.ksql.TestTerminal;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.TestTerminal;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,20 +97,20 @@ public class ConsoleTest {
     properties.put("k3", true);
 
     List<Queries.RunningQuery> queries = new ArrayList<>();
-    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", 1));
+    queries.add(new Queries.RunningQuery("select * from t1", "TestTopic", new QueryId("0")));
 
     for (int i = 0; i < 5; i++) {
       KsqlEntityList entityList = new KsqlEntityList(Arrays.asList(
-          new CommandStatusEntity("e", "topic/1", "SUCCESS", "Success Message"),
+          new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
           new ErrorMessageEntity("e", new FakeException()),
           new PropertiesList("e", properties),
           new Queries("e", queries),
-          new SourceDescription("e", "TestSource", buildTestSchema(i), DataSource.DataSourceType.KTABLE, "key", "2000-01-01"),
+          new SourceDescription("e", "TestSource", Collections.EMPTY_LIST, Collections.EMPTY_LIST, buildTestSchema(i), DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors", false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", Arrays.asList(new StreamsList.StreamInfo("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new TablesList.TableInfo("TestTable", "TestTopic", "JSON", false))),
           new KsqlTopicsList("e", Arrays.asList(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
-          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", "1", "1"))),
+          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", 1, "1",1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
       terminal.printKsqlEntityList(entityList);

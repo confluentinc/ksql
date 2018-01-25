@@ -19,16 +19,21 @@ package io.confluent.ksql.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.util.Properties;
 
 public class Version {
+
   private static final Logger log = LoggerFactory.getLogger(Version.class);
   private static String version = "unknown";
 
   static {
     try {
       Properties props = new Properties();
-      props.load(Version.class.getResourceAsStream("/ksql-version.properties"));
+      try (InputStream resourceAsStream = Version.class.getResourceAsStream(
+          "/ksql-version.properties")) {
+        props.load(resourceAsStream);
+      }
       version = props.getProperty("version", version).trim();
     } catch (Exception e) {
       log.warn("Error while loading version:", e);

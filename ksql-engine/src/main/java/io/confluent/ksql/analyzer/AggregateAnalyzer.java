@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -30,6 +30,7 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
 
   private AggregateAnalysis aggregateAnalysis;
   private Analysis analysis;
+  private FunctionRegistry functionRegistry;
 
   private boolean hasAggregateFunction = false;
 
@@ -42,15 +43,17 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   }
 
   public AggregateAnalyzer(AggregateAnalysis aggregateAnalysis,
-                           Analysis analysis) {
+                           Analysis analysis,
+                           FunctionRegistry functionRegistry) {
     this.aggregateAnalysis = aggregateAnalysis;
     this.analysis = analysis;
+    this.functionRegistry = functionRegistry;
   }
 
   @Override
   protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
     String functionName = node.getName().getSuffix();
-    if (KsqlFunctions.isAnAggregateFunction(functionName)) {
+    if (functionRegistry.isAnAggregateFunction(functionName)) {
       if (node.getArguments().isEmpty()) {
         Expression argExpression;
         if (analysis.getJoin() != null) {
@@ -62,12 +65,12 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
               QualifiedName.of(analysis.getFromDataSources().get(0).getRight()));
           argExpression = new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
         }
-        aggregateAnalysis.aggregateFunctionArguments.add(argExpression);
+        aggregateAnalysis.addAggregateFunctionArgument(argExpression);
         node.getArguments().add(argExpression);
       } else {
-        aggregateAnalysis.aggregateFunctionArguments.add(node.getArguments().get(0));
+        aggregateAnalysis.addAggregateFunctionArgument(node.getArguments().get(0));
       }
-      aggregateAnalysis.functionList.add(node);
+      aggregateAnalysis.addFunction(node);
       hasAggregateFunction = true;
     }
 
@@ -81,9 +84,8 @@ public class AggregateAnalyzer extends DefaultTraversalVisitor<Node, AnalysisCon
   protected Node visitDereferenceExpression(final DereferenceExpression node,
                                              final AnalysisContext context) {
     String name = node.toString();
-    if (aggregateAnalysis.getRequiredColumnsMap().get(name) == null) {
-      aggregateAnalysis.getRequiredColumnsList().add(node);
-      aggregateAnalysis.getRequiredColumnsMap().put(name, node);
+    if (!aggregateAnalysis.hasRequiredColumn(name)) {
+      aggregateAnalysis.addRequiredColumn(name, node);
     }
     return null;
   }

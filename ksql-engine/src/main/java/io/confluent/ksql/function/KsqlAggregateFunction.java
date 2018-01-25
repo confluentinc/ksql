@@ -20,6 +20,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
+import java.util.Map;
+
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
 
@@ -39,15 +43,32 @@ public abstract class KsqlAggregateFunction<V, A> {
     this.kudafClass = null;
   }
 
-  public KsqlAggregateFunction(int argIndexInValue,
-                               A intialValue, Schema returnType, List<Schema> arguments,
-                               String functionName, Class kudafClass) {
+  public KsqlAggregateFunction(
+      int argIndexInValue,
+      A intialValue,
+      Schema returnType,
+      List<Schema> arguments,
+      String functionName,
+      Class kudafClass
+  ) {
     this.argIndexInValue = argIndexInValue;
     this.intialValue = intialValue;
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;
     this.kudafClass = kudafClass;
+  }
+
+  public abstract KsqlAggregateFunction<V, A> getInstance(
+      final Map<String, Integer> expressionNames,
+      final List<Expression> functionArguments
+  );
+
+  public boolean hasSameArgTypes(List<Schema> argTypeList) {
+    if (argTypeList == null) {
+      throw new KsqlException("Argument type list is null.");
+    }
+    return this.arguments.equals(argTypeList);
   }
 
   public abstract A aggregate(V currentVal, A currentAggVal);

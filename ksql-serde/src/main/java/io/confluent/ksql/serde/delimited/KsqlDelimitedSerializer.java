@@ -17,15 +17,25 @@
 package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 
 public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
+  private final Schema schema;
+
+  public KsqlDelimitedSerializer(Schema schema) {
+    this.schema = schema;
+  }
 
   @Override
   public void configure(Map<String, ?> map, boolean b) {
@@ -37,20 +47,14 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
     if (genericRow == null) {
       return null;
     }
-
     try {
-      StringBuilder recordString = new StringBuilder();
-      for (int i = 0; i < genericRow.getColumns().size(); i++) {
-        if (i != 0) {
-          recordString.append(",");
-        }
-        recordString.append(genericRow.getColumns().get(i).toString());
-      }
-      return recordString.toString().getBytes();
+      StringWriter stringWriter = new StringWriter();
+      CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
+      csvPrinter.printRecord(genericRow.getColumns());
+      return stringWriter.toString().getBytes(StandardCharsets.UTF_8);
     } catch (Exception e) {
-      throw new KsqlException(e.getMessage(), e);
+      throw new SerializationException("Error serializing CSV message", e);
     }
-
 
   }
 

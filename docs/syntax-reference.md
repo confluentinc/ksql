@@ -1,7 +1,7 @@
 # Syntax Reference
 
-| [Overview](/docs#ksql-documentation) | [Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  | [Roadmap](/docs/roadmap.md#roadmap) |
-|---|----|-----|----|----|----|----|----|
+| [Overview](/docs#ksql-documentation) | [Quick Start](/docs/quickstart#quick-start) | [Concepts](/docs/concepts.md#concepts) | Syntax Reference | [Demo](/ksql-clickstream-demo#clickstream-analysis) | [Examples](/docs/examples.md#examples) | [FAQ](/docs/faq.md#frequently-asked-questions)  |
+|---|----|-----|----|----|----|----|
 
 
 The KSQL CLI provides a terminal-based interactive shell for running queries.
@@ -74,19 +74,6 @@ Default behavior:
     * Do not use `\` for multi-line statements in `.sql` files.
 
 
-### DESCRIBE
-
-**Synopsis**
-
-```sql
-DESCRIBE (stream_name|table_name);
-```
-
-**Description**
-
-List the columns in a stream or table along with their data type and other attributes.
-
-
 ### CREATE STREAM
 
 **Synopsis**
@@ -107,8 +94,8 @@ The supported column data types are:
 * `BIGINT`
 * `DOUBLE`
 * `VARCHAR` (or `STRING`)
-* `ARRAY<ArrayType>` (JSON only)
-* `MAP<VARCHAR, ValueType>` (JSON only)
+* `ARRAY<ArrayType>` (JSON and AVRO only)
+* `MAP<VARCHAR, ValueType>` (JSON and AVRO only)
 
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
@@ -118,9 +105,11 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`|
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
 Example:
 
@@ -151,8 +140,8 @@ The supported column data types are:
 * `BIGINT`
 * `DOUBLE`
 * `VARCHAR` (or `STRING`)
-* `ARRAY<ArrayType>` (JSON only)
-* `MAP<VARCHAR, ValueType>` (JSON only)
+* `ARRAY<ArrayType>` (JSON and AVRO only)
+* `MAP<VARCHAR, ValueType>` (JSON and AVRO only)
 
 KSQL adds the implicit columns `ROWTIME` and `ROWKEY` to every stream and table, which represent the
 corresponding Kafka message timestamp and message key, respectively.
@@ -162,16 +151,19 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED` |
-| KEY                     | Associates the message key in the Kafka topic with a column in the KSQL table. |
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`. |
+| KEY          (required) | Associates the message key in the Kafka topic with a column in the KSQL table. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
 Example:
 
 ```sql
 CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
   WITH (VALUE_FORMAT = 'JSON',
-        KAFKA_TOPIC = 'my-users-topic');
+        KAFKA_TOPIC = 'my-users-topic',
+        KEY = 'user_id');
 ```
 
 
@@ -200,12 +192,14 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this stream.  If this property is not set, then the name of the stream will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
-| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
 
-Note: The `KEY` property is not supported -- use PARTITION BY instead.
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
+
+> Note: The `KEY` property is not supported by CREATE STREAM AS -- use PARTITION BY instead.
 
 
 ### CREATE TABLE AS SELECT
@@ -233,10 +227,128 @@ The WITH clause supports the following properties:
 | Property                | Description                                                                                |
 |-------------------------|--------------------------------------------------------------------------------------------|
 | KAFKA_TOPIC             | The name of the Kafka topic that backs this table.  If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`.  If this property is not set, then the format of the input stream/table will be used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
-| REPLICATIONS            | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
+| REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
 | TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+
+Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
+Also since KSQL column names are case insensitive, avro field names will be considered case insensitive in KSQL.
+
+
+### DESCRIBE
+
+**Synopsis**
+
+```sql
+DESCRIBE [EXTENDED] (stream_name|table_name);
+```
+
+
+**Description**
+
+* DESCRIBE: List the columns in a stream or table along with their data type and other attributes.
+* DESCRIBE EXTENDED: Display DESCRIBE information with additional runtime statistics, Kafka topic details, and the
+  set of queries that populate the table or stream
+
+Example of describing a table:
+
+```sqlite-psql
+ksql> DESCRIBE ip_sum;
+
+ Field   | Type
+-------------------------------------
+ ROWTIME | BIGINT           (system)
+ ROWKEY  | VARCHAR(STRING)  (system)
+ IP      | VARCHAR(STRING)  (key)
+ KBYTES  | BIGINT
+-------------------------------------
+For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>
+
+```
+
+Example of describing a table with extended information:
+
+```sqlite-psql
+ksql> DESCRIBE EXTENDED ip_sum;
+Type                 : TABLE
+Key field            : CLICKSTREAM.IP
+Timestamp field      : Not set - using <ROWTIME>
+Key format           : STRING
+Value format         : JSON
+Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
+
+ Field   | Type
+-------------------------------------
+ ROWTIME | BIGINT           (system)
+ ROWKEY  | VARCHAR(STRING)  (system)
+ IP      | VARCHAR(STRING)  (key)
+ KBYTES  | BIGINT
+-------------------------------------
+
+Queries that write into this TABLE
+-----------------------------------
+id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Local runtime statistics
+------------------------
+messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
+ failed-messages:         0      last-failed:       n/a
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
+```
+
+
+### EXPLAIN
+
+**Synopsis**
+
+```sqlite-psql
+EXPLAIN (sql_expression|query_id);
+```
+
+
+**Description**
+
+Show the execution plan for a SQL expression or, given the id of a running query, show the execution plan plus
+additional runtime information and metrics.  Statements such as DESCRIBE EXTENDED, for example, show the ids of
+queries related to a stream or table.
+
+Example of explaining a running query:
+
+```sqlite-psql
+ksql> EXPLAIN ctas_ip_sum;
+
+Type                 : QUERY
+SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+
+
+Local runtime statistics
+------------------------
+messages-per-sec:     104.38   total-messages:       14238     last-message: 12/14/17 4:30:42 PM GMT
+ failed-messages:          0      last-failed:         n/a
+(Statistics of the local KSQL Server interaction with the Kafka topic IP_SUM)
+
+Execution plan
+--------------
+ > [ PROJECT ] Schema: [IP : STRING , KBYTES : INT64].
+         > [ AGGREGATE ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64 , KSQL_AGG_VARIABLE_0 : INT64].
+                 > [ PROJECT ] Schema: [CLICKSTREAM.IP : STRING , CLICKSTREAM.BYTES : INT64].
+                         > [ REKEY ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+                                 > [ SOURCE ] Schema: [CLICKSTREAM.ROWTIME : INT64 , CLICKSTREAM.ROWKEY : STRING , CLICKSTREAM._TIME : INT64 , CLICKSTREAM.TIME : STRING , CLICKSTREAM.IP : STRING , CLICKSTREAM.REQUEST : STRING , CLICKSTREAM.STATUS : INT32 , CLICKSTREAM.USERID : INT32 , CLICKSTREAM.BYTES : INT64 , CLICKSTREAM.AGENT : STRING].
+
+
+Processing topology
+-------------------
+Sub-topologies:
+  Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [clickstream])
+      --> KSTREAM-MAP-0000000001
+    Processor: KSTREAM-MAP-0000000001 (stores: [])
+      --> KSTREAM-TRANSFORMVALUES-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+```
 
 
 ###  DROP STREAM
@@ -264,7 +376,24 @@ DROP TABLE table_name;
 
 Drops an existing table.
 
+### PRINT
 
+```sql
+PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
+```
+
+**Description**
+
+Print Kafka-topic contents to the KSQL CLI. Note, SQL grammar defaults to uppercase formatting, to print topics containing lower-case characters, use quotations as shown in the example.
+
+For example:
+```sql
+ksql> print 'ksql__commands' FROM BEGINNING;
+Format:JSON
+{"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
+{"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}
+^CTopic printing ceased
+```
 ### SELECT
 
 **Synopsis**
@@ -503,12 +632,14 @@ Terminate a persistent query. Persistent queries run continuously until they are
 
 # Aggregate functions
 
-| Function   | Example                   | Description                                            |
-|------------|---------------------------|--------------------------------------------------------|
-| COUNT      | `COUNT(col1)`             | Count the number of rows                               |
-| MAX        | `MAX(col1)`               | Return the maximum value for a given column and window |
-| MIN        | `MIN(col1)`               | Return the minimum value for a given column and window |
-| SUM        | `SUM(col1)`               | Sums the column values                                 |
+| Function    | Example                   | Description                                                     |
+|-------------|---------------------------|-----------------------------------------------------------------|
+| COUNT       | `COUNT(col1)`             | Count the number of rows                                        |
+| MAX         | `MAX(col1)`               | Return the maximum value for a given column and window          |
+| MIN         | `MIN(col1)`               | Return the minimum value for a given column and window          |
+| SUM         | `SUM(col1)`               | Sums the column values                                          |
+| TOPK        | `TOPK(col1, k)`           | Return the TopK values for the given column and window          |
+| TOPKDISTINCT| `TOPKDISTINCT(col1, k)`   | Return the distinct TopK values for the given column and window |
 
 
 # Configuring KSQL
@@ -522,7 +653,7 @@ settings for Kafka's [producer client](https://kafka.apache.org/documentation/#p
 ```sql
 SET '<property-name>'='<property-value>';
 ```
-
+ 
 Examples:
 
 ```

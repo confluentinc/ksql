@@ -16,8 +16,14 @@
 
 package io.confluent.ksql.analyzer;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -46,41 +52,43 @@ import io.confluent.ksql.planner.DefaultTraversalVisitor;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import io.confluent.ksql.util.SchemaUtil;
 
 import static java.lang.String.format;
 
 public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-  private Analysis analysis;
-  private MetaStore metaStore;
+  private final String sqlExpression;
+  private final Analysis analysis;
+  private final MetaStore metaStore;
 
-  public Analyzer(Analysis analysis, MetaStore metaStore) {
+  public Analyzer(String sqlExpression, Analysis analysis, MetaStore metaStore) {
+    this.sqlExpression = sqlExpression;
     this.analysis = analysis;
     this.metaStore = metaStore;
   }
 
   @Override
-  protected Node visitQuerySpecification(final QuerySpecification node,
-                                         final AnalysisContext context) {
+  protected Node visitQuerySpecification(
+      final QuerySpecification node,
+      final AnalysisContext context
+  ) {
 
-    process(node.getFrom().get(),
-            new AnalysisContext(AnalysisContext.ParentType.FROM));
+    process(
+        node.getFrom(),
+        new AnalysisContext(AnalysisContext.ParentType.FROM)
+    );
 
-    process(node.getInto().get(), new AnalysisContext(
+    process(node.getInto(), new AnalysisContext(
         AnalysisContext.ParentType.INTO));
     if (!(analysis.getInto() instanceof KsqlStdOut)) {
       analyzeNonStdOutSink();
@@ -105,8 +113,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     if (node.getLimit().isPresent()) {
       String limitStr = node.getLimit().get();
-      Integer limitInt = Integer.parseInt(limitStr);
-      analysis.setLimitClause(Optional.of(limitInt));
+      analysis.setLimitClause(Integer.parseInt(limitStr));
     }
     analyzeExpressions();
 
@@ -127,10 +134,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (analysis.getIntoFormat() != null) {
       switch (analysis.getIntoFormat().toUpperCase()) {
         case DataSource.AVRO_SERDE_NAME:
-          intoTopicSerde = new KsqlAvroTopicSerDe(null);
+          intoTopicSerde = new KsqlAvroTopicSerDe();
           break;
         case DataSource.JSON_SERDE_NAME:
-          intoTopicSerde = new KsqlJsonTopicSerDe(null);
+          intoTopicSerde = new KsqlJsonTopicSerDe();
           break;
         case DataSource.DELIMITED_SERDE_NAME:
           intoTopicSerde = new KsqlDelimitedTopicSerDe();
@@ -141,15 +148,23 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
     } else {
       if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-        intoTopicSerde = new KsqlAvroTopicSerDe(null);
+        intoTopicSerde = new KsqlAvroTopicSerDe();
       }
     }
 
-    KsqlTopic newIntoKsqlTopic = new KsqlTopic(intoKafkaTopicName,
-                                               intoKafkaTopicName, intoTopicSerde);
-    KsqlStream intoKsqlStream = new KsqlStream(intoStructuredDataSource.getName(),
-                                               null, null, null,
-                                               newIntoKsqlTopic);
+    KsqlTopic newIntoKsqlTopic = new KsqlTopic(
+        intoKafkaTopicName,
+        intoKafkaTopicName,
+        intoTopicSerde
+    );
+    KsqlStream intoKsqlStream = new KsqlStream(
+        sqlExpression,
+        intoStructuredDataSource.getName(),
+        null,
+        null,
+        null,
+        newIntoKsqlTopic
+    );
     analysis.setInto(intoKsqlStream);
   }
 
@@ -162,14 +177,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
     ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(schema, isJoinSchema);
 
-    for (Expression selectExpression: analysis.getSelectExpressions()) {
+    for (Expression selectExpression : analysis.getSelectExpressions()) {
       expressionAnalyzer.analyzeExpression(selectExpression);
     }
     if (analysis.getWhereExpression() != null) {
       expressionAnalyzer.analyzeExpression(analysis.getWhereExpression());
     }
     if (!analysis.getGroupByExpressions().isEmpty()) {
-      for (Expression expression: analysis.getGroupByExpressions()) {
+      for (Expression expression : analysis.getGroupByExpressions()) {
         expressionAnalyzer.analyzeExpression(expression);
       }
     }
@@ -200,23 +215,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
-    StructuredDataSourceNode
-        leftSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Left"), leftDataSource.getSchema(),
-                                     leftDataSource.getKeyField(),
-                                     leftDataSource.getTimestampField(),
-                                     leftDataSource.getKsqlTopic().getTopicName(),
-                                     leftAlias, leftDataSource.getDataSourceType(),
-                                     leftDataSource);
-    StructuredDataSourceNode
-        rightSourceKafkaTopicNode =
-        new StructuredDataSourceNode(new PlanNodeId("KafkaTopic_Right"),
-                                     rightDataSource.getSchema(),
-                                     rightDataSource.getKeyField(),
-                                     rightDataSource.getTimestampField(),
-                                     rightDataSource.getKsqlTopic().getTopicName(),
-                                     rightAlias, rightDataSource.getDataSourceType(),
-                                     rightDataSource);
 
     JoinNode.Type joinType;
     switch (node.getType()) {
@@ -239,43 +237,133 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         throw new KsqlException("Join type is not supported: " + node.getType().name());
     }
 
+    if (!node.getCriteria().isPresent()) {
+      throw new KsqlException(String.format(
+          "%s Join criteria is not set.",
+          node.getLocation().isPresent()
+          ? node.getLocation().get().toString()
+          : ""
+      ));
+    }
     JoinOn joinOn = (JoinOn) (node.getCriteria().get());
     ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn.getExpression();
 
-    String leftKeyFieldName = fetchKeyFieldName(comparisonExpression.getLeft());
-    String rightKeyFieldName = fetchKeyFieldName(comparisonExpression.getRight());
+    Pair<String, String> leftSide = fetchKeyFieldName(
+        comparisonExpression,
+        leftAlias,
+        leftDataSource.getSchema()
+    );
+    Pair<String, String> rightSide = fetchKeyFieldName(
+        comparisonExpression,
+        rightAlias,
+        rightDataSource.getSchema()
+    );
+
+    String leftKeyFieldName = leftSide.getRight();
+    String rightKeyFieldName = rightSide.getRight();
 
     if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
-      throw new KsqlException("Join criteria is not supported.");
+      throw new KsqlException("Only equality join criteria is supported.");
     }
 
+    StructuredDataSourceNode
+        leftSourceKafkaTopicNode =
+        new StructuredDataSourceNode(
+            new PlanNodeId("KafkaTopic_Left"),
+            leftDataSource,
+            leftDataSource.getSchema()
+        );
+    StructuredDataSourceNode
+        rightSourceKafkaTopicNode =
+        new StructuredDataSourceNode(
+            new PlanNodeId("KafkaTopic_Right"),
+            rightDataSource,
+            rightDataSource.getSchema()
+        );
+
     JoinNode joinNode =
-        new JoinNode(new PlanNodeId("Join"), joinType, leftSourceKafkaTopicNode,
-            rightSourceKafkaTopicNode, leftKeyFieldName, rightKeyFieldName, leftAlias,
-            rightAlias);
+        new JoinNode(
+            new PlanNodeId("Join"),
+            joinType,
+            leftSourceKafkaTopicNode,
+            rightSourceKafkaTopicNode,
+            leftKeyFieldName,
+            rightKeyFieldName,
+            leftAlias,
+            rightAlias
+        );
     analysis.setJoin(joinNode);
     return null;
   }
 
-  private String fetchKeyFieldName(Expression expression) {
-    if (expression instanceof DereferenceExpression) {
-      DereferenceExpression
-          leftDereferenceExpression =
-          (DereferenceExpression) expression;
-      return leftDereferenceExpression.getFieldName();
-    } else if (expression instanceof QualifiedNameReference) {
-      QualifiedNameReference
-          leftQualifiedNameReference =
-          (QualifiedNameReference) expression;
-      return leftQualifiedNameReference.getName().getSuffix();
-    } else {
-      throw new KsqlException("Join criteria is not supported.");
+  /**
+   * From the join criteria expression fetch the key field corresponding to the given source
+   * alias.
+   */
+  private Pair<String, String> fetchKeyFieldName(
+      ComparisonExpression comparisonExpression,
+      String sourceAlias,
+      Schema sourceSchema
+  ) {
+    Pair<String, String> keyInfo = fetchKeyFieldNameFromExpr(
+        comparisonExpression.getLeft(),
+        sourceAlias,
+        sourceSchema
+    );
+    if (keyInfo == null) {
+      keyInfo = fetchKeyFieldNameFromExpr(
+          comparisonExpression.getRight(),
+          sourceAlias,
+          sourceSchema
+      );
     }
+    if (keyInfo == null) {
+      throw new KsqlException(
+          String.format(
+              "%s : Invalid join criteria %s. Key for %s is not set correctly. ",
+              comparisonExpression.getLocation().isPresent()
+              ? comparisonExpression.getLocation().get().toString()
+              : "", comparisonExpression, sourceAlias
+          )
+      );
+    }
+    return keyInfo;
   }
 
-  private StructuredDataSource timestampColumn(AliasedRelation aliasedRelation,
-                                               StructuredDataSource
-                                               structuredDataSource) {
+  /**
+   * Given an expression and the source alias detects if the expression type is
+   * DereferenceExpression
+   * or QualifiedNameReference and if the variable prefix matches the source Alias.
+   */
+  private Pair<String, String> fetchKeyFieldNameFromExpr(
+      Expression expression, String sourceAlias,
+      Schema sourceSchema
+  ) {
+    if (expression instanceof DereferenceExpression) {
+      DereferenceExpression dereferenceExpression =
+          (DereferenceExpression) expression;
+      String sourceAliasVal = dereferenceExpression.getBase().toString();
+      if (sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+        String keyFieldName = dereferenceExpression.getFieldName();
+        if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
+          return new Pair<>(sourceAliasVal, keyFieldName);
+        }
+      }
+    } else if (expression instanceof QualifiedNameReference) {
+      QualifiedNameReference qualifiedNameReference =
+          (QualifiedNameReference) expression;
+      String keyFieldName = qualifiedNameReference.getName().getSuffix();
+      if (SchemaUtil.getFieldByName(sourceSchema, keyFieldName).isPresent()) {
+        return new Pair<>(sourceAlias, keyFieldName);
+      }
+    }
+    return null;
+  }
+
+  private StructuredDataSource timestampColumn(
+      AliasedRelation aliasedRelation,
+      StructuredDataSource structuredDataSource
+  ) {
     if (((Table) aliasedRelation.getRelation()).getProperties() != null) {
       if (((Table) aliasedRelation.getRelation()).getProperties()
               .get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
@@ -294,8 +382,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-    if (metaStore.getSource(structuredDataSourceName)
-        == null) {
+    if (metaStore.getSource(structuredDataSourceName) == null) {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 
@@ -314,12 +401,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
     }
 
-    Pair<StructuredDataSource, String>
-        fromDataSource =
+    Pair<StructuredDataSource, String> fromDataSource =
         new Pair<>(
             structuredDataSource,
-            node.getAlias());
-    analysis.getFromDataSources().add(fromDataSource);
+            node.getAlias()
+        );
+    analysis.addDataSource(fromDataSource);
     return node;
   }
 
@@ -328,10 +415,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     StructuredDataSource into;
     if (node.isStdOut) {
-      into =
-          new KsqlStdOut(KsqlStdOut.KSQL_STDOUT_NAME, null, null,
-                         null, StructuredDataSource.DataSourceType.KSTREAM);
-
+      into = new KsqlStdOut(
+          KsqlStdOut.KSQL_STDOUT_NAME,
+          null,
+          null,
+          null,
+          StructuredDataSource.DataSourceType.KSTREAM
+      );
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = analyzeNonStdOutTable(node);
     } else {
@@ -341,7 +431,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     analysis.setInto(into);
     return null;
   }
-
 
 
   @Override
@@ -355,32 +444,37 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (selectItem instanceof AllColumns) {
         // expand * and T.*
         AllColumns allColumns = (AllColumns) selectItem;
-        if ((this.analysis.getFromDataSources() == null) || (this.analysis.getFromDataSources()
-            .isEmpty())) {
+        if ((this.analysis.getFromDataSources() == null) || (
+            this.analysis.getFromDataSources().isEmpty()
+          )) {
           throw new KsqlException("FROM clause was not resolved!");
         }
         if (analysis.getJoin() != null) {
           JoinNode joinNode = analysis.getJoin();
           for (Field field : joinNode.getLeft().getSchema().fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
+            QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(joinNode.getLeftAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference,
-                joinNode.getLeftAlias() + "_" + field.name());
+            analysis.addSelectItem(
+                qualifiedNameReference,
+                joinNode.getLeftAlias() + "_" + field.name()
+            );
           }
           for (Field field : joinNode.getRight().getSchema().fields()) {
             QualifiedNameReference qualifiedNameReference =
-                new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
-                    .of(joinNode.getRightAlias() + "." + field.name()));
-            analysis.addSelectItem(qualifiedNameReference,
-                joinNode.getRightAlias() + "_" + field.name());
+                new QualifiedNameReference(
+                    allColumns.getLocation().get(),
+                    QualifiedName.of(joinNode.getRightAlias() + "." + field.name())
+                );
+            analysis.addSelectItem(
+                qualifiedNameReference,
+                joinNode.getRightAlias() + "_" + field.name()
+            );
           }
         } else {
           for (Field field : this.analysis.getFromDataSources().get(0).getLeft().getSchema()
               .fields()) {
-            QualifiedNameReference
-                qualifiedNameReference =
+            QualifiedNameReference qualifiedNameReference =
                 new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
                     .of(this.analysis.getFromDataSources().get(0).getRight() + "." + field.name()));
             analysis.addSelectItem(qualifiedNameReference, field.name());
@@ -398,8 +492,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   @Override
-  protected Node visitQualifiedNameReference(final QualifiedNameReference node,
-                                             final AnalysisContext context) {
+  protected Node visitQualifiedNameReference(
+      final QualifiedNameReference node,
+      final AnalysisContext context
+  ) {
     return visitExpression(node, context);
   }
 
@@ -428,8 +524,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private StructuredDataSource analyzeNonStdOutTable(final Table node) {
-    StructuredDataSource into = new KsqlStream(node.getName().getSuffix(), null,
-                                               null, null, null);
+    StructuredDataSource into = new KsqlStream(
+        sqlExpression,
+        node.getName().getSuffix(),
+        null,
+        null,
+        null,
+        null
+    );
 
     setIntoProperties(into, node);
     return into;
@@ -449,47 +551,53 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     if (node.getProperties().get(DdlConfig.PARTITION_BY_PROPERTY) != null) {
       String intoPartitionByColumnName = node.getProperties()
-          .get(DdlConfig.PARTITION_BY_PROPERTY).toString().toUpperCase();
-      analysis.getIntoProperties().put(DdlConfig.PARTITION_BY_PROPERTY,
-                                       intoPartitionByColumnName);
+          .get(DdlConfig.PARTITION_BY_PROPERTY)
+          .toString()
+          .toUpperCase();
+      analysis.getIntoProperties().put(
+          DdlConfig.PARTITION_BY_PROPERTY,
+          intoPartitionByColumnName
+      );
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
       setIntoTimestampColumn(node);
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
       try {
-        int numberOfPartitions = Integer.parseInt(node.getProperties()
-                                                      .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
-                                                      .toString());
-        analysis.getIntoProperties().put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-                                         numberOfPartitions);
+        int numberOfPartitions = Integer.parseInt(
+            node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString()
+        );
+        analysis.getIntoProperties().put(
+            KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+            numberOfPartitions
+        );
 
       } catch (NumberFormatException e) {
-        throw new KsqlException("Invalid number of partitions in WITH clause: "
-                                + node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS)
-                                    .toString());
+        throw new KsqlException(
+            "Invalid number of partitions in WITH clause: "
+            + node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
       }
     }
 
-    if (node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS) != null) {
+    if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
       try {
         short numberOfReplications =
-            Short.parseShort(node.getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS)
-                                 .toString());
+            Short.parseShort(
+                node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString()
+            );
         analysis.getIntoProperties()
-            .put(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS_PROPERTY, numberOfReplications);
+            .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
       } catch (NumberFormatException e) {
         throw new KsqlException("Invalid number of replications in WITH clause: " + node
-            .getProperties().get(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS).toString());
+            .getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       }
     }
   }
 
   private void setIntoTopicName(final Table node) {
-    String
-        intoKafkaTopicName =
+    String intoKafkaTopicName =
         node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString();
     if (!intoKafkaTopicName.startsWith("'") && !intoKafkaTopicName.endsWith("'")) {
       throw new KsqlException(
@@ -525,19 +633,21 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoTimestampColumn(final Table node) {
-    String
-        intoTimestampColumnName = node.getProperties()
-        .get(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
+    String intoTimestampColumnName = node.getProperties()
+        .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
     if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
       throw new KsqlException(
           intoTimestampColumnName + " value is string and should be enclosed between "
           + "\"'\".");
     }
-    intoTimestampColumnName = intoTimestampColumnName.substring(1,
-                                                                intoTimestampColumnName
-                                                                    .length() - 1);
-    analysis.getIntoProperties().put(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME,
-                                     intoTimestampColumnName);
+    intoTimestampColumnName = intoTimestampColumnName.substring(
+        1,
+        intoTimestampColumnName.length() - 1
+    );
+    analysis.getIntoProperties().put(
+        KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME,
+        intoTimestampColumnName
+    );
   }
 
   private void validateWithClause(Set<String> withClauseVariables) {
@@ -546,11 +656,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
-    validSet.add(KsqlConfig.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
-    validSet.add(KsqlConfig.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
-    validSet.add(KsqlConfig.SINK_NUMBER_OF_REPLICATIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
 
-    for (String withVariable: withClauseVariables) {
+    for (String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {
         throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
       }

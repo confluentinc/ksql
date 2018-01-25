@@ -47,8 +47,8 @@ public class TestTerminal extends Console {
     output = TestResult.init(requireOrder);
   }
 
-  public TestResult getTestResult() {
-    return output;
+  public synchronized TestResult getTestResult() {
+    return output.copy();
   }
 
   public String getOutputString() {
@@ -56,7 +56,7 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  public void addResult(GenericRow row) {
+  public synchronized void addResult(GenericRow row) {
     output.addRow(row);
   }
 
@@ -81,7 +81,7 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     printWriter.close();
   }
 

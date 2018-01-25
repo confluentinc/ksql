@@ -16,9 +16,18 @@
 
 package io.confluent.ksql.parser.tree;
 
+import org.apache.kafka.streams.kstream.Initializer;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.TimeWindows;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.UdafAggregator;
 
 public class HoppingWindowExpression extends KsqlWindowExpression {
 
@@ -27,21 +36,22 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   private final long advanceBy;
   private final TimeUnit advanceByUnit;
 
-  public HoppingWindowExpression(long size, TimeUnit sizeUnit,
-                                  long advanceBy, TimeUnit advanceByUnit) {
-    this(Optional.empty(), "", size, sizeUnit, advanceBy, advanceByUnit);
+  public HoppingWindowExpression(
+      long size,
+      TimeUnit sizeUnit,
+      long advanceBy,
+      TimeUnit advanceByUnit
+  ) {
+    this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
-  public HoppingWindowExpression(NodeLocation location, String windowName, long size,
-                                 TimeUnit
-      sizeUnit,
-                                   long advanceBy, TimeUnit advanceByUnit) {
-    this(Optional.of(location), windowName, size, sizeUnit, advanceBy, advanceByUnit);
-  }
-
-  private HoppingWindowExpression(Optional<NodeLocation> location, String windowName, long size,
-                                   TimeUnit sizeUnit,
-                             long advanceBy, TimeUnit advanceByUnit) {
+  private HoppingWindowExpression(
+      Optional<NodeLocation> location,
+      long size,
+      TimeUnit sizeUnit,
+      long advanceBy,
+      TimeUnit advanceByUnit
+  ) {
     super(location);
     this.size = size;
     this.sizeUnit = sizeUnit;
@@ -49,27 +59,10 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     this.advanceByUnit = advanceByUnit;
   }
 
-  public long getSize() {
-    return size;
-  }
-
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
-  }
-
-  public long getAdvanceBy() {
-    return advanceBy;
-  }
-
-  public TimeUnit getAdvanceByUnit() {
-    return advanceByUnit;
-  }
-
   @Override
   public String toString() {
     return " HOPPING ( SIZE " + size + " " + sizeUnit + " , ADVANCE BY "
-           + advanceBy + " "
-           + "" + advanceByUnit + " ) ";
+           + advanceBy + " " + "" + advanceByUnit + " ) ";
   }
 
   @Override
@@ -88,6 +81,20 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
     return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
            && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
-               .advanceByUnit == advanceByUnit;
+                                                                    .advanceByUnit == advanceByUnit;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public KTable applyAggregate(
+      KGroupedStream groupedStream,
+      Initializer initializer,
+      UdafAggregator aggregator,
+      Materialized<String, GenericRow, ?> materialized
+  ) {
+    return groupedStream.windowedBy(
+        TimeWindows.of(sizeUnit.toMillis(size))
+            .advanceBy(advanceByUnit.toMillis(advanceBy))
+    ).aggregate(initializer, aggregator, materialized);
   }
 }

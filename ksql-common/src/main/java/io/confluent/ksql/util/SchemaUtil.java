@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -26,13 +27,18 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.apache.avro.Schema.create;
+import static org.apache.avro.Schema.createArray;
+import static org.apache.avro.Schema.createMap;
+
 public class SchemaUtil {
 
+  public static final String ARRAY = "ARRAY";
+  public static final String MAP = "MAP";
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
-  public static final int ROWTIME_NAME_INDEX = 0;
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -50,37 +56,9 @@ public class SchemaUtil {
         Class elementClass = getJavaType(schema.valueSchema());
         return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
       case MAP:
-        return (new HashMap<>()).getClass();
+        return HashMap.class;
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
-    }
-  }
-
-
-  public static Schema getTypeSchema(final String ksqlType) {
-    switch (ksqlType) {
-      case "VARCHAR":
-      case "STRING":
-        return Schema.STRING_SCHEMA;
-      case "BOOLEAN":
-        return Schema.BOOLEAN_SCHEMA;
-      case "INTEGER":
-        return Schema.INT32_SCHEMA;
-      case "BIGINT":
-        return Schema.INT64_SCHEMA;
-      case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
-      case "ARRAY":
-        return SchemaBuilder.array(
-            getTypeSchema(ksqlType.substring("ARRAY".length() + 1, ksqlType.length() - 1).trim()));
-      case "MAP":
-        return SchemaBuilder.map(
-            Schema.STRING_SCHEMA,
-            getTypeSchema(ksqlType.substring(ksqlType.indexOf(",") + 1,
-                                             ksqlType.length() - 1).trim()));
-      default:
-        throw new KsqlException("Type is not supported: " + ksqlType);
-
     }
   }
 
@@ -97,6 +75,55 @@ public class SchemaUtil {
     }
     return Optional.empty();
   }
+
+  public static Schema getTypeSchema(final String sqlType) {
+    switch (sqlType) {
+      case "VARCHAR":
+      case "STRING":
+        return Schema.STRING_SCHEMA;
+      case "BOOLEAN":
+      case "BOOL":
+        return Schema.BOOLEAN_SCHEMA;
+      case "INTEGER":
+      case "INT":
+        return Schema.INT32_SCHEMA;
+      case "BIGINT":
+      case "LONG":
+        return Schema.INT64_SCHEMA;
+      case "DOUBLE":
+        return Schema.FLOAT64_SCHEMA;
+      default:
+        return getKsqlComplexType(sqlType);
+    }
+  }
+
+  private static Schema getKsqlComplexType(final String sqlType) {
+    if (sqlType.startsWith(ARRAY)) {
+      return SchemaBuilder.array(
+          getTypeSchema(
+              sqlType.substring(
+                  ARRAY.length() + 1,
+                  sqlType.length() - 1
+              )
+          )
+      );
+    } else if (sqlType.startsWith(MAP)) {
+      //TODO: For now only primitive data types for map are supported. Will have to add nested
+      // types.
+      String[] mapTypesStrs = sqlType
+          .substring("MAP".length() + 1, sqlType.length() - 1)
+          .trim()
+          .split(",");
+      if (mapTypesStrs.length != 2) {
+        throw new KsqlException("Map type is not defined correctly.: " + sqlType);
+      }
+      String keyType = mapTypesStrs[0].trim();
+      String valueType = mapTypesStrs[1].trim();
+      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType));
+    }
+    throw new KsqlException("Unsupported type: " + sqlType);
+  }
+
 
   public static int getFieldIndexByName(final Schema schema, final String fieldName) {
     if (schema.fields() == null) {
@@ -132,7 +159,7 @@ public class SchemaUtil {
     return newSchema;
   }
 
-  public static final ImmutableMap<String, String> TYPE_MAP =
+  private static final ImmutableMap<String, String> TYPE_MAP =
       new ImmutableMap.Builder<String, String>()
           .put("STRING", "VARCHAR(STRING)")
           .put("INT64", "BIGINT")
@@ -172,22 +199,22 @@ public class SchemaUtil {
     }
   }
 
-  public static synchronized Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
+  public static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
-    for (Field field: schema.fields()) {
-      if (!field.name().equals(SchemaUtil.ROWKEY_NAME) && !field.name().equals(SchemaUtil
-                                                                                   .ROWTIME_NAME)) {
+    for (Field field : schema.fields()) {
+      if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
+          && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
     return schemaBuilder.build();
   }
 
-  public static synchronized Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
+  public static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field: schema.fields()) {
+    for (Field field : schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf('.') + 1);
       if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
@@ -198,8 +225,8 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static synchronized Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
-    Set indexSet = new HashSet();
+  public static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
+    Set<Integer> indexSet = new HashSet<>();
     for (int i = 0; i < schema.fields().size(); i++) {
       Field field = schema.fields().get(i);
       if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
@@ -210,7 +237,7 @@ public class SchemaUtil {
     return indexSet;
   }
 
-  public static synchronized String getSchemaDefinitionString(Schema schema) {
+  public static String getSchemaDefinitionString(Schema schema) {
     StringBuilder stringBuilder = new StringBuilder("[");
     boolean addComma = false;
     for (Field field : schema.fields()) {
@@ -219,10 +246,103 @@ public class SchemaUtil {
       } else {
         addComma = true;
       }
-      stringBuilder.append(field.name() + " : " + field.schema().type());
+      stringBuilder.append(field.name())
+          .append(" : ")
+          .append(field.schema().type());
     }
     stringBuilder.append("]");
     return stringBuilder.toString();
   }
 
+  public static String getSQLTypeName(Schema schema) {
+    switch (schema.type()) {
+      case INT32:
+        return "INT";
+      case INT64:
+        return "BIGINT";
+      case FLOAT32:
+      case FLOAT64:
+        return "DOUBLE";
+      case BOOLEAN:
+        return "BOOLEAN";
+      case STRING:
+        return "VARCHAR";
+      case ARRAY:
+        return "ARRAY<" + getSQLTypeName(schema.valueSchema()) + ">";
+      case MAP:
+        return "MAP<"
+               + getSQLTypeName(schema.keySchema())
+               + ","
+               + getSQLTypeName(schema.valueSchema())
+               + ">";
+      default:
+        throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
+    }
+  }
+
+  public static String buildAvroSchema(final Schema schema, String name) {
+
+    org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler = org.apache.avro.SchemaBuilder
+        .record(name).namespace("ksql")
+        .fields();
+    for (Field field : schema.fields()) {
+      fieldAssembler
+          .name(field.name().replace(".", "_"))
+          .type(getAvroSchemaForField(field.schema()))
+          .noDefault();
+    }
+
+    return fieldAssembler.endRecord().toString();
+  }
+
+  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
+    switch (fieldSchema.type()) {
+      case STRING:
+        return create(org.apache.avro.Schema.Type.STRING);
+      case BOOLEAN:
+        return create(org.apache.avro.Schema.Type.BOOLEAN);
+      case INT32:
+        return create(org.apache.avro.Schema.Type.INT);
+      case INT64:
+        return create(org.apache.avro.Schema.Type.LONG);
+      case FLOAT64:
+        return create(org.apache.avro.Schema.Type.DOUBLE);
+      default:
+        if (fieldSchema.type() == Schema.Type.ARRAY) {
+          return createArray(getAvroSchemaForField(fieldSchema.valueSchema()));
+        } else if (fieldSchema.type() == Schema.Type.MAP) {
+          return createMap(getAvroSchemaForField(fieldSchema.valueSchema()));
+        }
+        throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
+    }
+  }
+
+  /**
+   * Rename field names to be consistent with the internal column names.
+   */
+  public static Schema getAvroSerdeKsqlSchema(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field : schema.fields()) {
+      schemaBuilder.field(field.name().replace(".", "_"), field.schema());
+    }
+
+    return schemaBuilder.build();
+  }
+
+  /**
+   * Remove the alias when reading/writing from outside
+   */
+  public static Schema getSchemaWithNoAlias(Schema schema) {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (Field field : schema.fields()) {
+      String name = field.name();
+      if (name.contains(".")) {
+        schemaBuilder.field(name.substring(name.indexOf(".") + 1), field.schema());
+      } else {
+        schemaBuilder.field(name, field.schema());
+      }
+    }
+
+    return schemaBuilder.build();
+  }
 }

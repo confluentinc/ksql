@@ -16,11 +16,25 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.KsqlFunctions;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.parser.tree.Cast;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
-import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.DoubleLiteral;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.IsNotNullPredicate;
+import io.confluent.ksql.parser.tree.IsNullPredicate;
+import io.confluent.ksql.parser.tree.LikePredicate;
+import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.planner.PlanException;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -31,9 +45,11 @@ public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
   private final Schema schema;
+  private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(Schema schema) {
+  public ExpressionTypeManager(Schema schema, final FunctionRegistry functionRegistry) {
     this.schema = schema;
+    this.functionRegistry = functionRegistry;
   }
 
   public Schema getExpressionType(final Expression expression) {
@@ -42,7 +58,7 @@ public class ExpressionTypeManager
     return expressionTypeContext.getSchema();
   }
 
-  class ExpressionTypeContext {
+  static class ExpressionTypeContext {
 
     Schema schema;
 
@@ -160,12 +176,12 @@ public class ExpressionTypeManager
   protected Expression visitFunctionCall(final FunctionCall node,
                                          final ExpressionTypeContext expressionTypeContext) {
 
-    KsqlFunction ksqlFunction = KsqlFunctions.getFunction(node.getName().getSuffix());
+    KsqlFunction ksqlFunction = functionRegistry.getFunction(node.getName().getSuffix());
     if (ksqlFunction != null) {
       expressionTypeContext.setSchema(ksqlFunction.getReturnType());
-    } else if (KsqlFunctions.isAnAggregateFunction(node.getName().getSuffix())) {
+    } else if (functionRegistry.isAnAggregateFunction(node.getName().getSuffix())) {
       KsqlAggregateFunction ksqlAggregateFunction =
-          KsqlFunctions.getAggregateFunction(
+          functionRegistry.getAggregateFunction(
               node.getName().getSuffix(), node.getArguments(), schema);
       expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
     } else {
@@ -176,17 +192,19 @@ public class ExpressionTypeManager
 
   private Schema resolveArithmaticType(final Schema leftSchema,
                                             final Schema rightSchema) {
-    if (leftSchema == rightSchema) {
+    Schema.Type leftType = leftSchema.type();
+    Schema.Type rightType = rightSchema.type();
+
+    if (leftType == rightType) {
       return leftSchema;
-    } else if ((leftSchema == Schema.STRING_SCHEMA) || (rightSchema == Schema.STRING_SCHEMA)) {
+    } else if (((leftType == Schema.Type.STRING) || (rightType == Schema.Type.STRING))
+        || ((leftType == Schema.Type.BOOLEAN) || (rightType == Schema.Type.BOOLEAN))) {
       throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.BOOLEAN_SCHEMA) || (rightSchema == Schema.BOOLEAN_SCHEMA)) {
-      throw new PlanException("Incompatible types.");
-    } else if ((leftSchema == Schema.FLOAT64_SCHEMA) || (rightSchema == Schema.FLOAT64_SCHEMA)) {
+    } else if ((leftType == Schema.Type.FLOAT64) || (rightType == Schema.Type.FLOAT64)) {
       return Schema.FLOAT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT64_SCHEMA) || (rightSchema == Schema.INT64_SCHEMA)) {
+    } else if ((leftType == Schema.Type.INT64) || (rightType == Schema.Type.INT64)) {
       return Schema.INT64_SCHEMA;
-    } else if ((leftSchema == Schema.INT32_SCHEMA) || (rightSchema == Schema.INT32_SCHEMA)) {
+    } else if ((leftType == Schema.Type.INT32) || (rightType == Schema.Type.INT32)) {
       return Schema.INT32_SCHEMA;
     }
     throw new PlanException("Unsupported types.");

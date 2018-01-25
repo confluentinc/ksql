@@ -17,15 +17,16 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.confluent.ksql.rest.server.computation.CommandId;
 
 import java.util.Map;
 import java.util.Objects;
 
 @JsonTypeName("currentStatus")
+@JsonSubTypes({})
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
@@ -39,23 +40,6 @@ public class CommandStatusEntity extends KsqlEntity {
     this.commandId = commandId;
     this.commandStatus = commandStatus;
   }
-
-  //  Commented-out now due to Jackson issues with deserializing unwrapped values; may be possible
-  //  to do things this way once Jackson 2.9.0 comes out but until then have to stick with the
-  //  Map<String, Object> constructor hack
-  //  @JsonCreator
-  //  public CommandStatusEntity(
-  //      @JsonProperty("statementText") String statementText,
-  //      @JsonProperty("commandId") String commandId,
-  //      @JsonProperty("status") String status,
-  //      @JsonProperty("message") String message
-  //  ) {
-  //    this(
-  //        statementText,
-  //        CommandId.fromString(commandId),
-  //        new CommandStatus(CommandStatus.Status.valueOf(status), message)
-  //    );
-  //  }
 
   public CommandStatusEntity(
       String statementText,
@@ -75,18 +59,16 @@ public class CommandStatusEntity extends KsqlEntity {
     this(
         (String) properties.get("statementText"),
         (String) properties.get("commandId"),
-        (String) properties.get("status"),
-        (String) properties.get("message")
+        (String) ((Map<String, Object>) properties.get("commandStatus")).get("status"),
+        (String) ((Map<String, Object>) properties.get("commandStatus")).get("message")
     );
   }
 
-  @JsonUnwrapped
   public CommandId getCommandId() {
     return commandId;
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
-  @JsonUnwrapped
   public CommandStatus getCommandStatus() {
     return commandStatus;
   }

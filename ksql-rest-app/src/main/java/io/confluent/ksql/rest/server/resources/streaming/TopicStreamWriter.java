@@ -20,85 +20,181 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroDeserializer;
-import io.confluent.ksql.serde.avro.KsqlGenericRowAvroSerializer;
-import io.confluent.ksql.util.SchemaUtil;
-
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.ksql.util.SchemaUtil;
+
+import static io.confluent.ksql.rest.server.resources.streaming.TopicStreamWriter.Format.getFormatter;
 
 public class TopicStreamWriter implements StreamingOutput {
+
+  public enum Format {
+
+    UNDEFINED {
+    },
+    AVRO {
+      private String topicName;
+      private KafkaAvroDeserializer avroDeserializer;
+
+      @Override
+      public boolean isFormat(
+          String topicName, ConsumerRecord<String, Bytes> record,
+          SchemaRegistryClient schemaRegistryClient
+      ) {
+        this.topicName = topicName;
+        try {
+          avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+          avroDeserializer.deserialize(topicName, record.value().get());
+          return true;
+        } catch (Throwable t) {
+          return false;
+        }
+      }
+
+      @Override
+      String print(ConsumerRecord<String, Bytes> consumerRecord) throws IOException {
+        String time = dateFormat.format(new Date(consumerRecord.timestamp()));
+        GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
+            topicName,
+            consumerRecord
+                .value()
+                .get()
+        );
+        String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
+        return time + ", " + key + ", " + record.toString() + "\n";
+      }
+    },
+    JSON {
+      final ObjectMapper objectMapper = new ObjectMapper();
+
+      @Override
+      public boolean isFormat(
+          String topicName, ConsumerRecord<String, Bytes> record,
+          SchemaRegistryClient schemaRegistryClient
+      ) {
+        try {
+          objectMapper.readTree(record.value().toString());
+          return true;
+        } catch (Throwable t) {
+          return false;
+        }
+      }
+
+      @Override
+      String print(ConsumerRecord<String, Bytes> record) throws IOException {
+        JsonNode jsonNode = objectMapper.readTree(record.value().toString());
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
+        objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null) ? record.key() : "null");
+        objectNode.setAll((ObjectNode) jsonNode);
+        StringWriter stringWriter = new StringWriter();
+        objectMapper.writeValue(stringWriter, objectNode);
+        return stringWriter.toString() + "\n";
+      }
+    },
+    STRING {
+      @Override
+      public boolean isFormat(
+          String topicName,
+          ConsumerRecord<String, Bytes> record,
+          SchemaRegistryClient schemaRegistryClient
+      ) {
+        /**
+         * STRING always returns true because its last in the enum list
+         */
+        return true;
+      }
+    };
+
+    final DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
+
+    static Format getFormatter(
+        String topicName,
+        ConsumerRecord<String, Bytes> record,
+        SchemaRegistryClient schemaRegistryClient
+    ) {
+      Format result = Format.UNDEFINED;
+      while ((result.isFormat(topicName, record, schemaRegistryClient)) == false) {
+        result = Format.values()[result.ordinal() + 1];
+      }
+      return result;
+
+    }
+
+    boolean isFormat(
+        String topicName,
+        ConsumerRecord<String, Bytes> record,
+        SchemaRegistryClient schemaRegistryClient
+    ) {
+      return false;
+    }
+
+    String print(ConsumerRecord<String, Bytes> record) throws IOException {
+      String key = record.key() != null ? record.key() : "null";
+      String result = dateFormat.format(new Date(record.timestamp())) + " , " + key +
+                      " , " + record.value().toString() + "\n";
+      return result;
+    }
+
+  }
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
   private final Long interval;
   private final long disconnectCheckInterval;
-  private final KafkaConsumer<?, ?> topicConsumer;
-  private final String kafkaTopic;
-  KsqlTopic ksqlTopic;
-  private final ObjectMapper objectMapper;
+  private final KafkaConsumer<String, Bytes> topicConsumer;
+  private final SchemaRegistryClient schemaRegistryClient;
+  private final String topicName;
 
   private long messagesWritten;
 
   public TopicStreamWriter(
+      SchemaRegistryClient schemaRegistryClient,
       Map<String, Object> consumerProperties,
-      KsqlTopic ksqlTopic,
+      String topicName,
       long interval,
       long disconnectCheckInterval,
       boolean fromBeginning
   ) {
-    this.ksqlTopic = ksqlTopic;
-    this.kafkaTopic = ksqlTopic.getKafkaTopicName();
+    this.schemaRegistryClient = schemaRegistryClient;
+    this.topicName = topicName;
     this.messagesWritten = 0;
-    this.objectMapper = new ObjectMapper();
-
-    Deserializer<?> valueDeserializer;
-    switch (ksqlTopic.getKsqlTopicSerDe().getSerDe()) {
-      case JSON:
-      case DELIMITED:
-        valueDeserializer = new StringDeserializer();
-        break;
-      case AVRO:
-        KsqlAvroTopicSerDe avroTopicSerDe = (KsqlAvroTopicSerDe) ksqlTopic.getKsqlTopicSerDe();
-        Map<String, Object> avroSerdeProps = new HashMap<>();
-        avroSerdeProps.put(
-            KsqlGenericRowAvroSerializer.AVRO_SERDE_SCHEMA_CONFIG,
-            avroTopicSerDe.getSchemaString()
-        );
-        valueDeserializer = new KsqlGenericRowAvroDeserializer(null);
-        valueDeserializer.configure(avroSerdeProps, false);
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected SerDe type: %s",
-            ksqlTopic.getDataSourceType().name()
-        ));
-    }
 
     this.disconnectCheckInterval = disconnectCheckInterval;
 
-    this.topicConsumer =
-        new KafkaConsumer<>(consumerProperties, new StringDeserializer(), valueDeserializer);
-    List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(kafkaTopic)
+    this.topicConsumer = new KafkaConsumer<>(
+        consumerProperties,
+        new StringDeserializer(),
+        new BytesDeserializer()
+    );
+
+    List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
         .stream()
         .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
         .collect(Collectors.toList());
@@ -114,24 +210,22 @@ public class TopicStreamWriter implements StreamingOutput {
   @Override
   public void write(OutputStream out) throws IOException, WebApplicationException {
     try {
+      Format format = Format.UNDEFINED;
       while (true) {
-        ConsumerRecords<?, ?> records = topicConsumer.poll(disconnectCheckInterval);
+        ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
-          synchronized (out) {
-            out.write("\n".getBytes());
-            out.flush();
-          }
+          out.write("\n".getBytes(StandardCharsets.UTF_8));
+          out.flush();
         } else {
-          synchronized (out) {
-            for (ConsumerRecord<?, ?> record : records.records(kafkaTopic)) {
-              if (record.value() != null) {
-                if (messagesWritten++ % interval == 0) {
-                  if (ksqlTopic.getKsqlTopicSerDe().getSerDe() == DataSource.DataSourceSerDe.JSON) {
-                    printJsonValue(out, record);
-                  } else {
-                    printAvroOrDelimitedValue(out, record);
-                  }
-                }
+          for (ConsumerRecord<String, Bytes> record : records.records(topicName)) {
+            if (record.value() != null) {
+              if (format == Format.UNDEFINED) {
+                format = getFormatter(topicName, record, schemaRegistryClient);
+                out.write(("Format:" + format.name() + "\n").getBytes(StandardCharsets.UTF_8));
+              }
+              if (messagesWritten++ % interval == 0) {
+                out.write(format.print(record).getBytes(StandardCharsets.UTF_8));
+                out.flush();
               }
             }
           }
@@ -141,34 +235,11 @@ public class TopicStreamWriter implements StreamingOutput {
       // Connection terminated, we can stop writing
     } catch (Exception exception) {
       log.error("Exception encountered while writing to output stream", exception);
-      synchronized (out) {
-        out.write(exception.getMessage().getBytes());
-        out.write("\n".getBytes());
-        out.flush();
-      }
+      out.write(exception.getMessage().getBytes(StandardCharsets.UTF_8));
+      out.write("\n".getBytes(StandardCharsets.UTF_8));
+      out.flush();
     } finally {
       topicConsumer.close();
     }
   }
-
-  private void printJsonValue(OutputStream out, ConsumerRecord<?, ?> record) throws IOException {
-    JsonNode jsonNode = objectMapper.readTree(record.value().toString());
-    ObjectNode objectNode = objectMapper.createObjectNode();
-    objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-    objectNode.put(SchemaUtil.ROWKEY_NAME, (record.key() != null)? record.key()
-        .toString(): "null");
-    objectNode.setAll((ObjectNode) jsonNode);
-    objectMapper.writeValue(out, objectNode);
-    out.write("\n".getBytes());
-    out.flush();
-  }
-
-  private void printAvroOrDelimitedValue(OutputStream out, ConsumerRecord<?, ?> record) throws
-                                                                                   IOException {
-    out.write((record.timestamp() + " , " +record.key().toString() + " , " + record.value()
-        .toString()).getBytes());
-    out.write("\n".getBytes());
-    out.flush();
-  }
-
 }

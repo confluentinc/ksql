@@ -320,9 +320,8 @@ public abstract class DefaultTraversalVisitor<R, C>
   @Override
   protected R visitQuerySpecification(QuerySpecification node, C context) {
     process(node.getSelect(), context);
-    if (node.getFrom().isPresent()) {
-      process(node.getFrom().get(), context);
-    }
+    process(node.getFrom(), context);
+
     if (node.getWhere().isPresent()) {
       process(node.getWhere().get(), context);
     }

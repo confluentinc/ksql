@@ -19,14 +19,15 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.rest.entity.PropertiesList;
 import org.codehaus.jackson.JsonParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.ConnectException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,29 +40,31 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.confluent.ksql.rest.entity.PropertiesList;
 
 public class CliUtils {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CliUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
-  public Optional<String> getAvroSchemaIfAvroTopic(SqlBaseParser.RegisterTopicContext
-                                                      registerTopicContext) {
+  public Optional<String> getAvroSchemaIfAvroTopic(
+      SqlBaseParser.RegisterTopicContext registerTopicContext
+  ) {
     AstBuilder astBuilder = new AstBuilder(null);
-    RegisterTopic registerTopic = (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
+    RegisterTopic registerTopic =
+        (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) == null) {
       throw new KsqlException("VALUE_FORMAT is not set for the topic.");
     }
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
         .equalsIgnoreCase("'AVRO'")) {
       if (registerTopic.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FILE)) {
-        String avroSchema = getAvroSchema(AstBuilder.unquote(registerTopic.getProperties()
-                                                                 .get(DdlConfig.AVRO_SCHEMA_FILE)
-                                                                 .toString(), "'"));
+        String avroSchema = getAvroSchema(AstBuilder.unquote(
+            registerTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString(), "'")
+        );
         return Optional.of(avroSchema);
       } else {
-        throw new KsqlException("You need to provide avro schema file path for topics in avro format.");
+        throw new KsqlException(
+            "You need to provide avro schema file path for topics in avro format.");
       }
     }
     return Optional.empty();
@@ -74,8 +77,10 @@ public class CliUtils {
       JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
     } catch (JsonParseException e) {
-      throw new KsqlException("Could not parse the avro schema file. Details: " + e.getMessage(),
-                              e);
+      throw new KsqlException(
+          "Could not parse the avro schema file. Details: " + e.getMessage(),
+          e
+      );
     } catch (IOException e) {
       throw new KsqlException("Could not read the avro schema file. Details: " + e.getMessage(), e);
     }
@@ -83,9 +88,8 @@ public class CliUtils {
 
   public String readQueryFile(final String queryFilePath) throws IOException {
     StringBuilder sb = new StringBuilder();
-    BufferedReader br = null;
-    try {
-      br = new BufferedReader(new FileReader(queryFilePath));
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {
         sb.append(line);
@@ -94,23 +98,14 @@ public class CliUtils {
       }
     } catch (IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
-    } finally {
-      if (br != null) {
-        br.close();
-      }
     }
     return sb.toString();
   }
 
-  public static String getErrorMessage(Throwable e) {
-    if (e instanceof ConnectException) {
-      return "Could not connect to the server.";
-    } else {
-      return e.getMessage();
-    }
-  }
-
-  public static PropertiesList propertiesListWithOverrides(PropertiesList propertiesList, Map<String, Object> localProperties) {
+  public static PropertiesList propertiesListWithOverrides(
+      PropertiesList propertiesList,
+      Map<String, Object> localProperties
+  ) {
     Map<String, Object> properties = propertiesList.getProperties();
     for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
       properties.put(
@@ -149,13 +144,18 @@ public class CliUtils {
 
   public static boolean createFile(Path path) {
     try {
-      Files.createDirectories(path.getParent());
+      final Path parent = path.getParent();
+      if (parent == null) {
+        log.warn("Failed to create file as the parent was null. path: {}", path);
+        return false;
+      }
+      Files.createDirectories(parent);
       if (Files.notExists(path)) {
         Files.createFile(path);
       }
       return true;
     } catch (Exception e) {
-      LOGGER.error(ExceptionUtil.stackTraceToString(e));
+      log.warn("createFile failed, path: {}", path, e);
       return false;
     }
   }

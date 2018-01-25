@@ -29,7 +29,6 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 
-import java.util.Collections;
 import java.util.Map;
 
 public class RegisterTopicCommand implements DDLCommand {
@@ -39,22 +38,15 @@ public class RegisterTopicCommand implements DDLCommand {
   private final boolean notExists;
 
   public RegisterTopicCommand(RegisterTopic registerTopic) {
-    this(registerTopic, Collections.emptyMap());
-  }
-
-  public RegisterTopicCommand(RegisterTopic registerTopic,
-                              Map<String, Object> overriddenProperties) {
     // TODO: find a way to merge overriddenProperties
     this(registerTopic.getName().getSuffix(),
          registerTopic.isNotExists(),
-         registerTopic.getProperties(),
-         overriddenProperties
+         registerTopic.getProperties()
     );
   }
 
   RegisterTopicCommand(String topicName, boolean notExist,
-                       Map<String, Expression> properties,
-                       Map<String, Object> overriddenProperties) {
+                       Map<String, Expression> properties) {
     this.topicName = topicName;
     // TODO: find a way to merge overriddenProperties
     enforceTopicProperties(properties);
@@ -62,22 +54,18 @@ public class RegisterTopicCommand implements DDLCommand {
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     final String serde = StringUtil.cleanQuotes(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(overriddenProperties, serde);
+    this.topicSerDe = extractTopicSerDe(serde);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(Map<String, Object> overriddenProperties, String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(String serde) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        if (!overriddenProperties.containsKey(DdlConfig.AVRO_SCHEMA)) {
-          throw new KsqlException("Avro schema file path should be set for avro topics.");
-        }
-        String avroSchema = overriddenProperties.get(DdlConfig.AVRO_SCHEMA).toString();
-        return new KsqlAvroTopicSerDe(avroSchema);
+        return new KsqlAvroTopicSerDe();
       case DataSource.JSON_SERDE_NAME:
-        return new KsqlJsonTopicSerDe(null);
+        return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:
         return new KsqlDelimitedTopicSerDe();
       default:

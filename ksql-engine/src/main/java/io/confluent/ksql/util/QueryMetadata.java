@@ -18,25 +18,42 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
+
 import org.apache.kafka.streams.KafkaStreams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 public class QueryMetadata {
+
+  private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
+  private final String queryApplicationId;
+  private final KafkaTopicClient kafkaTopicClient;
+  private final String topoplogy;
 
-  public QueryMetadata(String statementString, KafkaStreams kafkaStreams, OutputNode outputNode,
-                       String executionPlan,
-                       DataSource.DataSourceType dataSourceType) {
+
+  public QueryMetadata(final String statementString,
+                       final KafkaStreams kafkaStreams,
+                       final OutputNode outputNode,
+                       final String executionPlan,
+                       final DataSource.DataSourceType dataSourceType,
+                       final String queryApplicationId,
+                       final KafkaTopicClient kafkaTopicClient,
+                       String topoplogy) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
     this.executionPlan = executionPlan;
     this.dataSourceType = dataSourceType;
+    this.queryApplicationId = queryApplicationId;
+    this.kafkaTopicClient = kafkaTopicClient;
+    this.topoplogy = topoplogy;
   }
 
   public String getStatementString() {
@@ -59,6 +76,26 @@ public class QueryMetadata {
     return dataSourceType;
   }
 
+  public String getQueryApplicationId() {
+    return queryApplicationId;
+  }
+
+  public String getTopoplogy() {
+    return topoplogy;
+  }
+
+  public void close() {
+
+    kafkaStreams.close();
+    if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
+      kafkaStreams.cleanUp();
+      kafkaTopicClient.deleteInternalTopics(queryApplicationId);
+    } else {
+      log.error("Could not clean up the query with application id: {}. Query status is: {}",
+                queryApplicationId, kafkaStreams.state());
+    }
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof QueryMetadata)) {
@@ -69,11 +106,17 @@ public class QueryMetadata {
 
     return Objects.equals(this.statementString, that.statementString)
         && Objects.equals(this.kafkaStreams, that.kafkaStreams)
-        && Objects.equals(this.outputNode, that.outputNode);
+        && Objects.equals(this.outputNode, that.outputNode)
+        && Objects.equals(this.queryApplicationId, that.queryApplicationId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(kafkaStreams, outputNode);
+    return Objects.hash(kafkaStreams, outputNode, queryApplicationId);
+  }
+
+  public void start() {
+    log.info("Starting query with application id: {}", queryApplicationId);
+    kafkaStreams.start();
   }
 }

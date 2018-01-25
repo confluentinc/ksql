@@ -18,11 +18,13 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> streamsProperties;
@@ -44,6 +46,7 @@ public class Command {
     return new HashMap<>(streamsProperties);
   }
 
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -59,6 +62,14 @@ public class Command {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatement(), getStreamsProperties());
+    return Objects.hash(statement, streamsProperties);
+  }
+
+  @Override
+  public String toString() {
+    return "Command{" +
+        "statement='" + statement + '\'' +
+        ", streamsProperties=" + streamsProperties +
+        '}';
   }
 }

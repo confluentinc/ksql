@@ -18,12 +18,11 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.StringUtil;
+
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.ArrayList;
@@ -36,21 +35,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.util.KafkaConsumerGroupClient;
+import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.StringUtil;
 
 @JsonTypeName("kafka_topics")
+@JsonSubTypes({})
 public class KafkaTopicsList extends KsqlEntity {
+
   private final Collection<KafkaTopicInfo> topics;
 
   @JsonCreator
   public KafkaTopicsList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("kafka_topics")   Collection<KafkaTopicInfo> topics
+      @JsonProperty("kafka_topics") Collection<KafkaTopicInfo> topics
   ) {
     super(statementText);
     this.topics = topics;
   }
 
-  @JsonUnwrapped
   public List<KafkaTopicInfo> getTopics() {
     return new ArrayList<>(topics);
   }
@@ -72,72 +79,122 @@ public class KafkaTopicsList extends KsqlEntity {
     return Objects.hash(getTopics());
   }
 
-  public static KafkaTopicsList build(String statementText,
-                                      Collection<KsqlTopic> ksqlTopics,
-                                      Map<String, TopicDescription> kafkaTopicDescriptions,
-                                      KsqlConfig ksqlConfig) {
+  public static KafkaTopicsList build(
+      String statementText,
+      Collection<KsqlTopic> ksqlTopics,
+      Map<String, TopicDescription> kafkaTopicDescriptions,
+      KsqlConfig ksqlConfig,
+      KafkaConsumerGroupClient consumerGroupClient
+  ) {
+
     Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
 
     List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
-    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(kafkaTopicDescriptions,
-                                                                    ksqlConfig));
-    for (TopicDescription desp: kafkaTopicDescriptions.values()) {
+    kafkaTopicDescriptions = new TreeMap<>(filterKsqlInternalTopics(
+        kafkaTopicDescriptions,
+        ksqlConfig
+    ));
+
+    Map<String, List<Integer>> topicConsumersAndGroupCount = getTopicConsumerAndGroupCounts(
+        consumerGroupClient);
+
+    for (TopicDescription desp : kafkaTopicDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
           String.valueOf(registeredNames.contains(desp.name())),
-          String.valueOf(desp.partitions().size()),
-          String.valueOf(getTopicReplicaInfo(desp.partitions()))
+          desp.partitions().size(),
+          getTopicReplicaInfo(desp.partitions()),
+          topicConsumersAndGroupCount.getOrDefault(desp.name(), Arrays.asList(0, 0)).get(0),
+          topicConsumersAndGroupCount.getOrDefault(desp.name(), Arrays.asList(0, 0)).get(1)
       ));
     }
     return new KafkaTopicsList(statementText, kafkaTopicInfoList);
   }
 
+  /**
+   * @return all topics with their associated consumerCount and consumerGroupCount
+   */
+  private static Map<String, List<Integer>> getTopicConsumerAndGroupCounts(
+      KafkaConsumerGroupClient consumerGroupClient
+  ) {
+
+    List<String> consumerGroups = consumerGroupClient.listGroups();
+
+    Map<String, AtomicInteger> topicConsumerCount = new HashMap<>();
+    Map<String, Set<String>> topicConsumerGroupCount = new HashMap<>();
+
+    for (String group : consumerGroups) {
+      Collection<KafkaConsumerGroupClientImpl.ConsumerSummary> consumerSummaryList =
+          consumerGroupClient.describeConsumerGroup(group).consumers();
+
+      for (KafkaConsumerGroupClientImpl.ConsumerSummary consumerSummary : consumerSummaryList) {
+
+        for (TopicPartition topicPartition : consumerSummary.partitions()) {
+          topicConsumerCount
+              .computeIfAbsent(topicPartition.topic(), k -> new AtomicInteger())
+              .incrementAndGet();
+          topicConsumerGroupCount
+              .computeIfAbsent(topicPartition.topic(), k -> new HashSet<>()).add(group);
+        }
+      }
+    }
+    HashMap<String, List<Integer>> results = new HashMap<>();
+    topicConsumerCount.forEach(
+        (k, v) -> {
+          results.computeIfAbsent(k, v1 -> new ArrayList<>()).add(v.intValue());
+          results.get(k).add(topicConsumerGroupCount.get(k).size());
+        }
+    );
+
+    return results;
+  }
+
   private static Set<String> getRegisteredKafkaTopicNames(Collection<KsqlTopic> ksqlTopics) {
     Set<String> registeredNames = new HashSet<>();
-    for (KsqlTopic ksqlTopic: ksqlTopics) {
+    for (KsqlTopic ksqlTopic : ksqlTopics) {
       registeredNames.add(ksqlTopic.getKafkaTopicName());
     }
     return registeredNames;
   }
 
   private static String getTopicReplicaInfo(List<TopicPartitionInfo> partitions) {
-    int[] replicaSizes = new int[partitions.size()];
+    List<Integer> replicaSizes = new ArrayList<>(partitions.size());
 
-    for (int i = 0; i < partitions.size(); i++) {
-      replicaSizes[i] = partitions.get(i).replicas().size();
+    for (TopicPartitionInfo partition : partitions) {
+      replicaSizes.add(partition.replicas().size());
     }
 
     boolean sameReplicaCount = true;
     for (int i = 1; i < partitions.size(); i++) {
-      if (replicaSizes[i] != replicaSizes[i-1]) {
+      if (!replicaSizes.get(i).equals(replicaSizes.get(i - 1))) {
         sameReplicaCount = false;
         break;
       }
     }
 
     if (sameReplicaCount) {
-      return partitions.size() == 0 ? "0" : String.valueOf(replicaSizes[0]);
+      return partitions.size() == 0 ? "0" : String.valueOf(replicaSizes.get(0));
     } else {
-      return StringUtil.join(", ", Arrays.asList(replicaSizes));
+      return StringUtil.join(", ", replicaSizes);
     }
   }
 
   private static Map<String, TopicDescription> filterKsqlInternalTopics(
-      Map<String, TopicDescription> kafkaTopicDescriptions, KsqlConfig ksqlConfig) {
+      Map<String, TopicDescription> kafkaTopicDescriptions, KsqlConfig ksqlConfig
+  ) {
     Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-        .toString();
-    String persistentQueryPrefix = ksqlConfig.get(KsqlConfig
-                                                      .KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
-        .toString();
-    String transientQueryPrefix = ksqlConfig.get(KsqlConfig
-                                                      .KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)
-        .toString();
+    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String persistentQueryPrefix = ksqlConfig.get(
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG
+    ).toString();
+    String transientQueryPrefix = ksqlConfig.get(
+        KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG
+    ).toString();
 
-    for (String kafkaTopicName: kafkaTopicDescriptions.keySet()) {
-      if (!kafkaTopicName.startsWith(serviceId + persistentQueryPrefix) &&
-          !kafkaTopicName.startsWith(serviceId + transientQueryPrefix)) {
-        filteredKafkaTopics.put(kafkaTopicName.toLowerCase(), kafkaTopicDescriptions.get(kafkaTopicName));
+    for (Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
+      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix) &&
+          !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
+        filteredKafkaTopics.put(entry.getKey().toLowerCase(), entry.getValue());
       }
     }
     return filteredKafkaTopics;

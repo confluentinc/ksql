@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -34,10 +35,12 @@ public class AggregateAnalyzerTest {
 
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private MetaStore metaStore;
+  private FunctionRegistry functionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore();
+    functionRegistry = new FunctionRegistry();
   }
 
   private Analysis analyze(final String queryStr) {
@@ -45,7 +48,7 @@ public class AggregateAnalyzerTest {
 //    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(analysis, metaStore);
+    Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
     analyzer.process(statements.get(0), new AnalysisContext(null));
     return analysis;
   }
@@ -54,14 +57,16 @@ public class AggregateAnalyzerTest {
     System.out.println("Test query:" + queryStr);
     Analysis analysis = analyze(queryStr);
     AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis);
-    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter();
+    AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
+                                                                functionRegistry);
+    AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(
+        functionRegistry);
     for (Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(expression);
+        aggregateAnalysis.addNonAggResultColumns(expression);
       }
-      aggregateAnalysis.getFinalSelectExpressions().add(
+      aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
@@ -69,7 +74,7 @@ public class AggregateAnalyzerTest {
     if (analysis.getHavingExpression() != null) {
       aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.getNonAggResultColumns().add(analysis.getHavingExpression());
+        aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
       }
       aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
                                                                                analysis.getHavingExpression()));

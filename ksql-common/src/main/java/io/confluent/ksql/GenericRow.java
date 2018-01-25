@@ -45,7 +45,9 @@ public class GenericRow {
       } else if (obj.getClass().isArray()) {
         stringBuilder.append(Arrays.toString((Object[]) obj));
       } else if (obj instanceof String) {
-        stringBuilder.append("'" + obj + "'");
+        stringBuilder.append("'")
+            .append(obj)
+            .append("'");
       } else {
         stringBuilder.append(obj);
       }

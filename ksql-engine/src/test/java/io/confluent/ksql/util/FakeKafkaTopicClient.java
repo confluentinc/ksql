@@ -19,6 +19,8 @@ package io.confluent.ksql.util;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,27 +31,37 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+  }
+
+  @Override
+  public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
+
   }
 
   @Override
   public boolean isTopicExists(String topic) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return false;
   }
 
   @Override
   public Set<String> listTopicNames() {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return Collections.emptySet();
   }
 
   @Override
   public Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+    return Collections.emptyMap();
   }
 
   @Override
-  public void close() {
-    throw new UnsupportedOperationException("Calling method on FakeObject");
+  public void deleteTopics(List<String> topicsToDelete) {
   }
+
+  @Override
+  public void deleteInternalTopics(String applicationId) {
+  }
+
+  @Override
+  public void close() {  }
 
 }

@@ -17,13 +17,17 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Objects;
 
+@JsonSubTypes({})
 public class CommandId {
+
   private final Type type;
   private final String entity;
+  private final Action action;
 
   public enum Type {
     TOPIC,
@@ -32,22 +36,37 @@ public class CommandId {
     TERMINATE
   }
 
-  public CommandId(Type type, String entity) {
-    this.type = type;
-    this.entity = entity;
+  public enum Action {
+    CREATE,
+    DROP,
+    EXECUTE
   }
 
-  public CommandId(String type, String entity) {
-    this(Type.valueOf(type.toUpperCase()), entity);
+  public CommandId(
+      final Type type,
+      final String entity,
+      final Action action
+  ) {
+    this.type = type;
+    this.entity = entity;
+    this.action = action;
+  }
+
+  public CommandId(
+      final String type,
+      final String entity,
+      final String action
+  ) {
+    this(Type.valueOf(type.toUpperCase()), entity, Action.valueOf(action.toUpperCase()));
   }
 
   @JsonCreator
   public static CommandId fromString(String fromString) {
-    String[] splitOnSlash = fromString.split("/", 2);
-    if (splitOnSlash.length != 2) {
-      throw new IllegalArgumentException("Expected a string of the form <type>/<entity>");
+    String[] splitOnSlash = fromString.split("/", 3);
+    if (splitOnSlash.length != 3) {
+      throw new IllegalArgumentException("Expected a string of the form <type>/<entity>/<action>");
     }
-    return new CommandId(splitOnSlash[0], splitOnSlash[1]);
+    return new CommandId(splitOnSlash[0], splitOnSlash[1], splitOnSlash[2]);
   }
 
   public Type getType() {
@@ -58,10 +77,19 @@ public class CommandId {
     return entity;
   }
 
+  public Action getAction() {
+    return action;
+  }
+
   @Override
   @JsonValue
   public String toString() {
-    return String.format("%s/%s", type.toString().toLowerCase(), entity);
+    return String.format(
+        "%s/%s/%s",
+        type.toString().toLowerCase(),
+        entity,
+        action.toString().toLowerCase()
+    );
   }
 
   @Override
@@ -69,16 +97,17 @@ public class CommandId {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof CommandId)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     CommandId commandId = (CommandId) o;
-    return getType() == commandId.getType()
-        && Objects.equals(getEntity(), commandId.getEntity());
+    return type == commandId.type &&
+           Objects.equals(entity, commandId.entity) &&
+           action == commandId.action;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getType(), getEntity());
+    return Objects.hash(type, entity, action);
   }
 }

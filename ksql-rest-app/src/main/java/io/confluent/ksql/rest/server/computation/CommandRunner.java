@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.confluent.ksql.util.Pair;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -63,17 +60,7 @@ public class CommandRunner implements Runnable, Closeable {
     try {
       while (!closed.get()) {
         log.debug("Polling for new writes to command topic");
-        ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
-        log.debug("Found {} new writes to command topic", records.count());
-        for (ConsumerRecord<CommandId, Command> record : records) {
-          CommandId commandId = record.key();
-          Command command = record.value();
-          if (command.getStatement() != null) {
-            executeStatement(command, commandId);
-          } else {
-            log.debug("Skipping null statement for ID {}", commandId);
-          }
-        }
+        fetchAndRunCommands();
       }
     } catch (WakeupException wue) {
       if (!closed.get()) {
@@ -91,13 +78,25 @@ public class CommandRunner implements Runnable, Closeable {
     commandStore.close();
   }
 
+  void fetchAndRunCommands() {
+    ConsumerRecords<CommandId, Command> records = commandStore.getNewCommands();
+    log.trace("Found {} new writes to command topic", records.count());
+    for (ConsumerRecord<CommandId, Command> record : records) {
+      CommandId commandId = record.key();
+      Command command = record.value();
+      if (command != null) {
+        executeStatement(command, commandId);
+      }
+    }
+  }
+
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() throws Exception {
-    List<Pair<CommandId, Command>> priorCommands = commandStore.getPriorCommands();
-    statementExecutor.handleStatements(priorCommands);
+    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
+    statementExecutor.handleRestoration(restoreCommands);
   }
 
   private void executeStatement(Command command, CommandId commandId) {

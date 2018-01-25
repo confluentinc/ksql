@@ -20,12 +20,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.parser.tree.Expression;
 
 public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
 
-  public DoubleMinKudaf(Integer argIndexInValue) {
+  DoubleMinKudaf(Integer argIndexInValue) {
     super(argIndexInValue, Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
           Arrays.asList(Schema.FLOAT64_SCHEMA),
           "MIN", DoubleMinKudaf.class);
@@ -47,5 +50,12 @@ public class DoubleMinKudaf extends KsqlAggregateFunction<Double, Double> {
       }
       return aggTwo;
     };
+  }
+
+  @Override
+  public KsqlAggregateFunction<Double, Double> getInstance(Map<String, Integer> expressionNames,
+                                                           List<Expression> functionArguments) {
+    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    return new DoubleMinKudaf(udafIndex);
   }
 }

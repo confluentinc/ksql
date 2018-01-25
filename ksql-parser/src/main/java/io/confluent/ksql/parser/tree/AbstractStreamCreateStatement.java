@@ -30,4 +30,7 @@ public abstract class AbstractStreamCreateStatement extends Statement {
   public abstract QualifiedName getName();
 
   public abstract List<TableElement> getElements();
+
+  public abstract AbstractStreamCreateStatement copyWith(List<TableElement> elements, Map<String,
+      Expression> properties);
 }

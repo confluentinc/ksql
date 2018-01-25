@@ -16,18 +16,28 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
 
 
 public class DropSourceCommand implements DDLCommand {
 
   private final String sourceName;
+  private final DataSource.DataSourceType dataSourceType;
+  private final QueryTerminator queryTerminator;
 
-  public DropSourceCommand(AbstractStreamDropStatement statement) {
+  public DropSourceCommand(
+      final AbstractStreamDropStatement statement,
+      final DataSource.DataSourceType dataSourceType,
+      final QueryTerminator queryTerminator
+  ) {
     this.sourceName = statement.getName().getSuffix();
+    this.dataSourceType = dataSourceType;
+    this.queryTerminator = queryTerminator;
   }
 
   @Override
@@ -36,10 +46,18 @@ public class DropSourceCommand implements DDLCommand {
     if (dataSource == null) {
       throw new KsqlException("Source " + sourceName + " does not exist.");
     }
-    DropTopicCommand dropTopicCommand = new DropTopicCommand(
-        dataSource.getKsqlTopic().getTopicName());
+    if (dataSource.getDataSourceType() != dataSourceType) {
+      throw new KsqlException(String.format(
+          "Incompatible data source type is %s, but statement was DROP %s",
+          dataSource.getDataSourceType() == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE",
+          dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
+      ));
+    }
+    DropTopicCommand dropTopicCommand =
+        new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
     dropTopicCommand.run(metaStore);
     metaStore.deleteSource(sourceName);
-    return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
+    queryTerminator.terminateQueryForEntity(sourceName);
+    return new DDLCommandResult(true, "Source " + sourceName + " was dropped");
   }
 }

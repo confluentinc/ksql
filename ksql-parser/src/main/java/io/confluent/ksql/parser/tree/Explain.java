@@ -23,29 +23,45 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class Explain
     extends Statement {
 
   private final Statement statement;
+  private final String queryId;
   private final boolean analyze;
   private final List<ExplainOption> options;
 
-  public Explain(Statement statement, boolean analyze, List<ExplainOption> options) {
-    this(Optional.empty(), analyze, statement, options);
+  public Explain(
+      String queryId,
+      Statement statement,
+      boolean analyze,
+      List<ExplainOption> options
+  ) {
+    this(Optional.empty(), analyze, queryId, statement, options);
   }
 
-  public Explain(NodeLocation location, boolean analyze, Statement statement,
-                 List<ExplainOption> options) {
-    this(Optional.of(location), analyze, statement, options);
+  public Explain(
+      NodeLocation location,
+      boolean analyze,
+      String queryId,
+      Statement statement,
+      List<ExplainOption> options
+  ) {
+    this(Optional.of(location), analyze, queryId, statement, options);
   }
 
-  private Explain(Optional<NodeLocation> location, boolean analyze, Statement statement,
-                  List<ExplainOption> options) {
+  private Explain(
+      Optional<NodeLocation> location,
+      boolean analyze,
+      String queryId,
+      Statement statement,
+      List<ExplainOption> options
+  ) {
     super(location);
-    this.statement = requireNonNull(statement, "statement is null");
+    this.statement = statement;// requireNonNull(statement, "statement is null");
     this.analyze = analyze;
+    this.queryId = queryId;
     if (options == null) {
       this.options = ImmutableList.of();
     } else {
@@ -55,6 +71,10 @@ public class Explain
 
   public Statement getStatement() {
     return statement;
+  }
+
+  public String getQueryId() {
+    return queryId;
   }
 
   public boolean isAnalyze() {

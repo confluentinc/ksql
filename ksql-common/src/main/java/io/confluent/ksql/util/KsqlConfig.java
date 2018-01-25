@@ -23,144 +23,158 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class KsqlConfig extends AbstractConfig {
+import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 
-  public static final String KSQL_CONFIG_PREPERTY_PREFIX = "ksql.";
+public class KsqlConfig extends AbstractConfig implements Cloneable {
+
+  public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
   public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
-  public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
-  public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
-  public static final String DEFAULT_SINK_NUMBER_OF_PARTITIONS = "ksql.sink.partitions.default";
 
-  public static final String SINK_NUMBER_OF_REPLICATIONS = "REPLICATIONS";
-  public static final String SINK_NUMBER_OF_REPLICATIONS_PROPERTY = "ksql.sink.replications";
-  public static final String DEFAULT_SINK_NUMBER_OF_REPLICATIONS = "ksql.sink.replications.default";
+  public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
-  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
-      "WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION";
-  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY =
+  public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
+
+  public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
-  public static final String DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION =
-      "ksql.sink.window.change.log.additional.retention.default";
+
+  public static final String STREAM_INTERNAL_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+
+  public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
-  public static final ConfigDef.Type
-      KSQL_SERVICE_ID_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_SERVICE_ID_DEFAULT = "ksql_";
-  public static final ConfigDef.Importance
-      KSQL_SERVICE_ID_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_SERVICE_ID_DOC =
-      "Indicates the ID of the ksql service. It will be used as prefix for all KSQL queries in "
-      + "this service.";
 
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
-  public static final ConfigDef.Type
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT = "query_";
-  public static final ConfigDef.Importance
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_PERSISTENT_QUERY_NAME_PREFIX_DOC =
-      "Second part of the prefix for persitent queries.";
 
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
-  public static final ConfigDef.Type
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
-  public static final ConfigDef.Importance
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  public static final String
-      KSQL_TRANSIENT_QUERY_NAME_PREFIX_DOC =
-      "Second part of the prefix for transient queries.";
 
   public static final String
       KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final ConfigDef.Type
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "transient_";
-  public static final ConfigDef.Importance
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
+
   public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DOC =
-      "Suffix for state store names in Tables.";
+      defaultSchemaRegistryUrl = "http://localhost:8081";
 
-  public int defaultSinkNumberOfPartitions = 4;
-  public short defaultSinkNumberOfReplications = 1;
-  // TODO: Find out the best default value.
-  public long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
-
-  public String defaultAutoOffsetRestConfig = "latest";
-  public long defaultCommitIntervalMsConfig = 2000;
-  public long defaultCacheMaxBytesBufferingConfig = 10000000;
-  public int defaultNumberOfStreamsThreads = 4;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
 
-  private static final ConfigDef CONFIG_DEF = new ConfigDef();
+  private static final ConfigDef CONFIG_DEF;
+
+  static {
+    CONFIG_DEF = new ConfigDef()
+        .define(
+            KSQL_SERVICE_ID_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_SERVICE_ID_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Indicates the ID of the ksql service. It will be used as prefix for "
+            + "all KSQL queries in this service."
+        ).define(
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Second part of the prefix for persitent queries. For instance if "
+            + "the prefix is query_ the query name will be ksql_query_1."
+        ).define(
+            KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Second part of the prefix for transient queries. For instance if "
+            + "the prefix is transient_ the query name would be "
+            + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
+            + " and '_transient' is the second part of the prefix for the query id the third and "
+            + "4th parts are a random long value and the current timestamp. "
+        ).define(
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Suffix for state store names in Tables. For instance if the suffix is "
+            + "_ksql_statestore the state "
+            + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
+        ).define(
+            SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+            ConfigDef.Type.INT,
+            KsqlConstants.defaultSinkNumberOfPartitions,
+            ConfigDef.Importance.MEDIUM,
+            "The default number of partitions for the topics created by KSQL."
+        ).define(
+            SINK_NUMBER_OF_REPLICAS_PROPERTY,
+            ConfigDef.Type.SHORT,
+            KsqlConstants.defaultSinkNumberOfReplications,
+            ConfigDef.Importance.MEDIUM,
+            "The default number of replicas for the topics created by KSQL."
+        ).define(
+            SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
+            ConfigDef.Type.LONG,
+            KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
+            ConfigDef.Importance.MEDIUM,
+            "The default window change log additional retention time. This "
+            + "is a streams config value which will be added to a windows maintainMs to ensure "
+            + "data is not deleted from the log prematurely. Allows for clock drift. "
+            + "Default is 1 day"
+        ).define(
+            SCHEMA_REGISTRY_URL_PROPERTY,
+            ConfigDef.Type.STRING,
+            defaultSchemaRegistryUrl,
+            ConfigDef.Importance.MEDIUM,
+            "The URL for the schema registry, defaults to http://localhost:8081"
+        )
+    ;
+  }
+
 
   public KsqlConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
 
     ksqlConfigProps = new HashMap<>();
     ksqlStreamConfigProps = new HashMap<>();
-    ksqlConfigProps.put(KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID_DEFAULT);
-    ksqlConfigProps.put(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
-    ksqlConfigProps.put(KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT);
-    ksqlConfigProps.put(KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG, KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT);
+    ksqlConfigProps.putAll(super.values());
 
-    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_PARTITIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-                          Integer.parseInt(props.get(DEFAULT_SINK_NUMBER_OF_PARTITIONS).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_PARTITIONS_PROPERTY, defaultSinkNumberOfPartitions);
-    }
-
-    if (props.containsKey(DEFAULT_SINK_NUMBER_OF_REPLICATIONS)) {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY,
-                          Short.parseShort(props.get(DEFAULT_SINK_NUMBER_OF_REPLICATIONS).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_NUMBER_OF_REPLICATIONS_PROPERTY, defaultSinkNumberOfReplications);
-    }
-
-    if (props.containsKey(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION)) {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
-                          Long.parseLong(props.get(DEFAULT_SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION).toString()));
-    } else {
-      ksqlConfigProps.put(SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_PROPERTY,
-                          defaultSinkWindowChangeLogAdditionalRetention);
-    }
-
-    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, defaultAutoOffsetRestConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, defaultCommitIntervalMsConfig);
+    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
+        .defaultAutoOffsetRestConfig);
+    ksqlStreamConfigProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
+        .defaultCommitIntervalMsConfig);
     ksqlStreamConfigProps.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, defaultCacheMaxBytesBufferingConfig);
-    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
+            .defaultCacheMaxBytesBufferingConfig);
+    ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
+        .defaultNumberOfStreamsThreads);
 
-    for (Object propKey: props.keySet()) {
-      if (propKey.toString().toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
-        ksqlConfigProps.put(propKey.toString(), props.get(propKey));
-      } else {
-        ksqlStreamConfigProps.put(propKey.toString(), props.get(propKey));
+    for (Map.Entry<?, ?> entry : originals().entrySet()) {
+      final String key = entry.getKey().toString();
+      if (!key.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
+        ksqlStreamConfigProps.put(key, entry.getValue());
       }
     }
 
+    final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
+    if (fail == null || !Boolean.parseBoolean(fail.toString())) {
+      ksqlStreamConfigProps.put(
+          StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+          LogMetricAndContinueExceptionHandler.class
+      );
+    }
   }
 
   public Map<String, Object> getKsqlConfigProps() {
@@ -174,16 +188,16 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     Set<String> adminClientConfigProperties = AdminClientConfig.configNames();
     Map<String, Object> adminClientConfigs = new HashMap<>();
-    for (String propertyName: ksqlStreamConfigProps.keySet()) {
-      if (adminClientConfigProperties.contains(propertyName)) {
-        adminClientConfigs.put(propertyName, ksqlStreamConfigProps.get(propertyName));
+    for (Map.Entry<String, Object> entry : ksqlStreamConfigProps.entrySet()) {
+      if (adminClientConfigProperties.contains(entry.getKey())) {
+        adminClientConfigs.put(entry.getKey(), entry.getValue());
       }
     }
     return adminClientConfigs;
   }
 
   public Object get(String propertyName) {
-    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
       return ksqlConfigProps.get(propertyName);
     } else {
       return ksqlStreamConfigProps.get(propertyName);
@@ -191,7 +205,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public void put(String propertyName, Object propertyValue) {
-    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PREPERTY_PREFIX)) {
+    if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
       ksqlConfigProps.put(propertyName, propertyValue);
     } else {
       ksqlStreamConfigProps.put(propertyName, propertyValue);
@@ -205,4 +219,11 @@ public class KsqlConfig extends AbstractConfig {
     return new KsqlConfig(clonedProperties);
   }
 
+  public KsqlConfig cloneWithPropertyOverwrite(Map<String, Object> props) {
+    Map<String, Object> clonedProperties = new HashMap<>();
+    clonedProperties.putAll(ksqlConfigProps);
+    clonedProperties.putAll(ksqlStreamConfigProps);
+    clonedProperties.putAll(props);
+    return new KsqlConfig(clonedProperties);
+  }
 }

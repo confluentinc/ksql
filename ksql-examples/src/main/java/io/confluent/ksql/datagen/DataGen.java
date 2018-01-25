@@ -86,12 +86,12 @@ public class DataGen {
     props.put("client.id", "KSQLDataGenProducer");
 
     try {
-        if (arguments.propertiesFile != null) {
-            props.load(arguments.propertiesFile);
-        }
+      if (arguments.propertiesFile != null) {
+        props.load(arguments.propertiesFile);
+      }
     } catch (IOException exception) {
-        System.err.printf("IOException encountered: %s%n", exception.getMessage());
-        return;
+      System.err.printf("IOException encountered: %s%n", exception.getMessage());
+      return;
     }
 
     dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,

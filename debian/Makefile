@@ -1,5 +1,5 @@
 # Dependencies you'll probably need to install to compile this: make, curl, git,
-# zip, unzip, patch, java7-jdk | openjdk-7-jdk, maven.
+# zip, unzip, patch, java8-jdk | openjdk-8-jdk, maven.
 
 SHELL=/bin/bash
 

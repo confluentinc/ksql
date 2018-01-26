@@ -1,0 +1,5 @@
+confluent-ksql (0.1~SNAPSHOT-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Confluent Packaging <packages@confluent.io>  Fri, 02 Dec 2015 22:09:36 +0000

@@ -8,6 +8,12 @@ set -ue
 #cd -P deals with symlink from /bin to /usr/bin
 base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 
+# Log directory to use
+if [ -z "${LOG_DIR:-}" ]; then
+  LOG_DIR="/tmp/ksql-logs"
+fi
+
+# create logs directory
 if [[ -n $LOG_DIR ]]; then
     [[ -d $LOG_DIR ]] || mkdir -p "$LOG_DIR"
     KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"

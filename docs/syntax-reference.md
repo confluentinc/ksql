@@ -376,7 +376,24 @@ DROP TABLE table_name;
 
 Drops an existing table.
 
+### PRINT
 
+```sql
+PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
+```
+
+**Description**
+
+Print Kafka-topic contents to the KSQL CLI. Note, SQL grammar defaults to uppercase formatting, to print topics containing lower-case characters, use quotations as shown in the example.
+
+For example:
+```sql
+ksql> print 'ksql__commands' FROM BEGINNING;
+Format:JSON
+{"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
+{"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}
+^CTopic printing ceased
+```
 ### SELECT
 
 **Synopsis**
@@ -601,6 +618,7 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | CEIL                | `CEIL(col1)`                                            | The ceiling of a value               |
 | CONCAT              | `CONCAT(col1, '_hello')`                                | Concatenate two strings              |
 | EXTRACTJSONFIELD    | `EXTRACTJSONFIELD(message, '$.log.cloud')`              |  Given a string column in JSON format, extract the field that matches |the given pattern.
+| ARRAYCONTAINS       | `ARRAYCONTAINS('[1, 2, 3]', 3)`                         |  Given JSON or AVRO array checks if a search value contains in it. |
 | FLOOR               | `FLOOR(col1)`                                           | The floor of a value                 |
 | LCASE               | `LCASE(col1)`                                           | Convert a string to lowercase        |
 | LEN                 | `LEN(col1)`                                             | The length of a string               |

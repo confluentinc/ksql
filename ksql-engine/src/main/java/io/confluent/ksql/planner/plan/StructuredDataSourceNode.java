@@ -20,21 +20,6 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.physical.AddTimestampColumn;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.WindowedSerde;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -51,34 +36,52 @@ import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.KStreamImpl;
 
-import javax.annotation.concurrent.Immutable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.MetastoreUtil;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.WindowedSerde;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
+
 @Immutable
 public class StructuredDataSourceNode
     extends PlanNode {
 
-  private static final KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>> nonWindowedMapper = (key, row) -> {
-    if (row != null) {
-      row.getColumns().add(0, key);
+  private static final KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>
+      nonWindowedMapper = (key, row) -> {
+        if (row != null) {
+          row.getColumns().add(0, key);
+        }
+        return new KeyValue<>(key, row);
+      };
 
-    }
-    return new KeyValue<>(key, row);
-  };
-
-  private static final KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>> windowedMapper = (key, row) -> {
-    if (row != null) {
-      row.getColumns().add(0,
-          String.format("%s : Window{start=%d end=-}", key
-              .key(), key.window().start()));
-
-    }
-    return new KeyValue<>(key, row);
-  };
+  private static final KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>,
+      GenericRow>>
+      windowedMapper = (key, row) -> {
+        if (row != null) {
+          row.getColumns().add(
+              0,
+              String.format("%s : Window{start=%d end=-}", key
+                  .key(), key.window().start())
+          );
+        }
+        return new KeyValue<>(key, row);
+      };
 
   private final WindowedSerde windowedSerde = new WindowedSerde();
   private final StructuredDataSource structuredDataSource;
@@ -88,9 +91,11 @@ public class StructuredDataSourceNode
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
-  public StructuredDataSourceNode(@JsonProperty("id") final PlanNodeId id,
-                                  @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
-                                  @JsonProperty("schema") Schema schema) {
+  public StructuredDataSourceNode(
+      @JsonProperty("id") final PlanNodeId id,
+      @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
+      @JsonProperty("schema") Schema schema
+  ) {
     super(id);
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
@@ -127,13 +132,15 @@ public class StructuredDataSourceNode
   }
 
   @Override
-  public SchemaKStream buildStream(final StreamsBuilder builder,
-                                   final KsqlConfig ksqlConfig,
-                                   final KafkaTopicClient kafkaTopicClient,
-                                   final MetastoreUtil metastoreUtil,
-                                   final FunctionRegistry functionRegistry,
-                                   final Map<String, Object> props,
-                                   final SchemaRegistryClient schemaRegistryClient) {
+  public SchemaKStream buildStream(
+      final StreamsBuilder builder,
+      final KsqlConfig ksqlConfig,
+      final KafkaTopicClient kafkaTopicClient,
+      final MetastoreUtil metastoreUtil,
+      final FunctionRegistry functionRegistry,
+      final Map<String, Object> props,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     if (getTimestampField() != null) {
       int timestampColumnIndex = getTimeStampColumnIndex();
       ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
@@ -141,14 +148,12 @@ public class StructuredDataSourceNode
 
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
-    Serde<GenericRow>
-        genericRowSerde =
+    Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
                 getSchema()), ksqlConfig, false, schemaRegistryClient);
 
-    if (getDataSourceType()
-        == StructuredDataSource.DataSourceType.KTABLE) {
+    if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
 
       final KTable kTable = createKTable(
@@ -159,30 +164,39 @@ public class StructuredDataSourceNode
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(), ksqlConfig, true, schemaRegistryClient)
       );
-      return new SchemaKTable(getSchema(), kTable,
-          getKeyField(), new ArrayList<>(),
+      return new SchemaKTable(
+          getSchema(),
+          kTable,
+          getKeyField(),
+          new ArrayList<>(),
           table.isWindowed(),
-          SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient);
+          SchemaKStream.Type.SOURCE,
+          functionRegistry,
+          schemaRegistryClient
+      );
     }
 
-    return new SchemaKStream(getSchema(),
-        resetRepartitionFlag(builder
-            .stream(getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-                Consumed.with(Serdes.String(), genericRowSerde))
-            .map(nonWindowedMapper))
+    return new SchemaKStream(
+        getSchema(),
+        resetRepartitionFlag(
+            builder
+                .stream(
+                    getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+                    Consumed.with(Serdes.String(), genericRowSerde)
+                )
+                .map(nonWindowedMapper))
             .transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient);
+        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient
+    );
   }
 
   private Topology.AutoOffsetReset getAutoOffsetReset(Map<String, Object> props) {
     if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
       final String offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString();
-      if (offestReset
-          .equalsIgnoreCase("EARLIEST")) {
+      if (offestReset.equalsIgnoreCase("EARLIEST")) {
         return Topology.AutoOffsetReset.EARLIEST;
-      } else if (offestReset
-          .equalsIgnoreCase("LATEST")) {
+      } else if (offestReset.equalsIgnoreCase("LATEST")) {
         return Topology.AutoOffsetReset.LATEST;
       }
     }
@@ -200,7 +214,8 @@ public class StructuredDataSourceNode
           }
         } else {
           if (timestampFieldName
-              .substring(timestampFieldName.indexOf(".") + 1).equals(field.name())) {
+              .substring(timestampFieldName.indexOf(".") + 1)
+              .equals(field.name())) {
             return i - 2;
           }
         }
@@ -222,25 +237,36 @@ public class StructuredDataSourceNode
     return -1;
   }
 
-  private KTable createKTable(StreamsBuilder builder, final Topology.AutoOffsetReset autoOffsetReset,
-                              final KsqlTable ksqlTable,
-                              final Serde<GenericRow> genericRowSerde,
-                              final Serde<GenericRow> genericRowSerdeAfterRead) {
+  private KTable createKTable(
+      StreamsBuilder builder, final Topology.AutoOffsetReset autoOffsetReset,
+      final KsqlTable ksqlTable,
+      final Serde<GenericRow> genericRowSerde,
+      final Serde<GenericRow> genericRowSerdeAfterRead
+  ) {
     if (ksqlTable.isWindowed()) {
-      return table(resetRepartitionFlag(builder
-          .stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
-              Consumed.with(windowedSerde, genericRowSerde)
-                  .withOffsetResetPolicy(autoOffsetReset))
-          .map(windowedMapper))
-          .transformValues(new AddTimestampColumn()), windowedSerde, genericRowSerdeAfterRead);
-    } else {
-      return table(resetRepartitionFlag(
-          builder.stream(ksqlTable.getKsqlTopic().getKafkaTopicName(),
-              Consumed.with(Serdes.String(), genericRowSerde)
-                  .withOffsetResetPolicy(autoOffsetReset))
-          .map(nonWindowedMapper))
+      return table(
+          resetRepartitionFlag(
+              builder
+                  .stream(
+                      ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                      Consumed.with(windowedSerde, genericRowSerde)
+                          .withOffsetResetPolicy(autoOffsetReset)
+                  ).map(windowedMapper))
               .transformValues(new AddTimestampColumn()),
-          Serdes.String(), genericRowSerdeAfterRead);
+          windowedSerde,
+          genericRowSerdeAfterRead
+      );
+    } else {
+      return table(
+          resetRepartitionFlag(
+              builder.stream(
+                  ksqlTable.getKsqlTopic().getKafkaTopicName(),
+                  Consumed.with(Serdes.String(), genericRowSerde)
+                      .withOffsetResetPolicy(autoOffsetReset)
+              ).map(nonWindowedMapper))
+              .transformValues(new AddTimestampColumn()),
+          Serdes.String(), genericRowSerdeAfterRead
+      );
     }
   }
 
@@ -248,7 +274,8 @@ public class StructuredDataSourceNode
   // in kafka 1.1
   private <K> KStream<K, GenericRow> resetRepartitionFlag(final KStream<K, GenericRow> stream) {
     try {
-      java.lang.reflect.Field repartitionField = KStreamImpl.class.getDeclaredField("repartitionRequired");
+      java.lang.reflect.Field repartitionField =
+          KStreamImpl.class.getDeclaredField("repartitionRequired");
       repartitionField.setAccessible(true);
       repartitionField.set(stream, false);
       repartitionField.setAccessible(false);
@@ -258,7 +285,11 @@ public class StructuredDataSourceNode
     return stream;
   }
 
-  private <K> KTable table(final KStream<K, GenericRow> stream, final Serde<K> keySerde, final Serde<GenericRow> valueSerde) {
+  private <K> KTable table(
+      final KStream<K, GenericRow> stream,
+      final Serde<K> keySerde,
+      final Serde<GenericRow> valueSerde
+  ) {
     return stream.groupByKey(Serialized.with(keySerde, valueSerde))
         .reduce((genericRow, newValue) -> newValue);
   }

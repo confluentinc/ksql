@@ -31,7 +31,8 @@ public class ReferentialIntegrityTable {
   public void addSourceNames(Set<String> sourceNames, String queryId) {
     for (String sourceName: sourceNames) {
       if (referentialIntegrityTable.containsKey(sourceName)) {
-        ReferentialIntegrityTableEntry referentialIntegrityTableEntry = referentialIntegrityTable.get(sourceName);
+        ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
+            referentialIntegrityTable.get(sourceName);
         referentialIntegrityTableEntry.getSourceForQueries().add(queryId);
       } else {
         ReferentialIntegrityTableEntry referentialIntegrityTableEntry = new
@@ -45,7 +46,8 @@ public class ReferentialIntegrityTable {
   public void addSinkNames(Set<String> sinkNames, String queryId) {
     for (String sinkName: sinkNames) {
       if (referentialIntegrityTable.containsKey(sinkName)) {
-        ReferentialIntegrityTableEntry referentialIntegrityTableEntry = referentialIntegrityTable.get(sinkName);
+        ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
+            referentialIntegrityTable.get(sinkName);
         referentialIntegrityTableEntry.getSinkForQueries().add(queryId);
       } else {
         ReferentialIntegrityTableEntry referentialIntegrityTableEntry = new
@@ -57,7 +59,8 @@ public class ReferentialIntegrityTable {
   }
 
   public void removeQueryFromReferentialIntegrityTable(String queryId) {
-    for (ReferentialIntegrityTableEntry referentialIntegrityTableEntry: referentialIntegrityTable.values()) {
+    for (ReferentialIntegrityTableEntry referentialIntegrityTableEntry:
+        referentialIntegrityTable.values()) {
       referentialIntegrityTableEntry.getSourceForQueries().remove(queryId);
       referentialIntegrityTableEntry.getSinkForQueries().remove(queryId);
     }
@@ -67,7 +70,8 @@ public class ReferentialIntegrityTable {
     if (!referentialIntegrityTable.containsKey(sourceName)) {
       return true;
     }
-    ReferentialIntegrityTableEntry referentialIntegrityTableEntry = referentialIntegrityTable.get(sourceName);
+    ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
+        referentialIntegrityTable.get(sourceName);
     if (referentialIntegrityTableEntry.getSinkForQueries().isEmpty() &&
         referentialIntegrityTableEntry.getSourceForQueries().isEmpty()) {
       return true;

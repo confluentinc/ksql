@@ -16,16 +16,16 @@
 
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.util.CommonUtils;
+import java.io.PrintWriter;
 
 import javax.ws.rs.ProcessingException;
 
-import java.io.PrintWriter;
+import io.confluent.ksql.cli.console.CliSpecificCommand;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.util.CommonUtils;
 
 public class RemoteCli extends Cli {
 
@@ -44,7 +44,10 @@ public class RemoteCli extends Cli {
 
     validateClient(terminal.writer(), restClient);
 
-    terminal.registerCliSpecificCommand(new RemoteCliSpecificCommand(restClient, terminal.writer()));
+    terminal.registerCliSpecificCommand(new RemoteCliSpecificCommand(
+        restClient,
+        terminal.writer()
+    ));
   }
 
   // Visible for testing
@@ -52,12 +55,17 @@ public class RemoteCli extends Cli {
     return restClient.hasUserCredentials();
   }
 
-  private static void validateClient(final PrintWriter writer,
-                                     final KsqlRestClient restClient) {
+  private static void validateClient(
+      final PrintWriter writer,
+      final KsqlRestClient restClient
+  ) {
     try {
       RestResponse restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
-        writer.format("Couldn't connect to the KSQL server: %s\n\n", restResponse.getErrorMessage().getMessage());
+        writer.format(
+            "Couldn't connect to the KSQL server: %s\n\n",
+            restResponse.getErrorMessage().getMessage()
+        );
       }
     } catch (IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
@@ -76,12 +84,14 @@ public class RemoteCli extends Cli {
   }
 
   static class RemoteCliSpecificCommand implements CliSpecificCommand {
+
     private final KsqlRestClient restClient;
     private final PrintWriter writer;
 
-    RemoteCliSpecificCommand(final KsqlRestClient restClient,
-                             final PrintWriter writer) {
-
+    RemoteCliSpecificCommand(
+        final KsqlRestClient restClient,
+        final PrintWriter writer
+    ) {
       this.writer = writer;
       this.restClient = restClient;
     }
@@ -96,7 +106,7 @@ public class RemoteCli extends Cli {
       writer.println("\tserver:          Show the current server");
       writer.println("\tserver <server>: Change the current server to <server>");
       writer.println("\t                 example: "
-          + "\"server http://my.awesome.server.com:9098\""
+                     + "\"server http://my.awesome.server.com:9098\""
       );
     }
 

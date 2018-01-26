@@ -16,16 +16,13 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.StatementParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -33,14 +30,19 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.StatementParser;
 
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)
 public class StreamedQueryResource {
+
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
   private final KsqlEngine ksqlEngine;
@@ -50,7 +52,8 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       KsqlEngine ksqlEngine,
       StatementParser statementParser,
-      long disconnectCheckInterval) {
+      long disconnectCheckInterval
+  ) {
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.disconnectCheckInterval = disconnectCheckInterval;
@@ -71,7 +74,10 @@ public class StreamedQueryResource {
       return Response.ok().entity(queryStreamWriter).build();
 
     } else if (statement instanceof PrintTopic) {
-      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(clientLocalProperties, (PrintTopic) statement);
+      TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
+          clientLocalProperties,
+          (PrintTopic) statement
+      );
       return Response.ok().entity(topicStreamWriter).build();
     } else {
       throw new Exception(String.format(
@@ -81,21 +87,28 @@ public class StreamedQueryResource {
     }
   }
 
-  private TopicStreamWriter getTopicStreamWriter(final Map<String, Object> clientLocalProperties, final PrintTopic printTopic) {
+  private TopicStreamWriter getTopicStreamWriter(
+      final Map<String, Object> clientLocalProperties,
+      final PrintTopic printTopic
+  ) {
     String topicName = printTopic.getTopic().toString();
-    Long interval =
+    Long
+        interval =
         Optional.ofNullable(printTopic.getIntervalValue()).map(LongLiteral::getValue).orElse(1L);
-    KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(topicName);
-    Objects.requireNonNull(
-        ksqlTopic,
-        String.format("Could not find topic '%s' in the metastore", topicName)
-    );
+
+    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+      throw new RuntimeException(String.format(
+          "Could not find topic '%s', KSQL uses uppercase.\n" +
+          "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
+          topicName
+      ));
+    }
     Map<String, Object> properties = ksqlEngine.getKsqlConfigProperties();
     properties.putAll(clientLocalProperties);
     TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-        ksqlEngine,
+        ksqlEngine.getSchemaRegistryClient(),
         properties,
-        ksqlTopic,
+        topicName,
         interval,
         disconnectCheckInterval,
         printTopic.getFromBeginning()

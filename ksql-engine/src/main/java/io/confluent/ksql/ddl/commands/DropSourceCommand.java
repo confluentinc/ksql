@@ -31,9 +31,11 @@ public class DropSourceCommand implements DDLCommand {
   private final DataSource.DataSourceType dataSourceType;
   private final ReferentialIntegrityTable referentialIntegrityTable;
 
-  public DropSourceCommand(final AbstractStreamDropStatement statement,
-                           final DataSource.DataSourceType dataSourceType,
-                           final ReferentialIntegrityTable referentialIntegrityTable) {
+  public DropSourceCommand(
+      final AbstractStreamDropStatement statement,
+      final DataSource.DataSourceType dataSourceType,
+      final ReferentialIntegrityTable referentialIntegrityTable) {
+
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
     this.referentialIntegrityTable = referentialIntegrityTable;
@@ -46,14 +48,15 @@ public class DropSourceCommand implements DDLCommand {
       throw new KsqlException("Source " + sourceName + " does not exist.");
     }
     if (dataSource.getDataSourceType() != dataSourceType) {
-      throw new KsqlException(String.format("Incompatible data source type is %s, but statement "
-                                            + "was DROP %s", dataSource.getDataSourceType() == DataSource
-                                                .DataSourceType.KSTREAM ? "STREAM": "TABLE",
-                                            dataSourceType == DataSource
-                                                .DataSourceType.KSTREAM ? "STREAM": "TABLE"));
+      throw new KsqlException(String.format(
+          "Incompatible data source type is %s, but statement was DROP %s",
+          dataSource.getDataSourceType() == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE",
+          dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
+      ));
     }
     if (!referentialIntegrityTable.isSafeToDrop(sourceName)) {
-      String sourceForQueriesMessage = referentialIntegrityTable.getSourceForQuery(sourceName).stream()
+      String sourceForQueriesMessage = referentialIntegrityTable
+          .getSourceForQuery(sourceName).stream()
           .collect(Collectors.joining(", "));
       String sinkForQueriesMessage = referentialIntegrityTable.getSinkForQuery(sourceName)
           .stream()

@@ -16,12 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
-import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.GenericRow;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -35,6 +29,13 @@ import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.List;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
+import io.confluent.ksql.parser.tree.WindowExpression;
+
 public class SchemaKGroupedStream {
 
   private final Schema schema;
@@ -44,11 +45,13 @@ public class SchemaKGroupedStream {
   private final FunctionRegistry functionRegistry;
   private final SchemaRegistryClient schemaRegistryClient;
 
-  SchemaKGroupedStream(final Schema schema, final KGroupedStream kgroupedStream,
-                       final Field keyField,
-                       final List<SchemaKStream> sourceSchemaKStreams,
-                       final FunctionRegistry functionRegistry,
-                       final SchemaRegistryClient schemaRegistryClient) {
+  SchemaKGroupedStream(
+      final Schema schema, final KGroupedStream kgroupedStream,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final FunctionRegistry functionRegistry,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
     this.keyField = keyField;
@@ -58,11 +61,13 @@ public class SchemaKGroupedStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKTable aggregate(final Initializer initializer,
-                                final UdafAggregator aggregator,
-                                final WindowExpression windowExpression,
-                                final Serde<GenericRow> topicValueSerDe,
-                                final String storeName) {
+  public SchemaKTable aggregate(
+      final Initializer initializer,
+      final UdafAggregator aggregator,
+      final WindowExpression windowExpression,
+      final Serde<GenericRow> topicValueSerDe,
+      final String storeName
+  ) {
     final KTable aggKtable;
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
@@ -71,12 +76,29 @@ public class SchemaKGroupedStream {
           .withValueSerde(topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
-      aggKtable = ksqlWindowExpression.applyAggregate(kgroupedStream, initializer, aggregator, materialized);
+      aggKtable = ksqlWindowExpression.applyAggregate(
+          kgroupedStream,
+          initializer,
+          aggregator,
+          materialized
+      );
     } else {
-      aggKtable = kgroupedStream.aggregate(initializer, aggregator, Materialized.with(Serdes.String(), topicValueSerDe));
+      aggKtable = kgroupedStream.aggregate(
+          initializer,
+          aggregator,
+          Materialized.with(Serdes.String(), topicValueSerDe)
+      );
     }
-    return new SchemaKTable(schema, aggKtable, keyField, sourceSchemaKStreams, windowExpression != null,
-                            SchemaKStream.Type.AGGREGATE, functionRegistry, schemaRegistryClient);
+    return new SchemaKTable(
+        schema,
+        aggKtable,
+        keyField,
+        sourceSchemaKStreams,
+        windowExpression != null,
+        SchemaKStream.Type.AGGREGATE,
+        functionRegistry,
+        schemaRegistryClient
+    );
 
   }
 

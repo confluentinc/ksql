@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udaf.topk.TopkAggFunctionDeterminer;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionDeterminer;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
+import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
@@ -41,6 +42,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -153,6 +155,31 @@ public class FunctionRegistry {
         "EXTRACTJSONFIELD", JsonExtractStringKudf.class);
     addFunction(getStringFromJson);
 
+    KsqlFunction jsonArrayContainsString = new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA),
+            "ARRAYCONTAINS", ArrayContainsKudf.class);
+    addFunction(jsonArrayContainsString);
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
+                                                 Schema.STRING_SCHEMA),
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
+                                                 Schema.INT32_SCHEMA),
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
+                                                 Schema.INT64_SCHEMA),
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
+
+    addFunction(new KsqlFunction(
+            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
+                                                 Schema.FLOAT64_SCHEMA),
+            "ARRAYCONTAINS", ArrayContainsKudf.class));
+
 
     /***************************************
      * UDAFs                               *
@@ -188,7 +215,8 @@ public class FunctionRegistry {
     if (ksqlAggFunctionDeterminer == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
-    ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema, this);
+    ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, this);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
     return ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
   }

@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +25,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
+
+import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.util.KsqlConfig;
 
 public class DataGen {
 
@@ -49,7 +49,6 @@ public class DataGen {
       usage(0);
     }
 
-
     Generator generator;
     try {
       generator = new Generator(arguments.schemaFile, new Random());
@@ -62,7 +61,10 @@ public class DataGen {
     switch (arguments.format) {
       case AVRO:
         dataProducer = new AvroProducer(
-            new KsqlConfig(Collections.singletonMap(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaRegistryUrl)));
+            new KsqlConfig(Collections.singletonMap(
+                KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+                arguments.schemaRegistryUrl
+            )));
         break;
       case JSON:
         dataProducer = new JsonProducer();
@@ -71,7 +73,10 @@ public class DataGen {
         dataProducer = new DelimitedProducer();
         break;
       default:
-        System.err.printf("Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n", arguments.format);
+        System.err.printf(
+            "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED%n",
+            arguments.format
+        );
         usage(1);
         return;
     }
@@ -81,22 +86,23 @@ public class DataGen {
     props.put("client.id", "KSQLDataGenProducer");
 
     dataProducer.populateTopic(props, generator, arguments.topicName, arguments.keyName,
-                               arguments.iterations, arguments.maxInterval);
+                               arguments.iterations, arguments.maxInterval
+    );
   }
 
   private static void usage() {
     System.err.println(
         "usage: DataGen "
-            + "[help] "
-            + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
-            + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
+        + "[help] "
+        + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
+        + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
         + "'pageviews')] "
-            + "schema=<avro schema file> "
-            + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
-            + "topic=<kafka topic name> "
-            + "key=<name of key column> "
-            + "[iterations=<number of rows> (defaults to 1,000,000)] "
-            + "[maxInterval=<Max time in ms between rows> (defaults to 500)]"
+        + "schema=<avro schema file> "
+        + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
+        + "topic=<kafka topic name> "
+        + "key=<name of key column> "
+        + "[iterations=<number of rows> (defaults to 1,000,000)] "
+        + "[maxInterval=<Max time in ms between rows> (defaults to 500)]"
     );
   }
 
@@ -106,7 +112,8 @@ public class DataGen {
   }
 
   private static class Arguments {
-    public enum Format { AVRO, JSON, DELIMITED }
+
+    public enum Format {AVRO, JSON, DELIMITED}
 
     public final boolean help;
     public final String bootstrapServer;
@@ -141,12 +148,14 @@ public class DataGen {
     }
 
     public static class ArgumentParseException extends RuntimeException {
+
       public ArgumentParseException(String message) {
         super(message);
       }
     }
 
     public static class Builder {
+
       private Quickstart quickstart;
 
       private boolean help;
@@ -230,8 +239,17 @@ public class DataGen {
         } catch (NullPointerException exception) {
           throw new ArgumentParseException(exception.getMessage());
         }
-        return new Arguments(help, bootstrapServer, schemaFile, format, topicName, keyName,
-                             iterations, maxInterval, schemaRegistryUrl);
+        return new Arguments(
+            help,
+            bootstrapServer,
+            schemaFile,
+            format,
+            topicName,
+            keyName,
+            iterations,
+            maxInterval,
+            schemaRegistryUrl
+        );
       }
 
       public Builder parseArgs(String[] args) throws IOException {
@@ -279,8 +297,8 @@ public class DataGen {
               quickstart = Quickstart.valueOf(argValue.toUpperCase());
             } catch (IllegalArgumentException iae) {
               throw new ArgumentParseException(String.format(
-                  "Invalid quickstart in '%s'; was expecting one of " 
-                  + Arrays.toString(Quickstart.values()) 
+                  "Invalid quickstart in '%s'; was expecting one of "
+                  + Arrays.toString(Quickstart.values())
                   + " (case-insensitive)",
                   argValue
               ));
@@ -324,7 +342,8 @@ public class DataGen {
           return Format.valueOf(formatString.toUpperCase());
         } catch (IllegalArgumentException exception) {
           throw new ArgumentParseException(String.format(
-              "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED (case-insensitive)",
+              "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED "
+              + "(case-insensitive)",
               formatString
           ));
         }

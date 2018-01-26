@@ -16,12 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.serde.WindowedSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -40,46 +34,66 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.serde.WindowedSerde;
+import io.confluent.ksql.util.Pair;
+
 public class SchemaKTable extends SchemaKStream {
 
 
   private final KTable ktable;
   private final boolean isWindowed;
 
-  public SchemaKTable(final Schema schema,
-                      final KTable ktable,
-                      final Field keyField,
-                      final List<SchemaKStream> sourceSchemaKStreams,
-                      boolean isWindowed,
-                      Type type,
-                      final FunctionRegistry functionRegistry,
-                      final SchemaRegistryClient schemaRegistryClient) {
-    super(schema, null, keyField, sourceSchemaKStreams, type, functionRegistry, schemaRegistryClient);
+  public SchemaKTable(
+      final Schema schema,
+      final KTable ktable,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      boolean isWindowed,
+      Type type,
+      final FunctionRegistry functionRegistry,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
+    super(
+        schema,
+        null,
+        keyField,
+        sourceSchemaKStreams,
+        type,
+        functionRegistry,
+        schemaRegistryClient
+    );
     this.ktable = ktable;
     this.isWindowed = isWindowed;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable into(final String kafkaTopicName,
-                           final Serde<GenericRow> topicValueSerDe,
-                           Set<Integer> rowkeyIndexes) {
-
-
+  public SchemaKTable into(
+      final String kafkaTopicName,
+      final Serde<GenericRow> topicValueSerDe,
+      Set<Integer> rowkeyIndexes
+  ) {
     if (isWindowed) {
       ktable.toStream()
-          .map((KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>, GenericRow>>) (key, row) -> {
-            if (row == null) {
-              return new KeyValue<>(key, null);
-            }
-            List columns = new ArrayList();
-            for (int i = 0; i < row.getColumns().size(); i++) {
-              if (!rowkeyIndexes.contains(i)) {
-                columns.add(row.getColumns().get(i));
+          .map(
+              (KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>,
+                  GenericRow>>) (key, row) -> {
+                if (row == null) {
+                  return new KeyValue<>(key, null);
+                }
+                List columns = new ArrayList();
+                for (int i = 0; i < row.getColumns().size(); i++) {
+                  if (!rowkeyIndexes.contains(i)) {
+                    columns.add(row.getColumns().get(i));
+                  }
+                }
+                return new KeyValue<>(key, new GenericRow(columns));
               }
-            }
-            return new KeyValue<>(key, new GenericRow(columns));
-          }).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
+          ).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
     } else {
       ktable.toStream()
           .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
@@ -106,24 +120,45 @@ public class SchemaKTable extends SchemaKStream {
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable filter(final Expression filterExpression)  {
-    SqlPredicate predicate = new SqlPredicate(filterExpression, schema, isWindowed,
-                                              functionRegistry);
+  public SchemaKTable filter(final Expression filterExpression) {
+    SqlPredicate predicate = new SqlPredicate(
+        filterExpression,
+        schema,
+        isWindowed,
+        functionRegistry
+    );
     KTable filteredKTable = ktable.filter(predicate.getPredicate());
-    return new SchemaKTable(schema, filteredKTable, keyField, Arrays.asList(this), isWindowed,
-                            Type.FILTER, functionRegistry, schemaRegistryClient);
+    return new SchemaKTable(
+        schema,
+        filteredKTable,
+        keyField,
+        Arrays.asList(this),
+        isWindowed,
+        Type.FILTER,
+        functionRegistry,
+        schemaRegistryClient
+    );
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable select(final List<Pair<String, Expression>> expressionPairList) {
 
-    final Pair<Schema, SelectValueMapper> schemaAndMapper = createSelectValueMapperAndSchema(expressionPairList);
+    final Pair<Schema, SelectValueMapper> schemaAndMapper
+        = createSelectValueMapperAndSchema(expressionPairList);
 
     KTable projectedKTable = ktable.mapValues(schemaAndMapper.right);
 
-    return new SchemaKTable(schemaAndMapper.left, projectedKTable, keyField,
-        Collections.singletonList(this), isWindowed, Type.PROJECT, functionRegistry, schemaRegistryClient);
+    return new SchemaKTable(
+        schemaAndMapper.left,
+        projectedKTable,
+        keyField,
+        Collections.singletonList(this),
+        isWindowed,
+        Type.PROJECT,
+        functionRegistry,
+        schemaRegistryClient
+    );
   }
 
   @Override

@@ -88,6 +88,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,9 +144,10 @@ public class KsqlResource {
         String statementText = statementStrings.get(i);
         result.add(executeStatement(statementText, parsedStatements.get(i), streamsProperties));
       }
+    } catch (KsqlException exception) {
+      return generateErrorResponse(request, exception, result, Status.BAD_REQUEST);
     } catch (Exception exception) {
-      log.error("Failed to handle POST:" + request, exception);
-      result.add(new ErrorMessageEntity(request.getKsql(), exception));
+      return generateErrorResponse(request, exception, result, Status.INTERNAL_SERVER_ERROR);
     }
 
 
@@ -233,7 +235,7 @@ public class KsqlResource {
 
   /**
    * Validate the statement by creating the execution plan for it.
-   * 
+   *
    * @param statement
    * @param statementText
    * @param streamsProperties
@@ -442,6 +444,12 @@ public class KsqlResource {
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
+  }
+
+  private Response generateErrorResponse(KsqlRequest request, Exception exception, KsqlEntityList result, Status status) {
+    log.error("Failed to handle POST:" + request, exception);
+    result.add(new ErrorMessageEntity(request.getKsql(), exception));
+    return Response.status(status).entity(result).build();
   }
 
 }

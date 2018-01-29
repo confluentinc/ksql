@@ -161,25 +161,24 @@ public class FunctionRegistry {
     addFunction(jsonArrayContainsString);
 
     addFunction(new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-                                                 Schema.STRING_SCHEMA),
-            "ARRAYCONTAINS", ArrayContainsKudf.class));
+        Schema.BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA).build(), Schema.STRING_SCHEMA),
+        "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-                                                 Schema.INT32_SCHEMA),
-            "ARRAYCONTAINS", ArrayContainsKudf.class));
+        Schema.BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.INT32_SCHEMA).build(), Schema.INT32_SCHEMA),
+        "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-                                                 Schema.INT64_SCHEMA),
-            "ARRAYCONTAINS", ArrayContainsKudf.class));
+        Schema.BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.INT64_SCHEMA).build(), Schema.INT64_SCHEMA),
+        "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     addFunction(new KsqlFunction(
-            Schema.BOOLEAN_SCHEMA, Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-                                                 Schema.FLOAT64_SCHEMA),
-            "ARRAYCONTAINS", ArrayContainsKudf.class));
-
+        Schema.BOOLEAN_SCHEMA,
+        Arrays.asList(SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(), Schema.FLOAT64_SCHEMA),
+        "ARRAYCONTAINS", ArrayContainsKudf.class));
 
     /***************************************
      * UDAFs                               *

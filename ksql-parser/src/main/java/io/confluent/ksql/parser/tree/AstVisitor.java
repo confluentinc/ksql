@@ -122,10 +122,6 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitWith(With node, C context) {
-    return visitNode(node, context);
-  }
-
   protected R visitWithQuery(WithQuery node, C context) {
     return visitNode(node, context);
   }
@@ -148,18 +144,6 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitSetOperation(SetOperation node, C context) {
     return visitQueryBody(node, context);
-  }
-
-  protected R visitUnion(Union node, C context) {
-    return visitSetOperation(node, context);
-  }
-
-  protected R visitIntersect(Intersect node, C context) {
-    return visitSetOperation(node, context);
-  }
-
-  protected R visitExcept(Except node, C context) {
-    return visitSetOperation(node, context);
   }
 
   protected R visitTimestampLiteral(TimestampLiteral node, C context) {
@@ -272,10 +256,6 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitSubqueryExpression(SubqueryExpression node, C context) {
     return visitExpression(node, context);
-  }
-
-  protected R visitSortItem(SortItem node, C context) {
-    return visitNode(node, context);
   }
 
   protected R visitTable(Table node, C context) {
@@ -392,10 +372,6 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitGroupingElement(GroupingElement node, C context) {
     return visitNode(node, context);
-  }
-
-  protected R visitGroupingSets(GroupingSets node, C context) {
-    return visitGroupingElement(node, context);
   }
 
   protected R visitSimpleGroupBy(SimpleGroupBy node, C context) {

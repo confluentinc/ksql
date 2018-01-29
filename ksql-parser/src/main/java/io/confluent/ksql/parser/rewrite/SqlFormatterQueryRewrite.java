@@ -30,13 +30,11 @@ import io.confluent.ksql.parser.tree.CreateView;
 import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropView;
-import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExplainOption;
 import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Intersect;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -64,13 +62,9 @@ import io.confluent.ksql.parser.tree.ShowSession;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Union;
 import io.confluent.ksql.parser.tree.Values;
-import io.confluent.ksql.parser.tree.With;
-import io.confluent.ksql.parser.tree.WithQuery;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -119,35 +113,7 @@ public final class SqlFormatterQueryRewrite {
 
     @Override
     protected Void visitQuery(Query node, Integer indent) {
-      if (node.getWith().isPresent()) {
-        With with = node.getWith().get();
-        append(indent, "WITH");
-        if (with.isRecursive()) {
-          builder.append(" RECURSIVE");
-        }
-        builder.append("\n  ");
-        Iterator<WithQuery> queries = with.getQueries().iterator();
-        while (queries.hasNext()) {
-          WithQuery query = queries.next();
-          append(indent, query.getName());
-          query.getColumnNames().ifPresent(columnNames -> appendAliasColumns(builder, columnNames));
-          builder.append(" AS ");
-          process(new TableSubquery(query.getQuery()), indent);
-          builder.append('\n');
-          if (queries.hasNext()) {
-            builder.append(", ");
-          }
-        }
-      }
-
       processRelation(node.getQueryBody(), indent);
-
-      if (!node.getOrderBy().isEmpty()) {
-        append(indent,
-               "ORDER BY "
-               + ExpressionFormatter.formatSortItems(node.getOrderBy()))
-            .append('\n');
-      }
 
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().get())
@@ -191,13 +157,6 @@ public final class SqlFormatterQueryRewrite {
         append(indent,
                "HAVING "
                + ExpressionFormatter.formatExpression(node.getHaving().get()))
-            .append('\n');
-      }
-
-      if (!node.getOrderBy().isEmpty()) {
-        append(indent,
-               "ORDER BY "
-               + ExpressionFormatter.formatSortItems(node.getOrderBy()))
             .append('\n');
       }
 
@@ -362,56 +321,6 @@ public final class SqlFormatterQueryRewrite {
     }
 
     @Override
-    protected Void visitUnion(Union node, Integer indent) {
-      Iterator<Relation> relations = node.getRelations().iterator();
-
-      while (relations.hasNext()) {
-        processRelation(relations.next(), indent);
-
-        if (relations.hasNext()) {
-          builder.append("UNION ");
-          if (!node.isDistinct()) {
-            builder.append("ALL ");
-          }
-        }
-      }
-
-      return null;
-    }
-
-    @Override
-    protected Void visitExcept(Except node, Integer indent) {
-      processRelation(node.getLeft(), indent);
-
-      builder.append("EXCEPT ");
-      if (!node.isDistinct()) {
-        builder.append("ALL ");
-      }
-
-      processRelation(node.getRight(), indent);
-
-      return null;
-    }
-
-    @Override
-    protected Void visitIntersect(Intersect node, Integer indent) {
-      Iterator<Relation> relations = node.getRelations().iterator();
-
-      while (relations.hasNext()) {
-        processRelation(relations.next(), indent);
-
-        if (relations.hasNext()) {
-          builder.append("INTERSECT ");
-          if (!node.isDistinct()) {
-            builder.append("ALL ");
-          }
-        }
-      }
-
-      return null;
-    }
-
-    @Override
     protected Void visitCreateView(CreateView node, Integer indent) {
       builder.append("CREATE ");
       if (node.isReplace()) {
@@ -527,11 +436,6 @@ public final class SqlFormatterQueryRewrite {
       if (node.getWhere().isPresent()) {
         builder.append(" WHERE ")
             .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
-      }
-
-      if (!node.getOrderBy().isEmpty()) {
-        builder.append(" ORDER BY ")
-            .append(ExpressionFormatter.formatSortItems(node.getOrderBy()));
       }
 
       if (node.getLimit().isPresent()) {

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.jline.reader.EndOfFileException;
-import org.jline.reader.History;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
@@ -198,184 +197,17 @@ public abstract class Console implements Closeable {
   /* private */
 
   private void registerDefaultCommands() {
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "help";
-      }
+    registerCliSpecificCommand(new Help());
 
-      @Override
-      public void printHelp() {
-        writer().println("help:");
-        writer().println("\tShow this message.");
-      }
+    registerCliSpecificCommand(new Clear());
 
-      @Override
-      public void execute(String line) {
-        writer().println();
-        writer().println("Description:");
-        writer().println(
-            "\tThe KSQL CLI provides a terminal-based interactive shell"
-            + " for running queries. Each command must be on a separate line. "
-            + "For KSQL command syntax, see the documentation at "
-            + "https://github.com/confluentinc/ksql/docs/."
-        );
-        writer().println();
-        for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
-          cliSpecificCommand.printHelp();
-          writer().println();
-        }
-        writer().println();
-        writer().println("Keyboard shortcuts:");
-        writer().println();
-        writer().println("    The KSQL CLI supports these keyboard shorcuts:");
-        writer().println();
-        writer().println("CTRL+D:");
-        writer().println("\tEnd your KSQL CLI session.");
-        writer().println("CTRL+R:");
-        writer().println("\tSearch your command history.");
-        writer().println("Up and Down arrow keys:");
-        writer().println("\tScroll up or down through your command history.");
-        writer().println();
-        writer().println("Default behavior:");
-        writer().println();
-        writer().println(
-            "    Lines are read one at a time and are sent to the "
-            + "server as KSQL unless one of the following is true:"
-        );
-        writer().println();
-        writer().println(
-            "    1. The line is empty or entirely whitespace. In this"
-            + " case, no request is made to the server."
-        );
-        writer().println();
-        writer().println(
-            "    2. The line ends with backslash ('\\'). In this case, lines are "
-            + "continuously read and stripped of their trailing newline and '\\' "
-            + "until one is "
-            + "encountered that does not end with '\\'; then, the concatenation of "
-            + "all lines read "
-            + "during this time is sent to the server as KSQL."
-        );
-        writer().println();
-      }
-    });
+    registerCliSpecificCommand(new Output());
 
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "clear";
-      }
+    registerCliSpecificCommand(new History());
 
-      @Override
-      public void printHelp() {
-        writer().println("clear:");
-        writer().println("\tClear the current terminal.");
-      }
+    registerCliSpecificCommand(new Version());
 
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        puts(InfoCmp.Capability.clear_screen);
-        flush();
-      }
-    });
-
-    registerCliSpecificCommand(new CliSpecificCommand() {
-
-      @Override
-      public String getName() {
-        return "output";
-      }
-
-      @Override
-      public void printHelp() {
-        writer().println("output:");
-        writer().println("\tView the current output format.");
-        writer().println("");
-        writer().println("output <format>");
-        writer().println("");
-        writer().printf(
-            "\tSet the output format to <format> (valid formats: %s)%n",
-            OutputFormat.VALID_FORMATS
-        );
-        writer().println("\tFor example: \"output JSON\"");
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        String newFormat = commandStrippedLine.trim().toUpperCase();
-        if (newFormat.isEmpty()) {
-          writer().printf("Current output format: %s%n", outputFormat.name());
-        } else {
-          setOutputFormat(newFormat);
-        }
-      }
-    });
-
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "history";
-      }
-
-      @Override
-      public void printHelp() {
-        writer().println(
-            "history:");
-        writer().println(
-            "\tShow previous lines entered during the current CLI session. You can"
-            + " use up and down arrow keys to view previous lines."
-        );
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        for (History.Entry historyEntry : lineReader.getHistory()) {
-          writer().printf("%4d: %s%n", historyEntry.index(), historyEntry.line());
-        }
-        flush();
-      }
-    });
-
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "version";
-      }
-
-      @Override
-      public void printHelp() {
-        writer().println("version:");
-        writer().println("\tGet the current KSQL version.");
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        ServerInfo serverInfo = restClient.makeRootRequest().getResponse();
-        writer().printf("Version: %s%n", serverInfo.getVersion());
-        flush();
-      }
-    });
-
-    registerCliSpecificCommand(new CliSpecificCommand() {
-      @Override
-      public String getName() {
-        return "exit";
-      }
-
-      @Override
-      public void printHelp() {
-        writer().println("exit:");
-        writer().println(
-            "\tExit the CLI."
-        );
-      }
-
-      @Override
-      public void execute(String commandStrippedLine) throws IOException {
-        throw new EndOfFileException();
-      }
-    });
+    registerCliSpecificCommand(new Exit());
   }
 
 
@@ -707,4 +539,182 @@ public abstract class Console implements Closeable {
     return String.format("%%%ds", (-1 * length));
   }
 
+  private class Help implements CliSpecificCommand {
+    @Override
+    public String getName() {
+      return "help";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println("help:");
+      writer().println("\tShow this message.");
+    }
+
+    @Override
+    public void execute(String line) {
+      writer().println();
+      writer().println("Description:");
+      writer().println(
+          "\tThe KSQL CLI provides a terminal-based interactive shell"
+          + " for running queries. Each command must be on a separate line. "
+          + "For KSQL command syntax, see the documentation at "
+          + "https://github.com/confluentinc/ksql/docs/."
+      );
+      writer().println();
+      for (CliSpecificCommand cliSpecificCommand : cliSpecificCommands.values()) {
+        cliSpecificCommand.printHelp();
+        writer().println();
+      }
+      writer().println();
+      writer().println("Keyboard shortcuts:");
+      writer().println();
+      writer().println("    The KSQL CLI supports these keyboard shorcuts:");
+      writer().println();
+      writer().println("CTRL+D:");
+      writer().println("\tEnd your KSQL CLI session.");
+      writer().println("CTRL+R:");
+      writer().println("\tSearch your command history.");
+      writer().println("Up and Down arrow keys:");
+      writer().println("\tScroll up or down through your command history.");
+      writer().println();
+      writer().println("Default behavior:");
+      writer().println();
+      writer().println(
+          "    Lines are read one at a time and are sent to the "
+          + "server as KSQL unless one of the following is true:"
+      );
+      writer().println();
+      writer().println(
+          "    1. The line is empty or entirely whitespace. In this"
+          + " case, no request is made to the server."
+      );
+      writer().println();
+      writer().println(
+          "    2. The line ends with backslash ('\\'). In this case, lines are "
+          + "continuously read and stripped of their trailing newline and '\\' "
+          + "until one is "
+          + "encountered that does not end with '\\'; then, the concatenation of "
+          + "all lines read "
+          + "during this time is sent to the server as KSQL."
+      );
+      writer().println();
+    }
+  }
+
+  private class Clear implements CliSpecificCommand {
+    @Override
+    public String getName() {
+      return "clear";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println("clear:");
+      writer().println("\tClear the current terminal.");
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) throws IOException {
+      puts(InfoCmp.Capability.clear_screen);
+      flush();
+    }
+  }
+
+  private class Output implements CliSpecificCommand {
+
+    @Override
+    public String getName() {
+      return "output";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println("output:");
+      writer().println("\tView the current output format.");
+      writer().println("");
+      writer().println("output <format>");
+      writer().println("");
+      writer().printf(
+          "\tSet the output format to <format> (valid formats: %s)%n",
+          OutputFormat.VALID_FORMATS
+      );
+      writer().println("\tFor example: \"output JSON\"");
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) throws IOException {
+      String newFormat = commandStrippedLine.trim().toUpperCase();
+      if (newFormat.isEmpty()) {
+        writer().printf("Current output format: %s%n", outputFormat.name());
+      } else {
+        setOutputFormat(newFormat);
+      }
+    }
+  }
+
+  private class History implements CliSpecificCommand {
+    @Override
+    public String getName() {
+      return "history";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println(
+          "history:");
+      writer().println(
+          "\tShow previous lines entered during the current CLI session. You can"
+          + " use up and down arrow keys to view previous lines."
+      );
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) throws IOException {
+      for (org.jline.reader.History.Entry historyEntry : lineReader.getHistory()) {
+        writer().printf("%4d: %s%n", historyEntry.index(), historyEntry.line());
+      }
+      flush();
+    }
+  }
+
+  private class Version implements CliSpecificCommand {
+    @Override
+    public String getName() {
+      return "version";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println("version:");
+      writer().println("\tGet the current KSQL version.");
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) {
+      ServerInfo serverInfo = restClient.makeRootRequest().getResponse();
+      writer().printf("Version: %s%n", serverInfo.getVersion());
+      flush();
+    }
+  }
+
+  private class Exit implements CliSpecificCommand {
+    @Override
+    public String getName() {
+      return "exit";
+    }
+
+    @Override
+    public void printHelp() {
+      writer().println("exit:");
+      writer().println(
+          "\tExit the CLI."
+      );
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) throws IOException {
+      throw new EndOfFileException();
+    }
+  }
 }

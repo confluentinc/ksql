@@ -14,10 +14,10 @@ if [ -z "${LOG_DIR:-}" ]; then
 fi
 
 # create logs directory
-if [ ! -d "$LOG_DIR" ]; then
-  mkdir -p "$LOG_DIR"
+if [[ -n $LOG_DIR ]]; then
+    [[ -d $LOG_DIR ]] || mkdir -p "$LOG_DIR"
+    KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 fi
-
 
 : "${KSQL_CLASSPATH:=""}"
 : "${KSQL_LOG4J_OPTS:=""}"

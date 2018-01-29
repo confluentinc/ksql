@@ -59,7 +59,7 @@ public class Generator {
   private static final Schema.Parser schemaParser = new Schema.Parser();
   private static final Map<Schema, Generex> generexCache = new HashMap<>();
   private static final Map<Schema, List<Object>> optionsCache = new HashMap<>();
-  private static final Map<Schema, Iterator<Object>> iteratorCache = new HashMap<>();
+  private static final Map<String, Iterator<Object>> iteratorCache = new HashMap<>();
 
   /**
    * The name to use for the top-level JSON property when specifying ARG-specific attributes.
@@ -276,16 +276,16 @@ public class Generator {
    * </table>
    */
   public Object generate() {
-    return generateObject(topLevelSchema);
+    return generateObject(topLevelSchema, "");
   }
 
-  private Object generateObject(Schema schema) {
+  private Object generateObject(Schema schema, String fieldName) {
     Map propertiesProp = getProperties(schema).orElse(Collections.emptyMap());
     if (propertiesProp.containsKey(OPTIONS_PROP)) {
       return generateOption(schema, propertiesProp);
     }
     if (propertiesProp.containsKey(ITERATION_PROP)) {
-      return generateIteration(schema, propertiesProp);
+      return generateIteration(schema, propertiesProp, fieldName);
     }
     switch (schema.getType()) {
       case ARRAY:
@@ -783,27 +783,7 @@ public class Generator {
         case BOOLEAN:
           return getBooleanIterator(iterationProps);
         case INT: {
-          Integer iterationStartField = getIntegerNumberField(
-              ITERATION_PROP,
-              ITERATION_PROP_START,
-              iterationProps
-          );
-          Integer iterationRestartField = getIntegerNumberField(
-              ITERATION_PROP,
-              ITERATION_PROP_RESTART,
-              iterationProps
-          );
-          Integer iterationStepField = getIntegerNumberField(
-              ITERATION_PROP,
-              ITERATION_PROP_STEP,
-              iterationProps
-          );
-          return getIntegralIterator(
-              iterationStartField != null ? iterationStartField.longValue() : null,
-              iterationRestartField != null ? iterationRestartField.longValue() : null,
-              iterationStepField != null ? iterationStepField.longValue() : null,
-              IntegralIterator.Type.INTEGER
-          );
+          return createIntegerIterator(iterationProps);
         }
         case LONG: {
           Long iterationStartField = getIntegralNumberField(
@@ -874,6 +854,9 @@ public class Generator {
               DecimalIterator.Type.DOUBLE
           );
         }
+        case STRING:
+          return createStringIterator(createIntegerIterator(iterationProps));
+
         default:
           throw new UnsupportedOperationException(String.format(
               "%s property can only be specified on numeric and boolean schemas, not %s schema",
@@ -890,19 +873,59 @@ public class Generator {
     }
   }
 
+  private Iterator<Object> createStringIterator(Iterator<Object> inner) {
+    return new Iterator<Object>() {
+      @Override
+      public boolean hasNext() {
+        return inner.hasNext();
+      }
+
+      @Override
+      public Object next() {
+        return inner.next().toString();
+      }
+    };
+  }
+
+  private Iterator<Object> createIntegerIterator(Map iterationProps) {
+    Integer iterationStartField = getIntegerNumberField(
+        ITERATION_PROP,
+        ITERATION_PROP_START,
+        iterationProps
+    );
+    Integer iterationRestartField = getIntegerNumberField(
+        ITERATION_PROP,
+        ITERATION_PROP_RESTART,
+        iterationProps
+    );
+    Integer iterationStepField = getIntegerNumberField(
+        ITERATION_PROP,
+        ITERATION_PROP_STEP,
+        iterationProps
+    );
+    return getIntegralIterator(
+        iterationStartField != null ? iterationStartField.longValue() : null,
+        iterationRestartField != null ? iterationRestartField.longValue() : null,
+        iterationStepField != null ? iterationStepField.longValue() : null,
+        IntegralIterator.Type.INTEGER
+    );
+  }
+
   @SuppressWarnings("unchecked")
-  private <T> T generateIteration(Schema schema, Map propertiesProp) {
-    if (!iteratorCache.containsKey(schema)) {
-      iteratorCache.put(schema, parseIterations(schema, propertiesProp));
+  private <T> T generateIteration(Schema schema,
+                                  Map propertiesProp,
+                                  String fieldName) {
+    if (!iteratorCache.containsKey(fieldName)) {
+      iteratorCache.put(fieldName, parseIterations(schema, propertiesProp));
     }
-    return (T) iteratorCache.get(schema).next();
+    return (T) iteratorCache.get(fieldName).next();
   }
 
   private Collection<Object> generateArray(Schema schema, Map propertiesProp) {
     int length = getLengthBounds(propertiesProp).random();
     Collection<Object> result = new ArrayList<>(length);
     for (int i = 0; i < length; i++) {
-      result.add(generateObject(schema.getElementType()));
+      result.add(generateObject(schema.getElementType(), ""));
     }
     return result;
   }
@@ -1051,7 +1074,7 @@ public class Generator {
     Object keyProp = propertiesProp.get(KEYS_PROP);
     if (keyProp == null) {
       for (int i = 0; i < length; i++) {
-        result.put(generateRandomString(1), generateObject(schema.getValueType()));
+        result.put(generateRandomString(1), generateObject(schema.getValueType(), ""));
       }
     } else if (keyProp instanceof Map) {
       Map keyPropMap = (Map) keyProp;
@@ -1060,14 +1083,14 @@ public class Generator {
           optionsCache.put(schema, parseOptions(Schema.create(Schema.Type.STRING), keyPropMap));
         }
         for (int i = 0; i < length; i++) {
-          result.put(generateOption(schema, keyPropMap), generateObject(schema.getValueType()));
+          result.put(generateOption(schema, keyPropMap), generateObject(schema.getValueType(), ""));
         }
       } else {
         int keyLength = getLengthBounds(keyPropMap.get(LENGTH_PROP)).random();
         for (int i = 0; i < length; i++) {
           result.put(
               generateRandomString(keyLength),
-              generateObject(schema.getValueType())
+              generateObject(schema.getValueType(), "")
           );
         }
       }
@@ -1087,7 +1110,7 @@ public class Generator {
   private GenericRecord generateRecord(Schema schema) {
     GenericRecordBuilder builder = new GenericRecordBuilder(schema);
     for (Schema.Field field : schema.getFields()) {
-      builder.set(field, generateObject(field.schema()));
+      builder.set(field, generateObject(field.schema(), field.name()));
     }
     return builder.build();
   }
@@ -1124,7 +1147,7 @@ public class Generator {
 
   private Object generateUnion(Schema schema) {
     List<Schema> schemas = schema.getTypes();
-    return generateObject(schemas.get(random.nextInt(schemas.size())));
+    return generateObject(schemas.get(random.nextInt(schemas.size())), "");
   }
 
   private LengthBounds getLengthBounds(Map propertiesProp) {

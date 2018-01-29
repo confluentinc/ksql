@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.rest.entity.*;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -83,7 +84,7 @@ public class KsqlResourceTest {
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlStreamsProperties());
-    ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient(), schemaRegistryClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient(), schemaRegistryClient, new MetaStoreImpl());
   }
 
   @After

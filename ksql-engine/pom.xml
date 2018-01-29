@@ -104,7 +104,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_${kafka.scala.version}</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

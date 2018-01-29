@@ -16,12 +16,6 @@
 
 package io.confluent.ksql.serde.avro;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
@@ -35,19 +29,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+
 public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
 
   private KafkaAvroDeserializer kafkaAvroDeserializer;
 
-  public KsqlGenericRowAvroDeserializer(Schema schema,
-                                        SchemaRegistryClient schemaRegistryClient, boolean isInternal) {
+  public KsqlGenericRowAvroDeserializer(
+      Schema schema,
+      SchemaRegistryClient schemaRegistryClient,
+      boolean isInternal
+  ) {
     this(schema, new KafkaAvroDeserializer(schemaRegistryClient), isInternal);
   }
 
-  KsqlGenericRowAvroDeserializer(Schema schema, KafkaAvroDeserializer
-      kafkaAvroDeserializer, boolean isInternal) {
+  KsqlGenericRowAvroDeserializer(
+      Schema schema,
+      KafkaAvroDeserializer kafkaAvroDeserializer,
+      boolean isInternal
+  ) {
     if (isInternal) {
       this.schema = SchemaUtil.getAvroSerdeKsqlSchema(schema);
     } else {
@@ -77,11 +83,16 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
       List columns = new ArrayList();
       for (Field field : schema.fields()) {
         // Set the missing fields to null. We can make this configurable later.
-        if (genericRecord.get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase())) == null) {
+        if (genericRecord.get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))
+            == null) {
           columns.add(null);
         } else {
-          columns.add(enforceFieldType(field.schema(), genericRecord
-              .get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))));
+          columns.add(
+              enforceFieldType(
+                  field.schema(),
+                  genericRecord.get(caseInsensitiveFieldNameMap.get(field.name().toUpperCase()))
+              )
+          );
         }
 
       }
@@ -122,9 +133,11 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
         Map valueMap = (Map) value;
         Map<String, Object> ksqlMap = new HashMap<>();
         Set<Map.Entry> entrySet = valueMap.entrySet();
-        for (Map.Entry avroMapEntry: entrySet) {
-          ksqlMap.put(avroMapEntry.getKey().toString(),
-                      enforceFieldType(fieldSchema.valueSchema(), avroMapEntry.getValue()));
+        for (Map.Entry avroMapEntry : entrySet) {
+          ksqlMap.put(
+              avroMapEntry.getKey().toString(),
+              enforceFieldType(fieldSchema.valueSchema(), avroMapEntry.getValue())
+          );
         }
         return ksqlMap;
       default:
@@ -135,7 +148,7 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
   Map<String, String> getCaseInsensitiveFieldMap(GenericRecord genericRecord) {
     Map<String, String> fieldMap = new HashMap<>();
-    for (org.apache.avro.Schema.Field field: genericRecord.getSchema().getFields()) {
+    for (org.apache.avro.Schema.Field field : genericRecord.getSchema().getFields()) {
       fieldMap.put(field.name().toUpperCase(), field.name());
     }
     return fieldMap;

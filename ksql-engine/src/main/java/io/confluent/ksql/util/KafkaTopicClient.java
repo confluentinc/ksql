@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.io.Closeable;
@@ -31,57 +29,54 @@ public interface KafkaTopicClient extends Closeable {
   /**
    * Create a new topic with the specified name, numPartitions and replicatonFactor.
    * [warn] synchronous call to get the response
+   *
    * @param topic name of the topic to create
-   * @param numPartitions
-   * @param replicatonFactor
-   * @throws KafkaTopicException
-   * @throws KafkaResponseGetFailedException
    */
   void createTopic(String topic, int numPartitions, short replicatonFactor);
 
   /**
    * Create a new topic with the specified name, numPartitions and replicatonFactor.
    * [warn] synchronous call to get the response
+   *
    * @param topic name of the topic to create
-   * @param numPartitions
-   * @param replicatonFactor
    * @param configs any additional topic configs to use
-   * @throws KafkaTopicException
-   * @throws KafkaResponseGetFailedException
    */
-  void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs);
+  void createTopic(
+      String topic,
+      int numPartitions,
+      short replicatonFactor,
+      Map<String, String> configs
+  );
 
   /**
    * [warn] synchronous call to get the response
+   *
    * @param topic name of the topic
    * @return whether the topic exists or not
-   * @throws KafkaResponseGetFailedException
    */
   boolean isTopicExists(String topic);
 
   /**
    * [warn] synchronous call to get the response
+   *
    * @return set of existing topic names
-   * @throws KafkaResponseGetFailedException
    */
   Set<String> listTopicNames();
 
   /**
    * [warn] synchronous call to get the response
+   *
    * @param topicNames topicNames to describe
-   * @throws KafkaResponseGetFailedException
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
   /**
    * Delete the list of the topics in the given list.
-   * @param topicsToDelete
    */
   void deleteTopics(List<String> topicsToDelete);
 
   /**
    * Delete the internal topics of a given application.
-   * @param applicationId
    */
   void deleteInternalTopics(String applicationId);
 

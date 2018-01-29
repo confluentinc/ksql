@@ -20,22 +20,23 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Port;
 import com.github.rvesse.airline.annotations.restrictions.PortType;
-import io.confluent.ksql.cli.LocalCli;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.cli.console.JLineTerminal;
-import io.confluent.ksql.util.KsqlConfig;
 
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+
+import io.confluent.ksql.cli.LocalCli;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.JLineTerminal;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 
 @Command(name = "local", description = "Run a local (standalone) Cli session")
 public class Local extends AbstractCliCommands {
@@ -62,16 +63,16 @@ public class Local extends AbstractCliCommands {
   @Option(
       name = PORT_NUMBER_OPTION_NAME,
       description = "The portNumber to use for the connection (defaults to "
-          + PORT_NUMBER_OPTION_DEFAULT
-          + ")"
+                    + PORT_NUMBER_OPTION_DEFAULT
+                    + ")"
   )
   int portNumber = PORT_NUMBER_OPTION_DEFAULT;
 
   @Option(
       name = KAFKA_BOOTSTRAP_SERVER_OPTION_NAME,
       description = "The Kafka server to connect to (defaults to "
-          + KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
-          + ")"
+                    + KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT
+                    + ")"
   )
   String bootstrapServer;
 
@@ -87,17 +88,18 @@ public class Local extends AbstractCliCommands {
   @Option(
       name = COMMAND_TOPIC_SUFFIX_OPTION_NAME,
       description = "The suffix to append to the end of the name of the command topic "
-          + "(defaults to '"
-          + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
-          + "')"
+                    + "(defaults to '"
+                    + COMMAND_TOPIC_SUFFIX_OPTION_DEFAULT
+                    + "')"
   )
   String commandTopicSuffix;
 
   @Option(
       name = PROPERTIES_FILE_OPTION_NAME,
       description = "A file specifying properties for Ksql and its underlying Kafka Streams "
-          + "instance(s) (can specify port number, bootstrap server, etc. but these options will "
-          + "be overridden if also given via  flags)"
+                    + "instance(s) (can specify port number, bootstrap server, etc. but these "
+                    + "options will "
+                    + "be overridden if also given via  flags)"
   )
   String propertiesFile;
 
@@ -124,9 +126,14 @@ public class Local extends AbstractCliCommands {
     terminal.writer().println("Initializing KSQL...");
     terminal.flush();
     // Have to override listeners config to make sure it aligns with port number for client
-    serverProperties.put(KsqlRestConfig.LISTENERS_CONFIG, CliUtils.getLocalServerAddress(portNumber));
+    serverProperties.put(
+        KsqlRestConfig.LISTENERS_CONFIG,
+        CliUtils.getLocalServerAddress(portNumber)
+    );
     KsqlRestConfig restServerConfig = new KsqlRestConfig(serverProperties);
-    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(restServerConfig, false,
+    KsqlRestApplication restServer = KsqlRestApplication.buildApplication(
+        restServerConfig,
+        false,
         new KsqlVersionCheckerAgent()
     );
     restServer.start();
@@ -162,14 +169,15 @@ public class Local extends AbstractCliCommands {
 
   private void addFileProperties(Properties properties) throws IOException {
     if (propertiesFile != null) {
-      try(final FileInputStream input = new FileInputStream(propertiesFile)) {
+      try (final FileInputStream input = new FileInputStream(propertiesFile)) {
         properties.load(input);
       }
 
       if (properties.containsKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)) {
-        properties
-            .put(StreamsConfig.APPLICATION_ID_CONFIG,
-                 properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        properties.put(
+            StreamsConfig.APPLICATION_ID_CONFIG,
+            properties.getProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+        );
       } else {
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
       }

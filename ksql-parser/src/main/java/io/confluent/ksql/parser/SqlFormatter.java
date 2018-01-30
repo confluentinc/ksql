@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateView;
@@ -54,8 +55,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowCreate;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.ShowPartitions;
-import io.confluent.ksql.parser.tree.ShowSchemas;
-import io.confluent.ksql.parser.tree.ShowSession;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -471,23 +470,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowSchemas(ShowSchemas node, Integer context) {
-      builder.append("SHOW SCHEMAS");
-
-      if (node.getCatalog().isPresent()) {
-        builder.append(" FROM ")
-                .append(node.getCatalog().get());
-      }
-
-      node.getLikePattern().ifPresent((value) ->
-              builder.append(" LIKE ")
-                      .append(
-                              ExpressionFormatter.formatStringLiteral(value)));
-
-      return null;
-    }
-
-    @Override
     protected Void visitShowCreate(ShowCreate node, Integer context) {
       if (node.getType() == ShowCreate.Type.TABLE) {
         builder.append("SHOW CREATE TABLE ")
@@ -534,13 +516,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowSession(ShowSession node, Integer context) {
-      builder.append("SHOW SESSION");
-
-      return null;
-    }
-
-    @Override
     protected Void visitDelete(Delete node, Integer context) {
       builder.append("DELETE FROM ")
               .append(node.getTable().getName());
@@ -550,6 +525,29 @@ public final class SqlFormatter {
                 .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
       }
 
+      return null;
+    }
+
+    @Override
+    protected Void visitCreateStreamAsSelect(CreateStreamAsSelect node, Integer indent) {
+      builder.append("CREATE STREAM ");
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+      builder.append(node.getName());
+
+      if (!node.getProperties().isEmpty()) {
+        builder.append(" WITH (");
+        Joiner.on(", ")
+            .appendTo(builder, transform(
+                node.getProperties().entrySet(), entry -> entry.getKey() + " = "
+                                                          + ExpressionFormatter
+                                                              .formatExpression(entry.getValue())));
+        builder.append(")");
+      }
+
+      builder.append(" AS ");
+      process(node.getQuery(), indent);
       return null;
     }
 

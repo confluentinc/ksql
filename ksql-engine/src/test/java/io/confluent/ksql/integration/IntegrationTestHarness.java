@@ -81,7 +81,10 @@ public class IntegrationTestHarness {
    * @throws TimeoutException
    * @throws ExecutionException
    */
-  public Map<String, RecordMetadata> produceData(String topicName, Map<String, GenericRow> recordsToPublish, Serializer<GenericRow> serializer, Long timestamp)
+  public Map<String, RecordMetadata> produceData(String topicName,
+                                                 Map<String, GenericRow> recordsToPublish,
+                                                 Serializer<GenericRow> serializer,
+                                                 Long timestamp)
           throws InterruptedException, TimeoutException, ExecutionException {
 
     createTopic(topicName);
@@ -93,21 +96,28 @@ public class IntegrationTestHarness {
     Map<String, RecordMetadata> result = new HashMap<>();
     for (Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
       String key = recordEntry.getKey();
-      Future<RecordMetadata> recordMetadataFuture = producer.send(buildRecord(topicName, timestamp, recordEntry, key));
-      result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+      Future<RecordMetadata> recordMetadataFuture
+          = producer.send(buildRecord(topicName, timestamp, recordEntry, key));
+      result.put(key,
+                 recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
     }
     producer.close();
 
     return result;
   }
 
-  private ProducerRecord<String, GenericRow> buildRecord(String topicName, Long timestamp, Map.Entry<String, GenericRow> recordEntry, String key) {
+  private ProducerRecord<String, GenericRow> buildRecord(String topicName,
+                                                         Long timestamp,
+                                                         Map.Entry<String,
+                                                             GenericRow> recordEntry,
+                                                         String key) {
     return new ProducerRecord<>(topicName, null, timestamp,  key, recordEntry.getValue());
   }
 
   private Properties properties() {
     Properties producerConfig = new Properties();
-    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
     producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
     return producerConfig;
@@ -115,7 +125,9 @@ public class IntegrationTestHarness {
 
   void produceRecord(final String topicName, final String key, final String data) {
     try(final KafkaProducer<String, String> producer
-                = new KafkaProducer<>(properties(), new StringSerializer(), new StringSerializer())) {
+                = new KafkaProducer<>(properties(),
+                                      new StringSerializer(),
+                                      new StringSerializer())) {
       producer.send(new ProducerRecord<>(topicName, key, data));
     }
   }
@@ -130,7 +142,11 @@ public class IntegrationTestHarness {
    * @param <K>
    * @return
    */
-  public <K> Map<K, GenericRow> consumeData(String topic, Schema schema, int expectedNumMessages, Deserializer<K> keyDeserializer, long resultsPollMaxTimeMs) {
+  public <K> Map<K, GenericRow> consumeData(String topic,
+                                            Schema schema,
+                                            int expectedNumMessages,
+                                            Deserializer<K> keyDeserializer,
+                                            long resultsPollMaxTimeMs) {
     return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
                  DataSource.DataSourceSerDe.JSON);
   }
@@ -147,13 +163,16 @@ public class IntegrationTestHarness {
     Map<K, GenericRow> result = new HashMap<>();
 
     Properties consumerConfig = new Properties();
-    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
+    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                       ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG,
+                       CONSUMER_GROUP_ID_PREFIX + System.currentTimeMillis());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(consumerConfig,
-                                                                     keyDeserializer,
-                                                                     getDeserializer(schema, dataSourceSerDe))) {
+    try (KafkaConsumer<K, GenericRow> consumer
+             = new KafkaConsumer<>(consumerConfig,
+                                 keyDeserializer,
+                                 getDeserializer(schema, dataSourceSerDe))) {
 
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
@@ -207,14 +226,18 @@ public class IntegrationTestHarness {
     this.embeddedKafkaCluster.stop();
   }
 
-  public Map<String, RecordMetadata> publishTestData(String topicName, TestDataProvider dataProvider, Long timestamp) throws InterruptedException, ExecutionException, TimeoutException {
+  public Map<String, RecordMetadata> publishTestData(String topicName,
+                                                     TestDataProvider dataProvider,
+                                                     Long timestamp)
+      throws InterruptedException, ExecutionException, TimeoutException {
     return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON);
   }
 
   public Map<String, RecordMetadata> publishTestData(String topicName,
                                                      TestDataProvider dataProvider,
                                                      Long timestamp,
-                                                     DataSource.DataSourceSerDe dataSourceSerDe) throws InterruptedException, ExecutionException, TimeoutException {
+                                                     DataSource.DataSourceSerDe dataSourceSerDe)
+      throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
     return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema(), dataSourceSerDe), timestamp);
   }
@@ -224,7 +247,9 @@ public class IntegrationTestHarness {
       case JSON:
         return new KsqlJsonSerializer(schema);
       case AVRO:
-        return new KsqlGenericRowAvroSerializer(schema, this.schemaRegistryClient, new KsqlConfig(Collections.emptyMap()));
+        return new KsqlGenericRowAvroSerializer(schema,
+                                                this.schemaRegistryClient,
+                                                new KsqlConfig(Collections.emptyMap()));
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
       default:
@@ -232,12 +257,15 @@ public class IntegrationTestHarness {
     }
   }
 
-  private Deserializer<GenericRow> getDeserializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {
+  private Deserializer<GenericRow> getDeserializer(Schema schema,
+                                                   DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
         return new KsqlJsonDeserializer(schema);
       case AVRO:
-        return new KsqlGenericRowAvroDeserializer(schema, this.schemaRegistryClient, false);
+        return new KsqlGenericRowAvroDeserializer(schema,
+                                                  this.schemaRegistryClient,
+                                                  false);
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);
       default:

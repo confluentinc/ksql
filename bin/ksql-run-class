@@ -101,6 +101,9 @@ then
   usage
 fi
 
+MAIN="$1"
+shift
+
 DAEMON_NAME=""
 GC_LOG_ENABLED=""
 DAEMON_MODE=""
@@ -129,9 +132,6 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
-
-MAIN="$1"
-shift
 
 
 # GC options

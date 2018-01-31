@@ -12,12 +12,10 @@ base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 if [ -z "${LOG_DIR:-}" ]; then
   LOG_DIR="/tmp/ksql-logs"
 fi
-
-# create logs directory
-if [ ! -d "$LOG_DIR" ]; then
-  mkdir -p "$LOG_DIR"
+if [[ -n $LOG_DIR ]]; then
+    [[ -d $LOG_DIR ]] || mkdir -p "$LOG_DIR"
+    KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 fi
-
 
 : "${KSQL_CLASSPATH:=""}"
 : "${KSQL_LOG4J_OPTS:=""}"
@@ -39,7 +37,7 @@ for project in ksql-engine ksql-examples ksql-rest-app ksql-cli; do
 done
 
 # Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
-for library in "confluent-common" "rest-utils" "ksql-engine" "ksql-rest-app" "ksql-cli"; do
+for library in "confluent-common" "rest-utils" "ksql-engine" "ksql-rest-app" "ksql-cli" "ksql"; do
   DIR="$base_dir/share/java/$library"
   if [ -d "$DIR" ]; then
     KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"

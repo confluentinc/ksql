@@ -85,6 +85,7 @@ Before proceeding, please check:
    ksql> CREATE TABLE users_original (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
 
    ksql> DESCRIBE users_original;
+
     Field        | Type
    ------------------------------------------
     ROWTIME      | BIGINT           (system)
@@ -136,6 +137,7 @@ Before proceeding, please check:
    ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
 
    ksql> DESCRIBE pageviews_female;
+
 	Field    | Type
    --------------------------------------
 	ROWTIME  | BIGINT           (system)
@@ -171,7 +173,8 @@ Before proceeding, please check:
    ksql> CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
    ksql> DESCRIBE pageviews_regions;
-	Field    | Type
+
+	Field   | Type
    --------------------------------------
 	ROWTIME  | BIGINT           (system)
 	ROWKEY   | VARCHAR(STRING)  (system)
@@ -200,6 +203,7 @@ Before proceeding, please check:
 
    ```bash
    ksql> SHOW QUERIES;
+
 	Query ID                      | Kafka Topic              | Query String
    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;

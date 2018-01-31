@@ -45,7 +45,9 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
       SchemaRegistryClient schemaRegistryClient, KsqlConfig
       ksqlConfig
   ) {
-    String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
+    String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema", ksqlConfig
+        .getBoolean(KsqlConfig.AVRO_SCHEMA_UNION_NULL_PROPERTY));
+    
     Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
     fields = avroSchema.getFields();

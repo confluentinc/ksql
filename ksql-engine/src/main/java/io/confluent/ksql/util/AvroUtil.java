@@ -160,13 +160,15 @@ public class AvroUtil {
 
   public void validatePersistentQueryResults(
       final PersistentQueryMetadata persistentQueryMetadata,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isNullable
   ) {
 
     if (persistentQueryMetadata.getResultTopicSerde() == DataSource.DataSourceSerDe.AVRO) {
       String avroSchemaString = SchemaUtil.buildAvroSchema(
           persistentQueryMetadata.getResultSchema(),
-          persistentQueryMetadata.getResultTopic().getName()
+          persistentQueryMetadata.getResultTopic().getName(),
+          isNullable
       );
       boolean isValidSchema = isValidAvroSchemaForTopic(
           persistentQueryMetadata.getResultTopic().getTopicName(),

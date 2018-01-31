@@ -91,6 +91,39 @@ public class KsqlGenericRowAvroSerializerTest {
 
 
   @Test
+  public void shouldSerializeRowWithNullCorrectly() {
+    SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
+        (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
+
+    List columns = Arrays.asList(1511897796092L, 1L, null, 10.0, new Double[]{100.0},
+                                 Collections.singletonMap("key1", 100.0));
+
+    GenericRow genericRow = new GenericRow(columns);
+    byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
+    KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+    GenericRecord genericRecord = (GenericRecord) kafkaAvroDeserializer.deserialize("t1", serializedRow);
+    Assert.assertNotNull(genericRecord);
+    assertThat("Incorrect serialization.", genericRecord.get("ordertime".toUpperCase()), equalTo
+        (1511897796092L));
+    assertThat("Incorrect serialization.", genericRecord.get("orderid".toUpperCase()), equalTo
+        (1L));
+    assertThat("Incorrect serialization.", genericRecord.get("itemid".toUpperCase()), equalTo
+        (null));
+    assertThat("Incorrect serialization.", genericRecord.get("orderunits".toUpperCase()), equalTo
+        (10.0));
+
+    GenericData.Array array = (GenericData.Array) genericRecord.get("arraycol".toUpperCase());
+    Map map = (Map) genericRecord.get("mapcol".toUpperCase());
+
+    assertThat("Incorrect serialization.", array.size(), equalTo(1));
+    assertThat("Incorrect serialization.", array.get(0), equalTo(100.0));
+    assertThat("Incorrect serialization.", map.size(), equalTo(1));
+    assertThat("Incorrect serialization.", map.get(new Utf8("key1")), equalTo(100.0));
+
+  }
+
+  @Test
   public void shouldFailIfGenericRowDoesNotMatchTheSchema() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer

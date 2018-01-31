@@ -57,8 +57,22 @@ public class SchemaUtilTest {
         .field("orderunits", Schema.FLOAT64_SCHEMA)
         .field("arraycol", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
         .field("mapcol", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
-    String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
+    String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders", false);
     assertThat("", avroSchemaString.equals("{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"ordertime\",\"type\":\"long\"},{\"name\":\"orderid\",\"type\":\"string\"},{\"name\":\"itemid\",\"type\":\"string\"},{\"name\":\"orderunits\",\"type\":\"double\"},{\"name\":\"arraycol\",\"type\":{\"type\":\"array\",\"items\":\"double\"}},{\"name\":\"mapcol\",\"type\":{\"type\":\"map\",\"values\":\"double\"}}]}"));
+  }
+
+  @Test
+  public void shouldCreateCorrectAvroSchemaWithNullableFields() throws IOException {
+    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    schemaBuilder
+        .field("ordertime", Schema.INT64_SCHEMA)
+        .field("orderid", Schema.STRING_SCHEMA)
+        .field("itemid", Schema.STRING_SCHEMA)
+        .field("orderunits", Schema.FLOAT64_SCHEMA)
+        .field("arraycol", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
+        .field("mapcol", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
+    String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders", true);
+    assertThat("", avroSchemaString, equalTo("{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"ordertime\",\"type\":[\"long\",\"null\"]},{\"name\":\"orderid\",\"type\":[\"string\",\"null\"]},{\"name\":\"itemid\",\"type\":[\"string\",\"null\"]},{\"name\":\"orderunits\",\"type\":[\"double\",\"null\"]},{\"name\":\"arraycol\",\"type\":{\"type\":\"array\",\"items\":[\"double\",\"null\"]}},{\"name\":\"mapcol\",\"type\":{\"type\":\"map\",\"values\":[\"double\",\"null\"]}}]}"));
   }
 
   @Test

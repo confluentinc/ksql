@@ -128,7 +128,7 @@ public class AvroUtilTest {
     expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
         .andReturn(true);
     replay(schemaRegistryClient);
-    avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+    avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient, true);
   }
 
   @Test
@@ -152,7 +152,7 @@ public class AvroUtilTest {
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
     try {
-      avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+      avroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient, true);
       fail();
     } catch (Exception e) {
       assertThat("Incorrect exception message", "Cannot register avro schema for testTopic since "

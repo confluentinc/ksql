@@ -98,6 +98,7 @@ import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -503,7 +504,8 @@ public class KsqlResource {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         new AvroUtil().validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
-            ksqlEngine.getSchemaRegistryClient()
+            ksqlEngine.getSchemaRegistryClient(),
+            ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.AVRO_SCHEMA_UNION_NULL_PROPERTY)
         );
       }
       queryMetadata.close();
@@ -520,7 +522,8 @@ public class KsqlResource {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         new AvroUtil().validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
-            ksqlEngine.getSchemaRegistryClient()
+            ksqlEngine.getSchemaRegistryClient(),
+            ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.AVRO_SCHEMA_UNION_NULL_PROPERTY)
         );
       }
       queryMetadata.close();

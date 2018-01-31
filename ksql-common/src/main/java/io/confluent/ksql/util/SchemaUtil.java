@@ -30,6 +30,7 @@ import java.util.Set;
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
+import static org.apache.avro.Schema.createUnion;
 
 public class SchemaUtil {
 
@@ -280,7 +281,7 @@ public class SchemaUtil {
     }
   }
 
-  public static String buildAvroSchema(final Schema schema, String name) {
+  public static String buildAvroSchema(final Schema schema, String name, boolean isNullable) {
 
     org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler = org.apache.avro.SchemaBuilder
         .record(name).namespace("ksql")
@@ -288,32 +289,46 @@ public class SchemaUtil {
     for (Field field : schema.fields()) {
       fieldAssembler
           .name(field.name().replace(".", "_"))
-          .type(getAvroSchemaForField(field.schema()))
+          .type(getAvroSchemaForField(field.schema(), isNullable))
           .noDefault();
     }
 
     return fieldAssembler.endRecord().toString();
   }
 
-  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
+  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema,
+                                                              boolean isNullable) {
     switch (fieldSchema.type()) {
       case STRING:
-        return create(org.apache.avro.Schema.Type.STRING);
+        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.STRING), isNullable);
       case BOOLEAN:
-        return create(org.apache.avro.Schema.Type.BOOLEAN);
+        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.BOOLEAN), isNullable);
       case INT32:
-        return create(org.apache.avro.Schema.Type.INT);
+        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.INT), isNullable);
       case INT64:
-        return create(org.apache.avro.Schema.Type.LONG);
+        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.LONG), isNullable);
       case FLOAT64:
-        return create(org.apache.avro.Schema.Type.DOUBLE);
+        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.DOUBLE), isNullable);
       default:
         if (fieldSchema.type() == Schema.Type.ARRAY) {
-          return createArray(getAvroSchemaForField(fieldSchema.valueSchema()));
+          return getSchemaWithNullibleCheck(
+              createArray(getAvroSchemaForField(fieldSchema.valueSchema(), isNullable)),
+              false);
         } else if (fieldSchema.type() == Schema.Type.MAP) {
-          return createMap(getAvroSchemaForField(fieldSchema.valueSchema()));
+          return getSchemaWithNullibleCheck(
+              createMap(getAvroSchemaForField(fieldSchema.valueSchema(), isNullable)),
+              false);
         }
         throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
+    }
+  }
+
+  private static org.apache.avro.Schema getSchemaWithNullibleCheck(org.apache.avro.Schema schema,
+                                                            boolean isNullable) {
+    if (isNullable) {
+      return createUnion(schema, org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL));
+    } else {
+      return schema;
     }
   }
 

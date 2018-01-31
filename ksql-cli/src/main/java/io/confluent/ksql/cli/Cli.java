@@ -354,7 +354,7 @@ public class Cli implements Closeable, AutoCloseable {
           e
       );
     }
-    setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
+    setProperty(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
     printKsqlResponse(
         restClient.makeKsqlRequest(statementText)
     );
@@ -576,6 +576,9 @@ public class Cli implements Closeable, AutoCloseable {
       restClient.setProperty(property, value);
       return;
     } else if (property.equalsIgnoreCase(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+      restClient.setProperty(property, value);
+      return;
+    } else if (property.equalsIgnoreCase(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       restClient.setProperty(property, value);
       return;
     } else if (property.equalsIgnoreCase(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {

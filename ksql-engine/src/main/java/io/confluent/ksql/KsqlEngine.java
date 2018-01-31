@@ -275,7 +275,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
   }
 
-  private Pair<String, Statement> buildSingleQueryAst(
+  public Pair<String, Statement> buildSingleQueryAst(
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,

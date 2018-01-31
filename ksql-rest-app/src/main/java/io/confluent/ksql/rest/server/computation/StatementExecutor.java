@@ -20,6 +20,7 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,9 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -45,7 +49,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
@@ -263,22 +269,47 @@ public class StatementExecutor {
   }
 
   private void handleRunScript(Command command) throws Exception {
-    if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
-      String queries =
-          (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
-      List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
-          queries,
-          command.getStreamsProperties()
-      );
-      for (QueryMetadata queryMetadata : queryMetadataList) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.getKafkaStreams().start();
-        }
-      }
-    } else {
-      throw new KsqlException("No statements received for LOAD FROM FILE.");
-    }
+//    if (command.getStreamsProperties().containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+//      String queriesString =
+//          (String) command.getStreamsProperties().get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
+//
+//      KsqlParser ksqlParser = new KsqlParser();
+//      MetaStore tempMetaStore = ksqlEngine.getMetaStore().clone();
+//      MetaStore tempMetaStoreForParser = ksqlEngine.getMetaStore().clone();
+//      List<SqlBaseParser.SingleStatementContext> parsedStatements
+//          = ksqlParser.getStatements(queriesString);
+//      List<Pair<String, Statement>> statements = new ArrayList<>();
+//      for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
+//        Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(
+//            singleStatementContext,
+//            tempMetaStoreForParser
+//        );
+//        Pair<String, Statement> queryPair =
+//            ksqlEngine.buildSingleQueryAst(
+//                statementInfo.getLeft(),
+//                ksqlEngine.getStatementString(singleStatementContext),
+//                tempMetaStore,
+//                tempMetaStoreForParser,
+//                command.getStreamsProperties()
+//            );
+//        if (queryPair != null) {
+//          Statement statement = queryPair.getRight();
+//          String statementStr = queryPair.getLeft();
+//          List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+//              statementStr,
+//              command.getStreamsProperties()
+//          );
+//          for (QueryMetadata queryMetadata : queryMetadataList) {
+//            if (queryMetadata instanceof PersistentQueryMetadata) {
+//              PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
+//              persistentQueryMetadata.getKafkaStreams().start();
+//            }
+//          }
+//        }
+//      }
+//    } else {
+//      throw new KsqlException("No statements received for LOAD FROM FILE.");
+//    }
   }
 
   private String handleCreateAsSelect(

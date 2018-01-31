@@ -22,17 +22,7 @@ fi
 
 EXTRA_ARGS="-name ksql-server -loggc"
 
-COMMAND=$1
-case $COMMAND in 
-    -daemon)
-        EXTRA_ARGS="-daemon "$EXTRA_ARGS
-        shift
-        ;;
-    *)
-        ;;
-esac
-
 # TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
 # so that useful defaults for bootstrap server, port, etc. can be established here
 
-exec "$base_dir"/bin/ksql-run-class $EXTRA_ARGS io.confluent.ksql.rest.server.KsqlRestApplication "$@"
+exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.KsqlRestApplication $EXTRA_ARGS "$@"

@@ -24,6 +24,8 @@ public abstract class Node {
 
   private final Optional<NodeLocation> location;
 
+  private Optional<Node> parent;
+
   protected Node(Optional<NodeLocation> location) {
     this.location = requireNonNull(location, "location is null");
   }
@@ -37,6 +39,14 @@ public abstract class Node {
 
   public Optional<NodeLocation> getLocation() {
     return location;
+  }
+
+  public Optional<Node> getParent() {
+    return parent;
+  }
+
+  public void setParent(Optional<Node> parent) {
+    this.parent = parent;
   }
 
   // Force subclasses to have a proper equals and hashcode implementation

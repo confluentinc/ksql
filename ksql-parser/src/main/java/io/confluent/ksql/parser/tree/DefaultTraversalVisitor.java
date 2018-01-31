@@ -358,4 +358,12 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     return null;
   }
+
+  protected R visitCreateStreamAsSelect(CreateStreamAsSelect node, C context) {
+    process(node.getQuery(), context);
+    node.getProperties().values().forEach(expression -> process(expression, context));
+
+    return null;
+  }
+
 }

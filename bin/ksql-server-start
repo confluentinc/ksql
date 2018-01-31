@@ -6,6 +6,12 @@
 #
 set -ue
 
+if [ $# -lt 1 ]; 
+then
+    echo "$USAGE: $0 [-daemon] ksqlserver.properties"
+    exit 1
+fi
+
 base_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 : "${KSQL_CONFIG_DIR:="$base_dir/config"}"
 
@@ -14,7 +20,19 @@ if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-silent.properties" 
   export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
 fi
 
+EXTRA_ARGS="-name ksql-server -loggc"
+
+COMMAND=$1
+case $COMMAND in 
+    -daemon)
+        EXTRA_ARGS="-daemon "$EXTRA_ARGS
+        shift
+        ;;
+    *)
+        ;;
+esac
+
 # TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
 # so that useful defaults for bootstrap server, port, etc. can be established here
 
-exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.KsqlRestApplication "$@"
+exec "$base_dir"/bin/ksql-run-class $EXTRA_ARGS io.confluent.ksql.rest.server.KsqlRestApplication "$@"

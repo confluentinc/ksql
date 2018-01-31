@@ -183,7 +183,7 @@ Before proceeding, please check:
 	NUMUSERS | BIGINT
    --------------------------------------
    For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
-  ```
+   ```
 
 6. Use `SELECT` to view results from the above query.
 

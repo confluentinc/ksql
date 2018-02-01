@@ -90,7 +90,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
-  private final boolean enableQuickstartPage;
+  private final boolean isUiEnabled;
 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
@@ -111,7 +111,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      boolean enableQuickstartPage,
+      boolean isUiEnabled,
       VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
@@ -121,7 +121,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
-    this.enableQuickstartPage = enableQuickstartPage;
+    this.isUiEnabled = isUiEnabled;
     this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
@@ -138,7 +138,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public ResourceCollection getStaticResources() {
-    if (enableQuickstartPage) {
+    if (isUiEnabled) {
       return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
     } else {
       return super.getStaticResources();
@@ -191,8 +191,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
-    if (enableQuickstartPage) {
-      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "^/quickstart\\.html$");
+    if (isUiEnabled) {
+      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
   }
 
@@ -203,7 +203,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
 
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(restConfig, cliOptions.getQuickstart(), new KsqlVersionCheckerAgent());
+    KsqlRestApplication app = buildApplication(restConfig, cliOptions.isUiEnabled(), new KsqlVersionCheckerAgent());
 
     log.info("Starting server");
     app.start();
@@ -214,7 +214,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static KsqlRestApplication buildApplication(
       KsqlRestConfig restConfig,
-      boolean quickstart,
+      boolean isUiEnabled,
       VersionCheckerAgent versionCheckerAgent
   )
       throws Exception {
@@ -330,7 +330,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        quickstart,
+        isUiEnabled,
         versionCheckerAgent
     );
   }

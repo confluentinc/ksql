@@ -42,7 +42,7 @@ create table clickstream_codes_ts as select rowTime as event_ts, * from clickstr
 
 -- 4. BUILD PAGE_VIEWS
 DROP TABLE pages_per_min;
-create table pages_per_min as select userid, count(*) as pages from clickstream WINDOW HOPPING (size 10 second, advance by 5 second) WHERE request like '%html%' group by userid ;
+create TABLE pages_per_min as SELECT userid, count(*) as pages from clickstream WINDOW HOPPING (size 10 second, advance by 5 second) WHERE request like '%html%' group by userid ;
 
  -- Add _TS for Timeseries storage
 DROP TABLE pages_per_min_ts;

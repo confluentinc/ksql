@@ -30,4 +30,5 @@ public class DdlConfig {
   public static final String PARTITION_BY_PROPERTY = "PARTITION_BY";
   public static final String SCHEMA_FILE_CONTENT_PROPERTY = "ksql.schema.file.content";
   public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
+  public static final String ENFORCE_TOPIC_EXISTANCE = "ENFORCE_TOPIC_EXISTANCE";
 }

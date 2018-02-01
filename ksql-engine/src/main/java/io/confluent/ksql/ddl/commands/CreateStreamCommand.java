@@ -30,9 +30,14 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
       String sqlExpression,
       CreateStream createStream,
       Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient
+      KafkaTopicClient kafkaTopicClient,
+      boolean enforceTopicExistence
   ) {
-    super(sqlExpression, createStream, overriddenProperties, kafkaTopicClient);
+    super(sqlExpression,
+          createStream,
+          overriddenProperties,
+          kafkaTopicClient,
+          enforceTopicExistence);
   }
 
   @Override

@@ -290,7 +290,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             )
         ),
         Collections.emptyMap(),
-        ksqlEngine.getTopicClient()
+        ksqlEngine.getTopicClient(),
+        true
     ));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();

@@ -35,9 +35,14 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       String sqlExpression,
       CreateTable createTable,
       Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient
+      KafkaTopicClient kafkaTopicClient,
+      boolean enforceTopicExistence
   ) {
-    super(sqlExpression, createTable, overriddenProperties, kafkaTopicClient);
+    super(sqlExpression,
+          createTable,
+          overriddenProperties,
+          kafkaTopicClient,
+          enforceTopicExistence);
 
     Map<String, Expression> properties = createTable.getProperties();
 

@@ -135,7 +135,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.metaStore = metaStore;
     this.topicClient = topicClient;
     this.ddlCommandExec = new DDLCommandExec(this.metaStore);
-    this.queryEngine = new QueryEngine(this, new CommandFactories(topicClient, this));
+    this.queryEngine = new QueryEngine(
+        this,
+        new CommandFactories(topicClient, this, true));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -263,7 +265,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
                 getStatementString(singleStatementContext),
                 tempMetaStore,
                 tempMetaStoreForParser,
-                overriddenProperties
+                overriddenProperties,
+                false
             );
         if (queryPair != null) {
           queryList.add(queryPair);
@@ -280,7 +283,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       final String statementString,
       final MetaStore tempMetaStore,
       final MetaStore tempMetaStoreForParser,
-      final Map<String, Object> overriddenProperties
+      final Map<String, Object> overriddenProperties,
+      final boolean enforceTopicExistence
   ) {
 
     log.info("Building AST for {}.", statementString);
@@ -339,24 +343,40 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     } else if (statement instanceof CreateStream) {
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
-              statementString, (CreateStream) statement, overriddenProperties, topicClient),
+              statementString,
+              (CreateStream) statement,
+              overriddenProperties,
+              topicClient,
+              enforceTopicExistence),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
-              statementString, (CreateStream) statement, overriddenProperties, topicClient),
+              statementString,
+              (CreateStream) statement,
+              overriddenProperties,
+              topicClient,
+              enforceTopicExistence),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
-              statementString, (CreateTable) statement, overriddenProperties, topicClient),
+              statementString,
+              (CreateTable) statement,
+              overriddenProperties,
+              topicClient,
+              enforceTopicExistence),
           tempMetaStoreForParser
       );
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
-              statementString, (CreateTable) statement, overriddenProperties, topicClient),
+              statementString,
+              (CreateTable) statement,
+              overriddenProperties,
+              topicClient,
+              enforceTopicExistence),
           tempMetaStore
       );
       return new Pair<>(statementString, statement);

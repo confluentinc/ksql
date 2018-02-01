@@ -102,8 +102,8 @@ public class JsonFormatTest {
     Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
 
     GenericRow messageRow = new GenericRow(Arrays.asList
-        ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-            + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+            ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
+                    + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
 
     Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -222,6 +222,32 @@ public class JsonFormatTest {
     assertThat(results, equalTo(expectedResults));
 
     ksqlEngine.terminateQuery(queryMetadata.getQueryId(), true);
+  }
+
+  @Test
+  public void testJsonStreamExtractorNested() throws Exception {
+
+    final String streamName = "JSONSTREAM";
+    final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
+                    + "(message, '$.log.logs[0].entry') "
+                    + "FROM %s;",
+            streamName, messageLogStream);
+
+    PersistentQueryMetadata queryMetadata =
+            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    Schema resultSchema = SchemaUtil
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("1", new GenericRow(Arrays.asList("first")));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    assertThat(results, equalTo(expectedResults));
+
+    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   //*********************************************************//

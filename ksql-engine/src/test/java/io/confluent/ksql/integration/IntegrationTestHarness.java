@@ -177,8 +177,10 @@ public class IntegrationTestHarness {
       consumer.subscribe(Collections.singleton(topic));
       long pollStart = System.currentTimeMillis();
       long pollEnd = pollStart + resultsPollMaxTimeMs;
-      while (System.currentTimeMillis() < pollEnd && continueConsuming(result.size(), expectedNumMessages)) {
-        for (ConsumerRecord<K, GenericRow> record : consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
+      while (System.currentTimeMillis() < pollEnd &&
+             continueConsuming(result.size(), expectedNumMessages)) {
+        for (ConsumerRecord<K, GenericRow> record :
+            consumer.poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
           }
@@ -239,7 +241,11 @@ public class IntegrationTestHarness {
                                                      DataSource.DataSourceSerDe dataSourceSerDe)
       throws InterruptedException, ExecutionException, TimeoutException {
     createTopic(topicName);
-    return produceData(topicName, dataProvider.data(), getSerializer(dataProvider.schema(), dataSourceSerDe), timestamp);
+    return produceData(topicName,
+                       dataProvider.data(),
+                       getSerializer(dataProvider.schema(),
+                                     dataSourceSerDe),
+                       timestamp);
   }
 
   private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {

@@ -2,5 +2,5 @@ user=confluentinc
 project=ksql
 exclude-tags-regex=.*-rc\d+
 unreleased=false
-since-tag=v0.2
+since-tag=0.1-pre10
 

@@ -491,17 +491,16 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
 
     QuerySpecification newQuerySpecification = new QuerySpecification(
-            querySpecification.getSelect(),
-            new Pair<>(intoTable, doCreateTable),
-            querySpecification.getFrom(),
-            querySpecification.getWindowExpression(),
-            querySpecification.getWhere(),
-            querySpecification.getGroupBy(),
-            querySpecification.getHaving(),
-            querySpecification.getOrderBy(),
-            querySpecification.getLimit()
+        querySpecification.getSelect(),
+        new Pair<>(intoTable, doCreateTable),
+        querySpecification.getFrom(),
+        querySpecification.getWindowExpression(),
+        querySpecification.getWhere(),
+        querySpecification.getGroupBy(),
+        querySpecification.getHaving(),
+        querySpecification.getLimit()
     );
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
+    return new Query(newQuerySpecification, query.getLimit());
   }
 
   public Set<QueryMetadata> getLivePersistentQueries() {

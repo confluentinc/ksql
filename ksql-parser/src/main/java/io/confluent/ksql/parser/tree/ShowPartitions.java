@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,26 +27,26 @@ public class ShowPartitions
 
   private final QualifiedName table;
   private final Optional<Expression> where;
-  private final List<SortItem> orderBy;
   private final Optional<String> limit;
 
-  public ShowPartitions(QualifiedName table, Optional<Expression> where, List<SortItem> orderBy,
+  public ShowPartitions(QualifiedName table, Optional<Expression> where, Optional<String> limit) {
+    this(Optional.empty(), table, where, limit);
+  }
+
+  public ShowPartitions(NodeLocation location,
+                        QualifiedName table,
+                        Optional<Expression> where,
                         Optional<String> limit) {
-    this(Optional.empty(), table, where, orderBy, limit);
+    this(Optional.of(location), table, where, limit);
   }
 
-  public ShowPartitions(NodeLocation location, QualifiedName table, Optional<Expression> where,
-                        List<SortItem> orderBy, Optional<String> limit) {
-    this(Optional.of(location), table, where, orderBy, limit);
-  }
-
-  private ShowPartitions(Optional<NodeLocation> location, QualifiedName table,
-                         Optional<Expression> where, List<SortItem> orderBy,
+  private ShowPartitions(Optional<NodeLocation> location,
+                         QualifiedName table,
+                         Optional<Expression> where,
                          Optional<String> limit) {
     super(location);
     this.table = requireNonNull(table, "table is null");
     this.where = requireNonNull(where, "where is null");
-    this.orderBy = ImmutableList.copyOf(requireNonNull(orderBy, "orderBy is null"));
     this.limit = requireNonNull(limit, "limit is null");
   }
 
@@ -59,10 +56,6 @@ public class ShowPartitions
 
   public Optional<Expression> getWhere() {
     return where;
-  }
-
-  public List<SortItem> getOrderBy() {
-    return orderBy;
   }
 
   public Optional<String> getLimit() {
@@ -76,7 +69,7 @@ public class ShowPartitions
 
   @Override
   public int hashCode() {
-    return Objects.hash(table, where, orderBy, limit);
+    return Objects.hash(table, where, limit);
   }
 
   @Override
@@ -90,7 +83,6 @@ public class ShowPartitions
     ShowPartitions o = (ShowPartitions) obj;
     return Objects.equals(table, o.table)
            && Objects.equals(where, o.where)
-           && Objects.equals(orderBy, o.orderBy)
            && Objects.equals(limit, o.limit);
   }
 
@@ -99,7 +91,6 @@ public class ShowPartitions
     return toStringHelper(this)
         .add("table", table)
         .add("where", where)
-        .add("orderBy", orderBy)
         .add("limit", limit)
         .toString();
   }

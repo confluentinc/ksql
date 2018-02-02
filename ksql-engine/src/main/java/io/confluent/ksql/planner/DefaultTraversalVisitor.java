@@ -56,7 +56,6 @@ import io.confluent.ksql.parser.tree.SetOperation;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.SortItem;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
@@ -66,7 +65,6 @@ import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
-import io.confluent.ksql.parser.tree.With;
 import io.confluent.ksql.parser.tree.WithQuery;
 
 import java.util.Set;
@@ -127,23 +125,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitQuery(Query node, C context) {
-    if (node.getWith().isPresent()) {
-      process(node.getWith().get(), context);
-    }
+
     process(node.getQueryBody(), context);
-    for (SortItem sortItem : node.getOrderBy()) {
-      process(sortItem, context);
-    }
-
-    return null;
-  }
-
-  @Override
-  protected R visitWith(With node, C context) {
-    for (WithQuery query : node.getQueries()) {
-      process(query, context);
-    }
-
     return null;
   }
 
@@ -313,10 +296,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     return process(node.getQuery(), context);
   }
 
-  @Override
-  protected R visitSortItem(SortItem node, C context) {
-    return process(node.getSortKey(), context);
-  }
 
   @Override
   protected R visitQuerySpecification(QuerySpecification node, C context) {
@@ -331,9 +310,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
     if (node.getHaving().isPresent()) {
       process(node.getHaving().get(), context);
-    }
-    for (SortItem sortItem : node.getOrderBy()) {
-      process(sortItem, context);
     }
     return null;
   }

@@ -44,11 +44,11 @@ public class QueryId {
     if (this == o) {
       return true;
     }
-    if (getClass() != o.getClass()) {
+    if (!(o instanceof QueryId)) {
       return false;
     }
-    QueryId queryId1 = (QueryId) o;
-    return Objects.equals(id, queryId1.id);
+    QueryId queryId = (QueryId) o;
+    return Objects.equals(id, queryId.id);
   }
 
   @Override

@@ -61,7 +61,6 @@ import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.parser.tree.ExistsPredicate;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ExplainFormat;
@@ -73,11 +72,9 @@ import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
-import io.confluent.ksql.parser.tree.GroupingSets;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
-import io.confluent.ksql.parser.tree.Intersect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
@@ -121,7 +118,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.SortItem;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -134,13 +130,11 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Union;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.tree.With;
 import io.confluent.ksql.parser.tree.WithQuery;
 
 import static java.lang.String.format;
@@ -200,11 +194,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
     }
     return properties.build();
-  }
-
-  @Override
-  public Node visitIsolationLevel(SqlBaseParser.IsolationLevelContext context) {
-    return visit(context.levelOfIsolation());
   }
 
   @Override
@@ -314,21 +303,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new Query(
         getLocation(context),
-        visitIfPresent(context.with(), With.class),
         body.getQueryBody(),
-        body.getOrderBy(),
         body.getLimit()
     );
   }
 
-  @Override
-  public Node visitWith(SqlBaseParser.WithContext context) {
-    return new With(
-        getLocation(context),
-        context.RECURSIVE() != null,
-        visit(context.namedQuery(), WithQuery.class)
-    );
-  }
 
   @Override
   public Node visitNamedQuery(SqlBaseParser.NamedQueryContext context) {
@@ -354,7 +333,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       QuerySpecification query = (QuerySpecification) term;
       return new Query(
           getLocation(context),
-          Optional.<With>empty(),
           new QuerySpecification(
               getLocation(context),
               query.getSelect(),
@@ -364,19 +342,15 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               query.getWhere(),
               query.getGroupBy(),
               query.getHaving(),
-              visit(context.sortItem(), SortItem.class),
               getTextIfPresent(context.limit)
           ),
-          ImmutableList.of(),
           Optional.<String>empty()
       );
     }
 
     return new Query(
         getLocation(context),
-        Optional.<With>empty(),
         term,
-        visit(context.sortItem(), SortItem.class),
         getTextIfPresent(context.limit)
     );
   }
@@ -397,7 +371,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     Select select = new Select(
         getLocation(context.SELECT()),
-        isDistinct(context.setQuantifier()),
+        false,
         visit(context.selectItem(), SelectItem.class)
     );
     select = new Select(
@@ -416,7 +390,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),
         visitIfPresent(context.having, Expression.class),
-        ImmutableList.of(),
         Optional.<String>empty()
     );
   }
@@ -572,7 +545,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitGroupBy(SqlBaseParser.GroupByContext context) {
     return new GroupBy(
         getLocation(context),
-        isDistinct(context.setQuantifier()),
+        false,
         visit(context.groupingElement(), GroupingElement.class)
     );
   }
@@ -583,41 +556,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         getLocation(context),
         visit(context.groupingExpressions().expression(), Expression.class)
     );
-  }
-
-  @Override
-  public Node visitMultipleGroupingSets(SqlBaseParser.MultipleGroupingSetsContext context) {
-    return new GroupingSets(getLocation(context), context.groupingSet().stream()
-        .map(groupingSet -> groupingSet.qualifiedName().stream()
-            .map(AstBuilder::getQualifiedName)
-            .collect(toList()))
-        .collect(toList()));
-  }
-
-  @Override
-  public Node visitSetOperation(SqlBaseParser.SetOperationContext context) {
-    QueryBody left = (QueryBody) visit(context.left);
-    QueryBody right = (QueryBody) visit(context.right);
-
-    boolean distinct =
-        context.setQuantifier() == null || context.setQuantifier().DISTINCT() != null;
-
-    switch (context.operator.getType()) {
-      case SqlBaseLexer.UNION:
-        return new Union(getLocation(context.UNION()), ImmutableList.of(left, right), distinct);
-      case SqlBaseLexer.INTERSECT:
-        return new Intersect(
-            getLocation(context.INTERSECT()),
-            ImmutableList.of(left, right),
-            distinct
-        );
-      case SqlBaseLexer.EXCEPT:
-        return new Except(getLocation(context.EXCEPT()), left, right, distinct);
-      default:
-        throw new IllegalArgumentException(
-            "Unsupported set operation: " + context.operator.getText()
-        );
-    }
   }
 
   @Override
@@ -1265,7 +1203,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     QualifiedName name = getQualifiedName(context.qualifiedName());
 
-    boolean distinct = isDistinct(context.setQuantifier());
+    boolean distinct = false;
 
     if (name.toString().equals("NULLIF")) {
       check(
@@ -1457,10 +1395,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return QualifiedName.of(parts);
   }
 
-  private static boolean isDistinct(SqlBaseParser.SetQuantifierContext setQuantifier) {
-    return setQuantifier != null && setQuantifier.DISTINCT() != null;
-  }
-
   private static Optional<String> getTextIfPresent(Token token) {
     return Optional.ofNullable(token)
         .map(Token::getText);
@@ -1608,10 +1542,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
     if (baseType.identifier() != null) {
       return getIdentifierText(baseType.identifier());
-    } else if (baseType.TIME_WITH_TIME_ZONE() != null) {
-      return baseType.TIME_WITH_TIME_ZONE().getText().toUpperCase();
-    } else if (baseType.TIMESTAMP_WITH_TIME_ZONE() != null) {
-      return baseType.TIMESTAMP_WITH_TIME_ZONE().getText().toUpperCase();
     } else {
       throw new KsqlException(
           "Base type must contain either identifier, "

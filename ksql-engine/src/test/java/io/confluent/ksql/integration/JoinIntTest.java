@@ -43,7 +43,7 @@ public class JoinIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
+    testHarness = new IntegrationTestHarness();
     testHarness.start();
     Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
     ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());

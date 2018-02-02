@@ -22,15 +22,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class LongTopkKudafTest {
-  private Long[] valueArray;
-  private TopkAggFunctionDeterminer topKFactory;
-  private List<Schema> argumentType;
+public class LongTopkKudafTest extends TopKKudafBaseTest{
 
   @Before
   public void setup() {
@@ -41,9 +37,9 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = topKFactory.getProperAggregateFunction(argumentType);
+    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = getTopKArgumentInstance();
     Object[] window = new Long[]{null, null, null};
-    for (Long value : valueArray) {
+    for (Object value : valueArray) {
       window = longTopkKudaf.aggregate(value, window);
     }
     assertThat("Invalid results.", window, equalTo(new Long[]{80L, 60L, 60L}));
@@ -51,14 +47,14 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = topKFactory.getProperAggregateFunction(argumentType);
+    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = getTopKArgumentInstance();
     Object[] window = longTopkKudaf.aggregate(80L, new Long[]{null, null, null});
     assertThat("Invalid results.", window, equalTo(new Long[]{80L, null, null}));
   }
 
   @Test
   public void shouldMergeTopK() {
-    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = topKFactory.getProperAggregateFunction(argumentType);
+    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = getTopKArgumentInstance();
     Long[] array1 = new Long[]{50L, 45L, 25L};
     Long[] array2 = new Long[]{60L, 55L, 48l};
 
@@ -68,7 +64,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = topKFactory.getProperAggregateFunction(argumentType);
+    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = getTopKArgumentInstance();
     Long[] array1 = new Long[]{50L, 45L, null};
     Long[] array2 = new Long[]{60L, null, null};
 
@@ -78,7 +74,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = topKFactory.getProperAggregateFunction(argumentType);
+    KsqlAggregateFunction<Object, Object[]> longTopkKudaf = getTopKArgumentInstance();
     Long[] array1 = new Long[]{50L, null, null};
     Long[] array2 = new Long[]{60L, null, null};
 

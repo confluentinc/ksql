@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metastore;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -141,6 +142,14 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
+  public void updateForPersistentQuery(String queryId,
+                                       Set<String> sourceNames,
+                                       Set<String> sinkNames) {
+    addSourceNames(sourceNames, queryId);
+    addSinkNames(sinkNames, queryId);
+
+  }
+
   public void addSourceNames(Set<String> sourceNames, String queryId) {
     for (String sourceName: sourceNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
@@ -149,7 +158,6 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
   }
 
-  @Override
   public void addSinkNames(Set<String> sinkNames, String queryId) {
     for (String sinkName: sinkNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
@@ -159,13 +167,11 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public void removeQueryFromReferentialIntegrityTable(String queryId) {
+  public void removePersistentQuery(String queryId) {
     for (Pair<StructuredDataSource, ReferentialIntegrityTableEntry>
         structuredDataSourceReferentialIntegrityTableEntryPair: dataSourceMap.values()) {
       structuredDataSourceReferentialIntegrityTableEntryPair.getRight()
-          .getSourceForQueries().remove(queryId);
-      structuredDataSourceReferentialIntegrityTableEntryPair.getRight()
-          .getSinkForQueries().remove(queryId);
+          .removeQuery(queryId);
     }
   }
 
@@ -176,21 +182,20 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
     ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
         dataSourceMap.get(sourceName).getRight();
-    if (referentialIntegrityTableEntry.getSinkForQueries().isEmpty() &&
-        referentialIntegrityTableEntry.getSourceForQueries().isEmpty()) {
-      return true;
-    }
-    return false;
+    return (referentialIntegrityTableEntry.getSinkForQueries().isEmpty() &&
+        referentialIntegrityTableEntry.getSourceForQueries().isEmpty());
   }
 
   @Override
   public Set<String> getSourceForQuery(String sourceName) {
-    return dataSourceMap.get(sourceName).getRight().getSourceForQueries();
+    return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
+                                           .getSourceForQueries());
   }
 
   @Override
   public Set<String> getSinkForQuery(String sourceName) {
-    return dataSourceMap.get(sourceName).getRight().getSinkForQueries();
+    return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
+                                           .getSinkForQueries());
   }
 
   @Override
@@ -200,15 +205,11 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
         dataSourceMap
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new Pair<>(entry.getValue()
-                                                                                   .getLeft(),
-                                                                               entry.getValue()
-                                                                                   .getRight()
-                                                                                   .clone())));
-
+        .collect(Collectors.toMap(entry -> entry.getKey(),
+                                  entry -> new Pair<>(entry.getValue().getLeft(),
+                                                      entry.getValue().getRight().clone())));
     cloneTopicMap.putAll(topicMap);
     cloneDataSourceMap.putAll(dataSourceMap);
-
     return new MetaStoreImpl(cloneTopicMap, cloneDataSourceMap);
   }
 

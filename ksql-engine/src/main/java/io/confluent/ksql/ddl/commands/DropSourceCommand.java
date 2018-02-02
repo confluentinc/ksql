@@ -53,23 +53,10 @@ public class DropSourceCommand implements DDLCommand {
           dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
-    if (!metaStore.isSafeToDrop(sourceName)) {
-      String sourceForQueriesMessage = metaStore
-          .getSourceForQuery(sourceName).stream()
-          .collect(Collectors.joining(", "));
-      String sinkForQueriesMessage = metaStore.getSinkForQuery(sourceName)
-          .stream()
-          .collect(Collectors.joining(", "));
-      throw new KsqlException(String.format("Cannot drop the data source. The following queries "
-                                            + "read from this source: [%s] and the following "
-                                            + "queries write into this source: [%s]. You need to "
-                                            + "terminate them before dropping this source.",
-                                            sourceForQueriesMessage, sinkForQueriesMessage));
-    }
+    metaStore.deleteSource(sourceName);
     DropTopicCommand dropTopicCommand = new DropTopicCommand(
         dataSource.getKsqlTopic().getTopicName());
     dropTopicCommand.run(metaStore);
-    metaStore.deleteSource(sourceName);
     return new DDLCommandResult(true, "Source " + sourceName +  " was dropped");
   }
 }

@@ -45,11 +45,11 @@ public interface MetaStore {
 
   public void putAll(MetaStore otherMetaStore);
 
-  public void addSourceNames(Set<String> sourceNames, String queryId);
+  public void updateForPersistentQuery(String queryId,
+                                       Set<String> sourceNames,
+                                       Set<String> sinkNames);
 
-  public void addSinkNames(Set<String> sinkNames, String queryId);
-
-  public void removeQueryFromReferentialIntegrityTable(String queryId);
+  public void removePersistentQuery(String queryId);
 
   public boolean isSafeToDrop(String sourceName);
 

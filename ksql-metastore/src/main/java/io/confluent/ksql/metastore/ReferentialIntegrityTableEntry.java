@@ -42,6 +42,11 @@ public class ReferentialIntegrityTableEntry {
     return sinkForQueries;
   }
 
+  public void removeQuery(String queryId) {
+    sourceForQueries.remove(queryId);
+    sinkForQueries.remove(queryId);
+  }
+
   public ReferentialIntegrityTableEntry clone() {
     Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
     Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);

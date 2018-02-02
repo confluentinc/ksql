@@ -57,17 +57,17 @@ public class CommandFactories implements DDLCommandFactory {
                 properties,
                 topicClient));
     factories.put(
-        DropStream.class, (sqlExpression, ddlStatement, properties) ->
-            new DropSourceCommand(
-        (DropStream) ddlStatement,
-        DataSource.DataSourceType.KSTREAM,
-        metaStore));
+        DropStream.class,
+        (sqlExpression, ddlStatement, properties) ->
+            new DropSourceCommand((DropStream) ddlStatement,
+                                  DataSource.DataSourceType.KSTREAM,
+                                  metaStore));
     factories.put(
-        DropTable.class, (sqlExpression, ddlStatement, properties) ->
-            new DropSourceCommand(
-        (DropTable) ddlStatement,
-        DataSource.DataSourceType.KTABLE,
-        metaStore));
+        DropTable.class,
+        (sqlExpression, ddlStatement, properties) ->
+            new DropSourceCommand((DropTable) ddlStatement,
+                                  DataSource.DataSourceType.KTABLE,
+                                  metaStore));
     factories.put(
         DropTopic.class, (sqlExpression, ddlStatement, properties) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));

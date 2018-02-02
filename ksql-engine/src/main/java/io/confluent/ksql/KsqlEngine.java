@@ -94,7 +94,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   );
 
   private KsqlConfig ksqlConfig;
-
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
   private final DDLCommandExec ddlCommandExec;
@@ -102,14 +101,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
   private final Set<QueryMetadata> allLiveQueries;
-
-
-
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
-
   private final FunctionRegistry functionRegistry;
-
   private SchemaRegistryClient schemaRegistryClient;
 
 
@@ -148,8 +142,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
     this.schemaRegistryClient = schemaRegistryClient;
-
-
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(
@@ -218,10 +210,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
         livePersistentQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueries.put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
-        metaStore.addSourceNames(persistentQueryMetadata.getSourceNames(),
-                                                 persistentQueryMetadata.getQueryId().getId());
-        metaStore.addSinkNames(persistentQueryMetadata.getSinkNames(),
-                                               persistentQueryMetadata.getQueryId().getId());
+        metaStore.updateForPersistentQuery(persistentQueryMetadata.getQueryId().getId(),
+                                           persistentQueryMetadata.getSourceNames(),
+                                           persistentQueryMetadata.getSinkNames());
       }
       allLiveQueries.add(queryMetadata);
     }
@@ -482,11 +473,10 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
     livePersistentQueries.remove(persistentQueryMetadata);
     allLiveQueries.remove(persistentQueryMetadata);
+    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
       persistentQueryMetadata.close();
     }
-    metaStore.removeQueryFromReferentialIntegrityTable(
-        persistentQueryMetadata.getQueryId().getId());
     return true;
   }
 
@@ -506,8 +496,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       persistentQueries.remove(metadata.getQueryId());
       livePersistentQueries.remove(metadata);
       allLiveQueries.remove(metadata);
-      metaStore
-          .removeQueryFromReferentialIntegrityTable(metadata.getQueryId().getId());
+      metaStore.removePersistentQuery(metadata.getQueryId().getId());
     }
   }
 

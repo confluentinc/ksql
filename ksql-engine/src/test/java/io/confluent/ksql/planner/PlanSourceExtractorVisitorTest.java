@@ -17,6 +17,7 @@
 package io.confluent.ksql.planner;
 
 
+import org.apache.kafka.common.utils.Utils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +43,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class PlanSourceExtractorVisitorTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
+  private final KsqlParser KSQL_PARSER = new KsqlParser();
 
   private MetaStore metaStore;
   private FunctionRegistry functionRegistry;
@@ -66,29 +67,31 @@ public class PlanSourceExtractorVisitorTest {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
     }
     // Build a logical plan
-    PlanNode logicalPlan = new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-    return logicalPlan;
+    return new LogicalPlanner(analysis,
+                              aggregateAnalysis,
+                              functionRegistry)
+        .buildPlan();
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForSimpleQuery() {
     PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
     PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
     Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
     assertThat(sourceNames.size(), equalTo(1));
-    Assert.assertTrue(sourceNames.contains("TEST2"));
+    assertThat(sourceNames, equalTo(Utils.mkSet("TEST2")));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForJoinQuery() {
     PlanNode planNode = buildLogicalPlan("SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;");
     PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
     Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
-    assertThat(sourceNames.size(), equalTo(2));
-    Assert.assertTrue(sourceNames.contains("TEST1"));
-    Assert.assertTrue(sourceNames.contains("TEST2"));
+    assertThat(sourceNames, equalTo(Utils.mkSet("TEST1", "TEST2")));
   }
 
 }

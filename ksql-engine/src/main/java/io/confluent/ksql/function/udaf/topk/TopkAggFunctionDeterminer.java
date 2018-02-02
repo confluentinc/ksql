@@ -27,16 +27,16 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopkAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
-    private int topKSize = 0;
+  private int topKSize = 0;
 
-    public TopkAggFunctionDeterminer() {
-        super("TOPK", Arrays.asList());
-    }
+  public TopkAggFunctionDeterminer() {
+    super("TOPK", Arrays.asList());
+  }
 
-    public TopkAggFunctionDeterminer(int topKSize) {
-        this();
-        this.topKSize = topKSize;
-    }
+  public TopkAggFunctionDeterminer(int topKSize) {
+    this();
+    this.topKSize = topKSize;
+  }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {

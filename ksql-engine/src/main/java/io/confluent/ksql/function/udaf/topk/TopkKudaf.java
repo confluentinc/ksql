@@ -76,8 +76,8 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
   public Merger<String, T[]> getMerger() {
     // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     return (aggKey, aggOne, aggTwo) -> {
-      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? topKSize : ArrayUtil.getNullIndex(aggOne);
-      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? topKSize : ArrayUtil.getNullIndex(aggTwo);
+      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1 ? topKSize : ArrayUtil.getNullIndex(aggOne);
+      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1 ? topKSize : ArrayUtil.getNullIndex(aggTwo);
       T[] tempMergeTopkArray = (T[]) Array.newInstance(clazz, nullIndex1 + nullIndex2);
 
       for (int i = 0; i < nullIndex1; i++) {
@@ -88,7 +88,7 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
       }
       Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
       if (tempMergeTopkArray.length < topKSize) {
-        tempMergeTopkArray = ArrayUtil.padWithNull((Class<T>) clazz, tempMergeTopkArray, topKSize);
+        tempMergeTopkArray = ArrayUtil.padWithNull(clazz, tempMergeTopkArray, topKSize);
         return tempMergeTopkArray;
       }
       return Arrays.copyOf(tempMergeTopkArray, topKSize);

@@ -93,7 +93,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     if (!dataSourceMap.containsKey(sourceName)) {
       throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
     }
-    if (!dataSourceMap.get(sourceName).getRight().isEmpty()) {
+    if (!isSafeToDrop(sourceName)) {
       String sourceForQueriesMessage = dataSourceMap.get(sourceName).getRight()
           .getSourceForQueries()
           .stream()

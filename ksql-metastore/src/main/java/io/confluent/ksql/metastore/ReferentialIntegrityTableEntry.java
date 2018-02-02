@@ -42,10 +42,6 @@ public class ReferentialIntegrityTableEntry {
     return sinkForQueries;
   }
 
-  public boolean isEmpty() {
-    return sourceForQueries.isEmpty() && sinkForQueries.isEmpty();
-  }
-
   public ReferentialIntegrityTableEntry clone() {
     Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
     Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);

@@ -16,48 +16,41 @@
  */
 package io.confluent.ksql;
 
+import com.google.common.base.Joiner;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
+import org.apache.kafka.streams.test.OutputVerifier;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.physical.KafkaStreamsBuilder;
-import io.confluent.ksql.physical.PhysicalPlanBuilder;
-import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryMetadata;
 
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-
+@RunWith(Parameterized.class)
 public class QueryTranslationTest {
 
   private final MetaStore metaStore = new MetaStoreImpl();
-  private final LogicalPlanBuilder logicalPlanBuilder = new LogicalPlanBuilder(metaStore);
-  private final KafkaStreamsBuilderStub kafkaStreamsBuilder = new KafkaStreamsBuilderStub();
   private final Map<String, Object> config = new HashMap<String, Object>() {{
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     put("application.id", "KSQL-TEST");
@@ -71,100 +64,145 @@ public class QueryTranslationTest {
           Serdes.String().serializer(),
           Serdes.String().serializer());
 
-  private PhysicalPlanBuilder physicalPlanBuilder;
+  private Query query;
+
+  private KsqlEngine ksqlEngine;
 
   @Before
   public void before() {
     streamsProperties.putAll(config);
-    createPhysicalPlanBuilder();
-    setupMetaStore();
-  }
-
-  private void setupMetaStore() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-        .field("ROWTIME", SchemaBuilder.INT64_SCHEMA)
-        .field("ROWKEY", SchemaBuilder.STRING_SCHEMA)
-        .field("COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
-
-    final String entityName = "TEST";
-    final KsqlTopic
-        ksqlTopic =
-        new KsqlTopic(entityName, entityName.toLowerCase(), new KsqlDelimitedTopicSerDe());
-
-    final KsqlStream stream = new KsqlStream("sqlexpression",
-        entityName,
-        schemaBuilder.build(),
-        schemaBuilder.field("COL0"),
-        null,
-        ksqlTopic);
-
-    metaStore.putTopic(ksqlTopic);
-    metaStore.putSource(stream);
-
-  }
-
-  private void createPhysicalPlanBuilder() {
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
-    final FunctionRegistry functionRegistry = new FunctionRegistry();
-    physicalPlanBuilder = new PhysicalPlanBuilder(streamsBuilder,
-        new KsqlConfig(config),
+    ksqlEngine = new KsqlEngine(new KsqlConfig(config),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
-        functionRegistry,
-        Collections.emptyMap(),
-        false,
-        metaStore,
         new MockSchemaRegistryClient(),
-        kafkaStreamsBuilder
-    );
+        metaStore);
   }
 
-  private TopologyTestDriver buildStreamsTopology(final String query) throws Exception {
-    final PlanNode logical = logicalPlanBuilder.buildLogicalPlan(query);
-    physicalPlanBuilder.buildPhysicalPlan(new Pair<>(query, logical));
-    return new TopologyTestDriver(kafkaStreamsBuilder.topology, streamsProperties, 0);
-  }
+  static class Record {
+    private final String topic;
+    private final String key;
+    private final String value;
+    private final long timestamp;
 
-  // query
-  // topic
-  // inputs
-  @Test
-  public void should() throws Exception {
-    final TopologyTestDriver testDriver
-        = buildStreamsTopology("create stream s1 as SELECT col1 FROM test WHERE col0 > 100;");
-    testDriver.pipeInput(recordFactory.create("test", "", "0,v,v2,2.7,false"));
-
-    final ProducerRecord<String, String> result = testDriver.readOutput("s1",
-        Serdes.String().deserializer(),
-        Serdes.String().deserializer());
-    assertThat(result, nullValue());
-
-    testDriver.pipeInput(recordFactory.create("test", "", "100,v,v2,2.7,false"));
-    assertThat(testDriver.readOutput("s1",
-        Serdes.String().deserializer(),
-        Serdes.String().deserializer()), nullValue());
-
-    testDriver.pipeInput(recordFactory.create("test", "", "101,v,v2,2.7,false"));
-    assertThat(testDriver.readOutput("s1",
-        Serdes.String().deserializer(),
-        Serdes.String().deserializer()), nullValue());
-  }
-
-
-  class KafkaStreamsBuilderStub implements KafkaStreamsBuilder {
-
-    private Topology topology;
-
-    @Override
-    public KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf) {
-      topology = builder.build();
-      return new KafkaStreams(builder.build(), conf);
+    Record(final String topic,
+           final String key,
+           final String value,
+           final long timestamp) {
+      this.topic = topic;
+      this.key = key;
+      this.value = value;
+      this.timestamp = timestamp;
     }
   }
 
+
+  static class Query {
+    private final String name;
+    private final List<String> statements;
+    private final List<Record> inputs;
+    private final List<Record> expectedOutputs;
+
+    Query(final String name,
+          final List<String> statements,
+          final List<Record> inputs,
+          final List<Record> expectedOutputs) {
+      this.name = name;
+      this.statements = statements;
+      this.inputs = inputs;
+      this.expectedOutputs = expectedOutputs;
+    }
+
+    public String statements() {
+      return Joiner.on("\n").join(statements);
+    }
+
+    void processInput(final TopologyTestDriver testDriver,
+                      final ConsumerRecordFactory<String, String> recordFactory) {
+      inputs.forEach(record -> testDriver.pipeInput(
+          recordFactory.create(record.topic,
+              record.key,
+              record.value,
+              record.timestamp))
+      );
+    }
+
+    void verifyOutput(final TopologyTestDriver testDriver) {
+      for (final Record expectedOutput : expectedOutputs) {
+        try {
+          OutputVerifier.compareKeyValue(testDriver.readOutput(expectedOutput.topic,
+              Serdes.String().deserializer(),
+              Serdes.String().deserializer()),
+              expectedOutput.key,
+              expectedOutput.value);
+        } catch (AssertionError assertionError) {
+          throw new AssertionError("Query name: "
+              + name
+              + " failed due to: "
+              + assertionError.getMessage());
+        }
+      }
+      // check for no more records
+    }
+  }
+
+  private TopologyTestDriver buildStreamsTopology(final Query query) throws Exception {
+    final List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(query.statements(),
+        Collections.emptyMap());
+    return new TopologyTestDriver(queries.get(queries.size() - 1).getTopology(),
+        streamsProperties,
+        0);
+  }
+
+
+  public QueryTranslationTest(final Query query) {
+    this.query = query;
+  }
+
+  @Parameterized.Parameters
+  public static Collection<Object[]> data() throws IOException {
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final JsonNode tests = objectMapper.readTree(
+        QueryTranslationTest.class.getClassLoader().
+            getResourceAsStream("query-validation-tests.json"));
+    final List<Query> queries = new ArrayList<>();
+    tests.elements().forEachRemaining(query -> {
+      try {
+        final String name = query.findValue("name").asText();
+        final List<String> statements = new ArrayList<>();
+        final List<Record> inputs = new ArrayList<>();
+        final List<Record> outputs = new ArrayList<>();
+        query.findValue("statements").elements()
+            .forEachRemaining(statement -> statements.add(statement.asText()));
+        query.findValue("inputs").elements()
+            .forEachRemaining(input -> inputs.add(createRecordFromNode(input)));
+        query.findValue("outputs").elements()
+            .forEachRemaining(output -> outputs.add(createRecordFromNode(output)));
+        queries.add(new Query(name, statements, inputs, outputs));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    });
+    final Object[] objects = queries.toArray(new Object[0]);
+    final Collection<Object[]> result = new ArrayList<>();
+    for (Object object : objects) {
+      result.add(new Object[]{object});
+    }
+    return result;
+  }
+
+  @Test
+  public void shouldBuildAndExecuteQuery() throws Exception {
+    final TopologyTestDriver testDriver = buildStreamsTopology(query);
+    query.processInput(testDriver, recordFactory);
+    query.verifyOutput(testDriver);
+  }
+
+
+  private static Record createRecordFromNode(final JsonNode node) {
+    return new Record(
+        node.findValue("topic").asText(),
+        node.findValue("key").asText(),
+        node.findValue("value").asText(),
+        node.findValue("timestamp").asLong());
+  }
 
 }

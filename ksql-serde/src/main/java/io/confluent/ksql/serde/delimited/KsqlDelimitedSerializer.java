@@ -51,7 +51,8 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
       StringWriter stringWriter = new StringWriter();
       CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
       csvPrinter.printRecord(genericRow.getColumns());
-      return stringWriter.toString().getBytes(StandardCharsets.UTF_8);
+      String result = stringWriter.toString();
+      return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);
     } catch (Exception e) {
       throw new SerializationException("Error serializing CSV message", e);
     }

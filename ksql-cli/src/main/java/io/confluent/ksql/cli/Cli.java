@@ -16,27 +16,6 @@
 
 package io.confluent.ksql.cli;
 
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.PropertiesList;
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.CommonUtils;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -55,7 +34,12 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Scanner;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +47,28 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.cli.console.CliSpecificCommand;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.CommonUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Version;
 
 public class Cli implements Closeable, AutoCloseable {
 
@@ -88,10 +94,10 @@ public class Cli implements Closeable, AutoCloseable {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
 
-    this.streamedQueryRowLimit  = streamedQueryRowLimit;
+    this.streamedQueryRowLimit = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
     this.restClient = restClient;
-    this.terminal =  terminal;
+    this.terminal = terminal;
 
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
   }
@@ -115,7 +121,7 @@ public class Cli implements Closeable, AutoCloseable {
           // TODO: Maybe ask the user if they'd like to see the stack trace here?
         }
         String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-        if (causeMsg != "") {
+        if (!causeMsg.isEmpty()) {
           terminal.writer().println(causeMsg);
         }
       }
@@ -151,7 +157,8 @@ public class Cli implements Closeable, AutoCloseable {
     int logoWidth = 33;
     String copyrightMessage = "Copyright 2017 Confluent Inc.";
     String helpReminderMessage = "Having trouble? "
-                                 + "Type 'help' (case-insensitive) for a rundown of how things work!";
+                                 + "Type 'help' (case-insensitive) for a rundown of how things "
+                                 + "work!";
     // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
     if (terminal.getWidth() >= logoWidth) {
       // Want to center the logo, but in the case of something like a fullscreen terminal, just
@@ -161,7 +168,10 @@ public class Cli implements Closeable, AutoCloseable {
       // Math.min(terminal.getWidth(), helpReminderMessage.length())
       int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
       int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
-      String leftPadding = new String(new byte[paddingWidth], StandardCharsets.UTF_8).replaceAll(".", " ");
+      String leftPadding = new String(
+          new byte[paddingWidth],
+          StandardCharsets.UTF_8
+      ).replaceAll(".", " ");
       terminal.writer().printf("%s======================================%n", leftPadding);
       terminal.writer().printf("%s=      _  __ _____  ____  _          =%n", leftPadding);
       terminal.writer().printf("%s=     | |/ // ____|/ __ \\| |         =%n", leftPadding);
@@ -234,7 +244,8 @@ public class Cli implements Closeable, AutoCloseable {
     }
 
     String[] commandArgs = trimmedLine.split("\\s+", 2);
-    CliSpecificCommand cliSpecificCommand = terminal.getCliSpecificCommands().get(commandArgs[0].toLowerCase());
+    CliSpecificCommand cliSpecificCommand =
+        terminal.getCliSpecificCommands().get(commandArgs[0].toLowerCase());
     if (cliSpecificCommand != null) {
       cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
     } else {
@@ -245,9 +256,10 @@ public class Cli implements Closeable, AutoCloseable {
   /**
    * Attempt to read a logical line of input from the user. Can span multiple physical lines, as
    * long as all but the last end with '\\'.
+   *
    * @return The parsed, logical line.
    * @throws EndOfFileException If there is no more input available from the user.
-   * @throws IOException If any other I/O error occurs.
+   * @throws IOException        If any other I/O error occurs.
    */
   private String readLine() throws IOException {
     while (true) {
@@ -279,7 +291,11 @@ public class Cli implements Closeable, AutoCloseable {
       String statementText = KsqlEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
-        consecutiveStatements = printOrDisplayQueryResults(consecutiveStatements, statementContext, statementText);
+        consecutiveStatements = printOrDisplayQueryResults(
+            consecutiveStatements,
+            statementContext,
+            statementText
+        );
 
       } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
         listProperties(statementText);
@@ -304,7 +320,11 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
-  private void registerTopic(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext, String statementText) {
+  private void registerTopic(
+      StringBuilder consecutiveStatements,
+      SqlBaseParser.SingleStatementContext statementContext,
+      String statementText
+  ) {
     CliUtils cliUtils = new CliUtils();
     Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
         (SqlBaseParser.RegisterTopicContext) statementContext.statement());
@@ -314,16 +334,25 @@ public class Cli implements Closeable, AutoCloseable {
     consecutiveStatements.append(statementText);
   }
 
-  private void runScript(SqlBaseParser.SingleStatementContext statementContext, String statementText) throws IOException {
+  private void runScript(
+      SqlBaseParser.SingleStatementContext statementContext,
+      String statementText
+  ) throws IOException {
     SqlBaseParser.RunScriptContext runScriptContext =
         (SqlBaseParser.RunScriptContext) statementContext.statement();
     String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
     String fileContent;
     try {
-      fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), StandardCharsets.UTF_8);
+      fileContent = new String(
+          Files.readAllBytes(Paths.get(schemaFilePath)),
+          StandardCharsets.UTF_8
+      );
     } catch (IOException e) {
-      throw new KsqlException(" Could not read statements from file: " + schemaFilePath + ". "
-                              + "Details: " + e.getMessage(), e);
+      throw new KsqlException(
+          " Could not read statements from file: " + schemaFilePath + ". " + "Details: "
+          + e.getMessage(),
+          e
+      );
     }
     setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
     printKsqlResponse(
@@ -331,7 +360,10 @@ public class Cli implements Closeable, AutoCloseable {
     );
   }
 
-  private StringBuilder unsetProperty(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext) throws IOException {
+  private StringBuilder unsetProperty(
+      StringBuilder consecutiveStatements,
+      SqlBaseParser.SingleStatementContext statementContext
+  ) throws IOException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
@@ -345,7 +377,11 @@ public class Cli implements Closeable, AutoCloseable {
     return consecutiveStatements;
   }
 
-  private StringBuilder printOrDisplayQueryResults(StringBuilder consecutiveStatements, SqlBaseParser.SingleStatementContext statementContext, String statementText) throws IOException, InterruptedException, ExecutionException {
+  private StringBuilder printOrDisplayQueryResults(
+      StringBuilder consecutiveStatements,
+      SqlBaseParser.SingleStatementContext statementContext,
+      String statementText
+  ) throws IOException, InterruptedException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
           restClient.makeKsqlRequest(consecutiveStatements.toString())
@@ -373,7 +409,7 @@ public class Cli implements Closeable, AutoCloseable {
     PropertiesList propertiesList = (PropertiesList) ksqlEntityList.get(0);
     propertiesList.getProperties().putAll(restClient.getLocalProperties());
     terminal.printKsqlEntityList(
-            Collections.singletonList(propertiesList)
+        Collections.singletonList(propertiesList)
     );
   }
 
@@ -388,7 +424,10 @@ public class Cli implements Closeable, AutoCloseable {
           LOGGER.error(errorMsg.getErrorMessage().getMessage());
           noErrorFromServer = false;
         } else if (entity instanceof CommandStatusEntity &&
-                   (((CommandStatusEntity) entity).getCommandStatus().getStatus() == CommandStatus.Status.ERROR)) {
+                   (
+                       ((CommandStatusEntity) entity).getCommandStatus().getStatus()
+                       == CommandStatus.Status.ERROR
+                   )) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;
@@ -468,7 +507,10 @@ public class Cli implements Closeable, AutoCloseable {
         restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
-      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), StandardCharsets.UTF_8.name())) {
+      try (Scanner topicStreamScanner = new Scanner(
+          topicResponse.getResponse(),
+          StandardCharsets.UTF_8.name()
+      )) {
         Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
           while (topicStreamScanner.hasNextLine()) {
             String line = topicStreamScanner.nextLine();
@@ -512,8 +554,7 @@ public class Cli implements Closeable, AutoCloseable {
       parsedProperty = property;
     } else if (property.startsWith(StreamsConfig.CONSUMER_PREFIX)) {
       parsedProperty = property.substring(StreamsConfig.CONSUMER_PREFIX.length());
-      ConfigDef.ConfigKey configKey =
-          CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
+      ConfigDef.ConfigKey configKey = CONSUMER_CONFIG_DEF.configKeys().get(parsedProperty);
       if (configKey == null) {
         throw new IllegalArgumentException(String.format(
             "Invalid consumer property: '%s'",
@@ -523,8 +564,7 @@ public class Cli implements Closeable, AutoCloseable {
       type = configKey.type;
     } else if (property.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
       parsedProperty = property.substring(StreamsConfig.PRODUCER_PREFIX.length());
-      ConfigDef.ConfigKey configKey =
-          PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
+      ConfigDef.ConfigKey configKey = PRODUCER_CONFIG_DEF.configKeys().get(parsedProperty);
       if (configKey == null) {
         throw new IllegalArgumentException(String.format(
             "Invalid producer property: '%s'",
@@ -595,5 +635,4 @@ public class Cli implements Closeable, AutoCloseable {
       return null;
     }
   }
-
 }

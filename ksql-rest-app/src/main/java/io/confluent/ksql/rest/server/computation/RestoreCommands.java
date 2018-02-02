@@ -51,10 +51,13 @@ class RestoreCommands {
 
 
   interface ForEach {
-    void apply(final CommandId commandId,
-               final Command command,
-               final Map<QueryId, CommandId> terminatedQueries,
-               final boolean dropped);
+
+    void apply(
+        final CommandId commandId,
+        final Command command,
+        final Map<QueryId, CommandId> terminatedQueries,
+        final boolean dropped
+    );
   }
 
   void forEach(final ForEach action) {
@@ -63,14 +66,20 @@ class RestoreCommands {
       allTerminatedQueries.entrySet().stream()
           .filter(entry -> allCommandIds.indexOf(entry.getValue()) > commandIdIndexPair.left)
           .forEach(queryIdCommandIdEntry ->
-              terminatedAfter.put(queryIdCommandIdEntry.getKey(), queryIdCommandIdEntry.getValue()));
+                       terminatedAfter.put(
+                           queryIdCommandIdEntry.getKey(),
+                           queryIdCommandIdEntry.getValue()
+                       ));
       final Set<String> droppedEntities = this.dropped.entrySet().stream()
           .filter(entry -> allCommandIds.indexOf(entry.getValue()) > commandIdIndexPair.left)
           .map(Map.Entry::getKey)
           .collect(Collectors.toSet());
-      action.apply(commandIdIndexPair.right, command,
+      action.apply(
+          commandIdIndexPair.right,
+          command,
           terminatedAfter,
-          droppedEntities.contains(commandIdIndexPair.right.getEntity()));
+          droppedEntities.contains(commandIdIndexPair.right.getEntity())
+      );
     });
   }
 

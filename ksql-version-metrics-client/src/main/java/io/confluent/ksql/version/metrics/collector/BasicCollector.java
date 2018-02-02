@@ -25,18 +25,18 @@ import io.confluent.support.metrics.common.time.TimeUtils;
 
 public class BasicCollector extends Collector {
 
-  private final long time;
+  private final TimeUtils timeUtils;
   private final KsqlModuleType moduleType;
 
   public BasicCollector(KsqlModuleType moduleType, TimeUtils timeUtils) {
-    time = timeUtils.nowInUnixTime();
+    this.timeUtils = timeUtils;
     this.moduleType = moduleType;
   }
 
   @Override
   public GenericContainer collectMetrics() {
     KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
-    metricsRecord.setTimestamp(time);
+    metricsRecord.setTimestamp(timeUtils.nowInUnixTime());
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
     return metricsRecord;

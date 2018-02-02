@@ -4,19 +4,25 @@
 
 : "${JAVA_HOME:=""}"
 
+function find_java_home {
+  local system=$(uname -s)
+  if (( $system == "Darwin" )); then
+    echo $(/usr/libexec/java_home)
+  fi
+}
+
 # Which java to use
 if [ -z "$JAVA_HOME" ]; then
-  JAVA="java"
-else
-  JAVA="$JAVA_HOME/bin/java"
+  JAVA_HOME=$(find_java_home)
 fi
 
 if [ -z "$JAVA_HOME" ]; then
-  echo "Please set JAVA_HOME to path to jdk installation directory"
+  echo "Could not find java home. Please set JAVA_HOME to path to jdk installation directory"
   exit 1
 fi
 
 KSQL_CLASSPATH="$JAVA_HOME/lib/*"
+JAVA="$JAVA_HOME/bin/java"
 
 base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 

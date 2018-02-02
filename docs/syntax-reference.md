@@ -618,6 +618,7 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | CEIL                | `CEIL(col1)`                                            | The ceiling of a value               |
 | CONCAT              | `CONCAT(col1, '_hello')`                                | Concatenate two strings              |
 | EXTRACTJSONFIELD    | `EXTRACTJSONFIELD(message, '$.log.cloud')`              |  Given a string column in JSON format, extract the field that matches |the given pattern.
+| ARRAYCONTAINS       | `ARRAYCONTAINS('[1, 2, 3]', 3)`                         |  Given JSON or AVRO array checks if a search value contains in it. |
 | FLOOR               | `FLOOR(col1)`                                           | The floor of a value                 |
 | LCASE               | `LCASE(col1)`                                           | Convert a string to lowercase        |
 | LEN                 | `LEN(col1)`                                             | The length of a string               |

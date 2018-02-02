@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
@@ -41,7 +39,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KafkaTopicException;
+
 public class KafkaTopicClientImpl implements KafkaTopicClient {
+
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
   private final AdminClient adminClient;
 
@@ -53,29 +55,45 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(final String topic, final int numPartitions, final short replicatonFactor) {
+  public void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicatonFactor
+  ) {
     createTopic(topic, numPartitions, replicatonFactor, Collections.emptyMap());
   }
 
   @Override
-  public void createTopic(final String topic,
-                          final int numPartitions,
-                          final short replicatonFactor,
-                          final Map<String, String> configs) {
+  public void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicatonFactor,
+      final Map<String, String> configs
+  ) {
     if (isTopicExists(topic)) {
-      Map<String, TopicDescription> topicDescriptions = describeTopics(Collections.singletonList(topic));
+      Map<String, TopicDescription> topicDescriptions =
+          describeTopics(Collections.singletonList(topic));
       TopicDescription topicDescription = topicDescriptions.get(topic);
       if (topicDescription.partitions().size() != numPartitions ||
           topicDescription.partitions().get(0).replicas().size() < replicatonFactor) {
         throw new KafkaTopicException(String.format(
-            "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d v %d", topic,
-            topicDescription.partitions().size(), numPartitions,
-            topicDescription.partitions().get(0).replicas().size(), replicatonFactor
+            "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
+            + "v %d",
+            topic,
+            topicDescription.partitions().size(),
+            numPartitions,
+            topicDescription.partitions().get(0).replicas().size(),
+            replicatonFactor
         ));
       }
       // Topic with the partitons and replicas exists, reuse it!
-      log.debug("Did not create topic {} with {} partitions and replication-factor {} since it already exists", topic,
-          numPartitions, replicatonFactor);
+      log.debug(
+          "Did not create topic {} with {} partitions and replication-factor {} since it already "
+          + "exists",
+          topic,
+          numPartitions,
+          replicatonFactor
+      );
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
@@ -85,8 +103,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
 
     } catch (InterruptedException | ExecutionException e) {
-      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic " +
-          topic, e);
+      throw new KafkaResponseGetFailedException(
+          "Failed to guarantee existence of topic " + topic,
+          e
+      );
     }
   }
 
@@ -146,7 +166,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     try {
       Set<String> topicNames = listTopicNames();
       List<String> internalTopics = new ArrayList<>();
-      for (String topicName: topicNames) {
+      for (String topicName : topicNames) {
         if (isInternalTopic(topicName, applicationId)) {
           internalTopics.add(topicName);
         }
@@ -156,7 +176,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (Exception e) {
       log.error("Exception while trying to clean up internal topics for application id: {}.",
-                applicationId, e);
+                applicationId, e
+      );
     }
   }
 
@@ -165,8 +186,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       DescribeClusterResult describeClusterResult = adminClient.describeCluster();
       List<Node> nodes = new ArrayList<>(describeClusterResult.nodes().get());
       if (!nodes.isEmpty()) {
-        ConfigResource resource = new ConfigResource(ConfigResource.Type.BROKER,
-                                                     String.valueOf(nodes.get(0).id()));
+        ConfigResource resource = new ConfigResource(
+            ConfigResource.Type.BROKER,
+            String.valueOf(nodes.get(0).id())
+        );
         DescribeConfigsResult
             describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
         Map<ConfigResource, Config> config = describeConfigsResult.all().get();

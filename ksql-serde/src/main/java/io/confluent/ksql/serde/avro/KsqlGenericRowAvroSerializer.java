@@ -40,9 +40,11 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
   private final List<Schema.Field> fields;
   private final KafkaAvroSerializer kafkaAvroSerializer;
 
-  public KsqlGenericRowAvroSerializer(org.apache.kafka.connect.data.Schema schema,
-                                      SchemaRegistryClient schemaRegistryClient, KsqlConfig
-                                          ksqlConfig) {
+  public KsqlGenericRowAvroSerializer(
+      org.apache.kafka.connect.data.Schema schema,
+      SchemaRegistryClient schemaRegistryClient, KsqlConfig
+      ksqlConfig
+  ) {
     String avroSchemaStr = SchemaUtil.buildAvroSchema(schema, "avro_schema");
     Schema.Parser parser = new Schema.Parser();
     avroSchema = parser.parse(avroSchemaStr);
@@ -52,7 +54,10 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
 
     // Automatically register the schema in the Schema Registry if it has not been registered.
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
-    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+    map.put(
+        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+    );
     kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
 
   }
@@ -71,7 +76,10 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
       GenericRecord avroRecord = new GenericData.Record(avroSchema);
       for (int i = 0; i < genericRow.getColumns().size(); i++) {
         if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
-          avroRecord.put(fields.get(i).name(), Arrays.asList((Object[]) genericRow.getColumns().get(i)));
+          avroRecord.put(
+              fields.get(i).name(),
+              Arrays.asList((Object[]) genericRow.getColumns().get(i))
+          );
         } else {
           avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
         }

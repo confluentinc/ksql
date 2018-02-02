@@ -18,10 +18,6 @@ package io.confluent.ksql.tools.printmetrics;
 
 import sun.tools.jconsole.LocalVirtualMachine;
 
-import javax.management.*;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.LinkedList;
@@ -29,12 +25,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+
 public class PrintMetrics {
+
   public static void printHelp() {
     System.err.println(
-        "usage: PrintMetrics "
-            + "[help] "
-            + "pid=<KSQL PID>");
+        "usage: PrintMetrics [help] pid=<KSQL PID>\n" +
+            "\n" +
+            "This utility prints the following operational metrics tracked by ksql:\n" +
+            "\n" +
+            "messages-consumed-per-sec: Messages consumed per second across all queries\n" +
+            "messages-consumed-avg:     The average number of messages consumed by a query " +
+            "per second\n" +
+            "messages-consumed-min:     Messages consumed per second for the query with the " +
+            "fewest messages consumed per second\n" +
+            "messages-consumed-max:     Messages consumed per second for the query with the " +
+            "most messages consumed per second\n" +
+            "messages-produced-per-sec: Messages produced per second across all queries\n" +
+            "error-rate:                The number of messages which were consumed but not " +
+            " processed across all queries\n" +
+            "num-persistent-queries:    The number of queries currently executing.\n" +
+            "num-active-queries:        The number of queries actively processing messages.\n" +
+            "num-idle-queries:          The number of queries with no messages available to " +
+            "process.");
   }
 
   private static void printMetrics(int pid) throws IOException {
@@ -58,8 +78,8 @@ public class PrintMetrics {
     String jvmAddress = ksqlJvm.connectorAddress();
     JMXServiceURL jmxURL;
     try {
-      jmxURL =new JMXServiceURL(jvmAddress);
-    } catch(MalformedURLException e) {
+      jmxURL = new JMXServiceURL(jvmAddress);
+    } catch (MalformedURLException e) {
       throw new PrintMetricsException(String.format("No JVM at PID %d", pid));
     }
     JMXConnector connector = JMXConnectorFactory.connect(jmxURL);
@@ -79,7 +99,9 @@ public class PrintMetrics {
       try {
         info = connection.getMBeanInfo(n);
       } catch (Exception error) {
-        throw new PrintMetricsException("Unexpected error getting mbean info " + error.getMessage());
+        throw new PrintMetricsException(
+            "Unexpected error getting mbean info " + error.getMessage()
+        );
       }
       MBeanAttributeInfo[] attributes = info.getAttributes();
       for (MBeanAttributeInfo attributeInfo : attributes) {
@@ -87,7 +109,9 @@ public class PrintMetrics {
         try {
           attribute = connection.getAttribute(n, attributeInfo.getName());
         } catch (Exception error) {
-          throw new PrintMetricsException("Unexpected error getting attribute " + error.getMessage());
+          throw new PrintMetricsException(
+              "Unexpected error getting attribute " + error.getMessage()
+          );
         }
         System.out.println(attributeInfo.getName() + ": " + attribute);
       }
@@ -105,6 +129,7 @@ public class PrintMetrics {
   }
 
   static class Arguments {
+
     public boolean help;
     public int pid;
 
@@ -126,7 +151,8 @@ public class PrintMetrics {
         if (splitOnEquals.length != 2) {
           throw new ArgumentParseException(String.format(
               "Invalid argument format in '%s'; expected <name>=<value>",
-              arg));
+              arg
+          ));
         }
 
         String argName = splitOnEquals[0].trim();

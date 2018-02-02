@@ -68,14 +68,16 @@ Before proceeding, please check:
 
    ksql> DESCRIBE pageviews_original;
 
-    Field    | Type            
-   ----------------------------
-    ROWTIME  | BIGINT          
-    ROWKEY   | VARCHAR(STRING) 
-    VIEWTIME | BIGINT          
-    USERID   | VARCHAR(STRING) 
-    PAGEID   | VARCHAR(STRING) 
-    ```
+    Field    | Type
+   --------------------------------------
+    ROWTIME  | BIGINT           (system)
+    ROWKEY   | VARCHAR(STRING)  (system)
+    VIEWTIME | BIGINT
+    USERID   | VARCHAR(STRING)
+    PAGEID   | VARCHAR(STRING)
+   --------------------------------------
+    For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
+   ```
 
 2. Create a TABLE `users_original` from the Kafka topic `users`, specifying the `value_format` of `JSON`. Describe the new TABLE.
 
@@ -84,14 +86,16 @@ Before proceeding, please check:
 
    ksql> DESCRIBE users_original;
 
-    Field        | Type            
-   --------------------------------
-    ROWTIME      | BIGINT          
-    ROWKEY       | VARCHAR(STRING) 
-    REGISTERTIME | BIGINT          
-    GENDER       | VARCHAR(STRING) 
-    REGIONID     | VARCHAR(STRING) 
+    Field        | Type
+   ------------------------------------------
+    ROWTIME      | BIGINT           (system)
+    ROWKEY       | VARCHAR(STRING)  (system)
+    REGISTERTIME | BIGINT
+    GENDER       | VARCHAR(STRING)
+    REGIONID     | VARCHAR(STRING)
     USERID       | VARCHAR(STRING)
+   ------------------------------------------
+   For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
     ``` 
 
 3. Show all STREAMS and TABLES.
@@ -133,14 +137,17 @@ Before proceeding, please check:
    ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
 
    ksql> DESCRIBE pageviews_female;
-    Field    | Type            
-   ----------------------------
-    ROWTIME  | BIGINT          
-    ROWKEY   | VARCHAR(STRING) 
-    USERID   | VARCHAR(STRING) 
-    PAGEID   | VARCHAR(STRING) 
-    REGIONID | VARCHAR(STRING) 
-    GENDER   | VARCHAR(STRING) 
+
+	Field    | Type
+   --------------------------------------
+	ROWTIME  | BIGINT           (system)
+	ROWKEY   | VARCHAR(STRING)  (system)
+	USERID   | VARCHAR(STRING)  (key)
+	PAGEID   | VARCHAR(STRING)
+	REGIONID | VARCHAR(STRING)
+	GENDER   | VARCHAR(STRING)
+   --------------------------------------
+   For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
     ```
 
 3. Use `SELECT` to view query results as they come in. To stop viewing the query results, press `<ctrl-c>`. This stops printing to the console but it does not terminate the actual query. The query continues to run in the underlying KSQL application.
@@ -167,14 +174,16 @@ Before proceeding, please check:
 
    ksql> DESCRIBE pageviews_regions;
 
-    Field    | Type            
-   ----------------------------
-    ROWTIME  | BIGINT          
-    ROWKEY   | VARCHAR(STRING) 
-    GENDER   | VARCHAR(STRING) 
-    REGIONID | VARCHAR(STRING) 
-    NUMUSERS | BIGINT 
-    ```
+	Field   | Type
+   --------------------------------------
+	ROWTIME  | BIGINT           (system)
+	ROWKEY   | VARCHAR(STRING)  (system)
+	GENDER   | VARCHAR(STRING)  (key)
+	REGIONID | VARCHAR(STRING)  (key)
+	NUMUSERS | BIGINT
+   --------------------------------------
+   For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
+   ```
 
 6. Use `SELECT` to view results from the above query.
 
@@ -195,11 +204,12 @@ Before proceeding, please check:
    ```bash
    ksql> SHOW QUERIES;
 
-    Query ID                      | Kafka Topic              | Query String
-   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
-    CSAS_PAGEVIEWS_FEMALE         | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-    CSAS_PAGEVIEWS_FEMALE_LIKE_89 | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+	Query ID                      | Kafka Topic              | Query String
+   ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+	CSAS_PAGEVIEWS_FEMALE         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
+	CSAS_PAGEVIEWS_FEMALE_LIKE_89 | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+   ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
    ```
 
 

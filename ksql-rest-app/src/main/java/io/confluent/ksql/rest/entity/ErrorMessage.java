@@ -20,13 +20,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
-import io.confluent.ksql.util.CommonUtils;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.CommonUtils;
 
 // TODO: Add a field for status code
 @JsonSubTypes({})
@@ -37,17 +37,20 @@ public class ErrorMessage {
 
   @JsonCreator
   public ErrorMessage(
-      @JsonProperty("message")       String message,
-      @JsonProperty("stackTrace")    List<String> stackTrace
+      @JsonProperty("message") String message,
+      @JsonProperty("stackTrace") List<String> stackTrace
   ) {
     this.message = message;
     this.stackTrace = stackTrace;
   }
 
   private static String buildErrorMessage(Throwable exception) {
-    String msg = exception.getMessage() != null ? exception.getMessage() : " ServerError:" + exception.toString();
+    String msg =
+        exception.getMessage() != null
+        ? exception.getMessage()
+        : " ServerError:" + exception.toString();
     String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-    return causeMsg == "" ? msg : msg + "\r\n" + causeMsg;
+    return causeMsg.isEmpty() ? msg : msg + "\r\n" + causeMsg;
   }
 
   public ErrorMessage(Throwable exception) {
@@ -90,7 +93,7 @@ public class ErrorMessage {
     }
     ErrorMessage that = (ErrorMessage) o;
     return Objects.equals(getMessage(), that.getMessage())
-        && Objects.equals(getStackTrace(), that.getStackTrace());
+           && Objects.equals(getStackTrace(), that.getStackTrace());
   }
 
   @Override

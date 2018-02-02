@@ -23,7 +23,7 @@ public class CommonUtils {
     String msg = getErrorMessage(e);
     String causeMsg = getErrorCauseMessage(e);
     // append the cause msg, if any
-    return causeMsg == "" ? msg : msg + "\r\n" + causeMsg;
+    return causeMsg.isEmpty() ? msg : msg + "\r\n" + causeMsg;
   }
 
   public static String getErrorMessage(Throwable e) {

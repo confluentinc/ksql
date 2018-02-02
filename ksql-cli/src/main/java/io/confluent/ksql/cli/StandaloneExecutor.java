@@ -17,15 +17,14 @@
 package io.confluent.ksql.cli;
 
 
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 
 public class StandaloneExecutor {
 
@@ -39,14 +38,16 @@ public class StandaloneExecutor {
 
   public void executeStatements(String queries) throws Exception {
     final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
-    for (QueryMetadata queryMetadata: queryMetadataList) {
+    for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueryMetadata.start();
       } else {
-        final String message = String.format("Ignoring statements: %s" +
-                "\nOnly CREATE statements can run KSQL embedded mode.",
-            queryMetadata.getStatementString());
+        final String message = String.format(
+            "Ignoring statements: %s" +
+            "\nOnly CREATE statements can run KSQL embedded mode.",
+            queryMetadata.getStatementString()
+        );
         System.err.println(message);
         log.warn(message);
       }

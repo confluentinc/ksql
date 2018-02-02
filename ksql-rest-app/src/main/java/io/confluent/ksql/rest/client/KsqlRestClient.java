@@ -17,24 +17,9 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.SchemaMapper;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
+
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
-import javax.naming.AuthenticationException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +31,24 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Scanner;
+
+import javax.naming.AuthenticationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
 
@@ -81,8 +84,10 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public void setupAuthenticationCredentials(String userName, String password) {
-    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(Objects.requireNonNull(userName),
-            Objects.requireNonNull(password));
+    HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(
+        Objects.requireNonNull(userName),
+        Objects.requireNonNull(password)
+    );
     client.register(feature);
     hasUserCredentials = true;
   }
@@ -104,8 +109,13 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     Response response = makeGetRequest("/");
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
-        return RestResponse.erroneous(new ErrorMessage(
-                new AuthenticationException("Could not authenticate successfully with the supplied credentials.")));
+        return RestResponse.erroneous(
+            new ErrorMessage(
+                new AuthenticationException(
+                    "Could not authenticate successfully with the supplied credentials."
+                )
+            )
+        );
       }
       ServerInfo result = response.readEntity(ServerInfo.class);
       return RestResponse.successful(result);
@@ -173,9 +183,9 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private Response makePostRequest(String path, Object jsonEntity) {
     try {
       return client.target(serverAddress)
-              .path(path)
-              .request(MediaType.APPLICATION_JSON_TYPE)
-              .post(Entity.json(jsonEntity));
+          .path(path)
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .post(Entity.json(jsonEntity));
     } catch (Exception exception) {
       throw new KsqlRestClientException("Error issuing POST to KSQL server", exception);
     }
@@ -184,14 +194,15 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   private Response makeGetRequest(String path) {
     try {
       return client.target(serverAddress).path(path)
-              .request(MediaType.APPLICATION_JSON_TYPE)
-              .get();
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .get();
     } catch (Exception exception) {
       throw new KsqlRestClientException("Error issuing GET to KSQL server", exception);
     }
   }
 
   public static class QueryStream implements Closeable, AutoCloseable, Iterator<StreamedRow> {
+
     private final Response response;
     private final ObjectMapper objectMapper;
     private final Scanner responseScanner;
@@ -203,19 +214,26 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
       this.response = response;
 
       this.objectMapper = new ObjectMapper();
-      InputStreamReader isr = new InputStreamReader((InputStream)response.getEntity(), StandardCharsets.UTF_8);
+      InputStreamReader isr = new InputStreamReader(
+          (InputStream) response.getEntity(),
+          StandardCharsets.UTF_8
+      );
       QueryStream stream = this;
       this.responseScanner = new Scanner((buf) -> {
         int wait = 1;
         // poll the input stream's readiness between interruptable sleeps
         // this ensures we cannot block indefinitely on read()
         while (true) {
-          if (closed) throw stream.closedIllegalStateException("hasNext()");
+          if (closed) {
+            throw stream.closedIllegalStateException("hasNext()");
+          }
           if (isr.ready()) {
             break;
           }
-          synchronized(stream) {
-            if (closed) throw stream.closedIllegalStateException("hasNext()");
+          synchronized (stream) {
+            if (closed) {
+              throw stream.closedIllegalStateException("hasNext()");
+            }
             try {
               wait = java.lang.Math.min(wait * 2, 200);
               stream.wait(wait);
@@ -279,7 +297,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
         throw closedIllegalStateException("close()");
       }
 
-      synchronized(this) {
+      synchronized (this) {
         closed = true;
         this.notifyAll();
       }

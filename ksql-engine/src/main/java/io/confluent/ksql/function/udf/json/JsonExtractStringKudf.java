@@ -58,7 +58,12 @@ public class JsonExtractStringKudf implements Kudf {
       if (currentNode == null) {
         return null;
       }
-      currentNode = currentNode.get(token);
+      try {
+        int index = Integer.parseInt(token);
+        currentNode = currentNode.get(index);
+      } catch (NumberFormatException e) {
+        currentNode = currentNode.get(token);
+      }
     }
     if (currentNode == null) {
       return null;

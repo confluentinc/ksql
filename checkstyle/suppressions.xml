@@ -15,7 +15,6 @@
     <!-- Suppress some checks on all files -->
     <suppress files="." checks="ExplicitInitializationCheck"/>
     <suppress files="." checks="FinalClassCheck"/>
-    <suppress files="." checks="AvoidStarImport"/>
     <suppress files="." checks="AbbreviationAsWordInName"/>
     <suppress files="." checks="WhitespaceAround"/>
     <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
@@ -32,8 +31,6 @@
     <!-- These checks may be included in the future -->
     <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
     <suppress files="." checks="NonEmptyAtclauseDescription"/>
-    <suppress files="." checks="LineLengthCheck"/>
-    <suppress files="." checks="MethodLengthCheck"/>
     <suppress files="." checks="EmptyLineSeparator"/>
     <suppress files="." checks="NeedBraces"/>
 

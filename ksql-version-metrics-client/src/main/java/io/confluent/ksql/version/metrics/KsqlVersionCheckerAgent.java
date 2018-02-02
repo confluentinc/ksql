@@ -23,6 +23,9 @@ import java.util.Properties;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 
+import io.confluent.support.metrics.BaseSupportConfig;
+import io.confluent.support.metrics.PhoneHomeConfig;
+
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   private Thread versionCheckerThread;
@@ -33,7 +36,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
-  public KsqlVersionCheckerAgent(){
+  public KsqlVersionCheckerAgent() {
     this(true);
   }
 
@@ -44,13 +47,19 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
 
   @Override
   public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
-    KsqlVersionCheckerConfig ksqlVersionCheckerConfig = new KsqlVersionCheckerConfig(ksqlProperties);
-    if(ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
+    BaseSupportConfig ksqlVersionCheckerConfig =
+        new PhoneHomeConfig(ksqlProperties, "ksql");
+    if (ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       try {
         Runtime serverRuntime = Runtime.getRuntime();
 
         ksqlVersionChecker =
-            new KsqlVersionChecker(ksqlVersionCheckerConfig, serverRuntime, moduleType, enableSettlingTime);
+            new KsqlVersionChecker(
+                ksqlVersionCheckerConfig,
+                serverRuntime,
+                moduleType,
+                enableSettlingTime
+            );
         ksqlVersionChecker.init();
         versionCheckerThread = newThread("KsqlVersionCheckerAgent", ksqlVersionChecker);
         long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
@@ -91,10 +100,10 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
            "such information, please read our Privacy Policy located at " +
            "http://www.confluent.io/privacy. " +
            "By proceeding with `" +
-           KsqlVersionCheckerConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, " +
+           BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, " +
            "you agree to all such collection, transfer and use of Version information " +
            "by Confluent. You can turn the version check  feature off by setting `" +
-           KsqlVersionCheckerConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the " +
+           BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the " +
            "KSQL configuration and restarting the KSQL.  See the Confluent Platform " +
            "documentation for further information.";
   }

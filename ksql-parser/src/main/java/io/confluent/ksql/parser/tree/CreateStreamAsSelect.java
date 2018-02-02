@@ -59,6 +59,10 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
     return query;
   }
 
+  public boolean isNotExists() {
+    return notExists;
+  }
+
   public Map<String, Expression> getProperties() {
     return properties;
   }

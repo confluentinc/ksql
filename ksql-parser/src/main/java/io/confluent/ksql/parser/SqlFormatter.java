@@ -22,19 +22,18 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.CreateView;
 import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropView;
-import io.confluent.ksql.parser.tree.Except;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ExplainFormat;
 import io.confluent.ksql.parser.tree.ExplainOption;
 import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Intersect;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -56,19 +55,13 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowCreate;
 import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.ShowPartitions;
-import io.confluent.ksql.parser.tree.ShowSchemas;
-import io.confluent.ksql.parser.tree.ShowSession;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Union;
 import io.confluent.ksql.parser.tree.Values;
-import io.confluent.ksql.parser.tree.With;
-import io.confluent.ksql.parser.tree.WithQuery;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -124,33 +117,8 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitQuery(Query node, Integer indent) {
-      if (node.getWith().isPresent()) {
-        With with = node.getWith().get();
-        append(indent, "WITH");
-        if (with.isRecursive()) {
-          builder.append(" RECURSIVE");
-        }
-        builder.append("\n  ");
-        Iterator<WithQuery> queries = with.getQueries().iterator();
-        while (queries.hasNext()) {
-          WithQuery query = queries.next();
-          append(indent, query.getName());
-          query.getColumnNames().ifPresent(columnNames -> appendAliasColumns(builder, columnNames));
-          builder.append(" AS ");
-          process(new TableSubquery(query.getQuery()), indent);
-          builder.append('\n');
-          if (queries.hasNext()) {
-            builder.append(", ");
-          }
-        }
-      }
 
       processRelation(node.getQueryBody(), indent);
-
-      if (!node.getOrderBy().isEmpty()) {
-        append(indent, "ORDER BY " + ExpressionFormatter.formatSortItems(node.getOrderBy()))
-                .append('\n');
-      }
 
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().get())
@@ -186,11 +154,6 @@ public final class SqlFormatter {
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
                 + ExpressionFormatter.formatExpression(node.getHaving().get()))
-                .append('\n');
-      }
-
-      if (!node.getOrderBy().isEmpty()) {
-        append(indent, "ORDER BY " + ExpressionFormatter.formatSortItems(node.getOrderBy()))
                 .append('\n');
       }
 
@@ -361,55 +324,6 @@ public final class SqlFormatter {
       return null;
     }
 
-    @Override
-    protected Void visitUnion(Union node, Integer indent) {
-      Iterator<Relation> relations = node.getRelations().iterator();
-
-      while (relations.hasNext()) {
-        processRelation(relations.next(), indent);
-
-        if (relations.hasNext()) {
-          builder.append("UNION ");
-          if (!node.isDistinct()) {
-            builder.append("ALL ");
-          }
-        }
-      }
-
-      return null;
-    }
-
-    @Override
-    protected Void visitExcept(Except node, Integer indent) {
-      processRelation(node.getLeft(), indent);
-
-      builder.append("EXCEPT ");
-      if (!node.isDistinct()) {
-        builder.append("ALL ");
-      }
-
-      processRelation(node.getRight(), indent);
-
-      return null;
-    }
-
-    @Override
-    protected Void visitIntersect(Intersect node, Integer indent) {
-      Iterator<Relation> relations = node.getRelations().iterator();
-
-      while (relations.hasNext()) {
-        processRelation(relations.next(), indent);
-
-        if (relations.hasNext()) {
-          builder.append("INTERSECT ");
-          if (!node.isDistinct()) {
-            builder.append("ALL ");
-          }
-        }
-      }
-
-      return null;
-    }
 
     @Override
     protected Void visitCreateStream(CreateStream node, Integer indent) {
@@ -556,23 +470,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowSchemas(ShowSchemas node, Integer context) {
-      builder.append("SHOW SCHEMAS");
-
-      if (node.getCatalog().isPresent()) {
-        builder.append(" FROM ")
-                .append(node.getCatalog().get());
-      }
-
-      node.getLikePattern().ifPresent((value) ->
-              builder.append(" LIKE ")
-                      .append(
-                              ExpressionFormatter.formatStringLiteral(value)));
-
-      return null;
-    }
-
-    @Override
     protected Void visitShowCreate(ShowCreate node, Integer context) {
       if (node.getType() == ShowCreate.Type.TABLE) {
         builder.append("SHOW CREATE TABLE ")
@@ -603,11 +500,6 @@ public final class SqlFormatter {
                 .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
       }
 
-      if (!node.getOrderBy().isEmpty()) {
-        builder.append(" ORDER BY ")
-                .append(ExpressionFormatter.formatSortItems(node.getOrderBy()));
-      }
-
       if (node.getLimit().isPresent()) {
         builder.append(" LIMIT ")
                 .append(node.getLimit().get());
@@ -624,13 +516,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowSession(ShowSession node, Integer context) {
-      builder.append("SHOW SESSION");
-
-      return null;
-    }
-
-    @Override
     protected Void visitDelete(Delete node, Integer context) {
       builder.append("DELETE FROM ")
               .append(node.getTable().getName());
@@ -640,6 +525,29 @@ public final class SqlFormatter {
                 .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
       }
 
+      return null;
+    }
+
+    @Override
+    protected Void visitCreateStreamAsSelect(CreateStreamAsSelect node, Integer indent) {
+      builder.append("CREATE STREAM ");
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+      builder.append(node.getName());
+
+      if (!node.getProperties().isEmpty()) {
+        builder.append(" WITH (");
+        Joiner.on(", ")
+            .appendTo(builder, transform(
+                node.getProperties().entrySet(), entry -> entry.getKey() + " = "
+                                                          + ExpressionFormatter
+                                                              .formatExpression(entry.getValue())));
+        builder.append(")");
+      }
+
+      builder.append(" AS ");
+      process(node.getQuery(), indent);
       return null;
     }
 

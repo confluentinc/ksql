@@ -16,6 +16,27 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.misc.Interval;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
@@ -25,14 +46,13 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -73,6 +93,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
@@ -81,25 +102,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.misc.Interval;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 @Path("/ksql")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -150,7 +152,6 @@ public class KsqlResource {
       result.add(new ErrorMessageEntity(request.getKsql(), exception));
     }
 
-
     return Response.ok(result).build();
   }
 
@@ -159,7 +160,8 @@ public class KsqlResource {
         new KsqlParser().getStatements(ksqlString);
     List<String> result = new ArrayList<>(statementContexts.size());
     for (SqlBaseParser.SingleStatementContext statementContext : statementContexts) {
-      // Taken from http://stackoverflow.com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
+      // Taken from http://stackoverflow
+      // .com/questions/16343288/how-do-i-get-the-original-text-that-an-antlr4-rule-matched
       CharStream charStream = statementContext.start.getInputStream();
       result.add(
           charStream.getText(
@@ -205,15 +207,15 @@ public class KsqlResource {
       return getStatementExecutionPlan(explain, statementText);
     } else if (statement instanceof RunScript) {
       return distributeStatement(statementText, statement, streamsProperties);
-    }else if (statement instanceof RegisterTopic
-            || statement instanceof CreateStream
-            || statement instanceof CreateTable
-            || statement instanceof CreateStreamAsSelect
-            || statement instanceof CreateTableAsSelect
-            || statement instanceof TerminateQuery
-            || statement instanceof DropTopic
-            || statement instanceof DropStream
-            || statement instanceof DropTable
+    } else if (statement instanceof RegisterTopic
+               || statement instanceof CreateStream
+               || statement instanceof CreateTable
+               || statement instanceof CreateStreamAsSelect
+               || statement instanceof CreateTableAsSelect
+               || statement instanceof TerminateQuery
+               || statement instanceof DropTopic
+               || statement instanceof DropStream
+               || statement instanceof DropTable
     ) {
       if (statement instanceof AbstractStreamCreateStatement) {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
@@ -246,14 +248,11 @@ public class KsqlResource {
 
   /**
    * Validate the statement by creating the execution plan for it.
-   * 
-   * @param statement
-   * @param statementText
-   * @param streamsProperties
-   * @throws Exception
    */
-  private void validateStatement(Statement statement, String statementText,
-                                 Map<String, Object> streamsProperties) throws KsqlException {
+  private void validateStatement(
+      Statement statement, String statementText,
+      Map<String, Object> streamsProperties
+  ) throws KsqlException {
     getStatementExecutionPlan(null, statement, statementText, streamsProperties);
   }
 
@@ -269,23 +268,32 @@ public class KsqlResource {
       commandStatus = statementExecutor.registerQueuedStatement(commandId)
           .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
     } catch (TimeoutException exception) {
-      log.warn("Timeout to get commandStatus, waited {} milliseconds:, statementText:" + statementText,
-                  distributedCommandResponseTimeout, exception);
+      log.warn(
+          "Timeout to get commandStatus, waited {} milliseconds:, statementText:" + statementText,
+          distributedCommandResponseTimeout, exception
+      );
       commandStatus = statementExecutor.getStatus(commandId).get();
     } catch (Exception e) {
-      throw new KsqlException(String.format("Could not write the statement '%s' into the command "
-                                            + "topic.", statementText), e);
+      throw new KsqlException(
+          String.format(
+              "Could not write the statement '%s' into the command " + "topic.", statementText
+          ),
+          e
+      );
     }
     return new CommandStatusEntity(statementText, commandId, commandStatus);
   }
 
   private KafkaTopicsList listTopics(String statementText) {
     KafkaTopicClient client = ksqlEngine.getTopicClient();
-    try (KafkaConsumerGroupClient kafkaConsumerGroupClient = new KafkaConsumerGroupClientImpl(ksqlEngine.getKsqlConfig())) {
-      return KafkaTopicsList.build(statementText, getKsqlTopics(),
-              client.describeTopics(client.listTopicNames()),
-              ksqlEngine.getKsqlConfig(),
-              kafkaConsumerGroupClient
+    try (KafkaConsumerGroupClient kafkaConsumerGroupClient = new KafkaConsumerGroupClientImpl(
+        ksqlEngine.getKsqlConfig())) {
+      return KafkaTopicsList.build(
+          statementText,
+          getKsqlTopics(),
+          client.describeTopics(client.listTopicNames()),
+          ksqlEngine.getKsqlConfig(),
+          kafkaConsumerGroupClient
       );
     }
   }
@@ -319,12 +327,21 @@ public class KsqlResource {
   private TopicDescription describeTopic(String statementText, String name) throws KsqlException {
     KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
     if (ksqlTopic == null) {
-      throw new KsqlException(String.format("Could not find Topic '%s' in the Metastore",
-                                        name));
+      throw new KsqlException(String.format(
+          "Could not find Topic '%s' in the Metastore",
+          name
+      ));
     }
     String schemaString = null;
-    TopicDescription topicDescription = new TopicDescription(statementText, name, ksqlTopic.getKafkaTopicName(),
-        ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(), schemaString
+    TopicDescription topicDescription = new TopicDescription(
+        statementText,
+        name,
+        ksqlTopic.getKafkaTopicName(),
+        ksqlTopic
+            .getKsqlTopicSerDe()
+            .getSerDe()
+            .toString(),
+        schemaString
     );
     return topicDescription;
   }
@@ -333,21 +350,47 @@ public class KsqlResource {
 
     StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
-      throw new KsqlException(String.format("Could not find STREAM/TABLE '%s' in the Metastore", name));
+      throw new KsqlException(String.format(
+          "Could not find STREAM/TABLE '%s' in the Metastore",
+          name
+      ));
     }
 
-    List<PersistentQueryMetadata> queries = ksqlEngine.getPersistentQueries().values().stream().filter(meta ->
-        ((KsqlStructuredDataOutputNode) meta.getOutputNode()).getKafkaTopicName().equals(dataSource.getKsqlTopic()
-            .getTopicName())).collect(Collectors.toList());
-    return new SourceDescription(dataSource, extended, dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
-      "", "", getReadQueryIds(queries), getWriteQueryIds(queries), ksqlEngine.getTopicClient());
+    List<PersistentQueryMetadata>
+        queries =
+        ksqlEngine
+            .getPersistentQueries()
+            .values()
+            .stream()
+            .filter(meta ->
+                        ((KsqlStructuredDataOutputNode) meta.getOutputNode())
+                            .getKafkaTopicName()
+                            .equals(dataSource
+                                        .getKsqlTopic()
+                                        .getTopicName()))
+            .collect(Collectors.toList());
+    return new SourceDescription(
+        dataSource,
+        extended,
+        dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
+        "",
+        "",
+        getReadQueryIds(queries),
+        getWriteQueryIds(queries),
+        ksqlEngine.getTopicClient()
+    );
   }
 
   private List<String> getReadQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(Collectors.toList());
+    return queries.stream().map(q -> q.getId().toString() + " : " + q.getStatementString()).collect(
+        Collectors.toList());
   }
+
   private List<String> getWriteQueryIds(List<PersistentQueryMetadata> queries) {
-    return queries.stream().map(q -> "id:" + q.getId().toString() + " - " + q.getStatementString()).collect(Collectors.toList());
+    return queries
+        .stream()
+        .map(q -> "id:" + q.getId().toString() + " - " + q.getStatementString())
+        .collect(Collectors.toList());
   }
 
 
@@ -365,31 +408,65 @@ public class KsqlResource {
 
   private SourceDescription getStatementExecutionPlan(Explain explain, String statementText)
       throws KsqlException {
-    return getStatementExecutionPlan(explain.getQueryId(), explain.getStatement(), statementText, Collections.emptyMap());
+    return getStatementExecutionPlan(
+        explain.getQueryId(),
+        explain.getStatement(),
+        statementText,
+        Collections.emptyMap()
+    );
   }
 
-  private SourceDescription getStatementExecutionPlan(String queryId, Statement statement, String statementText,
-                                                  Map<String, Object> properties)
-      throws KsqlException {
+  private SourceDescription getStatementExecutionPlan(
+      String queryId, Statement statement, String statementText,
+      Map<String, Object> properties
+  ) throws KsqlException {
 
     if (queryId != null) {
-      PersistentQueryMetadata metadata = ksqlEngine.getPersistentQueries().get(new QueryId(queryId));
+      PersistentQueryMetadata metadata =
+          ksqlEngine.getPersistentQueries().get(new QueryId(queryId));
       if (metadata == null) {
-        throw new KsqlException(("Query with id:" + queryId + " does not exist, use SHOW QUERIES to view the full set of queries."));
+        throw new KsqlException((
+                                    "Query with id:"
+                                    + queryId
+                                    + " does not exist, use SHOW QUERIES to view the full set of "
+                                    + "queries."
+                                ));
       }
-      KsqlStructuredDataOutputNode outputNode = (KsqlStructuredDataOutputNode) metadata.getOutputNode();
-      return new SourceDescription(outputNode, metadata.getStatementString(), metadata.getStatementString(),
-        metadata.getTopoplogy(), metadata.getExecutionPlan(), ksqlEngine.getTopicClient());
+      KsqlStructuredDataOutputNode outputNode =
+          (KsqlStructuredDataOutputNode) metadata.getOutputNode();
+      return new SourceDescription(
+          outputNode,
+          metadata.getStatementString(),
+          metadata.getStatementString(),
+          metadata.getTopoplogy(),
+          metadata.getExecutionPlan(),
+          ksqlEngine.getTopicClient()
+      );
     }
-
 
     DDLCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
     if (ddlCommandTask != null) {
       try {
         String executionPlan = ddlCommandTask.execute(statement, statementText, properties);
-        return new SourceDescription("", "User-Evaluation", Collections.EMPTY_LIST,
-          Collections.EMPTY_LIST, Collections.EMPTY_LIST, "QUERY", "", "", "",
-            "", true, "", "", "", executionPlan, 0, 0);
+        return new SourceDescription(
+            "",
+            "User-Evaluation",
+            Collections.EMPTY_LIST,
+            Collections.EMPTY_LIST,
+            Collections.EMPTY_LIST,
+            "QUERY",
+            "",
+            "",
+            "",
+            "",
+            true,
+            "",
+            "",
+            "",
+            executionPlan,
+            0,
+            0
+        );
       } catch (KsqlException ksqlException) {
         throw ksqlException;
       } catch (Throwable t) {
@@ -400,57 +477,83 @@ public class KsqlResource {
   }
 
   private interface DDLCommandTask {
-    String execute(Statement statement, String statementText, Map<String, Object> properties) throws Exception;
+
+    String execute(Statement statement, String statementText, Map<String, Object> properties)
+        throws Exception;
   }
+
   private Map<Class, DDLCommandTask> ddlCommandTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
-    ddlCommandTasks.put(Query.class, (statement, statementText, properties) -> ksqlEngine.getQueryExecutionPlan((Query) statement).getExecutionPlan());
+    ddlCommandTasks.put(
+        Query.class,
+        (statement, statementText, properties) -> ksqlEngine
+            .getQueryExecutionPlan((Query) statement)
+            .getExecutionPlan()
+    );
 
     ddlCommandTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
-      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
+      QueryMetadata
+          queryMetadata =
+          ksqlEngine.getQueryExecutionPlan(((CreateStreamAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
                                 + "use CREATE TABLE AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                      ksqlEngine.getSchemaRegistryClient());
+        new AvroUtil().validatePersistentQueryResults(
+            (PersistentQueryMetadata) queryMetadata,
+            ksqlEngine.getSchemaRegistryClient()
+        );
       }
       queryMetadata.close();
       return queryMetadata.getExecutionPlan();
     });
 
     ddlCommandTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
-      QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
+      QueryMetadata queryMetadata =
+          ksqlEngine.getQueryExecutionPlan(((CreateTableAsSelect) statement).getQuery());
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
-                + "use CREATE STREAM AS SELECT statement instead.");
+                                + "use CREATE STREAM AS SELECT statement instead.");
       }
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        new AvroUtil().validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                      ksqlEngine.getSchemaRegistryClient());
+        new AvroUtil().validatePersistentQueryResults(
+            (PersistentQueryMetadata) queryMetadata,
+            ksqlEngine.getSchemaRegistryClient()
+        );
       }
       queryMetadata.close();
       return queryMetadata.getExecutionPlan();
     });
 
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
-      RegisterTopicCommand registerTopicCommand = new RegisterTopicCommand((RegisterTopic) statement);
+      RegisterTopicCommand registerTopicCommand =
+          new RegisterTopicCommand((RegisterTopic) statement);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(CreateStream.class, (statement, statementText, properties) -> {
       CreateStreamCommand createStreamCommand =
-              new CreateStreamCommand(statementText, (CreateStream) statement, properties, ksqlEngine.getTopicClient());
+          new CreateStreamCommand(
+              statementText,
+              (CreateStream) statement,
+              properties,
+              ksqlEngine.getTopicClient()
+          );
       executeDDLCommand(createStreamCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(CreateTable.class, (statement, statementText, properties) -> {
       CreateTableCommand createTableCommand =
-          new CreateTableCommand(statementText, (CreateTable) statement, properties, ksqlEngine.getTopicClient());
+          new CreateTableCommand(
+              statementText,
+              (CreateTable) statement,
+              properties,
+              ksqlEngine.getTopicClient()
+          );
       executeDDLCommand(createTableCommand);
       return statement.toString();
     });
@@ -459,35 +562,48 @@ public class KsqlResource {
       DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
       new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
       return statement.toString();
-
     });
 
     ddlCommandTasks.put(DropStream.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, ksqlEngine);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand(
+          (DropStream) statement,
+          DataSource.DataSourceType.KSTREAM,
+          ksqlEngine
+      );
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(DropTable.class, (statement, statementText, properties) -> {
-      DropSourceCommand dropSourceCommand = new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, ksqlEngine);
+      DropSourceCommand dropSourceCommand = new DropSourceCommand(
+          (DropTable) statement,
+          DataSource.DataSourceType.KTABLE,
+          ksqlEngine
+      );
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
 
-    ddlCommandTasks.put(TerminateQuery.class, (statement, statementText, properties) -> statement.toString());
+    ddlCommandTasks.put(
+        TerminateQuery.class,
+        (statement, statementText, properties) -> statement.toString()
+    );
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(Class<S> dataSourceClass) {
     return ksqlEngine.getMetaStore().getAllStructuredDataSources().values().stream()
-            .filter(dataSourceClass::isInstance)
-            .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
-                    KsqlRestApplication.getCommandsStreamName()))
-            .map(dataSourceClass::cast)
-            .collect(Collectors.toList());
+        .filter(dataSourceClass::isInstance)
+        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+            KsqlRestApplication.getCommandsStreamName()))
+        .map(dataSourceClass::cast)
+        .collect(Collectors.toList());
   }
 
   private void executeDDLCommand(DDLCommand ddlCommand) {
-    DDLCommandResult ddlCommandResult = new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(ddlCommand);
+    DDLCommandResult ddlCommandResult = new DDLCommandExec(
+        ksqlEngine
+            .getMetaStore()
+            .clone()).execute(ddlCommand);
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
@@ -498,8 +614,11 @@ public class KsqlResource {
       Map<String, Object> streamsProperties
   ) {
     Pair<AbstractStreamCreateStatement, String> avroCheckResult =
-        new AvroUtil().checkAndSetAvroSchema(streamCreateStatement, streamsProperties,
-                                             ksqlEngine.getSchemaRegistryClient());
+        new AvroUtil().checkAndSetAvroSchema(
+            streamCreateStatement,
+            streamsProperties,
+            ksqlEngine.getSchemaRegistryClient()
+        );
     return avroCheckResult;
   }
 }

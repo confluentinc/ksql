@@ -81,7 +81,7 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     printWriter.close();
   }
 

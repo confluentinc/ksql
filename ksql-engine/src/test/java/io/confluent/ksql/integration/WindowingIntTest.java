@@ -160,8 +160,8 @@ public class WindowingIntTest {
   }
 
   private void updateResults(Map<String, GenericRow> results, Map<Windowed<String>, GenericRow> windowedResults) {
-    for (Windowed<String> key : windowedResults.keySet()) {
-      results.put(key.key(), windowedResults.get(key));
+    for (Map.Entry<Windowed<String>, GenericRow> entry : windowedResults.entrySet()) {
+      results.put(entry.getKey().key(), entry.getValue());
     }
   }
 

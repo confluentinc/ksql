@@ -20,6 +20,7 @@
         <module>ksql-metastore</module>
         <module>ksql-parser</module>
         <module>ksql-engine</module>
+        <module>ksql-tools</module>
         <module>ksql-cli</module>
         <module>ksql-examples</module>
         <module>ksql-rest-app</module>

@@ -57,7 +57,8 @@ public class JoinIntTest {
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps), testHarness.schemaRegistryClient);
+    ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps),
+                                     testHarness.schemaRegistryClient);
 
     /**
      * Setup test data
@@ -66,15 +67,25 @@ public class JoinIntTest {
     testHarness.createTopic(itemTableTopicAvro);
     itemDataProvider = new ItemDataProvider();
 
-    testHarness.publishTestData(itemTableTopicJson, itemDataProvider, now -500);
-    testHarness.publishTestData(itemTableTopicAvro, itemDataProvider, now -500, DataSource.DataSourceSerDe.AVRO);
+    testHarness.publishTestData(itemTableTopicJson,
+                                itemDataProvider,
+                                now -500);
+    testHarness.publishTestData(itemTableTopicAvro,
+                                itemDataProvider,
+                                now -500,
+                                DataSource.DataSourceSerDe.AVRO);
 
 
     testHarness.createTopic(orderStreamTopicJson);
     testHarness.createTopic(orderStreamTopicAvro);
     orderDataProvider = new OrderDataProvider();
-    testHarness.publishTestData(orderStreamTopicJson, orderDataProvider, now);
-    testHarness.publishTestData(orderStreamTopicAvro, orderDataProvider, now, DataSource.DataSourceSerDe.AVRO);
+    testHarness.publishTestData(orderStreamTopicJson,
+                                orderDataProvider,
+                                now);
+    testHarness.publishTestData(orderStreamTopicAvro,
+                                orderDataProvider,
+                                now,
+                                DataSource.DataSourceSerDe.AVRO);
     createStreams();
   }
 
@@ -89,19 +100,33 @@ public class JoinIntTest {
                                           String orderStreamTopic,
                                           String orderStreamName,
                                           String itemTableName,
-                                          DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
+                                          DataSource.DataSourceSerDe dataSourceSerDe)
+      throws Exception {
 
     final String queryString = String.format(
             "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
             + " %s " +
                     " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
-            testStreamName, orderStreamName, itemTableName, orderStreamName, itemTableName, orderStreamName);
+            testStreamName,
+            orderStreamName,
+            itemTableName,
+            orderStreamName,
+            itemTableName,
+            orderStreamName);
 
     ksqlContext.sql(queryString);
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName).getSchema();
 
-    Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
+    Map<String, GenericRow> expectedResults =
+        Collections.singletonMap("ITEM_1",
+                                 new GenericRow(Arrays.asList(
+                                     null,
+                                     null,
+                                     "ORDER_1",
+                                     "ITEM_1",
+                                     10.0,
+                                     "home cinema")));
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -147,27 +172,26 @@ public class JoinIntTest {
 
 
   private void createStreams() throws Exception {
-    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
-                           + "varchar, "
-                     + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, "
-                                  + "double>) WITH (kafka_topic='%s', "
-                                  + "value_format='JSON');",
+    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+                                  + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
+                                  + "KEYVALUEMAP map<varchar, double>) "
+                                  + "WITH (kafka_topic='%s', value_format='JSON');",
                                   orderStreamNameJson,
                                   orderStreamTopicJson));
-    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar) WITH "
-                         + "(kafka_topic='%s', value_format='JSON', key='ID');",
+    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar) "
+                                  + "WITH (kafka_topic='%s', value_format='JSON', key='ID');",
                                   itemTableNameJson,
                                   itemTableTopicJson));
 
-    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
-                                  + "varchar, "
-                                  + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, "
-                                  + "double>) WITH (kafka_topic='%s', "
-                                  + "value_format='AVRO');",
+    ksqlContext.sql(String.format(
+        "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
+                                  + "ORDERUNITS double, PRICEARRAY array<double>, "
+                                  + "KEYVALUEMAP map<varchar, double>) "
+        + "WITH (kafka_topic='%s', value_format='AVRO');",
                                   orderStreamNameAvro,
                                   orderStreamTopicAvro));
-    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar) WITH "
-                                  + "(kafka_topic='%s', value_format='AVRO', key='ID');",
+    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar)"
+                                  + " WITH (kafka_topic='%s', value_format='AVRO', key='ID');",
                                   itemTableNameAvro,
                                   itemTableTopicAvro));
   }

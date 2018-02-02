@@ -16,16 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.codegen.CodeGenRunner;
-import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -35,6 +25,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.codegen.CodeGenRunner;
+import io.confluent.ksql.codegen.SqlToJavaVisitor;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 
 public class SqlPredicate {
 
@@ -48,10 +49,12 @@ public class SqlPredicate {
   private GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
 
-  SqlPredicate(final Expression filterExpression,
-               final Schema schema,
-               boolean isWindowedKey,
-               final FunctionRegistry functionRegistry) {
+  SqlPredicate(
+      final Expression filterExpression,
+      final Schema schema,
+      boolean isWindowedKey,
+      final FunctionRegistry functionRegistry
+  ) {
     this.filterExpression = filterExpression;
     this.schema = schema;
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
@@ -82,19 +85,24 @@ public class SqlPredicate {
       // And the expression (i.e. "result") type is also "int".
       ee.setExpressionType(boolean.class);
 
-      String expressionStr = new SqlToJavaVisitor(schema, functionRegistry).process(filterExpression);
+      String expressionStr = new SqlToJavaVisitor(
+          schema,
+          functionRegistry
+      ).process(filterExpression);
 
       // And now we "cook" (scan, parse, compile and load) the fabulous expression.
       ee.cook(expressionStr);
     } catch (Exception e) {
-      throw new KsqlException("Failed to generate code for SqlPredicate."
+      throw new KsqlException(
+          "Failed to generate code for SqlPredicate."
           + "filterExpression: "
           + filterExpression
           + "schema:"
           + schema
           + "isWindowedKey:"
           + isWindowedKey,
-          e);
+          e
+      );
     }
   }
 
@@ -106,7 +114,7 @@ public class SqlPredicate {
     }
   }
 
-  private Predicate<String, GenericRow> getStringKeyPredicate()  {
+  private Predicate<String, GenericRow> getStringKeyPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {
@@ -135,11 +143,17 @@ public class SqlPredicate {
     try {
       return codeGenRunner.buildCodeGenFromParseTree(filterExpression);
     } catch (Exception e) {
-      throw new KsqlException("Failed to generate code for filterExpression:" + filterExpression + " schema:" + schema, e);
+      throw new KsqlException(
+          "Failed to generate code for filterExpression:"
+          + filterExpression
+          + " schema:"
+          + schema,
+          e
+      );
     }
   }
 
-  private Predicate getWindowedKeyPredicate()  {
+  private Predicate getWindowedKeyPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
     return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
       try {
@@ -149,8 +163,12 @@ public class SqlPredicate {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs[i];
           } else {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                .getColumns().get(columnIndexes[i]));
+            values[i] = genericRowValueTypeEnforcer
+                .enforceFieldType(
+                    columnIndexes[i],
+                    row.getColumns().get(columnIndexes[i]
+                    )
+                );
           }
         }
         return (Boolean) ee.evaluate(values);
@@ -174,7 +192,7 @@ public class SqlPredicate {
   int[] getColumnIndexes() {
     // As this is only used for testing it is ok to do the array copy.
     // We need to revisit the tests for this class and remove this.
-    final int [] result = new int[columnIndexes.length];
+    final int[] result = new int[columnIndexes.length];
     System.arraycopy(columnIndexes, 0, result, 0, columnIndexes.length);
     return result;
   }

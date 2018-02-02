@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,7 +32,6 @@ public class QuerySpecification
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
-  private final List<SortItem> orderBy;
   private final Optional<String> limit;
 
   public QuerySpecification(
@@ -44,10 +42,9 @@ public class QuerySpecification
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
-      List<SortItem> orderBy,
       Optional<String> limit) {
     this(Optional.empty(), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
+         having, limit);
   }
 
   public QuerySpecification(
@@ -59,10 +56,9 @@ public class QuerySpecification
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
-      List<SortItem> orderBy,
       Optional<String> limit) {
     this(Optional.of(location), select, into, from, windowExpression, where, groupBy,
-         having, orderBy, limit);
+         having, limit);
   }
 
   private QuerySpecification(
@@ -74,7 +70,6 @@ public class QuerySpecification
       Optional<Expression> where,
       Optional<GroupBy> groupBy,
       Optional<Expression> having,
-      List<SortItem> orderBy,
       Optional<String> limit) {
     super(location);
     requireNonNull(select, "select is null");
@@ -84,7 +79,6 @@ public class QuerySpecification
     requireNonNull(where, "where is null");
     requireNonNull(groupBy, "groupBy is null");
     requireNonNull(having, "having is null");
-    requireNonNull(orderBy, "orderBy is null");
     requireNonNull(limit, "limit is null");
 
     this.select = select;
@@ -94,7 +88,6 @@ public class QuerySpecification
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.orderBy = orderBy;
     this.limit = limit;
   }
 
@@ -126,10 +119,6 @@ public class QuerySpecification
     return having;
   }
 
-  public List<SortItem> getOrderBy() {
-    return orderBy;
-  }
-
   public Optional<String> getLimit() {
     return limit;
   }
@@ -148,7 +137,6 @@ public class QuerySpecification
         .add("where", where.orElse(null))
         .add("groupBy", groupBy)
         .add("having", having.orElse(null))
-        .add("orderBy", orderBy)
         .add("limit", limit.orElse(null))
         .toString();
   }
@@ -167,12 +155,11 @@ public class QuerySpecification
            && Objects.equals(where, o.where)
            && Objects.equals(groupBy, o.groupBy)
            && Objects.equals(having, o.having)
-           && Objects.equals(orderBy, o.orderBy)
            && Objects.equals(limit, o.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(select, from, where, groupBy, having, orderBy, limit);
+    return Objects.hash(select, from, where, groupBy, having, limit);
   }
 }

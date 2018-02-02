@@ -207,7 +207,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
     KsqlRestApplication app = buildApplication(
         restConfig,
-        cliOptions.isUiEnabled(),
+        cliOptions.isUiEnabled() || restConfig.isUiEnabled(),
         new KsqlVersionCheckerAgent()
     );
 

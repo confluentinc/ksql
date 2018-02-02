@@ -151,6 +151,6 @@ public class KsqlRestConfig extends RestConfig {
   }
 
   public boolean isUiEnabled() {
-    return ! getBoolean( UI_DISABLED_CONFIG);
+    return !getBoolean(UI_DISABLED_CONFIG);
   }
 }

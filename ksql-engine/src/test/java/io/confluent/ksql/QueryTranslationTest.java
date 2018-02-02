@@ -23,9 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
+import org.apache.kafka.test.TestUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,6 +60,7 @@ public class QueryTranslationTest {
     put("commit.interval.ms", 0);
     put("cache.max.bytes.buffering", 0);
     put("auto.offset.reset", "earliest");
+    put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
   }};
   private final Properties streamsProperties = new Properties();
   private final ConsumerRecordFactory<String, String> recordFactory =
@@ -75,6 +79,11 @@ public class QueryTranslationTest {
         new FakeKafkaTopicClient(),
         new MockSchemaRegistryClient(),
         metaStore);
+  }
+
+  @After
+  public void cleanUp() {
+    ksqlEngine.close();
   }
 
   static class Record {
@@ -164,7 +173,8 @@ public class QueryTranslationTest {
         QueryTranslationTest.class.getClassLoader().
             getResourceAsStream("query-validation-tests.json"));
     final List<Query> queries = new ArrayList<>();
-    tests.elements().forEachRemaining(query -> {
+
+    tests.findValue("tests").elements().forEachRemaining(query -> {
       try {
         final String name = query.findValue("name").asText();
         final List<String> statements = new ArrayList<>();

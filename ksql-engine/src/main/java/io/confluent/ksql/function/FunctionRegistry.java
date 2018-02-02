@@ -208,8 +208,8 @@ public class FunctionRegistry {
     return ksqlAggregateFunctionMap.get(functionName) != null;
   }
 
-  public KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
-      functionArgs, Schema schema) {
+  public KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression> functionArgs,
+          Schema schema) {
     KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap
         .get(functionName);
     if (ksqlAggFunctionDeterminer == null) {

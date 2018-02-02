@@ -34,7 +34,7 @@ public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
-      throw new KsqlException("TopK function should have two arguments.");
+      throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
     Schema argSchema = argTypeList.get(0);
     switch (argSchema.type()) {
@@ -47,7 +47,7 @@ public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer
       case STRING:
         return new TopkDistinctKudaf<String>(-1, 0, String.class);
       default:
-        throw new KsqlException("No TopK aggregate function with " + argTypeList.get(0) + " "
+        throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
                                 + " argument type exists!");
     }
 

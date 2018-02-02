@@ -449,10 +449,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
         querySpecification.getWhere(),
         querySpecification.getGroupBy(),
         querySpecification.getHaving(),
-        querySpecification.getOrderBy(),
         querySpecification.getLimit()
     );
-    return new Query(query.getWith(), newQuerySpecification, query.getOrderBy(), query.getLimit());
+    return new Query(newQuerySpecification, query.getLimit());
   }
 
   public Set<QueryMetadata> getLivePersistentQueries() {

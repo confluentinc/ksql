@@ -74,7 +74,7 @@ public class EndToEndIntegrationTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
+    testHarness = new IntegrationTestHarness();
     testHarness.start();
     Map<String, Object> streamsConfig = testHarness.ksqlConfig.getKsqlStreamConfigProps();
     streamsConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

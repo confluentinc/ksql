@@ -171,22 +171,6 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatSubqueryExpression() {
-    final Query query = new Query(Optional.empty(),
-        new Values(Collections.singletonList(new LongLiteral("1"))),
-        Collections.emptyList(), Optional.empty());
-    assertThat(ExpressionFormatter.formatExpression(new SubqueryExpression(query)), equalTo("( VALUES \n  1\n)"));
-  }
-
-  @Test
-  public void shouldFormatExists() {
-    final Query query = new Query(Optional.empty(),
-        new Values(Collections.singletonList(new LongLiteral("1"))),
-        Collections.emptyList(), Optional.empty());
-    assertThat(ExpressionFormatter.formatExpression(new ExistsPredicate(query)), equalTo("(EXISTS ( VALUES \n  1\n))"));
-  }
-
-  @Test
   public void shouldFormatQualifiedNameReference() {
     assertThat(ExpressionFormatter.formatExpression(new QualifiedNameReference(QualifiedName.of("name"))), equalTo("name"));
   }

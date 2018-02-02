@@ -44,7 +44,7 @@ public class WindowingIntTest {
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
+    testHarness = new IntegrationTestHarness();
     testHarness.start();
     ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
     testHarness.createTopic(topicName);

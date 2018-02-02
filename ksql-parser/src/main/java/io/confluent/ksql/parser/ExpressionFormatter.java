@@ -56,7 +56,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Row;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
-import io.confluent.ksql.parser.tree.SortItem;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
@@ -70,7 +69,6 @@ import io.confluent.ksql.parser.tree.WindowFrame;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
@@ -478,15 +476,6 @@ public final class ExpressionFormatter {
     return "'" + s.replace("'", "''") + "'";
   }
 
-  public static String formatSortItems(List<SortItem> sortItems) {
-    return formatSortItems(sortItems, true);
-  }
-
-  static String formatSortItems(List<SortItem> sortItems, boolean unmangleNames) {
-    return Joiner.on(", ").join(sortItems.stream()
-            .map(sortItemFormatterFunction(unmangleNames))
-            .iterator());
-  }
 
   public static String formatGroupBy(List<GroupingElement> groupingElements) {
     ImmutableList.Builder<String> resultStrings = ImmutableList.builder();
@@ -503,39 +492,4 @@ public final class ExpressionFormatter {
             .iterator()));
   }
 
-  private static Function<SortItem, String> sortItemFormatterFunction(boolean unmangleNames) {
-    return input -> {
-      StringBuilder builder = new StringBuilder();
-
-      builder.append(formatExpression(input.getSortKey(), unmangleNames));
-
-      switch (input.getOrdering()) {
-        case ASCENDING:
-          builder.append(" ASC");
-          break;
-        case DESCENDING:
-          builder.append(" DESC");
-          break;
-        default:
-          throw new UnsupportedOperationException("unknown ordering: " + input.getOrdering());
-      }
-
-      switch (input.getNullOrdering()) {
-        case FIRST:
-          builder.append(" NULLS FIRST");
-          break;
-        case LAST:
-          builder.append(" NULLS LAST");
-          break;
-        case UNDEFINED:
-          // no op
-          break;
-        default:
-          throw new UnsupportedOperationException(
-                  "unknown null ordering: " + input.getNullOrdering());
-      }
-
-      return builder.toString();
-    };
-  }
 }

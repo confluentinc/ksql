@@ -18,6 +18,7 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -29,7 +30,6 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 public class CommandFactories implements DDLCommandFactory {
 
@@ -37,7 +37,7 @@ public class CommandFactories implements DDLCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final ReferentialIntegrityTable referentialIntegrityTable) {
+      final MetaStore metaStore) {
     factories.put(
         RegisterTopic.class,
         (sqlExpression, ddlStatement, properties) ->
@@ -61,13 +61,13 @@ public class CommandFactories implements DDLCommandFactory {
             new DropSourceCommand(
         (DropStream) ddlStatement,
         DataSource.DataSourceType.KSTREAM,
-        referentialIntegrityTable));
+        metaStore));
     factories.put(
         DropTable.class, (sqlExpression, ddlStatement, properties) ->
             new DropSourceCommand(
         (DropTable) ddlStatement,
         DataSource.DataSourceType.KTABLE,
-        referentialIntegrityTable));
+        metaStore));
     factories.put(
         DropTopic.class, (sqlExpression, ddlStatement, properties) ->
             new DropTopicCommand(((DropTopic) ddlStatement)));

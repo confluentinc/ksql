@@ -22,23 +22,22 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 
 public class DropSourceCommand implements DDLCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
-  private final ReferentialIntegrityTable referentialIntegrityTable;
+  private final MetaStore metaStore;
 
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
       final DataSource.DataSourceType dataSourceType,
-      final ReferentialIntegrityTable referentialIntegrityTable) {
+      final MetaStore metaStore) {
 
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
-    this.referentialIntegrityTable = referentialIntegrityTable;
+    this.metaStore = metaStore;
   }
 
   @Override
@@ -54,11 +53,11 @@ public class DropSourceCommand implements DDLCommand {
           dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
-    if (!referentialIntegrityTable.isSafeToDrop(sourceName)) {
-      String sourceForQueriesMessage = referentialIntegrityTable
+    if (!metaStore.isSafeToDrop(sourceName)) {
+      String sourceForQueriesMessage = metaStore
           .getSourceForQuery(sourceName).stream()
           .collect(Collectors.joining(", "));
-      String sinkForQueriesMessage = referentialIntegrityTable.getSinkForQuery(sourceName)
+      String sinkForQueriesMessage = metaStore.getSinkForQuery(sourceName)
           .stream()
           .collect(Collectors.joining(", "));
       throw new KsqlException(String.format("Cannot drop the data source. The following queries "

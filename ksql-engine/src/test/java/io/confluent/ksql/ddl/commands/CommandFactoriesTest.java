@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
-import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -41,7 +41,6 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -52,7 +51,7 @@ public class CommandFactoriesTest {
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final CommandFactories commandFactories = new CommandFactories(topicClient, EasyMock
-      .createMock(ReferentialIntegrityTable.class));
+      .createMock(MetaStore.class));
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";
 

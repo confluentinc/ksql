@@ -14,25 +14,24 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.metastore;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public class ReferentialIntegrityTableEntry {
 
-  private final String dataSourceName;
   private final Set<String> sourceForQueries;
   private final Set<String> sinkForQueries;
 
-  public ReferentialIntegrityTableEntry(String dataSourceName) {
-    this.dataSourceName = dataSourceName;
+  public ReferentialIntegrityTableEntry() {
     sourceForQueries = new HashSet<>();
     sinkForQueries = new HashSet<>();
   }
 
-  public String getDataSourceName() {
-    return dataSourceName;
+  public ReferentialIntegrityTableEntry(Set<String> sourceForQueries, Set<String> sinkForQueries) {
+    this.sourceForQueries = sourceForQueries;
+    this.sinkForQueries = sinkForQueries;
   }
 
   public Set<String> getSourceForQueries() {
@@ -41,5 +40,16 @@ public class ReferentialIntegrityTableEntry {
 
   public Set<String> getSinkForQueries() {
     return sinkForQueries;
+  }
+
+  public boolean isEmpty() {
+    return sourceForQueries.isEmpty() && sinkForQueries.isEmpty();
+  }
+
+  public ReferentialIntegrityTableEntry clone() {
+    Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
+    Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);
+    return new ReferentialIntegrityTableEntry(cloneSourceForQueries,
+                                              cloneSinkForQueries);
   }
 }

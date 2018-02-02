@@ -82,7 +82,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 
 public class KsqlEngine implements Closeable, QueryTerminator {
@@ -103,7 +102,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
   private final Set<QueryMetadata> allLiveQueries;
-  private final ReferentialIntegrityTable referentialIntegrityTable;
 
 
 
@@ -139,12 +137,11 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ksqlConfig = ksqlConfig;
     this.metaStore = metaStore;
     this.topicClient = topicClient;
-    this.referentialIntegrityTable = new ReferentialIntegrityTable();
     this.ddlCommandExec = new DDLCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(this,
                                        new CommandFactories(
                                            topicClient,
-                                           this.referentialIntegrityTable)
+                                           this.metaStore)
     );
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
@@ -221,9 +218,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
         livePersistentQueries.add(queryMetadata);
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
         persistentQueries.put(persistentQueryMetadata.getQueryId(), persistentQueryMetadata);
-        referentialIntegrityTable.addSourceNames(persistentQueryMetadata.getSourceNames(),
+        metaStore.addSourceNames(persistentQueryMetadata.getSourceNames(),
                                                  persistentQueryMetadata.getQueryId().getId());
-        referentialIntegrityTable.addSinkNames(persistentQueryMetadata.getSinkNames(),
+        metaStore.addSinkNames(persistentQueryMetadata.getSinkNames(),
                                                persistentQueryMetadata.getQueryId().getId());
       }
       allLiveQueries.add(queryMetadata);
@@ -379,24 +376,24 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
-          this.referentialIntegrityTable),
+          this.metaStore),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
-          this.referentialIntegrityTable),
+          this.metaStore),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
-          this.referentialIntegrityTable),
+          this.metaStore),
                                 tempMetaStore);
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
-          this.referentialIntegrityTable),
+          this.metaStore),
                                 tempMetaStoreForParser);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
@@ -489,8 +486,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     if (closeStreams) {
       persistentQueryMetadata.close();
     }
-    referentialIntegrityTable.removeQueryFromReferentialIntegrityTable(persistentQueryMetadata
-                                                                           .getQueryId().getId());
+    metaStore.removeQueryFromReferentialIntegrityTable(
+        persistentQueryMetadata.getQueryId().getId());
     return true;
   }
 
@@ -510,7 +507,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       persistentQueries.remove(metadata.getQueryId());
       livePersistentQueries.remove(metadata);
       allLiveQueries.remove(metadata);
-      referentialIntegrityTable
+      metaStore
           .removeQueryFromReferentialIntegrityTable(metadata.getQueryId().getId());
     }
   }
@@ -599,9 +596,5 @@ public class KsqlEngine implements Closeable, QueryTerminator {
         new HashMap<>(),
         metaStoreCopy
     );
-  }
-
-  public ReferentialIntegrityTable getReferentialIntegrityTable() {
-    return referentialIntegrityTable;
   }
 }

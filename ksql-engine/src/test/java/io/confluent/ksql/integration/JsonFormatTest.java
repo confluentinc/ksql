@@ -247,7 +247,7 @@ public class JsonFormatTest {
 
     assertThat(results, equalTo(expectedResults));
 
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+    ksqlEngine.terminateQuery(queryMetadata.getQueryId(), true);
   }
 
   //*********************************************************//

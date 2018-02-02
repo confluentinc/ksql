@@ -569,7 +569,7 @@ public class KsqlResource {
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
-          ksqlEngine.getReferentialIntegrityTable());
+          ksqlEngine.getMetaStore());
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });
@@ -578,7 +578,7 @@ public class KsqlResource {
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
-          ksqlEngine.getReferentialIntegrityTable());
+          ksqlEngine.getMetaStore());
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
     });

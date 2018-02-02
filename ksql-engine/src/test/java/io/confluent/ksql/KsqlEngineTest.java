@@ -33,7 +33,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReferentialIntegrityTable;
 
 import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -83,11 +82,11 @@ public class KsqlEngineTest {
     final List<QueryMetadata> queries
         = ksqlEngine.createQueries("create table bar as select * from test2;" +
                                    "create table foo as select * from test2;");
-    ReferentialIntegrityTable referentialIntegrityTable = ksqlEngine.getReferentialIntegrityTable();
-    Assert.assertTrue(referentialIntegrityTable.getSourceForQuery("TEST2").contains("CTAS_BAR"));
-    Assert.assertTrue(referentialIntegrityTable.getSourceForQuery("TEST2").contains("CTAS_FOO"));
-    Assert.assertTrue(referentialIntegrityTable.getSinkForQuery("BAR").contains("CTAS_BAR"));
-    Assert.assertTrue(referentialIntegrityTable.getSinkForQuery("FOO").contains("CTAS_FOO"));
+    MetaStore metaStore = ksqlEngine.getMetaStore();
+    Assert.assertTrue(metaStore.getSourceForQuery("TEST2").contains("CTAS_BAR"));
+    Assert.assertTrue(metaStore.getSourceForQuery("TEST2").contains("CTAS_FOO"));
+    Assert.assertTrue(metaStore.getSinkForQuery("BAR").contains("CTAS_BAR"));
+    Assert.assertTrue(metaStore.getSinkForQuery("FOO").contains("CTAS_FOO"));
   }
 
   @Test

@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 

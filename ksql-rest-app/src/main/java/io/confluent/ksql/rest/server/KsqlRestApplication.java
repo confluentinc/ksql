@@ -140,6 +140,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public ResourceCollection getStaticResources() {
+    log.info("User interface enabled:" + isUiEnabled);
     if (isUiEnabled) {
       return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
     } else {
@@ -207,7 +208,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
     KsqlRestApplication app = buildApplication(
         restConfig,
-        cliOptions.isUiEnabled() || restConfig.isUiEnabled(),
+        restConfig.isUiEnabled(),
         new KsqlVersionCheckerAgent()
     );
 

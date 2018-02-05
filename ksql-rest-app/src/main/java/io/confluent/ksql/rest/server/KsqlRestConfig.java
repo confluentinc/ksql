@@ -74,15 +74,15 @@ public class KsqlRestConfig extends RestConfig {
               + "returning a response";
 
   public static final String
-          UI_DISABLED_CONFIG = "ui.disabled";
+          UI_EBABLED_CONFIG = "ui.enabled";
   public static final ConfigDef.Type
-          UI_DISABLED_TYPE = ConfigDef.Type.BOOLEAN;
+          UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
   public static final String
-          UI_DISABLED_DEFAULT = "false";
+          UI_ENABLED_DEFAULT = "true";
   public static final ConfigDef.Importance
-          UI_DISABLED_IMPORTANCE = ConfigDef.Importance.LOW;
+          UI_ENABLED_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String
-          UI_DISABLED_DOC =
+          UI_ENABLED_DOC =
           "Flag to disable the KQL UI. It is enabled by default";
 
   private static final ConfigDef CONFIG_DEF;
@@ -107,11 +107,11 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
     ).define(
-        UI_DISABLED_CONFIG,
-        UI_DISABLED_TYPE,
-        UI_DISABLED_DEFAULT,
-        UI_DISABLED_IMPORTANCE,
-        UI_DISABLED_DOC
+        UI_EBABLED_CONFIG,
+        UI_ENABLED_TYPE,
+        UI_ENABLED_DEFAULT,
+        UI_ENABLED_IMPORTANCE,
+        UI_ENABLED_DOC
     );
   }
 
@@ -151,6 +151,6 @@ public class KsqlRestConfig extends RestConfig {
   }
 
   public boolean isUiEnabled() {
-    return !getBoolean(UI_DISABLED_CONFIG);
+    return getBoolean(UI_EBABLED_CONFIG);
   }
 }

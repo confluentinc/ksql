@@ -22,9 +22,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
@@ -86,20 +90,52 @@ public class QueryTranslationTest {
     ksqlEngine.close();
   }
 
+  static class Window {
+    private final long start;
+    private final long end;
+
+    Window(long start, long end) {
+      this.start = start;
+      this.end = end;
+    }
+
+    public long size() {
+      return end - start;
+    }
+  }
+
   static class Record {
     private final String topic;
     private final String key;
     private final String value;
     private final long timestamp;
+    private final Window window;
 
     Record(final String topic,
            final String key,
            final String value,
-           final long timestamp) {
+           final long timestamp,
+           final Window window) {
       this.topic = topic;
       this.key = key;
       this.value = value;
       this.timestamp = timestamp;
+      this.window = window;
+    }
+
+    public Deserializer keyDeserializer() {
+      if (window == null) {
+        return Serdes.String().deserializer();
+      }
+      return new WindowedDeserializer<>(Serdes.String().deserializer(), window.size());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T key() {
+      if (window == null) {
+        return (T) key;
+      }
+      return (T) new Windowed<>(key, new TimeWindow(window.start, window.end));
     }
   }
 
@@ -134,13 +170,14 @@ public class QueryTranslationTest {
       );
     }
 
+    @SuppressWarnings("unchecked")
     void verifyOutput(final TopologyTestDriver testDriver) {
       for (final Record expectedOutput : expectedOutputs) {
         try {
           OutputVerifier.compareKeyValue(testDriver.readOutput(expectedOutput.topic,
-              Serdes.String().deserializer(),
+              expectedOutput.keyDeserializer(),
               Serdes.String().deserializer()),
-              expectedOutput.key,
+              expectedOutput.key(),
               expectedOutput.value);
         } catch (AssertionError assertionError) {
           throw new AssertionError("Query name: "
@@ -162,11 +199,15 @@ public class QueryTranslationTest {
   }
 
 
-  public QueryTranslationTest(final Query query) {
+  /**
+   * @param name  - unused. Is just so the tests get named.
+   * @param query - query to run.
+   */
+  public QueryTranslationTest(final String name, final Query query) {
     this.query = query;
   }
 
-  @Parameterized.Parameters
+  @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() throws IOException {
     final ObjectMapper objectMapper = new ObjectMapper();
     final JsonNode tests = objectMapper.readTree(
@@ -191,10 +232,9 @@ public class QueryTranslationTest {
         throw new RuntimeException(e);
       }
     });
-    final Object[] objects = queries.toArray(new Object[0]);
     final Collection<Object[]> result = new ArrayList<>();
-    for (Object object : objects) {
-      result.add(new Object[]{object});
+    for (final Query query : queries) {
+      result.add(new Object[]{query.name, query});
     }
     return result;
   }
@@ -212,7 +252,19 @@ public class QueryTranslationTest {
         node.findValue("topic").asText(),
         node.findValue("key").asText(),
         node.findValue("value").asText(),
-        node.findValue("timestamp").asLong());
+        node.findValue("timestamp").asLong(),
+        createWindowIfExists(node));
+  }
+
+  private static Window createWindowIfExists(JsonNode node) {
+    final JsonNode windowNode = node.findValue("window");
+    if (windowNode == null) {
+      return null;
+    }
+
+    return new Window(
+        windowNode.findValue("start").asLong(),
+        windowNode.findValue("end").asLong());
   }
 
 }

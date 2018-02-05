@@ -205,9 +205,9 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
         dataSourceMap
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(),
-                                  entry -> new Pair<>(entry.getValue().getLeft(),
-                                                      entry.getValue().getRight().clone())));
+        .collect(Collectors.toMap(
+            entry -> entry.getKey(),
+            entry -> new Pair<>(entry.getValue().getLeft(), entry.getValue().getRight().clone())));
     cloneTopicMap.putAll(topicMap);
     cloneDataSourceMap.putAll(dataSourceMap);
     return new MetaStoreImpl(cloneTopicMap, cloneDataSourceMap);

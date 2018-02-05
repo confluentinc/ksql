@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.stream.Collectors;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;

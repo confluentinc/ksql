@@ -28,13 +28,14 @@ public class JsonPathTokenizerTest {
 
   @Test
   public void testJsonPathTokenizer() throws IOException {
-    JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.log.cloud.region");
+    JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
     ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
     List<String> tokenList = tokens.asList();
-    Assert.assertTrue(tokenList.size() == 3);
-    Assert.assertTrue(tokenList.get(0).equalsIgnoreCase("log"));
-    Assert.assertTrue(tokenList.get(1).equalsIgnoreCase("cloud"));
-    Assert.assertTrue(tokenList.get(2).equalsIgnoreCase("region"));
+    Assert.assertTrue(tokenList.size() == 4);
+    Assert.assertTrue(tokenList.get(0).equalsIgnoreCase("logs"));
+    Assert.assertTrue(tokenList.get(1).equalsIgnoreCase("0"));
+    Assert.assertTrue(tokenList.get(2).equalsIgnoreCase("cloud"));
+    Assert.assertTrue(tokenList.get(3).equalsIgnoreCase("region"));
 
   }
 

@@ -81,10 +81,6 @@ public abstract class DefaultAstVisitor<R, C>
     return visitStatement(node, context);
   }
 
-  protected R visitShowSchemas(ShowSchemas node, C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitShowCatalogs(ShowCatalogs node, C context) {
     return visitStatement(node, context);
   }
@@ -102,10 +98,6 @@ public abstract class DefaultAstVisitor<R, C>
   }
 
   protected R visitShowFunctions(ShowFunctions node, C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitShowSession(ShowSession node, C context) {
     return visitStatement(node, context);
   }
 

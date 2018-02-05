@@ -42,7 +42,7 @@ connect is [UP]
 
 ## Start KSQL
 
-1. Download the [KSQL 0.3 release tarball](https://s3-us-west-2.amazonaws.com/ksql-releases/releases/0.3/ksql.tgz).
+1. Download the KSQL release tarball from the [KSQL releases page](https://github.com/confluentinc/ksql/releases/latest)
 
 1. Unpack the release tarball.
 

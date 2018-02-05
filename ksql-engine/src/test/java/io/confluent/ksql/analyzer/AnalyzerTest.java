@@ -18,7 +18,7 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.rewrite.SqlFormatterQueryRewrite;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
@@ -40,7 +40,6 @@ public class AnalyzerTest {
 
   private Analysis analyze(String queryStr) {
     List<Statement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    System.out.println(SqlFormatterQueryRewrite.formatSql(statements.get(0)).replace("\n", " "));
     // Analyze the query to resolve the references and extract oeprations
     Analysis analysis = new Analysis();
     Analyzer analyzer = new Analyzer("sqlExpression", analysis, metaStore);
@@ -63,22 +62,22 @@ public class AnalyzerTest {
         analysis.getSelectExpressions().size() == analysis.getSelectExpressionAlias().size());
     String
         sqlStr =
-        SqlFormatterQueryRewrite.formatSql(analysis.getWhereExpression()).replace("\n", " ");
+        SqlFormatter.formatSql(analysis.getWhereExpression()).replace("\n", " ");
     Assert.assertTrue(sqlStr.equalsIgnoreCase("(TEST1.COL0 > 100)"));
 
     String
         select1 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(0))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("TEST1.COL0"));
     String
         select2 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(1))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
     String
         select3 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("TEST1.COL3"));
 
@@ -112,21 +111,21 @@ public class AnalyzerTest {
 
     String
         select1 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(0))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("T1.COL1"));
     String
         select2 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(1))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("T2.COL1"));
     String
         select3 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
     String
         select4 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(3))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(3))
             .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("T2.COL4"));
     Assert.assertTrue(select4.equalsIgnoreCase("T1.COL5"));
@@ -154,17 +153,17 @@ public class AnalyzerTest {
 
     String
         select1 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(0))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
             .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
     String
         select2 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(1))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
             .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
     String
         select3 =
-        SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
 
@@ -185,17 +184,17 @@ public class AnalyzerTest {
 
     String
             select1 =
-            SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(0))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
                     .replace("\n", " ");
     Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
     String
             select2 =
-            SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(1))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
                     .replace("\n", " ");
     Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
     String
             select3 =
-            SqlFormatterQueryRewrite.formatSql(analysis.getSelectExpressions().get(2))
+        SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
                     .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
     Assert.assertTrue("testFilterAnalysis failed.", analysis.getWhereExpression().toString().equalsIgnoreCase("(TEST1.COL0 > 20)"));

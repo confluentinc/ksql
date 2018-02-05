@@ -121,7 +121,7 @@ public class Cli implements Closeable, AutoCloseable {
           // TODO: Maybe ask the user if they'd like to see the stack trace here?
         }
         String causeMsg = CommonUtils.getErrorCauseMessage(exception);
-        if (causeMsg != "") {
+        if (!causeMsg.isEmpty()) {
           terminal.writer().println(causeMsg);
         }
       }

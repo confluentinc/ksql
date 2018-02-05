@@ -118,7 +118,7 @@ public class QueryTranslationTest {
            final Window window) {
       this.topic = topic;
       this.key = key;
-      this.value = value;
+      this.value = value.equals("null") ? null : value;
       this.timestamp = timestamp;
       this.window = window;
     }

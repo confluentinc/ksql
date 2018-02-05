@@ -50,11 +50,9 @@ import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -80,7 +78,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessage;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -99,7 +96,6 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
-import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -212,7 +208,6 @@ public class KsqlResource {
       return getStatementExecutionPlan(explain, statementText);
     } else if (statement instanceof RunScript) {
       return distributeStatement(statementText, statement, streamsProperties);
-//      return handleRunScript(streamsProperties);
     } else if (statement instanceof RegisterTopic
                || statement instanceof CreateStream
                || statement instanceof CreateTable
@@ -634,52 +629,6 @@ public class KsqlResource {
     if (streamsProperties.containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queriesString =
           (String) streamsProperties.get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
-
-//      List<Statement> parsedStatements = ksqlEngine.getStatements(queriesString);
-//      for (Statement statement: parsedStatements) {
-//        KsqlEntity ksqlEntity = executeStatement(
-//            SqlFormatter.formatSql(statement),
-//            statement,
-//            streamsProperties);
-//        if (ksqlEntity instanceof ErrorMessageEntity) {
-//          return ksqlEntity;
-//        }
-//      }
-
-//      KsqlParser ksqlParser = new KsqlParser();
-//      MetaStore tempMetaStore = ksqlEngine.getMetaStore().clone();
-//      MetaStore tempMetaStoreForParser = ksqlEngine.getMetaStore().clone();
-//      List<SqlBaseParser.SingleStatementContext> parsedStatements
-//          = ksqlParser.getStatements(queriesString);
-//      for (SqlBaseParser.SingleStatementContext singleStatementContext : parsedStatements) {
-//        Pair<Statement, DataSourceExtractor> statementInfo = ksqlParser.prepareStatement(
-//            singleStatementContext,
-//            tempMetaStoreForParser
-//        );
-//        Pair<String, Statement> queryPair =
-//            ksqlEngine.buildSingleQueryAst(
-//                statementInfo.getLeft(),
-//                ksqlEngine.getStatementString(singleStatementContext),
-//                tempMetaStore,
-//                tempMetaStoreForParser,
-//                streamsProperties,
-//            );
-//        if (queryPair != null) {
-//          Statement statement = queryPair.getRight();
-//          String statementStr = queryPair.getLeft();
-//          executeStatement(statementStr, statement, streamsProperties);
-//        }
-//      }
-//
-//      return new CommandStatusEntity(
-//          "RUN SCRIPT",
-//          new CommandId(CommandId.Type.STREAM, "RUN SCRIPT", CommandId.Action.EXECUTE),
-//          new CommandStatus(CommandStatus.Status.EXECUTING, "RUN SCRIPT"));
-//    } else {
-//      return new ErrorMessageEntity(
-//          "No script file content was received.",
-//          new ErrorMessage("No script file content was received.",
-//                           new ArrayList<>()));
     }
     return null;
   }

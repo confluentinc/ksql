@@ -71,11 +71,7 @@ statement
     ;
 
 query
-    :  with? queryNoWith
-    ;
-
-with
-    : WITH RECURSIVE? namedQuery (',' namedQuery)*
+    :  queryNoWith
     ;
 
 tableElement
@@ -92,15 +88,11 @@ tableProperty
 
 queryNoWith:
       queryTerm
-      (ORDER BY sortItem (',' sortItem)*)?
       (LIMIT limit=(INTEGER_VALUE | ALL))?
-      (APPROXIMATE AT confidence=number CONFIDENCE)?
     ;
 
 queryTerm
     : queryPrimary                                                             #queryTermDefault
-    | left=queryTerm operator=INTERSECT setQuantifier? right=queryTerm         #setOperation
-    | left=queryTerm operator=(UNION | EXCEPT) setQuantifier? right=queryTerm  #setOperation
     ;
 
 queryPrimary
@@ -110,12 +102,8 @@ queryPrimary
     | '(' queryNoWith  ')'                 #subquery
     ;
 
-sortItem
-    : expression ordering=(ASC | DESC)? (NULLS nullOrdering=(FIRST | LAST))?
-    ;
-
 querySpecification
-    : SELECT STREAM? setQuantifier? selectItem (',' selectItem)*
+    : SELECT STREAM? selectItem (',' selectItem)*
       (INTO into=relationPrimary)?
       (FROM from=relation (',' relation)*)?
       (WINDOW  windowExpression)?
@@ -155,14 +143,11 @@ windowUnit
     ;
 
 groupBy
-    : setQuantifier? groupingElement (',' groupingElement)*
+    : groupingElement (',' groupingElement)*
     ;
 
 groupingElement
     : groupingExpressions                                               #singleGroupingSet
-    | ROLLUP '(' (qualifiedName (',' qualifiedName)*)? ')'              #rollup
-    | CUBE '(' (qualifiedName (',' qualifiedName)*)? ')'                #cube
-    | GROUPING SETS '(' groupingSet (',' groupingSet)* ')'              #multipleGroupingSets
     ;
 
 groupingExpressions
@@ -177,11 +162,6 @@ groupingSet
 
 namedQuery
     : name=identifier (columnAliases)? AS '(' query ')'
-    ;
-
-setQuantifier
-    : DISTINCT
-    | ALL
     ;
 
 selectItem
@@ -284,7 +264,7 @@ primaryExpression
     | '(' expression (',' expression)+ ')'                                           #rowConstructor
     | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
-    | qualifiedName '(' (setQuantifier? expression (',' expression)*)? ')' over?     #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' over?     #functionCall
     | identifier '->' expression                                                     #lambda
     | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
@@ -298,11 +278,6 @@ primaryExpression
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
     | base=primaryExpression '.' fieldName=identifier                                #dereference
-    | name=CURRENT_DATE                                                              #specialDateTimeFunction
-    | name=CURRENT_TIME ('(' precision=INTEGER_VALUE ')')?                           #specialDateTimeFunction
-    | name=CURRENT_TIMESTAMP ('(' precision=INTEGER_VALUE ')')?                      #specialDateTimeFunction
-    | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
-    | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                         #specialDateTimeFunction
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
@@ -343,9 +318,7 @@ typeParameter
     ;
 
 baseType
-    : TIME_WITH_TIME_ZONE
-    | TIMESTAMP_WITH_TIME_ZONE
-    | identifier
+    : identifier
     ;
 
 whenClause
@@ -355,7 +328,6 @@ whenClause
 over
     : OVER '('
         (PARTITION BY partition+=expression (',' partition+=expression)*)?
-        (ORDER BY sortItem (',' sortItem)*)?
         windowFrame?
       ')'
     ;
@@ -378,18 +350,6 @@ frameBound
 explainOption
     : FORMAT value=(TEXT | GRAPHVIZ)         #explainFormat
     | TYPE value=(LOGICAL | DISTRIBUTED)     #explainType
-    ;
-
-transactionMode
-    : ISOLATION LEVEL levelOfIsolation    #isolationLevel
-    | READ accessMode=(ONLY | WRITE)      #transactionAccessMode
-    ;
-
-levelOfIsolation
-    : READ UNCOMMITTED                    #readUncommitted
-    | READ COMMITTED                      #readCommitted
-    | REPEATABLE READ                     #repeatableRead
-    | SERIALIZABLE                        #serializable
     ;
 
 callArgument

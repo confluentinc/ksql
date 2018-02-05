@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udaf.topk;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
@@ -27,54 +28,54 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopkAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
-  private int topKSize = 0;
+  private final int topKSize;
 
   public TopkAggFunctionDeterminer() {
-    super("TOPK", Arrays.asList());
+    this(0);
   }
 
   public TopkAggFunctionDeterminer(int topKSize) {
-    this();
+    super("TOPK", Arrays.asList());
     this.topKSize = topKSize;
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    if (argTypeList.isEmpty()) {
+  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argumentType) {
+    if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
-    Schema argSchema = argTypeList.get(0);
+    Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:
         return new TopkKudaf<Integer>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-                Arrays.asList(Schema.INT32_SCHEMA),
+                Collections.singletonList(Schema.INT32_SCHEMA),
                 Integer.class);
       case INT64:
         return new TopkKudaf<Long>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-                Arrays.asList(Schema.INT64_SCHEMA),
+                Collections.singletonList(Schema.INT64_SCHEMA),
                 Long.class);
       case FLOAT64:
         return new TopkKudaf<Double>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-                Arrays.asList(Schema.FLOAT64_SCHEMA),
+                Collections.singletonList(Schema.FLOAT64_SCHEMA),
                 Double.class);
       case STRING:
         return new TopkKudaf<String>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-                Arrays.asList(Schema.STRING_SCHEMA),
+                Collections.singletonList(Schema.STRING_SCHEMA),
                 String.class);
       default:
-        throw new KsqlException("No TOPK aggregate function with " + argTypeList.get(0)
+        throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
                                 + " argument type exists!");
     }
   }

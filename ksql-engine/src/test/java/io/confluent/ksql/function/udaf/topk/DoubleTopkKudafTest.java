@@ -21,10 +21,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 public class DoubleTopkKudafTest extends TopKKudafBaseTest {
 
@@ -32,7 +32,7 @@ public class DoubleTopkKudafTest extends TopKKudafBaseTest {
   public void setup() {
     valueArray = new Double[]{10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0, 25.0};
     topKFactory = new TopkAggFunctionDeterminer(3);
-    argumentType = Arrays.asList(Schema.FLOAT64_SCHEMA);
+    argumentType = Collections.singletonList(Schema.FLOAT64_SCHEMA);
   }
 
   @Test

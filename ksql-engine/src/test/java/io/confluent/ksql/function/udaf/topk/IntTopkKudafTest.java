@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -32,7 +32,7 @@ public class IntTopkKudafTest extends TopKKudafBaseTest {
   public void setup() {
     valueArray = new Integer[]{10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25};
     topKFactory = new TopkAggFunctionDeterminer(3);
-    argumentType = Arrays.asList(Schema.INT32_SCHEMA);
+    argumentType = Collections.singletonList(Schema.INT32_SCHEMA);
   }
 
   @Test

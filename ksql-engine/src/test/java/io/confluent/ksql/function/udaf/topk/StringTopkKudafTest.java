@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -33,7 +34,7 @@ public class StringTopkKudafTest extends TopKKudafBaseTest {
     valueArray = new String[]{"10", "ab", "cde", "efg", "aa", "32", "why", "How are you", "Test",
                               "123", "432"};
     topKFactory = new TopkAggFunctionDeterminer(3);
-    argumentType = Arrays.asList(Schema.STRING_SCHEMA);
+    argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
   }
 
   @Test

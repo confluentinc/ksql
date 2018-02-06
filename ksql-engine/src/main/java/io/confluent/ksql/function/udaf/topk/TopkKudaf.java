@@ -34,23 +34,23 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
   private final T[] tempTopKArray;
   private final Class<T> clazz;
   private final Schema initialValue;
-  private final List<Schema> arguments;
+  private final List<Schema> argumentTypes;
 
   TopkKudaf(int argIndexInValue,
             int topKSize,
             Schema initialValue,
-            List<Schema> arguments,
+            List<Schema> argumentTypes,
             Class<T> clazz) {
     super(argIndexInValue,
           (T[]) new Object[topKSize],
           initialValue,
-          arguments,
+          argumentTypes,
           "TOPK",
           TopkKudaf.class);
     this.topKSize = topKSize;
     this.tempTopKArray = (T[]) new Object[topKSize + 1];
     this.initialValue = initialValue;
-    this.arguments = arguments;
+    this.argumentTypes = argumentTypes;
     this.clazz = clazz;
   }
 
@@ -104,6 +104,6 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     int topKSize = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkKudaf(udafIndex, topKSize, initialValue, arguments, clazz);
+    return new TopkKudaf(udafIndex, topKSize, initialValue, argumentTypes, clazz);
   }
 }

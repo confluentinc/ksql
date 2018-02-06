@@ -1,0 +1,6 @@
+user=confluentinc
+project=ksql
+exclude-tags-regex=.*-rc\d+
+unreleased=false
+since-tag=0.1-pre10
+

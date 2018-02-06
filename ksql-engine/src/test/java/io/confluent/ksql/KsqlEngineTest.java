@@ -17,14 +17,17 @@
 package io.confluent.ksql;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -37,8 +40,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
 
-  private final KafkaTopicClient topicClient = mock(KafkaTopicClient.class);
-  private final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+  private final KafkaTopicClient topicClient = new FakeKafkaTopicClient(); //mock(KafkaTopicClient
+//                                                                                   .class);
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();//mock
+  // (SchemaRegistryClient.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       new KsqlConfig(Collections.singletonMap("bootstrap.servers", "localhost:9092")),
@@ -72,6 +77,21 @@ public class KsqlEngineTest {
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() throws Exception {
     ksqlEngine.createQueries("blah;");
+  }
+
+  @Test
+  public void shouldEnforceTopicExistanceCorrectly() throws Exception {
+    topicClient.createTopic("s1_topic", 1, (short) 1);
+    StringBuilder runScriptContent =
+        new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
+                          + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
+    runScriptContent.append("CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
+                            + "S1 GROUP BY COL1;\n");
+    runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
+                            + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
+    List<QueryMetadata> queries =
+        ksqlEngine.buildMultipleQueries(runScriptContent.toString(), Collections.emptyMap());
+    Assert.assertTrue(topicClient.isTopicExists("T1"));
   }
 
 }

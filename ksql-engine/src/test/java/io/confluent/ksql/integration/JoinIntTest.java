@@ -105,8 +105,7 @@ public class JoinIntTest {
 
     final String queryString = String.format(
             "CREATE STREAM %s AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
-            + " %s " +
-                    " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
+            + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
             testStreamName,
             orderStreamName,
             itemTableName,

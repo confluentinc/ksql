@@ -40,10 +40,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
 
-  private final KafkaTopicClient topicClient = new FakeKafkaTopicClient(); //mock(KafkaTopicClient
-//                                                                                   .class);
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();//mock
-  // (SchemaRegistryClient.class);
+  private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
   private final KsqlEngine ksqlEngine = new KsqlEngine(
       new KsqlConfig(Collections.singletonMap("bootstrap.servers", "localhost:9092")),

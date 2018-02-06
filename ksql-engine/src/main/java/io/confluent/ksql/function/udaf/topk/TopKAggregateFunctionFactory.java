@@ -22,19 +22,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public class TopkAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   private final int topKSize;
 
-  public TopkAggFunctionDeterminer() {
+  public TopKAggregateFunctionFactory() {
     this(0);
   }
 
-  public TopkAggFunctionDeterminer(int topKSize) {
+  public TopKAggregateFunctionFactory(int topKSize) {
     super("TOPK", Arrays.asList());
     this.topKSize = topKSize;
   }

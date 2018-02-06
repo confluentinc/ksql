@@ -21,25 +21,29 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class StringTopkKudafTest extends TopKKudafBaseTest {
+public class StringTopkKudafTest {
+  Object[] valueArray;
+  TopKAggregateFunctionFactory topKFactory;
+  List<Schema> argumentType;
 
   @Before
   public void setup() {
     valueArray = new String[]{"10", "ab", "cde", "efg", "aa", "32", "why", "How are you", "Test",
                               "123", "432"};
-    topKFactory = new TopkAggFunctionDeterminer(3);
+    topKFactory = new TopKAggregateFunctionFactory(3);
     argumentType = Collections.singletonList(Schema.STRING_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf = getTopKArgumentInstance();
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     Object[] currentVal = new String[]{null, null, null};
     for (Object value : valueArray) {
       currentVal = topkKudaf.aggregate(value , currentVal);
@@ -50,7 +54,8 @@ public class StringTopkKudafTest extends TopKKudafBaseTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf = getTopKArgumentInstance();
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     Object[] currentVal = new String[]{null, null, null};
     currentVal = topkKudaf.aggregate("why", currentVal);
 
@@ -59,7 +64,8 @@ public class StringTopkKudafTest extends TopKKudafBaseTest {
 
   @Test
   public void shouldMergeTopK() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf = getTopKArgumentInstance();
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     String[] array1 = new String[]{"123", "Hello", "paper"};
     String[] array2 = new String[]{"Hi", "456", "Zzz"};
 
@@ -69,20 +75,23 @@ public class StringTopkKudafTest extends TopKKudafBaseTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf = getTopKArgumentInstance();
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", null, null};
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new String[]{"60", "50", "45"}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+            equalTo(new String[]{"60", "50", "45"}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    KsqlAggregateFunction<Object, Object[]> topkKudaf = getTopKArgumentInstance();
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     String[] array1 = new String[]{"50", null, null};
     String[] array2 = new String[]{"60", null, null};
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2), equalTo(new String[]{"60", "50", null}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+            equalTo(new String[]{"60", "50", null}));
   }
 }

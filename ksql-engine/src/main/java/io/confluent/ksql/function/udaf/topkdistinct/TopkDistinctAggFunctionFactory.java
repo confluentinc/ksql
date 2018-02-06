@@ -21,13 +21,13 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.Arrays;
 import java.util.List;
 
-import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
-public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
-  public TopkDistinctAggFunctionDeterminer() {
+  public TopkDistinctAggFunctionFactory() {
     super("TOPKDISTINCT", Arrays.asList());
   }
 

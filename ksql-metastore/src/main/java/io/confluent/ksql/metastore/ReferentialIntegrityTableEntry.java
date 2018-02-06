@@ -47,6 +47,7 @@ public class ReferentialIntegrityTableEntry {
     sinkForQueries.remove(queryId);
   }
 
+  @Override
   public ReferentialIntegrityTableEntry clone() {
     Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
     Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);

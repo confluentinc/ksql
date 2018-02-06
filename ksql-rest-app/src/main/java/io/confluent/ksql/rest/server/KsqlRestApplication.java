@@ -20,6 +20,7 @@ package io.confluent.ksql.rest.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
+import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -327,7 +328,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     ServerInfoResource serverInfoResource =
-        new ServerInfoResource(new ServerInfo(Version.getVersion()));
+        new ServerInfoResource(new ServerInfo(Version.getVersion(),isUiEnabled,
+        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0) ));
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,

@@ -29,14 +29,33 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class ServerInfo {
   private final String version;
+  private final boolean uiEnabled;
+  private final String uiAddress;
 
   @JsonCreator
-  public ServerInfo(@JsonProperty("version") String version) {
+  public ServerInfo(@JsonProperty("version") String version,
+                    @JsonProperty("uiEnabled") boolean uiEnabled,
+                    @JsonProperty("uiAddress") String uiAddress
+  ) {
     this.version = version;
+    this.uiEnabled = uiEnabled;
+    if (!uiEnabled) {
+      this.uiAddress = "Not available. Enable by editing ksqlserver.properties / ui.enabled=true";
+    } else {
+      this.uiAddress = uiAddress + "/index.html";
+    }
   }
 
   public String getVersion() {
     return version;
+  }
+
+  public String getUiAddress() {
+    return uiAddress;
+  }
+
+  public boolean isUiEnabled() {
+    return uiEnabled;
   }
 
   @Override

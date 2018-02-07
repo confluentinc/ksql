@@ -423,11 +423,11 @@ public class Cli implements Closeable, AutoCloseable {
           terminal.printErrorMessage(errorMsg.getErrorMessage());
           LOGGER.error(errorMsg.getErrorMessage().getMessage());
           noErrorFromServer = false;
-        } else if (entity instanceof CommandStatusEntity &&
-                   (
-                       ((CommandStatusEntity) entity).getCommandStatus().getStatus()
-                       == CommandStatus.Status.ERROR
-                   )) {
+        } else if (entity instanceof CommandStatusEntity
+            && (
+            ((CommandStatusEntity) entity).getCommandStatus().getStatus()
+                == CommandStatus.Status.ERROR
+        )) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;

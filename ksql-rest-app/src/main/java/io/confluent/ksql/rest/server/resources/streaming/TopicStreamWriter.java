@@ -79,7 +79,7 @@ public class TopicStreamWriter implements StreamingOutput {
       }
 
       @Override
-      String print(ConsumerRecord<String, Bytes> consumerRecord) throws IOException {
+      String print(ConsumerRecord<String, Bytes> consumerRecord) {
         String time = dateFormat.format(new Date(consumerRecord.timestamp()));
         GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
             topicName,
@@ -141,7 +141,7 @@ public class TopicStreamWriter implements StreamingOutput {
         SchemaRegistryClient schemaRegistryClient
     ) {
       Format result = Format.UNDEFINED;
-      while ((result.isFormat(topicName, record, schemaRegistryClient)) == false) {
+      while (!(result.isFormat(topicName, record, schemaRegistryClient))) {
         result = Format.values()[result.ordinal() + 1];
       }
       return result;
@@ -158,9 +158,8 @@ public class TopicStreamWriter implements StreamingOutput {
 
     String print(ConsumerRecord<String, Bytes> record) throws IOException {
       String key = record.key() != null ? record.key() : "null";
-      String result = dateFormat.format(new Date(record.timestamp())) + " , " + key +
-                      " , " + record.value().toString() + "\n";
-      return result;
+      return dateFormat.format(new Date(record.timestamp())) + " , " + key
+          + " , " + record.value().toString() + "\n";
     }
 
   }

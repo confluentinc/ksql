@@ -17,9 +17,24 @@
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.SchemaMapper;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
+import javax.naming.AuthenticationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,24 +46,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Scanner;
-
-import javax.naming.AuthenticationException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.SchemaMapper;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
 
@@ -106,18 +103,26 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
-    Response response = makeGetRequest("/");
+    return getServerInfo();
+  }
+
+  public RestResponse<ServerInfo> getServerInfo() {
+    return makeRequest("/info", ServerInfo.class);
+  }
+
+  public <T> RestResponse<T>  makeRequest(String path, Class<T> type) {
+    Response response = makeGetRequest(path);
     try {
       if (response.getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()) {
         return RestResponse.erroneous(
-            new ErrorMessage(
-                new AuthenticationException(
-                    "Could not authenticate successfully with the supplied credentials."
+                new ErrorMessage(
+                        new AuthenticationException(
+                                "Could not authenticate successfully with the supplied credentials."
+                        )
                 )
-            )
         );
       }
-      ServerInfo result = response.readEntity(ServerInfo.class);
+      T result = response.readEntity(type);
       return RestResponse.successful(result);
     } finally {
       response.close();

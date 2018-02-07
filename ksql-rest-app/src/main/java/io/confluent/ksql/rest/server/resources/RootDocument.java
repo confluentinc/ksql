@@ -21,19 +21,32 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-@Path("/info")
+@Path("/")
 @Produces(MediaType.APPLICATION_JSON)
-public class ServerInfoResource {
+public class RootDocument {
 
-  private final io.confluent.ksql.rest.entity.ServerInfo serverInfo;
+  private final boolean uiEnabled;
+  private final String uiUrl;
 
-  public ServerInfoResource(io.confluent.ksql.rest.entity.ServerInfo serverInfo) {
-    this.serverInfo = serverInfo;
+  public RootDocument(boolean uiEnabled, String uiUrl) {
+    this.uiEnabled = uiEnabled;
+    this.uiUrl = uiUrl;
   }
 
   @GET
   public Response get() {
-    return Response.ok(serverInfo).build();
+    try {
+      if (uiEnabled) {
+        return Response.temporaryRedirect(new URI(uiUrl)).build();
+      } else {
+        return Response.temporaryRedirect(new URI("http://localhost:8080/info")).build();
+      }
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+    }
+    return Response.serverError().build();
   }
 }

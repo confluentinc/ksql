@@ -64,7 +64,7 @@ public class RemoteCliSpecificCommandTest {
     final RemoteCli.RemoteCliSpecificCommand command = new RemoteCli.RemoteCliSpecificCommand(
         new KsqlRestClient("xxxx", Collections.emptyMap()) {
           @Override
-          public RestResponse<ServerInfo> makeRootRequest() {
+          public RestResponse<ServerInfo> getServerInfo() {
             return RestResponse.erroneous(new ErrorMessage("it is broken", Collections.emptyList()));
           }
         }, new PrintWriter(out));

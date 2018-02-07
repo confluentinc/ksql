@@ -21,20 +21,20 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.Arrays;
 import java.util.List;
 
-import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 
-public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
-  public TopkDistinctAggFunctionDeterminer() {
+  public TopkDistinctAggFunctionFactory() {
     super("TOPKDISTINCT", Arrays.asList());
   }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
-      throw new KsqlException("TopK function should have two arguments.");
+      throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
     Schema argSchema = argTypeList.get(0);
     switch (argSchema.type()) {
@@ -47,7 +47,7 @@ public class TopkDistinctAggFunctionDeterminer extends KsqlAggFunctionDeterminer
       case STRING:
         return new TopkDistinctKudaf<String>(-1, 0, String.class);
       default:
-        throw new KsqlException("No TopK aggregate function with " + argTypeList.get(0) + " "
+        throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
                                 + " argument type exists!");
     }
 

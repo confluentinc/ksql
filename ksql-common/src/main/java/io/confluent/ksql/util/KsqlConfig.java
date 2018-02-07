@@ -40,8 +40,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
-  public static final String AVRO_SCHEMA_UNION_NULL_PROPERTY = "ksql.avro.fields.are.nullable";
-
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
 
@@ -142,13 +140,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             defaultSchemaRegistryUrl,
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry, defaults to http://localhost:8081"
-        ).define(
-            AVRO_SCHEMA_UNION_NULL_PROPERTY,
-            ConfigDef.Type.BOOLEAN,
-            defaultAvroSchemaUnionNull,
-            ConfigDef.Importance.MEDIUM,
-            "Indicate if the generated avro schema field types should be union with null type, "
-            + "default is true."
         )
     ;
   }

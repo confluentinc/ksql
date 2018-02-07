@@ -66,27 +66,10 @@ public class AggregateNodeTest {
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder = new StreamsBuilder();
-  private SchemaKStream stream;
-  private AggregateNode aggregateNode;
-
-
-  @Before
-  public void before() {
-    String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "WHERE col0 > 100 GROUP BY col0;";
-    buildAggregateNode(queryString);
-    stream = buildStream();
-  }
-
-  private void buildAggregateNode(String queryString) {
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore()).buildLogicalPlan(queryString);
-    aggregateNode = (AggregateNode) planNode.getSource();
-  }
 
   @Test
   public void shouldBuildSourceNode() throws Exception {
+    build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -95,32 +78,44 @@ public class AggregateNodeTest {
   }
 
   @Test
+  public void shouldHaveOneSubTopologyIfGroupByKey() {
+    build();
+    final TopologyDescription description = builder.build().describe();
+    assertThat(description.subtopologies().size(), equalTo(1));
+  }
+
+  @Test
   public void shouldHaveTwoSubTopologies() {
+    buildRequireRekey();
     final TopologyDescription description = builder.build().describe();
     assertThat(description.subtopologies().size(), equalTo(2));
   }
 
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    buildRequireRekey();
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000012");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000009")));
     assertThat(node.topics(), containsString("[KSQL_Agg_Query_"));
     assertThat(node.topics(), containsString("-repartition]"));
   }
 
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    buildRequireRekey();
+    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000010");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000012");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
   }
 
   @Test
   public void shouldBuildCorrectAggregateSchema() {
-    final List<Field> expected = Arrays.asList(new Field("COL0", 0, Schema.INT64_SCHEMA),
+    SchemaKStream stream = build();
+    final List<Field> expected = Arrays.asList(
+        new Field("COL0", 0, Schema.INT64_SCHEMA),
         new Field("KSQL_COL_1", 1, Schema.FLOAT64_SCHEMA),
         new Field("KSQL_COL_2", 2, Schema.INT64_SCHEMA));
     assertThat(stream.getSchema().fields(), equalTo(expected));
@@ -128,18 +123,42 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBeSchemaKTableResult() {
+    SchemaKStream stream = build();
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
 
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
+    SchemaKStream stream = build();
     assertTrue(((SchemaKTable)stream).isWindowed());
   }
 
+  private SchemaKStream build() {
+    return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
+        + "size 2 "
+        + "second) "
+        + "WHERE col0 > 100 GROUP BY col0;");
+  }
 
-  private SchemaKStream buildStream() {
-    builder = new StreamsBuilder();
+  private SchemaKStream buildRequireRekey() {
+    return buildQuery("SELECT col1, col4, sum(col3), count(col3) FROM test2 window TUMBLING ( "
+        + "size 2 "
+        + "second) "
+        + "WHERE col4 = TRUE GROUP BY col1;");
+  }
+
+  private SchemaKStream buildQuery(String queryString) {
+    AggregateNode aggregateNode = buildAggregateNode(queryString);
+    return buildStream(aggregateNode);
+  }
+
+  private AggregateNode buildAggregateNode(String queryString) {
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore()).buildLogicalPlan(queryString);
+    return (AggregateNode) planNode.getSource();
+  }
+
+  private SchemaKStream buildStream(AggregateNode aggregateNode) {
     return aggregateNode.buildStream(builder,
         ksqlConfig,
         topicClient,

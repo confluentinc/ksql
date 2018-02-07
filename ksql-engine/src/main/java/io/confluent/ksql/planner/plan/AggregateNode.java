@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -29,6 +30,12 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,11 +59,6 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 
 
 public class AggregateNode extends PlanNode {
@@ -187,11 +189,12 @@ public class AggregateNode extends PlanNode {
         props,
         schemaRegistryClient
     );
-    final SchemaKStream rekeyedSchemaKStream = aggregateReKey(
-        sourceSchemaKStream,
-        functionRegistry,
-        schemaRegistryClient
-    );
+    final SchemaKStream rekeyedSchemaKStream = rekeyRequired(sourceSchemaKStream) ?
+        aggregateReKey(
+            sourceSchemaKStream,
+            functionRegistry,
+            schemaRegistryClient) :
+        sourceSchemaKStream;
 
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
@@ -220,7 +223,6 @@ public class AggregateNode extends PlanNode {
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-
     final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
         aggregateArgExpanded,
         aggregateSchema
@@ -274,6 +276,25 @@ public class AggregateNode extends PlanNode {
     }
 
     return result.select(getFinalSelectExpressions());
+  }
+
+  private String fieldNameFromExpression(Expression expression) {
+    if (expression instanceof DereferenceExpression) {
+      DereferenceExpression dereferenceExpression =
+          (DereferenceExpression) expression;
+      return dereferenceExpression.getFieldName();
+    }
+    return null;
+  }
+
+  private boolean rekeyRequired(final SchemaKStream sourceSchemaKStream) {
+    Field keyField = sourceSchemaKStream.getKeyField();
+    if (keyField == null) {
+      return true;
+    }
+    String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
+    List<Expression> groupBy = getGroupByExpressions();
+    return !(groupBy.size() == 1 && fieldNameFromExpression(groupBy.get(0)).equals(keyFieldName));
   }
 
   private SchemaKStream aggregateReKey(

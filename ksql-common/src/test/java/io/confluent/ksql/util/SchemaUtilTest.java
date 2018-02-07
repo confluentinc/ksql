@@ -275,4 +275,16 @@ public class SchemaUtilTest {
     assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR,DOUBLE>"));
   }
 
+  @Test
+  public void shouldStripAliasFromFieldName() {
+    Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
+    assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
+        equalTo(schema.fields().get(0).name()));
+  }
+
+  @Test
+  public void shouldReturnFieldNameWithoutAliasAsIs() {
+    assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
+        equalTo(schema.fields().get(0).name()));
+  }
 }

@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
@@ -66,8 +67,10 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sqlExpression,
         sourceName,
         schema,
-        (keyColumnName.length() == 0) ? null : schema.field(keyColumnName),
-        (timestampColumnName.length() == 0) ? null : schema.field(timestampColumnName),
+        (keyColumnName.length() == 0) ?
+            null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        (timestampColumnName.length() == 0) ?
+            null : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
         metaStore.getTopic(topicName),
         stateStoreName, isWindowed
     );

@@ -329,20 +329,24 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
+  public static String getFieldNameWithNoAlias(Field field) {
+    String name = field.name();
+    if (name.contains(".")) {
+      return name.substring(name.indexOf(".") + 1);
+    } else {
+      return name;
+    }
+  }
+
   /**
    * Remove the alias when reading/writing from outside
    */
   public static Schema getSchemaWithNoAlias(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
-      String name = field.name();
-      if (name.contains(".")) {
-        schemaBuilder.field(name.substring(name.indexOf(".") + 1), field.schema());
-      } else {
-        schemaBuilder.field(name, field.schema());
-      }
+      String name = getFieldNameWithNoAlias(field);
+      schemaBuilder.field(name, field.schema());
     }
-
     return schemaBuilder.build();
   }
 }

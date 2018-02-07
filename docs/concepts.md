@@ -18,9 +18,19 @@ Its interface should be familiar to users of MySQL, Postgres, Oracle, Hive, Pres
 
 The KSQL CLI acts as a client to the KSQL server (see next section).
 
+>An alternative to the KSQL CLI when doing local development and testing is to use the KSQL Experimental UI, see below.
+
+
 #### KSQL Server
 The KSQL server runs the engine that executes KSQL queries, which includes the data processing as well as reading
 data from and writing data to the target Kafka cluster.
+
+#### KSQL Experimental UI
+KSQL currently ships with an [experimental web UI](https://github.com/confluentinc/ksql-experimental-ui), whose goal it is to provide a simple visual wrapper for the interactive KSQL CLI. The experimental UI is meant to be used for local development, testing, and demoing KSQL. If you want to use KSQL interactively in production environments, we recommend the use of the KSQL CLI instead.
+
+* By default, the KSQL Experimental UI runs on every KSQL Server and is accessible at ``http://ksqlserver:8080``
+* To disable the experimental UI you must add ``ui.enabled=false`` to the server's configuration file ``ksqlserver.properties``.
+* The UI shares the port with KSQL's REST API, which you can configure via the ``listeners`` configuration property.
 
 # Terminology
 When using KSQL, the following terminology is used.

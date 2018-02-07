@@ -300,22 +300,22 @@ public class SchemaUtil {
                                                               boolean isNullable) {
     switch (fieldSchema.type()) {
       case STRING:
-        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.STRING), isNullable);
+        return getSchemaWithNullableCheck(create(org.apache.avro.Schema.Type.STRING), isNullable);
       case BOOLEAN:
-        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.BOOLEAN), isNullable);
+        return getSchemaWithNullableCheck(create(org.apache.avro.Schema.Type.BOOLEAN), isNullable);
       case INT32:
-        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.INT), isNullable);
+        return getSchemaWithNullableCheck(create(org.apache.avro.Schema.Type.INT), isNullable);
       case INT64:
-        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.LONG), isNullable);
+        return getSchemaWithNullableCheck(create(org.apache.avro.Schema.Type.LONG), isNullable);
       case FLOAT64:
-        return getSchemaWithNullibleCheck(create(org.apache.avro.Schema.Type.DOUBLE), isNullable);
+        return getSchemaWithNullableCheck(create(org.apache.avro.Schema.Type.DOUBLE), isNullable);
       default:
         if (fieldSchema.type() == Schema.Type.ARRAY) {
-          return getSchemaWithNullibleCheck(
+          return getSchemaWithNullableCheck(
               createArray(getAvroSchemaForField(fieldSchema.valueSchema(), isNullable)),
               false);
         } else if (fieldSchema.type() == Schema.Type.MAP) {
-          return getSchemaWithNullibleCheck(
+          return getSchemaWithNullableCheck(
               createMap(getAvroSchemaForField(fieldSchema.valueSchema(), isNullable)),
               false);
         }
@@ -323,7 +323,7 @@ public class SchemaUtil {
     }
   }
 
-  private static org.apache.avro.Schema getSchemaWithNullibleCheck(org.apache.avro.Schema schema,
+  private static org.apache.avro.Schema getSchemaWithNullableCheck(org.apache.avro.Schema schema,
                                                             boolean isNullable) {
     if (isNullable) {
       return createUnion(schema, org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL));

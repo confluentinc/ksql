@@ -23,7 +23,6 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -78,20 +77,20 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     return (aggKey, aggOne, aggTwo) -> {
       int nullId1 = ArrayUtil.getNullIndex(aggOne) == -1? topKSize : ArrayUtil.getNullIndex(aggOne);
       int nullId2 = ArrayUtil.getNullIndex(aggTwo) == -1? topKSize : ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) Array.newInstance(clazz, nullId1 + nullId2);
+      T[] tempMergeTopKArray = (T[]) new Object[nullId1 + nullId2];
 
       for (int i = 0; i < nullId1; i++) {
-        tempMergeTopkArray[i] = aggOne[i];
+        tempMergeTopKArray[i] = aggOne[i];
       }
       for (int i = nullId1; i < nullId1 + nullId2; i++) {
-        tempMergeTopkArray[i] = aggTwo[i - nullId1];
+        tempMergeTopKArray[i] = aggTwo[i - nullId1];
       }
-      Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
-      if (tempMergeTopkArray.length < topKSize) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(clazz, tempMergeTopkArray, topKSize);
-        return tempMergeTopkArray;
+      Arrays.sort(tempMergeTopKArray, Collections.reverseOrder());
+      if (tempMergeTopKArray.length < topKSize) {
+        tempMergeTopKArray = ArrayUtil.padWithNull(clazz, tempMergeTopKArray, topKSize);
+        return tempMergeTopKArray;
       }
-      return Arrays.copyOf(tempMergeTopkArray, topKSize);
+      return Arrays.copyOf(tempMergeTopKArray, topKSize);
     };
   }
 

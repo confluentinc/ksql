@@ -26,7 +26,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
-
   private final int argIndexInValue;
   private final A intialValue;
   private final Schema returnType;

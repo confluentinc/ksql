@@ -124,20 +124,15 @@ public class KsqlGenericRowAvroSerializerTest {
   }
 
   @Test
-  public void shouldFailIfGenericRowDoesNotMatchTheSchema() {
+  public void shouldSerializeRowWithNullValues() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
         (schema, schemaRegistryClient, new KsqlConfig(new HashMap<>()));
 
-    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+    List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     GenericRow genericRow = new GenericRow(columns);
-    try {
-      byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
-      Assert.fail("Did not fail for incompatible schema.");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), equalTo("org.apache.kafka.common.errors.SerializationException: Error serializing Avro message"));
-    }
+    byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
 
   }
 

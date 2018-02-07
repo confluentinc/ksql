@@ -58,7 +58,7 @@ public class SchemaUtilTest {
         .field("arraycol", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
         .field("mapcol", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
     String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
-    assertThat("", avroSchemaString, equalTo("{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"ordertime\",\"type\":[\"long\",\"null\"]},{\"name\":\"orderid\",\"type\":[\"string\",\"null\"]},{\"name\":\"itemid\",\"type\":[\"string\",\"null\"]},{\"name\":\"orderunits\",\"type\":[\"double\",\"null\"]},{\"name\":\"arraycol\",\"type\":{\"type\":\"array\",\"items\":[\"double\",\"null\"]}},{\"name\":\"mapcol\",\"type\":{\"type\":\"map\",\"values\":[\"double\",\"null\"]}}]}"));
+    assertThat("", avroSchemaString, equalTo("{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"ordertime\",\"type\":[\"long\",\"null\"]},{\"name\":\"orderid\",\"type\":[\"string\",\"null\"]},{\"name\":\"itemid\",\"type\":[\"string\",\"null\"]},{\"name\":\"orderunits\",\"type\":[\"double\",\"null\"]},{\"name\":\"arraycol\",\"type\":[{\"type\":\"array\",\"items\":[\"double\",\"null\"]},\"null\"]},{\"name\":\"mapcol\",\"type\":[{\"type\":\"map\",\"values\":[\"double\",\"null\"]},\"null\"]}]}"));
   }
 
   @Test

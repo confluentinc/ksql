@@ -21,6 +21,7 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 import org.apache.avro.Schema;
@@ -76,11 +77,17 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     try {
       GenericRecord avroRecord = new GenericData.Record(avroSchema);
       for (int i = 0; i < genericRow.getColumns().size(); i++) {
-        if (fields.get(i).schema().getType() == Schema.Type.ARRAY) {
-          avroRecord.put(
-              fields.get(i).name(),
-              Arrays.asList((Object[]) genericRow.getColumns().get(i))
-          );
+        Schema schema = getNonNullSchema(fields.get(i).schema());
+        if (schema.getType() == Schema.Type.ARRAY) {
+          if(genericRow.getColumns().get(i) == null) {
+            avroRecord.put(
+                fields.get(i).name(), null);
+          } else {
+            avroRecord.put(
+                fields.get(i).name(),
+                Arrays.asList((Object[]) genericRow.getColumns().get(i)));
+          }
+
         } else {
           avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
         }
@@ -89,6 +96,18 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
     } catch (Exception e) {
       throw new SerializationException(e);
     }
+  }
+
+  private Schema getNonNullSchema(Schema schema) {
+    if (schema.getType() == Schema.Type.UNION) {
+      List<Schema> schemaList = schema.getTypes();
+      for (Schema innerSchema: schemaList) {
+        if (innerSchema.getType() != Schema.Type.NULL) {
+          return innerSchema;
+        }
+      }
+    }
+    throw new KsqlException("Field need to have at least one not null type." + schema);
   }
 
   @Override

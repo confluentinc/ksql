@@ -692,7 +692,7 @@ public abstract class Console implements Closeable {
 
     @Override
     public void execute(String commandStrippedLine) {
-      ServerInfo serverInfo = restClient.makeRootRequest().getResponse();
+      ServerInfo serverInfo = restClient.getServerInfo().getResponse();
       writer().printf("Version: %s%n", serverInfo.getVersion());
       flush();
     }

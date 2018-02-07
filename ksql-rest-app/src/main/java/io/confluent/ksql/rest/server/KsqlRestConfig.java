@@ -73,6 +73,18 @@ public class KsqlRestConfig extends RestConfig {
           "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
+  public static final String
+          UI_EBABLED_CONFIG = "ui.enabled";
+  public static final ConfigDef.Type
+          UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
+  public static final String
+          UI_ENABLED_DEFAULT = "true";
+  public static final ConfigDef.Importance
+          UI_ENABLED_IMPORTANCE = ConfigDef.Importance.LOW;
+  public static final String
+          UI_ENABLED_DOC =
+          "Flag to disable the KQL UI. It is enabled by default";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -94,6 +106,12 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
+    ).define(
+        UI_EBABLED_CONFIG,
+        UI_ENABLED_TYPE,
+        UI_ENABLED_DEFAULT,
+        UI_ENABLED_IMPORTANCE,
+        UI_ENABLED_DOC
     );
   }
 
@@ -130,5 +148,9 @@ public class KsqlRestConfig extends RestConfig {
         KsqlConfig.KSQL_SERVICE_ID_DEFAULT,
         getString(COMMAND_TOPIC_SUFFIX_CONFIG)
     );
+  }
+
+  public boolean isUiEnabled() {
+    return getBoolean(UI_EBABLED_CONFIG);
   }
 }

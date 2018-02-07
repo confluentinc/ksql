@@ -30,22 +30,28 @@ public class StreamsSelectAndProjectIntTest {
 
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
-  private Map<String, RecordMetadata> recordMetadataMap;
-  private final String topicName = "TestTopic";
+  private Map<String, RecordMetadata> jsonRecordMetadataMap;
+  private final String jsonTopicName = "jsonTopic";
+  private final String jsonStreamName = "orders_json";
+  private Map<String, RecordMetadata> avroRecordMetadataMap;
+  private final String avroTopicName = "avroTopic";
+  private final String avroStreamName = "orders_avro";
   private OrderDataProvider dataProvider;
 
   @Before
   public void before() throws Exception {
-    testHarness = new IntegrationTestHarness(DataSource.DataSourceSerDe.JSON.name());
+    testHarness = new IntegrationTestHarness();
     testHarness.start();
-    ksqlContext = KsqlContext.create(testHarness.ksqlConfig);
-    testHarness.createTopic(topicName);
+    ksqlContext = KsqlContext.create(testHarness.ksqlConfig, testHarness.schemaRegistryClient);
+    testHarness.createTopic(jsonTopicName);
+    testHarness.createTopic(avroTopicName);
 
     /**
      * Setup test data
      */
     dataProvider = new OrderDataProvider();
-    recordMetadataMap = testHarness.publishTestData(topicName, dataProvider, null );
+    jsonRecordMetadataMap = testHarness.publishTestData(jsonTopicName, dataProvider, null , DataSource.DataSourceSerDe.JSON);
+    avroRecordMetadataMap = testHarness.publishTestData(avroTopicName, dataProvider, null , DataSource.DataSourceSerDe.AVRO);
     createOrdersStream();
   }
 
@@ -55,97 +61,191 @@ public class StreamsSelectAndProjectIntTest {
     testHarness.stop();
   }
 
-  @Test
-  public void testTimestampColumnSelection() throws Exception {
 
-    final String stream1Name = "ORIGINALSTREAM";
-    final String stream2Name = "TIMESTAMPSTREAM";
+
+  @Test
+  public void testTimestampColumnSelectionJson() throws Exception {
+
+    testTimestampColumnSelection("ORIGINALSTREAM_JSON", "TIMESTAMPSTREAM_JSON", jsonStreamName,
+                                 DataSource.DataSourceSerDe.JSON, jsonRecordMetadataMap);
+  }
+
+  @Test
+  public void testTimestampColumnSelectionAvro() throws Exception {
+
+    testTimestampColumnSelection("ORIGINALSTREAM_AVRO", "TIMESTAMPSTREAM_AVRO", avroStreamName,
+                                 DataSource.DataSourceSerDe.AVRO, avroRecordMetadataMap);
+  }
+
+  @Test
+  public void testSelectProjectKeyTimestampJson() throws Exception {
+    testSelectProjectKeyTimestamp("PROJECT_KEY_TIMESTAMP_JSON", jsonStreamName, DataSource
+        .DataSourceSerDe.JSON, jsonRecordMetadataMap);
+  }
+
+  @Test
+  public void testSelectProjectKeyTimestampAvro() throws Exception {
+    testSelectProjectKeyTimestamp("PROJECT_KEY_TIMESTAMP_AVRO", avroStreamName, DataSource
+        .DataSourceSerDe.AVRO, avroRecordMetadataMap);
+  }
+
+  @Test
+  public void testSelectProjectJson() throws Exception {
+    testSelectProject("PROJECT_STREAM_JSON", jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
+
+  @Test
+  public void testSelectProjectAvro() throws Exception {
+    testSelectProject("PROJECT_STREAM_AVRO", avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+  @Test
+  public void testSelectStarJson() throws Exception {
+    testSelectStar("EASYORDERS_JSON", jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
+
+  @Test
+  public void testSelectStarAvro() throws Exception {
+    testSelectStar("EASYORDERS_AVRO", avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+
+  @Test
+  public void testSelectWithFilterJson() throws Exception {
+    testSelectWithFilter("bigorders_json".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe.JSON);
+  }
+
+  @Test
+  public void testSelectWithFilterAvro() throws Exception {
+    testSelectWithFilter("bigorders_avro".toUpperCase(), avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+  @Test
+  public void shouldSkipBadData() throws Exception {
+    testHarness.createTopic(jsonTopicName);
+    testHarness.produceRecord(jsonTopicName, "bad", "something that is not json");
+    testSelectWithFilter("bigorders_json1".toUpperCase(), jsonStreamName, DataSource.DataSourceSerDe
+        .JSON);
+  }
+
+  @Test
+  public void shouldSkipBadDataAvro() throws Exception {
+    testHarness.createTopic(avroTopicName);
+    testHarness.produceRecord(avroTopicName, "bad", "something that is not avro");
+    testSelectWithFilter("bigorders_avro1".toUpperCase(), avroStreamName, DataSource.DataSourceSerDe.AVRO);
+  }
+
+  private void testTimestampColumnSelection(String stream1Name,
+                                            String stream2Name,
+                                            String inputStreamName,
+                                            DataSource.DataSourceSerDe dataSourceSerDe,
+                                            Map<String, RecordMetadata> recordMetadataMap) throws Exception {
     final String query1String =
-            String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
-                            + "ROWTIME+10000 AS "
-                            + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
-                            + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
-                            + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
-                            + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
-                            + "FROM %s ;", stream1Name,
-                    "ORDERS", stream2Name, stream1Name);
+        String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
+                      + "ROWTIME+10000 AS "
+                      + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+                      + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
+                      + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
+                      + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                      + "FROM %s ;", stream1Name,
+                      inputStreamName, stream2Name, stream1Name);
 
 
     ksqlContext.sql(query1String);
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8")
-                    .timestamp() + 10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
-            recordMetadataMap.get("8").timestamp
-                    () + 100, "ORDER_6", "ITEM_8")));
+    expectedResults.put("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap
+                                                                               .get("8")
+                                                                               .timestamp() + 10000, "8", recordMetadataMap.get("8").timestamp() + 10000,
+                                                          recordMetadataMap.get("8").timestamp
+                                                              () + 100, "ORDER_6", "ITEM_8")));
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
-    Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema , expectedResults.size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+    Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema ,
+                                                               expectedResults.size(), new
+                                                                   StringDeserializer(),
+                                                               IntegrationTestHarness
+                                                                   .RESULTS_POLL_MAX_TIME_MS, dataSourceSerDe);
 
     assertThat(results2, equalTo(expectedResults));
   }
 
+  private void testSelectProjectKeyTimestamp(String resultStream,
+                                             String inputStreamName,
+                                             DataSource.DataSourceSerDe dataSourceSerDe,
+                                             Map<String, RecordMetadata> recordMetadataMap) throws
+                                                                                            Exception {
 
-  @Test
-  public void testSelectProjectKeyTimestamp() throws Exception {
+    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME "
+                                  + "AS RTIME, ITEMID FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
+                                  + "'ITEM_8';", resultStream, inputStreamName));
 
-    ksqlContext.sql("CREATE STREAM PROJECT_KEY_TIMESTAMP AS SELECT ROWKEY AS RKEY, ROWTIME AS RTIME, ITEMID FROM ORDERS WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';");
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_KEY_TIMESTAMP").getSchema();
-
-    Map<String, GenericRow> results = testHarness.consumeData("PROJECT_KEY_TIMESTAMP", resultSchema , dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+    Map<String, GenericRow> results = testHarness.consumeData(resultStream, resultSchema ,
+                                                              dataProvider.data().size(), new
+                                                                  StringDeserializer(),
+                                                              IntegrationTestHarness
+                                                                  .RESULTS_POLL_MAX_TIME_MS, dataSourceSerDe);
 
     Map<String, GenericRow> expectedResults = Collections.singletonMap("8", new GenericRow(Arrays.asList(null, null, "8", recordMetadataMap.get("8").timestamp(), "ITEM_8")));
 
     assertThat(results, equalTo(expectedResults));
   }
 
-  @Test
-  public void testSelectProject() throws Exception {
+  private void testSelectProject(String resultStream, String inputStreamName, DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
 
-    ksqlContext.sql("CREATE STREAM PROJECT_STREAM AS SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM ORDERS;");
+    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, "
+                                  + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
-    Schema resultSchema = ksqlContext.getMetaStore().getSource("PROJECT_STREAM").getSchema();
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(resultStream).getSchema();
 
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("PROJECT_STREAM", resultSchema, dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, resultSchema,
+                                                                     dataProvider.data().size(),
+                                                                     new StringDeserializer(),
+                                                                     IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+                                                                     dataSourceSerDe);
 
     GenericRow value = easyOrdersData.values().iterator().next();
     // skip over first to values (rowKey, rowTime)
     Assert.assertEquals( "ITEM_1", value.getColumns().get(2));
   }
 
+  private void testSelectStar(String resultStream, String inputStreamName, DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
 
-  @Test
-  public void testSelectStar() throws Exception {
+    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s;", resultStream, inputStreamName));
 
-    ksqlContext.sql("CREATE STREAM EASYORDERS AS SELECT * FROM orders;");
-
-    Map<String, GenericRow> easyOrdersData = testHarness.consumeData("EASYORDERS", dataProvider.schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+    Map<String, GenericRow> easyOrdersData = testHarness.consumeData(resultStream, dataProvider
+        .schema(), dataProvider.data().size(), new StringDeserializer(), IntegrationTestHarness
+                                                                         .RESULTS_POLL_MAX_TIME_MS, dataSourceSerDe);
 
     assertThat(easyOrdersData, equalTo(dataProvider.data()));
   }
 
+  private void testSelectWithFilter(String resultStream, String inputStreamName, DataSource.DataSourceSerDe dataSourceSerDe) throws Exception {
 
-  @Test
-  public void testSelectWithFilter() throws Exception {
+    ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s WHERE ORDERUNITS > 40;",
+                                  resultStream, inputStreamName));
 
-    ksqlContext.sql("CREATE STREAM bigorders AS SELECT * FROM orders WHERE ORDERUNITS > 40;");
-
-    Map<String, GenericRow> results = testHarness.consumeData("BIGORDERS", dataProvider.schema(), 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+    Map<String, GenericRow> results = testHarness.consumeData(resultStream, dataProvider.schema()
+        , 4, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS, dataSourceSerDe);
 
     Assert.assertEquals(4, results.size());
   }
 
-  @Test
-  public void shouldSkipBadData() throws Exception {
-    testHarness.createTopic(topicName);
-    testHarness.produceRecord(topicName, "bad", "something that is not json");
-    testSelectWithFilter();
-  }
-
   private void createOrdersStream() throws Exception {
-    ksqlContext.sql("CREATE STREAM ORDERS (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>) WITH (kafka_topic='TestTopic', value_format='JSON', key='ordertime');");
+    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
+                         + "varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+                                  + "map<varchar, double>) WITH (kafka_topic='%s', "
+                                  + "value_format='JSON', key='ordertime');", jsonStreamName,
+                                  jsonTopicName, DataSource.DataSourceSerDe.JSON.name()));
+
+    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
+                           + "varchar, "
+                    + "ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, "
+                    + "double>) WITH (kafka_topic='%s', value_format='%s', "
+                    + "key='ordertime');", avroStreamName, avroTopicName, DataSource.DataSourceSerDe.AVRO.name()));
   }
 
 }

@@ -16,69 +16,82 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
+import java.util.Collections;
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 public class DoubleTopkKudafTest {
+  Object[] valueArray;
+  TopKAggregateFunctionFactory topKFactory;
+  List<Schema> argumentType;
 
-  Double[] valueArray;
   @Before
   public void setup() {
     valueArray = new Double[]{10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0, 25.0};
-
+    topKFactory = new TopKAggregateFunctionFactory(3);
+    argumentType = Collections.singletonList(Schema.FLOAT64_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
-    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
-    Double[] currentVal = new Double[]{null, null, null};
-    for (Double d: valueArray) {
-      currentVal = doubleTopkKudaf.aggregate(d, currentVal);
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
+    Object[] window = new Double[]{null, null, null};
+    for (Object value : valueArray) {
+      window = topkKudaf.aggregate(value , window);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new Double[]{80.0, 60.0, 60.0}));
+    assertThat("Invalid results.", window, equalTo(new Double[]{80.0, 60.0, 60.0}));
   }
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
-    Double[] currentVal = new Double[]{null, null, null};
-    currentVal = doubleTopkKudaf.aggregate(10.0, currentVal);
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
+    Object[] currentVal = new Double[]{null, null, null};
+    currentVal = topkKudaf.aggregate(10.0, currentVal);
 
     assertThat("Invalid results.", currentVal, equalTo(new Double[]{10.0, null, null}));
   }
 
   @Test
   public void shouldMergeTopK() {
-    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     Double[] array1 = new Double[]{50.0, 45.0, 25.0};
     Double[] array2 = new Double[]{60.0, 55.0, 48.0};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Double[]{60.0, 55.0, 50.0}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+            equalTo(new Double[]{60.0, 55.0, 50.0}));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     Double[] array1 = new Double[]{50.0, 45.0, null};
     Double[] array2 = new Double[]{60.0, null, null};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Double[]{60.0, 50.0, 45.0}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+            equalTo(new Double[]{60.0, 50.0, 45.0}));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkKudaf<Double> doubleTopkKudaf = new TopkKudaf(0, 3, Double.class);
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+            topKFactory.getProperAggregateFunction(argumentType);
     Double[] array1 = new Double[]{50.0, null, null};
     Double[] array2 = new Double[]{60.0, null, null};
 
-    assertThat("Invalid results.", doubleTopkKudaf.getMerger().apply("key", array1, array2), equalTo(
-        new Double[]{60.0, 50.0, null}));
+    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+            equalTo(new Double[]{60.0, 50.0, null}));
   }
 
 }

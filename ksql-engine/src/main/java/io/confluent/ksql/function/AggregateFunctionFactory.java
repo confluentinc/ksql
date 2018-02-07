@@ -21,13 +21,13 @@ import org.apache.kafka.connect.data.Schema;
 import java.util.List;
 
 
-public abstract class KsqlAggFunctionDeterminer {
+public abstract class AggregateFunctionFactory {
 
   final String functionName;
   final List<KsqlAggregateFunction> aggregateFunctionList;
 
-  public KsqlAggFunctionDeterminer(String functionName,
-                                   List<KsqlAggregateFunction> aggregateFunctionList) {
+  public AggregateFunctionFactory(String functionName,
+                                  List<KsqlAggregateFunction> aggregateFunctionList) {
     this.functionName = functionName;
     this.aggregateFunctionList = aggregateFunctionList;
   }

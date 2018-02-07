@@ -19,6 +19,7 @@ package io.confluent.ksql.integration;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 
@@ -63,7 +64,7 @@ public class JsonFormatTest {
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
   private AdminClient adminClient;
-  private long queryId = 0;
+  private QueryId queryId;
 
 
   @Before
@@ -129,6 +130,7 @@ public class JsonFormatTest {
   public void after() throws Exception {
     adminClient.close();
     ksqlEngine.close();
+    terminateQuery();
   }
 
 
@@ -156,6 +158,7 @@ public class JsonFormatTest {
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -168,8 +171,6 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   @Test
@@ -179,10 +180,10 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
         streamName, resultPartitionCount, inputStream);
-
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
 
@@ -195,7 +196,6 @@ public class JsonFormatTest {
     Thread.sleep(2000);
 
     Assert.assertTrue(kafkaTopicClient.isTopicExists(streamName));
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   @Test
@@ -210,9 +210,10 @@ public class JsonFormatTest {
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("aws")));
@@ -220,8 +221,6 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   @Test
@@ -236,6 +235,7 @@ public class JsonFormatTest {
     PersistentQueryMetadata queryMetadata =
             (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     Schema resultSchema = SchemaUtil
             .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -246,8 +246,6 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   //*********************************************************//
@@ -263,6 +261,10 @@ public class JsonFormatTest {
   ) {
     Deserializer<Windowed<String>> keyDeserializer = new WindowedDeserializer<>(new StringDeserializer());
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, keyDeserializer);
+  }
+
+  private void terminateQuery() {
+    ksqlEngine.terminateQuery(queryId, true);
   }
 
 }

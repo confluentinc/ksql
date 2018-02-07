@@ -90,6 +90,9 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private Object enforceFieldType(Schema fieldSchema, JsonNode fieldJsonNode) {
 
+    if (fieldJsonNode.isNull()) {
+      return null;
+    }
     switch (fieldSchema.type()) {
       case BOOLEAN:
         return fieldJsonNode.asBoolean();

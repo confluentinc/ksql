@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.topk.TopkKudaf;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -41,10 +42,10 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
                     Integer tkVal,
                     Class<T> ttClass) {
     super(argIndexInValue,
-          (T[]) Array.newInstance(ttClass, tkVal),
+        () -> (T[]) Array.newInstance(ttClass, tkVal),
           SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-          Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "TOPKDISTINCT", TopkDistinctKudaf.class);
+          Arrays.asList(Schema.FLOAT64_SCHEMA)
+    );
 
     this.tkVal = tkVal;
     this.tempTopkArray = (T[]) Array.newInstance(ttClass,tkVal + 1);
@@ -62,6 +63,7 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
+      Arrays.sort(currentAggVal, TopkKudaf.comparator());
       return currentAggVal;
     }
 

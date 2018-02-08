@@ -211,8 +211,8 @@ public class PhysicalPlanBuilder {
         bareOutputNode,
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
-        (sourceSchemaKstream instanceof SchemaKTable) ?
-        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        (sourceSchemaKstream instanceof SchemaKTable)
+            ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
         kafkaTopicClient
     );
@@ -241,8 +241,8 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic(),
-              outputNode.getId().toString() +
-              ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+              outputNode.getId().toString()
+                  + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed()
           );
     } else {

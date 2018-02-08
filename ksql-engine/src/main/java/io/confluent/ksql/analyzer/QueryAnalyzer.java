@@ -55,8 +55,8 @@ public class QueryAnalyzer {
         aggregateExpressionRewriter
     );
 
-    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty() &&
-        analysis.getGroupByExpressions().isEmpty()) {
+    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty()
+        && analysis.getGroupByExpressions().isEmpty()) {
       throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
     }
 

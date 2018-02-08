@@ -101,9 +101,9 @@ public class CommandId {
       return false;
     }
     CommandId commandId = (CommandId) o;
-    return type == commandId.type &&
-           Objects.equals(entity, commandId.entity) &&
-           action == commandId.action;
+    return type == commandId.type
+        && Objects.equals(entity, commandId.entity)
+        && action == commandId.action;
   }
 
   @Override

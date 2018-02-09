@@ -387,7 +387,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        selectItems.addAll(getSelectStartItems(selectItem, from));
+        selectItems.addAll(getSelectStarItems(selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
         selectItems.add((SingleColumn) selectItem);
@@ -399,7 +399,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final Relation from) {
+  private List<SelectItem> getSelectStarItems(final SelectItem selectItem, final Relation from) {
     List<SelectItem> selectItems = new ArrayList<>();
     AllColumns allColumns = (AllColumns) selectItem;
 
@@ -559,9 +559,18 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
     Expression selectItemExpression = (Expression) visit(context.expression());
-    Optional<String> alias = Optional
+    Optional<Pair<String, Boolean>> aliasPair = Optional
         .ofNullable(context.identifier())
-        .map(AstBuilder::getIdentifierText);
+        .map(AstBuilder::getIdentifierTextWithQuoteState);
+    Optional<String> alias = Optional.empty();
+    if (aliasPair.isPresent()) {
+      if (aliasPair.get().getRight()) {
+        throw new KsqlException("KSQL does not support quoted alias: " + aliasPair.get().getLeft());
+      } else {
+        alias = Optional.of(aliasPair.get().getLeft());
+      }
+    }
+
     if (!alias.isPresent()) {
       if (selectItemExpression instanceof QualifiedNameReference) {
         QualifiedNameReference

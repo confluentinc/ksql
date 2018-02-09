@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
@@ -106,6 +107,44 @@ public class KsqlParserTest {
     ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
     Assert.assertTrue("testSimpleQuery fails", comparisonExpression.getType().getValue().equalsIgnoreCase(">"));
 
+  }
+
+  @Test
+  public void testSimpleQueryWithQuotedField() throws Exception {
+    String simpleQuery = "SELECT \"group\", orderid, itemid FROM ORDERS_QUOTED WHERE \"group\" <> "
+                         + "100;";
+    Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+
+
+    Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
+    Query query = (Query) statement;
+    Assert.assertTrue("testSimpleQueryWithQuotedField fails", query.getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
+    Assert.assertTrue("testSimpleQueryWithQuotedField fails", querySpecification.getSelect().getSelectItems().size() == 3);
+    assertThat(querySpecification.getFrom(), not(nullValue()));
+    Assert.assertTrue("testSimpleQueryWithQuotedField fails", querySpecification.getWhere().isPresent());
+    Assert.assertTrue("testSimpleQueryWithQuotedField fails", querySpecification.getWhere().get() instanceof ComparisonExpression);
+    ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
+    Assert.assertTrue("testSimpleQueryWithQuotedField fails", comparisonExpression.getType()
+        .getValue().equalsIgnoreCase("<>"));
+    List<SelectItem> selectItems = querySpecification.getSelect().getSelectItems();
+    assertThat(((SingleColumn) selectItems.get(0)).getExpression().toString(), equalTo("ORDERS_QUOTED.GROUP"));
+
+  }
+
+  @Test
+  public void shouldFailIfThereIsQuotedAlias() throws Exception {
+    String simpleQuery = "CREATE STREAM stream_quotedAlias AS SELECT \"group\", orderid, itemid "
+                         + "AS \"item_id\" "
+                         + "FROM ORDERS_QUOTED "
+                         + "WHERE \"group\" <> 100;";
+    try {
+      Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
+      Assert.fail();
+    } catch (Exception e) {
+      e.printStackTrace();
+      assertThat(e.getMessage(), equalTo("KSQL does not support quoted alias: ITEM_ID"));
+    }
   }
 
   @Test
@@ -357,7 +396,7 @@ public class KsqlParserTest {
   public void testCreateStreamWithTopic() throws Exception {
     String
         queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
+        "CREATE STREAM orders (\"ordertime\" bigint, orderid varchar, itemid varchar, orderunits "
         + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
@@ -406,7 +445,8 @@ public class KsqlParserTest {
   public void testCreateTableWithTopic() throws Exception {
     String
         queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
+        "CREATE TABLE users (\"usertime\" bigint, userid varchar, regionid varchar, gender "
+        + "varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     CreateTable createTable = (CreateTable)statement;

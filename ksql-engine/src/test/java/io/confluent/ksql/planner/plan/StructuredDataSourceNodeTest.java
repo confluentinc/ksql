@@ -65,7 +65,8 @@ public class StructuredDataSourceNodeTest {
           schema.field("key"),
           schema.field("timestamp"),
           new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe())),
+              new KsqlJsonTopicSerDe()),
+                     Collections.emptySet()),
       schema);
 
   @Before
@@ -137,7 +138,8 @@ public class StructuredDataSourceNodeTest {
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe()),
             "statestore",
-            false),
+            false,
+                      Collections.emptySet()),
         schema);
     final SchemaKStream result = build(node);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));

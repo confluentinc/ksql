@@ -23,6 +23,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -37,9 +38,12 @@ public abstract class PlanNode {
 
   private final PlanNodeId id;
 
-  protected PlanNode(final PlanNodeId id) {
+  final Set<String> quotedFieldNames;
+
+  protected PlanNode(final PlanNodeId id, Set<String> quotedFieldNames) {
     requireNonNull(id, "id is null");
     this.id = id;
+    this.quotedFieldNames = quotedFieldNames;
   }
 
   @JsonProperty("id")
@@ -48,6 +52,10 @@ public abstract class PlanNode {
   }
 
   public abstract Schema getSchema();
+
+  public Set<String> getQuotedFieldNames() {
+    return quotedFieldNames;
+  }
 
   public abstract Field getKeyField();
 

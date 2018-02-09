@@ -168,7 +168,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         Collections.singletonList(schemaKStream),
         SchemaKStream.Type.SINK,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        this.getQuotedFieldNames()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {

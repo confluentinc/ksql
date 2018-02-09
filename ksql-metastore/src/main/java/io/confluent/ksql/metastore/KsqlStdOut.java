@@ -19,6 +19,8 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Set;
+
 import io.confluent.ksql.query.QueryId;
 
 public class KsqlStdOut extends StructuredDataSource {
@@ -30,7 +32,8 @@ public class KsqlStdOut extends StructuredDataSource {
       final Schema schema,
       final Field keyField,
       final Field timestampField,
-      final DataSourceType dataSourceType
+      final DataSourceType dataSourceType,
+      final Set<String> quotedFieldNames
   ) {
     super(
         "not-applicable-for-stdout",
@@ -39,7 +42,8 @@ public class KsqlStdOut extends StructuredDataSource {
         keyField,
         timestampField,
         dataSourceType,
-        null
+        null,
+        quotedFieldNames
     );
   }
 

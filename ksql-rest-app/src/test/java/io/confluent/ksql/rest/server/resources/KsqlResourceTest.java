@@ -159,14 +159,27 @@ public class KsqlResourceTest {
       Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.BOOLEAN_SCHEMA);
       KsqlTopic ksqlTopic1 = new KsqlTopic("KSQL_TOPIC_1", "KAFKA_TOPIC_1", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic1);
-      metaStore.putSource(new KsqlTable("statementText", "TEST_TABLE", schema1, schema1.field("S1_F1"), null,
-          ksqlTopic1, "statestore", false));
+      metaStore.putSource(
+          new KsqlTable("statementText",
+                        "TEST_TABLE",
+                        schema1,
+                        schema1.field("S1_F1"),
+                        null,
+                        ksqlTopic1,
+                        "statestore",
+                        false,
+                        Collections.emptySet()));
 
       Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.STRING_SCHEMA).field("S2_F2", Schema.INT32_SCHEMA);
       KsqlTopic ksqlTopic2 = new KsqlTopic("KSQL_TOPIC_2", "KAFKA_TOPIC_2", new KsqlJsonTopicSerDe());
       metaStore.putTopic(ksqlTopic2);
-      metaStore.putSource(new KsqlStream("statementText", "TEST_STREAM", schema2, schema2.field("S2_F2"), null,
-          ksqlTopic2));
+      metaStore.putSource(
+          new KsqlStream("statementText",
+                         "TEST_STREAM",
+                         schema2, schema2.field("S2_F2"),
+                         null,
+                         ksqlTopic2,
+                         Collections.emptySet()));
     }
 
     private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {

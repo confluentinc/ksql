@@ -69,9 +69,12 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+                                             kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient(),
+                                             Collections.emptySet());
 
     List<Pair<String, Expression>> projectNameExpressionPairList = projectNode.getProjectNameExpressionPairList();
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNameExpressionPairList);
@@ -97,9 +100,12 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+                                             kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient(),
+                                             Collections.emptySet());
     SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -122,9 +128,12 @@ public class SchemaKStreamTest {
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+                                             kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient(),
+                                             Collections.emptySet());
     SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);
@@ -150,9 +159,12 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+                                             kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                             SchemaKStream.Type.SOURCE, functionRegistry,
+                                             new MockSchemaRegistryClient(),
+                                             Collections.emptySet());
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
                                                                             .get(1));

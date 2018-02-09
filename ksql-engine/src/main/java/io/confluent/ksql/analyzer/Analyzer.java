@@ -19,6 +19,7 @@ package io.confluent.ksql.analyzer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -157,13 +158,21 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         intoKafkaTopicName,
         intoTopicSerde
     );
+
+    Set<String> quotedFieldNames = new HashSet<>();
+    quotedFieldNames.addAll(analysis.getFromDataSource(0).getLeft().getQuotedFieldNames());
+    if (analysis.getJoin() != null) {
+      quotedFieldNames.addAll(analysis.getFromDataSource(1).getLeft().getQuotedFieldNames());
+    }
     KsqlStream intoKsqlStream = new KsqlStream(
         sqlExpression,
         intoStructuredDataSource.getName(),
         null,
         null,
         null,
-        newIntoKsqlTopic
+        newIntoKsqlTopic,
+        quotedFieldNames
+
     );
     analysis.setInto(intoKsqlStream);
   }
@@ -420,7 +429,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           null,
           null,
           null,
-          StructuredDataSource.DataSourceType.KSTREAM
+          StructuredDataSource.DataSourceType.KSTREAM,
+          Collections.emptySet()
       );
     } else if (context.getParentType() == AnalysisContext.ParentType.INTO) {
       into = analyzeNonStdOutTable(node);
@@ -530,7 +540,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         null,
         null,
         null,
-        null
+        null,
+        Collections.emptySet()
     );
 
     setIntoProperties(into, node);

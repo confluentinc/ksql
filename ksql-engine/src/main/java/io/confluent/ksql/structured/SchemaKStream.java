@@ -64,6 +64,7 @@ public class SchemaKStream {
   protected final FunctionRegistry functionRegistry;
   private OutputNode output;
   protected final SchemaRegistryClient schemaRegistryClient;
+  final Set<String> quotedFieldNames;
 
 
   public SchemaKStream(
@@ -73,7 +74,8 @@ public class SchemaKStream {
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<String> quotedFieldNames
   ) {
     this.schema = schema;
     this.kstream = kstream;
@@ -83,6 +85,7 @@ public class SchemaKStream {
     this.type = type;
     this.functionRegistry = functionRegistry;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.quotedFieldNames = quotedFieldNames;
   }
 
   public QueuedSchemaKStream toQueue(Optional<Integer> limit) {
@@ -122,7 +125,8 @@ public class SchemaKStream {
         Arrays.asList(this),
         Type.FILTER,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -146,7 +150,8 @@ public class SchemaKStream {
         Collections.singletonList(this),
         Type.PROJECT,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -161,7 +166,8 @@ public class SchemaKStream {
         Collections.singletonList(this),
         Type.PROJECT,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -228,7 +234,8 @@ public class SchemaKStream {
         Arrays.asList(this, schemaKTable),
         Type.JOIN,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -259,7 +266,8 @@ public class SchemaKStream {
         Collections.singletonList(this),
         Type.REKEY,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -274,7 +282,8 @@ public class SchemaKStream {
         keyField,
         Collections.singletonList(this),
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        this.quotedFieldNames
     );
   }
 
@@ -284,6 +293,10 @@ public class SchemaKStream {
 
   public Schema getSchema() {
     return schema;
+  }
+
+  public Set<String> getQuotedFieldNames() {
+    return quotedFieldNames;
   }
 
   public KStream getKstream() {

@@ -17,6 +17,8 @@
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -38,12 +40,16 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -62,6 +68,25 @@ public class KsqlParserTest {
   public void init() {
 
     metaStore = MetaStoreFixture.getNewMetaStore();
+
+    SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
+        .field("GROUP", SchemaBuilder.INT64_SCHEMA)
+        .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
+        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
+        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
+
+    KsqlTopic
+        ksqlTopicOrders =
+        new KsqlTopic("ORDERS_QUOTED_TOPIC", "orders_quoted_topic", new KsqlJsonTopicSerDe());
+
+    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS_QUOTED",
+                                                 schemaBuilderOrders,
+                                                 schemaBuilderOrders.field("GROUP"), null,
+                                                 ksqlTopicOrders,
+                                                 Collections.singleton("GROUP"));
+
+    metaStore.putTopic(ksqlTopicOrders);
+    metaStore.putSource(ksqlStreamOrders);
   }
 
   @Test
@@ -344,6 +369,21 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testCreateStreamWithQuotedFieldName() throws Exception {
+    String
+        queryStr =
+        "CREATE STREAM orders (\"group\" bigint, \"create\" varchar, itemid varchar, orderunits "
+        + "double) WITH (registered_topic = 'orders_topic' , key='group');";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
+    CreateStream createStream = (CreateStream)statement;
+    Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 4);
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("group"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
+  }
+
+  @Test
   public void testCreateStream() throws Exception {
     String
         queryStr =
@@ -401,6 +441,25 @@ public class KsqlParserTest {
         queryStr =
         "CREATE STREAM bigorders_json WITH (value_format = 'json', "
         + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testCreateStreamAsSelect failed.", statement instanceof CreateStreamAsSelect);
+    CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
+    Assert.assertTrue("testCreateTable failed.", createStreamAsSelect.getName().toString().equalsIgnoreCase("bigorders_json"));
+    Assert.assertTrue("testCreateTable failed.", createStreamAsSelect.getQuery().getQueryBody() instanceof QuerySpecification);
+    QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getSelect().getSelectItems().size() == 4);
+    Assert.assertTrue("testCreateTable failed.", querySpecification.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
+    Assert.assertTrue("testCreateTable failed.", ((AliasedRelation)querySpecification.getFrom()).getAlias().equalsIgnoreCase("ORDERS"));
+  }
+
+  @Test
+  public void testCreateStreamAsSelectWithQuotedIdentifiers() throws Exception {
+
+    String
+        queryStr =
+        "CREATE STREAM bigorders_json WITH (value_format = 'json', "
+        + "kafka_topic='bigorders_topic') AS SELECT \"group\", orderid, itemid, orderunits FROM "
+        + "orders WHERE orderunits > 5 ;";
     Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
     Assert.assertTrue("testCreateStreamAsSelect failed.", statement instanceof CreateStreamAsSelect);
     CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;

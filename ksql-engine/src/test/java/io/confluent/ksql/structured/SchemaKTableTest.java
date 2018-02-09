@@ -70,7 +70,9 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                           SchemaKStream.Type.SOURCE, functionRegistry,
+                                           new MockSchemaRegistryClient(),
+                                           Collections.emptySet());
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -102,7 +104,9 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(),
                                            new ArrayList<>(), false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                           SchemaKStream.Type.SOURCE, functionRegistry,
+                                           new MockSchemaRegistryClient(),
+                                           Collections.emptySet());
     SchemaKTable projectedSchemaKStream = initialSchemaKTable
         .select(projectNode.getProjectNameExpressionPairList());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
@@ -136,7 +140,9 @@ public class SchemaKTableTest {
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
                                            false,
-                                           SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
+                                           SchemaKStream.Type.SOURCE, functionRegistry,
+                                           new MockSchemaRegistryClient(),
+                                           Collections.emptySet());
     SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 6);

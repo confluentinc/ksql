@@ -26,8 +26,10 @@ import org.apache.kafka.streams.StreamsBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -68,7 +70,7 @@ public class JoinNode extends PlanNode {
                   @JsonProperty("rightAlias") final String rightAlias) {
 
     // TODO: Type should be derived.
-    super(id);
+    super(id, buildQuotedFieldNames(left, right));
     this.type = type;
     this.left = left;
     this.right = right;
@@ -233,5 +235,12 @@ public class JoinNode extends PlanNode {
           stream.selectKey(field);
     }
     return stream;
+  }
+
+  private static Set<String> buildQuotedFieldNames(PlanNode left, PlanNode right) {
+    Set<String> quotedFieldNames = new HashSet<>();
+    quotedFieldNames.addAll(left.getQuotedFieldNames());
+    quotedFieldNames.addAll(right.getQuotedFieldNames());
+    return quotedFieldNames;
   }
 }

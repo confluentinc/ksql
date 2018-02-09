@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Assert;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,12 +45,19 @@ public class MetaStoreFixture {
         .field("COL4", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
         .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
 
-    KsqlTopic
-        ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
+    KsqlTopic ksqlTopic1 = new KsqlTopic(
+        "TEST1",
+        "test1",
+        new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStream = new KsqlStream("sqlexpression", "TEST1", schemaBuilder1, schemaBuilder1.field("COL0"), null,
-        ksqlTopic1);
+    KsqlStream ksqlStream = new KsqlStream(
+        "sqlexpression",
+        "TEST1",
+        schemaBuilder1,
+        schemaBuilder1.field("COL0"),
+        null,
+        ksqlTopic1,
+        Collections.emptySet());
 
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
@@ -61,12 +69,20 @@ public class MetaStoreFixture {
         .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
         .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
 
-    KsqlTopic
-        ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable("sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                        null,
-        ksqlTopic2, "TEST2", false);
+    KsqlTopic ksqlTopic2 = new KsqlTopic(
+        "TEST2",
+        "test2",
+        new KsqlJsonTopicSerDe());
+    KsqlTable ksqlTable = new KsqlTable(
+        "sqlexpression",
+        "TEST2",
+        schemaBuilder2,
+        schemaBuilder2.field("COL0"),
+        null,
+        ksqlTopic2,
+        "TEST2",
+        false,
+        Collections.emptySet());
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
@@ -77,13 +93,19 @@ public class MetaStoreFixture {
         .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
 
-    KsqlTopic
-        ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+    KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "ORDERS_TOPIC",
+        "orders_topic",
+        new KsqlJsonTopicSerDe());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS", schemaBuilderOrders,
-                                                 schemaBuilderOrders.field("ORDERTIME"), null,
-        ksqlTopicOrders);
+    KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression",
+        "ORDERS",
+        schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"),
+        null,
+        ksqlTopicOrders,
+        Collections.emptySet());
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);

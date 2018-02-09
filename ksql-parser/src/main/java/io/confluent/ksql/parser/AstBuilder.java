@@ -29,6 +29,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,6 +135,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -1231,10 +1233,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitTableElement(SqlBaseParser.TableElementContext context) {
+    Pair<String, Boolean> elementName = getIdentifierTextWithQuoteState(context.identifier());
     return new TableElement(
         getLocation(context),
-        getIdentifierText(context.identifier()),
-        getType(context.type())
+        elementName.getLeft(),
+        getType(context.type()),
+        elementName.getRight()
     );
   }
 
@@ -1360,11 +1364,22 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
-      return unquote(context.getText(), "\"");
+      return unquote(context.getText(), "\"").toUpperCase();
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
-      return unquote(context.getText(), "`");
+      return unquote(context.getText(), "`").toUpperCase();
     } else {
       return context.getText().toUpperCase();
+    }
+  }
+
+  public static Pair<String, Boolean> getIdentifierTextWithQuoteState(
+      SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+      return new Pair<>(unquote(context.getText(), "\"").toUpperCase(), true);
+    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
+      return new Pair<>(unquote(context.getText(), "`").toUpperCase(), true);
+    } else {
+      return new Pair<>(context.getText().toUpperCase(), false);
     }
   }
 
@@ -1582,7 +1597,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
             dataSource.schema(),
             dataSource.fields().get(0),
             null,
-            ksqlTopic
+            ksqlTopic,
+            Collections.emptySet()
         );
     return resultStream;
   }

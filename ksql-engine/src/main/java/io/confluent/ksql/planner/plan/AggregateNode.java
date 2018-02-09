@@ -87,7 +87,7 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
-    super(id);
+    super(id, source.getQuotedFieldNames());
 
     this.source = source;
     this.schema = schema;
@@ -266,7 +266,8 @@ public class AggregateNode extends PlanNode {
         schemaKTable.isWindowed(),
         SchemaKStream.Type.AGGREGATE,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        schemaKTable.getQuotedFieldNames()
     );
 
     if (getHavingExpressions() != null) {
@@ -321,7 +322,8 @@ public class AggregateNode extends PlanNode {
         Collections.singletonList(sourceSchemaKStream),
         SchemaKStream.Type.REKEY,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        sourceSchemaKStream.getQuotedFieldNames()
     );
   }
 

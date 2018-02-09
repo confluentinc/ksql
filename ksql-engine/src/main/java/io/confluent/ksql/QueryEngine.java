@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
@@ -127,7 +128,11 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getTimestampField() == null
               ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
               : ksqlStructuredDataOutputNode.getTimestampField(),
-              ksqlStructuredDataOutputNode.getKsqlTopic()
+              ksqlStructuredDataOutputNode.getKsqlTopic(),
+              tempMetaStore.getSource(
+                  ksqlStructuredDataOutputNode.getTheSourceNode()
+                      .getStructuredDataSource().getName())
+                  .getQuotedFieldNames()
           );
 
       tempMetaStore.putTopic(ksqlStructuredDataOutputNode.getKsqlTopic());
@@ -198,7 +203,8 @@ class QueryEngine {
 
 
   DDLCommandResult handleDdlStatement(
-      String sqlExpression, DDLStatement statement,
+      String sqlExpression,
+      DDLStatement statement,
       final Map<String, Object> overriddenProperties
   ) {
 
@@ -217,7 +223,9 @@ class QueryEngine {
     return ksqlEngine.getDDLCommandExec().execute(command);
   }
 
-  StructuredDataSource getResultDatasource(final Select select, final String name) {
+  StructuredDataSource getResultDatasource(final Select select,
+                                           final String name,
+                                           Set<String> quotedFieldNames) {
 
     SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
     for (SelectItem selectItem : select.getSelectItems()) {
@@ -235,7 +243,9 @@ class QueryEngine {
         dataSource.schema(),
         null,
         null,
-        ksqlTopic
+        ksqlTopic,
+        quotedFieldNames
+
     );
   }
 

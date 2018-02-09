@@ -17,6 +17,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
@@ -26,6 +27,8 @@ import io.confluent.ksql.util.KafkaTopicClient;
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
 
+  private final Set<String> quotedNames;
+
   public CreateStreamCommand(
       String sqlExpression,
       CreateStream createStream,
@@ -33,6 +36,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
       KafkaTopicClient kafkaTopicClient
   ) {
     super(sqlExpression, createStream, overriddenProperties, kafkaTopicClient);
+    quotedNames = createStream.getQuotedNames();
   }
 
   @Override
@@ -47,7 +51,8 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         schema,
         (keyColumnName.length() == 0) ? null : schema.field(keyColumnName),
         (timestampColumnName.length() == 0) ? null : schema.field(timestampColumnName),
-        metaStore.getTopic(topicName)
+        metaStore.getTopic(topicName),
+        quotedNames
     );
 
     // TODO: Need to check if the topic exists.

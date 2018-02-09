@@ -147,11 +147,9 @@ public class PhysicalPlanBuilder {
       ));
     }
     String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
-    String
-        persistanceQueryPrefix =
+    String persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
-    String
-        transientQueryPrefix =
+    String transientQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG).toString();
 
     if (isBareQuery) {
@@ -243,7 +241,8 @@ public class PhysicalPlanBuilder {
               outputNode.getKsqlTopic(),
               outputNode.getId().toString() +
               ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
-              schemaKTable.isWindowed()
+              schemaKTable.isWindowed(),
+              schemaKStream.getQuotedFieldNames()
           );
     } else {
       sinkDataSource =
@@ -253,7 +252,8 @@ public class PhysicalPlanBuilder {
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
-              outputNode.getKsqlTopic()
+              outputNode.getKsqlTopic(),
+              schemaKStream.getQuotedFieldNames()
           );
 
     }

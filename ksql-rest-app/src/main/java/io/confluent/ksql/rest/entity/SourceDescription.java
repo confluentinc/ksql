@@ -115,7 +115,11 @@ public class SourceDescription extends KsqlEntity {
         writeQueries,
         dataSource.getSchema().fields().stream().map(
             field -> {
-              return new FieldSchemaInfo(field.name(), SchemaUtil
+              return new FieldSchemaInfo(
+                  dataSource.getQuotedFieldNames().contains(field.name())?
+                  "\"" + field.name() + "\"":
+                  field.name(),
+                                         SchemaUtil
                   .getSchemaFieldName(field));
             }).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),

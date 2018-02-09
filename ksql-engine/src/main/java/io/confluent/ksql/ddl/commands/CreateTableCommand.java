@@ -17,6 +17,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Map;
+import java.util.Set;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -31,6 +32,8 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   private String stateStoreName;
 
+  private final Set<String> quotedNames;
+
   public CreateTableCommand(
       String sqlExpression,
       CreateTable createTable,
@@ -38,6 +41,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       KafkaTopicClient kafkaTopicClient
   ) {
     super(sqlExpression, createTable, overriddenProperties, kafkaTopicClient);
+    quotedNames = createTable.getQuotedNames();
 
     Map<String, Expression> properties = createTable.getProperties();
 
@@ -69,7 +73,8 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         (keyColumnName.length() == 0) ? null : schema.field(keyColumnName),
         (timestampColumnName.length() == 0) ? null : schema.field(timestampColumnName),
         metaStore.getTopic(topicName),
-        stateStoreName, isWindowed
+        stateStoreName, isWindowed,
+        quotedNames
     );
 
     // TODO: Need to check if the topic exists.

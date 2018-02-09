@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Optional;
+import java.util.Set;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
@@ -33,7 +34,8 @@ public class KsqlStream extends StructuredDataSource {
       final Schema schema,
       final Field keyField,
       final Field timestampField,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final Set<String> quotedFieldNames
   ) {
     super(
         sqlExpression,
@@ -42,7 +44,8 @@ public class KsqlStream extends StructuredDataSource {
         keyField,
         timestampField,
         DataSourceType.KSTREAM,
-        ksqlTopic
+        ksqlTopic,
+        quotedFieldNames
     );
   }
 
@@ -55,7 +58,8 @@ public class KsqlStream extends StructuredDataSource {
         newSchema,
         keyField,
         timestampField,
-        ksqlTopic
+        ksqlTopic,
+        quotedFieldNames
     );
   }
 
@@ -73,7 +77,8 @@ public class KsqlStream extends StructuredDataSource {
         schema,
         keyField,
         newTimestampField.get(),
-        ksqlTopic
+        ksqlTopic,
+        quotedFieldNames
     );
   }
 

@@ -76,7 +76,7 @@ public class KsqlStructuredDataOutputNodeTest {
           schema.field("key"),
           schema.field("timestamp"),
           new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe())),
+              new KsqlJsonTopicSerDe()), Collections.emptySet()),
       schema);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());

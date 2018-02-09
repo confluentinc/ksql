@@ -88,8 +88,8 @@ public class CommandFactoriesTest {
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
     final DDLCommand result = commandFactories.create(sqlExpression,
         new CreateTable(QualifiedName.of("foo"),
-                        Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                            ("COL2", "VARCHAR")), true,
+                        Arrays.asList(new TableElement("COL1", "BIGINT", false), new TableElement
+                            ("COL2", "VARCHAR", false)), true,
                         tableProperties),
         Collections.emptyMap());
 
@@ -104,8 +104,8 @@ public class CommandFactoriesTest {
     try {
       final DDLCommand result = commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true,
+                          Arrays.asList(new TableElement("COL1", "BIGINT", false), new TableElement
+                              ("COL2", "VARCHAR", false)), true,
                           tableProperties),
           Collections.emptyMap());
 
@@ -124,8 +124,8 @@ public class CommandFactoriesTest {
     try {
       final DDLCommand result = commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true,
+                          Arrays.asList(new TableElement("COL1", "BIGINT", false), new TableElement
+                              ("COL2", "VARCHAR", false)), true,
                           tableProperties),
           Collections.emptyMap());
 
@@ -140,8 +140,8 @@ public class CommandFactoriesTest {
     try {
       final DDLCommand result = commandFactories.create(sqlExpression,
           new CreateTable(QualifiedName.of("foo"),
-                          Arrays.asList(new TableElement("COL1", "BIGINT"), new TableElement
-                              ("COL2", "VARCHAR")), true, properties),
+                          Arrays.asList(new TableElement("COL1", "BIGINT", false), new TableElement
+                              ("COL2", "VARCHAR", false)), true, properties),
           Collections.emptyMap());
 
     } catch (KsqlException e) {

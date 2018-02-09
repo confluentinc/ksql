@@ -96,7 +96,7 @@ public class StructuredDataSourceNode
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
       @JsonProperty("schema") Schema schema
   ) {
-    super(id);
+    super(id, structuredDataSource.getQuotedFieldNames());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
     this.schema = schema;
@@ -172,7 +172,8 @@ public class StructuredDataSourceNode
           table.isWindowed(),
           SchemaKStream.Type.SOURCE,
           functionRegistry,
-          schemaRegistryClient
+          schemaRegistryClient,
+          structuredDataSource.getQuotedFieldNames()
       );
     }
 
@@ -187,7 +188,8 @@ public class StructuredDataSourceNode
                 .map(nonWindowedMapper))
             .transformValues(new AddTimestampColumn()),
         getKeyField(), new ArrayList<>(),
-        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient
+        SchemaKStream.Type.SOURCE, functionRegistry, schemaRegistryClient,
+        structuredDataSource.getQuotedFieldNames()
     );
   }
 

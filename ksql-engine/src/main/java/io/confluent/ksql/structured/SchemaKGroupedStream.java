@@ -28,6 +28,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.List;
+import java.util.Set;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -44,13 +45,15 @@ public class SchemaKGroupedStream {
   private final List<SchemaKStream> sourceSchemaKStreams;
   private final FunctionRegistry functionRegistry;
   private final SchemaRegistryClient schemaRegistryClient;
+  private final Set<String> quotedFieldNames;
 
   SchemaKGroupedStream(
       final Schema schema, final KGroupedStream kgroupedStream,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<String> quotedFieldNames
   ) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
@@ -58,6 +61,7 @@ public class SchemaKGroupedStream {
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.functionRegistry = functionRegistry;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.quotedFieldNames = quotedFieldNames;
   }
 
   @SuppressWarnings("unchecked")
@@ -97,7 +101,8 @@ public class SchemaKGroupedStream {
         windowExpression != null,
         SchemaKStream.Type.AGGREGATE,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
 
   }

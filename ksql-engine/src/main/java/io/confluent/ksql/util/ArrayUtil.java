@@ -16,10 +16,8 @@
 
 package io.confluent.ksql.util;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 public class ArrayUtil {
 

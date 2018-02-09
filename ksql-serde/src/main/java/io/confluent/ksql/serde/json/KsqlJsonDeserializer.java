@@ -34,7 +34,6 @@ import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 

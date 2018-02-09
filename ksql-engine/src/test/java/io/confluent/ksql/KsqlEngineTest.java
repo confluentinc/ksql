@@ -17,6 +17,7 @@
 package io.confluent.ksql;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -24,7 +25,10 @@ import java.util.List;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -37,7 +41,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlEngineTest {
 
-  private final KafkaTopicClient topicClient = mock(KafkaTopicClient.class);
+  private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
   private final KsqlEngine ksqlEngine = new KsqlEngine(
@@ -62,6 +66,23 @@ public class KsqlEngineTest {
     final PersistentQueryMetadata queryTwo = (PersistentQueryMetadata) queries.get(1);
     assertThat(queryOne.getEntity(), equalTo("BAR"));
     assertThat(queryTwo.getEntity(), equalTo("FOO"));
+  }
+
+
+  @Test
+  public void shouldAddCorrectDataSourceIntoMetastore() throws Exception {
+    topicClient.createTopic("s1topic", 1, (short)1);
+    final List<QueryMetadata> queries
+        = ksqlEngine.createQueries("create stream s1 (\"Group\" bigint, col1 varchar) with "
+                                   + "(kafka_topic = 's1topic', value_format = 'json');" +
+                                   " create stream s2 as select col1 from s1;");
+    StructuredDataSource s1_DataSource = ksqlEngine.getMetaStore().getSource("S1");
+    StructuredDataSource s2_DataSource = ksqlEngine.getMetaStore().getSource("S2");
+
+    Assert.assertTrue(!s1_DataSource.getQuotedFieldNames().isEmpty());
+    Assert.assertTrue(s2_DataSource.getQuotedFieldNames().isEmpty());
+    Assert.assertTrue(s1_DataSource.getQuotedFieldNames().contains("GROUP"));
+
   }
 
   @Test(expected = ParseFailedException.class)

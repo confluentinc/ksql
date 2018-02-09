@@ -20,6 +20,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,23 +30,54 @@ import java.util.Set;
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
+  class FakeTopic {
+    final String topicName;
+    final int numPartitions;
+    final short replicatonFactor;
+
+    public FakeTopic(String topicName, int numPartitions, short replicatonFactor) {
+      this.topicName = topicName;
+      this.numPartitions = numPartitions;
+      this.replicatonFactor = replicatonFactor;
+    }
+
+    public String getTopicName() {
+      return topicName;
+    }
+
+    public int getNumPartitions() {
+      return numPartitions;
+    }
+
+    public short getReplicatonFactor() {
+      return replicatonFactor;
+    }
+  }
+
+  Map<String, FakeTopic> topicMap = new HashMap<>();
+
   @Override
   public void createTopic(String topic, int numPartitions, short replicatonFactor) {
+    if (!topicMap.containsKey(topic)) {
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+    }
   }
 
   @Override
   public void createTopic(String topic, int numPartitions, short replicatonFactor, Map<String, String> configs) {
-
+    if (!topicMap.containsKey(topic)) {
+      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicatonFactor));
+    }
   }
 
   @Override
   public boolean isTopicExists(String topic) {
-    return false;
+    return topicMap.containsKey(topic);
   }
 
   @Override
   public Set<String> listTopicNames() {
-    return Collections.emptySet();
+    return topicMap.keySet();
   }
 
   @Override
@@ -55,6 +87,9 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteTopics(List<String> topicsToDelete) {
+    for (String topicName: topicsToDelete) {
+      topicMap.remove(topicName);
+    }
   }
 
   @Override

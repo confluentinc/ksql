@@ -33,19 +33,18 @@ import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
-  private final Integer topKSize;
+  private final int topKSize;
   private final Class<T> clazz;
   private T[] tempTopKArray;
 
   TopkDistinctKudaf(Integer argIndexInValue,
-                    Integer topKSize,
+                    int topKSize,
                     Class<T> clazz) {
     super(argIndexInValue,
         () -> (T[]) new Object[topKSize],
           SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
           Arrays.asList(Schema.FLOAT64_SCHEMA)
     );
-
     this.topKSize = topKSize;
     this.tempTopKArray = (T[]) new Object[topKSize + 1];
     this.clazz = clazz;

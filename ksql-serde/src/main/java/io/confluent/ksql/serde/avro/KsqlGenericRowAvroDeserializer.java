@@ -121,12 +121,10 @@ public class KsqlGenericRowAvroDeserializer implements Deserializer<GenericRow> 
 
       case ARRAY:
         GenericData.Array genericArray = (GenericData.Array) value;
-        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-        Object[] arrayField =
-            (Object[]) java.lang.reflect.Array.newInstance(elementClass, genericArray.size());
-        for (int i = 0; i < genericArray.size(); i++) {
-          Object obj = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
-          arrayField[i] = obj;
+        int size = genericArray.size();
+        Object[] arrayField = new Object[size];
+        for (int i = 0; i < size; i++) {
+          arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), genericArray.get(i));
         }
         return arrayField;
       case MAP:

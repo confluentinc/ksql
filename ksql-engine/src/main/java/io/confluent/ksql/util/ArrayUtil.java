@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 public class ArrayUtil {
 
@@ -36,7 +37,7 @@ public class ArrayUtil {
     if (nullIndex == -1) {
       return array;
     }
-    T[] noNullArray = (T[]) Array.newInstance(clazz, nullIndex);
+    T[] noNullArray = (T[]) new Object[nullIndex];
     for (int i = 0; i < noNullArray.length; i++) {
       noNullArray[i] = array[i];
     }
@@ -47,7 +48,7 @@ public class ArrayUtil {
     if (array.length >= finalLength) {
       return array;
     }
-    T[] paddedArray = (T[]) Array.newInstance(clazz, finalLength);
+    T[] paddedArray = (T[]) new Object[finalLength];
     for(int i = 0; i < array.length; i++) {
       paddedArray[i] = array[i];
     }

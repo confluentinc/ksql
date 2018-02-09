@@ -27,6 +27,7 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -127,4 +128,21 @@ public class KsqlJsonDeserializerTest {
     Assert.assertNull(genericRow.getColumns().get(5));
   }
 
+  @Test
+  public void shouldTreatNullAsNull() throws JsonProcessingException {
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema);
+    Map<String, Object> row = new HashMap<>();
+    row.put("ordertime", null);
+    row.put("@orderid", null);
+    row.put("itemid", null);
+    row.put("orderunits", null);
+    row.put("arrayCol", new Double[]{0.0, null});
+    row.put("mapCol", null);
+
+    final GenericRow expected = new GenericRow(Arrays.asList(null, null, null, null, new Double[]{0.0, null}, null));
+    GenericRow genericRow = deserializer.deserialize("", objectMapper.writeValueAsBytes(row));
+    assertThat(genericRow, equalTo(expected));
+
+  }
 }

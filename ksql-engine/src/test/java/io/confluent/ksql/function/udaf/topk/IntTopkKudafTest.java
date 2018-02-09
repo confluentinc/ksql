@@ -28,9 +28,9 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class IntTopkKudafTest {
-  Object[] valueArray;
-  TopKAggregateFunctionFactory topKFactory;
-  List<Schema> argumentType;
+  private Object[] valueArray;
+  private TopKAggregateFunctionFactory topKFactory;
+  private List<Schema> argumentType;
 
   @Before
   public void setup() {
@@ -39,6 +39,7 @@ public class IntTopkKudafTest {
     argumentType = Collections.singletonList(Schema.INT32_SCHEMA);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateTopK() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
@@ -51,6 +52,7 @@ public class IntTopkKudafTest {
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{80, 60, 60}));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
@@ -61,6 +63,7 @@ public class IntTopkKudafTest {
     assertThat("Invalid results.", currentVal, equalTo(new Integer[]{10, null, null}));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldMergeTopK() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
@@ -72,6 +75,7 @@ public class IntTopkKudafTest {
             equalTo(new Integer[]{60, 55, 50}));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldMergeTopKWithNulls() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
@@ -83,6 +87,7 @@ public class IntTopkKudafTest {
             equalTo(new Integer[]{60, 50, 45}));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldMergeTopKWithMoreNulls() {
     KsqlAggregateFunction<Object, Object[]> topkKudaf =
@@ -94,4 +99,15 @@ public class IntTopkKudafTest {
             equalTo(new Integer[]{60, 50, null}));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldAggregateAndProducedOrderedTopK() {
+    KsqlAggregateFunction<Object, Object[]> topkKudaf =
+        topKFactory.getProperAggregateFunction(argumentType);
+
+    Object[] aggregate = topkKudaf.aggregate(1, new Object[3]);
+    assertThat(aggregate, equalTo(new Integer[] {1, null, null}));
+    Object[] agg2 = topkKudaf.aggregate(100, new Integer[] {1, null, null});
+    assertThat(agg2, equalTo(new Integer[] {100, 1, null}));
+  }
 }

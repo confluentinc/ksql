@@ -29,9 +29,9 @@ import java.util.Map;
 public class DoubleSumKudaf extends KsqlAggregateFunction<Double, Double> {
 
   DoubleSumKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0.0, Schema.FLOAT64_SCHEMA,
-          Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "SUM", DoubleSumKudaf.class);
+    super(argIndexInValue, () -> 0.0, Schema.FLOAT64_SCHEMA,
+          Arrays.asList(Schema.FLOAT64_SCHEMA)
+    );
   }
 
   @Override

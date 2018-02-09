@@ -25,34 +25,35 @@ import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
   private final int topKSize;
-  private final T[] tempTopKArray;
+  private final Object[] tempTopKArray;
   private final Class<T> clazz;
-  private final Schema initialValue;
+  private final Schema returnType;
   private final List<Schema> argumentTypes;
 
   TopkKudaf(int argIndexInValue,
             int topKSize,
-            Schema initialValue,
+            Schema returnType,
             List<Schema> argumentTypes,
             Class<T> clazz) {
     super(argIndexInValue,
-          (T[]) new Object[topKSize],
-          initialValue,
-          argumentTypes,
-          "TOPK",
-          TopkKudaf.class);
+        () -> (T[]) new Object[topKSize],
+        returnType,
+        argumentTypes
+    );
     this.topKSize = topKSize;
-    this.tempTopKArray = (T[]) new Object[topKSize + 1];
-    this.initialValue = initialValue;
+    this.tempTopKArray = new Object[topKSize + 1];
+    this.returnType = returnType;
     this.argumentTypes = argumentTypes;
     this.clazz = clazz;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public T[] aggregate(final T currentVal, final T[] currentAggVal) {
     // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
@@ -63,12 +64,29 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
+      Arrays.sort(currentAggVal, comparator());
       return currentAggVal;
     }
     System.arraycopy(currentAggVal, 0, tempTopKArray, 0, topKSize);
     tempTopKArray[topKSize] = currentVal;
     Arrays.sort(tempTopKArray, Collections.reverseOrder());
-    return Arrays.copyOf(tempTopKArray, topKSize);
+    return Arrays.copyOf((T[]) tempTopKArray, topKSize);
+  }
+
+  public static <T> Comparator<T> comparator() {
+    return (v1, v2) -> {
+      if(v1 == null && v2 == null) {
+        return 0;
+      }
+      if (v1 == null) {
+        return 1;
+      }
+      if (v2 == null) {
+        return -1;
+      }
+
+      return - ((Comparable)v1).compareTo(v2);
+    };
   }
 
   @Override
@@ -103,6 +121,6 @@ public class TopkKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     int topKSize = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkKudaf(udafIndex, topKSize, initialValue, argumentTypes, clazz);
+    return new TopkKudaf(udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

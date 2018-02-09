@@ -18,16 +18,20 @@ package io.confluent.ksql.physical;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -242,7 +246,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString() +
               ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed(),
-              schemaKStream.getQuotedFieldNames()
+              updateTheQuotedNameSet(outputNode.getSchema(),schemaKStream.getQuotedFieldNames())
           );
     } else {
       sinkDataSource =
@@ -253,7 +257,7 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic(),
-              schemaKStream.getQuotedFieldNames()
+              updateTheQuotedNameSet(outputNode.getSchema(),schemaKStream.getQuotedFieldNames())
           );
 
     }
@@ -356,6 +360,19 @@ public class PhysicalPlanBuilder {
         ProducerCollector.class.getCanonicalName()
     );
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+  }
+
+  private Set<String> updateTheQuotedNameSet(Schema schema, Set<String> currentQuotedNames) {
+    Set<String> newQuotedNames = new HashSet<>();
+    Set<String> outputSchemaFieldNames =
+        schema.fields().stream().map(field -> field.name()).collect(Collectors.toSet());
+
+    for (String currentQuotedName: currentQuotedNames) {
+      if (outputSchemaFieldNames.contains(currentQuotedName)) {
+        newQuotedNames.add(currentQuotedName);
+      }
+    }
+    return newQuotedNames;
   }
 }
 

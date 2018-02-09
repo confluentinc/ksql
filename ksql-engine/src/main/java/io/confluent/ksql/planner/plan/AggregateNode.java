@@ -27,11 +27,15 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
+
+import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +49,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -189,12 +192,6 @@ public class AggregateNode extends PlanNode {
         props,
         schemaRegistryClient
     );
-    final SchemaKStream rekeyedSchemaKStream = rekeyRequired(sourceSchemaKStream) ?
-        aggregateReKey(
-            sourceSchemaKStream,
-            functionRegistry,
-            schemaRegistryClient) :
-        sourceSchemaKStream;
 
     // Pre aggregate computations
     final List<Pair<String, Expression>> aggArgExpansionList = new ArrayList<>();
@@ -206,7 +203,7 @@ public class AggregateNode extends PlanNode {
         expressionNames
     );
 
-    final SchemaKStream aggregateArgExpanded = rekeyedSchemaKStream.select(aggArgExpansionList);
+    final SchemaKStream aggregateArgExpanded = sourceSchemaKStream.select(aggArgExpansionList);
 
     KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopic()
@@ -219,7 +216,7 @@ public class AggregateNode extends PlanNode {
     );
 
     final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupByKey(Serdes.String(), genericRowSerde);
+        aggregateArgExpanded.groupBy(Serdes.String(), genericRowSerde, getGroupByExpressions());
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
@@ -278,74 +275,6 @@ public class AggregateNode extends PlanNode {
     return result.select(getFinalSelectExpressions());
   }
 
-  private String fieldNameFromExpression(Expression expression) {
-    if (expression instanceof DereferenceExpression) {
-      DereferenceExpression dereferenceExpression =
-          (DereferenceExpression) expression;
-      return dereferenceExpression.getFieldName();
-    }
-    return null;
-  }
-
-  private boolean rekeyRequired(final SchemaKStream sourceSchemaKStream) {
-    Field keyField = sourceSchemaKStream.getKeyField();
-    if (keyField == null) {
-      return true;
-    }
-    String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
-    List<Expression> groupBy = getGroupByExpressions();
-    return !(groupBy.size() == 1 && fieldNameFromExpression(groupBy.get(0)).equals(keyFieldName));
-  }
-
-  private SchemaKStream aggregateReKey(
-      final SchemaKStream sourceSchemaKStream,
-      final FunctionRegistry functionRegistry,
-      SchemaRegistryClient schemaRegistryClient
-  ) {
-    StringBuilder aggregateKeyName = new StringBuilder();
-    List<Integer> newKeyIndexes = new ArrayList<>();
-    boolean addSeparator = false;
-    for (Expression groupByExpr : getGroupByExpressions()) {
-      if (addSeparator) {
-        aggregateKeyName.append("|+|");
-      } else {
-        addSeparator = true;
-      }
-      aggregateKeyName.append(groupByExpr.toString());
-      newKeyIndexes.add(getIndexInSchema(groupByExpr.toString(), sourceSchemaKStream.getSchema()));
-    }
-
-    KStream
-        rekeyedKStream =
-        sourceSchemaKStream
-            .getKstream()
-            .selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
-              StringBuilder newKey = new StringBuilder();
-              boolean addSeparator1 = false;
-              for (int index : newKeyIndexes) {
-                if (addSeparator1) {
-                  newKey.append("|+|");
-                } else {
-                  addSeparator1 = true;
-                }
-                newKey.append(String.valueOf(value.getColumns().get(index)));
-              }
-              return newKey.toString();
-            });
-
-    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
-
-    return new SchemaKStream(
-        sourceSchemaKStream.getSchema(),
-        rekeyedKStream,
-        newKeyField,
-        Collections.singletonList(sourceSchemaKStream),
-        SchemaKStream.Type.REKEY,
-        functionRegistry,
-        schemaRegistryClient
-    );
-  }
-
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(
       final SchemaKStream aggregateArgExpanded,
       final SchemaBuilder aggregateSchema
@@ -354,7 +283,7 @@ public class AggregateNode extends PlanNode {
     int nonAggColumnIndex = 0;
     for (Expression expression : getRequiredColumnList()) {
       String exprStr = expression.toString();
-      int index = getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+      int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
       Field field = aggregateArgExpanded.getSchema().fields().get(index);
@@ -374,22 +303,6 @@ public class AggregateNode extends PlanNode {
           expressionNames.put(expression.toString(), aggArgExpansionList.size());
           aggArgExpansionList.add(new Pair<>(expression.toString(), expression));
         });
-  }
-
-  private int getIndexInSchema(final String fieldName, final Schema schema) {
-    List<Field> fields = schema.fields();
-    for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (field.name().equals(fieldName)) {
-        return i;
-      }
-    }
-    throw new KsqlException(
-        "Couldn't find field with name="
-        + fieldName
-        + " in schema. fields="
-        + fields
-    );
   }
 
   private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(

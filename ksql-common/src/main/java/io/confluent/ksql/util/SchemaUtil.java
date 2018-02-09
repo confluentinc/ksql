@@ -24,6 +24,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -348,5 +349,21 @@ public class SchemaUtil {
       schemaBuilder.field(name, field.schema());
     }
     return schemaBuilder.build();
+  }
+
+  public static int getIndexInSchema(final String fieldName, final Schema schema) {
+    List<Field> fields = schema.fields();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (field.name().equals(fieldName)) {
+        return i;
+      }
+    }
+    throw new KsqlException(
+        "Couldn't find field with name="
+            + fieldName
+            + " in schema. fields="
+            + fields
+    );
   }
 }

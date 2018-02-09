@@ -94,10 +94,10 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
     buildRequireRekey();
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000012");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000009")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
     assertThat(node.topics(), containsString("[KSQL_Agg_Query_"));
     assertThat(node.topics(), containsString("-repartition]"));
   }
@@ -105,8 +105,8 @@ public class AggregateNodeTest {
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
     buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000010");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000012");
+    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000006");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
   }
@@ -142,10 +142,10 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildRequireRekey() {
-    return buildQuery("SELECT col1, col4, sum(col3), count(col3) FROM test2 window TUMBLING ( "
+    return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
         + "size 2 "
         + "second) "
-        + "WHERE col4 = TRUE GROUP BY col1;");
+        + "GROUP BY col1;");
   }
 
   private SchemaKStream buildQuery(String queryString) {

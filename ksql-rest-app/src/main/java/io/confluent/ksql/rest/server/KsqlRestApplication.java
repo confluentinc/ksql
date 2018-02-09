@@ -330,7 +330,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     RootDocument rootDocument = new RootDocument(isUiEnabled,
-        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0)+"/index.html");
+        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(

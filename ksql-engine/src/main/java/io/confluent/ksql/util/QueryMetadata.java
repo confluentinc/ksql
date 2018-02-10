@@ -113,7 +113,7 @@ public class QueryMetadata {
 
   @Override
   public int hashCode() {
-    return Objects.hash(kafkaStreams, outputNode, queryApplicationId);
+    return Objects.hash(statementString, kafkaStreams, outputNode, queryApplicationId);
   }
 
   public void start() {

@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 public class QueryMetadata {
-
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
   private final String statementString;
   private final KafkaStreams kafkaStreams;
@@ -37,7 +36,6 @@ public class QueryMetadata {
   private final String queryApplicationId;
   private final KafkaTopicClient kafkaTopicClient;
   private final Topology topoplogy;
-
 
   public QueryMetadata(final String statementString,
                        final KafkaStreams kafkaStreams,

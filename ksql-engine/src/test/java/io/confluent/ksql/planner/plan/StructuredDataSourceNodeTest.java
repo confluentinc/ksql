@@ -89,13 +89,13 @@ public class StructuredDataSourceNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.MAP_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.MAPVALUES_NODE)));
     assertThat(node.topics(), equalTo("[topic]"));
   }
 
   @Test
   public void shouldBuildMapNode() throws Exception {
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.MAP_NODE),
+    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.MAPVALUES_NODE),
         Collections.singletonList(PlanTestUtil.SOURCE_NODE),
         Collections.singletonList(PlanTestUtil.TRANSFORM_NODE));
   }
@@ -103,7 +103,7 @@ public class StructuredDataSourceNodeTest {
   @Test
   public void shouldBuildTransformNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAP_NODE), Collections.emptyList());
+    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAPVALUES_NODE), Collections.emptyList());
   }
 
   @Test

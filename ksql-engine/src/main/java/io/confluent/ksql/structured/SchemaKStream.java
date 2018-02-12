@@ -48,7 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
+
 
 public class SchemaKStream {
 

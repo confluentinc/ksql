@@ -40,7 +40,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.serde.WindowedSerde;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -49,7 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 
-import static io.confluent.ksql.planner.plan.PlanTestUtil.MAP_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -85,7 +84,7 @@ public class JoinNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(MAP_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(MAPVALUES_NODE)));
     assertThat(node.topics(), equalTo("[test2]"));
   }
 

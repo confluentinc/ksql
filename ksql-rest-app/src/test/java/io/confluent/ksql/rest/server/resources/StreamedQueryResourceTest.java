@@ -113,8 +113,8 @@ public class StreamedQueryResourceTest {
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
                                 rowQueue, DataSource.DataSourceType.KSTREAM, "",
-                                mockKafkaTopicClient
-        );
+                                mockKafkaTopicClient,
+            null);
     expect(mockKsqlEngine.buildMultipleQueries(queryString, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);

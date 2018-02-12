@@ -181,8 +181,8 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
     ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
         dataSourceMap.get(sourceName).getRight();
-    return (referentialIntegrityTableEntry.getSinkForQueries().isEmpty() &&
-        referentialIntegrityTableEntry.getSourceForQueries().isEmpty());
+    return (referentialIntegrityTableEntry.getSinkForQueries().isEmpty()
+            && referentialIntegrityTableEntry.getSourceForQueries().isEmpty());
   }
 
   @Override

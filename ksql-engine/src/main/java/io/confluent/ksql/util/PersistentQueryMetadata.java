@@ -25,6 +25,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.Topology;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -51,7 +52,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KafkaTopicClient kafkaTopicClient,
                                  final Schema resultSchema,
                                  final KsqlTopic resultTopic,
-                                 final String topology) {
+                                 final Topology topology) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
           queryApplicationId, kafkaTopicClient, topology);
     this.id = id;

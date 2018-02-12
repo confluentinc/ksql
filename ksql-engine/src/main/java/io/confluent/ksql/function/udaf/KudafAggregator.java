@@ -62,11 +62,11 @@ public class KudafAggregator implements UdafAggregator {
       GenericRow mergedRow = new GenericRow(columns);
 
       aggValToValColumnMap.forEach((columnIndex, value) -> {
-        if (aggRowOne.getColumns().get(value).toString().length() > 0) {
-          mergedRow.getColumns().set(columnIndex, aggRowOne.getColumns()
+        if (aggRowOne.getColumns().get(value) == null) {
+          mergedRow.getColumns().set(columnIndex, aggRowTwo.getColumns()
               .get(value));
         } else {
-          mergedRow.getColumns().set(columnIndex, aggRowTwo.getColumns()
+          mergedRow.getColumns().set(columnIndex, aggRowOne.getColumns()
               .get(value));
         }
       });

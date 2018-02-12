@@ -63,11 +63,16 @@ public class GenericRow {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     GenericRow that = (GenericRow) o;
-
-    if (columns.size() != that.columns.size()) return false;
+    if (columns.size() != that.columns.size()) {
+      return false;
+    }
 
     // For now string matching is used to compare the rows as double comparison will cause issues
     return this.toString().equals(that.toString());

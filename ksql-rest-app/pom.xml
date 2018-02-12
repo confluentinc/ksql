@@ -97,6 +97,50 @@
 
     <build>
         <plugins>
+
+            <!-- Grab the web interface -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>wagon-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <id>download-ksql-experimental-ui</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>download-single</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://github.com/confluentinc</url>
+                            <fromFile>ksql-experimental-ui/releases/download/0.1/ksql-experimental-ui-0.1.war</fromFile>
+                            <toDir>./target/classes/io/confluent/ksql/rest/</toDir>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>prepare</id>
+                        <phase>process-resources</phase>
+                        <configuration>
+                            <tasks>
+                                <echo message="unpacking the ui" />
+                                <unzip src="./target/classes/io/confluent/ksql/rest/ksql-experimental-ui-0.1.war"
+                                       dest="./target/classes/io/confluent/ksql/rest/" />
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>

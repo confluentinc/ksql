@@ -18,7 +18,6 @@
     <suppress files="." checks="AbbreviationAsWordInName"/>
     <suppress files="." checks="WhitespaceAround"/>
     <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
-    <suppress files="." checks="OperatorWrap"/>
 
     <!-- Semantics may not be well checked by rules -->
     <suppress files="." checks="ParameterNumber"/>
@@ -30,8 +29,6 @@
 
     <!-- These checks may be included in the future -->
     <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
-    <suppress files="." checks="NonEmptyAtclauseDescription"/>
     <suppress files="." checks="EmptyLineSeparator"/>
-    <suppress files="." checks="NeedBraces"/>
 
 </suppressions>

@@ -86,8 +86,8 @@ public final class InsertInto
       return false;
     }
     InsertInto o = (InsertInto) obj;
-    return Objects.equals(target, o.target) &&
-           Objects.equals(query, o.query);
+    return Objects.equals(target, o.target)
+           && Objects.equals(query, o.query);
   }
 
   @Override

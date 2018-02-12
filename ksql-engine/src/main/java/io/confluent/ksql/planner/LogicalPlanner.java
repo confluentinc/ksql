@@ -122,7 +122,6 @@ public class LogicalPlanner {
       final Schema inputSchema,
       final PlanNode sourcePlanNode
   ) {
-
     SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema,
@@ -135,7 +134,6 @@ public class LogicalPlanner {
       Schema expressionType = expressionTypeManager.getExpressionType(expression);
 
       aggregateSchema = aggregateSchema.field(alias, expressionType);
-
     }
 
     return new AggregateNode(

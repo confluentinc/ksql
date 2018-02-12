@@ -20,6 +20,8 @@ package io.confluent.ksql.rest.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -65,7 +67,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -88,11 +90,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
-  private final ServerInfoResource serverInfoResource;
+  private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
-  private final boolean enableQuickstartPage;
+  private final boolean isUiEnabled;
 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
@@ -109,21 +111,21 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       KsqlEngine ksqlEngine,
       KsqlRestConfig config,
       CommandRunner commandRunner,
-      ServerInfoResource serverInfoResource,
+      RootDocument rootDocument,
       StatusResource statusResource,
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
-      boolean enableQuickstartPage,
+      boolean isUiEnabled,
       VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
     this.commandRunner = commandRunner;
-    this.serverInfoResource = serverInfoResource;
+    this.rootDocument = rootDocument;
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
-    this.enableQuickstartPage = enableQuickstartPage;
+    this.isUiEnabled = isUiEnabled;
     this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
@@ -131,7 +133,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
-    config.register(serverInfoResource);
+    config.register(rootDocument);
+    config.register(new ServerInfoResource(new ServerInfo(Version.getVersion())));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -140,7 +143,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public ResourceCollection getStaticResources() {
-    if (enableQuickstartPage) {
+    log.info("User interface enabled:" + isUiEnabled);
+    if (isUiEnabled) {
       return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
     } else {
       return super.getStaticResources();
@@ -193,8 +197,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
-    if (enableQuickstartPage) {
-      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "^/quickstart\\.html$");
+    if (isUiEnabled) {
+      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
   }
 
@@ -207,7 +211,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
     KsqlRestApplication app = buildApplication(
         restConfig,
-        cliOptions.getQuickstart(),
+        restConfig.isUiEnabled(),
         new KsqlVersionCheckerAgent()
     );
 
@@ -220,7 +224,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static KsqlRestApplication buildApplication(
       KsqlRestConfig restConfig,
-      boolean quickstart,
+      boolean isUiEnabled,
       VersionCheckerAgent versionCheckerAgent
   )
       throws Exception {
@@ -325,8 +329,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         commandStore
     );
 
-    ServerInfoResource serverInfoResource =
-        new ServerInfoResource(new ServerInfo(Version.getVersion()));
+    RootDocument rootDocument = new RootDocument(isUiEnabled,
+        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
+
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -346,11 +351,11 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         ksqlEngine,
         restConfig,
         commandRunner,
-        serverInfoResource,
+        rootDocument,
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        quickstart,
+        isUiEnabled,
         versionCheckerAgent
     );
   }

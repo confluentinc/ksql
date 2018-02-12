@@ -203,17 +203,17 @@ public abstract class DataGenProducer {
 
   }
 
+  Set<String> allTokens = new HashSet<String>();
+
   /**
    * If the sessionId is new Create a Session
    * If the sessionId is active - return the value
    * If the sessionId has expired - use a known token that is not expired
    *
-   * @param sessionManager
-   * @param currentValue
-   * @return
+   * @param sessionManager a SessionManager
+   * @param currentValue current token
+   * @return session token
    */
-  Set<String> allTokens = new HashSet<String>();
-
   private String handleSessionisationOfValue(SessionManager sessionManager, String currentValue) {
 
     // superset of all values

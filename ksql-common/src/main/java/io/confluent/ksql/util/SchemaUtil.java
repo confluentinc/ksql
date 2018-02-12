@@ -174,8 +174,8 @@ public class SchemaUtil {
     if (field.schema().type() == Schema.Type.ARRAY) {
       return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
     } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + "," +
-             TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
+      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + ","
+          + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
     } else {
       return TYPE_MAP.get(field.schema().type().name());
     }

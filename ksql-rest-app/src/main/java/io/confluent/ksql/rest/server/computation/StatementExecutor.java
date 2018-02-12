@@ -239,7 +239,9 @@ public class StatementExecutor {
           terminatedQueries,
           statementStr,
           wasDropped);
-      if (successMessage == null) return;
+      if (successMessage == null) {
+        return;
+      }
     } else if (statement instanceof InsertInto) {
       successMessage = handleInsertInto((InsertInto) statement,
                        command,
@@ -248,7 +250,9 @@ public class StatementExecutor {
                        statementStr,
                        false
                        );
-      if (successMessage == null) return;
+      if (successMessage == null) {
+        return;
+      }
     } else if (statement instanceof TerminateQuery) {
       terminateQuery((TerminateQuery) statement);
       successMessage = "Query terminated.";
@@ -350,8 +354,8 @@ public class StatementExecutor {
       Relation into = querySpecification.getInto().getLeft();
       if (into instanceof Table) {
         Table table = (Table) into;
-        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null &&
-            querySpecification.getInto().getRight()) {
+        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null
+            && querySpecification.getInto().getRight()) {
           throw new Exception(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()

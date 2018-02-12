@@ -442,7 +442,7 @@ public class KsqlResource {
           outputNode,
           metadata.getStatementString(),
           metadata.getStatementString(),
-          metadata.getTopoplogy(),
+          metadata.getTopologyDescription(),
           metadata.getExecutionPlan(),
           ksqlEngine.getTopicClient()
       );

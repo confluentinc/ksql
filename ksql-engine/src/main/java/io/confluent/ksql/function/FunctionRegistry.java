@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.count.CountAggFunctionDeterminer;
-import io.confluent.ksql.function.udaf.max.MaxAggFunctionDeterminer;
-import io.confluent.ksql.function.udaf.min.MinAggFunctionDeterminer;
-import io.confluent.ksql.function.udaf.sum.SumAggFunctionDeterminer;
-import io.confluent.ksql.function.udaf.topk.TopkAggFunctionDeterminer;
-import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionDeterminer;
+import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
+import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
+import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
+import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
+import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
+import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.datetime.StringToTimestamp;
 import io.confluent.ksql.function.udf.datetime.TimestampToString;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
@@ -53,7 +53,7 @@ import java.util.Map;
 public class FunctionRegistry {
 
   private Map<String, KsqlFunction> ksqlFunctionMap = new HashMap<>();
-  private Map<String, KsqlAggFunctionDeterminer> ksqlAggregateFunctionMap = new HashMap<>();
+  private Map<String, AggregateFunctionFactory> aggregateFunctionMap = new HashMap<>();
 
   public FunctionRegistry() {
     init();
@@ -185,14 +185,14 @@ public class FunctionRegistry {
      * UDAFs                               *
      ***************************************/
 
-    addAggregateFunctionDeterminer(new CountAggFunctionDeterminer());
-    addAggregateFunctionDeterminer(new SumAggFunctionDeterminer());
+    addAggregateFunctionFactory(new CountAggFunctionFactory());
+    addAggregateFunctionFactory(new SumAggFunctionFactory());
 
-    addAggregateFunctionDeterminer(new MaxAggFunctionDeterminer());
-    addAggregateFunctionDeterminer(new MinAggFunctionDeterminer());
+    addAggregateFunctionFactory(new MaxAggFunctionFactory());
+    addAggregateFunctionFactory(new MinAggFunctionFactory());
 
-    addAggregateFunctionDeterminer(new TopkAggFunctionDeterminer());
-    addAggregateFunctionDeterminer(new TopkDistinctAggFunctionDeterminer());
+    addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
+    addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
 
   }
 
@@ -205,24 +205,22 @@ public class FunctionRegistry {
   }
 
   public boolean isAnAggregateFunction(String functionName) {
-    return ksqlAggregateFunctionMap.get(functionName) != null;
+    return aggregateFunctionMap.containsKey(functionName);
   }
 
-  public KsqlAggregateFunction getAggregateFunction(String functionName, List<Expression>
-      functionArgs, Schema schema) {
-    KsqlAggFunctionDeterminer ksqlAggFunctionDeterminer = ksqlAggregateFunctionMap
-        .get(functionName);
-    if (ksqlAggFunctionDeterminer == null) {
+  public KsqlAggregateFunction getAggregateFunction(String functionName,
+          List<Expression> functionArgs, Schema schema) {
+    AggregateFunctionFactory aggregateFunctionFactory = aggregateFunctionMap.get(functionName);
+    if (aggregateFunctionFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(schema, this);
     Schema expressionType = expressionTypeManager.getExpressionType(functionArgs.get(0));
-    return ksqlAggFunctionDeterminer.getProperAggregateFunction(Arrays.asList(expressionType));
+    return aggregateFunctionFactory.getProperAggregateFunction(Arrays.asList(expressionType));
   }
 
-  public void addAggregateFunctionDeterminer(KsqlAggFunctionDeterminer
-                                                        ksqlAggFunctionDeterminer) {
-    ksqlAggregateFunctionMap.put(ksqlAggFunctionDeterminer.functionName, ksqlAggFunctionDeterminer);
+  public void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory) {
+    aggregateFunctionMap.put(aggregateFunctionFactory.functionName, aggregateFunctionFactory);
   }
 
 

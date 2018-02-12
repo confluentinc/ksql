@@ -81,7 +81,7 @@ public class KsqlContextTest {
                                                                                   null,
         null,
                                                                                   null,
-                                                                                  "topology");
+                                                                                  null);
 
     return Arrays.asList(persistentQueryMetadata);
 

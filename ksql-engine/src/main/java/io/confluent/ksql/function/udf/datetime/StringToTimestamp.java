@@ -43,8 +43,8 @@ public class StringToTimestamp implements Kudf {
       }
       return dateFormat.parse(args[0].toString()).getTime();
     } catch (ParseException e) {
-      throw new KsqlFunctionException("Exception running StringToTimestamp(" + args[0] +" , " +
-                                      args[1] + ") : " + e.getMessage(), e);
+      throw new KsqlFunctionException("Exception running StringToTimestamp(" + args[0] +" , "
+          + args[1] + ") : " + e.getMessage(), e);
     }
   }
 }

@@ -29,9 +29,9 @@ import io.confluent.ksql.parser.tree.Expression;
 public class LongMaxKudaf extends KsqlAggregateFunction<Long, Long> {
 
   LongMaxKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, Long.MIN_VALUE, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA),
-          "MAX", LongMaxKudaf.class);
+    super(argIndexInValue, () -> Long.MIN_VALUE, Schema.INT64_SCHEMA,
+          Arrays.asList(Schema.INT64_SCHEMA)
+    );
   }
 
   @Override

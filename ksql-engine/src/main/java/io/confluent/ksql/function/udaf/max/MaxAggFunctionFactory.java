@@ -14,20 +14,21 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.function.udaf.sum;
+package io.confluent.ksql.function.udaf.max;
 
-import io.confluent.ksql.function.KsqlAggFunctionDeterminer;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class SumAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
+import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.util.KsqlException;
 
-  public SumAggFunctionDeterminer() {
-    super("SUM", Arrays.asList(new DoubleSumKudaf(-1), new LongSumKudaf(-1)));
+public class MaxAggFunctionFactory extends AggregateFunctionFactory {
+
+  public MaxAggFunctionFactory() {
+    super("MAX", Arrays.asList(new DoubleMaxKudaf(-1), new LongMaxKudaf(-1)));
   }
 
   @Override
@@ -38,8 +39,7 @@ public class SumAggFunctionDeterminer extends KsqlAggFunctionDeterminer {
         return ksqlAggregateFunction;
       }
     }
-    throw new KsqlException("No SUM aggregate function with " + argTypeList.get(0) + " "
-                           + " argument type exists!");
+    throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
+                            + " argument type exists!");
   }
-
 }

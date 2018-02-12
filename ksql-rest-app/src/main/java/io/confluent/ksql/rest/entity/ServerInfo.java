@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.Objects;
 
 @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
-@JsonTypeName("KSQL Server Info")
+@JsonTypeName("KsqlServerInfo")
 @JsonSubTypes({})
 public class ServerInfo {
   private final String version;

@@ -21,11 +21,9 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.ValueJoiner;
@@ -50,6 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+
 
 public class SchemaKStream {
 
@@ -96,9 +95,9 @@ public class SchemaKStream {
   ) {
 
     kstream
-        .map((key, row) -> {
+        .mapValues(row -> {
           if (row == null) {
-            return new KeyValue<>(key, null);
+            return null;
           }
           List<Object> columns = new ArrayList<>();
           for (int i = 0; i < row.getColumns().size(); i++) {
@@ -106,7 +105,7 @@ public class SchemaKStream {
               columns.add(row.getColumns().get(i));
             }
           }
-          return new KeyValue<>(key, new GenericRow(columns));
+          return new GenericRow(columns);
         }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     return this;
   }
@@ -247,9 +246,9 @@ public class SchemaKStream {
               .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
               .toString();
       return newKey;
-    }).map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+    }).mapValues((key, row) -> {
       row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
-      return new KeyValue<>(key, row);
+      return row;
     });
 
     return new SchemaKStream(

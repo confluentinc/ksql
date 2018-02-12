@@ -21,19 +21,30 @@ import org.apache.kafka.streams.kstream.Initializer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class KudafInitializer implements Initializer<GenericRow> {
 
-  private final List initialGenericRowColumns;
+  private final List<Supplier> aggValueSuppliers = new ArrayList<>();
+  private final int nonAggValSize;
 
-  public KudafInitializer(List initialGenericRowColumns) {
-    this.initialGenericRowColumns = initialGenericRowColumns;
+  public KudafInitializer(final int nonAggValSize) {
+    this.nonAggValSize = nonAggValSize;
   }
 
   @Override
   public GenericRow apply() {
-    List rowColumns = new ArrayList(initialGenericRowColumns);
-    return new GenericRow(rowColumns);
+    final List<Object> values = IntStream.range(0, nonAggValSize)
+        .mapToObj(value -> null)
+        .collect(Collectors.toList());
+
+    aggValueSuppliers.forEach(supplier -> values.add(supplier.get()));
+    return new GenericRow(values);
   }
 
+  public void addAggregateIntializer(Supplier intialValueSupplier) {
+    aggValueSuppliers.add(intialValueSupplier);
+  }
 }

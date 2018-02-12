@@ -21,7 +21,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.Topology;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -211,10 +211,11 @@ public class PhysicalPlanBuilder {
         bareOutputNode,
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
-        (sourceSchemaKstream instanceof SchemaKTable) ?
-        DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+        (sourceSchemaKstream instanceof SchemaKTable)
+            ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        kafkaTopicClient
+        kafkaTopicClient,
+        builder.build()
     );
   }
 
@@ -241,8 +242,8 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampField(),
               outputNode.getKsqlTopic(),
-              outputNode.getId().toString() +
-              ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
+              outputNode.getId().toString()
+                  + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.isWindowed()
           );
     } else {
@@ -272,7 +273,7 @@ public class PhysicalPlanBuilder {
         overriddenStreamsProperties
     );
 
-    TopologyDescription topologyDescription = builder.build().describe();
+    Topology topology = builder.build();
 
     return new PersistentQueryMetadata(
         statement,
@@ -285,7 +286,7 @@ public class PhysicalPlanBuilder {
         kafkaTopicClient,
         outputNode.getSchema(),
         sinkDataSource.getKsqlTopic(),
-        topologyDescription.toString()
+        topology
     );
   }
 

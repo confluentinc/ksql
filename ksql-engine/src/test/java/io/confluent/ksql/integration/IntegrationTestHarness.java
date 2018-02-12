@@ -147,8 +147,10 @@ public class IntegrationTestHarness {
                                             int expectedNumMessages,
                                             Deserializer<K> keyDeserializer,
                                             long resultsPollMaxTimeMs) {
+
     return consumeData(topic, schema, expectedNumMessages, keyDeserializer, resultsPollMaxTimeMs,
                  DataSource.DataSourceSerDe.JSON);
+
   }
 
   public <K> Map<K, GenericRow> consumeData(String topic,
@@ -228,10 +230,12 @@ public class IntegrationTestHarness {
     this.embeddedKafkaCluster.stop();
   }
 
+
   public Map<String, RecordMetadata> publishTestData(String topicName,
                                                      TestDataProvider dataProvider,
                                                      Long timestamp)
       throws InterruptedException, ExecutionException, TimeoutException {
+
     return publishTestData(topicName, dataProvider, timestamp, DataSource.DataSourceSerDe.JSON);
   }
 
@@ -246,6 +250,7 @@ public class IntegrationTestHarness {
                        getSerializer(dataProvider.schema(),
                                      dataSourceSerDe),
                        timestamp);
+
   }
 
   private Serializer getSerializer(Schema schema, DataSource.DataSourceSerDe dataSourceSerDe) {

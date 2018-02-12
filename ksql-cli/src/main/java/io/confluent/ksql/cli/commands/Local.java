@@ -105,10 +105,10 @@ public class Local extends AbstractCliCommands {
 
   @Option(
       name = SCHEMA_REGISTRY_URL_OPTION_NAME,
-      description = "The url of the schema registry server to be used. It defaults to " +
-                    SCHEMA_REGISTRY_URL_OPTION_DEFAULT + ". Avro support requires a functioning"
-                    + " schema registry which the KSQL instance can connect to. Setting this will"
-                    + " override the schema registry url in the properties file, if set."
+      description = "The url of the schema registry server to be used. It defaults to "
+          + SCHEMA_REGISTRY_URL_OPTION_DEFAULT + ". Avro support requires a functioning"
+          + " schema registry which the KSQL instance can connect to. Setting this will"
+          + " override the schema registry url in the properties file, if set."
   )
   String schemaRegistryUrl;
 

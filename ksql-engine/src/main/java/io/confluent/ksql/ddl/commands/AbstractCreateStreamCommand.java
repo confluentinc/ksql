@@ -67,8 +67,8 @@ abstract class AbstractCreateStreamCommand implements DDLCommand {
     Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
-    if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY) &&
-        !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
+    if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)
+        && !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       this.topicName = StringUtil.cleanQuotes(
           properties.get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toUpperCase());
 

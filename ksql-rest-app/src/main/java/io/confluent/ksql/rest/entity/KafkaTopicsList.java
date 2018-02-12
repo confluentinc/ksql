@@ -192,8 +192,8 @@ public class KafkaTopicsList extends KsqlEntity {
     ).toString();
 
     for (Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
-      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix) &&
-          !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
+      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix)
+          && !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
         filteredKafkaTopics.put(entry.getKey().toLowerCase(), entry.getValue());
       }
     }

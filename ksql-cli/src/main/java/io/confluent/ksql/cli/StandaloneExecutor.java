@@ -44,8 +44,8 @@ public class StandaloneExecutor {
         persistentQueryMetadata.start();
       } else {
         final String message = String.format(
-            "Ignoring statements: %s" +
-            "\nOnly CREATE statements can run KSQL embedded mode.",
+            "Ignoring statements: %s"
+                + "\nOnly CREATE statements can run KSQL embedded mode.",
             queryMetadata.getStatementString()
         );
         System.err.println(message);

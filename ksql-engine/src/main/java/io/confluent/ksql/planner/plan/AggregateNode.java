@@ -35,8 +35,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -226,11 +224,6 @@ public class AggregateNode extends PlanNode {
         aggregateSchema
     );
 
-    final List<Object> resultColumns = IntStream.range(
-        0,
-        aggValToValColumnMap.size()
-    ).mapToObj(value -> "").collect(Collectors.toList());
-
     final Schema aggStageSchema = buildAggregateSchema(
         aggregateArgExpanded.getSchema(),
         functionRegistry
@@ -243,14 +236,16 @@ public class AggregateNode extends PlanNode {
         schemaRegistryClient
     );
 
+    final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
-        new KudafInitializer(resultColumns),
+        initializer,
         new KudafAggregator(
             createAggValToFunctionMap(
                 expressionNames,
                 aggregateArgExpanded,
                 aggregateSchema,
-                resultColumns,
+                initializer,
+                aggValToValColumnMap.size(),
                 functionRegistry
             ),
             aggValToValColumnMap
@@ -377,11 +372,12 @@ public class AggregateNode extends PlanNode {
       final Map<String, Integer> expressionNames,
       final SchemaKStream aggregateArgExpanded,
       final SchemaBuilder aggregateSchema,
-      final List<Object> resultColumns,
+      final KudafInitializer initializer,
+      final int initialUdafIndex,
       final FunctionRegistry functionRegistry
   ) {
     try {
-      int udafIndexInAggSchema = resultColumns.size();
+      int udafIndexInAggSchema = initialUdafIndex;
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
       for (FunctionCall functionCall : getFunctionList()) {
         KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
@@ -397,7 +393,7 @@ public class AggregateNode extends PlanNode {
         );
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
-        resultColumns.add(aggregateFunction.getIntialValue());
+        initializer.addAggregateIntializer(aggregateFunction.getIntialValueSupplier());
 
         aggregateSchema.field("AGG_COL_"
                               + udafIndexInAggSchema, aggregateFunction.getReturnType());
@@ -406,10 +402,8 @@ public class AggregateNode extends PlanNode {
     } catch (final Exception e) {
       throw new KsqlException(
           String.format(
-              "Failed to create aggregate val to function map. expressionNames:%s, "
-              + "resultColumns:%s",
-              expressionNames,
-              resultColumns
+              "Failed to create aggregate val to function map. expressionNames:%s",
+              expressionNames
           ),
           e
       );

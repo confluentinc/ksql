@@ -30,10 +30,12 @@ public class RootDocument {
 
   private final boolean uiEnabled;
   private final String uiUrl;
+  private final String infoUrl;
 
-  public RootDocument(boolean uiEnabled, String uiUrl) {
+  public RootDocument(boolean uiEnabled, String baseUrl) {
     this.uiEnabled = uiEnabled;
-    this.uiUrl = uiUrl;
+    this.uiUrl = baseUrl + "/index.html";
+    this.infoUrl = baseUrl + "/info";
   }
 
   @GET
@@ -42,7 +44,7 @@ public class RootDocument {
       if (uiEnabled) {
         return Response.temporaryRedirect(new URI(uiUrl)).build();
       } else {
-        return Response.temporaryRedirect(new URI("http://localhost:8080/info")).build();
+        return Response.temporaryRedirect(new URI(infoUrl)).build();
       }
     } catch (URISyntaxException e) {
       e.printStackTrace();

@@ -316,7 +316,7 @@ public class SchemaKStream {
     }
 
     KGroupedStream kgroupedStream = kstream.groupBy(
-        (KeyValueMapper<String, GenericRow, String>) (key, value) -> {
+        (key, value) -> {
           StringBuilder newKey = new StringBuilder();
           boolean addSeparator1 = false;
           for (int index : newKeyIndexes) {

@@ -16,6 +16,27 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.cli.console.CliSpecificCommand;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ErrorMessageEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.CommonUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Version;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -47,28 +68,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.cli.console.CliSpecificCommand;
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ErrorMessageEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.PropertiesList;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.util.CommonUtils;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Version;
 
 public class Cli implements Closeable, AutoCloseable {
 
@@ -132,7 +131,7 @@ public class Cli implements Closeable, AutoCloseable {
   private void displayWelcomeMessage() {
     String serverVersion;
     try {
-      serverVersion = restClient.makeRootRequest().getResponse().getVersion();
+      serverVersion = restClient.getServerInfo().getResponse().getVersion();
     } catch (Exception exception) {
       serverVersion = "<unknown>";
     }
@@ -354,7 +353,7 @@ public class Cli implements Closeable, AutoCloseable {
           e
       );
     }
-    setProperty(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY, fileContent);
+    setProperty(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
     printKsqlResponse(
         restClient.makeKsqlRequest(statementText)
     );
@@ -423,11 +422,11 @@ public class Cli implements Closeable, AutoCloseable {
           terminal.printErrorMessage(errorMsg.getErrorMessage());
           LOGGER.error(errorMsg.getErrorMessage().getMessage());
           noErrorFromServer = false;
-        } else if (entity instanceof CommandStatusEntity &&
-                   (
-                       ((CommandStatusEntity) entity).getCommandStatus().getStatus()
-                       == CommandStatus.Status.ERROR
-                   )) {
+        } else if (entity instanceof CommandStatusEntity
+            && (
+            ((CommandStatusEntity) entity).getCommandStatus().getStatus()
+                == CommandStatus.Status.ERROR
+        )) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;
@@ -576,6 +575,9 @@ public class Cli implements Closeable, AutoCloseable {
       restClient.setProperty(property, value);
       return;
     } else if (property.equalsIgnoreCase(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+      restClient.setProperty(property, value);
+      return;
+    } else if (property.equalsIgnoreCase(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       restClient.setProperty(property, value);
       return;
     } else if (property.equalsIgnoreCase(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {

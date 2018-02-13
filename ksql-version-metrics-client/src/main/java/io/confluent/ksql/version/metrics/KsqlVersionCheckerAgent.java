@@ -81,31 +81,28 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
   private static Thread newThread(String name, Runnable runnable) {
     Thread thread = new Thread(runnable, name);
     thread.setDaemon(true);
-    thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-      public void uncaughtException(Thread t, Throwable e) {
-        log.error("Uncaught exception in thread '{}':", t.getName(), e);
-      }
-    });
+    thread.setUncaughtExceptionHandler((t, e)
+        -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
     return thread;
   }
 
   private static String legalDisclaimerProactiveSupportEnabled(long reportIntervalHours) {
-    return "Please note that the version check feature of KSQL is enabled.  " +
-           "With this enabled, this instance is configured to collect and report "
-           + "anonymously the version information to Confluent, Inc. " +
-           "(\"Confluent\") or its parent, subsidiaries, affiliates or service providers every " +
-           reportIntervalHours +
-           "hours.  This Metadata may be transferred to any country in which Confluent maintains " +
-           "facilities.  For a more in depth discussion of how Confluent processes " +
-           "such information, please read our Privacy Policy located at " +
-           "http://www.confluent.io/privacy. " +
-           "By proceeding with `" +
-           BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, " +
-           "you agree to all such collection, transfer and use of Version information " +
-           "by Confluent. You can turn the version check  feature off by setting `" +
-           BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the " +
-           "KSQL configuration and restarting the KSQL.  See the Confluent Platform " +
-           "documentation for further information.";
+    return "Please note that the version check feature of KSQL is enabled.  "
+        + "With this enabled, this instance is configured to collect and report "
+        + "anonymously the version information to Confluent, Inc. "
+        + "(\"Confluent\") or its parent, subsidiaries, affiliates or service providers every "
+        + reportIntervalHours
+        + "hours.  This Metadata may be transferred to any country in which Confluent maintains "
+        + "facilities.  For a more in depth discussion of how Confluent processes "
+        + "such information, please read our Privacy Policy located at "
+        + "http://www.confluent.io/privacy. "
+        + "By proceeding with `"
+        + BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=true`, "
+        + "you agree to all such collection, transfer and use of Version information "
+        + "by Confluent. You can turn the version check  feature off by setting `"
+        + BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG + "=false` in the "
+        + "KSQL configuration and restarting the KSQL.  See the Confluent Platform "
+        + "documentation for further information.";
   }
 
   private static String legalDisclaimerProactiveSupportDisabled() {

@@ -59,7 +59,7 @@ public class RemoteTest {
   }
 
   @Test
-  public void shouldReturnRemoteCliWhenBothUsernameAndPasswordAreProvided() throws Exception {
+  public void shouldReturnRemoteCliWhenBothUsCliTesternameAndPasswordAreProvided() throws Exception {
     Remote remoteCommand = new Remote();
     remoteCommand.server = "http://foobar";
     remoteCommand.versionCheckerAgent = EasyMock.mock(VersionCheckerAgent.class);

@@ -16,13 +16,9 @@
 
 package io.confluent.ksql.tools.printmetrics;
 
-import sun.tools.jconsole.LocalVirtualMachine;
-
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.management.MBeanAttributeInfo;
@@ -37,51 +33,32 @@ public class PrintMetrics {
 
   public static void printHelp() {
     System.err.println(
-        "usage: PrintMetrics [help] pid=<KSQL PID>\n" +
-            "\n" +
-            "This utility prints the following operational metrics tracked by ksql:\n" +
-            "\n" +
-            "messages-consumed-per-sec: Messages consumed per second across all queries\n" +
-            "messages-consumed-avg:     The average number of messages consumed by a query " +
-            "per second\n" +
-            "messages-consumed-min:     Messages consumed per second for the query with the " +
-            "fewest messages consumed per second\n" +
-            "messages-consumed-max:     Messages consumed per second for the query with the " +
-            "most messages consumed per second\n" +
-            "messages-produced-per-sec: Messages produced per second across all queries\n" +
-            "error-rate:                The number of messages which were consumed but not " +
-            " processed across all queries\n" +
-            "num-persistent-queries:    The number of queries currently executing.\n" +
-            "num-active-queries:        The number of queries actively processing messages.\n" +
-            "num-idle-queries:          The number of queries with no messages available to " +
-            "process.");
+        "usage: PrintMetrics [help] port=<KSQL JMX Port>\n"
+            + "\n"
+            + "This utility prints the following operational metrics tracked by ksql:\n"
+            + "\n"
+            + "messages-consumed-per-sec: Messages consumed per second across all queries\n"
+            + "messages-consumed-avg:     The average number of messages consumed by a query "
+            + "per second\n"
+            + "messages-consumed-min:     Messages consumed per second for the query with the "
+            + "fewest messages consumed per second\n"
+            + "messages-consumed-max:     Messages consumed per second for the query with the "
+            + "most messages consumed per second\n"
+            + "messages-produced-per-sec: Messages produced per second across all queries\n"
+            + "error-rate:                The number of messages which were consumed but not "
+            + " processed across all queries\n"
+            + "num-persistent-queries:    The number of queries currently executing.\n"
+            + "num-active-queries:        The number of queries actively processing messages.\n"
+            + "num-idle-queries:          The number of queries with no messages available to "
+            + "process.\n");
+    System.err.println(
+        "To use this tool, when running ksql-server-start you must set the JMX_PORT "
+            + "environmnent variable to an open port for the JMX service to listen on.");
   }
 
-  private static void printMetrics(int pid) throws IOException {
-    // get all the jvms running locally and find the one we are interested in
-    Map<Integer, LocalVirtualMachine> jvms = LocalVirtualMachine.getAllVirtualMachines();
-    LocalVirtualMachine ksqlJvm = null;
-    if (pid == -1) {
-      for (LocalVirtualMachine jvm : jvms.values()) {
-        System.out.println(jvm.displayName());
-        if (jvm.displayName().startsWith("io.confluent.ksql.rest.server.KsqlRestApplication")) {
-          ksqlJvm = jvm;
-        }
-      }
-    } else {
-      ksqlJvm = jvms.get(pid);
-    }
-    if (ksqlJvm == null) {
-      throw new PrintMetricsException("Could not find vm with pid " + pid);
-    }
-
-    String jvmAddress = ksqlJvm.connectorAddress();
-    JMXServiceURL jmxURL;
-    try {
-      jmxURL = new JMXServiceURL(jvmAddress);
-    } catch (MalformedURLException e) {
-      throw new PrintMetricsException(String.format("No JVM at PID %d", pid));
-    }
+  private static void printMetrics(int port) throws IOException {
+    JMXServiceURL jmxURL = new JMXServiceURL(
+        String.format("service:jmx:rmi:///jndi/rmi://localhost:%d/jmxrmi", port));
     JMXConnector connector = JMXConnectorFactory.connect(jmxURL);
     connector.connect();
     MBeanServerConnection connection = connector.getMBeanServerConnection();
@@ -125,22 +102,22 @@ public class PrintMetrics {
       return;
     }
 
-    printMetrics(args.pid);
+    printMetrics(args.port);
   }
 
   static class Arguments {
 
     public boolean help;
-    public int pid;
+    public int port;
 
-    public Arguments(boolean help, int pid) {
+    public Arguments(boolean help, int port) {
       this.help = help;
-      this.pid = pid;
+      this.port = port;
     }
 
     public static Arguments parse(String[] args) {
       boolean help = false;
-      int pid = -1;
+      int port = -1;
 
       for (String arg : args) {
         if ("help".equals(arg)) {
@@ -169,8 +146,8 @@ public class PrintMetrics {
         }
 
         switch (argName) {
-          case "pid":
-            pid = Integer.decode(argValue);
+          case "port":
+            port = Integer.decode(argValue);
             break;
           default: {
             throw new ArgumentParseException(
@@ -178,7 +155,7 @@ public class PrintMetrics {
           }
         }
       }
-      return new Arguments(help, pid);
+      return new Arguments(help, port);
     }
   }
 }

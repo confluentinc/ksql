@@ -29,8 +29,8 @@ import java.util.Map;
 public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
 
   CountKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA),
-          "COUNT", CountKudaf.class);
+    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA, Arrays.asList(Schema.FLOAT64_SCHEMA)
+    );
   }
 
   @Override

@@ -118,12 +118,13 @@ public class KsqlGenericRowAvroSerializerTest {
 
     assertThat("Incorrect serialization.", array.size(), equalTo(1));
     assertThat("Incorrect serialization.", array.get(0), equalTo(100.0));
-    assertThat("Incorrect serialization.", map.size(), equalTo(1));
-    assertThat("Incorrect serialization.", map.get(new Utf8("key1")), equalTo(100.0));
+    assertThat("Incorrect serialization.", map,
+               equalTo(Collections.singletonMap(new Utf8("key1"), 100.0)));
 
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldSerializeRowWithNullValues() {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     KsqlGenericRowAvroSerializer ksqlGenericRowAvroSerializer = new KsqlGenericRowAvroSerializer
@@ -132,7 +133,7 @@ public class KsqlGenericRowAvroSerializerTest {
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     GenericRow genericRow = new GenericRow(columns);
-    byte[] serializedRow = ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
+    ksqlGenericRowAvroSerializer.serialize("t1", genericRow);
 
   }
 
@@ -154,6 +155,5 @@ public class KsqlGenericRowAvroSerializerTest {
     }
 
   }
-
 
 }

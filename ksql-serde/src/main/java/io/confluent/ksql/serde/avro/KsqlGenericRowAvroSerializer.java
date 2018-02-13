@@ -107,7 +107,7 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
         }
       }
     }
-    throw new KsqlException("Field need to have at least one not null type." + schema);
+    throw new IllegalStateException("Expecting non-null value or a Union type for " + schema);
   }
 
   @Override

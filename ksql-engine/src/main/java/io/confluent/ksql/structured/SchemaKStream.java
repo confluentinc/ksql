@@ -40,6 +40,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -262,19 +263,84 @@ public class SchemaKStream {
     );
   }
 
-  public SchemaKGroupedStream groupByKey(
-      final Serde<String> keySerde,
-      final Serde<GenericRow> valSerde
-  ) {
-    KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
+  private String fieldNameFromExpression(Expression expression) {
+    if (expression instanceof DereferenceExpression) {
+      DereferenceExpression dereferenceExpression =
+          (DereferenceExpression) expression;
+      return dereferenceExpression.getFieldName();
+    }
+    return null;
+  }
+
+  private boolean rekeyRequired(List<Expression> groupByExpressions) {
+    Field keyField = getKeyField();
+    if (keyField == null) {
+      return true;
+    }
+    String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
+    return !(groupByExpressions.size() == 1
+        && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
+  }
+
+  public SchemaKGroupedStream groupBy(
+      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions) {
+    boolean rekey = rekeyRequired(groupByExpressions);
+
+    if (!rekey) {
+      KGroupedStream kgroupedStream = kstream.groupByKey(Serialized.with(keySerde, valSerde));
+      return new SchemaKGroupedStream(
+          schema,
+          kgroupedStream,
+          keyField,
+          Collections.singletonList(this),
+          functionRegistry,
+          schemaRegistryClient
+      );
+    }
+
+    // Collect the column indexes, and build the new key as <column1>+<column2>+...
+    StringBuilder aggregateKeyName = new StringBuilder();
+    List<Integer> newKeyIndexes = new ArrayList<>();
+    boolean addSeparator = false;
+    for (Expression groupByExpr : groupByExpressions) {
+      if (addSeparator) {
+        aggregateKeyName.append("|+|");
+      } else {
+        addSeparator = true;
+      }
+      aggregateKeyName.append(groupByExpr.toString());
+      newKeyIndexes.add(
+          SchemaUtil.getIndexInSchema(groupByExpr.toString(), getSchema()));
+    }
+
+    KGroupedStream kgroupedStream = kstream.groupBy(
+        (key, value) -> {
+          StringBuilder newKey = new StringBuilder();
+          boolean addSeparator1 = false;
+          for (int index : newKeyIndexes) {
+            if (addSeparator1) {
+              newKey.append("|+|");
+            } else {
+              addSeparator1 = true;
+            }
+            newKey.append(String.valueOf(value.getColumns().get(index)));
+          }
+          return newKey.toString();
+        }, Serialized.with(keySerde, valSerde));
+
+    // TODO: if the key is a prefix of the grouping columns then we can
+    //       use the repartition reflection hack to tell streams not to
+    //       repartition.
+
+    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,
         kgroupedStream,
-        keyField,
+        newKeyField,
         Collections.singletonList(this),
         functionRegistry,
-        schemaRegistryClient
-    );
+        schemaRegistryClient);
   }
 
   public Field getKeyField() {

@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.SchemaUtil;
 
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
@@ -45,8 +46,12 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         sqlExpression,
         sourceName,
         schema,
-        (keyColumnName.length() == 0) ? null : schema.field(keyColumnName),
-        (timestampColumnName.length() == 0) ? null : schema.field(timestampColumnName),
+        (keyColumnName.length() == 0) ?
+            null :
+            SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        (timestampColumnName.length() == 0) ?
+            null :
+            SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
         metaStore.getTopic(topicName)
     );
 

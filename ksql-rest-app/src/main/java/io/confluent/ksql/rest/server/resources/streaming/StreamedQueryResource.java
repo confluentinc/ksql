@@ -98,8 +98,8 @@ public class StreamedQueryResource {
 
     if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
       throw new RuntimeException(String.format(
-          "Could not find topic '%s', KSQL uses uppercase.\n" +
-          "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
+          "Could not find topic '%s', KSQL uses uppercase.\n"
+              + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
           topicName
       ));
     }

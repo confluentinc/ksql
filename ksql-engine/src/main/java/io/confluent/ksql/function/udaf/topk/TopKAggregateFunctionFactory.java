@@ -47,28 +47,28 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
     Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:
-        return new TopkKudaf<Integer>(
+        return new TopkKudaf<>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
                 Collections.singletonList(Schema.INT32_SCHEMA),
                 Integer.class);
       case INT64:
-        return new TopkKudaf<Long>(
+        return new TopkKudaf<>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
                 Collections.singletonList(Schema.INT64_SCHEMA),
                 Long.class);
       case FLOAT64:
-        return new TopkKudaf<Double>(
+        return new TopkKudaf<>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
                 Collections.singletonList(Schema.FLOAT64_SCHEMA),
                 Double.class);
       case STRING:
-        return new TopkKudaf<String>(
+        return new TopkKudaf<>(
                 -1,
                 topKSize,
                 SchemaBuilder.array(Schema.STRING_SCHEMA).build(),

@@ -294,7 +294,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             )
         ),
         Collections.emptyMap(),
-        ksqlEngine.getTopicClient()
+        ksqlEngine.getTopicClient(),
+        true
     ));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
@@ -330,7 +331,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     RootDocument rootDocument = new RootDocument(isUiEnabled,
-        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0)+"/index.html");
+        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(

@@ -46,24 +46,24 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeRowCorrectly() throws IOException {
+  public void shouldSerializeRowCorrectly() {
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
     GenericRow genericRow = new GenericRow(columns);
     KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     String delimitedString = new String(bytes);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0\r\n"));
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0"));
   }
 
   @Test
-  public void shouldSerializeRowWithNull() throws IOException {
+  public void shouldSerializeRowWithNull() {
     List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
     GenericRow genericRow = new GenericRow(columns);
     KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     String delimitedString = new String(bytes);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,\r\n"));
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,"));
   }
 }

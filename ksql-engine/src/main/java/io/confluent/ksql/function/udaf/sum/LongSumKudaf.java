@@ -29,8 +29,8 @@ import java.util.Map;
 public class LongSumKudaf extends KsqlAggregateFunction<Long, Long> {
 
   LongSumKudaf(Integer argIndexInValue) {
-    super(argIndexInValue, 0L, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA), "SUM", LongSumKudaf.class);
+    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
+          Arrays.asList(Schema.INT64_SCHEMA));
   }
 
   @Override

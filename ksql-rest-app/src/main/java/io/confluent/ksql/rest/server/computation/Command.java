@@ -67,9 +67,9 @@ public class Command {
 
   @Override
   public String toString() {
-    return "Command{" +
-        "statement='" + statement + '\'' +
-        ", streamsProperties=" + streamsProperties +
-        '}';
+    return "Command{"
+        + "statement='" + statement + '\''
+        + ", streamsProperties=" + streamsProperties
+        + '}';
   }
 }

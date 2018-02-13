@@ -72,12 +72,12 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sqlExpression,
         sourceName,
         schema,
-        (keyColumnName.length() == 0) ?
-            null :
-            SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
-        (timestampColumnName.length() == 0) ?
-            null :
-            SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
+        (keyColumnName.length() == 0)
+        ? null
+        : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        (timestampColumnName.length() == 0)
+        ? null
+        : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
         metaStore.getTopic(topicName),
         stateStoreName, isWindowed
     );

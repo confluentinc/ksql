@@ -291,7 +291,7 @@ public class SchemaUtil {
       fieldAssembler
           .name(field.name().replace(".", "_"))
           .type(getAvroSchemaForField(field.schema()))
-          .noDefault();
+          .withDefault(null);
     }
 
     return fieldAssembler.endRecord().toString();

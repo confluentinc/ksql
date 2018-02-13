@@ -60,11 +60,13 @@ public class SchemaUtilTest {
     String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
     assertThat(avroSchemaString, equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
-        + "[{\"name\":\"ordertime\",\"type\":[\"long\",\"null\"]},{\"name\":\"orderid\",\"type\":"
-        + "[\"string\",\"null\"]},{\"name\":\"itemid\",\"type\":[\"string\",\"null\"]},{\"name\":"
-        + "\"orderunits\",\"type\":[\"double\",\"null\"]},{\"name\":\"arraycol\",\"type\":[{\"type"
-        + "\":\"array\",\"items\":[\"double\",\"null\"]},\"null\"]},{\"name\":\"mapcol\",\"type\":"
-        + "[{\"type\":\"map\",\"values\":[\"double\",\"null\"]},\"null\"]}]}"));
+        + "[{\"name\":\"ordertime\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":"
+        + "\"orderid\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"itemid\","
+        + "\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"orderunits\",\"type\":"
+        + "[\"null\",\"double\"],\"default\":null},{\"name\":\"arraycol\",\"type\":[\"null\","
+        + "{\"type\":\"array\",\"items\":[\"null\",\"double\"]}],\"default\":null},{\"name\":"
+        + "\"mapcol\",\"type\":[\"null\",{\"type\":\"map\",\"values\":[\"null\",\"double\"]}]"
+        + ",\"default\":null}]}"));
   }
 
   @Test

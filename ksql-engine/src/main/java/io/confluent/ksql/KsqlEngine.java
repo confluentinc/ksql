@@ -238,7 +238,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   }
 
 
-  private List<Pair<String, Statement>> parseQueries(
+  public List<Pair<String, Statement>> parseQueries(
       final String queriesString,
       final Map<String, Object> overriddenProperties,
       final MetaStore tempMetaStore
@@ -278,7 +278,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
   }
 
-  public Pair<String, Statement> buildSingleQueryAst(
+  private Pair<String, Statement> buildSingleQueryAst(
       final Statement statement,
       final String statementString,
       final MetaStore tempMetaStore,

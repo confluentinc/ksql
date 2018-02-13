@@ -38,7 +38,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.ddl.commands.DDLCommand;
@@ -623,13 +622,5 @@ public class KsqlResource {
             ksqlEngine.getSchemaRegistryClient()
         );
     return avroCheckResult;
-  }
-
-  private KsqlEntity handleRunScript(Map<String, Object> streamsProperties) {
-    if (streamsProperties.containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      String queriesString =
-          (String) streamsProperties.get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
-    }
-    return null;
   }
 }

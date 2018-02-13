@@ -93,7 +93,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldEnforceTopicExistanceCorrectly() throws Exception {
+  public void shouldEnforceTopicExistenceCorrectly() throws Exception {
     topicClient.createTopic("s1_topic", 1, (short) 1);
     StringBuilder runScriptContent =
         new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "

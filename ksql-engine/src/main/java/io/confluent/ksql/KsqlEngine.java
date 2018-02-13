@@ -238,7 +238,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   }
 
 
-  public List<Pair<String, Statement>> parseQueries(
+  // Visible for Testing
+  List<Pair<String, Statement>> parseQueries(
       final String queriesString,
       final Map<String, Object> overriddenProperties,
       final MetaStore tempMetaStore

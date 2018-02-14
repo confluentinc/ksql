@@ -38,6 +38,8 @@ public class KsqlEngineMetrics implements Closeable {
   private final String metricGroupName;
   private final Sensor numActiveQueries;
   private final Sensor messagesIn;
+  private final Sensor totalMessagesIn;
+  private final Sensor totalBytesIn;
   private final Sensor messagesOut;
   private final Sensor numIdleQueries;
   private final Sensor messageConsumptionByQuery;
@@ -55,6 +57,8 @@ public class KsqlEngineMetrics implements Closeable {
 
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
+    this.totalMessagesIn = configureTotalMessagesIn(metrics);
+    this.totalBytesIn = configureTotalBytesIn(metrics);
     this.messagesOut =  configureMessagesOut(metrics);
     this.numIdleQueries = configureIdleQueriesSensor(metrics);
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor(metrics);
@@ -69,6 +73,8 @@ public class KsqlEngineMetrics implements Closeable {
 
   public void updateMetrics() {
     recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
+    recordTotalMessagesConsumed(MetricCollectors.totalMessageConsumption());
+    recordTotalBytesConsumed(MetricCollectors.totalBytesConsumption());
     recordMessagesProduced(MetricCollectors.currentProductionRate());
     recordMessageConsumptionByQueryStats(MetricCollectors.currentConsumptionRateByQuery());
     recordErrorRate(MetricCollectors.currentErrorRate());
@@ -90,6 +96,14 @@ public class KsqlEngineMetrics implements Closeable {
 
   private void recordMessagesConsumed(double value) {
     this.messagesIn.record(value);
+  }
+
+  private void recordTotalBytesConsumed(double value) {
+    this.totalBytesIn.record(value);
+  }
+
+  private void recordTotalMessagesConsumed(double value) {
+    this.totalMessagesIn.record(value);
   }
 
   private void recordErrorRate(double value) {
@@ -125,6 +139,24 @@ public class KsqlEngineMetrics implements Closeable {
     sensor.add(
         metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
                            "The number of messages consumed per second across all queries"),
+        new Value());
+    return sensor;
+  }
+
+  private Sensor configureTotalMessagesIn(Metrics metrics) {
+    Sensor sensor = createSensor(metrics, metricGroupName + "-total-messages-consumed");
+    sensor.add(
+        metrics.metricName("messages-consumed-total", this.metricGroupName,
+            "The total number of messages consumed across all queries"),
+        new Value());
+    return sensor;
+  }
+
+  private Sensor configureTotalBytesIn(Metrics metrics) {
+    Sensor sensor = createSensor(metrics, metricGroupName + "-total-bytes-consumed");
+    sensor.add(
+        metrics.metricName("bytes-consumed-total", this.metricGroupName,
+            "The total number of bytes consumed across all queries"),
         new Value());
     return sensor;
   }

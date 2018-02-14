@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -90,17 +91,17 @@ public class ConsumerCollector implements MetricCollector {
   @SuppressWarnings("unchecked")
   private void collect(ConsumerRecords consumerRecords) {
     Stream<ConsumerRecord> stream = StreamSupport.stream(consumerRecords.spliterator(), false);
-    stream.forEach(record -> record(record.topic().toLowerCase(), false));
+    stream.forEach(record -> record(record.topic().toLowerCase(), false, record));
   }
 
   public void recordError(String topic) {
-    record(topic, true);
+    record(topic, true, null);
   }
 
-  private void record(String topic, boolean isError) {
+  private void record(String topic, boolean isError, ConsumerRecord record) {
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
         new TopicSensors<>(topic, buildSensors(k))
-    ).increment(null, isError);
+    ).increment(record, isError);
   }
 
   private String getCounterKey(String topic) {
@@ -117,6 +118,14 @@ public class ConsumerCollector implements MetricCollector {
       addSensor(key, "messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "c-total-messages", new Total(), sensors, false);
       addSensor(key, "c-failed-messages", new Total(), sensors, true);
+      addSensor(key, "c-total-message-bytes", new Total(), sensors, false,
+          (r) -> {
+            if (r == null) {
+              return 0.0;
+            } else {
+              return ((double) r.serializedValueSize() + r.serializedKeySize());
+            }
+          });
       addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
     }
     return sensors;
@@ -128,6 +137,17 @@ public class ConsumerCollector implements MetricCollector {
       MeasurableStat stat,
       List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
       boolean isError
+  ) {
+    addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double)1);
+  }
+
+  private void addSensor(
+      String key,
+      String metricNameString,
+      MeasurableStat stat,
+      List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      boolean isError,
+      Function<ConsumerRecord, Double> recordValue
   ) {
     String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
@@ -149,7 +169,7 @@ public class ConsumerCollector implements MetricCollector {
 
     sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time, isError) {
       void record(ConsumerRecord record) {
-        sensor.record(1);
+        sensor.record(recordValue.apply(record));
         super.record(record);
       }
     });
@@ -181,6 +201,30 @@ public class ConsumerCollector implements MetricCollector {
     return allStats
         .stream()
         .filter(stat -> stat.name().contains("messages-per-sec"))
+        .mapToDouble(TopicSensors.Stat::getValue)
+        .sum();
+  }
+
+  @Override
+  public double totalMessageConsumption() {
+    final List<TopicSensors.Stat> allStats = new ArrayList<>();
+    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
+
+    return allStats
+        .stream()
+        .filter(stat -> stat.name().contains("c-total-messages"))
+        .mapToDouble(TopicSensors.Stat::getValue)
+        .sum();
+  }
+
+  @Override
+  public double totalBytesConsumption() {
+    final List<TopicSensors.Stat> allStats = new ArrayList<>();
+    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
+
+    return allStats
+        .stream()
+        .filter(stat -> stat.name().contains("c-total-message-bytes"))
         .mapToDouble(TopicSensors.Stat::getValue)
         .sum();
   }

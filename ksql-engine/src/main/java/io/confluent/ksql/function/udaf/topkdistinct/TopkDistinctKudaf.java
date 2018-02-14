@@ -73,29 +73,28 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
   @Override
   public Merger<String, T[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
+      int nullId1 = ArrayUtil.getNullIndex(aggOne) == -1? topKSize : ArrayUtil.getNullIndex(aggOne);
+      int nullId2 = ArrayUtil.getNullIndex(aggTwo) == -1? topKSize : ArrayUtil.getNullIndex(aggTwo);
+      T[] tempMergeTopKArray = (T[]) new Object[nullId1 + nullId2];
 
-      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? topKSize : ArrayUtil.getNullIndex(aggOne);
-      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? topKSize : ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) new Object[nullIndex1 + nullIndex2];
-
-      for (int i = 0; i < nullIndex1; i++) {
-        tempMergeTopkArray[i] = aggOne[i];
+      for (int i = 0; i < nullId1; i++) {
+        tempMergeTopKArray[i] = aggOne[i];
       }
       int duplicateCount = 0;
-      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
+      for (int i = nullId1; i < nullId1 + nullId2; i++) {
+        if (ArrayUtil.containsValue(aggTwo[i - nullId1], aggOne)) {
           duplicateCount ++;
         } else {
-          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
+          tempMergeTopKArray[i - duplicateCount] = aggTwo[i - nullId1];
         }
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(clazz, tempMergeTopkArray);
-      Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
-      if (tempMergeTopkArray.length < topKSize) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(clazz, tempMergeTopkArray, topKSize);
-        return tempMergeTopkArray;
+      tempMergeTopKArray = ArrayUtil.getNoNullArray(clazz, tempMergeTopKArray);
+      Arrays.sort(tempMergeTopKArray, Collections.reverseOrder());
+      if (tempMergeTopKArray.length < topKSize) {
+        tempMergeTopKArray = ArrayUtil.padWithNull(clazz, tempMergeTopKArray, topKSize);
+        return tempMergeTopKArray;
       }
-      return Arrays.copyOf(tempMergeTopkArray, topKSize);
+      return Arrays.copyOf(tempMergeTopKArray, topKSize);
     };
   }
 

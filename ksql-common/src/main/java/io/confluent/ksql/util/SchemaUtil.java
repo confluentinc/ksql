@@ -24,6 +24,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -329,20 +330,40 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
+  public static String getFieldNameWithNoAlias(Field field) {
+    String name = field.name();
+    if (name.contains(".")) {
+      return name.substring(name.indexOf(".") + 1);
+    } else {
+      return name;
+    }
+  }
+
   /**
    * Remove the alias when reading/writing from outside
    */
   public static Schema getSchemaWithNoAlias(Schema schema) {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (Field field : schema.fields()) {
-      String name = field.name();
-      if (name.contains(".")) {
-        schemaBuilder.field(name.substring(name.indexOf(".") + 1), field.schema());
-      } else {
-        schemaBuilder.field(name, field.schema());
+      String name = getFieldNameWithNoAlias(field);
+      schemaBuilder.field(name, field.schema());
+    }
+    return schemaBuilder.build();
+  }
+
+  public static int getIndexInSchema(final String fieldName, final Schema schema) {
+    List<Field> fields = schema.fields();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (field.name().equals(fieldName)) {
+        return i;
       }
     }
-
-    return schemaBuilder.build();
+    throw new KsqlException(
+        "Couldn't find field with name="
+            + fieldName
+            + " in schema. fields="
+            + fields
+    );
   }
 }

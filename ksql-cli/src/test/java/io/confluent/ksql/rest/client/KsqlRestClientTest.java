@@ -34,7 +34,7 @@ public class KsqlRestClientTest {
     String serverAddress = "http://foobar";
     Client client = mockClientExpectingGetRequestAndReturningStatus(serverAddress, Response.Status.UNAUTHORIZED);
     KsqlRestClient restClient = new KsqlRestClient(client, serverAddress);
-    RestResponse restResponse = restClient.makeRootRequest();
+    RestResponse restResponse = restClient.getServerInfo();
     assertTrue(restResponse.isErroneous());
   }
 
@@ -43,7 +43,7 @@ public class KsqlRestClientTest {
     String serverAddress = "http://foobar";
     Client client = mockClientExpectingGetRequestAndReturningStatus(serverAddress, Response.Status.OK);
     KsqlRestClient restClient = new KsqlRestClient(client, serverAddress);
-    RestResponse restResponse = restClient.makeRootRequest();
+    RestResponse restResponse = restClient.getServerInfo();
     assertTrue(restResponse.isSuccessful());
   }
 
@@ -52,7 +52,7 @@ public class KsqlRestClientTest {
 
     WebTarget target = EasyMock.createNiceMock(WebTarget.class);
     EasyMock.expect(client.target(server)).andReturn(target);
-    EasyMock.expect(target.path("/")).andReturn(target);
+    EasyMock.expect(target.path("/info")).andReturn(target);
     Invocation.Builder builder = EasyMock.createNiceMock(Invocation.Builder.class);
     EasyMock.expect(target.request(MediaType.APPLICATION_JSON_TYPE)).andReturn(builder);
     Response response = EasyMock.createNiceMock(Response.class);

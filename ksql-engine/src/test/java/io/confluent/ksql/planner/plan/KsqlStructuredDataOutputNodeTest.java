@@ -44,7 +44,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 
-import static io.confluent.ksql.planner.plan.PlanTestUtil.MAP_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -58,7 +58,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class KsqlStructuredDataOutputNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
-  private static final String MAP_OUTPUT_NODE = "KSTREAM-MAP-0000000003";
+  private static final String MAPVALUES_OUTPUT_NODE = "KSTREAM-MAPVALUES-0000000003";
   private static final String OUTPUT_NODE = "KSTREAM-SINK-0000000004";
 
   private final Schema schema = SchemaBuilder.struct()
@@ -115,14 +115,14 @@ public class KsqlStructuredDataOutputNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(MAP_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(MAPVALUES_NODE)));
     assertThat(node.topics(), equalTo("[input]"));
   }
 
 
   @Test
   public void shouldBuildMapNodePriorToOutput() {
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), MAP_OUTPUT_NODE),
+    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), MAPVALUES_OUTPUT_NODE),
         Collections.singletonList(TRANSFORM_NODE),
         Collections.singletonList(OUTPUT_NODE));
   }
@@ -132,7 +132,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), OUTPUT_NODE);
     final List<String> predecessors = sink.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
-    assertThat(predecessors, equalTo(Collections.singletonList(MAP_OUTPUT_NODE)));
+    assertThat(predecessors, equalTo(Collections.singletonList(MAPVALUES_OUTPUT_NODE)));
     assertThat(sink.topic(), equalTo("output"));
   }
 

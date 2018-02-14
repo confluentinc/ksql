@@ -47,6 +47,9 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   @Override
   public GenericRow apply(final GenericRow row) {
+    if (row == null) {
+      return row;
+    }
     final List<Object> newColumns = new ArrayList<>();
     for (int i = 0; i < expressionPairList.size(); i++) {
       try {
@@ -66,8 +69,8 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
         newColumns.add(expressionEvaluators.get(i).getExpressionEvaluator()
             .evaluate(parameterObjects));
       } catch (Exception e) {
-        log.error("Error calculating column with index " + i + " : " +
-            expressionPairList.get(i).getLeft(), e);
+        log.error("Error calculating column with index " + i + " : "
+            + expressionPairList.get(i).getLeft(), e);
         newColumns.add(null);
       }
     }

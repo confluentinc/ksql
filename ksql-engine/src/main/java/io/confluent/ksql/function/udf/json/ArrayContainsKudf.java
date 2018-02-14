@@ -49,8 +49,8 @@ public class ArrayContainsKudf
   @Override
   public Object evaluate(Object... args) {
     if (args.length != 2) {
-      throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. " +
-          "Given: " + Arrays.toString(args));
+      throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. "
+          + "Given: " + Arrays.toString(args));
     }
     Object searchValue = args[1];
     if(args[0] instanceof String) {

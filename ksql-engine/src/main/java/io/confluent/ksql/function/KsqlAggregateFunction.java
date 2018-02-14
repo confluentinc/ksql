@@ -21,42 +21,31 @@ import org.apache.kafka.streams.kstream.Merger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
-
   private final int argIndexInValue;
-  private final A intialValue;
+  private final Supplier<A> intialValueSupplier;
   private final Schema returnType;
   private final List<Schema> arguments;
-  private final String functionName;
-  private final Class kudafClass;
 
   public KsqlAggregateFunction(Integer argIndexInValue) {
-    this.argIndexInValue = argIndexInValue;
-    this.intialValue = null;
-    this.returnType = null;
-    this.arguments = null;
-    this.functionName = null;
-    this.kudafClass = null;
+    this(argIndexInValue, null, null, null);
   }
 
   public KsqlAggregateFunction(
-      int argIndexInValue,
-      A intialValue,
-      Schema returnType,
-      List<Schema> arguments,
-      String functionName,
-      Class kudafClass
+      final int argIndexInValue,
+      final Supplier<A> intialValueSupplier,
+      final Schema returnType,
+      final List<Schema> arguments
   ) {
     this.argIndexInValue = argIndexInValue;
-    this.intialValue = intialValue;
+    this.intialValueSupplier = intialValueSupplier;
     this.returnType = returnType;
     this.arguments = arguments;
-    this.functionName = functionName;
-    this.kudafClass = kudafClass;
   }
 
   public abstract KsqlAggregateFunction<V, A> getInstance(
@@ -73,8 +62,8 @@ public abstract class KsqlAggregateFunction<V, A> {
 
   public abstract A aggregate(V currentVal, A currentAggVal);
 
-  public A getIntialValue() {
-    return intialValue;
+  public Supplier<A> getIntialValueSupplier() {
+    return intialValueSupplier;
   }
 
   public int getArgIndexInValue() {

@@ -33,8 +33,8 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
                                                final ConsumerRecord<byte[], byte[]> record,
                                                final Exception exception) {
 
-    log.warn("Exception caught during Deserialization, " +
-                    "taskId: {}, topic: {}, partition: {}, offset: {}",
+    log.warn("Exception caught during Deserialization, "
+            + "taskId: {}, topic: {}, partition: {}, offset: {}",
             context.taskId(), record.topic(), record.partition(), record.offset(),
             exception);
 

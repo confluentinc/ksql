@@ -19,6 +19,7 @@ package io.confluent.ksql.integration;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.*;
 
@@ -63,7 +64,7 @@ public class JsonFormatTest {
 
   private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
   private AdminClient adminClient;
-  private long queryId = 0;
+  private QueryId queryId;
 
 
   @Before
@@ -102,8 +103,8 @@ public class JsonFormatTest {
     Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
 
     GenericRow messageRow = new GenericRow(Arrays.asList
-        ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-            + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+            ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
+                    + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
 
     Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -129,6 +130,7 @@ public class JsonFormatTest {
   public void after() throws Exception {
     adminClient.close();
     ksqlEngine.close();
+    terminateQuery();
   }
 
 
@@ -156,6 +158,7 @@ public class JsonFormatTest {
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
@@ -168,8 +171,6 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
-
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   @Test
@@ -179,10 +180,10 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
         streamName, resultPartitionCount, inputStream);
-
     PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
 
@@ -195,7 +196,6 @@ public class JsonFormatTest {
     Thread.sleep(2000);
 
     Assert.assertTrue(kafkaTopicClient.isTopicExists(streamName));
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
   }
 
   @Test
@@ -210,9 +210,10 @@ public class JsonFormatTest {
     PersistentQueryMetadata queryMetadata =
         (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
     queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
 
     Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Arrays.asList("aws")));
@@ -220,8 +221,31 @@ public class JsonFormatTest {
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
+  }
 
-    ksqlEngine.terminateQuery(queryMetadata.getId(), true);
+  @Test
+  public void testJsonStreamExtractorNested() throws Exception {
+
+    final String streamName = "JSONSTREAM";
+    final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
+                    + "(message, '$.log.logs[0].entry') "
+                    + "FROM %s;",
+            streamName, messageLogStream);
+
+    PersistentQueryMetadata queryMetadata =
+            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+    queryMetadata.getKafkaStreams().start();
+    queryId = queryMetadata.getId();
+
+    Schema resultSchema = SchemaUtil
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+
+    Map<String, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put("1", new GenericRow(Arrays.asList("first")));
+
+    Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+
+    assertThat(results, equalTo(expectedResults));
   }
 
   //*********************************************************//
@@ -237,6 +261,10 @@ public class JsonFormatTest {
   ) {
     Deserializer<Windowed<String>> keyDeserializer = new WindowedDeserializer<>(new StringDeserializer());
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, keyDeserializer);
+  }
+
+  private void terminateQuery() {
+    ksqlEngine.terminateQuery(queryId, true);
   }
 
 }

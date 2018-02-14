@@ -154,6 +154,18 @@ public class MetricCollectors {
         .sum();
   }
 
+  public static double totalMessageConsumption() {
+    return collectorMap.values().stream()
+        .mapToDouble(MetricCollector::totalMessageConsumption)
+        .sum();
+  }
+
+  public static double totalBytesConsumption() {
+    return collectorMap.values().stream()
+        .mapToDouble(MetricCollector::totalBytesConsumption)
+        .sum();
+  }
+
   public static double currentErrorRate() {
     return collectorMap.values().stream()
         .mapToDouble(MetricCollector::errorRate)

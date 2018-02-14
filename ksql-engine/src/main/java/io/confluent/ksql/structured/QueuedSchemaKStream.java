@@ -132,7 +132,9 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKGroupedStream groupByKey(Serde keySerde, Serde valSerde) {
+  public SchemaKGroupedStream groupBy(
+      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions) {
     throw new UnsupportedOperationException();
   }
 

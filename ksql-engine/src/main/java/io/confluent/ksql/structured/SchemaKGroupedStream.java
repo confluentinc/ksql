@@ -60,6 +60,10 @@ public class SchemaKGroupedStream {
     this.schemaRegistryClient = schemaRegistryClient;
   }
 
+  public Field getKeyField() {
+    return keyField;
+  }
+
   @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(
       final Initializer initializer,

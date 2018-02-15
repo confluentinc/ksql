@@ -74,7 +74,7 @@ public class KsqlRestConfig extends RestConfig {
               + "returning a response";
 
   public static final String
-          UI_EBABLED_CONFIG = "ui.enabled";
+          UI_ENABLED_CONFIG = "ui.enabled";
   public static final ConfigDef.Type
           UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
   public static final String
@@ -107,7 +107,7 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
     ).define(
-        UI_EBABLED_CONFIG,
+        UI_ENABLED_CONFIG,
         UI_ENABLED_TYPE,
         UI_ENABLED_DEFAULT,
         UI_ENABLED_IMPORTANCE,
@@ -151,6 +151,6 @@ public class KsqlRestConfig extends RestConfig {
   }
 
   public boolean isUiEnabled() {
-    return getBoolean(UI_EBABLED_CONFIG);
+    return getBoolean(UI_ENABLED_CONFIG);
   }
 }

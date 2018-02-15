@@ -38,7 +38,6 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -89,12 +88,9 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() throws Exception {
-
-    StreamsBuilder streamsBuilder = mock(StreamsBuilder.class);
+  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
-    MetastoreUtil metastoreUtil = mock(MetastoreUtil.class);
     FunctionRegistry functionRegistry = mock(FunctionRegistry.class);
 
     class RightTable extends PlanNode {
@@ -122,7 +118,6 @@ public class JoinNodeTest {
       @Override
       public SchemaKStream buildStream(StreamsBuilder builder, KsqlConfig ksqlConfig,
                                        KafkaTopicClient kafkaTopicClient,
-                                       MetastoreUtil metastoreUtil,
                                        FunctionRegistry functionRegistry,
                                        Map<String, Object> props,
                                        SchemaRegistryClient schemaRegistryClient) {
@@ -142,7 +137,7 @@ public class JoinNodeTest {
     JoinNode testJoinNode = new JoinNode(joinNode.getId(), joinNode.getType(), joinNode.getLeft()
         , rightTable, joinNode.getLeftKeyFieldName(), joinNode.getRightKeyFieldName(), joinNode
                                              .getLeftAlias(), joinNode.getRightAlias());
-    testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, metastoreUtil, functionRegistry,
+    testJoinNode.tableForJoin(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
                           new HashMap<>(), new MockSchemaRegistryClient());
 
   }
@@ -178,7 +173,6 @@ public class JoinNodeTest {
     return joinNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

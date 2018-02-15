@@ -44,7 +44,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -54,6 +53,7 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
 public class StructuredDataSourceNode
@@ -77,6 +77,7 @@ public class StructuredDataSourceNode
         }
         return row;
       };
+  private static final int FIRST_COLUMN_INDEX = 2;
 
   private final WindowedSerde windowedSerde = new WindowedSerde();
   private final StructuredDataSource structuredDataSource;
@@ -131,16 +132,14 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (getTimestampField() != null) {
-      int timestampColumnIndex = getTimeStampColumnIndex();
-      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, timestampColumnIndex);
+    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) == null) {
+      ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+          getTimeStampColumnIndex(FIRST_COLUMN_INDEX, getTimestampExtractionPolicy(), schema));
     }
-
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
     Serde<GenericRow> genericRowSerde =
@@ -194,33 +193,38 @@ public class StructuredDataSourceNode
     return null;
   }
 
-  private int getTimeStampColumnIndex() {
-    String timestampFieldName = getTimestampField().name();
+  static int getTimeStampColumnIndex(final int firstColumnIndex,
+                                     final TimestampExtractionPolicy extractionPolicy,
+                                     final Schema schema) {
+    final String timestampFieldName = extractionPolicy.timestampField();
+    if (timestampFieldName == null) {
+      return -1;
+    }
     if (timestampFieldName.contains(".")) {
-      for (int i = 2; i < schema.fields().size(); i++) {
+      for (int i = firstColumnIndex; i < schema.fields().size(); i++) {
         Field field = schema.fields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name())) {
-            return i - 2;
+            return i - firstColumnIndex;
           }
         } else {
           if (timestampFieldName
               .substring(timestampFieldName.indexOf(".") + 1)
               .equals(field.name())) {
-            return i - 2;
+            return i - firstColumnIndex;
           }
         }
       }
     } else {
-      for (int i = 2; i < schema.fields().size(); i++) {
+      for (int i = firstColumnIndex; i < schema.fields().size(); i++) {
         Field field = schema.fields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
-            return i - 2;
+            return i - firstColumnIndex;
           }
         } else {
           if (timestampFieldName.equals(field.name())) {
-            return i - 2;
+            return i - firstColumnIndex;
           }
         }
       }
@@ -268,7 +272,7 @@ public class StructuredDataSourceNode
     return structuredDataSource.getDataSourceType();
   }
 
-  public Field getTimestampField() {
-    return structuredDataSource.getTimestampField();
+  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+    return structuredDataSource.getTimestampExtractionPolicy();
   }
 }

@@ -34,12 +34,12 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
@@ -63,7 +63,7 @@ public class StructuredDataSourceNodeTest {
       new KsqlStream("sqlExpression", "datasource",
           schema,
           schema.field("key"),
-          schema.field("timestamp"),
+          new LongColumnTimestampExtractionPolicy("timestamp"),
           new KsqlTopic("topic", "topic",
               new KsqlJsonTopicSerDe())),
       schema);
@@ -78,14 +78,13 @@ public class StructuredDataSourceNodeTest {
     return node.buildStream(builder,
         ksqlConfig,
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }
 
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -94,7 +93,7 @@ public class StructuredDataSourceNodeTest {
   }
 
   @Test
-  public void shouldBuildMapNode() throws Exception {
+  public void shouldBuildMapNode() {
     verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), PlanTestUtil.MAPVALUES_NODE),
         Collections.singletonList(PlanTestUtil.SOURCE_NODE),
         Collections.singletonList(PlanTestUtil.TRANSFORM_NODE));
@@ -133,7 +132,7 @@ public class StructuredDataSourceNodeTest {
         new KsqlTable("sqlExpression", "datasource",
             schema,
             schema.field("field"),
-            schema.field("timestamp"),
+            new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe()),
             "statestore",

@@ -32,7 +32,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -41,13 +40,15 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+
+import static io.confluent.ksql.planner.plan.StructuredDataSourceNode.getTimeStampColumnIndex;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
-  private final Field timestampField;
   private final Map<String, Object> outputProperties;
 
 
@@ -56,17 +57,16 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
       @JsonProperty("schema") final Schema schema,
-      @JsonProperty("timestamp") final Field timestampField,
+      @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
       @JsonProperty("key") final Field keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String topicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
-      @JsonProperty("limit") final Optional<Integer> limit
-  ) {
-    super(id, source, schema, limit);
+      @JsonProperty("limit") final Optional<Integer> limit,
+      @JsonProperty("inputSchema") final Schema inputSchema) {
+    super(id, source, schema, limit, timestampExtractionPolicy, inputSchema);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
-    this.timestampField = timestampField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
   }
@@ -85,21 +85,25 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
+    final Map<String, Object> outputProperties = getOutputProperties();
+    final PlanNode source = getSource();
+    // timestamp is extracted from source
+    ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
+        getTimeStampColumnIndex(2, getTimestampExtractionPolicy(), getSourceSchema()));
 
-    final SchemaKStream schemaKStream = getSource().buildStream(
+    final SchemaKStream schemaKStream = source.buildStream(
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         props,
         schemaRegistryClient
     );
+
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
@@ -109,7 +113,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-    final Map<String, Object> outputProperties = getOutputProperties();
 
     if (outputProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
       ksqlConfig.put(
@@ -209,10 +212,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     kafkaTopicClient.createTopic(kafkaTopicName, numberOfPartitions, numberOfReplications);
   }
 
-  public Field getTimestampField() {
-    return timestampField;
-  }
-
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
@@ -230,25 +229,26 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private PlanNodeId id;
     private PlanNode source;
     private Schema schema;
-    private Field timestampField;
+    private TimestampExtractionPolicy timestampExtractionPolicy;
     private Field keyField;
     private KsqlTopic ksqlTopic;
     private String topicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
+    private Schema inputSchema;
 
     public KsqlStructuredDataOutputNode build() {
       return new KsqlStructuredDataOutputNode(
           id,
           source,
           schema,
-          timestampField,
+          timestampExtractionPolicy,
           keyField,
           ksqlTopic,
           topicName,
           outputProperties,
-          limit
-      );
+          limit,
+          inputSchema);
     }
 
     public static Builder from(final KsqlStructuredDataOutputNode original) {
@@ -256,12 +256,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withId(original.getId())
           .withSource(original.getSource())
           .withSchema(original.getSchema())
-          .withTimestampField(original.getTimestampField())
+          .withTimestampExtractionPolicy(original.getTimestampExtractionPolicy())
           .withKeyField(original.getKeyField())
           .withKsqlTopic(original.getKsqlTopic())
           .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
-          .withLimit(original.getLimit());
+          .withLimit(original.getLimit())
+          .withInputSchema(original.getSourceSchema());
+    }
+
+    private Builder withInputSchema(final Schema inputSchema) {
+      this.inputSchema = inputSchema;
+      return this;
     }
 
     Builder withLimit(final Optional<Integer> limit) {
@@ -289,8 +295,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withTimestampField(Field timestampField) {
-      this.timestampField = timestampField;
+    Builder withTimestampExtractionPolicy(final TimestampExtractionPolicy extractionPolicy) {
+      this.timestampExtractionPolicy = extractionPolicy;
       return this;
     }
 

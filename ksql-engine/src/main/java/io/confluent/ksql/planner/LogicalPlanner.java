@@ -16,12 +16,14 @@
 
 package io.confluent.ksql.planner;
 
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+import java.util.Map;
+
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -41,6 +43,8 @@ import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
 public class LogicalPlanner {
 
@@ -76,42 +80,41 @@ public class LogicalPlanner {
       currentNode = buildProjectNode(currentNode.getSchema(), currentNode);
     }
 
-    return buildOutputNode(currentNode.getSchema(), currentNode);
+    return buildOutputNode(analysis.getFromDataSource(0).left.getSchema(),
+        currentNode.getSchema(),
+        currentNode);
   }
 
-  private OutputNode buildOutputNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
+  private OutputNode buildOutputNode(final Schema sourceSchema,
+                                     final Schema inputSchema,
+                                     final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
+    final Map<String, Object> intoProperties = analysis.getIntoProperties();
+    final TimestampExtractionPolicy extractionPolicy =
+        TimestampExtractionPolicyFactory.create(sourceSchema,
+            (String) intoProperties.get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME),
+            (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
     if (intoDataSource instanceof KsqlStdOut) {
       return new KsqlBareOutputNode(
           new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME),
           sourcePlanNode,
           inputSchema,
-          analysis.getLimitClause()
-      );
+          analysis.getLimitClause(),
+          extractionPolicy,
+          sourceSchema);
     } else if (intoDataSource != null) {
-      Field timestampField = null;
-      if (analysis.getIntoProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-        timestampField =
-            SchemaUtil.getFieldByName(
-                inputSchema,
-                analysis.getIntoProperties()
-                    .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME)
-                    .toString()
-            ).get();
-      }
-
       return new KsqlStructuredDataOutputNode(
           new PlanNodeId(intoDataSource.getName()),
           sourcePlanNode,
           inputSchema,
-          timestampField,
+          extractionPolicy,
           sourcePlanNode.getKeyField(),
           intoDataSource.getKsqlTopic(),
           intoDataSource.getKsqlTopic().getTopicName(),
-          analysis.getIntoProperties(),
-          analysis.getLimitClause()
-      );
+          intoProperties,
+          analysis.getLimitClause(),
+          sourceSchema);
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");

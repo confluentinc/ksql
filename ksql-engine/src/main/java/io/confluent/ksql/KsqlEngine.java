@@ -346,7 +346,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               enforceTopicExistence),
           tempMetaStoreForParser
@@ -355,7 +354,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new CreateStreamCommand(
               statementString,
               (CreateStream) statement,
-              overriddenProperties,
               topicClient,
               enforceTopicExistence),
           tempMetaStore
@@ -366,7 +364,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               enforceTopicExistence),
           tempMetaStoreForParser
@@ -375,7 +372,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new CreateTableCommand(
               statementString,
               (CreateTable) statement,
-              overriddenProperties,
               topicClient,
               enforceTopicExistence),
           tempMetaStore

@@ -17,7 +17,6 @@ package io.confluent.ksql.physical;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -109,7 +108,6 @@ public class PhysicalPlanBuilderTest {
     return new PhysicalPlanBuilder(streamsBuilder,
         new KsqlConfig(configMap),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         functionRegistry,
         overrideProperties,
         false,

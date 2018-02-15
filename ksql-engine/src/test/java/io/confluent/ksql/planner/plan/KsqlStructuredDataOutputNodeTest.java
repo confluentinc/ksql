@@ -38,11 +38,11 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
@@ -74,7 +74,7 @@ public class KsqlStructuredDataOutputNodeTest {
       new KsqlStream("sqlExpression", "datasource",
           schema,
           schema.field("key"),
-          schema.field("timestamp"),
+          new LongColumnTimestampExtractionPolicy("timestamp"),
           new KsqlTopic("input", "input",
               new KsqlJsonTopicSerDe())),
       schema);
@@ -102,16 +102,17 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode = new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
         sourceNode,
         schema,
-        schema.field("timestamp"),
+        new LongColumnTimestampExtractionPolicy("timestamp"),
         schema.field("key"),
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
-        Optional.empty());
+        Optional.empty(),
+        schema);
   }
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -183,7 +184,6 @@ public class KsqlStructuredDataOutputNodeTest {
     return outputNode.buildStream(builder,
         ksqlConfig,
         topicClient,
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

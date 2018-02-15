@@ -34,7 +34,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -54,14 +53,12 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.timestamp.KsqlTimestampExtractor;
 
 public class PhysicalPlanBuilder {
 
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final KafkaTopicClient kafkaTopicClient;
-  private final MetastoreUtil metastoreUtil;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
@@ -73,7 +70,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -84,7 +80,6 @@ public class PhysicalPlanBuilder {
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
-    this.metastoreUtil = metastoreUtil;
     this.functionRegistry = functionRegistry;
     this.overriddenStreamsProperties = overriddenStreamsProperties;
     this.metaStore = metaStore;
@@ -97,7 +92,6 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final MetastoreUtil metastoreUtil,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
@@ -108,7 +102,6 @@ public class PhysicalPlanBuilder {
         builder,
         ksqlConfig,
         kafkaTopicClient,
-        metastoreUtil,
         functionRegistry,
         overriddenStreamsProperties,
         updateMetastore,
@@ -127,7 +120,6 @@ public class PhysicalPlanBuilder {
             builder,
             ksqlConfig,
             kafkaTopicClient,
-            metastoreUtil,
             functionRegistry,
             overriddenStreamsProperties,
             schemaRegistryClient
@@ -197,6 +189,7 @@ public class PhysicalPlanBuilder {
     ));
 
     KafkaStreams streams = buildStreams(
+        bareOutputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -240,7 +233,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.get(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
@@ -253,7 +246,7 @@ public class PhysicalPlanBuilder {
               outputNode.getId().toString(),
               outputNode.getSchema(),
               schemaKStream.getKeyField(),
-              outputNode.getTimestampField(),
+              outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic()
           );
 
@@ -267,6 +260,7 @@ public class PhysicalPlanBuilder {
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
     KafkaStreams streams = buildStreams(
+        outputNode,
         builder,
         applicationId,
         ksqlConfig,
@@ -318,7 +312,7 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
-      final StreamsBuilder builder,
+      OutputNode outputNode, final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
@@ -338,14 +332,9 @@ public class PhysicalPlanBuilder {
         StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
         ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
     );
-    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) != null) {
-      newStreamsProperties.put(
-          KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX)
-      );
-      newStreamsProperties.put(
-          StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, KsqlTimestampExtractor.class);
-    }
+
+    outputNode.getTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
+
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),

@@ -325,7 +325,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectLimit() throws Exception {
+  public void testSelectLimit() {
     TestResult.OrderedResult expectedResult = TestResult.build();
     Map<String, GenericRow> streamData = orderDataProvider.data();
     int limit = 3;
@@ -340,7 +340,7 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testSelectUDFs() throws Exception {
+  public void testSelectUDFs() {
     final String selectColumns =
         "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";

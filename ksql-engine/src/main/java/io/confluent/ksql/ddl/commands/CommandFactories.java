@@ -51,7 +51,6 @@ public class CommandFactories implements DDLCommandFactory {
         (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
             sqlExpression,
             (CreateStream) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )
@@ -61,7 +60,6 @@ public class CommandFactories implements DDLCommandFactory {
         (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
             sqlExpression,
             (CreateTable) ddlStatement,
-            properties,
             topicClient,
             enforceTopicExistence
         )

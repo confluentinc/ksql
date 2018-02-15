@@ -8,7 +8,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.IntegrationTest;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -75,8 +74,8 @@ public class StreamsSelectAndProjectIntTest {
     testTimestampColumnSelection("ORIGINALSTREAM_JSON",
                                  "TIMESTAMPSTREAM_JSON",
                                  jsonStreamName,
-                                 DataSource.DataSourceSerDe.JSON,
-                                 jsonRecordMetadataMap);
+                                 DataSource.DataSourceSerDe.JSON
+    );
   }
 
   @Test
@@ -85,8 +84,8 @@ public class StreamsSelectAndProjectIntTest {
     testTimestampColumnSelection("ORIGINALSTREAM_AVRO",
                                  "TIMESTAMPSTREAM_AVRO",
                                  avroStreamName,
-                                 DataSource.DataSourceSerDe.AVRO,
-                                 avroRecordMetadataMap);
+                                 DataSource.DataSourceSerDe.AVRO
+    );
   }
 
   @Test
@@ -169,16 +168,15 @@ public class StreamsSelectAndProjectIntTest {
   private void testTimestampColumnSelection(String stream1Name,
                                             String stream2Name,
                                             String inputStreamName,
-                                            DataSource.DataSourceSerDe dataSourceSerDe,
-                                            Map<String, RecordMetadata> recordMetadataMap)
+                                            DataSource.DataSourceSerDe dataSourceSerDe)
       throws Exception {
     final String query1String =
-        String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
-                      + "ROWTIME+10000 AS "
-                      + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+        String.format("CREATE STREAM %s WITH(timestamp='ORDERTIME') AS SELECT ORDERID,"
+                      + "ORDERTIME, ORDERTIME+10000 AS "
+                      + "RTIME, ORDERTIME+100 AS RT100, ITEMID "
                       + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
                       + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
-                      + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                      + "ROWTIME AS NEWRTIME, RTIME, RT100, ORDERID, ITEMID "
                       + "FROM %s ;", stream1Name,
                       inputStreamName, stream2Name, stream1Name);
 
@@ -187,15 +185,14 @@ public class StreamsSelectAndProjectIntTest {
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8",
-                        new GenericRow(Arrays.asList(null,
-                                                     null,
-                                                     "8",
-                                                     recordMetadataMap.get("8").timestamp() + 10000,
-                                                     "8",
-                                                     recordMetadataMap.get("8").timestamp() + 10000,
-                                                     recordMetadataMap.get("8").timestamp() + 100,
-                                                     "ORDER_6",
-                                                     "ITEM_8")));
+        new GenericRow(Arrays.asList(null,
+            null,
+            "8",
+            8,
+            8 + 10000,
+            8 + 100,
+            "ORDER_6",
+            "ITEM_8")));
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 

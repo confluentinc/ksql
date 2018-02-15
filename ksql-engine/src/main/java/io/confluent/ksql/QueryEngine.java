@@ -37,7 +37,6 @@ import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -124,9 +123,7 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getId().toString(),
               ksqlStructuredDataOutputNode.getSchema(),
               ksqlStructuredDataOutputNode.getKeyField(),
-              ksqlStructuredDataOutputNode.getTimestampField() == null
-              ? ksqlStructuredDataOutputNode.getTheSourceNode().getTimestampField()
-              : ksqlStructuredDataOutputNode.getTimestampField(),
+              ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
 
@@ -185,7 +182,6 @@ class QueryEngine {
         builder,
         ksqlConfigClone.cloneWithPropertyOverwrite(overriddenStreamsProperties),
         ksqlEngine.getTopicClient(),
-        new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
         overriddenStreamsProperties,
         updateMetastore,

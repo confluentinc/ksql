@@ -32,8 +32,6 @@ import static junit.framework.TestCase.fail;
 
 public abstract class TestRunner {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TestRunner.class);
-
   private static LocalCli localCli;
   private static TestTerminal testTerminal;
 

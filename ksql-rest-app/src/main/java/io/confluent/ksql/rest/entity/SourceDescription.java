@@ -37,6 +37,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @JsonTypeName("description")
 @JsonSubTypes({})
@@ -114,13 +115,12 @@ public class SourceDescription extends KsqlEntity {
         readQueries,
         writeQueries,
         dataSource.getSchema().fields().stream().map(
-            field -> {
-              return new FieldSchemaInfo(field.name(), SchemaUtil
-                  .getSchemaFieldName(field));
-            }).collect(Collectors.toList()),
+            field -> new FieldSchemaInfo(field.name(), SchemaUtil
+                .getSchemaFieldName(field))).collect(Collectors.toList()),
         dataSource.getDataSourceType().getKqlType(),
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
-        Optional.ofNullable(dataSource.getTimestampField()).map(Field::name).orElse(""),
+        Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
+            .map(TimestampExtractionPolicy::timestampField).orElse(""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), false) : ""),
         (extended ? MetricCollectors.getStatsFor(dataSource.getTopicName(), true) : ""),
         extended,
@@ -163,7 +163,8 @@ public class SourceDescription extends KsqlEntity {
         Collections.EMPTY_LIST,
         "QUERY",
         Optional.ofNullable(outputNode.getKeyField()).map(Field::name).orElse(""),
-        Optional.ofNullable(outputNode.getTimestampField()).map(Field::name).orElse(""),
+        Optional.ofNullable(outputNode.getTimestampExtractionPolicy())
+            .map(TimestampExtractionPolicy::timestampField).orElse(""),
         MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), false),
         MetricCollectors.getStatsFor(outputNode.getKafkaTopicName(), true),
         true,

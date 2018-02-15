@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.confluent.ksql.ddl.DdlConfig;
@@ -62,6 +63,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
 import static java.lang.String.format;
 
@@ -362,21 +364,26 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
   private StructuredDataSource timestampColumn(
       AliasedRelation aliasedRelation,
-      StructuredDataSource structuredDataSource
-  ) {
-    if (((Table) aliasedRelation.getRelation()).getProperties() != null) {
-      if (((Table) aliasedRelation.getRelation()).getProperties()
-              .get(DdlConfig.TIMESTAMP_NAME_PROPERTY) != null) {
-        String timestampFieldName = (((Table) aliasedRelation.getRelation()))
-            .getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!(timestampFieldName.startsWith("'") && timestampFieldName.endsWith("'"))) {
-          throw new KsqlException("Property name should be String with single qoute.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
-      }
+      StructuredDataSource structuredDataSource) {
+    final Map<String, Expression> properties
+        = ((Table) aliasedRelation.getRelation()).getProperties();
+
+    if (properties == null) {
+      return structuredDataSource;
     }
-    return structuredDataSource;
+
+    final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString()
+        : null;
+    final String timestampFormat = properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)
+        ? properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString()
+        : null;
+
+    return structuredDataSource.cloneWithTimeExtractionPolicy(
+        TimestampExtractionPolicyFactory.create(
+            structuredDataSource.getSchema(),
+            timestampName,
+            timestampFormat));
   }
 
   @Override
@@ -386,24 +393,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       throw new KsqlException(structuredDataSourceName + " does not exist.");
     }
 
-    StructuredDataSource structuredDataSource = metaStore.getSource(structuredDataSourceName);
-
-    if (((Table) node.getRelation()).getProperties() != null) {
-      if (((Table) node.getRelation()).getProperties().get(DdlConfig.TIMESTAMP_NAME_PROPERTY)
-          != null) {
-        String timestampFieldName = ((Table) node.getRelation()).getProperties()
-            .get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString().toUpperCase();
-        if (!timestampFieldName.startsWith("'") && !timestampFieldName.endsWith("'")) {
-          throw new KsqlException("Property name should be String with single qoute.");
-        }
-        timestampFieldName = timestampFieldName.substring(1, timestampFieldName.length() - 1);
-        structuredDataSource = structuredDataSource.cloneWithTimeField(timestampFieldName);
-      }
-    }
-
     Pair<StructuredDataSource, String> fromDataSource =
         new Pair<>(
-            structuredDataSource,
+            timestampColumn(node, metaStore.getSource(structuredDataSourceName)),
             node.getAlias()
         );
     analysis.addDataSource(fromDataSource);

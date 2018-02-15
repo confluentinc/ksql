@@ -59,6 +59,19 @@ CREATE TABLE error_counts AS
   GROUP BY error_code;
 ```
 
+# Latest news
+
+* [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
+  -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
+  aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place
+* [KSQL Dec 2017 release available](https://www.confluent.io/blog/ksql-december-release)
+  -- support for Avro and [Confluent Schema Registry](https://github.com/confluentinc/schema-registry); easy data
+  conversion between Avro, JSON, Delimited data; joining streams and tables across different data formats; operational
+  improvements (`DESCRIBE EXTENDED`, `EXPLAIN`, and new metrics); optimizations (faster server startup and recovery
+  times, better resource utilization)
+* [KSQL Nov 2017 release available](https://www.confluent.io/blog/november-update-ksql-developer-preview-available/)
+  -- focus on community-raised issues and requests (369 pull requests, 50 closed issues)
+
 
 # Documentation
 You can [find the KSQL documentation here](https://github.com/confluentinc/ksql/tree/v0.4/docs#ksql-documentation)

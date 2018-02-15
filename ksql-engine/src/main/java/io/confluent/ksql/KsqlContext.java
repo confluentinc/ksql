@@ -40,6 +40,7 @@ public class KsqlContext {
   private static final String APPLICATION_ID_OPTION_DEFAULT = "ksql_standalone_cli";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
   private final KafkaTopicClientImpl topicClient;
+  private Map<String, Object> overriddenProperties;
 
   public KsqlContext() {
     this(null);
@@ -51,7 +52,20 @@ public class KsqlContext {
    *
    * @param streamsProperties
    */
-  KsqlContext(Map<String, Object> streamsProperties) {
+  public KsqlContext(Map<String, Object> streamsProperties) {
+    this(streamsProperties, Collections.emptyMap());
+  }
+
+  /**
+   * Create a KSQL context object with the given properties.
+   * A KSQL context has it's own metastore valid during the life of the object.
+   *
+   * @param streamsProperties
+   * @param overriddenProperties properties set in the CLI
+   *
+   */
+  public KsqlContext(Map<String, Object> streamsProperties, Map<String, Object> overriddenProperties) {
+    this.overriddenProperties = overriddenProperties;
     if (streamsProperties == null) {
       streamsProperties = new HashMap<>();
     }
@@ -79,8 +93,7 @@ public class KsqlContext {
    * @throws Exception
    */
   public void sql(String sql) throws Exception {
-    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, Collections
-        .emptyMap());
+    List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(false, sql, overriddenProperties);
     for (QueryMetadata queryMetadata: queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;

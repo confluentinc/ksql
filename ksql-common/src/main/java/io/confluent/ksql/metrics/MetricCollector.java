@@ -66,4 +66,18 @@ interface MetricCollector extends ConsumerInterceptor, ProducerInterceptor {
   default double currentMessageConsumptionRate() {
     return 0;
   }
+
+  /**
+   * Get the total message consumption across all topics tracked by this collector.
+   */
+  default double totalMessageConsumption() {
+    return 0;
+  }
+
+  /**
+   * Get the total bytes consumed across all topics tracked by this collector.
+   */
+  default double totalBytesConsumption() {
+    return 0;
+  }
 }

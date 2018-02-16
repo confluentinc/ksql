@@ -130,6 +130,50 @@ public class MetricCollectorsTest {
   }
 
   @Test
+  public void shouldAggregateTotalMessageConsumptionAcrossAllConsumers() throws Exception {
+    ConsumerCollector collector1 = new ConsumerCollector();
+    collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
+
+    ConsumerCollector collector2 = new ConsumerCollector();
+    collector2.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client2"));
+    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
+          .CREATE_TIME,  1l, 10, 10,"key", "1234567890"));
+    }
+    records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
+    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    collector1.onConsume(consumerRecords);
+    collector2.onConsume(consumerRecords);
+
+    assertEquals(20, MetricCollectors.totalMessageConsumption(), 0);
+  }
+
+  @Test
+  public void shouldAggregateTotalBytesConsumptionAcrossAllConsumers() throws Exception {
+    ConsumerCollector collector1 = new ConsumerCollector();
+    collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
+
+    ConsumerCollector collector2 = new ConsumerCollector();
+    collector2.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client2"));
+    Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
+    List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
+    int totalSz = 0;
+    for (int i = 0; i < 10; i++) {
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
+          .CREATE_TIME,  1l, 5 + i, 10 + i, "key", "1234567890"));
+      totalSz += 15 + 2 * i;
+    }
+    records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
+    ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    collector1.onConsume(consumerRecords);
+    collector2.onConsume(consumerRecords);
+
+    assertEquals(2 * totalSz, MetricCollectors.totalBytesConsumption(), 0);
+  }
+
+  @Test
   public void shouldAggregateConsumptionStatsByQuery() throws Exception {
     ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));

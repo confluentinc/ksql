@@ -541,7 +541,8 @@ public class KsqlResource {
               statementText,
               (CreateStream) statement,
               properties,
-              ksqlEngine.getTopicClient()
+              ksqlEngine.getTopicClient(),
+              true
           );
       executeDDLCommand(createStreamCommand);
       return statement.toString();
@@ -553,7 +554,8 @@ public class KsqlResource {
               statementText,
               (CreateTable) statement,
               properties,
-              ksqlEngine.getTopicClient()
+              ksqlEngine.getTopicClient(),
+              true
           );
       executeDDLCommand(createTableCommand);
       return statement.toString();

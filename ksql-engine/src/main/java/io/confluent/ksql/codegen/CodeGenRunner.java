@@ -65,8 +65,7 @@ public class CodeGenRunner {
   public ExpressionMetadata buildCodeGenFromParseTree(
       final Expression expression
   ) throws Exception {
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, functionRegistry);
-    Map<String, Class> parameterMap = codeGenRunner.getParameterInfo(expression);
+    Map<String, Class> parameterMap = getParameterInfo(expression);
 
     String[] parameterNames = new String[parameterMap.size()];
     Class[] parameterTypes = new Class[parameterMap.size()];

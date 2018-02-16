@@ -25,6 +25,7 @@ import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
@@ -85,7 +86,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
-  public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -247,21 +248,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
 
     String commandTopic = restConfig.getCommandTopic();
-
-    try {
-      short replicationFactor = 1;
-      if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
-        replicationFactor = Short.parseShort(
-            restConfig
-                .getOriginals()
-                .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-                .toString()
-        );
-      }
-      topicClient.createTopic(commandTopic, 1, replicationFactor);
-    } catch (KafkaTopicException e) {
-      log.info("Command Topic Exists: " + e.getMessage());
-    }
+    createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -294,7 +281,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
             )
         ),
         Collections.emptyMap(),
-        ksqlEngine.getTopicClient()
+        ksqlEngine.getTopicClient(),
+        true
     ));
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
@@ -358,6 +346,40 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
         isUiEnabled,
         versionCheckerAgent
     );
+  }
+
+  static void createCommandTopicIfNecessary(final KsqlRestConfig restConfig,
+                                            final KafkaTopicClient topicClient,
+                                            final String commandTopic) {
+    if (topicClient.isTopicExists(commandTopic)) {
+      return;
+    }
+
+    try {
+      short replicationFactor = 1;
+      if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
+        replicationFactor = Short.parseShort(
+            restConfig
+                .getOriginals()
+                .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+                .toString()
+        );
+      }
+      if(replicationFactor < 2) {
+        log.warn("Creating topic %s with replication factor of %d which is less than 2. "
+            + "This is not advisable in a production environment. ", replicationFactor);
+      }
+
+      // for now we create the command topic with infinite retention so that we
+      // don't lose any data in case of fail over etc.
+      topicClient.createTopic(commandTopic,
+          1,
+          replicationFactor,
+          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
+              String.valueOf(Long.MAX_VALUE)));
+    } catch (KafkaTopicException e) {
+      log.info("Command Topic Exists: " + e.getMessage());
+    }
   }
 
   private static <T> Serializer<T> getJsonSerializer(boolean isKey) {

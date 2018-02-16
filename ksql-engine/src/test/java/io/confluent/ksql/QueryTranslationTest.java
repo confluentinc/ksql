@@ -83,6 +83,8 @@ public class QueryTranslationTest {
         new FakeKafkaTopicClient(),
         new MockSchemaRegistryClient(),
         metaStore);
+    ksqlEngine.getTopicClient().createTopic("test_topic", 1, (short) 1);
+    ksqlEngine.getTopicClient().createTopic("test_table", 1, (short) 1);
   }
 
   @After

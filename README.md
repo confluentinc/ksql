@@ -1,6 +1,6 @@
 # ![KSQL rocket](ksq-lrocket.png) KSQL - Streaming SQL for Apache Kafka
 
-> *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. Do not run KSQL against a production cluster.*
+> *Important: This release is a **developer preview** and is free and open-source from Confluent under the Apache 2.0 license. We do not yet recommend its use for production purposes. The planned GA release date for KSQL is March 2018.*
 
 KSQL is an open source streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
@@ -58,6 +58,19 @@ CREATE TABLE error_counts AS
   WHERE  type = 'ERROR'
   GROUP BY error_code;
 ```
+
+# Latest news
+
+* [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
+  -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
+  aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place
+* [KSQL Dec 2017 release available](https://www.confluent.io/blog/ksql-december-release)
+  -- support for Avro and [Confluent Schema Registry](https://github.com/confluentinc/schema-registry); easy data
+  conversion between Avro, JSON, Delimited data; joining streams and tables across different data formats; operational
+  improvements (`DESCRIBE EXTENDED`, `EXPLAIN`, and new metrics); optimizations (faster server startup and recovery
+  times, better resource utilization)
+* [KSQL Nov 2017 release available](https://www.confluent.io/blog/november-update-ksql-developer-preview-available/)
+  -- focus on community-raised issues and requests (369 pull requests, 50 closed issues)
 
 
 # Documentation

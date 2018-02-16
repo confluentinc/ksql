@@ -37,7 +37,8 @@ public class CommandFactories implements DDLCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final QueryTerminator queryTerminator
+      final QueryTerminator queryTerminator,
+      final boolean enforceTopicExistence
   ) {
     factories.put(
         RegisterTopic.class,
@@ -51,7 +52,8 @@ public class CommandFactories implements DDLCommandFactory {
             sqlExpression,
             (CreateStream) ddlStatement,
             properties,
-            topicClient
+            topicClient,
+            enforceTopicExistence
         )
     );
     factories.put(
@@ -60,7 +62,8 @@ public class CommandFactories implements DDLCommandFactory {
             sqlExpression,
             (CreateTable) ddlStatement,
             properties,
-            topicClient
+            topicClient,
+            enforceTopicExistence
         )
     );
     factories.put(

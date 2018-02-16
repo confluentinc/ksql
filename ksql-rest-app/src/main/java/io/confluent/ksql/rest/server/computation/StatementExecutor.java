@@ -106,7 +106,10 @@ public class StatementExecutor {
       Command command,
       CommandId commandId
   ) throws Exception {
-    handleStatementWithTerminatedQueries(command, commandId, null, false);
+    handleStatementWithTerminatedQueries(command,
+                                         commandId,
+                                         null,
+                                         false);
   }
 
   /**
@@ -274,9 +277,10 @@ public class StatementExecutor {
   }
 
   private void handleRunScript(Command command) throws Exception {
-    if (command.getStreamsProperties().containsKey(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
+
+    if (command.getStreamsProperties().containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queries =
-          (String) command.getStreamsProperties().get(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY);
+          (String) command.getStreamsProperties().get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
           command.getStreamsProperties()
@@ -290,6 +294,7 @@ public class StatementExecutor {
     } else {
       throw new KsqlException("No statements received for LOAD FROM FILE.");
     }
+
   }
 
   private String handleCreateAsSelect(

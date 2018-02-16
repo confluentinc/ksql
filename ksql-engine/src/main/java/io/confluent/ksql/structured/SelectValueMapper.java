@@ -47,6 +47,9 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   @Override
   public GenericRow apply(final GenericRow row) {
+    if (row == null) {
+      return row;
+    }
     final List<Object> newColumns = new ArrayList<>();
     for (int i = 0; i < expressionPairList.size(); i++) {
       try {

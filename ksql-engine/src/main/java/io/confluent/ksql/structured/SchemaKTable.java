@@ -20,12 +20,10 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.ValueMapper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,11 +79,10 @@ public class SchemaKTable extends SchemaKStream {
   ) {
     if (isWindowed) {
       ktable.toStream()
-          .map(
-              (KeyValueMapper<Windowed<String>, GenericRow, KeyValue<Windowed<String>,
-                  GenericRow>>) (key, row) -> {
+          .mapValues(
+              (ValueMapper<GenericRow, GenericRow>) row -> {
                 if (row == null) {
-                  return new KeyValue<>(key, null);
+                  return null;
                 }
                 List columns = new ArrayList();
                 for (int i = 0; i < row.getColumns().size(); i++) {
@@ -93,14 +90,14 @@ public class SchemaKTable extends SchemaKStream {
                     columns.add(row.getColumns().get(i));
                   }
                 }
-                return new KeyValue<>(key, new GenericRow(columns));
+                return new GenericRow(columns);
               }
           ).to(kafkaTopicName, Produced.with(new WindowedSerde(), topicValueSerDe));
     } else {
       ktable.toStream()
-          .map((KeyValueMapper<String, GenericRow, KeyValue<String, GenericRow>>) (key, row) -> {
+          .mapValues((ValueMapper<GenericRow, GenericRow>) row -> {
             if (row == null) {
-              return new KeyValue<>(key, null);
+              return null;
             }
             List columns = new ArrayList();
             for (int i = 0; i < row.getColumns().size(); i++) {
@@ -108,7 +105,7 @@ public class SchemaKTable extends SchemaKStream {
                 columns.add(row.getColumns().get(i));
               }
             }
-            return new KeyValue<>(key, new GenericRow(columns));
+            return new GenericRow(columns);
           }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
     }
 

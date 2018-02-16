@@ -64,6 +64,10 @@ public class SchemaKGroupedStream {
     this.quotedFieldNames = quotedFieldNames;
   }
 
+  public Field getKeyField() {
+    return keyField;
+  }
+
   @SuppressWarnings("unchecked")
   public SchemaKTable aggregate(
       final Initializer initializer,

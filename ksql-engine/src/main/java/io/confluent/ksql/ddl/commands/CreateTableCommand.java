@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
@@ -38,11 +39,16 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       String sqlExpression,
       CreateTable createTable,
       Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient
+      KafkaTopicClient kafkaTopicClient,
+      boolean enforceTopicExistence
   ) {
-    super(sqlExpression, createTable, overriddenProperties, kafkaTopicClient);
-    quotedNames = createTable.getQuotedNames();
+    super(sqlExpression,
+          createTable,
+          overriddenProperties,
+          kafkaTopicClient,
+          enforceTopicExistence);
 
+    quotedNames = createTable.getQuotedNames();
     Map<String, Expression> properties = createTable.getProperties();
 
     if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
@@ -70,8 +76,10 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sqlExpression,
         sourceName,
         schema,
-        (keyColumnName.length() == 0) ? null : schema.field(keyColumnName),
-        (timestampColumnName.length() == 0) ? null : schema.field(timestampColumnName),
+        (keyColumnName.length() == 0)
+          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        (timestampColumnName.length() == 0)
+          ? null : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
         metaStore.getTopic(topicName),
         stateStoreName, isWindowed,
         quotedNames

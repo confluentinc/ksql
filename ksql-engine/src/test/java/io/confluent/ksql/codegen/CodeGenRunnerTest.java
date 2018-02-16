@@ -50,7 +50,9 @@ public class CodeGenRunnerTest {
                 .field("TEST1.COL0", SchemaBuilder.INT64_SCHEMA)
                 .field("TEST1.COL1", SchemaBuilder.STRING_SCHEMA)
                 .field("TEST1.COL2", SchemaBuilder.STRING_SCHEMA)
-                .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA);
+                .field("TEST1.COL3", SchemaBuilder.FLOAT64_SCHEMA)
+                .field("TEST1.COL4", SchemaBuilder.INT32_SCHEMA)
+                .field("TEST1.COL5", SchemaBuilder.INT32_SCHEMA);
         codeGenRunner = new CodeGenRunner(schema, functionRegistry);
     }
 
@@ -61,6 +63,160 @@ public class CodeGenRunnerTest {
         Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore);
         analyzer.process(statements.get(0), new AnalysisContext(null));
         return analysis;
+    }
+
+    @Test
+    public void testBooleanExprEq() throws Exception {
+        String simpleQuery = "SELECT col4 = col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+    }
+
+    @Test
+    public void testBooleanExprNeq() throws Exception {
+        String simpleQuery = "SELECT col4 != col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+    }
+
+    @Test
+    public void testBooleanExprLessThan() throws Exception {
+        String simpleQuery = "SELECT col4 < col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+    }
+
+    @Test
+    public void testBooleanExprLessThanEq() throws Exception {
+        String simpleQuery = "SELECT col4 <= col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+    }
+
+    @Test
+    public void testBooleanExprGreaterThan() throws Exception {
+        String simpleQuery = "SELECT col4 > col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
+    }
+
+    @Test
+    public void testBooleanExprGreaterThanEq() throws Exception {
+        String simpleQuery = "SELECT col4 >= col5 FROM test1;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[0] == 5);
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes()[1] == 4);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(1), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(2)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertTrue((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(
+            new Object[]{new Integer(2), new Integer(1)});
+        Assert.assertTrue(result0 instanceof Boolean);
+        Assert.assertFalse((Boolean)result0);
     }
 
     @Test

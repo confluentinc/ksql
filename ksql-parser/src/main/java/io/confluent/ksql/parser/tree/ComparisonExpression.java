@@ -24,6 +24,8 @@ import static java.util.Objects.requireNonNull;
 public class ComparisonExpression
     extends Expression {
 
+  Integer foo;
+
   public enum Type {
     EQUAL("="),
     NOT_EQUAL("<>"),

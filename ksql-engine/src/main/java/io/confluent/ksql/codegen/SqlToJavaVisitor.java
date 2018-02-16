@@ -290,31 +290,41 @@ public class SqlToJavaVisitor {
     ) {
       Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
-      if ((left.getRight().type() == Schema.Type.STRING) || (
-          right.getRight().type() == Schema.Type.STRING
-        )) {
-        if ("=".equals(node.getType().getValue())) {
+      switch(node.getType()) {
+        case EQUAL:
           return new Pair<>(
               "(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
               Schema.BOOLEAN_SCHEMA
           );
-        } else if ("<>".equals(node.getType().getValue())) {
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
           return new Pair<>(
               " (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
               Schema.BOOLEAN_SCHEMA
           );
-        }
+        case GREATER_THAN:
+          return new Pair<>(
+              "(((Comparable)" + left.getLeft() + ").compareTo(" + right.getLeft() + ") > 0)",
+              Schema.BOOLEAN_SCHEMA
+          );
+        case GREATER_THAN_OR_EQUAL:
+          return new Pair<>(
+              "(((Comparable)" + left.getLeft() + ").compareTo(" + right.getLeft() + ") >= 0)",
+              Schema.BOOLEAN_SCHEMA
+          );
+        case LESS_THAN:
+          return new Pair<>(
+              "(((Comparable)" + left.getLeft() + ").compareTo(" + right.getLeft() + ") < 0)",
+              Schema.BOOLEAN_SCHEMA
+          );
+        case LESS_THAN_OR_EQUAL:
+          return new Pair<>(
+              "(((Comparable)" + left.getLeft() + ").compareTo(" + right.getLeft() + ") <= 0)",
+              Schema.BOOLEAN_SCHEMA
+          );
+        default:
+          throw new KsqlException("Unexpected comparison: " + node.getType().getValue());
       }
-      String typeStr = node.getType().getValue();
-      if ("=".equals(typeStr)) {
-        typeStr = "==";
-      } else if ("<>".equals(typeStr)) {
-        typeStr = "!=";
-      }
-      return new Pair<>(
-          "(" + left.getLeft() + " " + typeStr + " " + right.getLeft() + ")",
-          Schema.BOOLEAN_SCHEMA
-      );
     }
 
     @Override

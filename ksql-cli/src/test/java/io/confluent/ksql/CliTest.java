@@ -42,6 +42,7 @@ import java.util.*;
 
 import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.util.KsqlConfig.*;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -212,6 +213,21 @@ public class CliTest extends TestRunner {
   private static void selectWithLimit(String selectQuery, int limit, TestResult.OrderedResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
     test(selectQuery, expectedResults);
+  }
+
+  @Test
+  public void testPrint() throws InterruptedException {
+
+    Thread wait = new Thread(() -> {
+        CliTest.this.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false);
+    });
+
+    wait.start();
+    Thread.sleep(1000);
+    wait.interrupt();
+
+    String terminalOutput = terminal.getOutputString();
+    assertThat(terminalOutput, containsString("Format:JSON"));
   }
 
   @Test

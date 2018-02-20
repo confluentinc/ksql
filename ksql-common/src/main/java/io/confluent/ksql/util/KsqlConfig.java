@@ -72,6 +72,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
+  public static final boolean defaultAvroSchemaUnionNull = true;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;

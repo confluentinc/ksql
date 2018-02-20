@@ -311,8 +311,9 @@ public class CliTest extends TestRunner {
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
     expectedResults.put("8", new GenericRow(Arrays.asList(8, "ORDER_6",
-        "ITEM_8", 80.0, new
-            Double[]{1100.0,
+        "ITEM_8", 80.0,
+        "2018-01-08",
+        new Double[]{1100.0,
             1110.99,
             970.0 },
         mapField)));

@@ -4,6 +4,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -14,9 +16,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import sun.java2d.pipe.SpanShapeRenderer;
+
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -163,6 +169,21 @@ public class StreamsSelectAndProjectIntTest {
     testSelectWithFilter("BIGORDERS_AVRO1",
                          avroStreamName,
                          DataSource.DataSourceSerDe.AVRO);
+  }
+
+  @Test
+  public void shouldUseStringTimestampWithFormat() throws Exception {
+    final String outputStream = "STRING_TIMESTAMP";
+    ksqlContext.sql("CREATE STREAM STRING_TIMESTAMP WITH (timestamp='TIMESTAMP', timestamp_format='yyyy-MM-dd')"
+        + " AS SELECT ORDERID, TIMESTAMP FROM ORDERS_AVRO WHERE ITEMID='ITEM_6';");
+
+    final List<ConsumerRecord> records = testHarness.consumerRecords(outputStream,
+        1,
+        IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+
+    final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    final long timestamp = records.get(0).timestamp();
+    assertThat(timestamp, equalTo(dateFormat.parse("2018-01-06").getTime()));
   }
 
   private void testTimestampColumnSelection(String stream1Name,
@@ -323,7 +344,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void createOrdersStream() throws Exception {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
-                                  + "varchar, ORDERUNITS double, PRICEARRAY array<double>,"
+                                  + "varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>,"
                                   + " KEYVALUEMAP "
                                   + "map<varchar, double>) WITH (kafka_topic='%s', "
                                   + "value_format='JSON', key='ordertime');",
@@ -333,7 +354,7 @@ public class StreamsSelectAndProjectIntTest {
 
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
                                   + "varchar, "
-                                  + "ORDERUNITS double, PRICEARRAY array<double>, "
+                                  + "ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, "
                                   + "KEYVALUEMAP map<varchar, "
                                   + "double>) WITH (kafka_topic='%s', value_format='%s', "
                                   + "key='ordertime');",

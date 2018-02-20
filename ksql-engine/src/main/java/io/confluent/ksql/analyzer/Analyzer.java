@@ -63,6 +63,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
 import static java.lang.String.format;
@@ -553,7 +554,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
 
     if (node.getProperties().get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME) != null) {
-      setIntoTimestampColumn(node);
+      setIntoTimestampColumnAndFormat(node);
     }
 
     if (node.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
@@ -624,8 +625,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     }
   }
 
-  private void setIntoTimestampColumn(final Table node) {
-    String intoTimestampColumnName = node.getProperties()
+  private void setIntoTimestampColumnAndFormat(final Table node) {
+    final Map<String, Expression> properties = node.getProperties();
+    String intoTimestampColumnName = properties
         .get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME).toString().toUpperCase();
     if (!intoTimestampColumnName.startsWith("'") && !intoTimestampColumnName.endsWith("'")) {
       throw new KsqlException(
@@ -640,6 +642,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME,
         intoTimestampColumnName
     );
+
+    if (properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)) {
+      final String timestampFormat = StringUtil.cleanQuotes(
+          properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString());
+      analysis.getIntoProperties().put(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, timestampFormat);
+    }
+
   }
 
   private void validateWithClause(Set<String> withClauseVariables) {
@@ -651,6 +660,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
+    validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
 
     for (String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

@@ -34,12 +34,15 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import scala.Int;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 
 public class CodeGenRunnerTest {
 
@@ -109,7 +112,7 @@ public class CodeGenRunnerTest {
         return analysis;
     }
 
-    public boolean evalBooleanExpr(String queryFormat, int cola, int colb, Object values[])
+    private boolean evalBooleanExpr(String queryFormat, int cola, int colb, Object values[])
             throws Exception {
         String simpleQuery = String.format(queryFormat, cola, colb);
         Analysis analysis = analyzeQuery(simpleQuery);
@@ -119,8 +122,8 @@ public class CodeGenRunnerTest {
         Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 2);
         int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
         int idx1 = expressionEvaluatorMetadata0.getIndexes()[1];
-        Assert.assertTrue(idx0 == cola || idx0 == colb);
-        Assert.assertTrue(idx1 == cola || idx1 == colb);
+        Assert.assertThat(idx0, anyOf(equalTo(cola), equalTo(colb)));
+        Assert.assertThat(idx1, anyOf(equalTo(cola), equalTo(colb)));
         Assert.assertNotEquals(idx0, idx1);
         if (idx0 == colb) {
             Object tmp = values[0];
@@ -129,33 +132,93 @@ public class CodeGenRunnerTest {
         }
         Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 2);
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(values);
-        Assert.assertTrue(result0 instanceof Boolean);
+        assertThat(result0, instanceOf(Boolean.class));
         return (Boolean)result0;
     }
 
-    public boolean evalBooleanExprEq(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprEq(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d = col%d FROM CODEGEN_TEST;", cola, colb, values);
     }
 
-    public boolean evalBooleanExprNeq(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprNeq(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d != col%d FROM CODEGEN_TEST;", cola, colb, values);
     }
 
-    public boolean evalBooleanExprLessThan(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprIsDistinctFrom(int cola, int colb, Object values[]) throws Exception {
+        return evalBooleanExpr("SELECT col%d IS DISTINCT FROM col%d FROM CODEGEN_TEST;", cola, colb, values);
+    }
+
+    private boolean evalBooleanExprLessThan(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d < col%d FROM CODEGEN_TEST;", cola, colb, values);
     }
 
 
-    public boolean evalBooleanExprLessThanEq(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprLessThanEq(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d <= col%d FROM CODEGEN_TEST;", cola, colb, values);
     }
 
-    public boolean evalBooleanExprGreaterThan(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprGreaterThan(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d > col%d FROM CODEGEN_TEST;", cola, colb, values);
     }
 
-    public boolean evalBooleanExprGreaterThanEq(int cola, int colb, Object values[]) throws Exception {
+    private boolean evalBooleanExprGreaterThanEq(int cola, int colb, Object values[]) throws Exception {
         return evalBooleanExpr("SELECT col%d >= col%d FROM CODEGEN_TEST;", cola, colb, values);
+    }
+
+    @Test
+    public void testNullEquals() throws Exception {
+        Assert.assertFalse(evalBooleanExprEq(5, 0, new Object[]{null, 12344L}));
+        Assert.assertFalse(evalBooleanExprEq(5, 0, new Object[]{null, null}));
+    }
+
+    @Test
+    public void testIsDistinctFrom() throws Exception {
+        Assert.assertFalse(evalBooleanExprIsDistinctFrom(5, 0, new Object[]{12344, 12344L}));
+        Assert.assertTrue(evalBooleanExprIsDistinctFrom(5, 0, new Object[]{12345, 12344L}));
+        Assert.assertTrue(evalBooleanExprIsDistinctFrom(5, 0, new Object[]{null, 12344L}));
+        Assert.assertFalse(evalBooleanExprIsDistinctFrom(5, 0, new Object[]{null, null}));
+    }
+
+    @Test
+    public void testIsNull() throws Exception {
+        String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 1);
+        int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
+        Assert.assertEquals(idx0, 0);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 1);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
+        assertThat(result0, instanceOf(Boolean.class));
+        Assert.assertTrue((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
+        assertThat(result0, instanceOf(Boolean.class));
+        Assert.assertFalse((Boolean)result0);
+    }
+
+    @Test
+    public void testIsNotNull() throws Exception {
+        String simpleQuery = "SELECT col0 IS NOT NULL FROM CODEGEN_TEST;";
+        Analysis analysis = analyzeQuery(simpleQuery);
+
+        ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getSelectExpressions().get(0));
+        Assert.assertTrue(expressionEvaluatorMetadata0.getIndexes().length == 1);
+        int idx0 = expressionEvaluatorMetadata0.getIndexes()[0];
+        Assert.assertEquals(idx0, 0);
+        Assert.assertEquals(expressionEvaluatorMetadata0.getUdfs().length, 1);
+
+        Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
+        assertThat(result0, instanceOf(Boolean.class));
+        Assert.assertFalse((Boolean)result0);
+
+        result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
+        assertThat(result0, instanceOf(Boolean.class));
+        Assert.assertTrue((Boolean)result0);
     }
 
     @Test

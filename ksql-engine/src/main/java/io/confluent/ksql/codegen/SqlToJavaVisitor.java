@@ -287,7 +287,7 @@ public class SqlToJavaVisitor {
       switch(type) {
         case IS_DISTINCT_FROM:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
-              + "((((Object)%1$s) == null ) ^ ((((Object)%2$s) == null )) : ";
+              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
         default:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
       }

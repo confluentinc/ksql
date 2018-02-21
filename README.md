@@ -11,8 +11,8 @@ Click here to watch a screencast of the KSQL demo on YouTube.
 # Quick Start
 If you are ready to see the power of KSQL, try out these:
 
-- [KSQL Quick Start](https://github.com/confluentinc/ksql/tree/v0.4/docs/quickstart#quick-start): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-- [Clickstream Analysis Demo](https://github.com/confluentinc/ksql/tree/v0.4/ksql-clickstream-demo#clickstream-analysis): Shows how to build an application that performs real-time user analytics.
+- [KSQL Quick Start](https://github.com/confluentinc/ksql/tree/v0.5/docs/quickstart#quick-start): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
+- [Clickstream Analysis Demo](https://github.com/confluentinc/ksql/tree/v0.5/ksql-clickstream-demo#clickstream-analysis): Shows how to build an application that performs real-time user analytics.
 
 # Use Cases and Examples
 

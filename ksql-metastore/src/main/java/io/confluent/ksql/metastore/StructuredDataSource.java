@@ -91,6 +91,8 @@ public abstract class StructuredDataSource implements DataSource {
     return timestampExtractionPolicy;
   }
 
+  public abstract StructuredDataSource copy();
+
   public abstract StructuredDataSource cloneWithTimeKeyColumns();
 
   public abstract StructuredDataSource cloneWithTimeExtractionPolicy(

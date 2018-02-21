@@ -138,7 +138,7 @@ public class StructuredDataSourceNode
   ) {
     if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) == null) {
       ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          getTimeStampColumnIndex(FIRST_COLUMN_INDEX, getTimestampExtractionPolicy(), schema));
+          getTimestampColumnIndex(FIRST_COLUMN_INDEX, getTimestampExtractionPolicy(), schema));
     }
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
@@ -193,7 +193,7 @@ public class StructuredDataSourceNode
     return null;
   }
 
-  static int getTimeStampColumnIndex(final int firstColumnIndex,
+  static int getTimestampColumnIndex(final int firstColumnIndex,
                                      final TimestampExtractionPolicy extractionPolicy,
                                      final Schema schema) {
     final String timestampFieldName = extractionPolicy.timestampField();

@@ -101,8 +101,8 @@ public class LogicalPlanner {
           sourcePlanNode,
           inputSchema,
           analysis.getLimitClause(),
-          extractionPolicy,
-          sourceSchema);
+          extractionPolicy
+      );
     } else if (intoDataSource != null) {
       return new KsqlStructuredDataOutputNode(
           new PlanNodeId(intoDataSource.getName()),
@@ -113,8 +113,8 @@ public class LogicalPlanner {
           intoDataSource.getKsqlTopic(),
           intoDataSource.getKsqlTopic().getTopicName(),
           intoProperties,
-          analysis.getLimitClause(),
-          sourceSchema);
+          analysis.getLimitClause()
+      );
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");

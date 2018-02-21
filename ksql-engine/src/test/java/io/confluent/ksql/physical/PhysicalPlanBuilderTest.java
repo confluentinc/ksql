@@ -58,13 +58,14 @@ public class PhysicalPlanBuilderTest {
   private PhysicalPlanBuilder physicalPlanBuilder;
   private MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
   private LogicalPlanBuilder planBuilder;
+  private KsqlConfig ksqlConfig;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
     class Call {
       public StreamsBuilder builder;
       public StreamsConfig config;
-      public KafkaStreams kafkaStreams;
+      KafkaStreams kafkaStreams;
 
       private Call(StreamsBuilder builder, StreamsConfig config, KafkaStreams kafkaStreams) {
         this.builder = builder;
@@ -105,8 +106,9 @@ public class PhysicalPlanBuilderTest {
     configMap.put("commit.interval.ms", 0);
     configMap.put("cache.max.bytes.buffering", 0);
     configMap.put("auto.offset.reset", "earliest");
+    ksqlConfig = new KsqlConfig(configMap);
     return new PhysicalPlanBuilder(streamsBuilder,
-        new KsqlConfig(configMap),
+        ksqlConfig,
         new FakeKafkaTopicClient(),
         functionRegistry,
         overrideProperties,

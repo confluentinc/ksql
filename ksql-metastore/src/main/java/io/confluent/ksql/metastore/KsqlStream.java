@@ -45,6 +45,18 @@ public class KsqlStream extends StructuredDataSource {
   }
 
   @Override
+  public StructuredDataSource copy() {
+    return new KsqlStream(
+        sqlExpression,
+        dataSourceName,
+        schema,
+        keyField,
+        timestampExtractionPolicy,
+        ksqlTopic
+    );
+  }
+
+  @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KsqlStream(

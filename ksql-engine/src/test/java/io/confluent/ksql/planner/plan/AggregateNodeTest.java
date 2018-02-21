@@ -53,7 +53,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode()  {
     build();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());

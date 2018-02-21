@@ -42,7 +42,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
-import static io.confluent.ksql.planner.plan.StructuredDataSourceNode.getTimeStampColumnIndex;
+import static io.confluent.ksql.planner.plan.StructuredDataSourceNode.getTimestampColumnIndex;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
@@ -62,9 +62,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String topicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("inputSchema") final Schema inputSchema) {
-    super(id, source, schema, limit, timestampExtractionPolicy, inputSchema);
+      @JsonProperty("limit") final Optional<Integer> limit) {
+    super(id, source, schema, limit, timestampExtractionPolicy);
     this.kafkaTopicName = topicName;
     this.keyField = keyField;
     this.ksqlTopic = ksqlTopic;
@@ -93,7 +92,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final PlanNode source = getSource();
     // timestamp is extracted from source
     ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-        getTimeStampColumnIndex(2, getTimestampExtractionPolicy(), getSourceSchema()));
+        getTimestampColumnIndex(2, getTimestampExtractionPolicy(), getSourceSchema()));
 
     final SchemaKStream schemaKStream = source.buildStream(
         builder,
@@ -235,7 +234,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private String topicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
-    private Schema inputSchema;
 
     public KsqlStructuredDataOutputNode build() {
       return new KsqlStructuredDataOutputNode(
@@ -247,8 +245,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           ksqlTopic,
           topicName,
           outputProperties,
-          limit,
-          inputSchema);
+          limit
+      );
     }
 
     public static Builder from(final KsqlStructuredDataOutputNode original) {
@@ -261,14 +259,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withKsqlTopic(original.getKsqlTopic())
           .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
-          .withLimit(original.getLimit())
-          .withInputSchema(original.getSourceSchema());
+          .withLimit(original.getLimit());
     }
 
-    private Builder withInputSchema(final Schema inputSchema) {
-      this.inputSchema = inputSchema;
-      return this;
-    }
 
     Builder withLimit(final Optional<Integer> limit) {
       this.limit = limit;

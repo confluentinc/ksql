@@ -56,6 +56,20 @@ public class KsqlTable extends StructuredDataSource {
   }
 
   @Override
+  public StructuredDataSource copy() {
+    return new KsqlTable(
+        sqlExpression,
+        dataSourceName,
+        schema,
+        keyField,
+        timestampExtractionPolicy,
+        ksqlTopic,
+        stateStoreName,
+        isWindowed
+    );
+  }
+
+  @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
     return new KsqlTable(

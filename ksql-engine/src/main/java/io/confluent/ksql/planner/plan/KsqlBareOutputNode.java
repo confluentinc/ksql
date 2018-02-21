@@ -40,9 +40,8 @@ public class KsqlBareOutputNode extends OutputNode {
                             @JsonProperty("schema") final Schema schema,
                             @JsonProperty("limit") final Optional<Integer> limit,
                             @JsonProperty("timestampExtraction")
-                              final TimestampExtractionPolicy extractionPolicy,
-                            @JsonProperty("inputSchema") final Schema inputSchema) {
-    super(id, source, schema, limit, extractionPolicy, inputSchema);
+                              final TimestampExtractionPolicy extractionPolicy) {
+    super(id, source, schema, limit, extractionPolicy);
 
 
   }

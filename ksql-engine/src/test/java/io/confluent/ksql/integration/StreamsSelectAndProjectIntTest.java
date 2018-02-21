@@ -41,6 +41,7 @@ public class StreamsSelectAndProjectIntTest {
   private Map<String, RecordMetadata> avroRecordMetadataMap;
   private final String avroTopicName = "avroTopic";
   private final String avroStreamName = "orders_avro";
+  private final String avroTimestampStreamName = "orders_timestamp_avro";
   private OrderDataProvider dataProvider;
 
   @Before
@@ -184,6 +185,23 @@ public class StreamsSelectAndProjectIntTest {
     final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     final long timestamp = records.get(0).timestamp();
     assertThat(timestamp, equalTo(dateFormat.parse("2018-01-06").getTime()));
+  }
+
+  @Test
+  public void shouldUseTimestampExtractedFromDDLStatement() throws Exception {
+    final String outputStream = "DDL_TIMESTAMP";
+    ksqlContext.sql("CREATE STREAM "+  outputStream
+        + " AS SELECT ORDERID, TIMESTAMP FROM "
+        + avroTimestampStreamName
+        + " WHERE ITEMID='ITEM_4';");
+
+    final List<ConsumerRecord> records = testHarness.consumerRecords(outputStream,
+        1,
+        IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS);
+
+    final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    final long timestamp = records.get(0).timestamp();
+    assertThat(timestamp, equalTo(dateFormat.parse("2018-01-04").getTime()));
   }
 
   private void testTimestampColumnSelection(String stream1Name,
@@ -344,23 +362,33 @@ public class StreamsSelectAndProjectIntTest {
 
   private void createOrdersStream() throws Exception {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
-                                  + "varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>,"
-                                  + " KEYVALUEMAP "
-                                  + "map<varchar, double>) WITH (kafka_topic='%s', "
-                                  + "value_format='JSON', key='ordertime');",
-                                  jsonStreamName,
-                                  jsonTopicName,
-                                  DataSource.DataSourceSerDe.JSON.name()));
+            + "varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>,"
+            + " KEYVALUEMAP "
+            + "map<varchar, double>) WITH (kafka_topic='%s', "
+            + "value_format='JSON', key='ordertime');",
+        jsonStreamName,
+        jsonTopicName,
+        DataSource.DataSourceSerDe.JSON.name()));
 
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
-                                  + "varchar, "
-                                  + "ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, "
-                                  + "KEYVALUEMAP map<varchar, "
-                                  + "double>) WITH (kafka_topic='%s', value_format='%s', "
-                                  + "key='ordertime');",
-                                  avroStreamName,
-                                  avroTopicName,
-                                  DataSource.DataSourceSerDe.AVRO.name()));
+            + "varchar, "
+            + "ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, "
+            + "KEYVALUEMAP map<varchar, "
+            + "double>) WITH (kafka_topic='%s', value_format='%s', "
+            + "key='ordertime');",
+        avroStreamName,
+        avroTopicName,
+        DataSource.DataSourceSerDe.AVRO.name()));
+
+    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
+            + "varchar, "
+            + "ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, "
+            + "KEYVALUEMAP map<varchar, "
+            + "double>) WITH (kafka_topic='%s', value_format='%s', "
+            + "key='ordertime', timestamp='timestamp', timestamp_format='yyyy-MM-dd');",
+        avroTimestampStreamName,
+        avroTopicName,
+        DataSource.DataSourceSerDe.AVRO.name()));
   }
 
 }

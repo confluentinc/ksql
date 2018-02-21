@@ -64,7 +64,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
 import static java.lang.String.format;
 
@@ -206,15 +205,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (leftDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", leftSideName));
     }
-    leftDataSource = timestampColumn(left, leftDataSource);
 
     String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
     StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
     if (rightDataSource == null) {
       throw new KsqlException(format("Resource %s does not exist.", rightSideName));
     }
-
-    rightDataSource = timestampColumn(right, rightDataSource);
 
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
@@ -363,30 +359,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     return null;
   }
 
-  private StructuredDataSource timestampColumn(
-      AliasedRelation aliasedRelation,
-      StructuredDataSource structuredDataSource) {
-    final Map<String, Expression> properties
-        = ((Table) aliasedRelation.getRelation()).getProperties();
-
-    if (properties == null) {
-      return structuredDataSource;
-    }
-
-    final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
-        ? properties.get(DdlConfig.TIMESTAMP_NAME_PROPERTY).toString()
-        : null;
-    final String timestampFormat = properties.containsKey(DdlConfig.TIMESTAMP_FORMAT_PROPERTY)
-        ? properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString()
-        : null;
-
-    return structuredDataSource.cloneWithTimeExtractionPolicy(
-        TimestampExtractionPolicyFactory.create(
-            structuredDataSource.getSchema(),
-            timestampName,
-            timestampFormat));
-  }
-
   @Override
   protected Node visitAliasedRelation(AliasedRelation node, AnalysisContext context) {
     String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
@@ -396,7 +368,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     Pair<StructuredDataSource, String> fromDataSource =
         new Pair<>(
-            timestampColumn(node, metaStore.getSource(structuredDataSourceName)),
+            metaStore.getSource(structuredDataSourceName).copy(),
             node.getAlias()
         );
     analysis.addDataSource(fromDataSource);

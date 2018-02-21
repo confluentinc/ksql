@@ -49,6 +49,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
@@ -72,7 +75,7 @@ public class SchemaKStreamTest {
 
 
   @Test
-  public void testSelectSchemaKStream() throws Exception {
+  public void testSelectSchemaKStream() {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
@@ -153,7 +156,7 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testSelectKey() throws Exception {
+  public void testSelectKey() {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
@@ -163,7 +166,7 @@ public class SchemaKStreamTest {
     SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
                                                                             .getSchema().fields()
                                                                             .get(1));
-    Assert.assertTrue(rekeyedSchemaKStream.getKeyField().name().equalsIgnoreCase("TEST1.COL1"));
+    assertThat(rekeyedSchemaKStream.getKeyField().name(), equalTo("TEST1.COL1"));
 
   }
 

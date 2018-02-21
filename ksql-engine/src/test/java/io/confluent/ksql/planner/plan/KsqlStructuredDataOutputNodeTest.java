@@ -69,14 +69,15 @@ public class KsqlStructuredDataOutputNodeTest {
       .field("key", Schema.STRING_SCHEMA)
       .build();
 
+  private final KsqlStream dataSource = new KsqlStream("sqlExpression", "datasource",
+      schema,
+      schema.field("key"),
+      new LongColumnTimestampExtractionPolicy("timestamp"),
+      new KsqlTopic("input", "input",
+          new KsqlJsonTopicSerDe()));
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("sqlExpression", "datasource",
-          schema,
-          schema.field("key"),
-          new LongColumnTimestampExtractionPolicy("timestamp"),
-          new KsqlTopic("input", "input",
-              new KsqlJsonTopicSerDe())),
+      dataSource,
       schema);
 
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
@@ -107,8 +108,8 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTopic("output", "output", new KsqlJsonTopicSerDe()),
         "output",
         props,
-        Optional.empty(),
-        schema);
+        Optional.empty()
+    );
   }
 
   @Test

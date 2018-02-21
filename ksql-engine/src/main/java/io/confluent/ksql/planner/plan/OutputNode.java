@@ -25,6 +25,8 @@ import javax.annotation.concurrent.Immutable;
 import java.util.List;
 import java.util.Optional;
 
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 import static java.util.Objects.requireNonNull;
@@ -37,7 +39,6 @@ public abstract class OutputNode
   private final Schema schema;
   private final Optional<Integer> limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
-  private final Schema sourceSchema;
 
   @JsonCreator
   protected OutputNode(@JsonProperty("id") final PlanNodeId id,
@@ -45,19 +46,16 @@ public abstract class OutputNode
                        @JsonProperty("schema") final Schema schema,
                        @JsonProperty("limit") final Optional<Integer> limit,
                        @JsonProperty("timestamp_policy")
-                         final TimestampExtractionPolicy timestampExtractionPolicy,
-                       @JsonProperty("source_schema") final Schema sourceSchema) {
+                         final TimestampExtractionPolicy timestampExtractionPolicy) {
     super(id);
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");
-    requireNonNull(sourceSchema, "sourceSchema is null");
     requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy is null");
 
     this.source = source;
     this.schema = schema;
     this.limit = limit;
     this.timestampExtractionPolicy = timestampExtractionPolicy;
-    this.sourceSchema = sourceSchema;
   }
 
   @Override
@@ -65,8 +63,8 @@ public abstract class OutputNode
     return this.schema;
   }
 
-  public Schema getSourceSchema() {
-    return sourceSchema;
+  Schema getSourceSchema() {
+    return getTheSourceNode().getSchema();
   }
 
   @Override
@@ -89,6 +87,12 @@ public abstract class OutputNode
   }
 
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return timestampExtractionPolicy;
+    return timestampExtractionPolicy instanceof MetadataTimestampExtractionPolicy
+      ? getTheSourceNode().getTimestampExtractionPolicy()
+      : timestampExtractionPolicy;
+  }
+
+  public StructuredDataSource getDataSource() {
+    return getTheSourceNode().getStructuredDataSource();
   }
 }

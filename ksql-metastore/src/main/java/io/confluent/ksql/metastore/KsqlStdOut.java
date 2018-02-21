@@ -65,6 +65,11 @@ public class KsqlStdOut extends StructuredDataSource {
   }
 
   @Override
+  public StructuredDataSource copy() {
+    return this;
+  }
+
+  @Override
   public StructuredDataSource cloneWithTimeKeyColumns() {
     return this;
   }

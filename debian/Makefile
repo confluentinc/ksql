@@ -9,6 +9,9 @@ ifndef VERSION
 VERSION=$(shell grep version pom.xml | head -n 1 | awk -F'>|<' '{ print $$3 }')
 endif
 
+export JAVA_HOME=/opt/jdk/8
+export PATH=$JAVA_HOME/bin:$PATH
+
 export PACKAGE_TITLE=ksql
 export FULL_PACKAGE_TITLE=confluent-ksql
 export PACKAGE_NAME=$(FULL_PACKAGE_TITLE)-$(VERSION)
@@ -78,6 +81,10 @@ install: build
 	    $(INSTALL) -o root -g root -D $$svc $(DESTDIR)$(SYSTEMDDIR)/$$(basename $$svc) ; \
 	done
 	pushd "ksql-package/target/package-ksql-$(VERSION)-package" ; \
+	echo "*********************************" ;\
+	pwd ;\
+	find . ;\
+	echo "*********************************" ;\
 	find bin/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL_X) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ;\
 	find share/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ; \
 	pushd etc/ksql/ ; \

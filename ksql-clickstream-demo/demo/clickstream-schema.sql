@@ -26,7 +26,7 @@ CREATE TABLE events_per_min_ts AS SELECT rowTime AS event_ts, * FROM events_per_
 -- VIEW
 DROP TABLE events_per_min_max_avg;
 DROP TABLE events_per_min_max_avg_ts;
-CREATE TABLE events_per_min_max_avg AS SELECT userid, min(events) AS min, max(events) AS max, sum(events)/count(events) AS avg from events_per_min  WINDOW TUMBLING (size 10 second) GROUP BY userid;
+CREATE TABLE events_per_min_max_avg AS SELECT userid, min(events) AS min, max(events) AS max, sum(events)/count(events) AS avg from events_per_min WINDOW TUMBLING (size 60 second) GROUP BY userid;
 CREATE TABLE events_per_min_max_avg_ts AS SELECT rowTime AS event_ts, * FROM events_per_min_max_avg;
 
 
@@ -42,7 +42,7 @@ CREATE table clickstream_codes_ts AS SELECT rowTime AS event_ts, * FROM clickstr
 
 -- 4. BUILD PAGE_VIEWS
 DROP TABLE pages_per_min;
-CREATE TABLE pages_per_min AS SELECT userid, count(*) AS pages FROM clickstream WINDOW HOPPING (size 10 second, advance by 5 second) WHERE request like '%html%' GROUP BY userid ;
+CREATE TABLE pages_per_min AS SELECT userid, count(*) AS pages FROM clickstream WINDOW HOPPING (size 60 second, advance by 5 second) WHERE request like '%html%' GROUP BY userid ;
 
  -- Add _TS for Timeseries storage
 DROP TABLE pages_per_min_ts;
@@ -63,7 +63,7 @@ CREATE TABLE ERRORS_PER_MIN_ALERT_TS AS SELECT rowTime AS event_ts, * FROM ERROR
 
 
 DROP TABLE ERRORS_PER_MIN;
-CREATE table ERRORS_PER_MIN AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 10 second, advance by 5  second) WHERE status > 400 GROUP BY status;
+CREATE table ERRORS_PER_MIN AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 60 second, advance by 5  second) WHERE status > 400 GROUP BY status;
 DROP TABLE ERRORS_PER_MIN_TS;
 CREATE TABLE ERRORS_PER_MIN_TS AS SELECT rowTime AS event_ts, * FROM ERRORS_PER_MIN;
 

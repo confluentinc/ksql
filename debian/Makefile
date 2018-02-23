@@ -11,6 +11,7 @@ endif
 
 export JAVA_HOME=/opt/jdk/8
 export PATH=$JAVA_HOME/bin:$PATH
+export APPLY_PATCHES=no
 
 export PACKAGE_TITLE=ksql
 export FULL_PACKAGE_TITLE=confluent-ksql

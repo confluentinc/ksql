@@ -107,7 +107,7 @@ The WITH clause supports the following properties:
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`|
 | KEY                     | Associates the message key in the Kafka topic with a column in the KSQL stream. |
-| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
+| TIMESTAMP               | Associates a field within the message value in the Kafka topic with the `ROWTIME` column in the KSQL stream. If not supplied, the timestamp of the Kafka messages will be used. Time-based operations such as windowing will process a record according to the timestamp in `ROWTIME`. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
@@ -153,7 +153,7 @@ The WITH clause supports the following properties:
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`. |
 | KEY          (required) | Associates the message key in the Kafka topic with a column in the KSQL table. |
-| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+| TIMESTAMP               | Associates a field within the message value in the Kafka topic with the `ROWTIME` column in the KSQL table. If not supplied, the timestamp of the Kafka messages will be used. Time-based operations such as windowing will process a record according to the timestamp in `ROWTIME`. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
@@ -195,7 +195,7 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
-| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL stream. Time-based operations such as windowing will process a record according to this timestamp. |
+| TIMESTAMP               | Associates a field within the source stream with the timestamp of messages produced to Kafka. If not supplied, the `ROWTIME` of the source stream will be used. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 
@@ -230,7 +230,7 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic.  Supported formats: `JSON`, `DELIMITED`, and `AVRO`.  If this property is not set, then the format of the input stream/table will be used. |
 | PARTITIONS              | The number of partitions in the topic.  If this property is not set, then the number of partitions of the input stream/table will be used. |
 | REPLICAS                | The replication factor for the topic.  If this property is not set, then the number of replicas of the input stream/table will be used. |
-| TIMESTAMP               | Associates the message timestamp in the Kafka topic with a column in the KSQL table. Time-based operations such as windowing will process a record according to this timestamp. |
+| TIMESTAMP               | Associates a field within source the stream or table with the timestamp of messages produced to Kafka. If not supplied, the `ROWTIME` of the source will be used. |
 
 Using Avro requires Confluent Schema Registry and setting `ksql.schema.registry.url` in the KSQL configuration file.
 Also since KSQL column names are case insensitive, avro field names will be considered case insensitive in KSQL.

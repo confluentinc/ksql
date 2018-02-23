@@ -68,14 +68,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicatonFactor,
+      final short replicationFactor,
       final Map<String, String> configs
   ) {
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicatonFactor);
+      validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
-    NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
+    NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
     newTopic.configs(configs);
     try {
       log.info("Creating topic '{}'", topic);
@@ -89,7 +89,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         // if the topic already exists, it is most likely because another node just created it.
         // ensure that it matches the partition count and replication factor before returning
         // success
-        validateTopicProperties(topic, numPartitions, replicatonFactor);
+        validateTopicProperties(topic, numPartitions, replicationFactor);
         return;
       }
       throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic" + topic,
@@ -209,12 +209,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     this.adminClient.close();
   }
 
-  private void validateTopicProperties(String topic, int numPartitions, short replicatonFactor) {
+  private void validateTopicProperties(String topic, int numPartitions, short replicationFactor) {
     Map<String, TopicDescription> topicDescriptions =
         describeTopics(Collections.singletonList(topic));
     TopicDescription topicDescription = topicDescriptions.get(topic);
     if (topicDescription.partitions().size() != numPartitions
-        || topicDescription.partitions().get(0).replicas().size() < replicatonFactor) {
+        || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
           "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
           + "v %d",
@@ -222,7 +222,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           topicDescription.partitions().size(),
           numPartitions,
           topicDescription.partitions().get(0).replicas().size(),
-          replicatonFactor
+          replicationFactor
       ));
     }
     // Topic with the partitons and replicas exists, reuse it!
@@ -231,7 +231,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         + "exists",
         topic,
         numPartitions,
-        replicatonFactor
+        replicationFactor
     );
   }
 

@@ -81,11 +81,11 @@ install: build
 	for svc in debian/*.service ; do \
 	    $(INSTALL) -o root -g root -D $$svc $(DESTDIR)$(SYSTEMDDIR)/$$(basename $$svc) ; \
 	done
+	echo "*********************************"
+	pwd
+	find .
+	echo "*********************************"
 	pushd "ksql-package/target/package-ksql-$(VERSION)-package" ; \
-	echo "*********************************" ;\
-	pwd ;\
-	find . ;\
-	echo "*********************************" ;\
 	find bin/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL_X) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ;\
 	find share/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ; \
 	pushd etc/ksql/ ; \
@@ -98,10 +98,10 @@ clean:
 	rm -rf RPM_BUILDING
 
 distclean:
-    echo "*********************************++++++"
+    echo "*****************************++++++"
 	which rm
 	git status --ignored --porcelain
-	echo "*********************************++++++"
+	echo "*****************************++++++"
     clean
 	git reset --hard HEAD
 	git status --ignored --porcelain | cut -d ' ' -f 2 | xargs rm -rf

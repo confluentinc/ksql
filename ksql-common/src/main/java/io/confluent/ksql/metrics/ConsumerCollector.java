@@ -115,7 +115,7 @@ public class ConsumerCollector implements MetricCollector {
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
     synchronized (this.metrics) {
-      addSensor(key, "messages-per-sec", new Rate(), sensors, false);
+      addSensor(key, "c-messages-per-sec", new Rate(), sensors, false);
       addSensor(key, "c-total-messages", new Total(), sensors, false);
       addSensor(key, "c-failed-messages", new Total(), sensors, true);
       addSensor(key, "c-total-message-bytes", new Total(), sensors, false,
@@ -200,7 +200,7 @@ public class ConsumerCollector implements MetricCollector {
 
     return allStats
         .stream()
-        .filter(stat -> stat.name().contains("messages-per-sec"))
+        .filter(stat -> stat.name().contains("c-messages-per-sec"))
         .mapToDouble(TopicSensors.Stat::getValue)
         .sum();
   }

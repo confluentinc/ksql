@@ -38,7 +38,7 @@ public class ConsumerCollectorTest {
     Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC, false);
     assertNotNull(stats);
 
-    assertThat( stats.toString(), containsString("name=messages-per-sec,"));
+    assertThat( stats.toString(), containsString("name=c-messages-per-sec,"));
     assertThat( stats.toString(), containsString("total-messages, value=100.0"));
   }
 }

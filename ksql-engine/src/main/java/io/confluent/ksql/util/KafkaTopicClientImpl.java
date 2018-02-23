@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,29 +72,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final Map<String, String> configs
   ) {
     if (isTopicExists(topic)) {
-      Map<String, TopicDescription> topicDescriptions =
-          describeTopics(Collections.singletonList(topic));
-      TopicDescription topicDescription = topicDescriptions.get(topic);
-      if (topicDescription.partitions().size() != numPartitions
-          || topicDescription.partitions().get(0).replicas().size() < replicatonFactor) {
-        throw new KafkaTopicException(String.format(
-            "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
-            + "v %d",
-            topic,
-            topicDescription.partitions().size(),
-            numPartitions,
-            topicDescription.partitions().get(0).replicas().size(),
-            replicatonFactor
-        ));
-      }
-      // Topic with the partitons and replicas exists, reuse it!
-      log.debug(
-          "Did not create topic {} with {} partitions and replication-factor {} since it already "
-          + "exists",
-          topic,
-          numPartitions,
-          replicatonFactor
-      );
+      validateTopicProperties(topic, numPartitions, replicatonFactor);
       return;
     }
     NewTopic newTopic = new NewTopic(topic, numPartitions, replicatonFactor);
@@ -102,11 +81,19 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       log.info("Creating topic '{}'", topic);
       adminClient.createTopics(Collections.singleton(newTopic)).all().get();
 
-    } catch (InterruptedException | ExecutionException e) {
+    } catch (InterruptedException e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to guarantee existence of topic " + topic,
-          e
-      );
+          "Failed to guarantee existence of topic " + topic, e);
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof TopicExistsException) {
+        // if the topic already exists, it is most likely because another node just created it.
+        // ensure that it matches the partition count and replication factor before returning
+        // success
+        validateTopicProperties(topic, numPartitions, replicatonFactor);
+        return;
+      }
+      throw new KafkaResponseGetFailedException("Failed to guarantee existence of topic" + topic,
+                                                e);
     }
   }
 
@@ -220,6 +207,32 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   public void close() {
     this.adminClient.close();
+  }
+
+  private void validateTopicProperties(String topic, int numPartitions, short replicatonFactor) {
+    Map<String, TopicDescription> topicDescriptions =
+        describeTopics(Collections.singletonList(topic));
+    TopicDescription topicDescription = topicDescriptions.get(topic);
+    if (topicDescription.partitions().size() != numPartitions
+        || topicDescription.partitions().get(0).replicas().size() < replicatonFactor) {
+      throw new KafkaTopicException(String.format(
+          "Topic '%s' does not conform to the requirements Partitions:%d v %d. Replication: %d "
+          + "v %d",
+          topic,
+          topicDescription.partitions().size(),
+          numPartitions,
+          topicDescription.partitions().get(0).replicas().size(),
+          replicatonFactor
+      ));
+    }
+    // Topic with the partitons and replicas exists, reuse it!
+    log.debug(
+        "Did not create topic {} with {} partitions and replication-factor {} since it already "
+        + "exists",
+        topic,
+        numPartitions,
+        replicatonFactor
+    );
   }
 
 }

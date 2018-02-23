@@ -99,6 +99,10 @@ clean:
 
 distclean: clean
 	git reset --hard HEAD
+	echo "*********************************++++++"
+	which rm
+	git status --ignored --porcelain
+	echo "*********************************++++++"
 	git status --ignored --porcelain | cut -d ' ' -f 2 | xargs rm -rf
 
 test:

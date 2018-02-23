@@ -97,12 +97,13 @@ clean:
 	rm -rf $(FULL_PACKAGE_TITLE)-$(RPM_VERSION)*rpm
 	rm -rf RPM_BUILDING
 
-distclean: clean
-	git reset --hard HEAD
-	echo "*********************************++++++"
+distclean:
+    echo "*********************************++++++"
 	which rm
 	git status --ignored --porcelain
 	echo "*********************************++++++"
+    clean
+	git reset --hard HEAD
 	git status --ignored --porcelain | cut -d ' ' -f 2 | xargs rm -rf
 
 test:

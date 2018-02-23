@@ -24,8 +24,16 @@ When submitting a pull request (PR), use the following guidelines:
 
 2. Clone your fork of the GitHub repository, replacing `<username>` with your GitHub username.
 
+   use ssh(recommended)
+
    ```bash
    git clone git@github.com:<username>/ksql.git
+   ```
+
+   or https
+
+   ```bash
+   git clone https://github.com/<username>/ksql.git
    ```
 
 3. Add a remote to keep up with upstream changes.

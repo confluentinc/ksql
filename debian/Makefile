@@ -89,9 +89,9 @@ install: build
 
 
 clean:
-    echo "============555555===================="
-    which rm
-    echo "============555555===================="
+	echo "============555555===================="
+	which rm
+	echo "============555555===================="
 	rm -rf $(CURDIR)/$(PACKAGE_NAME)*
 	rm -rf $(FULL_PACKAGE_TITLE)-$(RPM_VERSION)*rpm
 	rm -rf RPM_BUILDING

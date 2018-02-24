@@ -22,11 +22,13 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.rest.RestConfig;
 
 
 public class KsqlRestApplicationTest {
@@ -36,6 +38,10 @@ public class KsqlRestApplicationTest {
   private final Map<String, String> commandTopicConfig = Collections.singletonMap(
       TopicConfig.RETENTION_MS_CONFIG,
       String.valueOf(Long.MAX_VALUE));
+  private final KsqlRestConfig restConfig =
+      new KsqlRestConfig(
+          Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
+          "http://localhost:8080"));
 
   @Test
   public void shouldCreateCommandTopicIfItDoesntExist() {
@@ -46,7 +52,7 @@ public class KsqlRestApplicationTest {
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
-    KsqlRestApplication.createCommandTopicIfNecessary(new KsqlRestConfig(Collections.emptyMap()),
+    KsqlRestApplication.createCommandTopicIfNecessary(restConfig,
         topicClient,
         COMMAND_TOPIC);
 
@@ -60,13 +66,14 @@ public class KsqlRestApplicationTest {
 
     EasyMock.replay(topicClient);
 
-    KsqlRestApplication.createCommandTopicIfNecessary(new KsqlRestConfig(Collections.emptyMap()),
+    KsqlRestApplication.createCommandTopicIfNecessary(restConfig,
         topicClient,
         COMMAND_TOPIC);
 
     EasyMock.verify(topicClient);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateCommandTopicWithNumReplicasFromConfig() {
     topicClient.createTopic(COMMAND_TOPIC,
@@ -78,7 +85,10 @@ public class KsqlRestApplicationTest {
 
     KsqlRestApplication.createCommandTopicIfNecessary(
         new KsqlRestConfig(
-            Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, 3)),
+            new HashMap(){{
+              put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+              put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, 3);
+            }}),
         topicClient,
         COMMAND_TOPIC);
 
@@ -95,7 +105,7 @@ public class KsqlRestApplicationTest {
     EasyMock.expectLastCall().andThrow(new KafkaTopicException("blah"));
     EasyMock.replay(topicClient);
 
-    KsqlRestApplication.createCommandTopicIfNecessary(new KsqlRestConfig(Collections.emptyMap()),
+    KsqlRestApplication.createCommandTopicIfNecessary(restConfig,
         topicClient,
         COMMAND_TOPIC);
 

@@ -251,6 +251,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     T executeWithRetries(Supplier<KafkaFuture<T>> supplier) throws  InterruptedException,
                                                                     ExecutionException {
       int retries = 0;
+      Exception lastException = null;
       while (retries < NUM_RETRIES) {
         try {
           if (retries != 0) {
@@ -262,14 +263,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
             retries++;
             log.info("Retrying admin request due to retriable exception. Retry no: "
                      + retries, e);
+            lastException = e;
           } else {
             throw e;
           }
         }
       }
-      throw new ExecutionException(
-          new RuntimeException("Could not complete admin operation even after "
-                               + NUM_RETRIES + " retries"));
+      throw new ExecutionException(lastException);
     }
   }
 

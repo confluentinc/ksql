@@ -10,9 +10,9 @@
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kafka-ksql-package</artifactId>
+    <artifactId>ksql-package</artifactId>
     <packaging>pom</packaging>
-    <name>kafka-ksql-package</name>
+    <name>ksql-package</name>
 
     <!-- Dependencies are required only to ensure this module is built last. -->
     <dependencies>

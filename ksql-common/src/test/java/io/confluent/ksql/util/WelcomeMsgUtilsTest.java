@@ -68,7 +68,7 @@ public class WelcomeMsgUtilsTest {
   }
 
   @Test
-  public void shouldOutputShortWelcomeMessageIfConsoleIsWideEnough() {
+  public void shouldOutputShortWelcomeMessageIfConsoleNotWideEnough() {
     // When:
     WelcomeMsgUtils.displayWelcomeMessage(35, realPrintWriter);
 

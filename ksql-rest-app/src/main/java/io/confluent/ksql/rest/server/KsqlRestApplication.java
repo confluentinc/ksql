@@ -436,7 +436,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       writer.println();
 
       if (isUiEnabled) {
-        writer.println("Tp access the UI, point your browser at:");
+        writer.println("To access the UI, point your browser at:");
         writer.printf(listener + "/index.html");
         writer.println();
       }

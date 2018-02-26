@@ -253,7 +253,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       int retries = 0;
       while (retries < NUM_RETRIES) {
         try {
-          if (0 < retries) {
+          if (retries != 0) {
             Thread.sleep(RETRY_BACKOFF_MS);
           }
           return supplier.get().get();

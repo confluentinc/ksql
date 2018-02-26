@@ -53,13 +53,6 @@ ifeq ($(APPLY_PATCHES),yes)
 endif
 
 build: apply-patches
-@echo "HELLO THERE"
-@echo $(PATH)
-JAVA_HOME=/opt/jdk/8
-PATH=/opt/jdk/8/bin:${PATH}
-@echo $(JAVA_HOME)
-@echo $(PATH)
-@echo "BY THERE"
 ifeq ($(SKIP_TESTS),yes)
 	mvn -DskipTests=true install
 else

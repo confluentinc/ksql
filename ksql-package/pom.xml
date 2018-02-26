@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>ksql-parent</artifactId>
+        <artifactId>kafka-ksql-parent</artifactId>
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>package-ksql</artifactId>
+    <artifactId>kafka-ksql-package</artifactId>
     <packaging>pom</packaging>
-    <name>ksql-package</name>
+    <name>kafka-ksql-package</name>
 
     <!-- Dependencies are required only to ensure this module is built last. -->
     <dependencies>
@@ -96,49 +96,49 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>${exec-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>create-licenses</id>
-                        <configuration>
-                            <mainClass>io.confluent.licenses.LicenseFinder</mainClass>
-                            <arguments>
-                                <!-- Note use of development instead of package so we pick up all dependencies.
-                                     This assumes both subprojects will be packaged together. -->
-                                <argument>-o ${project.parent.basedir}/licenses/overrides</argument>
-                                <argument>-f</argument>
-                                <argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses.html</argument>
-                                <argument>-l ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses</argument>
-                                <argument>-n ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/notices</argument>
-                                <argument>-t ${project.name}</argument>
-                                <argument>-x connect-api-${kafka.version},connect-json-${kafka.version}.jar,connect-runtime-${kafka.version}.jar,control-center-${project.version}.jar,licenses-${licenses.version}.jar</argument>
-                            </arguments>
-                        </configuration>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <includeProjectDependencies>true</includeProjectDependencies>
-                    <includePluginDependencies>true</includePluginDependencies>
-                    <executableDependency>
-                        <groupId>io.confluent</groupId>
-                        <artifactId>licenses</artifactId>
-                    </executableDependency>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>io.confluent</groupId>
-                        <artifactId>licenses</artifactId>
-                        <version>${licenses.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.codehaus.mojo</groupId>-->
+                <!--<artifactId>exec-maven-plugin</artifactId>-->
+                <!--<version>${exec-maven-plugin.version}</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>create-licenses</id>-->
+                        <!--<configuration>-->
+                            <!--<mainClass>io.confluent.licenses.LicenseFinder</mainClass>-->
+                            <!--<arguments>-->
+                                <!--&lt;!&ndash; Note use of development instead of package so we pick up all dependencies.-->
+                                     <!--This assumes both subprojects will be packaged together. &ndash;&gt;-->
+                                <!--<argument>-o ${project.parent.basedir}/licenses/overrides</argument>-->
+                                <!--<argument>-f</argument>-->
+                                <!--<argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses.html</argument>-->
+                                <!--<argument>-l ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses</argument>-->
+                                <!--<argument>-n ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/notices</argument>-->
+                                <!--<argument>-t ${project.name}</argument>-->
+                                <!--<argument>-x connect-api-${kafka.version},connect-json-${kafka.version}.jar,connect-runtime-${kafka.version}.jar,control-center-${project.version}.jar,licenses-${licenses.version}.jar</argument>-->
+                            <!--</arguments>-->
+                        <!--</configuration>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>java</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--<includeProjectDependencies>true</includeProjectDependencies>-->
+                    <!--<includePluginDependencies>true</includePluginDependencies>-->
+                    <!--<executableDependency>-->
+                        <!--<groupId>io.confluent</groupId>-->
+                        <!--<artifactId>licenses</artifactId>-->
+                    <!--</executableDependency>-->
+                <!--</configuration>-->
+                <!--<dependencies>-->
+                    <!--<dependency>-->
+                        <!--<groupId>io.confluent</groupId>-->
+                        <!--<artifactId>licenses</artifactId>-->
+                        <!--<version>${licenses.version}</version>-->
+                    <!--</dependency>-->
+                <!--</dependencies>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 

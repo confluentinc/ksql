@@ -53,6 +53,8 @@ ifeq ($(APPLY_PATCHES),yes)
 endif
 
 build: apply-patches
+PATH=/opt/jdk/8/bin:${PATH}
+@echo $(PATH)	
 ifeq ($(SKIP_TESTS),yes)
 	mvn -DskipTests=true install
 else

@@ -194,7 +194,7 @@
                                              This assumes both subprojects will be packaged together. -->
                                         <argument>-i ${project.build.directory}/${project.build.finalName}-package/share/java/${project.artifactId}</argument>
                                         <argument>-f</argument>
-                                        <argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.artifactId}/licenses.html</argument>
+                                        <!--<argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.artifactId}/licenses.html</argument>-->
                                         <argument>-l ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.artifactId}/licenses</argument>
                                         <argument>-n ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.artifactId}/notices</argument>
                                         <argument>-x licenses-${project.version}.jar</argument>

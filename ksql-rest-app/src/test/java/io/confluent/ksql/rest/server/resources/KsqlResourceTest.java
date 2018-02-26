@@ -43,6 +43,8 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.rest.RestConfig;
+
 
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -88,7 +90,7 @@ public class KsqlResourceTest {
   }
 
   @After
-  public void tearDown()  {
+  public void tearDown() {
     ksqlEngine.close();
   }
 
@@ -147,6 +149,7 @@ public class KsqlResourceTest {
       configMap.put("cache.max.bytes.buffering", 0);
       configMap.put("auto.offset.reset", "earliest");
       configMap.put("ksql.command.topic.suffix", "commands");
+      configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
 
       Properties properties = new Properties();
       properties.putAll(configMap);

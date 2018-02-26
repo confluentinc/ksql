@@ -33,8 +33,8 @@ You can use KSQL in standalone, client-server, application, and embedded modes. 
 
 This table shows the version compatibility matrix of which Kafka clusters can be used to read from and write into while running KSQL queries.
 
-|        KSQL        |        0.1       |        0.2       |        0.3       |        0.4       |
-|:------------------:|:----------------:|:----------------:|:----------------:|:----------------:|
-|    Apache Kafka    | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later |
-| Confluent Platform | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  |
+|        KSQL        |        0.1       |        0.2       |        0.3       |        0.4       |        0.5       |
+|:------------------:|:----------------:|:----------------:|:----------------:|:----------------:|:----------------:|
+|    Apache Kafka    | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later |0.10.1 and later |
+| Confluent Platform | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  |
 

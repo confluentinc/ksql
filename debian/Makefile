@@ -26,6 +26,14 @@ ifeq ($(DESTDIR),)
 DESTDIR=$(CURDIR)/BUILD/
 endif
 
+ifeq ($(PACKAGE_TYPE),deb)
+exit 0
+endif
+
+ifeq ($(PACKAGE_TYPE),rpm)
+exit 0
+endif
+
 ifeq ($(PACKAGE_TYPE),archive)
 PREFIX=$(PACKAGE_NAME)
 SYSCONFDIR=$(PREFIX)/etc/$(PACKAGE_TITLE)

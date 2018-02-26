@@ -6,7 +6,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
 
     <parent>
         <groupId>io.confluent.ksql</groupId>
-        <artifactId>kafka-ksql-parent</artifactId>
+        <artifactId>ksql-parent</artifactId>
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 

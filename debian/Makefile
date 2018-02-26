@@ -53,14 +53,6 @@ ifeq ($(APPLY_PATCHES),yes)
 endif
 
 build: apply-patches
-ifeq ($(PACKAGE_TYPE),deb)
-JAVA_HOME=/opt/jdk/8
-export JAVA_HOME
-PATH=$JAVA_HOME/bin:$PATH
-export PATH
-echo "============++++++===================="
-which java
-endif
 ifeq ($(SKIP_TESTS),yes)
 	mvn -DskipTests=true install
 else

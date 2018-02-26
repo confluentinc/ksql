@@ -36,6 +36,15 @@ SYSCONFDIR=/etc/$(PACKAGE_TITLE)
 SYSTEMDDIR=/lib/systemd/system
 endif
 
+ifeq ($(PACKAGE_TYPE),deb)
+JAVA_HOME=/opt/jdk/8
+export JAVA_HOME
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+echo "============++++++===================="
+which java
+endif
+
 # Whether we should run tests during the build.
 SKIP_TESTS?=yes
 

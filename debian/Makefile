@@ -26,14 +26,6 @@ ifeq ($(DESTDIR),)
 DESTDIR=$(CURDIR)/BUILD/
 endif
 
-ifeq ($(PACKAGE_TYPE),deb)
-exit 0
-endif
-
-ifeq ($(PACKAGE_TYPE),rpm)
-exit 0
-endif
-
 ifeq ($(PACKAGE_TYPE),archive)
 PREFIX=$(PACKAGE_NAME)
 SYSCONFDIR=$(PREFIX)/etc/$(PACKAGE_TITLE)
@@ -42,15 +34,6 @@ else
 PREFIX=/usr
 SYSCONFDIR=/etc/$(PACKAGE_TITLE)
 SYSTEMDDIR=/lib/systemd/system
-endif
-
-ifeq ($(PACKAGE_TYPE),deb)
-JAVA_HOME=/opt/jdk/8
-export JAVA_HOME
-PATH=$JAVA_HOME/bin:$PATH
-export PATH
-echo "============++++++===================="
-which java
 endif
 
 # Whether we should run tests during the build.
@@ -70,6 +53,14 @@ ifeq ($(APPLY_PATCHES),yes)
 endif
 
 build: apply-patches
+ifeq ($(PACKAGE_TYPE),deb)
+JAVA_HOME=/opt/jdk/8
+export JAVA_HOME
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+echo "============++++++===================="
+which java
+endif
 ifeq ($(SKIP_TESTS),yes)
 	mvn -DskipTests=true install
 else
@@ -102,9 +93,6 @@ install: build
 
 
 clean:
-	echo "============555555===================="
-	which rm
-	echo "============555555===================="
 	rm -rf $(CURDIR)/$(PACKAGE_NAME)*
 	rm -rf $(FULL_PACKAGE_TITLE)-$(RPM_VERSION)*rpm
 	rm -rf RPM_BUILDING

@@ -110,7 +110,7 @@
                                      This assumes both subprojects will be packaged together. -->
                                 <argument>-o ${project.parent.basedir}/licenses/overrides</argument>
                                 <argument>-f</argument>
-                                <!--<argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses.html</argument>-->
+                                <argument>-h ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses.html</argument>
                                 <argument>-l ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/licenses</argument>
                                 <argument>-n ${project.build.directory}/${project.build.finalName}-package/share/doc/${project.name}/notices</argument>
                                 <argument>-t ${project.name}</argument>

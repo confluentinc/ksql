@@ -126,8 +126,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP    | Associates a field within the message value in the    |
 |              | Kafka topic with the `ROWTIME` column in the KSQL     |
 |              | stream.                                               |
-|              | If not supplied, the timestamp of the Kafka message   |
-|              | will be used.                                         |
+|              | If not supplied, the timestamp of the Kafka message,  |
+|              | from the source stream, will be used.                 |
 |              | Time-based operations such as windowing will process  |
 |              | a record according to the timestamp in `ROWTIME`.     |
 +--------------+-------------------------------------------------------+
@@ -191,8 +191,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP    | Associates a field within the message value in the    |
 |              | Kafka topic with the `ROWTIME` column in the KSQL     |
 |              | table.                                                |
-|              | If not supplied, the timestamp of the Kafka message   |
-|              | will be used.                                         |
+|              | If not supplied, the timestamp of the Kafka message,  |
+|              | from the source stream, will be used.                 |
 |              | Time-based operations such as windowing will process  |
 |              | a record according to the timestamp in `ROWTIME`.     |
 +--------------+-------------------------------------------------------+
@@ -311,8 +311,8 @@ The WITH clause supports the following properties:
 |              | property is not set, then the number of replicas of   |
 |              | the input stream/table will be used.                  |
 +--------------+-------------------------------------------------------+
-| TIMESTAMP    | Associates a field within the source stream or table  |
-|              | with the  timestamp of messages produced to Kafka.    |
+| TIMESTAMP    | Associates a field within the source stream with the  |
+|              | timestamp of messages produced to Kafka.              |
 |              | If not supplied, the `ROWTIME` of the source stream   |
 |              | will be used.                                         |
 +--------------+-------------------------------------------------------+

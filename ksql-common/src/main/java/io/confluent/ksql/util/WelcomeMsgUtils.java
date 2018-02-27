@@ -31,33 +31,23 @@ public final class WelcomeMsgUtils {
 
   /**
    * Output a welcome message to the console
-   * Should look like:
-   * =================================
-   * =   _  __ _____  ____  _        =
-   * =  | |/ // ____|/ __ \| |       =
-   * =  | ' /| (___ | |  | | |       =
-   * =  |  <  \___ \| |  | | |       =
-   * =  | . \ ____) | |__| | |____   =
-   * =  |_|\_\_____/ \___\_\______|  =
-   * =                               =
-   * == Kafka Streams Query Language =
-   * Copyright 2018 Confluent Inc.
    */
   public static void displayWelcomeMessage(
       final int consoleWidth,
       final PrintWriter writer
   ) {
     final String[] lines = {
-        "======================================",
-        "=      _  __ _____  ____  _          =",
-        "=     | |/ // ____|/ __ \\| |         =",
-        "=     | ' /| (___ | |  | | |         =",
-        "=     |  <  \\___ \\| |  | | |         =",
-        "=     | . \\ ____) | |__| | |____     =",
-        "=     |_|\\_\\_____/ \\___\\_\\______|    =",
-        "=                                    =",
-        "=   Streaming SQL Engine for Kafka   =",
-        "======================================"
+        "",
+        "==========================================",
+        "=       _  __ _____  ____  _             =",
+        "=      | |/ // ____|/ __ \\| |            =",
+        "=      | ' /| (___ | |  | | |            =",
+        "=      |  <  \\___ \\| |  | | |            =",
+        "=      | . \\ ____) | |__| | |____        =",
+        "=      |_|\\_\\_____/ \\___\\_\\______|       =",
+        "=                                        =",
+        "= Streaming SQL Engine for Apache Kafka® =",
+        "=========================================="
     };
 
     final String copyrightMsg = "Copyright 2018 Confluent Inc.";

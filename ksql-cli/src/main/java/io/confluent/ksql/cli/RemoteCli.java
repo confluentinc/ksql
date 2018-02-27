@@ -103,11 +103,11 @@ public class RemoteCli extends Cli {
 
     @Override
     public void printHelp() {
-      writer.println("\tserver:          Show the current server");
-      writer.println("\tserver <server>: Change the current server to <server>");
-      writer.println("\t                 example: "
-                     + "\"server http://my.awesome.server.com:9098\""
-      );
+      writer.println("server:");
+      writer.println("\tShow the current server");
+      writer.println("\nserver <server>:");
+      writer.println("\tChange the current server to <server>");
+      writer.println("\texample: \"server http://my.awesome.server.com:9098\"");
     }
 
     @Override

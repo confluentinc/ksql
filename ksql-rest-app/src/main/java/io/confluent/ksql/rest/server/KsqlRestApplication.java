@@ -37,8 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Console;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -80,13 +78,12 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestApplication extends Application<KsqlRestConfig> {
+public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
@@ -157,15 +154,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
   }
 
-  private static Properties getProps(String propsFile) throws IOException {
-    Properties result = new Properties();
-    result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    try (final FileInputStream inputStream = new FileInputStream(propsFile)) {
-      result.load(inputStream);
-    }
-    return result;
-  }
-
   @Override
   public void start() throws Exception {
     super.start();
@@ -208,26 +196,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (isUiEnabled) {
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CliOptions cliOptions = CliOptions.parse(args);
-    if (cliOptions == null) {
-      return;
-    }
-
-    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(
-        restConfig,
-        restConfig.isUiEnabled(),
-        new KsqlVersionCheckerAgent()
-    );
-
-    log.info("Starting server");
-    app.start();
-    log.info("Server up and running");
-    app.join();
-    log.info("Server shutting down");
   }
 
   public static KsqlRestApplication buildApplication(
@@ -407,10 +375,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
     result.configure(props, isKey);
     return result;
-  }
-
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
   }
 
   private void displayWelcomeMessage() {

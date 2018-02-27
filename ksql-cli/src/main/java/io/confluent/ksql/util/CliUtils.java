@@ -23,11 +23,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -82,22 +78,6 @@ public class CliUtils {
     } catch (IOException e) {
       throw new KsqlException("Could not read the avro schema file. Details: " + e.getMessage(), e);
     }
-  }
-
-  public String readQueryFile(final String queryFilePath) {
-    StringBuilder sb = new StringBuilder();
-    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
-        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
-      String line = br.readLine();
-      while (line != null) {
-        sb.append(line);
-        sb.append(System.lineSeparator());
-        line = br.readLine();
-      }
-    } catch (IOException e) {
-      throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
-    }
-    return sb.toString();
   }
 
   public static PropertiesList propertiesListWithOverrides(

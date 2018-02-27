@@ -31,7 +31,7 @@ import javax.inject.Inject;
 
 import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.rest.util.CliOptionsParser;
+import io.confluent.ksql.rest.util.OptionsParser;
 import io.confluent.ksql.util.Pair;
 
 @Command(name = "cli", description = "KSQL CLI")
@@ -114,7 +114,7 @@ public class Options {
   private String outputFormat = OutputFormat.TABULAR.name();
 
   public static Options parse(final String...args) throws IOException {
-    return CliOptionsParser.parse(args, Options.class);
+    return OptionsParser.parse(args, Options.class);
   }
 
   public String getServer() {

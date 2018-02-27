@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,26 +17,98 @@
 package io.confluent.ksql.rest.server;
 
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.Console;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 
-public class StandaloneExecutor {
+public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
   private final KsqlEngine ksqlEngine;
+  private final String queriesFile;
+  private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-  public StandaloneExecutor(final KsqlEngine ksqlEngine) {
+  StandaloneExecutor(final KsqlEngine ksqlEngine,
+                     final String queriesFile) {
     this.ksqlEngine = ksqlEngine;
+    this.queriesFile = queriesFile;
   }
 
-  public void executeStatements(String queries) throws Exception {
+
+  public void start() throws Exception {
+    executeStatements(readQueriesFile(queriesFile));
+    showWelcomeMessage();
+  }
+
+  public void stop() {
+    try {
+      ksqlEngine.close();
+    } catch (Exception e) {
+      log.warn("Failed to cleanly shutdown the KSQL Engine", e);
+    }
+    shutdownLatch.countDown();
+  }
+
+  @Override
+  public void join() throws InterruptedException {
+    shutdownLatch.await();
+  }
+
+  public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
+    if(!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    }
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        ksqlConfig,
+        new KafkaTopicClientImpl(
+            AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
+
+    return new StandaloneExecutor(
+        ksqlEngine,
+        queriesFile);
+  }
+
+
+  private void showWelcomeMessage() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+    try (PrintWriter writer =
+             new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+      writer.printf("Server %s started with query file %s. Interactive mode is disabled\n",
+          Version.getVersion(),
+          queriesFile);
+    }
+  }
+
+  private void executeStatements(final String queries) throws Exception {
     final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
     for (QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -45,12 +117,30 @@ public class StandaloneExecutor {
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
-                + "\nOnly CREATE statements can run KSQL embedded mode.",
+                + "\nOnly CREATE statements can run in standalone mode.",
             queryMetadata.getStatementString()
         );
         System.err.println(message);
         log.warn(message);
       }
     }
+  }
+
+
+
+  private static String readQueriesFile(final String queryFilePath) {
+    final StringBuilder sb = new StringBuilder();
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+        new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
+      String line = br.readLine();
+      while (line != null) {
+        sb.append(line);
+        sb.append(System.lineSeparator());
+        line = br.readLine();
+      }
+    } catch (IOException e) {
+      throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
+    }
+    return sb.toString();
   }
 }

@@ -22,7 +22,7 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import java.io.IOException;
 
 
-public class CliOptionsParser {
+public class OptionsParser {
 
   public static <T> T parse(final String[] args, final Class<T> optionsClass) throws IOException {
     SingleCommand<T> optionsParser = SingleCommand.singleCommand(optionsClass);

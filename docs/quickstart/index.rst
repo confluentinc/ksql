@@ -49,7 +49,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: bash 
 
-        ksql> CREATE STREAM pageviews_original (viewtime BIGINT, userid VARCHAR, pageid VARCHAR) WITH (kafka_topic='pageviews', value_format='DELIMITED');
+        ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews', value_format='DELIMITED');
 
         ksql> DESCRIBE pageviews_original;
 
@@ -66,7 +66,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: bash 
 
-    ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH (kafka_topic='users', value_format='JSON');
+    ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH (kafka_topic='users', value_format='JSON', key = 'userid');
 
     ksql> DESCRIBE users_original;
 
@@ -85,7 +85,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
        ksql> SHOW STREAMS;
 
-        Stream Name              | Kafka Topic              | Format    
+        Stream Name              | Kafka Topic              | Format
        -----------------------------------------------------------------
         PAGEVIEWS_ORIGINAL       | pageviews                | DELIMITED 
 
@@ -117,28 +117,30 @@ the latest offset.
        Page_78
        LIMIT reached for the partition.
        Query terminated
-       ksql> 
+       ksql>
 
 #. Create a persistent query by using the ``CREATE STREAM`` keywords to
    precede the ``SELECT`` statement. Unlike the non-persistent query
    above, results from this query are written to a Kafka topic
-   ``PAGEVIEWS_FEMALE``. The query below enriches the ``pageviews``
+   ``PAGEVIEWS_ENRICHED``. The query below enriches the ``pageviews``
    STREAM by doing a ``LEFT JOIN`` with the ``users_original`` TABLE on
-   the user ID, where a condition is met.
+   the user ID.
 
-   .. code:: bash 
+   .. code:: bash
 
-    ksql> CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
+    ksql> CREATE STREAM pageviews_enriched AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid;
 
-    ksql> DESCRIBE pageviews_female;
-     Field    | Type
-    ----------------------------
-     ROWTIME  | BIGINT
-     ROWKEY   | VARCHAR(STRING)
-     USERID   | VARCHAR(STRING)
+    ksql> DESCRIBE pageviews_enriched;
+
+    Field    | Type
+    --------------------------------------
+     ROWTIME  | BIGINT           (system)
+     ROWKEY   | VARCHAR(STRING)  (system)
+     USERID   | VARCHAR(STRING)  (key)
      PAGEID   | VARCHAR(STRING)
      REGIONID | VARCHAR(STRING)
      GENDER   | VARCHAR(STRING)
+    --------------------------------------
 
 #. Use ``SELECT`` to view query results as they come in. To stop viewing
    the query results, press ``<ctrl-c>``. This stops printing to the
@@ -147,12 +149,32 @@ the latest offset.
 
    .. code:: bash
 
-       ksql> SELECT * FROM pageviews_female;
-       1502477856762 | User_2 | User_2 | Page_55 | Region_9 | FEMALE
-       1502477857946 | User_5 | User_5 | Page_14 | Region_2 | FEMALE
-       1502477858436 | User_3 | User_3 | Page_60 | Region_3 | FEMALE
+       ksql> SELECT * FROM pageviews_enriched;
+       1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
+       1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
+       1519746862164 | User_1 | User_1 | Page_90 | Region_7 | FEMALE
        ^CQuery terminated
-       ksql> 
+       ksql>
+
+#. Create a new persistent query where a condition limits the streams content, using
+   ``WHERE``. Results from this query are written to a Kafka topic called
+   ``PAGEVIEWS_FEMALE``.
+
+   .. code:: bash 
+
+    ksql> CREATE STREAM pageviews_female AS SELECT * FROM pageviews_enriched WHERE gender = 'FEMALE';
+
+    ksql> DESCRIBE pageviews_female;
+
+     Field    | Type
+    --------------------------------------
+     ROWTIME  | BIGINT           (system)
+     ROWKEY   | VARCHAR(STRING)  (system)
+     USERID   | VARCHAR(STRING)  (key)
+     PAGEID   | VARCHAR(STRING)
+     REGIONID | VARCHAR(STRING)
+     GENDER   | VARCHAR(STRING)
+    --------------------------------------
 
 #. Create a new persistent query where another condition is met, using
    ``LIKE``. Results from this query are written to a Kafka topic called
@@ -166,32 +188,35 @@ the latest offset.
    region and gender combination in a `tumbling
    window <http://docs.confluent.io/current/streams/developer-guide.html#tumbling-time-windows>`__
    of 30 seconds when the count is greater than 1. Results from this
-   query are written to a Kafka topic called ``PAGEVIEWS_REGIONS``.
+   query are written to a Kafka topic called ``PAGEVIEWS_REGIONS`` in the Avro format.
+   KSQL will register the avro schema with the configured schema registry
+   when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
    .. code:: bash 
 
-    ksql> CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+    ksql> CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_enriched WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
     ksql> DESCRIBE pageviews_regions;
 
      Field    | Type
-    ----------------------------
-     ROWTIME  | BIGINT
-     ROWKEY   | VARCHAR(STRING)
-     GENDER   | VARCHAR(STRING)
-     REGIONID | VARCHAR(STRING)
+    --------------------------------------
+     ROWTIME  | BIGINT           (system)
+     ROWKEY   | VARCHAR(STRING)  (system)
+     GENDER   | VARCHAR(STRING)  (key)
+     REGIONID | VARCHAR(STRING)  (key)
      NUMUSERS | BIGINT
+    --------------------------------------
 
 #. Use ``SELECT`` to view results from the above query.
 
    .. code:: bash
 
-       ksql> SELECT regionid, numusers FROM pageviews_regions LIMIT 5;
-       Region_3 | 4
-       Region_3 | 5
-       Region_6 | 5
-       Region_6 | 6
-       Region_3 | 8
+       ksql> SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
+       FEMALE | Region_6 | 3
+       FEMALE | Region_1 | 4
+       FEMALE | Region_9 | 6
+       MALE | Region_8 | 2
+       OTHER | Region_5 | 4
        LIMIT reached for the partition.
        Query terminated
        ksql> 
@@ -202,11 +227,13 @@ the latest offset.
 
         ksql> SHOW QUERIES;
 
-        Query ID | Kafka Topic              | Query String
-        -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        1        | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid WHERE gender = 'FEMALE';
-        2        | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-        3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_female WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+        Query ID                      | Kafka Topic              | Query String
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        CTAS_PAGEVIEWS_REGIONS        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers FROM pageviews_enriched WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
+        CSAS_PAGEVIEWS_ENRICHED       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS SELECT users_original.userid AS userid, pageid, regionid, gender FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid;
+        CSAS_PAGEVIEWS_FEMALE         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS SELECT * FROM pageviews_enriched WHERE gender = 'FEMALE';
+        CSAS_PAGEVIEWS_FEMALE_LIKE_89 | pageviews_enriched_r8_r9 | CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Terminate and Exit
 ------------------
@@ -220,11 +247,11 @@ queries.
 
 #. From the output of ``SHOW QUERIES;`` identify a query ID you would
    like to terminate. For example, if you wish to terminate query ID
-   ``2``:
+   ``CTAS_PAGEVIEWS_REGIONS``:
 
    .. code:: bash
 
-       ksql> TERMINATE 2;
+       ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
 #. To exit from KSQL, type ‘exit’.
 

@@ -125,37 +125,38 @@ To run KSQL in client-server mode:
 
 -  Start any number of server nodes:
 
-   -  Start with default settings:
+   Start a server node with the command:
 
-      .. code:: bash
+   .. code:: bash
 
-		$ ./bin/ksql-server-start
+   $ ./bin/ksql-server-start ksql-server.properties
 
-   -  Start with :ref:`custom
-      settings <configuring-ksql>`, pointing
-      KSQL at a specific Kafka cluster (see Streams :ref:`bootstrap servers <streams_developer-guide_required-configs>` setting):
+   Where `ksql-server.properies` defines the :ref:`custom
+   settings <configuring-ksql>` the KSQL should be started with and points
+   KSQL at a specific Kafka cluster (see Streams :ref:`bootstrap servers <streams_developer-guide_required-configs>` setting):
 
-      .. code:: bash
+   .. code:: bash
 
-         $ hostname
-         my-ksql-server
+      $ cat ksql-server.properties
+      # You must set at least the following two properties:
 
-         $ cat ksql-server.properties
-         # You must set at least the following two properties
-         bootstrap.servers=kafka-broker-1:9092
-         # Note: `application.id` is not really needed but you must set it
-         #       because of a known issue in the KSQL Developer Preview
-         application.id=app-id-setting-is-ignored
-         
-         # Optional settings below, only for illustration purposes
-         # The hostname/port on which the server node will listen for client connections
-         listeners=http://0.0.0.0:8090
+      # Inform the KSQL Server where the Kafka cluster can be found:
+      bootstrap.servers=localhost:9092
 
-      To start the server node with the settings above:
+      # The hostname/port on which this server will listen for client connections:
+      listeners=http://0.0.0.0:8090
 
-      .. code:: bash
+   KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, a KSQL server uses the
+   ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting in its configuration:
 
-		$ ./bin/ksql-server-start ksql-server.properties
+   .. code:: bash
+
+      # Default value: `commands`.
+      #
+      # Changing this to `production_commands` as shown below will result in
+      # the command topic named `ksql__production_commands` being used.
+      ksql.command.topic.suffix = production_commands
+
 
 -  Start any number of CLIs, specifying the desired KSQL server address
    as the ``remote`` endpoint:
@@ -163,15 +164,4 @@ To run KSQL in client-server mode:
    .. code:: bash
 
        $ ./bin/ksql-cli remote http://my-ksql-server:8090
-
-KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, a KSQL server uses the
-``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting in its configuration:
-
-.. code:: bash
-
-    # Default value: `commands`.
-    #
-    # Changing this to `production_commands` as shown below will result in
-    # the command topic named `ksql__production_commands` being used.
-    ksql.command.topic.suffix = production_commands
 

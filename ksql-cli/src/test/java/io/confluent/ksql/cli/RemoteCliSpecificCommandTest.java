@@ -76,8 +76,8 @@ public class RemoteCliSpecificCommandTest {
   @Test
   public void shouldPrintHelp() {
     command.printHelp();
-    assertThat(out.toString(), containsString("server:          Show the current server"));
-    assertThat(out.toString(), containsString("server <server>: Change the current server to <server>"));
+    assertThat(out.toString(), containsString("server:\n\tShow the current server"));
+    assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
   }
 
 }

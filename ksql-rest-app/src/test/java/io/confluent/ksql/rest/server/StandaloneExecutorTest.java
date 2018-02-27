@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.cli;
+package io.confluent.ksql.rest.server;
 
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.util.Collections;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.server.StandaloneExecutor;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 

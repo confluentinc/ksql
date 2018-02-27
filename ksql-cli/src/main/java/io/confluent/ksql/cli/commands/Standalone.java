@@ -24,8 +24,9 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.util.CliUtils;
-import io.confluent.ksql.cli.StandaloneExecutor;
+import io.confluent.ksql.rest.server.StandaloneExecutor;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 
@@ -38,7 +39,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 @Command(name = "standalone", description = "Running KSQL statements from a file.")
-public class Standalone extends AbstractCliCommands {
+public class Standalone {
 
   private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
   private static final String KAFKA_BOOTSTRAP_SERVER_OPTION_DEFAULT = "localhost:9092";
@@ -60,12 +61,12 @@ public class Standalone extends AbstractCliCommands {
   )
   private String queryFile;
 
-  @Override
+
   protected Cli getCli() {
     throw new UnsupportedOperationException("getCli isn't supported in Standalone mode");
   }
 
-  @Override
+
   public void run() {
     try {
       CliUtils cliUtils = new CliUtils();

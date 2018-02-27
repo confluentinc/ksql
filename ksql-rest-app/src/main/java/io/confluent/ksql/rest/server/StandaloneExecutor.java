@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.cli;
+package io.confluent.ksql.rest.server;
 
 
 import org.slf4j.Logger;

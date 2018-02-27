@@ -17,16 +17,16 @@
 package io.confluent.ksql.rest.server;
 
 import com.github.rvesse.airline.HelpOption;
-import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
-import com.github.rvesse.airline.help.Help;
-import com.github.rvesse.airline.parser.errors.ParseException;
+
+import java.io.IOException;
 
 import javax.inject.Inject;
-import java.io.IOException;
+
+import io.confluent.ksql.rest.util.CliOptionsParser;
 
 // TODO: Enable specification of properties here so that useful defaults for bootstrap server, port,
 // etc. can be established in the ksql-server-start script
@@ -52,28 +52,6 @@ public class CliOptions {
   }
 
   public static CliOptions parse(String[] args) throws IOException {
-
-    SingleCommand<CliOptions> optionsParser = SingleCommand.singleCommand(CliOptions.class);
-
-    // If just a help flag is given, an exception will be thrown due to missing required options;
-    // hence, this workaround
-    for (String arg : args) {
-      if ("--help".equals(arg) || "-h".equals(arg)) {
-        Help.help(optionsParser.getCommandMetadata());
-        return null;
-      }
-    }
-
-    try {
-      return optionsParser.parse(args);
-    } catch (ParseException exception) {
-      if (exception.getMessage() != null) {
-        System.err.println(exception.getMessage());
-      } else {
-        System.err.println("Options parsing failed for an unknown reason");
-      }
-      System.err.println("See the -h or --help flags for usage information");
-      return null;
-    }
+    return CliOptionsParser.parse(args, CliOptions.class);
   }
 }

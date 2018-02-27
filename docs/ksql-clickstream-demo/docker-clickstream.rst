@@ -149,19 +149,20 @@ Prerequisites
        You should now be in the KSQL CLI.
 
        .. code:: bash
+                      ===========================================
+                      =        _  __ _____  ____  _             =
+                      =       | |/ // ____|/ __ \| |            =
+                      =       | ' /| (___ | |  | | |            =
+                      =       |  <  \___ \| |  | | |            =
+                      =       | . \ ____) | |__| | |____        =
+                      =       |_|\_\_____/ \___\_\______|       =
+                      =                                         =
+                      =  Streaming SQL Engine for Apache Kafka® =
+                      ===========================================
 
-                              ======================================
-                              =      _  __ _____  ____  _          =
-                              =     | |/ // ____|/ __ \| |         =
-                              =     | ' /| (___ | |  | | |         =
-                              =     |  <  \___ \| |  | | |         =
-                              =     | . \ ____) | |__| | |____     =
-                              =     |_|\_\_____/ \___\_\______|    =
-                              =                                    =
-                              =   Streaming SQL Engine for Kafka   =
-           Copyright 2017 Confluent Inc.                         
+           Copyright 2018 Confluent Inc.
 
-           CLI v0.2, Server v0.1 located at http://localhost:9098
+           CLI v0.5, Server v0.5 located at http://localhost:8090
 
            Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

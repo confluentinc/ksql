@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -35,8 +36,12 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Console;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -170,6 +175,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (versionChckerAgent != null) {
       versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+
+    displayWelcomeMessage();
   }
 
   @Override
@@ -404,6 +411,36 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public KsqlEngine getKsqlEngine() {
     return ksqlEngine;
+  }
+
+  private void displayWelcomeMessage() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+
+    try (PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+
+      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+
+      final String version = Version.getVersion();
+      final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
+          .get(0)
+          .replace("0.0.0.0", "localhost");
+
+      writer.printf("Server %s listening on %s%n", version, listener);
+      writer.println();
+      writer.println("To access the KSQL CLI, run:");
+      writer.println("ksql-cli remote " + listener);
+      writer.println();
+
+      if (isUiEnabled) {
+        writer.println("To access the UI, point your browser at:");
+        writer.printf(listener + "/index.html");
+        writer.println();
+      }
+    }
   }
 }
 

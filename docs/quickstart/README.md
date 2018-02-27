@@ -37,7 +37,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
                        =   Streaming SQL Engine for Kafka   =
     Copyright 2017 Confluent Inc.                         
 
-    CLI v0.3, Server v0.3 located at http://localhost:9098
+    CLI v0.4, Server v0.4 located at http://localhost:9098
     
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
     

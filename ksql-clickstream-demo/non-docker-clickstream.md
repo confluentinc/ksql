@@ -23,7 +23,7 @@ These steps will guide you through how to setup your environment and run the cli
 
     ```bash
     $ cd ksql
-    $ git checkout v0.3 -b 0.3
+    $ git checkout v0.4 -b 0.4
     $ mvn clean compile install -DskipTests
     ```
 

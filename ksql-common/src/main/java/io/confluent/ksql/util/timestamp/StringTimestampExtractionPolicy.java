@@ -21,12 +21,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;
+import java.util.Objects;
 
 import io.confluent.ksql.util.KsqlConfig;
 
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
-  static final String STRING_TIMESTAMP_FORMAT = "ksq.string.timestamp.format";
   private final String timestampField;
   private final String format;
 
@@ -34,6 +34,8 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
   public StringTimestampExtractionPolicy(
       @JsonProperty("timestampField") final String timestampField,
       @JsonProperty("format") final String format) {
+    Objects.requireNonNull(timestampField, "timestampField can't be null");
+    Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;
     this.format = format;
   }
@@ -49,7 +51,7 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
         StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
         StringTimestampExtractor.class
     );
-    newStreamProperties.put(STRING_TIMESTAMP_FORMAT, format);
+    newStreamProperties.put(KsqlConfig.STRING_TIMESTAMP_FORMAT, format);
   }
 
   @Override

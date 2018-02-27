@@ -55,7 +55,7 @@ public class StringTimestampExtractionPolicyTest {
   @Test
   public void shouldSetFormatInProperties() {
     policy.applyTo(config, properties);
-    assertThat(properties.get(StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT),
+    assertThat(properties.get(KsqlConfig.STRING_TIMESTAMP_FORMAT),
         equalTo(format));
   }
 

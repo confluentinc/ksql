@@ -312,7 +312,8 @@ public class PhysicalPlanBuilder {
   }
 
   private KafkaStreams buildStreams(
-      OutputNode outputNode, final StreamsBuilder builder,
+      final OutputNode outputNode,
+      final StreamsBuilder builder,
       final String applicationId,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties

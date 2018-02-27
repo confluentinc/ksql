@@ -17,6 +17,7 @@ package io.confluent.ksql.util.timestamp;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.Configurable;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 import java.text.ParseException;
@@ -50,20 +51,25 @@ public class StringTimestampExtractor implements TimestampExtractor, Configurabl
 
   @Override
   public void configure(final Map<String, ?> map) {
-    format = (String) map.get(StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT);
+    format = (String) map.get(KsqlConfig.STRING_TIMESTAMP_FORMAT);
     if (format == null) {
-      throw new IllegalArgumentException("Value of "
-          + StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT
+      throw new ConfigException("Value of "
+          + KsqlConfig.STRING_TIMESTAMP_FORMAT
           + " must not be null");
     }
     final Integer index = (Integer) map.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
     if (index == null || index < 0) {
-      throw new IllegalArgumentException("Value of "
+      throw new ConfigException("Value of "
           + KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX
           + " must be an integer >= 0");
     }
     this.timestampColumn = index;
-    this.dateFormatter = new SimpleDateFormat(
-        format);
+    try {
+      this.dateFormatter = new SimpleDateFormat(
+          format);
+    } catch (Exception e) {
+      throw new ConfigException("Invalid date format: "
+          + format + " " + e.getMessage(), e);
+    }
   }
 }

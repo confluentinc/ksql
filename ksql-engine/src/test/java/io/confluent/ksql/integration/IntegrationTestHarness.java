@@ -17,7 +17,6 @@ import io.confluent.ksql.util.*;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -169,7 +168,7 @@ public class IntegrationTestHarness {
 
     Map<K, GenericRow> result = new HashMap<>();
 
-    Properties consumerConfig = consumerConig();
+    Properties consumerConfig = consumerConfig();
 
     try (KafkaConsumer<K, GenericRow> consumer
              = new KafkaConsumer<>(consumerConfig,
@@ -203,7 +202,7 @@ public class IntegrationTestHarness {
                                               final long resultsPollMaxTimeMs) {
 
     final List<ConsumerRecord> results = new ArrayList<>();
-    try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConig(),
+    try(final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerConfig(),
         new StringDeserializer(),
         new ByteArrayDeserializer())) {
       consumer.subscribe(Collections.singleton(topic.toUpperCase()));
@@ -229,7 +228,7 @@ public class IntegrationTestHarness {
 
   }
 
-  private Properties consumerConig() {
+  private Properties consumerConfig() {
     Properties consumerConfig = new Properties();
     consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                        ksqlConfig.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));

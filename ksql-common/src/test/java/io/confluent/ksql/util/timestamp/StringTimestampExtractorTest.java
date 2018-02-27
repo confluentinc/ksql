@@ -18,6 +18,7 @@
 package io.confluent.ksql.util.timestamp;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.Test;
 
 import java.text.ParseException;
@@ -41,7 +42,7 @@ public class StringTimestampExtractorTest {
   @Test
   public void shouldExtractTimestampFromStringWIthFormat() throws ParseException {
     final Map props = new HashMap() {{
-      put(StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT, format);
+      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, format);
       put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
     }};
     timestampExtractor.configure(props);
@@ -55,26 +56,37 @@ public class StringTimestampExtractorTest {
     assertThat(actualTime, equalTo(expectedTime));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = ConfigException.class)
   public void shouldThrowIfFormatNotSuppliedDuringConfigure() {
     timestampExtractor.configure(Collections.singletonMap(
         KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
         0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = ConfigException.class)
   public void shouldThrowIfColumnIndexNotSet() {
     timestampExtractor.configure(Collections.singletonMap(
-        StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT,
+        KsqlConfig.STRING_TIMESTAMP_FORMAT,
         format));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = ConfigException.class)
   public void shouldThrowIfColumnIndexIsNegative() {
     final Map props = new HashMap() {{
-      put(StringTimestampExtractionPolicy.STRING_TIMESTAMP_FORMAT, format);
+      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, format);
       put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, -1);
     }};
     timestampExtractor.configure(props);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(expected = ConfigException.class)
+  public void shouldThrowOnInvalidFormat() {
+    final Map props = new HashMap() {{
+      put(KsqlConfig.STRING_TIMESTAMP_FORMAT, "lahdfl");
+      put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX, 0);
+    }};
+    timestampExtractor.configure(props);
+
   }
 }

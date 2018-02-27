@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kafka.streams.StreamsConfig;
 
 import java.util.Map;
+import java.util.Objects;
 
 import io.confluent.ksql.util.KsqlConfig;
 
@@ -31,6 +32,7 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
   @JsonCreator
   public LongColumnTimestampExtractionPolicy(
       @JsonProperty("timestampField") final String timestampField) {
+    Objects.requireNonNull(timestampField, "timestampField can't be null");
     this.timestampField = timestampField;
   }
 

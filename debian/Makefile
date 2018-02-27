@@ -54,22 +54,8 @@ endif
 
 build: apply-patches
 ifeq ($(SKIP_TESTS),yes)
-	@echo "HELLOTHERE1"
-	@echo $(PATH)
-	JAVA_HOME=/opt/jdk/8
-	PATH=/opt/jdk/8/bin:$(PATH)
-	@echo $(JAVA_HOME)
-	@echo $(PATH)
-	@echo "BYETHERE"
 	mvn -DskipTests=true install
 else
-	@echo "HELLOTHERE2"
-	@echo $(PATH)
-	JAVA_HOME=/opt/jdk/8
-	PATH=/opt/jdk/8/bin:$(PATH)
-	@echo $(JAVA_HOME)
-	@echo $(PATH)
-	@echo "BYETHERE"
 	mvn install
 endif
 

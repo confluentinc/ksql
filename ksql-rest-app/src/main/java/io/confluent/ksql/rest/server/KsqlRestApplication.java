@@ -396,7 +396,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       writer.printf("Server %s listening on %s%n", version, listener);
       writer.println();
       writer.println("To access the KSQL CLI, run:");
-      writer.println("ksql-cli remote " + listener);
+      writer.println("ksql " + listener);
       writer.println();
 
       if (isUiEnabled) {

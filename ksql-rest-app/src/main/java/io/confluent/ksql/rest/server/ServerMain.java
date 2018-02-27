@@ -52,7 +52,7 @@ public class ServerMain {
       return StandaloneExecutor.create(properties, queriesFile.get());
     }
 
-    if (properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+    if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KSQL_REST_SERVER_DEFAULT_APP_ID);
     }
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);

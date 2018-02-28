@@ -106,7 +106,7 @@ Run these steps to produce data to the Kafka topics ``pageviews`` and ``users``.
 
    .. code:: bash
 
-       $ ./bin/ksql-datagen quickstart=users format=json topic=users maxInterval=1000
+       $ ./bin/ksql-datagen quickstart=users format=json topic=users maxInterval=100
 
 Optionally, you can skip to :ref:`<create-a-stream-and-table>` to start querying the Kafka
 cluster. Or you can do additional testing with topic data produced from

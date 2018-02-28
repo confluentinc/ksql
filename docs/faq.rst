@@ -70,13 +70,6 @@ Does KSQL support Kafka’s exactly-once processing semantics?
 Yes, KSQL supports exactly-once processing, which means it will compute
 correct results even in the face of failures such as machine crashes.
 
-=============================
-Is KSQL ready for production?
-=============================
-
-KSQL is a technical preview at this point in time. We do not yet
-recommend its use for production purposes. The planned GA release date for KSQL is March 2018.
-
 ==============================================================
 Can I use KSQL with my favorite data format (e.g. JSON, Avro)?
 ==============================================================

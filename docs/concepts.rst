@@ -81,33 +81,38 @@ Modes of operation
 Standalone mode
 ---------------
 
-In standalone mode, both the KSQL client and server components are
-co-located on the same machine, in the same JVM, and are started
-together. This makes standalone mode very convenient for local
-development and testing.
-
-.. image:: img/standalone-mode.png
+In standalone mode the KSQL server is started without an http listener.
+Thus, there is no REST endpoint or UI enabled.
+Instead the server will run a predefined script as defined by the `--queries-file` argument
+or the `ksql.queries.file` property.
 
 To run KSQL in standalone mode:
 
--  Start the KSQL CLI and the server components all in the same JVM:
+-  Start the KSQL server in standalone mode via the command line argument:
 
-   -  Start with default settings:
+  .. code:: bash
 
-      .. code:: bash
+	$ ./bin/ksql-start-server path/to/ksql-server.properties --queries-file path/to/queries.sql
 
-		$ ./bin/ksql-cli local
+-  Start the KSQL server in standalone mode by adding `ksql.queries.file` property to `ksql-server.properties`
 
-   -  Start with :ref:`custom
-      settings <configuring-ksql>`, pointing
-      KSQL at a specific Kafka cluster (see the Streams
-      `bootstrap.servers <streams_developer-guide_required-configs>`
-      setting):
+  .. code:: bash
 
-      .. code:: bash
+  $ cat ksql-server.properties
+  # You must set at least the following two properties:
 
-		$ ./bin/ksql-cli local --bootstrap-server kafka-broker-1:9092 \
-                       --properties-file path/to/ksql-cli.properties
+  # Inform the KSQL Server where the Kafka cluster can be found:
+  bootstrap.servers=localhost:9092
+
+  # Define the location of the queries file to execute
+  ksql.queries.file=path/to/queries.sql
+
+
+  $ ./bin/ksql-start-server path/to/ksql-server.properties
+
+Note: if both the `ksql.queries.file` property and the `--queries-file` argument are present, the
+`--queries-file` argument will take precedence.
+
 
 Client-server mode
 ------------------
@@ -163,5 +168,5 @@ To run KSQL in client-server mode:
 
    .. code:: bash
 
-       $ ./bin/ksql-cli remote http://my-ksql-server:8090
+       $ ./bin/ksql http://my-ksql-server:8090
 

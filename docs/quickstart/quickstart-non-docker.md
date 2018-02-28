@@ -56,10 +56,16 @@ connect is [UP]
     $ cd ksql
     ```
 
-1.  Start KSQL. The `local` argument starts KSQL in [standalone mode](/docs/concepts.md#modes-of-operation).
+1.  Start KSQL server.
 
     ```bash
-    $ ./bin/ksql-cli local
+    $ ./bin/ksql-start-server config/ksqlserver.properties
+      ```
+        
+1.  Start KSQL CLI.
+
+    ```bash
+    $ ./bin/ksql http://localhost:8080
     ```
 
     After KSQL is started, your terminal should resemble this.

@@ -421,4 +421,4 @@ then terminate.
 
 .. code:: shell
 
-    $ ksql-cli local --exec "SELECT * FROM pageviews LIMIT 5;"
+    $ ksql http://localhost:8080 --exec "SELECT * FROM pageviews LIMIT 5;"

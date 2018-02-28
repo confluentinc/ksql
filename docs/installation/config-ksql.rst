@@ -72,7 +72,7 @@ different to the syntax of the SET statement above.
     auto.offset.reset=earliest
 
     # Start KSQL in standalone mode with the custom properties above
-    $ ksql-cli local --properties-file ./ksql.properties
+    $ ksql http://your-ksql-server:8080 --properties-file ./ksql.properties
 
     # Start a KSQL server node (for client-server mode) with the custom properties above
     $ ksql-server-start ./ksql.properties

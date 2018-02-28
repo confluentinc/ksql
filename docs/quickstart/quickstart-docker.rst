@@ -69,7 +69,7 @@ Start KSQL
 
    .. code:: bash
 
-       $ docker-compose exec ksql-cli ksql-cli local --bootstrap-server kafka:29092
+       $ docker-compose exec ksql-cli ksql http://ksql-server:8080
 
 2. Return to the :ref:`create-a-stream-and-table` to start querying the
    data in the Kafka cluster.

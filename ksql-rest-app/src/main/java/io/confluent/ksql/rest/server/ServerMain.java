@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
-
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
 public class ServerMain {

@@ -56,10 +56,23 @@ public class ServerOptions {
 
 
   public Properties loadProperties() throws IOException {
+
     final Properties properties = new Properties();
     try (final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
       properties.load(inputStream);
     }
+
+    final Properties sysProperties = System.getProperties();
+    sysProperties.stringPropertyNames()
+        .stream()
+        .filter(key ->
+            !(key.startsWith("java.")
+                || key.startsWith("os.")
+                || key.startsWith("user.")
+                || key.equals("line.separator")
+                || key.equals("path.separator")
+                || key.equals("file.separator")))
+        .forEach(key -> properties.put(key, sysProperties.getProperty(key)));
     return properties;
   }
 

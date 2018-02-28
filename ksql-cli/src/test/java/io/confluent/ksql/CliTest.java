@@ -16,7 +16,7 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.cli.LocalCli;
+import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -44,6 +44,7 @@ import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.util.KsqlConfig.*;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -63,7 +64,7 @@ public class CliTest extends TestRunner {
 
   private static final TestResult.OrderedResult EMPTY_RESULT = build("");
 
-  private static LocalCli localCli;
+  private static Cli localCli;
   private static TestTerminal terminal;
   private static String commandTopicName;
   private static TopicProducer topicProducer;
@@ -95,12 +96,11 @@ public class CliTest extends TestRunner {
 
     restServer.start();
 
-    localCli = new LocalCli(
+    localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
         STREAMED_QUERY_TIMEOUT_MS,
         restClient,
-        terminal,
-        restServer
+        terminal
     );
 
     TestRunner.setup(localCli, terminal);
@@ -408,5 +408,18 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServer() {
+    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+  }
+
+  @Test
+  public void shouldRegisterRemoteCommand() {
+    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+    assertThat(terminal.getCliSpecificCommands().get("server"),
+        instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
 }

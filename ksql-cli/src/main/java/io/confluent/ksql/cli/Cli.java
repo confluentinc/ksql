@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -71,6 +72,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.ws.rs.ProcessingException;
+
 public class Cli implements Closeable, AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
@@ -87,20 +90,53 @@ public class Cli implements Closeable, AutoCloseable {
   private final Console terminal;
 
   public Cli(
-      Long streamedQueryRowLimit,
-      Long streamedQueryTimeoutMs,
-      KsqlRestClient restClient,
-      Console terminal
+      final Long streamedQueryRowLimit,
+      final Long streamedQueryTimeoutMs,
+      final KsqlRestClient restClient,
+      final Console terminal
   ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
+    validateClient(terminal.writer(), restClient);
 
     this.streamedQueryRowLimit = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
     this.restClient = restClient;
     this.terminal = terminal;
-
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+
+    terminal.registerCliSpecificCommand(new RemoteServerSpecificCommand(
+        restClient,
+        terminal.writer()
+    ));
+  }
+
+  private static void validateClient(
+      final PrintWriter writer,
+      final KsqlRestClient restClient
+  ) {
+    try {
+      RestResponse restResponse = restClient.makeRootRequest();
+      if (restResponse.isErroneous()) {
+        writer.format(
+            "Couldn't connect to the KSQL server: %s\n\n",
+            restResponse.getErrorMessage().getMessage()
+        );
+      }
+    } catch (IllegalArgumentException exception) {
+      writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
+    } catch (KsqlRestClientException exception) {
+      if (exception.getCause() instanceof ProcessingException) {
+        writer.println();
+        writer.println("**************** WARNING ******************");
+        writer.println("Remote server address may not be valid:");
+        writer.println(CommonUtils.getErrorMessageWithCause(exception));
+        writer.println("*******************************************");
+        writer.println();
+      } else {
+        throw exception;
+      }
+    }
   }
 
   public void runInteractively() {
@@ -295,9 +331,7 @@ public class Cli implements Closeable, AutoCloseable {
     CliUtils cliUtils = new CliUtils();
     Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
         (SqlBaseParser.RegisterTopicContext) statementContext.statement());
-    if (avroSchema.isPresent()) {
-      setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
-    }
+    avroSchema.ifPresent(s -> setProperty(DdlConfig.AVRO_SCHEMA, s));
     consecutiveStatements.append(statementText);
   }
 
@@ -603,6 +637,45 @@ public class Cli implements Closeable, AutoCloseable {
       // uhhh...
       // TODO
       return null;
+    }
+  }
+
+  public static class RemoteServerSpecificCommand implements CliSpecificCommand {
+
+    private final KsqlRestClient restClient;
+    private final PrintWriter writer;
+
+    RemoteServerSpecificCommand(
+        final KsqlRestClient restClient,
+        final PrintWriter writer
+    ) {
+      this.writer = writer;
+      this.restClient = restClient;
+    }
+
+    @Override
+    public String getName() {
+      return "server";
+    }
+
+    @Override
+    public void printHelp() {
+      writer.println("server:");
+      writer.println("\tShow the current server");
+      writer.println("\nserver <server>:");
+      writer.println("\tChange the current server to <server>");
+      writer.println("\t example: \"server http://my.awesome.server.com:9098\"");
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) {
+      if (commandStrippedLine.isEmpty()) {
+        writer.println(restClient.getServerAddress());
+      } else {
+        String serverAddress = commandStrippedLine.trim();
+        restClient.setServerAddress(serverAddress);
+        validateClient(writer, restClient);
+      }
     }
   }
 }

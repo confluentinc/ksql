@@ -19,6 +19,7 @@ package io.confluent.ksql.util;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
+import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +27,6 @@ import org.junit.runner.RunWith;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -35,11 +35,11 @@ public class WelcomeMsgUtilsTest {
 
   private StringWriter stringWriter;
   private PrintWriter realPrintWriter;
-  @Mock
+  @Mock(MockType.NICE)
   private PrintWriter mockPrintWriter;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     stringWriter = new StringWriter();
     realPrintWriter = new PrintWriter(stringWriter);
   }
@@ -63,7 +63,7 @@ public class WelcomeMsgUtilsTest {
         + "                  =  Streaming SQL Engine for Apache Kafka® =\n"
         + "                  ===========================================\n"
         + "\n"
-        + "Copyright 2018 Confluent Inc.\n"
+        + "Copyright 2017 Confluent Inc.\n"
         + "\n")
     );
   }
@@ -74,16 +74,12 @@ public class WelcomeMsgUtilsTest {
     WelcomeMsgUtils.displayWelcomeMessage(35, realPrintWriter);
 
     // Then:
-    assertThat(stringWriter.toString(), is("KSQL, Copyright 2018 Confluent Inc.\n\n"));
+    assertThat(stringWriter.toString(), is("KSQL, Copyright 2017 Confluent Inc.\n\n"));
   }
 
   @Test
-  public void shouldFlushWriterWhenOutputingLongMessage() {
+  public void shouldFlushWriterWhenOutputtingLongMessage() {
     // Given:
-    mockPrintWriter.println(anyString());
-    EasyMock.expectLastCall().anyTimes();
-    mockPrintWriter.println();
-    EasyMock.expectLastCall().anyTimes();
     mockPrintWriter.flush();
     EasyMock.expectLastCall();
     EasyMock.replay(mockPrintWriter);
@@ -96,12 +92,8 @@ public class WelcomeMsgUtilsTest {
   }
 
   @Test
-  public void shouldFlushWriterWhenOutputingShortMessage() {
+  public void shouldFlushWriterWhenOutputtingShortMessage() {
     // Given:
-    mockPrintWriter.println(anyString());
-    EasyMock.expectLastCall().anyTimes();
-    mockPrintWriter.println();
-    EasyMock.expectLastCall().anyTimes();
     mockPrintWriter.flush();
     EasyMock.expectLastCall();
     EasyMock.replay(mockPrintWriter);

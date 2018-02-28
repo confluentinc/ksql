@@ -83,7 +83,7 @@ Start KSQL
                       =  Streaming SQL Engine for Apache Kafka® =
                       ===========================================
 
-        Copyright 2018 Confluent Inc.
+        Copyright 2017 Confluent Inc.
 
         CLI v0.5, Server v0.5 located at http://localhost:8090
 

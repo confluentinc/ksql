@@ -50,7 +50,7 @@ public final class WelcomeMsgUtils {
         "==========================================="
     };
 
-    final String copyrightMsg = "Copyright 2018 Confluent Inc.";
+    final String copyrightMsg = "Copyright 2017 Confluent Inc.";
 
     final Integer logoWidth = Arrays.stream(lines)
         .map(String::length)

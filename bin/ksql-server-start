@@ -25,4 +25,4 @@ EXTRA_ARGS="-name ksql-server -loggc"
 # TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
 # so that useful defaults for bootstrap server, port, etc. can be established here
 
-exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.KsqlRestApplication $EXTRA_ARGS "$@"
+exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.ServerMain $EXTRA_ARGS "$@"

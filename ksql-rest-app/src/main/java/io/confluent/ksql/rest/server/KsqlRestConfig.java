@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 
 import java.util.Map;
@@ -117,6 +118,10 @@ public class KsqlRestConfig extends RestConfig {
 
   public KsqlRestConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
+    if (getList(RestConfig.LISTENERS_CONFIG).isEmpty()) {
+      throw new KsqlException(RestConfig.LISTENERS_CONFIG + " must be supplied.  "
+          + RestConfig.LISTENERS_DOC);
+    }
   }
 
   // Bit of a hack to get around the fact that RestConfig.originals() is private for some reason

@@ -98,7 +98,7 @@ Run these steps to produce data to the Kafka topics ``pageviews`` and ``users``.
 
    .. code:: bash
 
-       $ ./bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=10000
+       $ ./bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=500
 
 2. Produce Kafka data to the ``users`` topic using the data generator.
    The following example continuously generates data with a value in
@@ -106,7 +106,7 @@ Run these steps to produce data to the Kafka topics ``pageviews`` and ``users``.
 
    .. code:: bash
 
-       $ ./bin/ksql-datagen quickstart=users format=json topic=users maxInterval=10000
+       $ ./bin/ksql-datagen quickstart=users format=json topic=users maxInterval=1000
 
 Optionally, you can skip to :ref:`<create-a-stream-and-table>` to start querying the Kafka
 cluster. Or you can do additional testing with topic data produced from

@@ -60,7 +60,6 @@ public class Ksql {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     propertiesFile.ifPresent(file -> {
       try (final FileInputStream input = new FileInputStream(file)) {
         properties.load(input);

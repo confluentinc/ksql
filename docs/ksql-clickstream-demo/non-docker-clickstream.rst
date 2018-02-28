@@ -37,7 +37,7 @@ Prerequisites
 3.  Copy the Kafka Connect Elasticsearch configuration file
     (``ksql/ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar``)
     to your Confluent installation ``share`` directory
-    (``confluent-3.3.0/share/java/kafka-connect-elasticsearch/``).
+    (``confluent-4.1.0/share/java/kafka-connect-elasticsearch/``).
 
     .. code:: bash
 
@@ -134,7 +134,7 @@ Prerequisites
     You should see the KSQL CLI welcome screen.
 
     .. code:: bash
-                      ===========================================
+                     ===========================================
                       =        _  __ _____  ____  _             =
                       =       | |/ // ____|/ __ \| |            =
                       =       | ' /| (___ | |  | | |            =
@@ -152,6 +152,7 @@ Prerequisites
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
         ksql>
+
 
 10. From the the KSQL CLI, load the ``clickstream.sql`` schema file that
     will run the demo app.

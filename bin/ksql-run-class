@@ -88,7 +88,7 @@ fi
 
 # JVM performance options
 if [ -z "$KSQL_JVM_PERFORMANCE_OPTS" ]; then
-  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC -Djava.awt.headless=true"
+  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC -XX:NewRatio=1 -Djava.awt.headless=true"
 fi
 
 usage() {

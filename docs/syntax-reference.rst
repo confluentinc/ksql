@@ -740,6 +740,12 @@ Scalar functions
 +------------+----------------------------------+----------------------+
 | FLOOR      | ``FLOOR(col1)``                  | The floor of a value |
 +------------+----------------------------------+----------------------+
+| GEODISTANCE| ``GEODISTANCE(lat1, lon1,        | Distance between two |
+|            |               lat2, lon2,        | lat-lon points, each |
+|            |               unit)``            | in decimal degrees.  |
+|            |                                  | Optional final arg is|
+|            |                                  | 'KM'(default) or 'MI'|
++------------+----------------------------------+----------------------+
 | LCASE      | ``LCASE(col1)``                  | Convert a string to  |
 |            |                                  | lowercase            |
 +------------+----------------------------------+----------------------+

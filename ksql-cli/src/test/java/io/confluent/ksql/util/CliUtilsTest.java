@@ -30,17 +30,6 @@ import java.sql.SQLDataException;
  * @see CliUtils
  */
 public class CliUtilsTest {
-  @Test
-  public void testReadQueryFileWithNonEmptyStringThrowsKsqlException() throws IOException {
-    CliUtils cliUtils = new CliUtils();
-
-    try {
-      cliUtils.readQueryFile("y4[3&%S");
-      fail("Expecting exception: KsqlException");
-    } catch (KsqlException e) {
-      assertEquals(CliUtils.class.getName(), e.getStackTrace()[0].getClassName());
-    }
-  }
 
   @Test
   public void testGetAvroSchemaThrowsKsqlException() {

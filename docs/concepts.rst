@@ -81,10 +81,14 @@ Modes of operation
 Standalone mode
 ---------------
 
-In standalone mode the KSQL server is started without an http listener.
-Thus, there is no REST endpoint or UI enabled.
-Instead the server will run a predefined script as defined by the `--queries-file` argument
-or the `ksql.queries.file` property.
+In certain deployment scenarios you may want to prevent interactive use of a KSQL cluster.
+For example, you want to allow a team of users to develop and verify their queries on a shared testing KSQL cluster.
+But when putting those queries to production you prefer to lock-down access to KSQL servers,
+version-control the exact queries and storing them in a .sql file, and prevent users from interacting directly with the production KSQL cluster.
+
+KSQL supports such locked-down deployment scenarios: you can configure servers to run a pre-defined script
+(.sql file) via the --queries-file command line argument or the ksql.queries.file setting in the KSQL configuration file.
+A server running such a pre-defined script will automatically disable its REST endpoint and thus disable interactive use.
 
 To run KSQL in standalone mode:
 

@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import javax.inject.Inject;
 
@@ -34,6 +35,7 @@ import io.confluent.ksql.rest.util.OptionsParser;
 
 @Command(name = "server", description = "KSQL Cluster")
 public class ServerOptions {
+
 
   static final String QUERIES_FILE_CONFIG = "ksql.queries.file";
 
@@ -55,14 +57,15 @@ public class ServerOptions {
   private String queriesFile;
 
 
-  public Properties loadProperties() throws IOException {
+  public Properties loadProperties(final Supplier<Properties> overridePropertySupplier)
+      throws IOException {
 
     final Properties properties = new Properties();
     try (final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
       properties.load(inputStream);
     }
 
-    final Properties sysProperties = System.getProperties();
+    final Properties sysProperties = overridePropertySupplier.get();
     sysProperties.stringPropertyNames()
         .stream()
         .filter(key ->

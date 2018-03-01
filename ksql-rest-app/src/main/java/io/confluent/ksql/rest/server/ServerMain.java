@@ -34,7 +34,7 @@ public class ServerMain {
       return;
     }
 
-    final Properties properties = serverOptions.loadProperties();
+    final Properties properties = serverOptions.loadProperties(System::getProperties);
     final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
     final Executable executable = createExecutable(properties, queriesFile);
     log.info("Starting server");

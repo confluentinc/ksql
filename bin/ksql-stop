@@ -15,7 +15,7 @@ CLIPIDS=$(ps aux | grep 'io\.confluent\.ksql\.Ksql' | awk '{print $2}')
 
 if [ -z "$CLIPIDS" ]; then
   echo "No CLI session(s) to stop"
-  exit 1
+  exit 0
 fi
 
 for PID in $CLIPIDS; do

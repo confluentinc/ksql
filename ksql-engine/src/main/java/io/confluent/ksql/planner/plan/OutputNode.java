@@ -87,9 +87,7 @@ public abstract class OutputNode
   }
 
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return timestampExtractionPolicy instanceof MetadataTimestampExtractionPolicy
-      ? getTheSourceNode().getTimestampExtractionPolicy()
-      : timestampExtractionPolicy;
+    return getTheSourceNode().getTimestampExtractionPolicy();
   }
 
   public StructuredDataSource getDataSource() {

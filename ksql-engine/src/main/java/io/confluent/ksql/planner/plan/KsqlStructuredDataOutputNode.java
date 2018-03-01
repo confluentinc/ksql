@@ -90,9 +90,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   ) {
     final Map<String, Object> outputProperties = getOutputProperties();
     final PlanNode source = getSource();
-    // timestamp is extracted from source
     ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-        getTimestampColumnIndex(2, getTimestampExtractionPolicy(), getSourceSchema()));
+        getTimestampColumnIndex(2, getTimestampExtractionPolicy(), getSchema()));
 
     final SchemaKStream schemaKStream = source.buildStream(
         builder,

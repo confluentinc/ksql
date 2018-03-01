@@ -334,7 +334,10 @@ public class PhysicalPlanBuilder {
         ksqlConfig.get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)
     );
 
-    outputNode.getTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
+    final Integer timestampIndex = (Integer) ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX);
+    if(timestampIndex != null && timestampIndex >= 0) {
+      outputNode.getTimestampExtractionPolicy().applyTo(ksqlConfig, newStreamsProperties);
+    }
 
     updateListProperty(
         newStreamsProperties,

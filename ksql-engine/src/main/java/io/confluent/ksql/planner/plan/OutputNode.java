@@ -25,8 +25,6 @@ import javax.annotation.concurrent.Immutable;
 import java.util.List;
 import java.util.Optional;
 
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 import static java.util.Objects.requireNonNull;
@@ -63,10 +61,6 @@ public abstract class OutputNode
     return this.schema;
   }
 
-  Schema getSourceSchema() {
-    return getTheSourceNode().getSchema();
-  }
-
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of(source);
@@ -87,10 +81,7 @@ public abstract class OutputNode
   }
 
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return getTheSourceNode().getTimestampExtractionPolicy();
+    return timestampExtractionPolicy;
   }
 
-  public StructuredDataSource getDataSource() {
-    return getTheSourceNode().getStructuredDataSource();
-  }
 }

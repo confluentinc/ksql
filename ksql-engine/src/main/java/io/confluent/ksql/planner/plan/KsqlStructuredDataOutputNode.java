@@ -42,8 +42,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
-import static io.confluent.ksql.planner.plan.StructuredDataSourceNode.getTimestampColumnIndex;
-
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final String kafkaTopicName;
@@ -90,9 +88,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   ) {
     final Map<String, Object> outputProperties = getOutputProperties();
     final PlanNode source = getSource();
-    ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-        getTimestampColumnIndex(2, getTimestampExtractionPolicy(), getSchema()));
-
     final SchemaKStream schemaKStream = source.buildStream(
         builder,
         ksqlConfig,

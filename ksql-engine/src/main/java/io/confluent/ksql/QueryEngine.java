@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -59,6 +60,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 class QueryEngine {
 
@@ -123,7 +126,7 @@ class QueryEngine {
               ksqlStructuredDataOutputNode.getId().toString(),
               ksqlStructuredDataOutputNode.getSchema(),
               ksqlStructuredDataOutputNode.getKeyField(),
-              ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
+              getTimestampExtractionPolicy(ksqlStructuredDataOutputNode),
               ksqlStructuredDataOutputNode.getKsqlTopic()
           );
 
@@ -131,6 +134,12 @@ class QueryEngine {
       tempMetaStore.putSource(structuredDataSource.cloneWithTimeKeyColumns());
     }
     return logicalPlan;
+  }
+
+  private TimestampExtractionPolicy getTimestampExtractionPolicy(final OutputNode outputNode) {
+    return outputNode.getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy
+        ? outputNode.getTheSourceNode().getTimestampExtractionPolicy()
+        : outputNode.getTimestampExtractionPolicy();
   }
 
   List<QueryMetadata> buildPhysicalPlans(

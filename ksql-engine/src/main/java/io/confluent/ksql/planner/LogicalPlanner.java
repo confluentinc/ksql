@@ -43,6 +43,7 @@ import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 
@@ -80,21 +81,20 @@ public class LogicalPlanner {
       currentNode = buildProjectNode(currentNode.getSchema(), currentNode);
     }
 
-    return buildOutputNode(analysis.getFromDataSource(0).left.getSchema(),
+    return buildOutputNode(
         currentNode.getSchema(),
         currentNode);
   }
 
-  private OutputNode buildOutputNode(final Schema sourceSchema,
-                                     final Schema inputSchema,
+  private OutputNode buildOutputNode(final Schema inputSchema,
                                      final PlanNode sourcePlanNode) {
     StructuredDataSource intoDataSource = analysis.getInto();
 
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
-    final TimestampExtractionPolicy extractionPolicy =
-        TimestampExtractionPolicyFactory.create(sourceSchema,
-            (String) intoProperties.get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME),
-            (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
+    final TimestampExtractionPolicy extractionPolicy = getTimestampExtractionPolicy(
+        sourcePlanNode,
+        inputSchema,
+        intoProperties);
     if (intoDataSource instanceof KsqlStdOut) {
       return new KsqlBareOutputNode(
           new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME),
@@ -118,6 +118,23 @@ public class LogicalPlanner {
 
     }
     throw new RuntimeException("INTO clause is not supported in SELECT.");
+  }
+
+  private TimestampExtractionPolicy getTimestampExtractionPolicy(
+      final PlanNode sourcePlanNode,
+      final Schema inputSchema,
+      final Map<String, Object> intoProperties) {
+
+    final TimestampExtractionPolicy extractionPolicy
+        = TimestampExtractionPolicyFactory.create(inputSchema,
+        (String) intoProperties.get(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME),
+        (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
+
+    if (extractionPolicy instanceof MetadataTimestampExtractionPolicy) {
+      return sourcePlanNode.getTheSourceNode().getTimestampExtractionPolicy();
+    }
+
+    return extractionPolicy;
   }
 
   private AggregateNode buildAggregateNode(

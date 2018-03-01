@@ -53,6 +53,7 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
@@ -136,7 +137,7 @@ public class StructuredDataSourceNode
       final Map<String, Object> props,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (ksqlConfig.get(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX) == null) {
+    if (!(getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy)) {
       ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
           getTimestampColumnIndex(FIRST_COLUMN_INDEX, getTimestampExtractionPolicy(), schema));
     }

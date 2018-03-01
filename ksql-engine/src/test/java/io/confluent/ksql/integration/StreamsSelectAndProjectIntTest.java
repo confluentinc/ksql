@@ -78,21 +78,23 @@ public class StreamsSelectAndProjectIntTest {
   @Test
   public void testTimestampColumnSelectionJson() throws Exception {
 
-    testTimestampColumnSelection("ORIGINALSTREAM_JSON",
-                                 "TIMESTAMPSTREAM_JSON",
-                                 jsonStreamName,
-                                 DataSource.DataSourceSerDe.JSON
-    );
+    testTimestampColumnSelection(
+        "ORIGINALSTREAM_JSON",
+        "TIMESTAMPSTREAM_JSON",
+        jsonStreamName,
+        DataSource.DataSourceSerDe.JSON,
+        jsonRecordMetadataMap);
   }
 
   @Test
   public void testTimestampColumnSelectionAvro() throws Exception {
 
-    testTimestampColumnSelection("ORIGINALSTREAM_AVRO",
-                                 "TIMESTAMPSTREAM_AVRO",
-                                 avroStreamName,
-                                 DataSource.DataSourceSerDe.AVRO
-    );
+    testTimestampColumnSelection(
+        "ORIGINALSTREAM_AVRO",
+        "TIMESTAMPSTREAM_AVRO",
+        avroStreamName,
+        DataSource.DataSourceSerDe.AVRO,
+        avroRecordMetadataMap);
   }
 
   @Test
@@ -174,9 +176,10 @@ public class StreamsSelectAndProjectIntTest {
 
   @Test
   public void shouldUseStringTimestampWithFormat() throws Exception {
-    final String outputStream = "STRING_TIMESTAMP";
+    final String outputStream = "TIMESTAMP_STRING";
     ksqlContext.sql("CREATE STREAM STRING_TIMESTAMP WITH (timestamp='TIMESTAMP', timestamp_format='yyyy-MM-dd')"
-        + " AS SELECT ORDERID, TIMESTAMP FROM ORDERS_AVRO WHERE ITEMID='ITEM_6';");
+        + " AS SELECT ORDERID, TIMESTAMP FROM ORDERS_AVRO WHERE ITEMID='ITEM_6';"
+        + " CREATE STREAM TIMESTAMP_STRING AS SELECT ORDERID, TIMESTAMP from STRING_TIMESTAMP;");
 
     final List<ConsumerRecord> records = testHarness.consumerRecords(outputStream,
         1,
@@ -207,17 +210,18 @@ public class StreamsSelectAndProjectIntTest {
   private void testTimestampColumnSelection(String stream1Name,
                                             String stream2Name,
                                             String inputStreamName,
-                                            DataSource.DataSourceSerDe dataSourceSerDe)
+                                            DataSource.DataSourceSerDe dataSourceSerDe,
+                                            Map<String, RecordMetadata> recordMetadataMap)
       throws Exception {
     final String query1String =
-        String.format("CREATE STREAM %s WITH(timestamp='ORDERTIME') AS SELECT ORDERID,"
-                      + "ORDERTIME, ORDERTIME+10000 AS "
-                      + "RTIME, ORDERTIME+100 AS RT100, ITEMID "
-                      + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
-                      + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
-                      + "ROWTIME AS NEWRTIME, RTIME, RT100, ORDERID, ITEMID "
-                      + "FROM %s ;", stream1Name,
-                      inputStreamName, stream2Name, stream1Name);
+        String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
+                + "ROWTIME+10000 AS "
+                + "RTIME, ROWTIME+100 AS RT100, ORDERID, ITEMID "
+                + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'; "
+                + "CREATE STREAM %s AS SELECT ROWKEY AS NEWRKEY, "
+                + "ROWTIME AS NEWRTIME, RKEY, RTIME, RT100, ORDERID, ITEMID "
+                + "FROM %s ;", stream1Name,
+            inputStreamName, stream2Name, stream1Name);
 
 
     ksqlContext.sql(query1String);
@@ -227,20 +231,21 @@ public class StreamsSelectAndProjectIntTest {
         new GenericRow(Arrays.asList(null,
             null,
             "8",
-            8,
-            8 + 10000,
-            8 + 100,
+            recordMetadataMap.get("8").timestamp() + 10000,
+            "8",
+            recordMetadataMap.get("8").timestamp() + 10000,
+            recordMetadataMap.get("8").timestamp() + 100,
             "ORDER_6",
             "ITEM_8")));
 
     Schema resultSchema = ksqlContext.getMetaStore().getSource(stream2Name).getSchema();
 
     Map<String, GenericRow> results2 = testHarness.consumeData(stream2Name, resultSchema ,
-                                                               expectedResults.size(),
-                                                               new StringDeserializer(),
-                                                               IntegrationTestHarness
-                                                                   .RESULTS_POLL_MAX_TIME_MS,
-                                                               dataSourceSerDe);
+        expectedResults.size(),
+        new StringDeserializer(),
+        IntegrationTestHarness
+            .RESULTS_POLL_MAX_TIME_MS,
+        dataSourceSerDe);
 
     assertThat(results2, equalTo(expectedResults));
   }

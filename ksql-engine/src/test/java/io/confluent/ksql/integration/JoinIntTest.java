@@ -169,6 +169,55 @@ public class JoinIntTest {
                                 DataSource.DataSourceSerDe.AVRO);
   }
 
+  @Test
+  public void shouldUseTimeStampFieldFromStream() throws Exception {
+    final String queryString = String.format(
+        "CREATE STREAM JOINED AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
+            + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1';"
+            + "CREATE STREAM OUTPUT AS SELECT ORDERID, DESCRIPTION, ROWTIME AS RT FROM JOINED;",
+        orderStreamNameAvro,
+        itemTableNameAvro,
+        orderStreamNameAvro,
+        itemTableNameAvro,
+        orderStreamNameAvro);
+
+    ksqlContext.sql(queryString);
+
+    final String outputStream = "OUTPUT";
+    Schema resultSchema = ksqlContext.getMetaStore().getSource(outputStream).getSchema();
+
+    Map<String, GenericRow> expectedResults =
+        Collections.singletonMap("ITEM_1",
+            new GenericRow(Arrays.asList(
+                null,
+                null,
+                "ORDER_1",
+                "home cinema",
+                1)));
+
+    final Map<String, GenericRow> results = new HashMap<>();
+    TestUtils.waitForCondition(() -> {
+      results.putAll(testHarness.consumeData(outputStream,
+          resultSchema,
+          1,
+          new StringDeserializer(),
+          IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
+          DataSource.DataSourceSerDe.AVRO));
+      final boolean success = results.equals(expectedResults);
+      if (!success) {
+        try {
+          // The join may not be triggered fist time around due to order in which the
+          // consumer pulls the records back. So we publish again to make the stream
+          // trigger the join.
+          testHarness.publishTestData(orderStreamTopicAvro, orderDataProvider, now, DataSource.DataSourceSerDe.AVRO);
+        } catch(Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return success;
+    }, 120000, "failed to complete join correctly");
+
+  }
 
   private void createStreams() throws Exception {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
@@ -186,7 +235,7 @@ public class JoinIntTest {
         "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
                                   + "ORDERUNITS double, PRICEARRAY array<double>, "
                                   + "KEYVALUEMAP map<varchar, double>) "
-        + "WITH (kafka_topic='%s', value_format='AVRO');",
+        + "WITH (kafka_topic='%s', value_format='AVRO', timestamp='ORDERTIME');",
                                   orderStreamNameAvro,
                                   orderStreamTopicAvro));
     ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar)"

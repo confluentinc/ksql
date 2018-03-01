@@ -26,7 +26,6 @@ import io.confluent.ksql.util.StringUtil;
 
 public class TimestampExtractionPolicyFactory {
 
-
   public static TimestampExtractionPolicy create(
       final Schema schema,
       final String timestampColumnName,

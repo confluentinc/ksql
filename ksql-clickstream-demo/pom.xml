@@ -31,6 +31,7 @@
     <name>KSQL Clickstream Analysis Demo</name>
 
     <properties>
+        <main-class>io.confluent.ksql.DemoTest</main-class>
         <docker.skip-build>false</docker.skip-build>
     </properties>
 
@@ -65,6 +66,11 @@
                         <descriptor>src/assembly/package.xml</descriptor>
                         <descriptor>src/assembly/standalone.xml</descriptor>
                     </descriptors>
+                    <archive>
+                        <manifest>
+                            <mainClass>${main-class}</mainClass>
+                        </manifest>
+                    </archive>
                     <attach>false</attach>
                 </configuration>
                 <executions>

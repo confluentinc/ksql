@@ -147,7 +147,8 @@ public class JoinIntTest {
         }
       }
       return success;
-    }, 60000, "failed to complete join correctly");
+    }, IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS * 2 + 30000,
+        "failed to complete join correctly");
   }
 
   @Test

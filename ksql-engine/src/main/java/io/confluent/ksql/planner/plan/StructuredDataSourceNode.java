@@ -78,7 +78,6 @@ public class StructuredDataSourceNode
         }
         return row;
       };
-  private static final int FIRST_COLUMN_INDEX = 2;
 
   private final WindowedSerde windowedSerde = new WindowedSerde();
   private final StructuredDataSource structuredDataSource;
@@ -139,7 +138,7 @@ public class StructuredDataSourceNode
   ) {
     if (!(getTimestampExtractionPolicy() instanceof MetadataTimestampExtractionPolicy)) {
       ksqlConfig.put(KsqlConfig.KSQL_TIMESTAMP_COLUMN_INDEX,
-          getTimestampColumnIndex(FIRST_COLUMN_INDEX, getTimestampExtractionPolicy(), schema));
+          getTimeStampColumnIndex());
     }
     KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
         .getKsqlTopic().getKsqlTopicSerDe();
@@ -194,38 +193,33 @@ public class StructuredDataSourceNode
     return null;
   }
 
-  static int getTimestampColumnIndex(final int firstColumnIndex,
-                                     final TimestampExtractionPolicy extractionPolicy,
-                                     final Schema schema) {
-    final String timestampFieldName = extractionPolicy.timestampField();
-    if (timestampFieldName == null) {
-      return -1;
-    }
+  private int getTimeStampColumnIndex() {
+    String timestampFieldName = getTimestampExtractionPolicy().timestampField();
     if (timestampFieldName.contains(".")) {
-      for (int i = firstColumnIndex; i < schema.fields().size(); i++) {
+      for (int i = 2; i < schema.fields().size(); i++) {
         Field field = schema.fields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name())) {
-            return i - firstColumnIndex;
+            return i - 2;
           }
         } else {
           if (timestampFieldName
               .substring(timestampFieldName.indexOf(".") + 1)
               .equals(field.name())) {
-            return i - firstColumnIndex;
+            return i - 2;
           }
         }
       }
     } else {
-      for (int i = firstColumnIndex; i < schema.fields().size(); i++) {
+      for (int i = 2; i < schema.fields().size(); i++) {
         Field field = schema.fields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
-            return i - firstColumnIndex;
+            return i - 2;
           }
         } else {
           if (timestampFieldName.equals(field.name())) {
-            return i - firstColumnIndex;
+            return i - 2;
           }
         }
       }

@@ -17,7 +17,6 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,9 +48,10 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
@@ -128,7 +128,7 @@ public class EndToEndIntegrationTest {
                                                                   Collections.emptyMap());
 
     assertEquals(1, queries.size());
-    assertTrue(queries.get(0) instanceof PersistentQueryMetadata);
+    assertThat(queries.get(0), instanceOf(PersistentQueryMetadata.class));
 
     PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queries.get(0);
     persistentQueryMetadata.getKafkaStreams().start();
@@ -138,7 +138,7 @@ public class EndToEndIntegrationTest {
     queries = ksqlEngine.buildMultipleQueries(query, Collections.emptyMap());
 
     assertEquals(1, queries.size());
-    assertTrue(queries.get(0) instanceof QueuedQueryMetadata);
+    assertThat(queries.get(0), instanceOf(QueuedQueryMetadata.class));
 
     QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) queries.get(0);
     queryMetadata.getKafkaStreams().start();

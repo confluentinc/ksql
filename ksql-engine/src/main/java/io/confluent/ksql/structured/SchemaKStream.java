@@ -21,6 +21,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -239,19 +240,16 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kstream.selectKey((key, value) -> {
-
+    KStream keyedKStream = kstream.map((key, value) -> {
       String newKey =
           value
               .getColumns()
               .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
               .toString();
-      return newKey;
-    }).mapValues((key, row) -> {
       if (updateRowKey) {
-        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+        value.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
       }
-      return row;
+      return KeyValue.pair(newKey, value);
     });
 
     return new SchemaKStream(

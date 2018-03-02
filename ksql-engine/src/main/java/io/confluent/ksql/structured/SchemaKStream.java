@@ -240,16 +240,19 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kstream.map((key, value) -> {
+
+    KStream keyedKStream = kstream.selectKey((key, value) -> {
       String newKey =
           value
               .getColumns()
               .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
               .toString();
+      return newKey;
+    }).mapValues((key, row) -> {
       if (updateRowKey) {
-        value.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
       }
-      return KeyValue.pair(newKey, value);
+      return row;
     });
 
     return new SchemaKStream(

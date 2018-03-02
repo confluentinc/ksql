@@ -233,7 +233,7 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream selectKey(final Field newKeyField) {
+  public SchemaKStream selectKey(final Field newKeyField, boolean updateRowKey) {
     if (keyField != null
         && keyField.name().equals(newKeyField.name())) {
       return this;
@@ -248,7 +248,9 @@ public class SchemaKStream {
               .toString();
       return newKey;
     }).mapValues((key, row) -> {
-      row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+      if (updateRowKey) {
+        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+      }
       return row;
     });
 

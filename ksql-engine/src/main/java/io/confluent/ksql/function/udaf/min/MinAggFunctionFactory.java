@@ -28,7 +28,9 @@ import io.confluent.ksql.util.KsqlException;
 public class MinAggFunctionFactory extends AggregateFunctionFactory {
 
   public MinAggFunctionFactory() {
-    super("MIN", Arrays.asList(new DoubleMinKudaf(-1), new LongMinKudaf(-1)));
+    super("MIN", Arrays.asList(new DoubleMinKudaf(-1),
+                               new LongMinKudaf(-1),
+                               new IntegerMinKudaf(-1)));
   }
 
   @Override

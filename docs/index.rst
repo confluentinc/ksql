@@ -9,16 +9,9 @@ KSQL
    :hidden:
 
    installation/index
-<<<<<<< HEAD
    tutorials/index
    operations
    syntax-reference
-=======
-   operations
-   syntax-reference
-   ksql-clickstream-demo
-   examples
->>>>>>> eb698ace... WIP
    faq
 
 What Is KSQL?

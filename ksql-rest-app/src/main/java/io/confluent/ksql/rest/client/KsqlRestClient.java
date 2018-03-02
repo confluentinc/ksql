@@ -45,6 +45,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class KsqlRestClient implements Closeable, AutoCloseable {
@@ -57,12 +58,12 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
 
   private boolean hasUserCredentials = false;
 
-  public KsqlRestClient(String serverAddress) {
-    this.serverAddress = serverAddress;
-    this.localProperties = new HashMap<>();
-    ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
-    JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-    this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  public KsqlRestClient(final String serverAddress) {
+    this(serverAddress, new HashMap<>());
+  }
+
+  public KsqlRestClient(final String serverAddress, final Properties properties) {
+    this(serverAddress, propertiesToMap(properties));
   }
 
   public KsqlRestClient(String serverAddress, Map<String, Object> localProperties) {
@@ -71,6 +72,14 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     ObjectMapper objectMapper = new SchemaMapper().registerToObjectMapper(new ObjectMapper());
     JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     this.client = ClientBuilder.newBuilder().register(jsonProvider).build();
+  }
+
+  private static Map<String, Object> propertiesToMap(final Properties properties) {
+    final Map<String, Object> propertiesMap = new HashMap<>();
+    properties.stringPropertyNames().forEach(
+        prop -> propertiesMap.put(prop, properties.getProperty(prop)));
+
+    return propertiesMap;
   }
 
   // Visible for testing

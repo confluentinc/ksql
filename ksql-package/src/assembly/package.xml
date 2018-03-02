@@ -11,7 +11,6 @@
         <format>tgz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
-    <!--<baseDirectory>ksql</baseDirectory>-->
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
@@ -23,8 +22,6 @@
                 <include>NOTICE*</include>
                 <include>licenses/</include>
                 <include>notices/</include>
-                <!--<include>bin/</include>-->
-                <!--<include>config/</include>-->
             </includes>
         </fileSet>
         <fileSet>

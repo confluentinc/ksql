@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
-
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
 public class ServerMain {
@@ -35,7 +34,7 @@ public class ServerMain {
       return;
     }
 
-    final Properties properties = serverOptions.loadProperties();
+    final Properties properties = serverOptions.loadProperties(System::getProperties);
     final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
     final Executable executable = createExecutable(properties, queriesFile);
     log.info("Starting server");

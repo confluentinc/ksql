@@ -132,7 +132,7 @@ Prerequisites
         3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
         ...
 
-6.  Launch the KSQL CLI in local mode.
+6.  Launch KSQL in Client Server Mode
 
     1. Start the KSQL server.
 
@@ -140,15 +140,16 @@ Prerequisites
 
            $ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
 
-    2. Start the CLI on port 8080.
+    2. Start the CLI pointing it to the server
 
        .. code:: bash
 
-           $ ksql-cli remote http://localhost:8080
+           $ ksql http://localhost:8080
 
        You should now be in the KSQL CLI.
 
        .. code:: bash
+
                       ===========================================
                       =        _  __ _____  ____  _             =
                       =       | |/ // ____|/ __ \| |            =

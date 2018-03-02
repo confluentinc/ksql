@@ -125,16 +125,16 @@ Prerequisites
         3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
         ...
 
-9.  Launch the KSQL CLI in local mode.
+9.  Launch KSQL in Client Server Mode
 
-    .. code:: bash
+    1. Start the KSQL server.
 
-        $ <path-to-ksql>/bin/ksql-cli local
+       .. code:: bash
 
-    You should see the KSQL CLI welcome screen.
+           $ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
 
-    .. code:: bash
-                     ===========================================
+
+                      ===========================================
                       =        _  __ _____  ____  _             =
                       =       | |/ // ____|/ __ \| |            =
                       =       | ' /| (___ | |  | | |            =
@@ -149,9 +149,33 @@ Prerequisites
 
         CLI v0.5, Server v0.5 located at http://localhost:8090
 
-        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+    2. Start the CLI pointing it to the server
 
-        ksql>
+       .. code:: bash
+
+          $ ksql http://localhost:8080
+
+       You should now be in the KSQL CLI.
+
+       .. code:: bash
+                       ===========================================
+                       =        _  __ _____  ____  _             =
+                       =       | |/ // ____|/ __ \| |            =
+                       =       | ' /| (___ | |  | | |            =
+                       =       |  <  \___ \| |  | | |            =
+                       =       | . \ ____) | |__| | |____        =
+                       =       |_|\_\_____/ \___\_\______|       =
+                       =                                         =
+                       =  Streaming SQL Engine for Apache Kafka® =
+                       ===========================================
+
+         Copyright 2017 Confluent Inc.
+
+         CLI v0.5, Server v0.5 located at http://localhost:8090
+
+         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+
+         ksql>
 
 
 10. From the the KSQL CLI, load the ``clickstream.sql`` schema file that

@@ -16,7 +16,7 @@ fi
 # create logs directory
 if [[ -n $LOG_DIR ]]; then
     [[ -d $LOG_DIR ]] || mkdir -p "$LOG_DIR"
-    KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
+#    KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 fi
 
 : "${KSQL_CLASSPATH:=""}"

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,45 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.cli;
+package io.confluent.ksql.rest.server;
 
+import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
+import static org.easymock.EasyMock.anyString;
+
 public class StandaloneExecutorTest {
 
   private final KsqlEngine engine = EasyMock.niceMock(KsqlEngine.class);
-  private final StandaloneExecutor executor = new StandaloneExecutor(engine);
-  private final String queries = "select something from somewhere";
+  private final String query = "select * from bar;";
+  private StandaloneExecutor executor;
+
+  @Before
+  public void before() throws IOException {
+    final String queriesFile = TestUtils.tempFile().getPath();
+    executor = new StandaloneExecutor(engine, queriesFile);
+    try(final FileOutputStream out = new FileOutputStream(queriesFile)) {
+      out.write(query.getBytes(StandardCharsets.UTF_8));
+    }
+  }
 
   @Test
   public void shouldCreateQueries() throws Exception {
-    EasyMock.expect(engine.createQueries(queries)).andReturn(Collections.emptyList());
+    EasyMock.expect(engine.createQueries(query + "\n")).andReturn(Collections.emptyList());
     EasyMock.replay(engine);
 
-    executor.executeStatements(queries);
+    executor.start();
 
     EasyMock.verify(engine);
   }
@@ -44,12 +60,12 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldExecutePersistentQueries() throws Exception {
     final PersistentQueryMetadata query = EasyMock.niceMock(PersistentQueryMetadata.class);
-    EasyMock.expect(engine.createQueries(queries)).andReturn(Collections.singletonList(query));
+    EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
     query.start();
     EasyMock.expectLastCall();
     EasyMock.replay(query, engine);
 
-    executor.executeStatements(queries);
+    executor.start();
 
     EasyMock.verify(query);
   }
@@ -57,14 +73,13 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldNotExecuteNonPersistentQueries() throws Exception {
     final QueryMetadata query = EasyMock.createMock(QueryMetadata.class);
-    EasyMock.expect(engine.createQueries(queries)).andReturn(Collections.singletonList(query));
-    EasyMock.expect(query.getStatementString()).andReturn(queries);
+    EasyMock.expect(engine.createQueries(anyString())).andReturn(Collections.singletonList(query));
+    EasyMock.expect(query.getStatementString()).andReturn("");
     EasyMock.replay(query, engine);
 
-    executor.executeStatements(queries);
+    executor.start();
 
     EasyMock.verify(query);
-
   }
 
 }

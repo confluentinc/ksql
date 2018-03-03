@@ -17,7 +17,6 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,9 +48,10 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
@@ -114,6 +114,48 @@ public class EndToEndIntegrationTest {
     validateSelectAllFromUsers();
     String derivedStream = validateSelectAllFromDerivedStream();
     validateCreateStreamUsingLikeClause(derivedStream);
+  }
+
+  @Test
+  public void shouldRetainSelectedColumnsInPartitionBy() throws Exception {
+    String createStreamStatement = String.format("CREATE STREAM pageviews_by_viewtime as select "
+                                                 + "viewtime, pageid, userid from "
+                                                 + "pageviews_original "
+                                                 + "partition by "
+                                                 + "viewtime;");
+
+    List<QueryMetadata> queries = ksqlEngine.buildMultipleQueries(createStreamStatement,
+                                                                  Collections.emptyMap());
+
+    assertEquals(1, queries.size());
+    assertThat(queries.get(0), instanceOf(PersistentQueryMetadata.class));
+
+    PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queries.get(0);
+    persistentQueryMetadata.getKafkaStreams().start();
+
+    String query = String.format("SELECT * from pageviews_by_viewtime;");
+
+    queries = ksqlEngine.buildMultipleQueries(query, Collections.emptyMap());
+
+    assertEquals(1, queries.size());
+    assertThat(queries.get(0), instanceOf(QueuedQueryMetadata.class));
+
+    QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) queries.get(0);
+    queryMetadata.getKafkaStreams().start();
+
+    BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    KeyValue<String, GenericRow> nextRow = rowQueue.poll();
+    if (nextRow != null) {
+      List<Object> columns = nextRow.value.getColumns();
+      assertEquals(5, columns.size());
+      String pageid = columns.get(3).toString();
+      assertEquals(5, pageid.length());
+      assertEquals("PAGE_", pageid.substring(0, 5));
+
+      String userid = columns.get(4).toString();
+      assertEquals(5, userid.length());
+      assertEquals("USER_", userid.substring(0, 5));
+    }
   }
 
   private void validateSelectAllFromUsers() throws Exception {

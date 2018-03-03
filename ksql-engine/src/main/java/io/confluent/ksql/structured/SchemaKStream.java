@@ -21,7 +21,6 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;

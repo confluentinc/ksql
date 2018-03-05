@@ -34,17 +34,17 @@ import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
 
-  private Integer tkVal;
+  private int tkVal;
   private T[] tempTopkArray;
   private Class<T> ttClass;
 
-  TopkDistinctKudaf(Integer argIndexInValue,
-                    Integer tkVal,
+  TopkDistinctKudaf(int argIndexInValue,
+                    int tkVal,
                     Class<T> ttClass) {
     super(argIndexInValue,
         () -> (T[]) Array.newInstance(ttClass, tkVal),
           SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-          Arrays.asList(Schema.FLOAT64_SCHEMA)
+          Collections.singletonList(Schema.FLOAT64_SCHEMA)
     );
 
     this.tkVal = tkVal;
@@ -111,7 +111,7 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
     Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkDistinctKudaf(udafIndex, tkValFromArg, ttClass);
+    return new TopkDistinctKudaf<>(udafIndex, tkValFromArg, ttClass);
   }
 
 }

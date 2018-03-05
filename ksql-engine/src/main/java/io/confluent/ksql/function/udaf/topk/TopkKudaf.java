@@ -45,7 +45,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
             List<Schema> argumentTypes,
             Class<T> clazz) {
     super(argIndexInValue,
-          () -> (T[]) Array.newInstance(clazz, topKSize),
+        () -> (T[]) Array.newInstance(clazz, topKSize),
           returnType,
           argumentTypes
     );

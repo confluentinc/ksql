@@ -59,9 +59,6 @@ CREATE TABLE error_counts AS
 
 # Latest news
 
-* [KSQL Feb 2018 release available](https://www.confluent.io/blog/ksql-february-release-streaming-sql-apache-kafka/)
-  -- introduced the KSQL Experimental UI
-  -- further bug fixes, performance and stability improvements
 * [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
   -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
   aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place

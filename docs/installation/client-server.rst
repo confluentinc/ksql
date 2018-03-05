@@ -1,7 +1,7 @@
-.. install_ksql-client-server:
+.. _install_ksql-client-server:
 
-Using Client-Server Mode
-------------------------
+Using KSQL in Client-Server Mode
+================================
 
 In client-server mode, the KSQL servers are run separately from the KSQL CLI client. You can deploy servers on remote machines,
 VMs, or containers and then the CLI connects to these remote servers.
@@ -17,10 +17,7 @@ To run KSQL in client-server mode:
 
 #.  Configure KSQL with the ``/config/ksqlserver.properties`` file.
 
-    .. tip:: KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, KSQL servers use the
-    ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting.
-    For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named
-    ``ksql__production_commands``. For more information, see :ref:`configuring-ksql`.
+    .. tip:: KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, KSQL servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``. For more information, see :ref:`configuring-ksql`.
 
 #.  Start a server node with this command:
 

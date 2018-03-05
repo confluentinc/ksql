@@ -123,3 +123,33 @@ How do I shutdown a KSQL environment?
    .. code:: bash
 
        $ confluent destroy
+
+============================================
+How do I configure the target Kafka cluster?
+============================================
+
+Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
+
+======================================================
+How do I add KSQL servers to an existing KSQL cluster?
+======================================================
+
+Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`<install_ksql-client-server>`.
+
+====================================================================================
+How can I secure KSQL servers for production and prevent interactive client access?
+====================================================================================
+
+You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the ``--queries-file``
+flag. For more information, see :ref:`<ksql-config-queries-file>`.
+
+====================================================================
+How do I use Avro data and integrate with Confluent Schema Registry?
+====================================================================
+
+Configure the ``ksql.schema.registry.url`` to point to Schema Registry. For more information, see :ref:`<ksql-config-schema-registry-url>`.
+
+.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cpe|.
+
+
+

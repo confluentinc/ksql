@@ -10,17 +10,13 @@ You can set the default properties for KSQL, :cp-javadoc:`Kafka’s Streams |str
 You can set per-session properties for :cp-javadoc:`Kafka’s Streams |streams/javadocs/index.html`, Kafka’s
 :cp-javadoc:`producer client |clients/javadocs/org/apache/kafka/clients/producer/ProducerConfig.html` and
 :cp-javadoc:`consumer client |clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html`, and admin client in
-the SET statement in the CLI and web interface.
+the SET statement in the CLI.
 
 To view the current configuration settings, use the ``SHOW PROPERTIES`` KSQL command.
 
-KSQL command line
-    .. code:: sql
+.. code:: sql
 
         ksql> SHOW PROPERTIES;
-
-KSQL web interface
-    .. image:: ../img/ksql-ui-show-properties.png
 
 Setting Default Properties
 --------------------------
@@ -83,14 +79,11 @@ Here is the basic syntax is for setting properties.
 
 .. important:: The property name (``'<property-name>``) and value (``'<property-value>'``) must be enclosed in single quotes (``'``).
 
-KSQL command line
-    .. code:: sql
+.. code:: sql
 
         ksql> SET '<property-name>'='<property-value>';
 
-KSQL web interface
-    .. image:: ../img/ksql-ui-add-config.png
-        :width: 50%
+.. _common-configs:
 
 Common Configurations
 ---------------------
@@ -139,6 +132,14 @@ ksql.command.topic.suffix
     .. code:: java
 
         ksql.command.topic.suffix=production_commands
+
+.. _ksql-config-schema-registry-url:
+ksql.schema.registry.url
+    The Schema Registry URL path to connect KSQL to.
+
+.. _ksql-config-queries-file:
+ksql.queries.file
+    A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
 
 :cp-javadoc:`listeners |streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`
    The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).

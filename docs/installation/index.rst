@@ -15,6 +15,13 @@ Interoperability
     | Confluent Platform | 3.1.0 and later  | 3.3.0 and later  | 3.3.0 and later  | 3.3.0 and later  |
     +--------------------+------------------+------------------+------------------+------------------+
 
+
+To start the KSQL CLI, enter this command:
+
+.. code:: bash
+
+    $ <path-to-confluent>/bin/ksql
+
 For advanced installation and configuration, see the following topics.
 
 .. toctree::

@@ -69,14 +69,6 @@ CLI
     You can interactively write KSQL queries by using the KSQL command line interface (CLI). The KSQL CLI acts as a client
     to the KSQL server.
 
-Web Interface
-    The KSQL web interface provides a simple visual wrapper for the interactive KSQL CLI. The web interface is intended for local
-    development, testing, and demoing. It is not recommended for production environments and will likely change in the future.
-
-    - By default, the KSQL web interface runs on every KSQL Server and is accessible at `http://ksqlserver:8080 <http://ksqlserver:8080>`_.
-    - The web interface shares the port with KSQL's REST API, which you can configure via the listeners configuration property.
-
-
 How Do I Get Started?
 ---------------------
 

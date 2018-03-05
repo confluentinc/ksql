@@ -112,7 +112,7 @@ public class IntTopkKudafTest {
         .parallel()
         .mapToObj(threadNum -> {
           Integer[] aggregate = new Integer[]
-              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+              {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
           for (int value : values) {
             aggregate = topkKudaf.aggregate(value + threadNum, aggregate);

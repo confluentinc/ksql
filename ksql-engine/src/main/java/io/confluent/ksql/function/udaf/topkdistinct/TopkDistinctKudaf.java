@@ -38,7 +38,6 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   private final int tkVal;
   private final Class<T> ttClass;
   private final Comparator<T> comparator;
-  private final ThreadLocal<T[]> tempTopKArray;
 
   @SuppressWarnings("unchecked")
   TopkDistinctKudaf(int argIndexInValue,
@@ -52,8 +51,6 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
 
     this.tkVal = tkVal;
     this.ttClass = ttClass;
-    this.tempTopKArray = ThreadLocal
-        .withInitial(() -> (T[]) Array.newInstance(ttClass, tkVal + 1));
     this.comparator = (v1, v2) -> {
       if (v1 == null && v2 == null) {
         return 0;
@@ -84,11 +81,14 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
       return currentAggVal;
     }
 
-    final T[] tmp = tempTopKArray.get();
-    System.arraycopy(currentAggVal, 0, tmp, 0, tkVal);
-    tmp[tkVal] = currentVal;
-    Arrays.sort(tmp, comparator);
-    return Arrays.copyOf(tmp, tkVal);
+    final T last = currentAggVal[currentAggVal.length - 1];
+    if (currentVal.compareTo(last) <= 0) {
+      return currentAggVal;
+    }
+
+    currentAggVal[currentAggVal.length - 1] = currentVal;
+    Arrays.sort(currentAggVal, comparator);
+    return currentAggVal;
   }
 
   @SuppressWarnings("unchecked")
@@ -131,8 +131,9 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
                                             + ".", functionArguments.size()));
     }
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
+
+    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    final int tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
     return new TopkDistinctKudaf<>(udafIndex, tkValFromArg, ttClass);
   }
 }

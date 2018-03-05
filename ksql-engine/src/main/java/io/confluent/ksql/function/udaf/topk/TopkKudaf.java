@@ -37,7 +37,6 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   private final Schema returnType;
   private final List<Schema> argumentTypes;
   private final Comparator<T> comparator;
-  private final ThreadLocal<T[]> tempTopKArray;
 
   @SuppressWarnings("unchecked")
   TopkKudaf(int argIndexInValue,
@@ -46,7 +45,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
             List<Schema> argumentTypes,
             Class<T> clazz) {
     super(argIndexInValue,
-        () -> (T[]) Array.newInstance(clazz, topKSize),
+          () -> (T[]) Array.newInstance(clazz, topKSize),
           returnType,
           argumentTypes
     );
@@ -54,8 +53,6 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
     this.returnType = returnType;
     this.argumentTypes = argumentTypes;
     this.clazz = clazz;
-    this.tempTopKArray = ThreadLocal
-        .withInitial(() -> (T[]) Array.newInstance(clazz, topKSize + 1));
     this.comparator = (v1, v2) -> {
       if (v1 == null && v2 == null) {
         return 0;
@@ -86,11 +83,14 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
       return currentAggVal;
     }
 
-    final T[] tmp = tempTopKArray.get();
-    System.arraycopy(currentAggVal, 0, tmp, 0, topKSize);
-    tmp[topKSize] = currentVal;
-    Arrays.sort(tmp, comparator);
-    return Arrays.copyOf(tmp, topKSize);
+    final T last = currentAggVal[currentAggVal.length - 1];
+    if (currentVal.compareTo(last) <= 0) {
+      return currentAggVal;
+    }
+
+    currentAggVal[currentAggVal.length - 1] = currentVal;
+    Arrays.sort(currentAggVal, comparator);
+    return currentAggVal;
   }
 
   @SuppressWarnings("unchecked")
@@ -105,7 +105,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
       T[] tempMergeTopKArray = (T[]) Array.newInstance(clazz, nullId1 + nullId2);
 
       System.arraycopy(aggOne, 0, tempMergeTopKArray, 0, nullId1);
-      System.arraycopy(aggTwo, 0, tempMergeTopKArray, nullId1,nullId1 + nullId2 - nullId1);
+      System.arraycopy(aggTwo, 0, tempMergeTopKArray, nullId1, nullId1 + nullId2 - nullId1);
       Arrays.sort(tempMergeTopKArray, comparator);
 
       if (tempMergeTopKArray.length < topKSize) {
@@ -123,8 +123,9 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)",
                                             functionArguments.size()));
     }
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    int topKSize = Integer.parseInt(functionArguments.get(1).toString());
+
+    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
+    final int topKSize = Integer.parseInt(functionArguments.get(1).toString());
     return new TopkKudaf<>(udafIndex, topKSize, returnType, argumentTypes, clazz);
   }
 }

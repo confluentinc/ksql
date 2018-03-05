@@ -28,10 +28,6 @@ public class StringToTimestamp implements Kudf {
   private DateFormat dateFormat = null;
 
   @Override
-  public void init() {
-  }
-
-  @Override
   public Object evaluate(Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("StringToTimestamp udf should have two input argument:"

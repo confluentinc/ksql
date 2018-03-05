@@ -26,10 +26,6 @@ import io.confluent.ksql.function.udf.Kudf;
 public class TimestampToString implements Kudf {
 
   private DateFormat dateFormat = null;
-  @Override
-  public void init() {
-
-  }
 
   @Override
   public Object evaluate(Object... args) {

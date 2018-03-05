@@ -33,10 +33,6 @@ public class JsonExtractStringKudf implements Kudf {
   private ImmutableList<String> tokens = null;
 
   @Override
-  public void init() {
-  }
-
-  @Override
   public Object evaluate(Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("getStringFromJson udf should have two input argument.");

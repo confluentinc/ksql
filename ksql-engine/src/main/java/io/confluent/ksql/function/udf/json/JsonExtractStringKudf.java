@@ -44,7 +44,7 @@ public class JsonExtractStringKudf implements Kudf {
     ensureInitialized(args);
 
     JsonNode currentNode = parseJsonDoc(args[0]);
-    for (String token: tokens) {
+    for (String token : tokens) {
       if (currentNode instanceof ArrayNode) {
         try {
           final int index = Integer.parseInt(token);
@@ -53,7 +53,7 @@ public class JsonExtractStringKudf implements Kudf {
           return null;
         }
       } else {
-          currentNode = currentNode.get(token);
+        currentNode = currentNode.get(token);
       }
 
       if (currentNode == null) {

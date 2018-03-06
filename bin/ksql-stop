@@ -10,11 +10,12 @@
 # However, it comes with the downside that it kills every currently-running CLI session, interactive
 # or not, daemon or not, so:
 # TODO: Consider only killing non-interactive and/or daemon instances of the CLI
-CLIPIDS=$(jcmd | grep 'io\.confluent\.ksql\.Ksql' | awk '{print $1}')
+#CLIPIDS=$(jcmd | grep 'io\.confluent\.ksql\.Ksql' | awk '{print $1}')
+CLIPIDS=$(ps aux | grep 'io\.confluent\.ksql\.Ksql' | awk '{print $2}')
 
 if [ -z "$CLIPIDS" ]; then
   echo "No CLI session(s) to stop"
-  exit 1
+  exit 0
 fi
 
 for PID in $CLIPIDS; do

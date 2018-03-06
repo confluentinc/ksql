@@ -125,7 +125,7 @@ These steps will guide you through how to setup your environment and run the cli
     1.  Start the CLI on port 8080.
 
     	```bash
-    	$ ksql-cli remote http://localhost:8080
+    	$ ksql remote http://localhost:8080
     	```
 
     	You should now be in the KSQL CLI.

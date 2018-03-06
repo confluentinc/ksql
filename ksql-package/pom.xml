@@ -10,7 +10,7 @@
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>package-ksql</artifactId>
+    <artifactId>ksql-package</artifactId>
     <packaging>pom</packaging>
     <name>ksql-package</name>
 

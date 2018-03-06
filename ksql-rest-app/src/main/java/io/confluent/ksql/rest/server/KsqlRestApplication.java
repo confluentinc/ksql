@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -35,8 +36,10 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.Console;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,13 +78,12 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestApplication extends Application<KsqlRestConfig> {
+public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
@@ -152,15 +154,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
   }
 
-  private static Properties getProps(String propsFile) throws IOException {
-    Properties result = new Properties();
-    result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    try (final FileInputStream inputStream = new FileInputStream(propsFile)) {
-      result.load(inputStream);
-    }
-    return result;
-  }
-
   @Override
   public void start() throws Exception {
     super.start();
@@ -170,6 +163,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (versionChckerAgent != null) {
       versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+
+    displayWelcomeMessage();
   }
 
   @Override
@@ -201,26 +196,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (isUiEnabled) {
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CliOptions cliOptions = CliOptions.parse(args);
-    if (cliOptions == null) {
-      return;
-    }
-
-    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(
-        restConfig,
-        restConfig.isUiEnabled(),
-        new KsqlVersionCheckerAgent()
-    );
-
-    log.info("Starting server");
-    app.start();
-    log.info("Server up and running");
-    app.join();
-    log.info("Server shutting down");
   }
 
   public static KsqlRestApplication buildApplication(
@@ -402,8 +377,34 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     return result;
   }
 
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
+  private void displayWelcomeMessage() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+
+    try (PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+
+      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+
+      final String version = Version.getVersion();
+      final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
+          .get(0)
+          .replace("0.0.0.0", "localhost");
+
+      writer.printf("Server %s listening on %s%n", version, listener);
+      writer.println();
+      writer.println("To access the KSQL CLI, run:");
+      writer.println("ksql " + listener);
+      writer.println();
+
+      if (isUiEnabled) {
+        writer.println("To access the UI, point your browser at:");
+        writer.printf(listener + "/index.html");
+        writer.println();
+      }
+    }
   }
 }
 

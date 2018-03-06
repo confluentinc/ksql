@@ -6,14 +6,24 @@
 
     <parent>
         <groupId>io.confluent</groupId>
-        <artifactId>common</artifactId>
+        <artifactId>rest-utils-parent</artifactId>
         <version>4.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
+    <name>ksql-parent</name>
     <version>4.1.0-SNAPSHOT</version>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <modules>
         <module>ksql-common</module>
         <module>ksql-serde</module>
@@ -56,8 +66,11 @@
     </pluginRepositories>
 
     <properties>
-        <!-- remove the version control when confluent-common updates to 11.0.1 -->
-        <!--<kafka.version>0.11.0.1</kafka.version>-->
+        <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
+        <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
+        <confluent.maven.repo>http://packages.confluent.io/maven/</confluent.maven.repo>
+        <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
+        <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
@@ -65,13 +78,13 @@
         <guava.version>21.0</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
-        <java.version>1.8</java.version>
+        <java.version>8</java.version>
         <jline.version>3.3.1</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
-        <jackson.version>2.9.1</jackson.version>
+        <jackson.version>2.9.4</jackson.version>
     </properties>
 
     <dependencyManagement>
@@ -280,7 +293,13 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.2.1</version>
+                    <version>3.3.1</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -301,6 +320,17 @@
                 <configuration>
                     <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -16,12 +16,9 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.cli.LocalCli;
-import org.apache.kafka.test.TestCondition;
+import io.confluent.ksql.cli.Cli;
+
 import org.apache.kafka.test.TestUtils;
-import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,12 +29,10 @@ import static junit.framework.TestCase.fail;
 
 public abstract class TestRunner {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TestRunner.class);
-
-  private static LocalCli localCli;
+  private static Cli localCli;
   private static TestTerminal testTerminal;
 
-  public static void setup(LocalCli localCli, TestTerminal testTerminal) {
+  public static void setup(Cli localCli, TestTerminal testTerminal) {
     Objects.requireNonNull(localCli);
     Objects.requireNonNull(testTerminal);
     TestRunner.localCli = localCli;

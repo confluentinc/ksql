@@ -4,7 +4,7 @@
 #
 # Use shellcheck to lint this file
 #
-SERVERPIDS=$(jcmd | grep 'io\.confluent\.ksql\.rest\.server\.KsqlRestApplication' | awk '{print $1}')
+SERVERPIDS=$(jcmd | grep 'io\.confluent\.ksql\.rest\.server\.ServerMain' | awk '{print $1}')
 
 if [ -z "$SERVERPIDS" ]; then
   echo "No server(s) to stop"

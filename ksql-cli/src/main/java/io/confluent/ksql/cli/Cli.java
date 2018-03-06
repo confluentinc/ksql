@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ErrorMessageEntity;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.CommonUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -52,6 +54,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -69,6 +72,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.ws.rs.ProcessingException;
+
 public class Cli implements Closeable, AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
@@ -85,20 +90,53 @@ public class Cli implements Closeable, AutoCloseable {
   private final Console terminal;
 
   public Cli(
-      Long streamedQueryRowLimit,
-      Long streamedQueryTimeoutMs,
-      KsqlRestClient restClient,
-      Console terminal
+      final Long streamedQueryRowLimit,
+      final Long streamedQueryTimeoutMs,
+      final KsqlRestClient restClient,
+      final Console terminal
   ) {
     Objects.requireNonNull(restClient, "Must provide the CLI with a REST client");
     Objects.requireNonNull(terminal, "Must provide the CLI with a terminal");
+    validateClient(terminal.writer(), restClient);
 
     this.streamedQueryRowLimit = streamedQueryRowLimit;
     this.streamedQueryTimeoutMs = streamedQueryTimeoutMs;
     this.restClient = restClient;
     this.terminal = terminal;
-
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+
+    terminal.registerCliSpecificCommand(new RemoteServerSpecificCommand(
+        restClient,
+        terminal.writer()
+    ));
+  }
+
+  private static void validateClient(
+      final PrintWriter writer,
+      final KsqlRestClient restClient
+  ) {
+    try {
+      RestResponse restResponse = restClient.makeRootRequest();
+      if (restResponse.isErroneous()) {
+        writer.format(
+            "Couldn't connect to the KSQL server: %s\n\n",
+            restResponse.getErrorMessage().getMessage()
+        );
+      }
+    } catch (IllegalArgumentException exception) {
+      writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
+    } catch (KsqlRestClientException exception) {
+      if (exception.getCause() instanceof ProcessingException) {
+        writer.println();
+        writer.println("**************** WARNING ******************");
+        writer.println("Remote server address may not be valid:");
+        writer.println(CommonUtils.getErrorMessageWithCause(exception));
+        writer.println("*******************************************");
+        writer.println();
+      } else {
+        throw exception;
+      }
+    }
   }
 
   public void runInteractively() {
@@ -137,65 +175,31 @@ public class Cli implements Closeable, AutoCloseable {
     }
     String cliVersion = Version.getVersion();
 
-    /*
-        Should look like:
-                            =================================
-                            =   _  __ _____  ____  _        =
-                            =  | |/ // ____|/ __ \| |       =
-                            =  | ' /| (___ | |  | | |       =
-                            =  |  <  \___ \| |  | | |       =
-                            =  | . \ ____) | |__| | |____   =
-                            =  |_|\_\_____/ \___\_\______|  =
-                            =                               =
-                            == Kafka Streams Query Language =
-                              Copyright 2017 Confluent Inc.
-        CLI v1.0.0, Server v1.0.0 located at http://localhost:9098
-        <help message reminder>
-        Text generated via http://www.network-science.de/ascii/, with the "big" font
-     */
-    int logoWidth = 33;
-    String copyrightMessage = "Copyright 2017 Confluent Inc.";
-    String helpReminderMessage = "Having trouble? "
-                                 + "Type 'help' (case-insensitive) for a rundown of how things "
-                                 + "work!";
-    // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
-    if (terminal.getWidth() >= logoWidth) {
-      // Want to center the logo, but in the case of something like a fullscreen terminal, just
-      // centering around the help message (longest single line of text in the welcome message)
-      // should be enough; looks a little weird if you try to center the logo on a wide enough
-      // screen and it just kind of ends up out in the middle of nowhere; hence, the call to
-      // Math.min(terminal.getWidth(), helpReminderMessage.length())
-      int paddedLogoWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
-      int paddingWidth = (paddedLogoWidth - logoWidth) / 2;
-      String leftPadding = new String(
-          new byte[paddingWidth],
-          StandardCharsets.UTF_8
-      ).replaceAll(".", " ");
-      terminal.writer().printf("%s======================================%n", leftPadding);
-      terminal.writer().printf("%s=      _  __ _____  ____  _          =%n", leftPadding);
-      terminal.writer().printf("%s=     | |/ // ____|/ __ \\| |         =%n", leftPadding);
-      terminal.writer().printf("%s=     | ' /| (___ | |  | | |         =%n", leftPadding);
-      terminal.writer().printf("%s=     |  <  \\___ \\| |  | | |         =%n", leftPadding);
-      terminal.writer().printf("%s=     | . \\ ____) | |__| | |____     =%n", leftPadding);
-      terminal.writer().printf("%s=     |_|\\_\\_____/ \\___\\_\\______|    =%n", leftPadding);
-      terminal.writer().printf("%s=                                    =%n", leftPadding);
-      terminal.writer().printf("%s=   Streaming SQL Engine for Kafka   =%n", leftPadding);
-      terminal.writer().printf("%s  %s%n", copyrightMessage, leftPadding);
-    } else {
-      terminal.writer().printf("KSQL, %s%n", copyrightMessage);
-    }
-    terminal.writer().println();
-    terminal.writer().printf(
+    final String helpReminderMessage =
+        "Having trouble? "
+        + "Type 'help' (case-insensitive) for a rundown of how things work!";
+
+    final PrintWriter writer = terminal.writer();
+
+    // Want to center the logo, but in the case of something like a fullscreen terminal, just
+    // centering around the help message (longest single line of text in the welcome message)
+    // should be enough; looks a little weird if you try to center the logo on a wide enough
+    // screen and it just kind of ends up out in the middle of nowhere; hence, the call to
+    // Math.min(terminal.getWidth(), helpReminderMessage.length())
+    final int consoleWidth = Math.min(terminal.getWidth(), helpReminderMessage.length());
+
+    WelcomeMsgUtils.displayWelcomeMessage(consoleWidth, writer);
+
+    writer.printf(
         "CLI v%s, Server v%s located at %s%n",
         cliVersion,
         serverVersion,
         restClient.getServerAddress()
     );
-    terminal.writer().println();
-    terminal.writer().println(helpReminderMessage);
-    terminal.writer().println();
+    writer.println();
+    writer.println(helpReminderMessage);
+    writer.println();
     terminal.flush();
-
   }
 
   public void runNonInteractively(String input) throws Exception {
@@ -327,9 +331,7 @@ public class Cli implements Closeable, AutoCloseable {
     CliUtils cliUtils = new CliUtils();
     Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
         (SqlBaseParser.RegisterTopicContext) statementContext.statement());
-    if (avroSchema.isPresent()) {
-      setProperty(DdlConfig.AVRO_SCHEMA, avroSchema.get());
-    }
+    avroSchema.ifPresent(s -> setProperty(DdlConfig.AVRO_SCHEMA, s));
     consecutiveStatements.append(statementText);
   }
 
@@ -635,6 +637,45 @@ public class Cli implements Closeable, AutoCloseable {
       // uhhh...
       // TODO
       return null;
+    }
+  }
+
+  public static class RemoteServerSpecificCommand implements CliSpecificCommand {
+
+    private final KsqlRestClient restClient;
+    private final PrintWriter writer;
+
+    RemoteServerSpecificCommand(
+        final KsqlRestClient restClient,
+        final PrintWriter writer
+    ) {
+      this.writer = writer;
+      this.restClient = restClient;
+    }
+
+    @Override
+    public String getName() {
+      return "server";
+    }
+
+    @Override
+    public void printHelp() {
+      writer.println("server:");
+      writer.println("\tShow the current server");
+      writer.println("\nserver <server>:");
+      writer.println("\tChange the current server to <server>");
+      writer.println("\t example: \"server http://my.awesome.server.com:9098\"");
+    }
+
+    @Override
+    public void execute(String commandStrippedLine) {
+      if (commandStrippedLine.isEmpty()) {
+        writer.println(restClient.getServerAddress());
+      } else {
+        String serverAddress = commandStrippedLine.trim();
+        restClient.setServerAddress(serverAddress);
+        validateClient(writer, restClient);
+      }
     }
   }
 }

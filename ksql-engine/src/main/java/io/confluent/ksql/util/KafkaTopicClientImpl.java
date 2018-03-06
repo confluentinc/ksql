@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -46,7 +48,10 @@ import io.confluent.ksql.exception.KafkaTopicException;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final int NUM_RETRIES = 5;
+  private static final int RETRY_BACKOFF_MS = 500;
   private final AdminClient adminClient;
+
 
   private boolean isDeleteTopicEnabled = false;
 
@@ -79,8 +84,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     newTopic.configs(configs);
     try {
       log.info("Creating topic '{}'", topic);
-      adminClient.createTopics(Collections.singleton(newTopic)).all().get();
-
+      RetryHelper<Void> retryHelper = new RetryHelper<>();
+      retryHelper.executeWithRetries(() -> adminClient.createTopics(Collections.singleton(newTopic))
+          .all());
     } catch (InterruptedException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
@@ -106,7 +112,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     try {
-      return adminClient.listTopics().names().get();
+      RetryHelper<Set<String>> retryHelper = new RetryHelper<>();
+      return retryHelper.executeWithRetries(() -> adminClient.listTopics().names());
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
@@ -115,7 +122,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
-      return adminClient.describeTopics(topicNames).all().get();
+      RetryHelper<Map<String, TopicDescription>> retryHelper = new RetryHelper<>();
+      return retryHelper.executeWithRetries(() -> adminClient.describeTopics(topicNames).all());
     } catch (InterruptedException | ExecutionException e) {
       throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics", e);
     }
@@ -177,9 +185,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
             ConfigResource.Type.BROKER,
             String.valueOf(nodes.get(0).id())
         );
+
+        RetryHelper<Map<ConfigResource, Config>> retryHelper = new RetryHelper<>();
         DescribeConfigsResult
             describeConfigsResult = adminClient.describeConfigs(Collections.singleton(resource));
-        Map<ConfigResource, Config> config = describeConfigsResult.all().get();
+        Map<ConfigResource, Config> config = retryHelper.executeWithRetries(
+            () -> describeConfigsResult.all()
+        );
 
         this.isDeleteTopicEnabled = config.get(resource)
             .entries()
@@ -196,7 +208,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (InterruptedException | ExecutionException ex) {
       log.error("Failed to initialize TopicClient: {}", ex.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize "
-                              + "AdminCLient.");
+                              + "AdminClient.");
     }
   }
 
@@ -233,6 +245,32 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         numPartitions,
         replicationFactor
     );
+  }
+
+  private static class RetryHelper<T> {
+    T executeWithRetries(Supplier<KafkaFuture<T>> supplier) throws  InterruptedException,
+                                                                    ExecutionException {
+      int retries = 0;
+      Exception lastException = null;
+      while (retries < NUM_RETRIES) {
+        try {
+          if (retries != 0) {
+            Thread.sleep(RETRY_BACKOFF_MS);
+          }
+          return supplier.get().get();
+        } catch (ExecutionException e) {
+          if (e.getCause() instanceof  RetriableException) {
+            retries++;
+            log.info("Retrying admin request due to retriable exception. Retry no: "
+                     + retries, e);
+            lastException = e;
+          } else {
+            throw e;
+          }
+        }
+      }
+      throw new ExecutionException(lastException);
+    }
   }
 
 }

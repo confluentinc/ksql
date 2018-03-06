@@ -30,6 +30,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class IntTopkKudafTest {
@@ -96,6 +97,27 @@ public class IntTopkKudafTest {
     assertThat(aggregate, equalTo(new Integer[]{1, null, null}));
     Object[] agg2 = topkKudaf.aggregate(100, new Integer[]{1, null, null});
     assertThat(agg2, equalTo(new Integer[]{100, 1, null}));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldWorkWithLargeValuesOfKay() {
+    // Given:
+    final int topKSize = 300;
+    topkKudaf = new TopKAggregateFunctionFactory(topKSize)
+        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+    final Integer[] initialAggregate = IntStream.range(0, topKSize)
+        .mapToObj(idx -> null)
+        .toArray(Integer[]::new);
+
+    // When:
+    final Integer[] result = topkKudaf.aggregate(10, initialAggregate);
+    final Integer[] combined = topkKudaf.getMerger().apply("key", result, initialAggregate);
+
+    // Then:
+    assertThat(combined[0], is(10));
+    assertThat(combined[1], is(10));
+    assertThat(combined[2], is(nullValue()));
   }
 
   @SuppressWarnings("unchecked")

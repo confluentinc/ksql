@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
 
 public class JsonExtractStringKudf implements Kudf {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();
 
   private List<String> tokens = null;
 
@@ -81,7 +82,7 @@ public class JsonExtractStringKudf implements Kudf {
   private static JsonNode parseJsonDoc(final Object arg) {
     final String jsonString = arg.toString();
     try {
-      return OBJECT_MAPPER.readTree(jsonString);
+      return OBJECT_READER.readTree(jsonString);
     } catch (IOException e) {
       throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
     }

@@ -24,6 +24,8 @@ import java.io.FileOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import io.confluent.ksql.util.KsqlException;
+
 public final class ZipUtil {
 
   private ZipUtil() {
@@ -31,8 +33,8 @@ public final class ZipUtil {
 
   @SuppressWarnings("ResultOfMethodCallIgnored")
   public static void unzip(final File sourceFile, final File outputDir) {
-    if (!outputDir.exists()) {
-      outputDir.mkdirs();
+    if (!outputDir.exists() && !outputDir.mkdirs()) {
+      throw new KsqlException("Failed to create output directory: " + outputDir);
     }
 
     try (ZipInputStream input = new ZipInputStream(new FileInputStream(sourceFile))) {
@@ -44,8 +46,9 @@ public final class ZipUtil {
         }
 
         final File file = new File(outputDir, entry.getName());
-        if (!file.getParentFile().exists()) {
-          file.getParentFile().mkdirs();
+        final File parent = file.getParentFile();
+        if (!parent.exists() && !parent.mkdirs()) {
+          throw new KsqlException("Failed to create output directory: " + parent);
         }
 
         try (FileOutputStream output = new FileOutputStream(file)) {
@@ -57,7 +60,7 @@ public final class ZipUtil {
 
       input.closeEntry();
     } catch (final Exception e) {
-      throw new RuntimeException(
+      throw new KsqlException(
           "Failed to unzip '" + sourceFile + "' into '" + outputDir + "'", e);
     }
   }

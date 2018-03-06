@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,8 +92,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
-  public static final String UI_FOLDER = "./ui";
-  public static final String EXPANDED_FOLDER = "/expanded";
+  private static final String UI_FOLDER = "./ui";
+  private static final String EXPANDED_FOLDER = "/expanded";
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -365,8 +365,10 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   }
 
   private static void loadUiWar() {
-    log.info("Loading UI-WAR from {}", new File(UI_FOLDER).getAbsolutePath());
-    final File[] files = new File(UI_FOLDER)
+    final File uiFolder = new File(UI_FOLDER);
+    log.info("Loading UI-WAR from {}", uiFolder.getAbsolutePath());
+
+    final File[] files = uiFolder
         .listFiles((dir, name) -> name.endsWith(".war"));
 
     if (files != null) {

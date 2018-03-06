@@ -130,26 +130,44 @@ How do I configure the target Kafka cluster?
 
 Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
 
+.. _add-ksql-servers:
+
 ======================================================
 How do I add KSQL servers to an existing KSQL cluster?
 ======================================================
 
-Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`<install_ksql-client-server>`.
+Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`install_ksql-client-server`.
 
 ====================================================================================
 How can I secure KSQL servers for production and prevent interactive client access?
 ====================================================================================
 
 You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the ``--queries-file``
-flag. For more information, see :ref:`<ksql-config-queries-file>`.
+flag. For more information, see :ref:`common-configs`.
 
 ====================================================================
 How do I use Avro data and integrate with Confluent Schema Registry?
 ====================================================================
 
-Configure the ``ksql.schema.registry.url`` to point to Schema Registry. For more information, see :ref:`<ksql-config-schema-registry-url>`.
+Configure the ``ksql.schema.registry.url`` to point to Schema Registry (see :ref:`common-configs`).
 
 .. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cpe|.
+
+=========================
+How can I scale out KSQL?
+=========================
+
+The maximum parallelism depends on the number of partitions.
+
+- To scale out: start additional KSQL servers with same config. See :ref:`add-ksql-servers`.
+- To scale in: stop the desired running KSQL servers, but keep at least one server running. The remaining servers should
+  have sufficient capacity to take over work from stopped servers.
+
+.. tip:: Idle servers will consume a small amount of resource. For example, if you have 10 KSQL servers and run a query
+         against a two-partition input topic, only two servers perform the actual work, but the other eight will run an “idle”
+         query.
+
+
 
 
 

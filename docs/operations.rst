@@ -10,15 +10,6 @@ Capacity planning and scaling
 
 TBD
 
-======================
-Command Line Utilities
-======================
-
-These utilities are located in ``<path-to-confluent/bin``.
-
-ksql-print-metrics
-ksql-datagen
-ksql-node
 
 
 ============
@@ -69,8 +60,38 @@ Your output should resemble:
     num-idle-queries: 0.0
     messages-consumed-max: 103397.81191436431
 
+For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
+
 ===============
 Troubleshooting
 ===============
 
-TBD
+------------------------------------
+SELECT query hangs and doesn’t stop?
+------------------------------------
+This is a continuous streaming query so it will not stop unless you type ``Ctrl + C``.
+
+--------------------------------------------------
+No results from ``SELECT * FROM`` table or stream?
+--------------------------------------------------
+This is caused by the offset being set to ‘latest’ by default, and no new records are received. To fix, do one of the
+following:
+
+- Run this command: ``SET ‘auto.offset.reset’ = ‘earliest’;``. For more information, see :ref:`common-configs`.
+- Write new records to the input topics.
+
+-----------------------------------------------------------
+Can’t create a stream from the output of windowed aggregate
+-----------------------------------------------------------
+The output of a windowed aggregate is a record per grouping key and per window, and is not a single record. This is not
+currently supported in KSQL.
+
+-----------------------------------------
+KSQL doesn’t clean up its internal topics
+-----------------------------------------
+Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+
+
+
+
+

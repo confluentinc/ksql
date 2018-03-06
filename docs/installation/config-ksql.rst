@@ -133,11 +133,9 @@ ksql.command.topic.suffix
 
         ksql.command.topic.suffix=production_commands
 
-.. _ksql-config-schema-registry-url:
 ksql.schema.registry.url
     The Schema Registry URL path to connect KSQL to.
 
-.. _ksql-config-queries-file:
 ksql.queries.file
     A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
 

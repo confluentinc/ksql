@@ -10,6 +10,9 @@ You can add or remove servers from the same resource pool during live operations
 can use different resource pools to achieve workload isolation. For example, you can deploy separate pools for production
 and for testing.
 
+.. important:: You can only connect to one KSQL server at a time. The CLI does not support automatic failover to another KSQL server
+in case of failure.
+
 .. image:: ../img/client-server.png
     :align: center
 

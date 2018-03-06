@@ -1,4 +1,4 @@
-.. install_ksql:
+.. _install_ksql:
 
 Installing KSQL
 ---------------
@@ -29,6 +29,7 @@ For advanced installation and configuration, see the following topics.
 
     client-server
     config-ksql
+    upgrading
 
 
 

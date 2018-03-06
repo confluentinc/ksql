@@ -144,22 +144,31 @@ public class EndToEndIntegrationTest {
     queryMetadata.getKafkaStreams().start();
 
     BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
-    int rowsConsumed = 0;
-    while (rowsConsumed != 1) {
-      KeyValue<String, GenericRow> nextRow = rowQueue.poll();
-      if (nextRow != null) {
-        List<Object> columns = nextRow.value.getColumns();
-        assertEquals(5, columns.size());
-        String pageid = columns.get(3).toString();
-        assertEquals(6, pageid.length());
-        assertEquals("PAGE_", pageid.substring(0, 5));
+    TestUtils.waitForCondition(() -> {
+      int rowsConsumed = 0;
+      KeyValue<String, GenericRow> nextRow;
+      while (rowsConsumed != 1) {
+        try {
+          nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          continue;
+        }
+        if (nextRow != null) {
+          List<Object> columns = nextRow.value.getColumns();
+          assertEquals(5, columns.size());
+          String pageid = columns.get(3).toString();
+          assertEquals(6, pageid.length());
+          assertEquals("PAGE_", pageid.substring(0, 5));
 
-        String userid = columns.get(4).toString();
-        assertEquals(6, userid.length());
-        assertEquals("USER_", userid.substring(0, 5));
-        rowsConsumed++;
+          String userid = columns.get(4).toString();
+          assertEquals(6, userid.length());
+          assertEquals("USER_", userid.substring(0, 5));
+          rowsConsumed++;
+        }
       }
-    }
+      return true;
+    }, 10000, "Could not retrieve a record from the derived topic for 10 seconds");
   }
 
   private void validateSelectAllFromUsers() throws Exception {

@@ -645,7 +645,7 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | TOPKDISTINCT| `TOPKDISTINCT(col1, k)`   | Return the distinct TopK values for the given column and window |
 
 
-# Configuring Kafka and Kafka Streams
+# Configuring Kafka Streams and Kafka Clients
 
 You can set [Kafka Streams](https://kafka.apache.org/documentation/#streamsconfigs) (e.g. `cache.max.bytes.buffering`),
 [Kafka producer](https://kafka.apache.org/documentation/#producerconfigs),

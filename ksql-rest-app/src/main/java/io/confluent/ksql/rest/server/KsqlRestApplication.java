@@ -35,19 +35,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Console;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.ws.rs.core.Configurable;
 
@@ -79,6 +74,7 @@ import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -155,7 +151,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   @Override
   public ResourceCollection getStaticResources() {
-    log.info("User interface enabled:" + isUiEnabled);
+    log.info("User interface enabled: {}", isUiEnabled);
     if (isUiEnabled) {
       return new ResourceCollection(Resource.newClassPathResource(UI_FOLDER + EXPANDED_FOLDER));
     } else {
@@ -203,26 +199,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (isUiEnabled) {
-      loadUiWar(config);
+      loadUiWar();
+      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
-  }
-
-  private void loadUiWar(Configurable<?> config) {
-    log.info("Loading UI-WAR from :" + new File(UI_FOLDER).getAbsolutePath());
-    File[] files = new File(UI_FOLDER).listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        return name.endsWith(".war");
-      }
-    });
-
-    if (files != null && files.length > 0) {
-      for (File file : files) {
-        unZipIt(file, UI_FOLDER + EXPANDED_FOLDER);
-
-      }
-    }
-    config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
   }
 
   public static KsqlRestApplication buildApplication(
@@ -369,7 +348,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         );
       }
       if (replicationFactor < 2) {
-        log.warn("Creating topic %s with replication factor of %d which is less than 2. "
+        log.warn("Creating topic {} with replication factor of %d which is less than 2. "
                  + "This is not advisable in a production environment. ", replicationFactor);
       }
 
@@ -381,7 +360,26 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
                               Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
                                                        String.valueOf(Long.MAX_VALUE)));
     } catch (KafkaTopicException e) {
-      log.info("Command Topic Exists: " + e.getMessage());
+      log.info("Command Topic Exists: {}", e.getMessage());
+    }
+  }
+
+  private static void loadUiWar() {
+    log.info("Loading UI-WAR from {}", new File(UI_FOLDER).getAbsolutePath());
+    final File[] files = new File(UI_FOLDER)
+        .listFiles((dir, name) -> name.endsWith(".war"));
+
+    if (files != null) {
+      Arrays.stream(files).forEach(KsqlRestApplication::unzipWar);
+    }
+  }
+
+  private static void unzipWar(final File warFile) {
+    try {
+      ZipUtil.unzip(warFile, new File(UI_FOLDER + EXPANDED_FOLDER));
+      log.info("Expand WAR file '{}'", warFile.getPath());
+    } catch (final Exception e) {
+      log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);
     }
   }
 
@@ -432,56 +430,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         writer.printf(listener + "/index.html");
         writer.println();
       }
-    }
-  }
-
-  public static void unZipIt(File zipFile, String outputFolder) {
-
-    try {
-      File folder = new File(outputFolder);
-      if (!folder.exists()) {
-        folder.mkdir();
-      }
-
-      ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFile));
-      ZipEntry nextEntry;
-      while ((nextEntry = zipInputStream.getNextEntry()) != null) {
-        if (nextEntry.isDirectory()) {
-          new File(outputFolder, nextEntry.getName()).mkdirs();
-        } else {
-          writeToFile(folder, zipInputStream, nextEntry);
-        }
-      }
-
-      zipInputStream.closeEntry();
-      zipInputStream.close();
-    } catch (IOException ex) {
-      log.warn("Expand file problem with:" + zipFile.getPath() + " ex:" + ex.toString(), ex);
-    }
-  }
-
-  private static void writeToFile(File unzipDir, ZipInputStream zipInputStream, ZipEntry nextEntry)
-      throws IOException {
-    try {
-      File file = new File(unzipDir, nextEntry.getName());
-      file.getParentFile().mkdir();
-      FileOutputStream outputStream = new FileOutputStream(file);
-      writeToStream(zipInputStream, outputStream);
-    } catch (Throwable t) {
-      log.warn("Expand entry problem with:" + nextEntry.getName() + " ex:" + t.toString(), t);
-    }
-  }
-
-  private static void writeToStream(ZipInputStream zipInputStream,
-                                    FileOutputStream outputStream) throws IOException {
-    byte[] buf = new byte[4098];
-    int read;
-    try {
-      while ((read = zipInputStream.read(buf, 0, buf.length)) != -1) {
-        outputStream.write(buf, 0, read);
-      }
-    } finally {
-      outputStream.close();
     }
   }
 }

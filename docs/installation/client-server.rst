@@ -7,11 +7,10 @@ In client-server mode, the KSQL servers are run separately from the KSQL CLI cli
 VMs, or containers and then the CLI connects to these remote servers.
 
 You can add or remove servers from the same resource pool during live operations, to elastically scale query processing. You
-can use different resource pools to achieve workload isolation. For example, you can deploy separate pools for production
+can use different resource pools to support workload isolation. For example, you could deploy separate pools for production
 and for testing.
 
-.. important:: You can only connect to one KSQL server at a time. The CLI does not support automatic failover to another KSQL server
-in case of failure.
+.. important:: You can only connect to one KSQL server at a time. The CLI does not support automatic failover to another KSQL server.
 
 .. image:: ../img/client-server.png
     :align: center

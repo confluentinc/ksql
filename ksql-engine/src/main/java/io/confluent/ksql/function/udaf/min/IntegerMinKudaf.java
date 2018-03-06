@@ -19,7 +19,6 @@ package io.confluent.ksql.function.udaf.min;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,7 @@ public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
   @Override
   public Merger<String, Integer> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
-     return Math.min(aggOne, aggTwo);
+      return Math.min(aggOne, aggTwo);
     };
   }
 

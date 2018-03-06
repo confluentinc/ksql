@@ -30,7 +30,7 @@ import java.util.Map;
 // all validation to be performed by the KsqlConfig class will be handled outside of this one.
 public class KsqlRestConfig extends RestConfig {
 
-  public static final String KSQL_STREAMS_PREFIX       = "ksql.core.streams.";
+  public static final String KSQL_STREAMS_PREFIX       = "streams.";
   public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
   public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
 

@@ -683,14 +683,14 @@ $ ksql http://localhost:8080 --properties-file ./ksql.properties
 ```
 
 Finally, you can provide these configurations to the KSQL server in its properties file. When configuring Kafka Streams
-and Kafka via the server properties file, you must prefix the config names with `ksql.core.streams`. The KSQL server will
+and Kafka via the server properties file, you must prefix the config names with `streams`. The KSQL server will
 use the values provided in its properties file unless overridden by the client.
 
 ```bash
 # Show the example contents of a server properties file
 $ cat ksql-server.properties
 ...
-ksql.core.streams.auto.offset.reset=earliest
+streams.auto.offset.reset=earliest
 
 # Start a KSQL server node (for client-server mode) with the custom properties above
 $ ksql-server-start ./ksql-server.properties

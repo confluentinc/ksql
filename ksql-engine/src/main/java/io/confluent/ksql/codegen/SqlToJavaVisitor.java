@@ -283,6 +283,86 @@ public class SqlToJavaVisitor {
       return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
     }
 
+    private String nullCheckPrefix(ComparisonExpression.Type type) {
+      switch(type) {
+        case IS_DISTINCT_FROM:
+          return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
+              + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
+        default:
+          return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? false : ";
+      }
+    }
+
+    private String visitStringComparisonExpression(ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(!%1$s.equals(%2$s))";
+        case GREATER_THAN_OR_EQUAL:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case LESS_THAN:
+          return "(%1$s.compareTo(%2$s) " + type.getValue() + " 0)";
+        default:
+          throw new KsqlException("Unexpected string comparison: " + type.getValue());
+      }
+    }
+
+    private String visitArrayComparisonExpression(ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(java.util.Arrays.equals(%1$s, %2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "!(java.util.Arrays.equals(%1$s, %2$s))";
+        default:
+          throw new KsqlException("Unexpected array comparison: " + type.getValue());
+      }
+    }
+
+    private String visitMapComparisonExpression(ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return " (!%1$s.equals(%2$s))";
+        default:
+          throw new KsqlException("Unexpected map comparison: " + type.getValue());
+      }
+    }
+
+    private String visitScalarComparisonExpression(ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "((%1$s <= %2$s) && (%1$s >= %2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "((%1$s < %2$s) || (%1$s > %2$s))";
+        case GREATER_THAN_OR_EQUAL:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case LESS_THAN:
+          return "(%1$s " + type.getValue() + " %2$s)";
+        default:
+          throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+    }
+
+    private String visitBooleanComparisonExpression(ComparisonExpression.Type type) {
+      switch(type) {
+        case EQUAL:
+          return "(Boolean.compare(%1$s, %2$s) == 0)";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(Boolean.compare(%1$s, %2$s) != 0)";
+        default:
+          throw new KsqlException("Unexpected boolean comparison: " + type.getValue());
+      }
+    }
+
     @Override
     protected Pair<String, Schema> visitComparisonExpression(
         ComparisonExpression node,
@@ -290,31 +370,27 @@ public class SqlToJavaVisitor {
     ) {
       Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
-      if ((left.getRight().type() == Schema.Type.STRING) || (
-          right.getRight().type() == Schema.Type.STRING
-        )) {
-        if ("=".equals(node.getType().getValue())) {
-          return new Pair<>(
-              "(" + left.getLeft() + ".equals(" + right.getLeft() + "))",
-              Schema.BOOLEAN_SCHEMA
-          );
-        } else if ("<>".equals(node.getType().getValue())) {
-          return new Pair<>(
-              " (!" + left.getLeft() + ".equals(" + right.getLeft() + "))",
-              Schema.BOOLEAN_SCHEMA
-          );
-        }
+
+      String exprFormat = nullCheckPrefix(node.getType());
+      switch(left.getRight().type()) {
+        case STRING:
+          exprFormat += visitStringComparisonExpression(node.getType());
+          break;
+        case MAP:
+          exprFormat += visitMapComparisonExpression(node.getType());
+          break;
+        case ARRAY:
+          exprFormat += visitArrayComparisonExpression(node.getType());
+          break;
+        case BOOLEAN:
+          exprFormat += visitBooleanComparisonExpression(node.getType());
+          break;
+        default:
+          exprFormat += visitScalarComparisonExpression(node.getType());
+          break;
       }
-      String typeStr = node.getType().getValue();
-      if ("=".equals(typeStr)) {
-        typeStr = "==";
-      } else if ("<>".equals(typeStr)) {
-        typeStr = "!=";
-      }
-      return new Pair<>(
-          "(" + left.getLeft() + " " + typeStr + " " + right.getLeft() + ")",
-          Schema.BOOLEAN_SCHEMA
-      );
+      String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
+      return new Pair<>(expr, Schema.BOOLEAN_SCHEMA);
     }
 
     @Override

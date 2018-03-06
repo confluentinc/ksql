@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 package io.confluent.ksql.function.udaf.max;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -28,27 +28,24 @@ import io.confluent.ksql.parser.tree.Expression;
 
 public class IntegerMaxKudaf extends KsqlAggregateFunction<Integer, Integer> {
 
-  public IntegerMaxKudaf(Integer argIndexInValue) {
+  public IntegerMaxKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> Integer.MIN_VALUE, Schema.INT32_SCHEMA,
-          Arrays.asList(Schema.INT32_SCHEMA)
+          Collections.singletonList(Schema.INT32_SCHEMA)
     );
   }
 
   @Override
   public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal > currentAggVal) {
-      return currentVal;
+    if (currentVal == null) {
+      return currentAggVal;
     }
-    return currentAggVal;
+    return Math.max(currentVal, currentAggVal);
   }
 
   @Override
   public Merger<String, Integer> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
-      if (aggOne > aggTwo) {
-        return aggOne;
-      }
-      return aggTwo;
+      return Math.max(aggOne, aggTwo);
     };
   }
 

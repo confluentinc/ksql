@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf.min;
 
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -32,15 +33,33 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
-    assertThat(aggregateFunction, instanceOf(IntegerMinKudaf.class));
-    IntegerMinKudaf integerMinKudaf = (IntegerMinKudaf) aggregateFunction;
+    IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
     int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     int currentMin = Integer.MAX_VALUE;
     for (int i: values) {
       currentMin = integerMinKudaf.aggregate(i, currentMin);
     }
     assertThat(2, equalTo(currentMin));
+  }
+
+  @Test
+  public void shouldFindCorrectMinForMerge() {
+    IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    Merger<String, Integer> merger = integerMinKudaf.getMerger();
+    Integer mergeResult1 = merger.apply("Key", 10, 12);
+    assertThat(mergeResult1, equalTo(10));
+    Integer mergeResult2 = merger.apply("Key", 10, -12);
+    assertThat(mergeResult2, equalTo(-12));
+    Integer mergeResult3 = merger.apply("Key", -10, 0);
+    assertThat(mergeResult3, equalTo(-10));
+
+  }
+
+
+  private IntegerMinKudaf getIntegerMinKudaf() {
+    KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+        .getProperAggregateFunction(Collections.singletonList(Schema.INT32_SCHEMA));
+    assertThat(aggregateFunction, instanceOf(IntegerMinKudaf.class));
+    return  (IntegerMinKudaf) aggregateFunction;
   }
 }

@@ -645,13 +645,12 @@ Terminate a persistent query. Persistent queries run continuously until they are
 | TOPKDISTINCT| `TOPKDISTINCT(col1, k)`   | Return the distinct TopK values for the given column and window |
 
 
-# Configuring KSQL
+# Configuring Kafka Streams and Kafka Clients
 
-You can set configuration properties for KSQL and your queries with the SET statement.  This includes
-[settings for Kafka's Streams API](https://kafka.apache.org/documentation/#streamsconfigs)
-(e.g., `cache.max.bytes.buffering`) as well as
-settings for Kafka's [producer client](https://kafka.apache.org/documentation/#producerconfigs) and
-[consumer client](https://kafka.apache.org/documentation/#newconsumerconfigs) (e.g., `auto.offset.reset`).
+You can set [Kafka Streams](https://kafka.apache.org/documentation/#streamsconfigs) (e.g. `cache.max.bytes.buffering`),
+[Kafka producer](https://kafka.apache.org/documentation/#producerconfigs),
+and [Kafka consumer](https://kafka.apache.org/documentation/#newconsumerconfigs) (e.g. `auto.offset.reset`) configuration
+properties for your queries with the SET statement.
 
 ```sql
 SET '<property-name>'='<property-value>';
@@ -679,11 +678,22 @@ conventions, which are slightly different to the syntax of the SET statement abo
 $ cat ksql.properties
 auto.offset.reset=earliest
 
-# Start KSQL in standalone mode with the custom properties above
-$ ksql-cli local --properties-file ./ksql.properties
+# Start a KSQL cli session with the custom properties above
+$ ksql http://localhost:8080 --properties-file ./ksql.properties
+```
+
+Finally, you can provide these configurations to the KSQL server in its properties file. When configuring Kafka Streams
+and Kafka via the server properties file, you must prefix the config names with `streams`. The KSQL server will
+use the values provided in its properties file unless overridden by the client.
+
+```bash
+# Show the example contents of a server properties file
+$ cat ksql-server.properties
+...
+streams.auto.offset.reset=earliest
 
 # Start a KSQL server node (for client-server mode) with the custom properties above
-$ ksql-server-start ./ksql.properties
+$ ksql-server-start ./ksql-server.properties
 ```
 
 Note: Be careful when you are using KSQL in Docker because the properties file must be available inside the Docker

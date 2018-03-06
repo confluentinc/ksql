@@ -20,6 +20,6 @@ Get started now with these instructions:
 - [Clickstream Analysis using Docker](/ksql-clickstream-demo/docker-clickstream.md#clickstream-analysis-using-docker)
 - [Clickstream Analysis not using Docker](/ksql-clickstream-demo/non-docker-clickstream.md#clickstream-analysis)
 
-Click here to watch a screencast of the KSQL demo on YouTube.
-<p><img src="../screencast.jpg" alt="KSQL screencast" target="_blank"></p>
-<!-- [![KSQL screencast](../screencast.jpg)](https://youtu.be/A45uRzJiv7I) -->
+
+Click [here](https://youtu.be/A45uRzJiv7I) to watch a screencast of the KSQL demo on YouTube.
+<a href="https://youtu.be/A45uRzJiv7I" target="_blank"><img src="../screencast.jpg" alt="KSQL screencast"></a></p>

@@ -77,7 +77,7 @@ install: build
 	for svc in debian/*.service ; do \
 	    $(INSTALL) -o root -g root -D $$svc $(DESTDIR)$(SYSTEMDDIR)/$$(basename $$svc) ; \
 	done
-	pushd "ksql/target/ksql-$(VERSION)-package" ; \
+	pushd "ksql-package/target/ksql-package-$(VERSION)-package" ; \
 	find bin/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL_X) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ;\
 	find share/ -type f | grep -v README[.]rpm | xargs -I XXX $(INSTALL) -o root -g root XXX $(DESTDIR)$(PREFIX)/XXX ; \
 	pushd etc/ksql/ ; \

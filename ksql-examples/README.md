@@ -12,10 +12,14 @@ After building the project you can run the examples by following these steps:
 3. Start the data gen for pageview topic using the following command:
 
         $ ./bin/ksql-datagen quickstart=pageviews format=json topic=pageview_topic_json
+        
+4. Start the KSQL server using the following command:
+        
+        $ ./bin/ksql-server-start config/ksqlserver.properties        
 
 4. Start the KSQL CLI using the following command:
 
-        $ ./bin/ksql-cli local
+        $ ./bin/ksql http://localhost:8080
 
 
 You will be able to run the provided queries and see the results. The data gen module will continuously push new messages to the topics until you terminate them

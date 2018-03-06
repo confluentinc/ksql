@@ -39,7 +39,7 @@ public class IntegerMinKudaf extends KsqlAggregateFunction<Integer, Integer> {
     if (currentVal == null) {
       return currentAggVal;
     }
-    return Math.min(currentAggVal, currentAggVal);
+    return Math.min(currentVal, currentAggVal);
   }
 
   @Override

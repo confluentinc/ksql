@@ -19,34 +19,6 @@ package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
-
-import io.confluent.ksql.rest.server.resources.ServerInfoResource;
-import io.confluent.ksql.util.WelcomeMsgUtils;
-import io.confluent.rest.RestConfig;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.resource.ResourceCollection;
-import org.glassfish.jersey.server.ServerProperties;
-import org.glassfish.jersey.servlet.ServletProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Console;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import javax.ws.rs.core.Configurable;
-
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -72,16 +44,48 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceCollection;
+import org.glassfish.jersey.server.ServerProperties;
+import org.glassfish.jersey.servlet.ServletProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Configurable;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
@@ -89,6 +93,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  public static final String UI_FOLDER = "./ui";
+  public static final String EXPANDED_FOLDER = "/expanded";
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -111,15 +117,15 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   }
 
   public KsqlRestApplication(
-      KsqlEngine ksqlEngine,
-      KsqlRestConfig config,
-      CommandRunner commandRunner,
-      RootDocument rootDocument,
-      StatusResource statusResource,
-      StreamedQueryResource streamedQueryResource,
-      KsqlResource ksqlResource,
-      boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+          KsqlEngine ksqlEngine,
+          KsqlRestConfig config,
+          CommandRunner commandRunner,
+          RootDocument rootDocument,
+          StatusResource statusResource,
+          StreamedQueryResource streamedQueryResource,
+          KsqlResource ksqlResource,
+          boolean isUiEnabled,
+          VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -148,7 +154,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   public ResourceCollection getStaticResources() {
     log.info("User interface enabled:" + isUiEnabled);
     if (isUiEnabled) {
-      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
+      return new ResourceCollection(Resource.newClassPathResource(UI_FOLDER + EXPANDED_FOLDER));
     } else {
       return super.getStaticResources();
     }
@@ -194,16 +200,34 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (isUiEnabled) {
-      config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
+      loadUiWar(config);
     }
   }
 
+  private void loadUiWar(Configurable<?> config) {
+    log.info("Loading UI-WAR from :" + new File(UI_FOLDER).getAbsolutePath());
+    File[] files = new File(UI_FOLDER).listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".war");
+      }
+    });
+
+    if (files != null && files.length > 0) {
+      for (File file : files) {
+        unZipIt(file, UI_FOLDER + EXPANDED_FOLDER);
+
+      }
+    }
+    config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
+  }
+
   public static KsqlRestApplication buildApplication(
-      KsqlRestConfig restConfig,
-      boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+          KsqlRestConfig restConfig,
+          boolean isUiEnabled,
+          VersionCheckerAgent versionCheckerAgent
   )
-      throws Exception {
+          throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
     ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
@@ -262,64 +286,64 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
     Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
     KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        getJsonDeserializer(CommandId.class, true),
-        getJsonDeserializer(Command.class, false)
+            commandConsumerProperties,
+            getJsonDeserializer(CommandId.class, true),
+            getJsonDeserializer(Command.class, false)
     );
 
     KafkaProducer<CommandId, Command> commandProducer = new KafkaProducer<>(
-        restConfig.getCommandProducerProperties(),
-        getJsonSerializer(true),
-        getJsonSerializer(false)
+            restConfig.getCommandProducerProperties(),
+            getJsonSerializer(true),
+            getJsonSerializer(false)
     );
 
     CommandStore commandStore = new CommandStore(
-        commandTopic,
-        commandConsumer,
-        commandProducer,
-        new CommandIdAssigner(ksqlEngine.getMetaStore())
+            commandTopic,
+            commandConsumer,
+            commandProducer,
+            new CommandIdAssigner(ksqlEngine.getMetaStore())
     );
 
     StatementParser statementParser = new StatementParser(ksqlEngine);
 
     StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlEngine,
-        statementParser
+            ksqlEngine,
+            statementParser
     );
 
     CommandRunner commandRunner = new CommandRunner(
-        statementExecutor,
-        commandStore
+            statementExecutor,
+            commandStore
     );
 
     RootDocument rootDocument = new RootDocument(isUiEnabled,
-        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
+            restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
-        ksqlEngine,
-        statementParser,
-        restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
+            ksqlEngine,
+            statementParser,
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)
     );
     KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        statementExecutor,
-        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+            ksqlEngine,
+            commandStore,
+            statementExecutor,
+            restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
     );
 
     commandRunner.processPriorCommands();
 
     return new KsqlRestApplication(
-        ksqlEngine,
-        restConfig,
-        commandRunner,
-        rootDocument,
-        statusResource,
-        streamedQueryResource,
-        ksqlResource,
-        isUiEnabled,
-        versionCheckerAgent
+            ksqlEngine,
+            restConfig,
+            commandRunner,
+            rootDocument,
+            statusResource,
+            streamedQueryResource,
+            ksqlResource,
+            isUiEnabled,
+            versionCheckerAgent
     );
   }
 
@@ -334,24 +358,24 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       short replicationFactor = 1;
       if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
         replicationFactor = Short.parseShort(
-            restConfig
-                .getOriginals()
-                .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-                .toString()
+                restConfig
+                        .getOriginals()
+                        .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+                        .toString()
         );
       }
       if(replicationFactor < 2) {
         log.warn("Creating topic %s with replication factor of %d which is less than 2. "
-            + "This is not advisable in a production environment. ", replicationFactor);
+                + "This is not advisable in a production environment. ", replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we
       // don't lose any data in case of fail over etc.
       topicClient.createTopic(commandTopic,
-          1,
-          replicationFactor,
-          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-              String.valueOf(Long.MAX_VALUE)));
+              1,
+              replicationFactor,
+              Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
+                      String.valueOf(Long.MAX_VALUE)));
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: " + e.getMessage());
     }
@@ -366,12 +390,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private static <T> Deserializer<T> getJsonDeserializer(Class<T> classs, boolean isKey) {
     Deserializer<T> result = new KafkaJsonDeserializer<>();
     String typeConfigProperty = isKey
-                                ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-                                : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+            ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+            : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
 
     Map<String, ?> props = Collections.singletonMap(
-        typeConfigProperty,
-        classs
+            typeConfigProperty,
+            classs
     );
     result.configure(props, isKey);
     return result;
@@ -384,14 +408,14 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
 
     try (PrintWriter writer =
-        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+                 new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
 
       WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
       final String version = Version.getVersion();
       final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
-          .get(0)
-          .replace("0.0.0.0", "localhost");
+              .get(0)
+              .replace("0.0.0.0", "localhost");
 
       writer.printf("Server %s listening on %s%n", version, listener);
       writer.println();
@@ -406,8 +430,53 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       }
     }
   }
-}
 
-/*
-        TODO: Find a good, forwards-compatible use for the root resource
- */
+  public void unZipIt(File zipFile, String outputFolder){
+
+    try{
+      File folder = new File(outputFolder);
+      if(!folder.exists()){
+        folder.mkdir();
+      }
+
+      ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFile));
+      ZipEntry nextEntry;
+      while ((nextEntry = zipInputStream.getNextEntry()) != null) {
+        if (nextEntry.isDirectory()) {
+          new File(outputFolder, nextEntry.getName()).mkdirs();
+        } else {
+          writeToFile(folder, zipInputStream, nextEntry);
+        }
+      }
+
+      zipInputStream.closeEntry();
+      zipInputStream.close();
+    } catch(IOException ex){
+      log.warn("Expand file problem with:" + zipFile.getPath() + " ex:" + ex.toString(), ex);
+    }
+  }
+
+  private void writeToFile(File unzipDir, ZipInputStream zipInputStream, ZipEntry nextEntry)
+          throws IOException {
+    try {
+      File file = new File(unzipDir, nextEntry.getName());
+      file.getParentFile().mkdir();
+      FileOutputStream outputStream = new FileOutputStream(file);
+      writeToStream(zipInputStream, outputStream);
+    } catch (Throwable t) {
+      log.warn("Expand entry problem with:" + nextEntry.getName() + " ex:" + t.toString(), t);
+    }
+  }
+  private void writeToStream(ZipInputStream zipInputStream,
+                             FileOutputStream outputStream) throws IOException {
+    byte [] buf = new byte[4098];
+    int read;
+    try {
+      while ((read = zipInputStream.read(buf, 0, buf.length)) != -1) {
+        outputStream.write(buf, 0, read);
+      }
+    } finally {
+      outputStream.close();
+    }
+  }
+}

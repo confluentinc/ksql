@@ -39,7 +39,7 @@ Because KSQL queries data in a Kafka cluster, you will need to bring up a Kafka 
 
     Copyright 2017 Confluent Inc.
 
-    CLI v0.5, Server v0.5 located at http://localhost:8090
+    CLI v0.4, Server v0.4 located at http://localhost:8090
 
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

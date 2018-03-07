@@ -180,16 +180,16 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testNullEquals() throws Exception {
-        Assert.assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{null, 12344L}), is(false));
-        Assert.assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{null, null}), is(false));
+        assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{null, 12344L}), is(false));
+        assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{null, null}), is(false));
     }
 
     @Test
     public void testIsDistinctFrom() throws Exception {
-        Assert.assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{12344, 12344L}), is(false));
+        assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{12344, 12344L}), is(false));
         assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12344L}), is(true));
         assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{null, 12344L}), is(true));
-        Assert.assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{null, null}), is(false));
+        assertThat(evalBooleanExprIsDistinctFrom(COL5_INDEX, COL0_INDEX, new Object[]{null, null}), is(false));
     }
 
     @Test
@@ -210,7 +210,7 @@ public class CodeGenRunnerTest {
 
         result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
-        Assert.assertThat((Boolean)result0, is(false));
+        assertThat((Boolean)result0, is(false));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class CodeGenRunnerTest {
 
         Object result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{null});
         assertThat(result0, instanceOf(Boolean.class));
-        Assert.assertThat((Boolean)result0, is(false));
+        assertThat((Boolean)result0, is(false));
 
         result0 = expressionEvaluatorMetadata0.getExpressionEvaluator().evaluate(new Object[]{12345L});
         assertThat(result0, instanceOf(Boolean.class));
@@ -237,25 +237,25 @@ public class CodeGenRunnerTest {
     @Test
     public void testBooleanExprScalarEq() throws Exception {
         // int32
-        Assert.assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12344L}), is(false));
+        assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12344L}), is(false));
         assertThat(evalBooleanExprEq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(true));
         // int64
-        Assert.assertThat(evalBooleanExprEq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12344}), is(false));
+        assertThat(evalBooleanExprEq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12344}), is(false));
         assertThat(evalBooleanExprEq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(true));
         // double
-        Assert.assertThat(evalBooleanExprEq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12344.0}), is(false));
+        assertThat(evalBooleanExprEq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12344.0}), is(false));
         assertThat(evalBooleanExprEq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12345.0}), is(true));
     }
 
     @Test
     public void testBooleanExprBooleanEq() throws Exception {
-        Assert.assertThat(evalBooleanExprEq(COL7_INDEX, COL6_INDEX, new Object[]{false, true}), is(false));
+        assertThat(evalBooleanExprEq(COL7_INDEX, COL6_INDEX, new Object[]{false, true}), is(false));
         assertThat(evalBooleanExprEq(COL7_INDEX, COL6_INDEX, new Object[]{true, true}), is(true));
     }
 
     @Test
     public void testBooleanExprStringEq() throws Exception {
-        Assert.assertThat(evalBooleanExprEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(false));
+        assertThat(evalBooleanExprEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(false));
         assertThat(evalBooleanExprEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(true));
     }
 
@@ -288,101 +288,101 @@ public class CodeGenRunnerTest {
     public void testBooleanExprScalarNeq() throws Exception {
         // int32
         assertThat(evalBooleanExprNeq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12344L}), is(true));
-        Assert.assertThat(evalBooleanExprNeq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(false));
+        assertThat(evalBooleanExprNeq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(false));
         // int64
         assertThat(evalBooleanExprNeq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12344}), is(true));
-        Assert.assertThat(evalBooleanExprNeq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(false));
+        assertThat(evalBooleanExprNeq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(false));
         // double
         assertThat(evalBooleanExprNeq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12344.0}), is(true));
-        Assert.assertThat(evalBooleanExprNeq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12345.0}), is(false));
+        assertThat(evalBooleanExprNeq(COL4_INDEX, COL3_INDEX, new Object[]{12345.0, 12345.0}), is(false));
     }
 
     @Test
     public void testBooleanExprBooleanNeq() throws Exception {
         assertThat(evalBooleanExprNeq(COL7_INDEX, COL6_INDEX, new Object[]{false, true}), is(true));
-        Assert.assertThat(evalBooleanExprNeq(COL7_INDEX, COL6_INDEX, new Object[]{true, true}), is(false));
+        assertThat(evalBooleanExprNeq(COL7_INDEX, COL6_INDEX, new Object[]{true, true}), is(false));
     }
 
     @Test
     public void testBooleanExprStringNeq() throws Exception {
         assertThat(evalBooleanExprNeq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(true));
-        Assert.assertThat(evalBooleanExprNeq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
+        assertThat(evalBooleanExprNeq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
     }
 
     @Test
     public void testBooleanExprScalarLessThan() throws Exception {
         // int32
         assertThat(evalBooleanExprLessThan(COL5_INDEX, COL0_INDEX, new Object[]{12344, 12345L}), is(true));
-        Assert.assertThat(evalBooleanExprLessThan(COL5_INDEX, COL0_INDEX, new Object[]{12346, 12345L}), is(false));
+        assertThat(evalBooleanExprLessThan(COL5_INDEX, COL0_INDEX, new Object[]{12346, 12345L}), is(false));
         // int64
         assertThat(evalBooleanExprLessThan(COL8_INDEX, COL5_INDEX, new Object[]{12344L, 12345}), is(true));
-        Assert.assertThat(evalBooleanExprLessThan(COL8_INDEX, COL5_INDEX, new Object[]{12346L, 12345}), is(false));
+        assertThat(evalBooleanExprLessThan(COL8_INDEX, COL5_INDEX, new Object[]{12346L, 12345}), is(false));
         // double
         assertThat(evalBooleanExprLessThan(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(true));
-        Assert.assertThat(evalBooleanExprLessThan(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(false));
+        assertThat(evalBooleanExprLessThan(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(false));
     }
 
     @Test
     public void testBooleanExprStringLessThan() throws Exception {
         assertThat(evalBooleanExprLessThan(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(true));
-        Assert.assertThat(evalBooleanExprLessThan(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
+        assertThat(evalBooleanExprLessThan(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
     }
 
     @Test
     public void testBooleanExprScalarLessThanEq() throws Exception {
         // int32
         assertThat(evalBooleanExprLessThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(true));
-        Assert.assertThat(evalBooleanExprLessThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12346, 12345L}), is(false));
+        assertThat(evalBooleanExprLessThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12346, 12345L}), is(false));
         // int64
         assertThat(evalBooleanExprLessThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(true));
-        Assert.assertThat(evalBooleanExprLessThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12346L, 12345}), is(false));
+        assertThat(evalBooleanExprLessThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12346L, 12345}), is(false));
         // double
         assertThat(evalBooleanExprLessThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(true));
-        Assert.assertThat(evalBooleanExprLessThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(false));
+        assertThat(evalBooleanExprLessThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(false));
     }
 
     @Test
     public void testBooleanExprStringLessThanEq() throws Exception {
         assertThat(evalBooleanExprLessThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(true));
-        Assert.assertThat(evalBooleanExprLessThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abb"}), is(false));
+        assertThat(evalBooleanExprLessThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abb"}), is(false));
     }
 
     @Test
     public void testBooleanExprScalarGreaterThan() throws Exception {
         // int32
         assertThat(evalBooleanExprGreaterThan(COL5_INDEX, COL0_INDEX, new Object[]{12346, 12345L}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThan(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(false));
+        assertThat(evalBooleanExprGreaterThan(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(false));
         // int64
         assertThat(evalBooleanExprGreaterThan(COL8_INDEX, COL5_INDEX, new Object[]{12346L, 12345}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThan(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(false));
+        assertThat(evalBooleanExprGreaterThan(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(false));
         // double
         assertThat(evalBooleanExprGreaterThan(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThan(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(false));
+        assertThat(evalBooleanExprGreaterThan(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(false));
     }
 
     @Test
     public void testBooleanExprStringGreaterThan() throws Exception {
         assertThat(evalBooleanExprGreaterThan(COL1_INDEX, COL2_INDEX, new Object[]{"def", "abc"}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThan(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
+        assertThat(evalBooleanExprGreaterThan(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "abc"}), is(false));
     }
 
     @Test
     public void testBooleanExprScalarGreaterThanEq() throws Exception {
         // int32
         assertThat(evalBooleanExprGreaterThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12345, 12345L}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12344, 12345L}), is(false));
+        assertThat(evalBooleanExprGreaterThanEq(COL5_INDEX, COL0_INDEX, new Object[]{12344, 12345L}), is(false));
         // int64
         assertThat(evalBooleanExprGreaterThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12345L, 12345}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12344L, 12345}), is(false));
+        assertThat(evalBooleanExprGreaterThanEq(COL8_INDEX, COL5_INDEX, new Object[]{12344L, 12345}), is(false));
         // double
         assertThat(evalBooleanExprGreaterThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12346.0, 12345.0}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(false));
+        assertThat(evalBooleanExprGreaterThanEq(COL4_INDEX, COL3_INDEX, new Object[]{12344.0, 12345.0}), is(false));
     }
 
     @Test
     public void testBooleanExprStringGreaterThanEq() throws Exception {
         assertThat(evalBooleanExprGreaterThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"def", "abc"}), is(true));
-        Assert.assertThat(evalBooleanExprGreaterThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(false));
+        assertThat(evalBooleanExprGreaterThanEq(COL1_INDEX, COL2_INDEX, new Object[]{"abc", "def"}), is(false));
     }
 
     @Test

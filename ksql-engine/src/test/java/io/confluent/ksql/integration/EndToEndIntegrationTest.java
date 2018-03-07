@@ -145,29 +145,26 @@ public class EndToEndIntegrationTest {
 
     BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
     TestUtils.waitForCondition(() -> {
-      int rowsConsumed = 0;
       KeyValue<String, GenericRow> nextRow;
-      while (rowsConsumed != 1) {
-        try {
-          nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          continue;
-        }
-        if (nextRow != null) {
-          List<Object> columns = nextRow.value.getColumns();
-          assertEquals(5, columns.size());
-          String pageid = columns.get(3).toString();
-          assertEquals(6, pageid.length());
-          assertEquals("PAGE_", pageid.substring(0, 5));
-
-          String userid = columns.get(4).toString();
-          assertEquals(6, userid.length());
-          assertEquals("USER_", userid.substring(0, 5));
-          rowsConsumed++;
-        }
+      try {
+        nextRow = rowQueue.poll(1000, TimeUnit.MILLISECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return false;
       }
-      return true;
+      if (nextRow != null) {
+        List<Object> columns = nextRow.value.getColumns();
+        assertEquals(5, columns.size());
+        String pageid = columns.get(3).toString();
+        assertEquals(6, pageid.length());
+        assertEquals("PAGE_", pageid.substring(0, 5));
+
+        String userid = columns.get(4).toString();
+        assertEquals(6, userid.length());
+        assertEquals("USER_", userid.substring(0, 5));
+        return true;
+      }
+      return false;
     }, 10000, "Could not retrieve a record from the derived topic for 10 seconds");
   }
 

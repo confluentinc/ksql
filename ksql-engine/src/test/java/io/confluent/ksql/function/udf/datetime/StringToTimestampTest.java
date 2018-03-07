@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udf.datetime;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -44,6 +45,15 @@ public class StringToTimestampTest {
     assertThat(result, is(1638360611123L));
   }
 
+  @Test
+  public void shouldSupportEmbeddedChars() {
+    // When:
+    final Object result = udf.evaluate("2021-12-01T12:10:11.123Fred", "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+
+    // Then:
+    assertThat(result, is(1638360611123L));
+  }
+
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowIfTooFewParameters() {
     udf.evaluate("2021-12-01 12:10:11.123");
@@ -64,10 +74,47 @@ public class StringToTimestampTest {
     udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
   }
 
+  @Test(expected = KsqlFunctionException.class)
+  public void shouldThrowOnEmptyString() {
+    udf.evaluate("invalid", "yyyy-MM-dd'T'HH:mm:ss.SSS");
+  }
+
   @Test
   public void shouldBeThreadSafe() {
     IntStream.range(0, 10_000)
         .parallel()
-        .forEach(idx -> shouldCovertStringToTimestamp());
+        .forEach(idx -> {
+          shouldCovertStringToTimestamp();
+          udf.evaluate("1988-01-12 10:12:13.456", "yyyy-MM-dd HH:mm:ss.SSS");
+        });
+  }
+
+  @Test
+  public void shouldBehaveLikeSimpleDateFormat() throws Exception {
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11.123-0800", "yyyy-MM-dd HH:mm:ss.SSSX");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11.123 +00", "yyyy-MM-dd HH:mm:ss.SSS X");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11.123 PST", "yyyy-MM-dd HH:mm:ss.SSS z");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11.123 -0800", "yyyy-MM-dd HH:mm:ss.SSS Z");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11", "yyyy-MM-dd HH:mm:ss");
+    assertLikeSimpleDateFormat("2021-12-01 12:10:11 -0700", "yyyy-MM-dd HH:mm:ss X");
+    assertLikeSimpleDateFormat("2021-12-01 12:10", "yyyy-MM-dd HH:mm");
+    assertLikeSimpleDateFormat("2021-12-01 12:10 -0700", "yyyy-MM-dd HH:mm X");
+    assertLikeSimpleDateFormat("2021-12-01 12", "yyyy-MM-dd HH");
+    assertLikeSimpleDateFormat("2021-12-01 12 -0700", "yyyy-MM-dd HH X");
+    assertLikeSimpleDateFormat("2021-12-01", "yyyy-MM-dd");
+    assertLikeSimpleDateFormat("2021-12-01 PST", "yyyy-MM-dd z");
+    assertLikeSimpleDateFormat("2021-12", "yyyy-MM");
+    assertLikeSimpleDateFormat("2021", "yyyy");
+    assertLikeSimpleDateFormat("12", "MM");
+    assertLikeSimpleDateFormat("01", "dd");
+    assertLikeSimpleDateFormat("01", "HH");
+    assertLikeSimpleDateFormat("01", "mm");
+  }
+
+  private void assertLikeSimpleDateFormat(final String value, final String format) throws Exception {
+    final long expected = new SimpleDateFormat(format).parse(value).getTime();
+    final Object result = new StringToTimestamp().evaluate(value, format);
+    assertThat(result, is(expected));
   }
 }

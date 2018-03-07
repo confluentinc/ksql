@@ -17,6 +17,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import java.sql.Timestamp;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -24,7 +25,7 @@ import io.confluent.ksql.function.udf.Kudf;
 
 public class TimestampToString implements Kudf {
 
-  private DateTimeFormatter formatter;
+  private DateTimeFormatter threadSafeFormatter;
 
   @Override
   public Object evaluate(Object... args) {
@@ -37,7 +38,9 @@ public class TimestampToString implements Kudf {
       ensureInitialized(args);
 
       final Timestamp timestamp = new Timestamp((Long) args[0]);
-      return timestamp.toLocalDateTime().format(formatter);
+      return timestamp.toLocalDateTime()
+          .atZone(ZoneId.systemDefault())
+          .format(threadSafeFormatter);
     } catch (Exception e) {
       throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] + " , "
                                       + args[1] + ") : " + e.getMessage(), e);
@@ -45,8 +48,8 @@ public class TimestampToString implements Kudf {
   }
 
   private void ensureInitialized(final Object[] args) {
-    if (formatter == null) {
-      formatter = DateTimeFormatter.ofPattern(args[1].toString());
+    if (threadSafeFormatter == null) {
+      threadSafeFormatter = DateTimeFormatter.ofPattern(args[1].toString());
     }
   }
 }

@@ -19,6 +19,7 @@ package io.confluent.ksql.function.udf.datetime;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -42,6 +43,15 @@ public class TimestampToStringTest {
 
     // Then:
     assertThat(result, is("2021-12-01 12:10:11.123"));
+  }
+
+  @Test
+  public void shouldSupportEmbeddedChars() {
+    // When:
+    final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+
+    // Then:
+    assertThat(result, is("2021-12-01T12:10:11.123Fred"));
   }
 
   @Test(expected = KsqlFunctionException.class)
@@ -68,6 +78,38 @@ public class TimestampToStringTest {
   public void shouldBeThreadSafe() {
     IntStream.range(0, 10_000)
         .parallel()
-        .forEach(idx -> shouldCovertTimestampToString());
+        .forEach(idx -> {
+          shouldCovertTimestampToString();
+          udf.evaluate(1538361611123L, "yyyy-MM-dd HH:mm:ss.SSS");
+        });
+  }
+
+  @Test
+  public void shouldBehaveLikeSimpleDateFormat() {
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSX");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS X");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss X");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm X");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH X");
+    assertLikeSimpleDateFormat("yyyy-MM-dd");
+    assertLikeSimpleDateFormat("yyyy-MM-dd z");
+    assertLikeSimpleDateFormat("yyyy-MM");
+    assertLikeSimpleDateFormat("yyyy");
+    assertLikeSimpleDateFormat("MM");
+    assertLikeSimpleDateFormat("dd");
+    assertLikeSimpleDateFormat("HH");
+    assertLikeSimpleDateFormat("mm");
+  }
+
+  private void assertLikeSimpleDateFormat(final String format) {
+    final String expected = new SimpleDateFormat(format).format(1538361611123L);
+    final Object result = new TimestampToString().evaluate(1538361611123L, format);
+    assertThat(result, is(expected));
   }
 }

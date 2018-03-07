@@ -105,7 +105,7 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
       T[] tempMergeTopKArray = (T[]) Array.newInstance(clazz, nullId1 + nullId2);
 
       System.arraycopy(aggOne, 0, tempMergeTopKArray, 0, nullId1);
-      System.arraycopy(aggTwo, 0, tempMergeTopKArray, nullId1, nullId1 + nullId2 - nullId1);
+      System.arraycopy(aggTwo, 0, tempMergeTopKArray, nullId1, nullId2);
       Arrays.sort(tempMergeTopKArray, comparator);
 
       if (tempMergeTopKArray.length < topKSize) {

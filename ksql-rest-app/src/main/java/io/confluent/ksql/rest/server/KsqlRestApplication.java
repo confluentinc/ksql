@@ -33,9 +33,11 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Console;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,14 +79,14 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
-public class KsqlRestApplication extends Application<KsqlRestConfig> {
+public class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
@@ -157,15 +159,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     }
   }
 
-  private static Properties getProps(String propsFile) throws IOException {
-    Properties result = new Properties();
-    result.put("application.id", "KSQL_REST_SERVER_DEFAULT_APP_ID");
-    try (final FileInputStream inputStream = new FileInputStream(propsFile)) {
-      result.load(inputStream);
-    }
-    return result;
-  }
-
   @Override
   public void start() throws Exception {
     super.start();
@@ -175,6 +168,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     if (versionChckerAgent != null) {
       versionChckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+
+    displayWelcomeMessage();
   }
 
   @Override
@@ -207,26 +202,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
       loadUiWar();
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CliOptions cliOptions = CliOptions.parse(args);
-    if (cliOptions == null) {
-      return;
-    }
-
-    KsqlRestConfig restConfig = new KsqlRestConfig(getProps(cliOptions.getPropertiesFile()));
-    KsqlRestApplication app = buildApplication(
-        restConfig,
-        restConfig.isUiEnabled(),
-        new KsqlVersionCheckerAgent()
-    );
-
-    log.info("Starting server");
-    app.start();
-    log.info("Server up and running");
-    app.join();
-    log.info("Server shutting down");
   }
 
   public static KsqlRestApplication buildApplication(
@@ -324,7 +299,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     );
 
     RootDocument rootDocument = new RootDocument(isUiEnabled,
-        restConfig.getList(RestConfig.LISTENERS_CONFIG).get(0));
+                                                 restConfig.getList(RestConfig.LISTENERS_CONFIG)
+                                                     .get(0));
 
     StatusResource statusResource = new StatusResource(statementExecutor);
     StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
@@ -371,18 +347,18 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
                 .toString()
         );
       }
-      if(replicationFactor < 2) {
-        log.warn("Creating topic %s with replication factor of %d which is less than 2. "
-            + "This is not advisable in a production environment. ", replicationFactor);
+      if (replicationFactor < 2) {
+        log.warn("Creating topic {} with replication factor of %d which is less than 2. "
+                 + "This is not advisable in a production environment. ", replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we
       // don't lose any data in case of fail over etc.
       topicClient.createTopic(commandTopic,
-          1,
-          replicationFactor,
-          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
-              String.valueOf(Long.MAX_VALUE)));
+                              1,
+                              replicationFactor,
+                              Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
+                                                       String.valueOf(Long.MAX_VALUE)));
     } catch (KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }
@@ -429,11 +405,33 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     return result;
   }
 
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
+  private void displayWelcomeMessage() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+
+    try (PrintWriter writer =
+             new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+
+      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+
+      final String version = Version.getVersion();
+      final String listener = config.getList(RestConfig.LISTENERS_CONFIG)
+          .get(0)
+          .replace("0.0.0.0", "localhost");
+
+      writer.printf("Server %s listening on %s%n", version, listener);
+      writer.println();
+      writer.println("To access the KSQL CLI, run:");
+      writer.println("ksql " + listener);
+      writer.println();
+
+      if (isUiEnabled) {
+        writer.println("To access the UI, point your browser at:");
+        writer.printf(listener + "/index.html");
+        writer.println();
+      }
+    }
   }
 }
-
-/*
-        TODO: Find a good, forwards-compatible use for the root resource
- */

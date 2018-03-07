@@ -8,11 +8,11 @@ Click here to watch a screencast of the KSQL demo on YouTube.
 <a href="https://youtu.be/A45uRzJiv7I" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
 <!-- [![KSQL screencast](screencast.jpg)](https://youtu.be/A45uRzJiv7I) -->
 
-# Quick Start
+# Getting Started
 If you are ready to see the power of KSQL, try out these:
 
-- [KSQL Quick Start](https://github.com/confluentinc/ksql/tree/v0.5/docs/quickstart#quick-start): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
-- [Clickstream Analysis Demo](https://github.com/confluentinc/ksql/tree/v0.5/ksql-clickstream-demo#clickstream-analysis): Shows how to build an application that performs real-time user analytics.
+- [KSQL Quick Start](https://docs.confluent.io/current/ksql/docs/quickstart/): Demonstrates a simple workflow using KSQL to write streaming queries against data in Kafka.
+- [Clickstream Analysis Demo](https://docs.confluent.io/current/ksql/docs/ksql-clickstream-demo/): Shows how to build an application that performs real-time user analytics.
 
 # Use Cases and Examples
 
@@ -61,9 +61,6 @@ CREATE TABLE error_counts AS
 
 # Latest news
 
-* [KSQL Feb 2018 release available](https://www.confluent.io/blog/ksql-february-release-streaming-sql-apache-kafka/)
-  -- introduced the KSQL Experimental UI
-  -- further bug fixes, performance and stability improvements
 * [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
   -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
   aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place
@@ -77,7 +74,7 @@ CREATE TABLE error_counts AS
 
 
 # Documentation
-You can [find the KSQL documentation here](https://github.com/confluentinc/ksql/tree/v0.5/docs#ksql-documentation)
+You can find the KSQL documentation at [docs.confluent.io](https://docs.confluent.io/current/ksql/docs/index.html).
 
 # Join the Community
 Whether you need help, want to contribute, or are just looking for the latest news, you can find out how to [connect with your fellow Confluent community members here](https://www.confluent.io/contact-us-thank-you/).
@@ -86,9 +83,12 @@ Whether you need help, want to contribute, or are just looking for the latest ne
 * Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 # Contributing
-Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](/docs/contributing.md).
+Contributions to the code, examples, documentation, etc, are very much appreciated. For more information, see the [contribution guidelines](contributing.md).
 
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
+
+# Issues
+Report issues in [this GitHub project](https://github.com/confluentinc/ksql/issues).
 
 # License
 The project is licensed under the Apache License, version 2.0.

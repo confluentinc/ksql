@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,22 +35,6 @@ public class ArrayUtilTest {
   }
 
   @Test
-  public void shouldPadWithNullCorrectly() {
-    Double[] doubles1 = new Double[]{10.0, null, null};
-    Double[] doubles2 = new Double[]{null, null, null};
-    Double[] doubles3 = new Double[]{10.0, 9.0, 8.0};
-
-    assertThat(ArrayUtil.padWithNull(Double.class, doubles1, 5), equalTo(new Double[]{10.0,
-                                                                                      null, null,
-                                                                                      null, null}));
-    assertThat(ArrayUtil.padWithNull(Double.class, doubles2, 5), equalTo(new Double[]{null, null,
-                                                                                      null, null, null}));
-    assertThat(ArrayUtil.padWithNull(Double.class, doubles3, 5), equalTo(new Double[]{10.0, 9.0, 8.0, null, null}));
-    assertThat(ArrayUtil.padWithNull(Double.class, doubles3, 2), equalTo(new Double[]{10.0, 9.0, 8.0}));
-  }
-
-
-  @Test
   public void shouldCheckArrayItemsCorrectly() {
     Double[] doubles = new Double[]{10.0, null, null};
     Long[] longs = new Long[]{10L, 35L, 70L, null};
@@ -61,6 +45,5 @@ public class ArrayUtilTest {
     Assert.assertTrue(ArrayUtil.containsValue(35L, longs));
     Assert.assertTrue(ArrayUtil.containsValue(70, integers));
     Assert.assertTrue(ArrayUtil.containsValue("hi", strings));
-
   }
 }

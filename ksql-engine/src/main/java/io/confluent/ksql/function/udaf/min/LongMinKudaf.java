@@ -19,7 +19,7 @@ package io.confluent.ksql.function.udaf.min;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -28,9 +28,9 @@ import io.confluent.ksql.parser.tree.Expression;
 
 public class LongMinKudaf extends KsqlAggregateFunction<Long, Long> {
 
-  LongMinKudaf(Integer argIndexInValue) {
+  LongMinKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> Long.MAX_VALUE, Schema.INT64_SCHEMA,
-          Arrays.asList(Schema.INT64_SCHEMA)
+          Collections.singletonList(Schema.INT64_SCHEMA)
     );
   }
 

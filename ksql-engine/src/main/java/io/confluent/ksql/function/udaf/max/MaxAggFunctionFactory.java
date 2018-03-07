@@ -28,7 +28,9 @@ import io.confluent.ksql.util.KsqlException;
 public class MaxAggFunctionFactory extends AggregateFunctionFactory {
 
   public MaxAggFunctionFactory() {
-    super("MAX", Arrays.asList(new DoubleMaxKudaf(-1), new LongMaxKudaf(-1)));
+    super("MAX", Arrays.asList(new DoubleMaxKudaf(-1),
+                               new LongMaxKudaf(-1),
+                               new IntegerMaxKudaf(-1)));
   }
 
   @Override

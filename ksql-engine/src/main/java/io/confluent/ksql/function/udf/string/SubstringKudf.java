@@ -22,11 +22,6 @@ import io.confluent.ksql.function.udf.Kudf;
 public class SubstringKudf implements Kudf {
 
   @Override
-  public void init() {
-
-  }
-
-  @Override
   public Object evaluate(Object... args) {
     if ((args.length < 2) || (args.length > 3)) {
       throw new KsqlFunctionException("Substring udf should have two or three input argument.");

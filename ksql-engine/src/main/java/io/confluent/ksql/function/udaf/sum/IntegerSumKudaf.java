@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql.function.udaf.count;
+package io.confluent.ksql.function.udaf.sum;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
@@ -26,33 +26,33 @@ import java.util.Map;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.Expression;
 
-public class CountKudaf extends KsqlAggregateFunction<Object, Long> {
+public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
 
-  CountKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0L, Schema.INT64_SCHEMA,
-          Collections.singletonList(Schema.FLOAT64_SCHEMA)
+  IntegerSumKudaf(int argIndexInValue) {
+    super(argIndexInValue, () -> 0, Schema.INT32_SCHEMA,
+          Collections.singletonList(Schema.INT32_SCHEMA)
     );
   }
 
   @Override
-  public Long aggregate(Object currentVal, Long currentAggVal) {
-    return currentAggVal + 1;
+  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
+    if (currentVal == null) {
+      return currentAggVal;
+    }
+    return currentVal + currentAggVal;
   }
 
   @Override
-  public Merger<String, Long> getMerger() {
+  public Merger<String, Integer> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 
   @Override
-  public KsqlAggregateFunction<Object, Long> getInstance(Map<String, Integer> expressionNames,
-                                                         List<Expression> functionArguments) {
+  public KsqlAggregateFunction<Integer, Integer> getInstance(Map<String, Integer> expressionNames,
+                                                           List<Expression> functionArguments) {
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new CountKudaf(udafIndex);
+    return new IntegerSumKudaf(udafIndex);
   }
 
-  @Override
-  public boolean hasSameArgTypes(List<Schema> argTypeList) {
-    return false;
-  }
+
 }

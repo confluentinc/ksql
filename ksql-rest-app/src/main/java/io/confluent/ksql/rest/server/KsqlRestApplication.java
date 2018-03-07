@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +20,6 @@ package io.confluent.ksql.rest.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 
-import io.confluent.ksql.rest.server.resources.ServerInfoResource;
-import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -35,8 +33,10 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,8 +69,10 @@ import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
+import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -79,6 +81,7 @@ import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
 public class KsqlRestApplication extends Application<KsqlRestConfig> {
@@ -87,6 +90,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  private static final String UI_FOLDER = "./ui";
+  private static final String EXPANDED_FOLDER = "/expanded";
   private static AdminClient adminClient;
 
   private final KsqlEngine ksqlEngine;
@@ -144,9 +149,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
 
   @Override
   public ResourceCollection getStaticResources() {
-    log.info("User interface enabled:" + isUiEnabled);
+    log.info("User interface enabled: {}", isUiEnabled);
     if (isUiEnabled) {
-      return new ResourceCollection(Resource.newClassPathResource("/io/confluent/ksql/rest/"));
+      return new ResourceCollection(Resource.newClassPathResource(UI_FOLDER + EXPANDED_FOLDER));
     } else {
       return super.getStaticResources();
     }
@@ -199,6 +204,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     if (isUiEnabled) {
+      loadUiWar();
       config.property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/(static/.*|.*html)");
     }
   }
@@ -378,7 +384,28 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> {
           Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG,
               String.valueOf(Long.MAX_VALUE)));
     } catch (KafkaTopicException e) {
-      log.info("Command Topic Exists: " + e.getMessage());
+      log.info("Command Topic Exists: {}", e.getMessage());
+    }
+  }
+
+  private static void loadUiWar() {
+    final File uiFolder = new File(UI_FOLDER);
+    log.info("Loading UI-WAR from {}", uiFolder.getAbsolutePath());
+
+    final File[] files = uiFolder
+        .listFiles((dir, name) -> name.endsWith(".war"));
+
+    if (files != null) {
+      Arrays.stream(files).forEach(KsqlRestApplication::unzipWar);
+    }
+  }
+
+  private static void unzipWar(final File warFile) {
+    try {
+      ZipUtil.unzip(warFile, new File(UI_FOLDER + EXPANDED_FOLDER));
+      log.info("Expand WAR file '{}'", warFile.getPath());
+    } catch (final Exception e) {
+      log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);
     }
   }
 

@@ -27,7 +27,9 @@ import java.util.List;
 public class SumAggFunctionFactory extends AggregateFunctionFactory {
 
   public SumAggFunctionFactory() {
-    super("SUM", Arrays.asList(new DoubleSumKudaf(-1), new LongSumKudaf(-1)));
+    super("SUM", Arrays.asList(new DoubleSumKudaf(-1),
+                               new LongSumKudaf(-1),
+                               new IntegerSumKudaf(-1)));
   }
 
   @Override

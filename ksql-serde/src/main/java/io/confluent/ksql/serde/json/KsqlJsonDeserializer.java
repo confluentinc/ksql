@@ -34,7 +34,6 @@ import java.util.Map;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
@@ -110,10 +109,9 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
         }
       case ARRAY:
         ArrayNode arrayNode = (ArrayNode) fieldJsonNode;
-        Class elementClass = SchemaUtil.getJavaType(fieldSchema.valueSchema());
-        Object[] arrayField =
-            (Object[]) java.lang.reflect.Array.newInstance(elementClass, arrayNode.size());
-        for (int i = 0; i < arrayNode.size(); i++) {
+        int size = arrayNode.size();
+        Object[] arrayField = new Object[size];
+        for (int i = 0; i < size; i++) {
           arrayField[i] = enforceFieldType(fieldSchema.valueSchema(), arrayNode.get(i));
         }
         return arrayField;

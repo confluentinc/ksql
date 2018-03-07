@@ -20,7 +20,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -33,23 +32,21 @@ import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 
 public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
-
-  private Integer tkVal;
-  private T[] tempTopkArray;
-  private Class<T> ttClass;
+  private final int topKSize;
+  private final Class<T> clazz;
+  private T[] tempTopKArray;
 
   TopkDistinctKudaf(Integer argIndexInValue,
-                    Integer tkVal,
-                    Class<T> ttClass) {
+                    int topKSize,
+                    Class<T> clazz) {
     super(argIndexInValue,
-        () -> (T[]) Array.newInstance(ttClass, tkVal),
+        () -> (T[]) new Object[topKSize],
           SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
           Arrays.asList(Schema.FLOAT64_SCHEMA)
     );
-
-    this.tkVal = tkVal;
-    this.tempTopkArray = (T[]) Array.newInstance(ttClass,tkVal + 1);
-    this.ttClass = ttClass;
+    this.topKSize = topKSize;
+    this.tempTopKArray = (T[]) new Object[topKSize + 1];
+    this.clazz = clazz;
   }
 
   @Override
@@ -67,38 +64,37 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
       return currentAggVal;
     }
 
-    System.arraycopy(currentAggVal, 0, tempTopkArray, 0, tkVal);
-    tempTopkArray[tkVal] = currentVal;
-    Arrays.sort(tempTopkArray, Collections.reverseOrder());
-    return Arrays.copyOf(tempTopkArray, tkVal);
+    System.arraycopy(currentAggVal, 0, tempTopKArray, 0, topKSize);
+    tempTopKArray[topKSize] = currentVal;
+    Arrays.sort(tempTopKArray, Collections.reverseOrder());
+    return Arrays.copyOf(tempTopKArray, topKSize);
   }
 
   @Override
   public Merger<String, T[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
+      int nullId1 = ArrayUtil.getNullIndex(aggOne) == -1? topKSize : ArrayUtil.getNullIndex(aggOne);
+      int nullId2 = ArrayUtil.getNullIndex(aggTwo) == -1? topKSize : ArrayUtil.getNullIndex(aggTwo);
+      T[] tempMergeTopKArray = (T[]) new Object[nullId1 + nullId2];
 
-      int nullIndex1 = ArrayUtil.getNullIndex(aggOne) == -1? tkVal: ArrayUtil.getNullIndex(aggOne);
-      int nullIndex2 = ArrayUtil.getNullIndex(aggTwo) == -1? tkVal: ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
-
-      for (int i = 0; i < nullIndex1; i++) {
-        tempMergeTopkArray[i] = aggOne[i];
+      for (int i = 0; i < nullId1; i++) {
+        tempMergeTopKArray[i] = aggOne[i];
       }
       int duplicateCount = 0;
-      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
+      for (int i = nullId1; i < nullId1 + nullId2; i++) {
+        if (ArrayUtil.containsValue(aggTwo[i - nullId1], aggOne)) {
           duplicateCount ++;
         } else {
-          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
+          tempMergeTopKArray[i - duplicateCount] = aggTwo[i - nullId1];
         }
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(ttClass, tempMergeTopkArray);
-      Arrays.sort(tempMergeTopkArray, Collections.reverseOrder());
-      if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(ttClass, tempMergeTopkArray, tkVal);
-        return tempMergeTopkArray;
+      tempMergeTopKArray = ArrayUtil.getNoNullArray(clazz, tempMergeTopKArray);
+      Arrays.sort(tempMergeTopKArray, Collections.reverseOrder());
+      if (tempMergeTopKArray.length < topKSize) {
+        tempMergeTopKArray = ArrayUtil.padWithNull(clazz, tempMergeTopKArray, topKSize);
+        return tempMergeTopKArray;
       }
-      return Arrays.copyOf(tempMergeTopkArray, tkVal);
+      return Arrays.copyOf(tempMergeTopKArray, topKSize);
     };
   }
 
@@ -106,12 +102,12 @@ public class TopkDistinctKudaf<T> extends KsqlAggregateFunction<T, T[]> {
   public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
                                                              List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
-      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
-                                            + ".", functionArguments.size()));
+      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s).",
+              functionArguments.size()));
     }
     int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    Integer tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkDistinctKudaf(udafIndex, tkValFromArg, ttClass);
+    int topKSize = Integer.parseInt(functionArguments.get(1).toString());
+    return new TopkDistinctKudaf(udafIndex, topKSize, clazz);
   }
 
 }

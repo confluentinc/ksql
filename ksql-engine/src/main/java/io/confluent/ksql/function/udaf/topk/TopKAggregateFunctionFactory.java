@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +17,14 @@
 package io.confluent.ksql.function.udaf.topk;
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   private final int topKSize;
@@ -35,7 +34,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   public TopKAggregateFunctionFactory(int topKSize) {
-    super("TOPK", Arrays.asList());
+    super("TOPK", Collections.emptyList());
     this.topKSize = topKSize;
   }
 

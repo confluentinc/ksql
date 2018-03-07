@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,20 +16,16 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
 public class TimestampToString implements Kudf {
 
-  private DateFormat dateFormat = null;
-  @Override
-  public void init() {
-
-  }
+  private DateTimeFormatter threadSafeFormatter;
 
   @Override
   public Object evaluate(Object... args) {
@@ -37,14 +33,23 @@ public class TimestampToString implements Kudf {
       throw new KsqlFunctionException("TimestampToString udf should have two input argument:"
                                       + " date value and format.");
     }
+
     try {
-      if(dateFormat == null) {
-        dateFormat = new SimpleDateFormat(args[1].toString());
-      }
-      return dateFormat.format(new Date((long)args[0]));
+      ensureInitialized(args);
+
+      final Timestamp timestamp = new Timestamp((Long) args[0]);
+      return timestamp.toLocalDateTime()
+          .atZone(ZoneId.systemDefault())
+          .format(threadSafeFormatter);
     } catch (Exception e) {
-      throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] +" , "
-          + args[1] + ") : " + e.getMessage(), e);
+      throw new KsqlFunctionException("Exception running TimestampToString(" + args[0] + " , "
+                                      + args[1] + ") : " + e.getMessage(), e);
+    }
+  }
+
+  private void ensureInitialized(final Object[] args) {
+    if (threadSafeFormatter == null) {
+      threadSafeFormatter = DateTimeFormatter.ofPattern(args[1].toString());
     }
   }
 }

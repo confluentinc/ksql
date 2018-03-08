@@ -18,9 +18,9 @@ To start the KSQL CLI, enter this command:
 
     $ <path-to-confluent>/bin/ksql
 
-   After KSQL is started, your terminal should resemble this.
+After KSQL is started, your terminal should resemble this.
 
-   .. code:: bash
+.. code:: bash
 
                           ===========================================
                           =        _  __ _____  ____  _             =

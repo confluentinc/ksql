@@ -9,13 +9,16 @@ KSQL
    :hidden:
 
    installation/index
-   tutorials/index
    operations
+   tutorials/index
    syntax-reference
    faq
 
-What Is KSQL?
--------------
+.. raw:: html
+
+   <h2>What Is KSQL?</h2>
+
+---------------------
 
 KSQL is an open source streaming SQL engine for Apache Kafka®. It provides a simple interactive SQL interface for stream
 processing on Kafka, without the need to write code in a programming language such as Java or Python. KSQL is scalable, reliable,
@@ -30,8 +33,11 @@ Learn More
               <iframe src="https://www.youtube.com/embed/A45uRzJiv7I" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
           </div>
 
-What Can I Do With KSQL?
-------------------------
+.. raw:: html
+
+   <h2>What Can I Do With KSQL?</h2>
+
+---------------------
 
 Streaming ETL
     Apache Kafka is a popular choice for powering data pipelines. KSQL makes it simple to transform data within the pipeline, readying messages to cleanly land in another system.
@@ -54,8 +60,11 @@ Sensor data and IoT
 Customer 360-view
     Achieve a comprehensive understanding of your customers across every interaction through a variety of channels, where new information is continuously incorporated in real-time.
 
-What Are the Components?
-------------------------
+.. raw:: html
+
+   <h2>What Are the Components?</h2>
+
+---------------------
 
 KSQL Server
     The KSQL server runs the engine that executes KSQL queries. This includes processing, reading, and writing data to and from
@@ -69,7 +78,10 @@ CLI
     You can interactively write KSQL queries by using the KSQL command line interface (CLI). The KSQL CLI acts as a client
     to the KSQL server.
 
-How Do I Get Started?
+.. raw:: html
+
+   <h2>How Do I Get Started?</h2>
+
 ---------------------
 
 |cp| Quick Start

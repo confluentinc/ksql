@@ -23,19 +23,13 @@ import io.confluent.rest.RestConfig;
 
 import java.util.Map;
 
-// Although it would be nice to somehow extend the functionality of this class to encompass that of
-// the KsqlConfig, there is no clean way to do so since the KsqlConfig inherits from the Kafka
-// AbstractConfig class, and the RestConfig inherits from the Confluent AbstractConfig class. Making
-// the two get along and play nicely together in one class is more work than it's worth, so any and
-// all validation to be performed by the KsqlConfig class will be handled outside of this one.
 public class KsqlRestConfig extends RestConfig {
 
-  public static final String KSQL_STREAMS_PREFIX       = "ksql.core.streams.";
-  public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
-  public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
+  public static final String COMMAND_CONSUMER_PREFIX  = "ksql.server.command.consumer.";
+  public static final String COMMAND_PRODUCER_PREFIX  = "ksql.server.command.producer.";
 
   public static final String
-      COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.command.topic.suffix";
+      COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.server.command.topic.suffix";
   public static final ConfigDef.Type
       COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
   public static final String
@@ -48,7 +42,7 @@ public class KsqlRestConfig extends RestConfig {
               + "commands";
 
   public static final String
-      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
+      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "ksql.server.query.stream.disconnect.check";
   public static final ConfigDef.Type
       STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
@@ -62,7 +56,7 @@ public class KsqlRestConfig extends RestConfig {
               + "order to avoid keeping the created streams job alive longer than necessary";
 
   public static final String
-      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG = "command.response.timeout.ms";
+      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG = "ksql.server.command.response.timeout.ms";
   public static final ConfigDef.Type
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
@@ -75,7 +69,7 @@ public class KsqlRestConfig extends RestConfig {
               + "returning a response";
 
   public static final String
-          UI_ENABLED_CONFIG = "ui.enabled";
+          UI_ENABLED_CONFIG = "ksql.server.ui.enabled";
   public static final ConfigDef.Type
           UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
   public static final String
@@ -143,8 +137,8 @@ public class KsqlRestConfig extends RestConfig {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 
-  public Map<String, Object> getKsqlStreamsProperties() {
-    return getPropertiesWithOverrides(KSQL_STREAMS_PREFIX);
+  public Map<String, Object> getKsqlConfigProperties() {
+    return getOriginals();
   }
 
   public String getCommandTopic() {

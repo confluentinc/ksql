@@ -27,6 +27,7 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class Command {
   private final String statement;
+  // This field can include both ksql and streams properties
   private final Map<String, Object> streamsProperties;
 
   @JsonCreator

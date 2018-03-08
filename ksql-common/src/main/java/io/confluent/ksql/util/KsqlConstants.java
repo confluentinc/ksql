@@ -36,4 +36,5 @@ public class KsqlConstants {
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
 
+  public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
 }

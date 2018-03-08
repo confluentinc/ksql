@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 
@@ -24,9 +26,8 @@ import java.util.Map;
 
 import io.confluent.rest.RestConfig;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotSame;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.*;
 
 public class KsqlRestConfigTest {
 
@@ -40,38 +41,27 @@ public class KsqlRestConfigTest {
   }
 
   @Test
-  public void testGetKsqlStreamsProperties() {
-    final long BASE_COMMIT_INTERVAL_MS = 1000;
-    final long OVERRIDE_COMMIT_INTERVAL_MS = 100;
-
-    final String OVERRIDE_BOOTSTRAP_SERVERS = "ksql.io.confluent:9098";
-
-    assertNotEquals(BASE_COMMIT_INTERVAL_MS, OVERRIDE_COMMIT_INTERVAL_MS);
-
+  public void testGetKsqlConfigProperties() {
     Map<String, Object> inputProperties = getBaseProperties();
-    inputProperties.put(
-        StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        BASE_COMMIT_INTERVAL_MS
-    );
-    inputProperties.put(
-        KsqlRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG,
-        OVERRIDE_COMMIT_INTERVAL_MS
-    );
-    inputProperties.put(
-        KsqlRestConfig.KSQL_STREAMS_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
-        OVERRIDE_BOOTSTRAP_SERVERS
-    );
+    inputProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    inputProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
 
-    Map<String, Object> testProperties = new KsqlRestConfig(inputProperties).getKsqlStreamsProperties();
+    KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
-    assertEquals(
-        OVERRIDE_COMMIT_INTERVAL_MS,
-        testProperties.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
-    );
-    assertEquals(
-        OVERRIDE_BOOTSTRAP_SERVERS,
-        testProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
-    );
+    Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
+    assertThat(ksqlConfigProperties.size(), equalTo(6));
+    assertThat(ksqlConfigProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG),
+        equalTo( "localhost:9092"));
+    assertThat(ksqlConfigProperties.get(StreamsConfig.APPLICATION_ID_CONFIG),
+        equalTo("ksql_config_test"));
+    assertThat(ksqlConfigProperties.get(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG),
+        equalTo("commands"));
+    assertThat(ksqlConfigProperties.get(RestConfig.LISTENERS_CONFIG),
+        equalTo("http://localhost:8080"));
+    assertThat(ksqlConfigProperties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG),
+        equalTo("earliest"));
+    assertThat(ksqlConfigProperties.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        equalTo("test"));
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls

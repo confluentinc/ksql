@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,6 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.DDLCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -267,9 +267,9 @@ public class StatementExecutor {
 
   private void handleRunScript(Command command) throws Exception {
 
-    if (command.getStreamsProperties().containsKey(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+    if (command.getStreamsProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queries =
-          (String) command.getStreamsProperties().get(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT);
+          (String) command.getStreamsProperties().get(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
           command.getStreamsProperties()

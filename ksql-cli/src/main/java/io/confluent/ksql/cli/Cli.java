@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.CommonUtils;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -355,7 +356,7 @@ public class Cli implements Closeable, AutoCloseable {
           e
       );
     }
-    setProperty(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
+    setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
     printKsqlResponse(
         restClient.makeKsqlRequest(statementText)
     );
@@ -573,21 +574,15 @@ public class Cli implements Closeable, AutoCloseable {
         ));
       }
       type = configKey.type;
-    } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
+    } else if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       restClient.setProperty(property, value);
       return;
-    } else if (property.equalsIgnoreCase(DdlConfig.SCHEMA_FILE_CONTENT_PROPERTY)) {
-      restClient.setProperty(property, value);
-      return;
-    } else if (property.equalsIgnoreCase(DdlConfig.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      restClient.setProperty(property, value);
-      return;
-    } else if (property.equalsIgnoreCase(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
+    } else if (property.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)) {
       restClient.setProperty(property, value);
       return;
     } else {
       throw new IllegalArgumentException(String.format(
-          "Not recognizable as streams, consumer, or producer property: '%s'",
+          "Not recognizable as ksql, streams, consumer, or producer property: '%s'",
           property
       ));
     }

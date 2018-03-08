@@ -134,4 +134,48 @@ public class IntTopkDistinctKudafTest {
     // Then:
     assertThat(result, is(new Object[]{83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60}));
   }
+
+  @SuppressWarnings("unchecked")
+  //@Test
+  public void testAggregatePerformance() {
+    final int iterations = 1_000_000_000;
+    final int topX = 10;
+    final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
+        new TopkDistinctKudaf<>(0, topX, Integer.class);
+    final Integer[] aggregate = IntStream.range(0, topX)
+        .mapToObj(idx -> null)
+        .toArray(Integer[]::new);
+    final long start = System.currentTimeMillis();
+
+    for(int i = 0; i != iterations; ++i) {
+      intTopkDistinctKudaf.aggregate(i, aggregate);
+    }
+
+    final long took = System.currentTimeMillis() - start;
+    System.out.println(took + "ms, " + ((double)took)/iterations);
+  }
+
+  @SuppressWarnings("unchecked")
+  //@Test
+  public void testMergePerformance() {
+    final int iterations = 1_000_000_000;
+    final int topX = 10;
+    final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
+        new TopkDistinctKudaf<>(0, topX, Integer.class);
+
+    final Integer[] aggregate1 = IntStream.range(0, topX)
+        .mapToObj(v -> v % 2 == 0 ? v + 1 : v)
+        .toArray(Integer[]::new);
+    final Integer[] aggregate2 = IntStream.range(0, topX)
+        .mapToObj(v -> v % 2 == 0 ? v : v + 1)
+        .toArray(Integer[]::new);
+    final long start = System.currentTimeMillis();
+
+    for(int i = 0; i != iterations; ++i) {
+      intTopkDistinctKudaf.getMerger().apply("ignored", aggregate1, aggregate2);
+    }
+
+    final long took = System.currentTimeMillis() - start;
+    System.out.println(took + "ms, " + ((double)took)/iterations);
+  }
 }

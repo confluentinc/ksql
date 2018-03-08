@@ -39,11 +39,11 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   private final Comparator<T> comparator;
 
   @SuppressWarnings("unchecked")
-  TopkKudaf(int argIndexInValue,
-            int topKSize,
-            Schema returnType,
-            List<Schema> argumentTypes,
-            Class<T> clazz) {
+  TopkKudaf(final int argIndexInValue,
+            final int topKSize,
+            final Schema returnType,
+            final List<Schema> argumentTypes,
+            final Class<T> clazz) {
     super(argIndexInValue,
         () -> (T[]) Array.newInstance(clazz, topKSize),
           returnType,
@@ -71,8 +71,12 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   @SuppressWarnings("unchecked")
   @Override
   public T[] aggregate(final T currentVal, final T[] currentAggVal) {
-    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     if (currentVal == null) {
+      return currentAggVal;
+    }
+
+    final T last = currentAggVal[currentAggVal.length - 1];
+    if (last != null && currentVal.compareTo(last) <= 0) {
       return currentAggVal;
     }
 
@@ -80,11 +84,6 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
     if (nullIndex != -1) {
       currentAggVal[nullIndex] = currentVal;
       Arrays.sort(currentAggVal, comparator);
-      return currentAggVal;
-    }
-
-    final T last = currentAggVal[currentAggVal.length - 1];
-    if (currentVal.compareTo(last) <= 0) {
       return currentAggVal;
     }
 
@@ -96,23 +95,25 @@ public class TopkKudaf<T extends Comparable<? super T>> extends KsqlAggregateFun
   @SuppressWarnings("unchecked")
   @Override
   public Merger<String, T[]> getMerger() {
-    // TODO: For now we just use a simple algorithm. Maybe try finding a faster algorithm later
     return (aggKey, aggOne, aggTwo) -> {
-      int nullId1 =
-          ArrayUtil.getNullIndex(aggOne) == -1 ? topKSize : ArrayUtil.getNullIndex(aggOne);
-      int nullId2 =
-          ArrayUtil.getNullIndex(aggTwo) == -1 ? topKSize : ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopKArray = (T[]) Array.newInstance(clazz, nullId1 + nullId2);
+      final T[] merged = (T[]) Array.newInstance(clazz, topKSize);
 
-      System.arraycopy(aggOne, 0, tempMergeTopKArray, 0, nullId1);
-      System.arraycopy(aggTwo, 0, tempMergeTopKArray, nullId1, nullId2);
-      Arrays.sort(tempMergeTopKArray, comparator);
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != topKSize; ++i) {
+        final T v1 = idx1 < aggOne.length ? aggOne[idx1] : null;
+        final T v2 = idx2 < aggTwo.length ? aggTwo[idx2] : null;
 
-      if (tempMergeTopKArray.length < topKSize) {
-        tempMergeTopKArray = ArrayUtil.padWithNull(clazz, tempMergeTopKArray, topKSize);
-        return tempMergeTopKArray;
+        if (comparator.compare(v1, v2) < 0) {
+          merged[i] = v1;
+          idx1++;
+        } else {
+          merged[i] = v2;
+          idx2++;
+        }
       }
-      return Arrays.copyOf(tempMergeTopKArray, topKSize);
+
+      return merged;
     };
   }
 

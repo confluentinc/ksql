@@ -20,14 +20,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import kafka.admin.AdminClient;
 import kafka.admin.ConsumerGroupCommand;
@@ -57,23 +62,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
   @Override
   public List<String> listGroups() {
-    File tmpConfigFile;
-    try {
-      // The ConsumerGroupCommand we use instantiates its own admin client. However, the configs
-      // for the underlying admin client can be passed only through a properties file. So we dump
-      // the admin client configs to a temporary file and then use that file to configure the
-      // underlying admin client correctly.
-      tmpConfigFile = flushPropertiesToTempFile();
-    } catch (IOException e) {
-      log.error("Could not list consumer groups", e);
-      return Collections.emptyList();
-    }
 
-    Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
-    String[] args = {
-        "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
-        "--command-config", tmpConfigFile.getAbsolutePath()
-    };
+    String[] args = consumerGroupCommandOptions();
 
     ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
         new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
@@ -88,16 +78,39 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     return results;
   }
 
-  private File flushPropertiesToTempFile() throws IOException {
-    File configFile = File.createTempFile("ksqlclient", "properties");
-    OutputStreamWriter writer = new FileWriter(configFile);
+  private String[] consumerGroupCommandOptions() {
+    // The ConsumerGroupCommand we use instantiates its own admin client. However, the configs
+    // for the underlying admin client can be passed only through a properties file. So we dump
+    // the admin client configs to a temporary file and then use that file to configure the
+    // underlying admin client correctly.
+    Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
+    try {
+      File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
+      String[] args = {
+          "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
+          "--command-config", tmpConfigFile.getAbsolutePath()
+      };
+      return args;
+    } catch (IOException e) {
+      log.error("Could not configure the list groups command.", e);
+      throw new KsqlException("Could not list groups", e);
+    }
+  }
+
+  private File flushPropertiesToTempFile(Map<String, Object> configProps) throws IOException {
+    FileAttribute<Set<PosixFilePermission>> attributes
+        = PosixFilePermissions.asFileAttribute(new HashSet<>(
+            Arrays.asList(PosixFilePermission.OWNER_WRITE,
+                          PosixFilePermission.OWNER_READ)));
+    File configFile = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
+    FileOutputStream outputStream = new FileOutputStream(configFile);
     Properties clientProps = new Properties();
     for (Map.Entry<String, Object> property
-        : ksqlConfig.getKsqlAdminClientConfigProps().entrySet()) {
+        : configProps.entrySet()) {
       clientProps.put(property.getKey(), property.getValue());
     }
-    clientProps.store(writer, "Configuration properties of KSQL AdminClient");
-    writer.close();
+    clientProps.store(outputStream, "Configuration properties of KSQL AdminClient");
+    outputStream.close();
     configFile.deleteOnExit();
     return configFile;
   }

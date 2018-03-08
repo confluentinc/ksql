@@ -149,7 +149,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
 
   }
 
-  public void addSourceNames(Set<String> sourceNames, String queryId) {
+  private void addSourceNames(Set<String> sourceNames, String queryId) {
     for (String sourceName: sourceNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
           dataSourceMap.get(sourceName).getRight();
@@ -157,7 +157,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
   }
 
-  public void addSinkNames(Set<String> sinkNames, String queryId) {
+  private void addSinkNames(Set<String> sinkNames, String queryId) {
     for (String sinkName: sinkNames) {
       ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
           dataSourceMap.get(sinkName).getRight();
@@ -174,8 +174,7 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
     }
   }
 
-  @Override
-  public boolean isSafeToDrop(String sourceName) {
+  private boolean isSafeToDrop(String sourceName) {
     if (!dataSourceMap.containsKey(sourceName)) {
       return true;
     }
@@ -186,13 +185,13 @@ public class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public Set<String> getSourceForQuery(String sourceName) {
+  public Set<String> getQueriesWithSource(String sourceName) {
     return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
                                            .getSourceForQueries());
   }
 
   @Override
-  public Set<String> getSinkForQuery(String sourceName) {
+  public Set<String> getQueriesWithSink(String sourceName) {
     return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
                                            .getSinkForQueries());
   }

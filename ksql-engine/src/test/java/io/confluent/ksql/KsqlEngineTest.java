@@ -85,10 +85,10 @@ public class KsqlEngineTest {
     ksqlEngine.createQueries("create table bar as select * from test2;" +
                                    "create table foo as select * from test2;");
     MetaStore metaStore = ksqlEngine.getMetaStore();
-    Assert.assertTrue(metaStore.getSourceForQuery("TEST2").contains("CTAS_BAR"));
-    Assert.assertTrue(metaStore.getSourceForQuery("TEST2").contains("CTAS_FOO"));
-    assertThat(metaStore.getSinkForQuery("BAR"), equalTo(Utils.mkSet("CTAS_BAR")));
-    assertThat(metaStore.getSinkForQuery("FOO"), equalTo(Utils.mkSet("CTAS_FOO")));
+    assertThat(metaStore.getQueriesWithSource("TEST2"),
+               equalTo(Utils.mkSet("CTAS_BAR", "CTAS_FOO")));
+    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR")));
+    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO")));
   }
 
   @Test

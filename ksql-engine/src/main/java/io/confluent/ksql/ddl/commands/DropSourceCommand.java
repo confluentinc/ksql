@@ -27,7 +27,6 @@ public class DropSourceCommand implements DDLCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
-  private final MetaStore metaStore;
 
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
@@ -36,7 +35,6 @@ public class DropSourceCommand implements DDLCommand {
 
     this.sourceName = statement.getName().getSuffix();
     this.dataSourceType = dataSourceType;
-    this.metaStore = metaStore;
   }
 
   @Override

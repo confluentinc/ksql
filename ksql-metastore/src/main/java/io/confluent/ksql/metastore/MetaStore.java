@@ -51,11 +51,9 @@ public interface MetaStore {
 
   public void removePersistentQuery(String queryId);
 
-  public boolean isSafeToDrop(String sourceName);
+  public Set<String> getQueriesWithSource(String sourceName);
 
-  public Set<String> getSourceForQuery(String sourceName);
-
-  public Set<String> getSinkForQuery(String sourceName);
+  public Set<String> getQueriesWithSink(String sourceName);
 
   public MetaStore clone();
 

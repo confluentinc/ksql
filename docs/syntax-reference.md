@@ -387,13 +387,15 @@ PRINT qualifiedName (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?
 Print Kafka-topic contents to the KSQL CLI. Note, SQL grammar defaults to uppercase formatting, to print topics containing lower-case characters, use quotations as shown in the example.
 
 For example:
+
 ```sql
-ksql> print 'ksql__commands' FROM BEGINNING;
+ksql> PRINT 'ksql__commands' FROM BEGINNING;
 Format:JSON
 {"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
 {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}
 ^CTopic printing ceased
 ```
+
 ### SELECT
 
 **Synopsis**

@@ -22,6 +22,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.confluent.rest.RestConfig;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
@@ -33,11 +35,8 @@ public class KsqlRestConfigTest {
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     result.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
+    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
     return result;
-  }
-
-  private void assertKeyEquals(String key, Map<String, ?> expected, Map<String, ?> test) {
-    assertEquals(expected.get(key), test.get(key));
   }
 
   @Test

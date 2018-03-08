@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>4.1.0-SNAPSHOT</version>
+        <version>5.0.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -31,6 +31,7 @@
     <name>KSQL Clickstream Analysis Demo</name>
 
     <properties>
+        <main-class>io.confluent.ksql.DemoTest</main-class>
         <docker.skip-build>false</docker.skip-build>
     </properties>
 

@@ -30,7 +30,9 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.internals.KafkaFutureImpl;
+import org.apache.kafka.common.errors.NotControllerException;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +45,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicException;
 
 import static org.easymock.EasyMock.*;
@@ -107,6 +111,72 @@ public class KafkaTopicClientTest {
   }
 
   @Test
+  public void shouldNotFailIfTopicAlreadyExistsWhenCreating() throws InterruptedException,
+                                                                      ExecutionException {
+    AdminClient adminClient = mock(AdminClient.class);
+    expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
+    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    expect(adminClient.createTopics(anyObject())).andReturn(createTopicReturningTopicExistsException());
+    expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldRetryDescribeTopicOnRetriableException() throws InterruptedException,
+                                                                    ExecutionException {
+    AdminClient adminClient = mock(AdminClient.class);
+    expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
+    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    expect(adminClient.createTopics(anyObject())).andReturn(createTopicReturningTopicExistsException());
+    expect(adminClient.describeTopics(anyObject()))
+        .andReturn(describeTopicReturningUnknownPartitionException()).once();
+    // The second time, return the right response.
+    expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult()).once();
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.createTopic(topicName1, 1, (short)1);
+    verify(adminClient);
+  }
+
+  @Test(expected = KafkaResponseGetFailedException.class)
+  public void shouldFailToDescribeTopicsWhenRetriesExpire() throws InterruptedException,
+                                                                 ExecutionException {
+    AdminClient adminClient = mock(AdminClient.class);
+    expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
+    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    expect(adminClient.describeTopics(anyObject()))
+        .andReturn(describeTopicReturningUnknownPartitionException())
+        .andReturn(describeTopicReturningUnknownPartitionException())
+        .andReturn(describeTopicReturningUnknownPartitionException())
+        .andReturn(describeTopicReturningUnknownPartitionException())
+        .andReturn(describeTopicReturningUnknownPartitionException());
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldRetryListTopics() throws InterruptedException, ExecutionException {
+    AdminClient adminClient = mock(AdminClient.class);
+    expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
+    expect(adminClient.listTopics()).andReturn(listTopicResultWithNotControllerException()).once();
+    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
+    replay(adminClient);
+    KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    Set<String> names = kafkaTopicClient.listTopicNames();
+    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
+    verify(adminClient);
+  }
+
+  @Test
   public void testListTopicNames() {
     AdminClient adminClient = mock(AdminClient.class);
     expect(adminClient.describeCluster()).andReturn(getDescribeClusterResult());
@@ -150,6 +220,20 @@ public class KafkaTopicClientTest {
    * Utility functions
    */
 
+  private DescribeTopicsResult describeTopicReturningUnknownPartitionException()
+      throws InterruptedException, ExecutionException {
+    DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
+    KafkaFuture resultFuture = niceMock(KafkaFuture.class);
+    expect(describeTopicsResult.all()).andReturn(resultFuture);
+    expect(resultFuture.get()).andThrow(new ExecutionException(
+        new UnknownTopicOrPartitionException("Topic doesn't exist")
+    ));
+
+    replay(describeTopicsResult, resultFuture);
+
+    return describeTopicsResult;
+  }
+
   private DescribeTopicsResult getDescribeTopicsResult() {
     TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(0, node, Collections
         .singletonList(node), Collections.singletonList(node));
@@ -166,6 +250,19 @@ public class KafkaTopicClientTest {
     return describeTopicsResult;
   }
 
+  private CreateTopicsResult createTopicReturningTopicExistsException() throws InterruptedException,
+                                                                               ExecutionException{
+    CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
+    KafkaFuture resultFuture = niceMock(KafkaFuture.class);
+    expect(createTopicsResult.all()).andReturn(resultFuture);
+
+    expect(resultFuture.get()).andThrow(new ExecutionException(
+        new TopicExistsException("Topic already exists")));
+
+    replay(createTopicsResult, resultFuture);
+    return createTopicsResult;
+  }
+
   private CreateTopicsResult getCreateTopicsResult() {
     CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
     expect(createTopicsResult.all()).andReturn(KafkaFuture.allOf());
@@ -179,6 +276,27 @@ public class KafkaTopicClientTest {
         .allOf()));
     replay(deleteTopicsResult);
     return deleteTopicsResult;
+  }
+
+  private ListTopicsResult getEmptyListTopicResult() {
+    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    List<String> topicNamesList = Arrays.asList();
+    expect(listTopicsResult.names()).andReturn(KafkaFuture.completedFuture(new HashSet<>
+                                                                               (topicNamesList)));
+    replay(listTopicsResult);
+    return listTopicsResult;
+  }
+
+
+  private ListTopicsResult listTopicResultWithNotControllerException() throws InterruptedException,
+                                                                              ExecutionException {
+    ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    KafkaFuture resultFuture = niceMock(KafkaFuture.class);
+    expect(listTopicsResult.names()).andReturn(resultFuture);
+    expect(resultFuture.get()).andThrow(new ExecutionException(
+        new NotControllerException("Not Controller")));
+    replay(listTopicsResult, resultFuture);
+    return listTopicsResult;
   }
 
   private ListTopicsResult getListTopicsResult() {

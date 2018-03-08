@@ -48,7 +48,7 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldCreateCorrectAvroSchema() throws IOException {
+  public void shouldCreateCorrectAvroSchemaWithNullableFields() {
     SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder
         .field("ordertime", Schema.INT64_SCHEMA)
@@ -58,7 +58,15 @@ public class SchemaUtilTest {
         .field("arraycol", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
         .field("mapcol", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
     String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders");
-    assertThat("", avroSchemaString.equals("{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"ordertime\",\"type\":\"long\"},{\"name\":\"orderid\",\"type\":\"string\"},{\"name\":\"itemid\",\"type\":\"string\"},{\"name\":\"orderunits\",\"type\":\"double\"},{\"name\":\"arraycol\",\"type\":{\"type\":\"array\",\"items\":\"double\"}},{\"name\":\"mapcol\",\"type\":{\"type\":\"map\",\"values\":\"double\"}}]}"));
+    assertThat(avroSchemaString, equalTo(
+        "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
+        + "[{\"name\":\"ordertime\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":"
+        + "\"orderid\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"itemid\","
+        + "\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"orderunits\",\"type\":"
+        + "[\"null\",\"double\"],\"default\":null},{\"name\":\"arraycol\",\"type\":[\"null\","
+        + "{\"type\":\"array\",\"items\":[\"null\",\"double\"]}],\"default\":null},{\"name\":"
+        + "\"mapcol\",\"type\":[\"null\",{\"type\":\"map\",\"values\":[\"null\",\"double\"]}]"
+        + ",\"default\":null}]}"));
   }
 
   @Test

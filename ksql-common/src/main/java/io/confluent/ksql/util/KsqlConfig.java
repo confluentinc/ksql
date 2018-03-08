@@ -32,7 +32,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
-  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
+  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -72,6 +72,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
+  public static final boolean defaultAvroSchemaUnionNull = true;
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;

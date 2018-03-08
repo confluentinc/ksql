@@ -35,6 +35,6 @@ This table shows the version compatibility matrix of which Kafka clusters can be
 
 |        KSQL        |        0.1       |        0.2       |        0.3       |        0.4       |
 |:------------------:|:----------------:|:----------------:|:----------------:|:----------------:|
-|    Apache Kafka    | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later | 0.10.1 and later |
-| Confluent Platform | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  | 3.1.0 and later  |
+|    Apache Kafka    | 0.10.1 and later | 0.11.0 and later | 0.11.0 and later | 0.11.0 and later |
+| Confluent Platform | 3.1.0 and later  | 3.3.0 and later  | 3.3.0 and later  | 3.3.0 and later  | 
 

@@ -59,6 +59,18 @@ CREATE TABLE error_counts AS
 
 # Latest news
 
+* [Press Release: KSQL GA announced for early April 2018](https://www.confluent.io/press-release/confluent-makes-ksql-available-confluent-platform-announces-general-availability/)
+  -- until then you can download the latest KSQL Developer Preview release at
+  https://github.com/confluentinc/ksql/releases.
+* [KSQL Feb 2018 release available](https://www.confluent.io/blog/ksql-february-release-streaming-sql-for-apache-kafka/)
+  -- bug fixes, performance and stability improvements
+* [Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL](https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/)
+  -- stream processing examples using KSQL that show how companies are using Apache Kafka to grow their business and to
+  analyze data in real time; how to secure KSQL and the entire Confluent Platform with encryption, authentication, and
+  authorization
+* [KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data](https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data)
+  -- replacing batch extracts with event streams, and batch transformation with in-flight transformation; we take a
+  stream of data from a transactional system built on Oracle, transform it, and stream the results into Elasticsearch
 * [KSQL Jan 2018 release available](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/)
   -- improved data exploration with `PRINT TOPIC`, `SHOW TOPICS`; improved analytics with `TOPK`, `TOPKDISTINCT`
   aggregations; operational improvements (command line tooling for metrics); distributed failure testing in place

@@ -310,30 +310,6 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitArrayComparisonExpression(ComparisonExpression.Type type) {
-      switch (type) {
-        case EQUAL:
-          return "(java.util.Arrays.equals(%1$s, %2$s))";
-        case NOT_EQUAL:
-        case IS_DISTINCT_FROM:
-          return "!(java.util.Arrays.equals(%1$s, %2$s))";
-        default:
-          throw new KsqlException("Unexpected array comparison: " + type.getValue());
-      }
-    }
-
-    private String visitMapComparisonExpression(ComparisonExpression.Type type) {
-      switch (type) {
-        case EQUAL:
-          return "(%1$s.equals(%2$s))";
-        case NOT_EQUAL:
-        case IS_DISTINCT_FROM:
-          return " (!%1$s.equals(%2$s))";
-        default:
-          throw new KsqlException("Unexpected map comparison: " + type.getValue());
-      }
-    }
-
     private String visitScalarComparisonExpression(ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
@@ -377,11 +353,9 @@ public class SqlToJavaVisitor {
           exprFormat += visitStringComparisonExpression(node.getType());
           break;
         case MAP:
-          exprFormat += visitMapComparisonExpression(node.getType());
-          break;
+          throw new KsqlException("Cannot compare MAP values");
         case ARRAY:
-          exprFormat += visitArrayComparisonExpression(node.getType());
-          break;
+          throw new KsqlException("Cannot compare ARRAY values");
         case BOOLEAN:
           exprFormat += visitBooleanComparisonExpression(node.getType());
           break;

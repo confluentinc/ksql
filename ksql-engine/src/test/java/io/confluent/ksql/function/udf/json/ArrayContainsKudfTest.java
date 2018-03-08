@@ -9,11 +9,6 @@ public class ArrayContainsKudfTest
 {
     private ArrayContainsKudf jsonUdf = new ArrayContainsKudf();
 
-    @Before
-    public void setUp() {
-        jsonUdf.init();
-    }
-
     @Test
     public void shouldReturnFalseOnEmptyArray() {
         assertEquals(false, jsonUdf.evaluate("[]", true));

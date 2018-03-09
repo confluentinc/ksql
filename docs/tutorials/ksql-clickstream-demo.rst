@@ -18,7 +18,7 @@ This demo focuses on building real-time analytics of users to determine:
 * Sessionization to track user-sessions and understand behavior (such as per-user-session-bandwidth, per-user-session-hits etc)
 
 The demo uses standard streaming functions (i.e., min, max, etc), as
-well as enrichment using child tables, table-stream joins and different
+well as enrichment using child tables, stream-table join and different
 types of windowing functionality.
 
 These steps will guide you through how to setup your environment and run
@@ -46,7 +46,7 @@ Clone the KSQL GitHub repository. The demo is located in the ``ksql-clickstream-
 
 .. code:: bash
 
-    $ git@github.com:confluentinc/ksql.git
+    $ git clone git@github.com:confluentinc/ksql.git
 
 ---------------------------------------
 Configure and Start Elastic and Grafana

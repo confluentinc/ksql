@@ -8,6 +8,7 @@ KSQL
    :maxdepth: 1
    :hidden:
 
+   quickstart
    installation/index
    operations
    tutorials/index
@@ -77,19 +78,3 @@ KSQL Server
 CLI
     You can interactively write KSQL queries by using the KSQL command line interface (CLI). The KSQL CLI acts as a client
     to the KSQL server.
-
-.. raw:: html
-
-   <h2>How Do I Get Started?</h2>
-
----------------------
-
-|cp| Quick Start
-    This :ref:`quickstart` will get you up and running with |cp| and its main components, including using |c3-short| to create, add, and modify topic data, and using KSQL to configure stream processing on Kafka.
-
-KSQL Tutorials
-    - :ref:`Using KSQL to write streaming queries against data in Kafka <ksql_quickstart>`. This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
-    - :ref:`Using KSQL to Collect, Analyze, and Report Aggregate Data <ksql_clickstream>`. Learn how to use KSQL, ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
-
-
-

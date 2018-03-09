@@ -56,6 +56,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -339,7 +340,7 @@ public abstract class Console implements Closeable {
       }
       rowValues = Arrays.asList(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
-      List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
+      List<SourceInfo.Stream> streamInfos = ((StreamsList) ksqlEntity).getStreams();
       columnHeaders = Arrays.asList("Stream Name", "Kafka Topic", "Format");
       rowValues = streamInfos.stream()
           .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic(),
@@ -347,7 +348,7 @@ public abstract class Console implements Closeable {
           ))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TablesList) {
-      List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
+      List<SourceInfo.Table> tableInfos = ((TablesList) ksqlEntity).getTables();
       columnHeaders = Arrays.asList("Table Name", "Kafka Topic", "Format", "Windowed");
       rowValues = tableInfos.stream()
           .map(tableInfo -> Arrays.asList(

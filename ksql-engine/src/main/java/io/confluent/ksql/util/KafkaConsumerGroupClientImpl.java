@@ -103,15 +103,16 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
             Arrays.asList(PosixFilePermission.OWNER_WRITE,
                           PosixFilePermission.OWNER_READ)));
     File configFile = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
-    FileOutputStream outputStream = new FileOutputStream(configFile);
-    Properties clientProps = new Properties();
-    for (Map.Entry<String, Object> property
-        : configProps.entrySet()) {
-      clientProps.put(property.getKey(), property.getValue());
-    }
-    clientProps.store(outputStream, "Configuration properties of KSQL AdminClient");
-    outputStream.close();
     configFile.deleteOnExit();
+
+    try(FileOutputStream outputStream = new FileOutputStream(configFile)) {
+      Properties clientProps = new Properties();
+      for (Map.Entry<String, Object> property
+          : configProps.entrySet()) {
+        clientProps.put(property.getKey(), property.getValue());
+      }
+      clientProps.store(outputStream, "Configuration properties of KSQL AdminClient");
+    }
     return configFile;
   }
 

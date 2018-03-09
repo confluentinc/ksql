@@ -19,7 +19,7 @@ package io.confluent.ksql.function.udaf.max;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -28,9 +28,9 @@ import io.confluent.ksql.parser.tree.Expression;
 
 public class DoubleMaxKudaf extends KsqlAggregateFunction<Double, Double> {
 
-  DoubleMaxKudaf(Integer argIndexInValue) {
+  DoubleMaxKudaf(int argIndexInValue) {
     super(argIndexInValue, () -> Double.MIN_VALUE, Schema.FLOAT64_SCHEMA,
-          Arrays.asList(Schema.FLOAT64_SCHEMA)
+          Collections.singletonList(Schema.FLOAT64_SCHEMA)
     );
   }
 

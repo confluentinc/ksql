@@ -32,7 +32,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
-  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksq.timestamp.column.index";
+  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
 
   public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
 
@@ -116,6 +116,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "Suffix for state store names in Tables. For instance if the suffix is "
             + "_ksql_statestore the state "
             + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "
+        ).define(KSQL_TIMESTAMP_COLUMN_INDEX,
+            ConfigDef.Type.INT,
+            null,
+            ConfigDef.Importance.LOW,
+            "The index of the timestamp column for a specific ksql query. Only present if"
+                + "the query has specified a timestamp in the WITH(..) clause."
         ).define(
             SINK_NUMBER_OF_PARTITIONS_PROPERTY,
             ConfigDef.Type.INT,

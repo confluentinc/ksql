@@ -28,13 +28,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +46,12 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 
 
 public class AggregateNode extends PlanNode {
@@ -316,7 +315,7 @@ public class AggregateNode extends PlanNode {
         );
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
-        initializer.addAggregateIntializer(aggregateFunction.getIntialValueSupplier());
+        initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
 
         aggregateSchema.field("AGG_COL_"
                               + udafIndexInAggSchema, aggregateFunction.getReturnType());

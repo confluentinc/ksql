@@ -225,7 +225,7 @@ public class JoinNode extends PlanNode {
           + " in schema:"
           + schema));
       return
-          stream.selectKey(field);
+          stream.selectKey(field, true);
     }
     return stream;
   }

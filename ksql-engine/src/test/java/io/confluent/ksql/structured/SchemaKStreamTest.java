@@ -33,7 +33,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SerDeUtil;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -160,12 +160,17 @@ public class SchemaKStreamTest {
     String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
 
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             SchemaKStream.Type.SOURCE, functionRegistry, new MockSchemaRegistryClient());
-    SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
-                                                                            .getSchema().fields()
-                                                                            .get(1));
+    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(),
+        kStream,
+        ksqlStream.getKeyField(),
+        new ArrayList<>(),
+        SchemaKStream.Type.SOURCE,
+        functionRegistry,
+        new MockSchemaRegistryClient());
+
+    SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(
+        initialSchemaKStream.getSchema().fields().get(1),
+        true);
     assertThat(rekeyedSchemaKStream.getKeyField().name(), equalTo("TEST1.COL1"));
 
   }

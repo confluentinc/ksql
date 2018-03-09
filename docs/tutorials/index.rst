@@ -6,6 +6,6 @@ KSQL Tutorials and Examples
 .. toctree::
 
     ksql-basics-demo
-    ksql-clickstream-demo
+    clickstream/index
     examples
 

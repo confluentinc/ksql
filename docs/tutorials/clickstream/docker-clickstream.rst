@@ -1,86 +1,99 @@
-.. _ksql_clickstream:
+.. _ksql-docker-clickstream:
 
-Clickstream Analysis Tutorial
-=============================
+Clickstream Analysis using Docker
+=================================
 
-Clickstream analysis is the process of collecting, analyzing, and
-reporting aggregate data about which pages a website visitor visits and
-in what order. The path the visitor takes though a website is called the
-clickstream.
+These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. 
 
-This demo focuses on building real-time analytics of users to determine:
+Prerequisites
+-------------
 
-* General website analytics, such as hit count and visitors
-* Bandwidth use
-* Mapping user-IP addresses to actual users and their location
-* Detection of high-bandwidth user sessions
-* Error-code occurrence and enrichment
-* Sessionization to track user-sessions and understand behavior (such as per-user-session-bandwidth, per-user-session-hits etc)
+-  Docker is installed and configured with at least 4 GB of memory.
 
-The demo uses standard streaming functions (i.e., min, max, etc), as
-well as enrichment using child tables, stream-table join and different
-types of windowing functionality.
+   -  `macOS <https://docs.docker.com/docker-for-mac/install/>`__
+   -  `All platforms <https://docs.docker.com/engine/installation/>`__
 
-These steps will guide you through how to setup your environment and run
-the clickstream analysis demo.
-
-.. contents::
-    :local:
-
-**Prerequisites**
-
-- :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
-  ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
--  `ElasticSearch <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
--  `Grafana <http://docs.grafana.org/installation/>`__
 -  `Git <https://git-scm.com/downloads>`__
--  `Maven <https://maven.apache.org/install.html>`__
--  Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on
-   your local machine
 
 -----------------
 Download the Demo
 -----------------
 
-Clone the KSQL GitHub repository. The demo is located in the ``ksql-clickstream-demo/`` folder.
+Download and start the KSQL clickstream container. This container
+image is large and contains Confluent, Grafana, and Elasticsearch.
+Depending on your network speed, this may take up to 10-15 minutes.
+The ``-p`` flag will forward the Grafana dashboard to port 33000 on
+your local host.
 
 .. code:: bash
 
-    $ git clone git@github.com:confluentinc/ksql.git
+    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:0.5 bash
 
----------------------------------------
-Configure and Start Elastic and Grafana
----------------------------------------
+Your output should resemble:
 
+.. code:: bash
 
-#.  Copy the Kafka Connect Elasticsearch configuration file (``ksql/ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar``)
-    to your |cp| installation ``share`` directory (``/share/java/kafka-connect-elasticsearch/``).
+    Unable to find image 'confluentinc/ksql-clickstream-demo:0.5' locally
+    latest: Pulling from confluentinc/ksql-clickstream-demo
+    ad74af05f5a2: Already exists
+    d02e292e7b5e: Already exists
+    8de7f5c81ab0: Already exists
+    ed0b76dc2730: Already exists
+    cfc44fa8a002: Already exists
+    d9ece951ea0c: Pull complete
+    f26010779356: Pull complete
+    c9dad5440731: Pull complete
+    935591799d9d: Pull complete
+    696df0f65482: Pull complete
+    14fd98e52325: Pull complete
+    fcbeb94bace2: Pull complete
+    32cca4f1567d: Pull complete
+    5df0d25e7260: Pull complete
+    e16097edc4fc: Pull complete
+    72b33b348958: Pull complete
+    015da01a41b0: Pull complete
+    80e29f47abe0: Pull complete
+    Digest: sha256:f3b2b19668b851d1300f77aa8c2236a126b628b911578cc688c7e0de442c1cd3
+    Status: Downloaded newer image for confluentinc/ksql-clickstream-demo:latest
+    root@d98186dd8d6c:/#
+
+You should now be in the Docker container.
+
+----------------------------------------------
+Configure and Start Elastic, Grafana, and |cp|
+----------------------------------------------
+
+#.  Start  Elasticsearch.
 
     .. code:: bash
 
-        cp ksql-clickstream-demo/demo/connect-config/null-filter-4.0.0-SNAPSHOT.jar \
-        <path-to-confluent>/share/java/kafka-connect-elasticsearch/
+       $ /etc/init.d/elasticsearch start
 
-#.  From your terminal, start the Elastic and Grafana servers. ElasticSearch should be running on the default port 9200. Grafana
-    should be running on the default port 3000.
+#.  Start Grafana.
 
-    -  `Start Elastic <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
-    -  `Start Grafana <http://docs.grafana.org/installation/>`__
+    .. code:: bash
+
+        $ /etc/init.d/grafana-server start
+
+#.  Start |cp|.
+
+    .. code:: bash
+
+        $ confluent start
 
 ---------------------------
 Create the Clickstream Data
 ---------------------------
 
-#.  From your terminal, create the clickStream data using the ``ksql-datagen`` utility. This stream will run continuously until you
-    terminate.
+#.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until
+    you terminate.
 
-    **Tip:** Because of shell redirection, this command does not print a new line and so it might look like it’s still
-    in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+    **Tip:** Because of shell redirection, this command does not print a newline and so it might look like it’s still in
+    the foreground. However, the process is running as a daemon, so just press return again to see the shell prompt.
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-datagen -daemon quickstart=clickstream format=json \
-        topic=clickstream maxInterval=100 iterations=500000
+        $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
 
     Your output should resemble:
 
@@ -88,12 +101,11 @@ Create the Clickstream Data
 
         Writing console output to /tmp/ksql-logs/ksql.out
 
-#.  From your terminal, create the status codes using the ``ksql-datagen`` utility. This stream runs once to populate the table.
+#.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-datagen  quickstart=clickstream_codes format=json \
-        topic=clickstream_codes maxInterval=20 iterations=100
+        $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
 
     Your output should resemble:
 
@@ -105,12 +117,11 @@ Create the Clickstream Data
         406 --> ([ 406 | 'Not acceptable' ])
         ...
 
-#.  From your terminal, create a set of users using ``ksql-datagen`` utility. This stream runs once to populate the table.
+#.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users \
-        maxInterval=10 iterations=1000
+        $ ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
 
     Your output should resemble:
 
@@ -125,39 +136,36 @@ Create the Clickstream Data
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI in local mode.
+#.  Launch the KSQL CLI in Client Server Mode.
+
+    1. Start the KSQL server.
+
+       .. code:: bash
+
+           $ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+
+    2. Start the CLI and point it to the server.
+
+       .. code:: bash
+
+           $ ksql http://localhost:8080
+
+       You should now be in the KSQL CLI.
+
+       .. include:: ../../includes/ksql-includes.rst
+            :start-line: 17
+            :end-line: 38
+
+#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that
+    will run the demo app.
+
+    **Important:** Before running this step, you must have already run
+    ksql-datagen utility to create the clickstream data, status codes,
+    and set of users.
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-cli local
-
-    You should see the KSQL CLI welcome screen.
-
-    .. code:: bash
-
-                           ======================================
-                           =      _  __ _____  ____  _          =
-                           =     | |/ // ____|/ __ \| |         =
-                           =     | ' /| (___ | |  | | |         =
-                           =     |  <  \___ \| |  | | |         =
-                           =     | . \ ____) | |__| | |____     =
-                           =     |_|\_\_____/ \___\_\______|    =
-                           =                                    =
-                           =   Streaming SQL Engine for Kafka   =
-        Copyright 2018 Confluent Inc.
-
-        CLI v0.5, Server v0.5 located at http://localhost:8090
-
-        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-
-        ksql>
-
-
-#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that will run the demo app.
-
-    .. code:: bash
-
-        ksql> RUN SCRIPT 'ksql-clickstream-demo/demo/clickstream-schema.sql';
+        ksql> run script '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
 
     The output should resemble:
 
@@ -166,14 +174,13 @@ Load the Streaming Data to KSQL
          Message
         ------------------------------------
          Executing statement
+        ksql>
 
-#.  Optional: from the the KSQL CLI, verify that data is being streamed through various tables and streams.
-
-    **Verify that the tables are created**
+#.  From the the KSQL CLI, verify that the tables are created.
 
     .. code:: bash
 
-        ksql> LIST TABLES;
+        ksql> list TABLES;
 
     Your output should resemble:
 
@@ -193,12 +200,11 @@ Load the Streaming Data to KSQL
          ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
          EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
 
-
-    **Verify that the streams are created**
+#.  From the the KSQL CLI, verify that the streams are created.
 
     .. code:: bash
 
-        ksql> LIST STREAMS;
+        ksql> list STREAMS;
 
     Your output should resemble:
 
@@ -219,6 +225,8 @@ Load the Streaming Data to KSQL
          CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
          CLICKSTREAM               | clickstream               | JSON
 
+#.  From the the KSQL CLI, verify that data is being streamed through
+    various tables and streams.
 
     **View clickstream data**
 
@@ -248,11 +256,11 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        1503585450000 | 29^�8 | 1503585450000 | 29 | 19
-        1503585450000 | 37^�8 | 1503585450000 | 37 | 25
-        1503585450000 | 8^�8 | 1503585450000 | 8 | 35
-        1503585450000 | 36^�8 | 1503585450000 | 36 | 14
-        1503585450000 | 24^�8 | 1503585450000 | 24 | 22
+        1503585450000 | 29 : | 1503585450000 | 29 | 19
+        1503585450000 | 37 : | 1503585450000 | 37 | 25
+        1503585450000 | 8 : | 1503585450000 | 8 | 35
+        1503585450000 | 36 : | 1503585450000 | 36 | 14
+        1503585450000 | 24 : | 1503585450000 | 24 | 22
         LIMIT reached for the partition.
         Query terminated
 
@@ -281,13 +289,16 @@ Load and View the Clickstream Data in Grafana
 #.  Go to your terminal and send the KSQL tables to Elasticsearch and
     Grafana.
 
-    #. From your terminal, navigate to the demo directory:
+    1. Exit the KSQL CLI with ``CTRL+D``.
+
+    2. From your terminal, navigate to the demo directory:
 
        .. code:: bash
 
-           cd ksql-clickstream-demo/demo/
+           $ cd /usr/share/doc/ksql-clickstream-demo/
 
-    #. Run this command to send the KSQL tables to Elasticsearch and Grafana:
+    3. Run this command to send the KSQL tables to Elasticsearch and
+       Grafana:
 
        .. code:: bash
 
@@ -310,11 +321,7 @@ Load and View the Clickstream Data in Grafana
            Charting  PAGES_PER_MIN_TS
            Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 
-       **Important:** The ``http://localhost:3000/`` URL is only
-       available inside the container. We will access the dashboard with
-       a slightly different URL, after running the next command.
-
-    #. From your terminal, load the dashboard into Grafana.
+    4. From your terminal, load the dashboard into Grafana.
 
        .. code:: bash
 
@@ -325,33 +332,37 @@ Load and View the Clickstream Data in Grafana
        .. code:: bash
 
            Loading Grafana ClickStream Dashboard
-           {"slug":"click-stream-analysis","status":"success","version":1}
+           {"slug":"click-stream-analysis","status":"success","version":5}
 
 #.  Go to your browser and view the Grafana output at
-    http://localhost:3000/dashboard/db/click-stream-analysis. You can
+    http://localhost:33000/dashboard/db/click-stream-analysis. You can
     login with user ID ``admin`` and password ``admin``.
 
     **Important:** If you already have Grafana UI open, you may need to
     enter the specific clickstream URL:
-    http://localhost:3000/dashboard/db/click-stream-analysis.
+    http://localhost:33000/dashboard/db/click-stream-analysis.
 
-    .. image:: ../img/grafana-success.png
+    .. image:: ../../img/grafana-success.png
+       :alt: Grafana UI success
+
+This dashboard demonstrates a series of streaming functionality where the title of each panel describes the type of stream
+processing required to generate the data. For example, the large chart in the middle is showing web-resource requests on a per-username basis
+using a Session window - where a sessions expire after 300 seconds of inactivity. Editing the panel allows you to view the datasource - which
+is named after the streams and tables captured in the ``clickstream-schema.sql`` file.
 
 
-.. note::
-
-* Understand how the ``clickstream-schema.sql`` file is structured. We use a **DataGen.KafkaTopic.clickstream -> Stream -> Table** (for window &
-  analytics with group-by) -> Table (to Add EVENT_TS for time-index) ->
-  ElasticSearch/Connect topic
-* Run the KSQL CLI ``LIST TOPICS;`` command to see where data is persisted
-* Run the KSQL CLI ``history`` command
+Things to try
+    * Understand how the ``clickstream-schema.sql`` file is structured. We use a **DataGen.KafkaTopic.clickstream -> Stream -> Table** (for window &
+      analytics with group-by) -> Table (to Add EVENT_TS for time-index) ->
+      ElasticSearch/Connect topic
+    * Run the KSQL CLI ``LIST TOPICS;`` command to see where data is persisted
+    * Run the KSQL CLI ``history`` command
 
 Troubleshooting
-    -  Check that Elasticsearch is running: http://localhost:9200/.
-    -  Check the Data Sources page in Grafana.
+---------------
 
-       -  If your data source is shown, select it and scroll to the bottom and click the **Save & Test** button. This will
-          indicate whether your data source is valid.
-       -  If your data source is not shown, go to ``<path-to-ksql>/demo/`` and run ``./ksql-tables-to-grafana.sh``.
+-  Check the Data Sources page in Grafana.
 
-
+   -  If your data source is shown, select it and scroll to the bottom
+      and click the **Save & Test** button. This will indicate whether
+      your data source is valid.

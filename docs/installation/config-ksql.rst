@@ -5,7 +5,7 @@ Configuring KSQL
 
 You can set the default properties for KSQL, :cp-javadoc:`Kafka’s Streams |streams/javadocs/index.html`, Kafka’s
 :cp-javadoc:`producer client |clients/javadocs/org/apache/kafka/clients/producer/ProducerConfig.html` and
-:cp-javadoc:`consumer client |clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html`, and admin client properties in the ``/config/ksqlserver.properties`` file.
+:cp-javadoc:`consumer client |clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html`, and admin client properties in the ``/etc/ksql/ksql-server.properties`` file.
 
 You can set per-session properties for :cp-javadoc:`Kafka’s Streams |streams/javadocs/index.html`, Kafka’s
 :cp-javadoc:`producer client |clients/javadocs/org/apache/kafka/clients/producer/ProducerConfig.html` and
@@ -20,7 +20,7 @@ To view the current configuration settings, use the ``SHOW PROPERTIES`` KSQL com
 
 Setting Default Properties
 --------------------------
-Configure KSQL with the ``/config/ksqlserver.properties`` file. A property remains in effect for the remainder of the KSQL
+Configure KSQL with the ``/etc/ksql/ksql-server.properties`` file. A property remains in effect for the remainder of the KSQL
 CLI session, or until you issue another SET statement to change it. The syntax of properties files follow Java conventions.
 Here is the basic syntax.
 
@@ -40,14 +40,14 @@ After you have configured your properties file, start KSQL with your properties 
 
 .. code:: bash
 
-    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/config/ksqlserver.properties
+    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``.
 
 Setting Per-Session Properties
 ------------------------------
 
-Configure KSQL with the ``/config/ksqlserver.properties`` file. A property remains in effect for the remainder of the KSQL
+Configure KSQL with the ``/etc/ksql/ksql-server.properties`` file. A property remains in effect for the remainder of the KSQL
 CLI session, or until you issue another SET statement to change it. The syntax of properties files follow Java conventions.
 Here is the basic syntax.
 
@@ -67,9 +67,11 @@ After you have configured your properties file, start KSQL with your properties 
 
 .. code:: bash
 
-    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/config/ksqlserver.properties
+    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. tip:: The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``.
+
+For more information, see :ref:`<install_ksql-standalone>`.
 
 Setting Per-Session Properties
 ------------------------------
@@ -138,6 +140,11 @@ ksql.schema.registry.url
 
 ksql.queries.file
     A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
+    Here is an example
+=======
+    # Start KSQL in standalone mode with the custom properties above
+    $ ksql http://your-ksql-server:8080 --properties-file /ksql.properties
+>>>>>>> 4.1.x
 
 :cp-javadoc:`listeners |streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`
    The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).

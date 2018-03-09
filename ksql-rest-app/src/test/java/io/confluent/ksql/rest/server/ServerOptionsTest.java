@@ -15,9 +15,13 @@
  **/
 package io.confluent.ksql.rest.server;
 
+import org.apache.kafka.test.TestUtils;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -57,6 +61,27 @@ public class ServerOptionsTest {
     final Properties properties = new Properties();
     properties.put(ServerOptions.QUERIES_FILE_CONFIG, "blah");
     assertThat(options.getQueriesFile(properties).get(), equalTo(cmdLineArg));
+  }
 
+  @Test
+  public void shouldOverrideFilePropertiesWithSystemProperties() throws IOException {
+    final Properties sysProperties = new Properties();
+    sysProperties.setProperty("bootstrap.servers", "blah:9092");
+    sysProperties.setProperty("listeners", "http://localhost:8080");
+
+    final File propsFile = TestUtils.tempFile();
+    try (final PrintWriter writer =
+             new PrintWriter(new FileWriter(propsFile))) {
+      writer.println("bootstrap.servers=localhost:9092");
+      writer.println("listeners=http://some-server");
+      writer.println("num.stream.threads=1");
+    }
+
+    final ServerOptions options = ServerOptions.parse(propsFile.getPath());
+
+    final Properties properties = options.loadProperties(() -> sysProperties);
+    assertThat(properties.getProperty("bootstrap.servers"), equalTo("blah:9092"));
+    assertThat(properties.getProperty("listeners"), equalTo("http://localhost:8080"));
+    assertThat(properties.get("num.stream.threads"), equalTo("1"));
   }
 }

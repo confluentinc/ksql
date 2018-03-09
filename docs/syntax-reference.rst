@@ -274,9 +274,14 @@ The WITH clause supports the following properties:
 |              | set, then the format of the input stream/table is     |
 |              | used.                                                 |
 +--------------+-------------------------------------------------------+
-| PARTITIONS   | The number of partitions in the topic. If this        |
-|              | property is not set, then the number of partitions of |
-|              | the input stream/table will be used.                  |
+| PARTITIONS   | The number of partitions in the backing topic.        |
+|              | If this property is not set, then the number of       |
+|              | partitions is taken from the value of the             |
+|              | ``ksql.sink.partitions`` property, which defaults to  |
+|              | 4 partitions.                                         |
+|              | The ``ksql.sink.partitions`` property can be set in   |
+|              | the properties file the KSQL server is started with,  |
+|              | or by using the ``SET`` statement.                    |
 +--------------+-------------------------------------------------------+
 | REPLICAS     | The replication factor for the topic. If this         |
 |              | property is not set, then the number of replicas of   |
@@ -284,7 +289,7 @@ The WITH clause supports the following properties:
 +--------------+-------------------------------------------------------+
 | TIMESTAMP    | Associates a field within the source stream with the  |
 |              | timestamp of messages produced to Kafka.              |
-|              | If not supplied, the `ROWTIME` of the source stream   |
+|              | If not supplied, the ``ROWTIME`` of the source stream |
 |              | will be used.                                         |
 +--------------+-------------------------------------------------------+
 
@@ -330,9 +335,14 @@ The WITH clause supports the following properties:
 |              | set, then the format of the input stream/table is     |
 |              | used.                                                 |
 +--------------+-------------------------------------------------------+
-| PARTITIONS   | The number of partitions in the topic. If this        |
-|              | property is not set, then the number of partitions of |
-|              | the input stream/table will be used.                  |
+| PARTITIONS   | The number of partitions in the backing topic.        |
+|              | If this property is not set, then the number of       |
+|              | partitions is taken from the value of the             |
+|              | ``ksql.sink.partitions`` property, which defaults to  |
+|              | 4 partitions.                                         |
+|              | The ``ksql.sink.partitions`` property can be set in   |
+|              | the properties file the KSQL server is started with,  |
+|              | or by using the ``SET`` statement.                    |
 +--------------+-------------------------------------------------------+
 | REPLICAS     | The replication factor for the topic. If this         |
 |              | property is not set, then the number of replicas of   |
@@ -340,7 +350,7 @@ The WITH clause supports the following properties:
 +--------------+-------------------------------------------------------+
 | TIMESTAMP    | Associates a field within the source stream with the  |
 |              | timestamp of messages produced to Kafka.              |
-|              | If not supplied, the `ROWTIME` of the source stream   |
+|              | If not supplied, the ``ROWTIME`` of the source stream |
 |              | will be used.                                         |
 +--------------+-------------------------------------------------------+
 

@@ -57,26 +57,9 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    After KSQL is started, your terminal should resemble this.
 
-   .. code:: bash
-
-                          ===========================================
-                          =        _  __ _____  ____  _             =
-                          =       | |/ // ____|/ __ \| |            =
-                          =       | ' /| (___ | |  | | |            =
-                          =       |  <  \___ \| |  | | |            =
-                          =       | . \ ____) | |__| | |____        =
-                          =       |_|\_\_____/ \___\_\______|       =
-                          =                                         =
-                          =  Streaming SQL Engine for Apache Kafka® =
-                          ===========================================
-
-        Copyright 2018 Confluent Inc.
-
-        CLI v0.5, Server v0.5 located at http://localhost:8090
-
-        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
-
-        ksql>
+   .. include:: ../includes/ksql-includes.rst
+      :start-line: 17
+      :end-line: 38
 
 #. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,

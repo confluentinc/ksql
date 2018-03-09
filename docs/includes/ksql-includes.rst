@@ -1,3 +1,320 @@
 .. Avro note
 
 .. note:: To use Avro, you must have Confluent Schema Registry enabled and set ``ksql.schema.registry.url`` in your KSQL configuration file.
+
+.. demo
+
+Learn More
+    Watch the `screencast of the KSQL demo <https://www.youtube.com/embed/A45uRzJiv7I>`_ on YouTube.
+
+    .. raw:: html
+
+          <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+              <iframe src="https://www.youtube.com/embed/A45uRzJiv7I" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+          </div>
+
+.. CLI welcome
+
+.. code:: bash
+
+                          ===========================================
+                          =        _  __ _____  ____  _             =
+                          =       | |/ // ____|/ __ \| |            =
+                          =       | ' /| (___ | |  | | |            =
+                          =       |  <  \___ \| |  | | |            =
+                          =       | . \ ____) | |__| | |____        =
+                          =       |_|\_\_____/ \___\_\______|       =
+                          =                                         =
+                          =  Streaming SQL Engine for Apache Kafka® =
+                          ===========================================
+
+        Copyright 2018 Confluent Inc.
+
+        CLI v0.5, Server v0.5 located at http://localhost:8090
+
+        Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+
+        ksql>
+
+.. clickstream demo
+
+---------------------------
+Create the Clickstream Data
+---------------------------
+
+#.  From your terminal, create the clickStream data using the ``ksql-datagen`` utility. This stream will run continuously until you
+    terminate.
+
+    **Tip:** Because of shell redirection, this command does not print a new line and so it might look like it’s still
+    in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
+
+    .. code:: bash
+
+        $ <path-to-confluent>/bin/ksql-datagen -daemon quickstart=clickstream format=json \
+        topic=clickstream maxInterval=100 iterations=500000
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        Writing console output to /tmp/ksql-logs/ksql.out
+
+#.  From your terminal, create the status codes using the ``ksql-datagen`` utility. This stream runs once to populate the table.
+
+    .. code:: bash
+
+        $ <path-to-confluent>/bin/ksql-datagen  quickstart=clickstream_codes format=json \
+        topic=clickstream_codes maxInterval=20 iterations=100
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        200 --> ([ 200 | 'Successful' ])
+        302 --> ([ 302 | 'Redirect' ])
+        200 --> ([ 200 | 'Successful' ])
+        406 --> ([ 406 | 'Not acceptable' ])
+        ...
+
+#.  From your terminal, create a set of users using ``ksql-datagen`` utility. This stream runs once to populate the table.
+
+    .. code:: bash
+
+        $ <path-to-confluent>/bin/ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users \
+        maxInterval=10 iterations=1000
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
+        2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
+        3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+        ...
+
+-------------------------------
+Load the Streaming Data to KSQL
+-------------------------------
+
+#.  Launch the KSQL CLI in Client Server mode.
+
+    .. code:: bash
+
+        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksqlserver.properties\
+          > /tmp/ksql-logs/ksql-server.log 2>&1 &
+
+    You should see the KSQL CLI welcome screen.
+
+    .. code:: bash
+
+                              ===========================================
+                              =        _  __ _____  ____  _             =
+                              =       | |/ // ____|/ __ \| |            =
+                              =       | ' /| (___ | |  | | |            =
+                              =       |  <  \___ \| |  | | |            =
+                              =       | . \ ____) | |__| | |____        =
+                              =       |_|\_\_____/ \___\_\______|       =
+                              =                                         =
+                              =  Streaming SQL Engine for Apache Kafka® =
+                              ===========================================
+
+            Copyright 2018 Confluent Inc.
+
+            CLI v0.5, Server v0.5 located at http://localhost:8090
+
+            Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
+
+            ksql>
+
+#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that will run the demo app.
+
+    .. code:: bash
+
+        ksql> RUN SCRIPT 'ksql-clickstream-demo/demo/clickstream-schema.sql';
+
+    The output should resemble:
+
+    .. code:: bash
+
+         Message
+        ------------------------------------
+         Executing statement
+
+#.  Optional: from the the KSQL CLI, verify that data is being streamed through various tables and streams.
+
+    **Verify that the tables are created**
+
+    .. code:: bash
+
+        ksql> LIST TABLES;
+
+    Your output should resemble:
+
+    .. code:: bash
+
+         Table Name                 | Kafka Topic                | Format | Windowed
+        -----------------------------------------------------------------------------
+         WEB_USERS                  | clickstream_users          | JSON   | false
+         ERRORS_PER_MIN_ALERT       | ERRORS_PER_MIN_ALERT       | JSON   | true
+         CLICKSTREAM_CODES_TS       | CLICKSTREAM_CODES_TS       | JSON   | false
+         USER_IP_ACTIVITY           | USER_IP_ACTIVITY           | JSON   | true
+         CLICKSTREAM_CODES          | clickstream_codes          | JSON   | false
+         PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
+         CLICK_USER_SESSIONS        | CLICK_USER_SESSIONS        | JSON   | true
+         ENRICHED_ERROR_CODES_COUNT | ENRICHED_ERROR_CODES_COUNT | JSON   | true
+         EVENTS_PER_MIN_MAX_AVG     | EVENTS_PER_MIN_MAX_AVG     | JSON   | true
+         ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
+         EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
+
+
+    **Verify that the streams are created**
+
+    .. code:: bash
+
+        ksql> LIST STREAMS;
+
+    Your output should resemble:
+
+    .. code:: bash
+
+         Stream Name               | Kafka Topic               | Format
+        ----------------------------------------------------------------
+         USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON
+         EVENTS_PER_MIN_MAX_AVG_TS | EVENTS_PER_MIN_MAX_AVG_TS | JSON
+         ERRORS_PER_MIN_TS         | ERRORS_PER_MIN_TS         | JSON
+         EVENTS_PER_MIN_TS         | EVENTS_PER_MIN_TS         | JSON
+         ENRICHED_ERROR_CODES      | ENRICHED_ERROR_CODES      | JSON
+         ERRORS_PER_MIN_ALERT_TS   | ERRORS_PER_MIN_ALERT_TS   | JSON
+         CLICK_USER_SESSIONS_TS    | CLICK_USER_SESSIONS_TS    | JSON
+         PAGES_PER_MIN_TS          | PAGES_PER_MIN_TS          | JSON
+         ENRICHED_ERROR_CODES_TS   | ENRICHED_ERROR_CODES_TS   | JSON
+         USER_IP_ACTIVITY_TS       | USER_IP_ACTIVITY_TS       | JSON
+         CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
+         CLICKSTREAM               | clickstream               | JSON
+
+
+    **View clickstream data**
+
+    .. code:: bash
+
+        ksql> SELECT * FROM CLICKSTREAM LIMIT 5;
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        1503585407989 | 222.245.174.248 | 1503585407989 | 24/Aug/2017:07:36:47 -0700 | 233.90.225.227 | GET /site/login.html HTTP/1.1 | 407 | 19 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+        1503585407999 | 233.168.257.122 | 1503585407999 | 24/Aug/2017:07:36:47 -0700 | 233.173.215.103 | GET /site/user_status.html HTTP/1.1 | 200 | 15 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+        1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+        1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+        1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+        LIMIT reached for the partition.
+        Query terminated
+
+    **View the events per minute**
+
+    .. code:: bash
+
+        ksql> SELECT * FROM EVENTS_PER_MIN_TS LIMIT 5;
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        1503585450000 | 29 : | 1503585450000 | 29 | 19
+        1503585450000 | 37 : | 1503585450000 | 37 | 25
+        1503585450000 | 8 : | 1503585450000 | 8 | 35
+        1503585450000 | 36 : | 1503585450000 | 36 | 14
+        1503585450000 | 24 : | 1503585450000 | 24 | 22
+        LIMIT reached for the partition.
+        Query terminated
+
+    **View pages per minute**
+
+    .. code:: bash
+
+        ksql> SELECT * FROM PAGES_PER_MIN LIMIT 5;
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        1503585475000 | 4 : Window{start=1503585475000 end=-} | 4 | 14
+        1503585480000 | 25 : Window{start=1503585480000 end=-} | 25 | 9
+        1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
+        1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
+        1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
+        LIMIT reached for the partition.
+        Query terminated
+
+---------------------------------------------
+Load and View the Clickstream Data in Grafana
+---------------------------------------------
+
+In this step, you send the KSQL tables to Elasticsearch and Grafana and then view the Grafana output in your browser.
+
+#. From your terminal, navigate to the demo directory:
+
+   .. code:: bash
+
+       cd ksql-clickstream-demo/demo/
+
+#. Run this command to send the KSQL tables to Elasticsearch and Grafana:
+
+   .. code:: bash
+
+       $ ./ksql-tables-to-grafana.sh
+
+   Your output should resemble:
+
+   .. code:: bash
+
+       Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+       Logging to: /tmp/ksql-connect.log
+       Charting  CLICK_USER_SESSIONS_TS
+       Charting  USER_IP_ACTIVITY_TS
+       Charting  CLICKSTREAM_STATUS_CODES_TS
+       Charting  ENRICHED_ERROR_CODES_TS
+       Charting  ERRORS_PER_MIN_ALERT_TS
+       Charting  ERRORS_PER_MIN_TS
+       Charting  EVENTS_PER_MIN_MAX_AVG_TS
+       Charting  EVENTS_PER_MIN_TS
+       Charting  PAGES_PER_MIN_TS
+       Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
+
+   **Important:** The ``http://localhost:3000/`` URL is only
+   available inside the container. We will access the dashboard with
+   a slightly different URL, after running the next command.
+
+#. From your terminal, load the dashboard into Grafana.
+
+   .. code:: bash
+
+       $ ./clickstream-analysis-dashboard.sh
+
+   Your output should resemble:
+
+   .. code:: bash
+
+       Loading Grafana ClickStream Dashboard
+       {"slug":"click-stream-analysis","status":"success","version":1}
+
+#.  Go to your browser and view the Grafana output at `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_. You can login with user ID ``admin`` and password ``admin``.
+
+    **Important:** If you already have Grafana UI open, you may need to enter the specific clickstream URL as
+    `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_.
+
+    .. image:: ../../img/grafana-success.png
+
+This dashboard demonstrates a series of streaming functionality where the title of each panel describes the type of stream
+processing required to generate the data. For example, the large chart in the middle is showing web-resource requests on a per-username basis
+using a Session window - where a sessions expire after 300 seconds of inactivity. Editing the panel allows you to view the datasource - which
+is named after the streams and tables captured in the ``clickstream-schema.sql`` file.
+
+Things to try
+    * Understand how the ``clickstream-schema.sql`` file is structured. We use a **DataGen.KafkaTopic.clickstream -> Stream -> Table** (for window &
+      analytics with group-by) -> Table (to Add EVENT_TS for time-index) ->
+      ElasticSearch/Connect topic
+    * Run the KSQL CLI ``LIST TOPICS;`` command to see where data is persisted
+    * Run the KSQL CLI ``history`` command
+

@@ -17,7 +17,7 @@ and for testing.
 
 To run KSQL in client-server mode:
 
-#.  Configure KSQL with the ``/config/ksqlserver.properties`` file.
+#.  Configure KSQL with the ``/etc/ksql/ksql-server.properties`` file.
 
     .. tip:: KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, KSQL servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``. For more information, see :ref:`configuring-ksql`.
 

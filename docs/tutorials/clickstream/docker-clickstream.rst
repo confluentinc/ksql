@@ -5,8 +5,7 @@ Clickstream Analysis using Docker
 
 These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. 
 
-Prerequisites
--------------
+**Prerequisites**
 
 -  Docker is installed and configured with at least 4 GB of memory.
 
@@ -20,7 +19,7 @@ Download the Demo
 -----------------
 
 Download and start the KSQL clickstream container. This container
-image is large and contains Confluent, Grafana, and Elasticsearch.
+image is large and contains |cos|, Grafana, and Elasticsearch.
 Depending on your network speed, this may take up to 10-15 minutes.
 The ``-p`` flag will forward the Grafana dashboard to port 33000 on
 your local host.
@@ -55,9 +54,9 @@ Your output should resemble:
     80e29f47abe0: Pull complete
     Digest: sha256:f3b2b19668b851d1300f77aa8c2236a126b628b911578cc688c7e0de442c1cd3
     Status: Downloaded newer image for confluentinc/ksql-clickstream-demo:latest
-    root@d98186dd8d6c:/#
+    $
 
-You should now be in the Docker container.
+You should now be in the Docker container and the remaining steps are run from within the container.
 
 ----------------------------------------------
 Configure and Start Elastic, Grafana, and |cp|
@@ -69,11 +68,24 @@ Configure and Start Elastic, Grafana, and |cp|
 
        $ /etc/init.d/elasticsearch start
 
+    Your output should resemble:
+
+    .. code:: bash
+
+        [....] Starting Elasticsearch Server:sysctl: setting key "vm.max_map_count": Read-only file system
+        . ok
+
 #.  Start Grafana.
 
     .. code:: bash
 
         $ /etc/init.d/grafana-server start
+
+    Your output should resemble:
+
+    .. code:: bash
+
+        [ ok ] Starting Grafana Server:.
 
 #.  Start |cp|.
 
@@ -81,15 +93,29 @@ Configure and Start Elastic, Grafana, and |cp|
 
         $ confluent start
 
+    Your output should resemble:
+
+    .. code:: bash
+
+        Starting zookeeper
+        zookeeper is [UP]
+        Starting kafka
+        kafka is [UP]
+        Starting schema-registry
+        schema-registry is [UP]
+        Starting kafka-rest
+        kafka-rest is [UP]
+        Starting connect
+        connect is [UP]
+
 ---------------------------
 Create the Clickstream Data
 ---------------------------
 
-#.  From your terminal, create the clickStream data using the ksql-datagen utility. This stream will run continuously until
-    you terminate.
+#.  Create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
 
-    **Tip:** Because of shell redirection, this command does not print a newline and so it might look like it’s still in
-    the foreground. However, the process is running as a daemon, so just press return again to see the shell prompt.
+    **Tip:** This command does not print a new line and so it might look like it’s still in the foreground. Because the
+    process is running as a daemon, you can press return again to see the shell prompt.
 
     .. code:: bash
 
@@ -101,7 +127,7 @@ Create the Clickstream Data
 
         Writing console output to /tmp/ksql-logs/ksql.out
 
-#.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
+#.  Create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     .. code:: bash
 
@@ -117,7 +143,7 @@ Create the Clickstream Data
         406 --> ([ 406 | 'Not acceptable' ])
         ...
 
-#.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
+#.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     .. code:: bash
 
@@ -156,8 +182,7 @@ Load the Streaming Data to KSQL
             :start-line: 17
             :end-line: 38
 
-#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that
-    will run the demo app.
+#.  Load the ``clickstream.sql`` schema file that runs the demo app.
 
     **Important:** Before running this step, you must have already run
     ksql-datagen utility to create the clickstream data, status codes,
@@ -174,9 +199,14 @@ Load the Streaming Data to KSQL
          Message
         ------------------------------------
          Executing statement
-        ksql>
 
-#.  From the the KSQL CLI, verify that the tables are created.
+Verify the data
+---------------
+
+.. note::
+    The following steps are optional and can be used to verify that the data was loaded properly. Otherwise, you can skip to :ref:`Load and View the Clickstream Data in Grafana <view-grafana-docker>`.
+
+#.  Verify that the tables are created.
 
     .. code:: bash
 
@@ -200,7 +230,7 @@ Load the Streaming Data to KSQL
          ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
          EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
 
-#.  From the the KSQL CLI, verify that the streams are created.
+#.  Verify that the streams are created.
 
     .. code:: bash
 
@@ -225,7 +255,7 @@ Load the Streaming Data to KSQL
          CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
          CLICKSTREAM               | clickstream               | JSON
 
-#.  From the the KSQL CLI, verify that data is being streamed through
+#.  Verify that data is being streamed through
     various tables and streams.
 
     **View clickstream data**
@@ -282,60 +312,65 @@ Load the Streaming Data to KSQL
         LIMIT reached for the partition.
         Query terminated
 
+.. _view-grafana-docker:
+
 ---------------------------------------------
 Load and View the Clickstream Data in Grafana
 ---------------------------------------------
+Send the KSQL tables to Elasticsearch and Grafana.
 
-#.  Go to your terminal and send the KSQL tables to Elasticsearch and
-    Grafana.
+1. Exit the KSQL CLI with ``CTRL+D``.
 
-    1. Exit the KSQL CLI with ``CTRL+D``.
+   .. code:: bash
 
-    2. From your terminal, navigate to the demo directory:
+        ksql>
+        Exiting KSQL.
 
-       .. code:: bash
+2. Navigate to the demo directory in the Docker container:
 
-           $ cd /usr/share/doc/ksql-clickstream-demo/
+   .. code:: bash
 
-    3. Run this command to send the KSQL tables to Elasticsearch and
-       Grafana:
+       $ cd /usr/share/doc/ksql-clickstream-demo/
 
-       .. code:: bash
+3. Run this command to send the KSQL tables to Elasticsearch and
+   Grafana:
 
-           $ ./ksql-tables-to-grafana.sh
+   .. code:: bash
 
-       Your output should resemble:
+       $ ./ksql-tables-to-grafana.sh
 
-       .. code:: bash
+   Your output should resemble:
 
-           Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
-           Logging to: /tmp/ksql-connect.log
-           Charting  CLICK_USER_SESSIONS_TS
-           Charting  USER_IP_ACTIVITY_TS
-           Charting  CLICKSTREAM_STATUS_CODES_TS
-           Charting  ENRICHED_ERROR_CODES_TS
-           Charting  ERRORS_PER_MIN_ALERT_TS
-           Charting  ERRORS_PER_MIN_TS
-           Charting  EVENTS_PER_MIN_MAX_AVG_TS
-           Charting  EVENTS_PER_MIN_TS
-           Charting  PAGES_PER_MIN_TS
-           Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
+   .. code:: bash
 
-    4. From your terminal, load the dashboard into Grafana.
+       Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+       Logging to: /tmp/ksql-connect.log
+       Charting  CLICK_USER_SESSIONS_TS
+       Charting  USER_IP_ACTIVITY_TS
+       Charting  CLICKSTREAM_STATUS_CODES_TS
+       Charting  ENRICHED_ERROR_CODES_TS
+       Charting  ERRORS_PER_MIN_ALERT_TS
+       Charting  ERRORS_PER_MIN_TS
+       Charting  EVENTS_PER_MIN_MAX_AVG_TS
+       Charting  EVENTS_PER_MIN_TS
+       Charting  PAGES_PER_MIN_TS
+       Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
 
-       .. code:: bash
+4. Load the dashboard into Grafana.
 
-           $ ./clickstream-analysis-dashboard.sh
+   .. code:: bash
 
-       Your output should resemble:
+       $ ./clickstream-analysis-dashboard.sh
 
-       .. code:: bash
+   Your output should resemble:
 
-           Loading Grafana ClickStream Dashboard
-           {"slug":"click-stream-analysis","status":"success","version":5}
+   .. code:: bash
+
+       Loading Grafana ClickStream Dashboard
+       {"slug":"click-stream-analysis","status":"success","version":5}
 
 #.  Go to your browser and view the Grafana output at
-    http://localhost:33000/dashboard/db/click-stream-analysis. You can
+    `http://localhost:33000/dashboard/db/click-stream-analysis <http://localhost:33000/dashboard/db/click-stream-analysis>`_. You can
     login with user ID ``admin`` and password ``admin``.
 
     **Important:** If you already have Grafana UI open, you may need to

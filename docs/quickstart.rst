@@ -5,7 +5,8 @@ Quick Start
 
 
 |cp| Quick Start
-    This :ref:`quickstart` will get you up and running with |cp| and its main components, including using |c3-short| to create, add, and modify topic data, and using KSQL to configure stream processing on Kafka.
+    The |cp| :ref:`quickstart` is the easiest way to get you up and running with |cp| and KSQL. It will demonstrate a simple
+    workflow with topic management, monitoring, and using KSQL to write streaming queries against data in Kafka.
 
 KSQL Tutorials
     - :ref:`Using KSQL to write streaming queries against data in Kafka <ksql_quickstart>`. This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.

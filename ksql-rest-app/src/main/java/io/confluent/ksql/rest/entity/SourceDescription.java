@@ -183,14 +183,20 @@ public class SourceDescription extends KsqlEntity {
     return topicDescription.partitions().size();
   }
 
+  public int getPartitions() {
+    return partitions;
+  }
+
   private static int getReplication(KafkaTopicClient topicClient, String kafkaTopicName) {
     Map<String, TopicDescription> stringTopicDescriptionMap =
         topicClient.describeTopics(Arrays.asList(kafkaTopicName));
     TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
     return topicDescription.partitions().iterator().next().replicas().size();
-
   }
 
+  public int getReplication() {
+    return replication;
+  }
 
   public String getName() {
     return name;
@@ -248,35 +254,6 @@ public class SourceDescription extends KsqlEntity {
     return executionPlan;
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof SourceDescription)) {
-      return false;
-    }
-    SourceDescription that = (SourceDescription) o;
-    return Objects.equals(getName(), that.getName())
-           && Objects.equals(getSchema(), that.getSchema())
-           && getType().equals(that.getType())
-           && Objects.equals(getKey(), that.getKey())
-           && Objects.equals(getTimestamp(), that.getTimestamp());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
-  }
-
-  public int getPartitions() {
-    return partitions;
-  }
-
-  public int getReplication() {
-    return replication;
-  }
-
   public static class FieldSchemaInfo {
 
     private final String name;
@@ -316,5 +293,26 @@ public class SourceDescription extends KsqlEntity {
     public int hashCode() {
       return Objects.hash(getName(), getType());
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SourceDescription)) {
+      return false;
+    }
+    SourceDescription that = (SourceDescription) o;
+    return Objects.equals(getName(), that.getName())
+           && Objects.equals(getSchema(), that.getSchema())
+           && getType().equals(that.getType())
+           && Objects.equals(getKey(), that.getKey())
+           && Objects.equals(getTimestamp(), that.getTimestamp());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getName(), getSchema(), getType(), getKey(), getTimestamp());
   }
 }

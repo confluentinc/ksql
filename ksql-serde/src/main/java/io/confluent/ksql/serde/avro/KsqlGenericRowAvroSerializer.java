@@ -78,12 +78,12 @@ public class KsqlGenericRowAvroSerializer implements Serializer<GenericRow> {
       for (int i = 0; i < genericRow.getColumns().size(); i++) {
         Schema schema = getNonNullSchema(fields.get(i).schema());
         if (schema.getType() == Schema.Type.ARRAY) {
-          if(genericRow.getColumns().get(i) != null) {
+          if (genericRow.getColumns().get(i) != null) {
             avroRecord.put(
                 fields.get(i).name(),
-                Arrays.asList((Object[]) genericRow.getColumns().get(i)));
+                Arrays.asList((Object[]) genericRow.getColumns().get(i))
+            );
           }
-
         } else {
           avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
         }

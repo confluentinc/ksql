@@ -266,6 +266,17 @@ public abstract class Console implements Closeable {
     return longest.length();
   }
 
+  private void printAsTable(GenericRow row) {
+    addResult(row);
+    writer().println(
+        String.join(
+            " | ",
+            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        )
+    );
+    flush();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
     List<String> header = new ArrayList<>();
     List<String> footer = new ArrayList<>();
@@ -490,17 +501,6 @@ public abstract class Console implements Closeable {
     } else {
       footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
     }
-  }
-
-  private void printAsTable(GenericRow row) {
-    addResult(row);
-    writer().println(
-        String.join(
-            " | ",
-            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
-        )
-    );
-    flush();
   }
 
   private void printAsJson(Object o) throws IOException {

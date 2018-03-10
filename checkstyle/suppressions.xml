@@ -16,7 +16,6 @@
     <suppress files="." checks="ExplicitInitializationCheck"/>
     <suppress files="." checks="FinalClassCheck"/>
     <suppress files="." checks="AbbreviationAsWordInName"/>
-    <suppress files="." checks="WhitespaceAround"/>
     <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
 
     <!-- Semantics may not be well checked by rules -->
@@ -26,9 +25,5 @@
     <suppress files="." checks="JavaNCSSCheck"/>
     <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>
     <suppress files="." checks="CyclomaticComplexityCheck"/>
-
-    <!-- These checks may be included in the future -->
-    <suppress files="." checks="OverloadMethodsDeclarationOrder"/>
-    <suppress files="." checks="EmptyLineSeparator"/>
 
 </suppressions>

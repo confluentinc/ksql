@@ -19,6 +19,8 @@ package io.confluent.ksql.metastore;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
+import java.util.Set;
+
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
@@ -34,6 +36,8 @@ public abstract class StructuredDataSource implements DataSource {
   final KsqlTopic ksqlTopic;
   final String sqlExpression;
 
+  final Set<String> quotedFieldNames;
+
 
   public StructuredDataSource(
       String sqlExpression,
@@ -42,7 +46,8 @@ public abstract class StructuredDataSource implements DataSource {
       final Field keyField,
       final Field timestampField,
       final DataSourceType dataSourceType,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final Set<String> quotedFieldNames
   ) {
     this.sqlExpression = sqlExpression;
     this.dataSourceName = datasourceName;
@@ -51,6 +56,7 @@ public abstract class StructuredDataSource implements DataSource {
     this.timestampField = timestampField;
     this.dataSourceType = dataSourceType;
     this.ksqlTopic = ksqlTopic;
+    this.quotedFieldNames = quotedFieldNames;
   }
 
   public static DataSourceType getDataSourceType(String dataSourceTypeName) {
@@ -71,6 +77,10 @@ public abstract class StructuredDataSource implements DataSource {
 
   public Schema getSchema() {
     return this.schema;
+  }
+
+  public Set<String> getQuotedFieldNames() {
+    return quotedFieldNames;
   }
 
   public Field getKeyField() {

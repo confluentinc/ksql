@@ -27,8 +27,11 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +86,7 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
-    super(id);
+    super(id, source.getQuotedFieldNames());
 
     this.source = source;
     this.schema = schema;
@@ -253,7 +256,8 @@ public class AggregateNode extends PlanNode {
         schemaKTable.isWindowed(),
         SchemaKStream.Type.AGGREGATE,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        schemaKTable.getQuotedFieldNames()
     );
 
     if (getHavingExpressions() != null) {
@@ -261,6 +265,58 @@ public class AggregateNode extends PlanNode {
     }
 
     return result.select(getFinalSelectExpressions());
+  }
+
+  private SchemaKStream aggregateReKey(
+      final SchemaKStream sourceSchemaKStream,
+      final FunctionRegistry functionRegistry,
+      SchemaRegistryClient schemaRegistryClient
+  ) {
+    StringBuilder aggregateKeyName = new StringBuilder();
+    List<Integer> newKeyIndexes = new ArrayList<>();
+    boolean addSeparator = false;
+    for (Expression groupByExpr : getGroupByExpressions()) {
+      if (addSeparator) {
+        aggregateKeyName.append("|+|");
+      } else {
+        addSeparator = true;
+      }
+      aggregateKeyName.append(groupByExpr.toString());
+      newKeyIndexes.add(SchemaUtil.getIndexInSchema(
+          groupByExpr.toString(),
+          sourceSchemaKStream.getSchema()));
+    }
+
+    KStream
+        rekeyedKStream =
+        sourceSchemaKStream
+            .getKstream()
+            .selectKey((KeyValueMapper<String, GenericRow, String>) (key, value) -> {
+              StringBuilder newKey = new StringBuilder();
+              boolean addSeparator1 = false;
+              for (int index : newKeyIndexes) {
+                if (addSeparator1) {
+                  newKey.append("|+|");
+                } else {
+                  addSeparator1 = true;
+                }
+                newKey.append(String.valueOf(value.getColumns().get(index)));
+              }
+              return newKey.toString();
+            });
+
+    Field newKeyField = new Field(aggregateKeyName.toString(), -1, Schema.STRING_SCHEMA);
+
+    return new SchemaKStream(
+        sourceSchemaKStream.getSchema(),
+        rekeyedKStream,
+        newKeyField,
+        Collections.singletonList(sourceSchemaKStream),
+        SchemaKStream.Type.REKEY,
+        functionRegistry,
+        schemaRegistryClient,
+        sourceSchemaKStream.getQuotedFieldNames()
+    );
   }
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(

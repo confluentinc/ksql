@@ -27,19 +27,24 @@ public final class TableElement
 
   private final String name;
   private final String type;
+  private final Boolean isQuoted;
 
-  public TableElement(String name, String type) {
-    this(Optional.empty(), name, type);
+  public TableElement(String name, String type, Boolean isQuoted) {
+    this(Optional.empty(), name, type, isQuoted);
   }
 
-  public TableElement(NodeLocation location, String name, String type) {
-    this(Optional.of(location), name, type);
+  public TableElement(NodeLocation location, String name, String type, Boolean isQuoted) {
+    this(Optional.of(location), name, type, isQuoted);
   }
 
-  private TableElement(Optional<NodeLocation> location, String name, String type) {
+  private TableElement(Optional<NodeLocation> location,
+                       String name,
+                       String type,
+                       Boolean isQuoted) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.type = requireNonNull(type, "type is null");
+    this.isQuoted = requireNonNull(isQuoted, "isQuoted is null");
   }
 
   public String getName() {
@@ -48,6 +53,10 @@ public final class TableElement
 
   public String getType() {
     return type;
+  }
+
+  public Boolean getQuoted() {
+    return isQuoted;
   }
 
   @Override

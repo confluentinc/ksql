@@ -60,7 +60,7 @@ public class ProjectNode
                      @JsonProperty("schema") final Schema schema,
                      @JsonProperty("projectExpressions")
                        final List<Expression> projectExpressions) {
-    super(id);
+    super(id, source.getQuotedFieldNames());
 
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");

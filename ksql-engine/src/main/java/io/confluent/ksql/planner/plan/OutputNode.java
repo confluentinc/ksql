@@ -40,7 +40,7 @@ public abstract class OutputNode
                        @JsonProperty("source") final PlanNode source,
                        @JsonProperty("schema") final Schema schema,
                        @JsonProperty("limit") final Optional<Integer> limit) {
-    super(id);
+    super(id, source.getQuotedFieldNames());
 
     requireNonNull(source, "source is null");
     requireNonNull(schema, "schema is null");

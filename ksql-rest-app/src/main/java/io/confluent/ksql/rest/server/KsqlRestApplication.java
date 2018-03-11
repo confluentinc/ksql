@@ -253,7 +253,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                "STRING"
+                "STRING",
+                false
             )),
             false,
             Collections.singletonMap(

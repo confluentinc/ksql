@@ -53,7 +53,8 @@ public class SchemaKTable extends SchemaKStream {
       boolean isWindowed,
       Type type,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<String> quotedFieldNames
   ) {
     super(
         schema,
@@ -62,7 +63,8 @@ public class SchemaKTable extends SchemaKStream {
         sourceSchemaKStreams,
         type,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
     this.ktable = ktable;
     this.isWindowed = isWindowed;
@@ -133,7 +135,8 @@ public class SchemaKTable extends SchemaKStream {
         isWindowed,
         Type.FILTER,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 
@@ -154,7 +157,8 @@ public class SchemaKTable extends SchemaKStream {
         isWindowed,
         Type.PROJECT,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
   }
 

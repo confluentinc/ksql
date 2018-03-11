@@ -17,7 +17,6 @@
 package io.confluent.ksql.metastore;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.confluent.ksql.serde.DataSource;
@@ -30,54 +29,11 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 
 public class MetastoreUtil {
-
-  private StructuredDataSource createStructuredDataSource(final MetaStore metaStore,
-                                                          final JsonNode node) {
-
-    String name = node.get("name").asText();
-    String topicname = node.get("topic").asText();
-
-    KsqlTopic ksqlTopic = metaStore.getTopic(topicname);
-    if (ksqlTopic == null) {
-      throw new KsqlException("Unable to add the structured data source. The corresponding topic "
-          + "does not exist: " + topicname);
-    }
-
-    String type = node.get("type").asText().toUpperCase();
-    String keyFieldName = node.get("key").asText();
-    String timestampFieldName = node.get("timestamp").asText();
-    ArrayNode fields = (ArrayNode) node.get("fields");
-    Schema dataSource = buildDatasourceSchema(name, fields);
-    String sqlExpression = "Unknown-SQL-Expression-MetaStoreUtil";
-    if ("STREAM".equals(type)) {
-      return new KsqlStream(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
-                            dataSource.field(timestampFieldName), ksqlTopic);
-    } else if ("TABLE".equals(type)) {
-      boolean isWindowed = false;
-      if (node.get("iswindowed") != null) {
-        isWindowed = node.get("iswindowed").asBoolean();
-      }
-      // Use the changelog topic name as state store name.
-      if (node.get("statestore") == null) {
-        return new KsqlTable(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
-                             dataSource.field(timestampFieldName),
-                             ksqlTopic, ksqlTopic.getName(), isWindowed);
-      }
-      String stateStore = node.get("statestore").asText();
-      return new KsqlTable(sqlExpression, name, dataSource, dataSource.field(keyFieldName),
-                           dataSource.field(timestampFieldName),
-          ksqlTopic, stateStore, isWindowed);
-    }
-    throw new KsqlException(String.format("Type not supported: '%s'", type));
-  }
 
   private Schema buildDatasourceSchema(String name, ArrayNode fields) {
     SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name(name);
@@ -144,35 +100,6 @@ public class MetastoreUtil {
         return "BOOL";
       default:
         throw new KsqlException("Unsupported type: " + schema.type());
-    }
-  }
-
-  MetaStore loadMetaStoreFromJsonFile(final String metaStoreJsonFilePath)
-      throws KsqlException {
-
-    try {
-      MetaStoreImpl metaStore = new MetaStoreImpl();
-      byte[] jsonData = Files.readAllBytes(Paths.get(metaStoreJsonFilePath));
-
-      ObjectMapper objectMapper = new ObjectMapper();
-      JsonNode root = objectMapper.readTree(jsonData);
-
-      ArrayNode topicNodes = (ArrayNode) root.get("topics");
-      for (JsonNode schemaNode : topicNodes) {
-        KsqlTopic ksqlTopic = createKafkaTopicDataSource(schemaNode);
-        metaStore.putTopic(ksqlTopic);
-      }
-
-      ArrayNode schemaNodes = (ArrayNode) root.get("schemas");
-      for (JsonNode schemaNode : schemaNodes) {
-        StructuredDataSource dataSource = createStructuredDataSource(metaStore, schemaNode);
-        metaStore.putSource(dataSource);
-      }
-      return metaStore;
-    } catch (FileNotFoundException fnf) {
-      throw new KsqlException("Could not load the schema file from " + metaStoreJsonFilePath, fnf);
-    } catch (IOException ioex) {
-      throw new KsqlException("Could not read schema from " + metaStoreJsonFilePath, ioex);
     }
   }
 

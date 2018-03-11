@@ -19,10 +19,12 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -33,6 +35,7 @@ public class CreateStream extends AbstractStreamCreateStatement implements DDLSt
   private final List<TableElement> elements;
   private final boolean notExists;
   private final Map<String, Expression> properties;
+  private final Set<String> quotedNames;
 
   public CreateStream(QualifiedName name, List<TableElement> elements, boolean notExists,
                      Map<String, Expression> properties) {
@@ -52,6 +55,12 @@ public class CreateStream extends AbstractStreamCreateStatement implements DDLSt
     this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    quotedNames = new HashSet<>();
+    for (TableElement tableElement: elements) {
+      if (tableElement.getQuoted()) {
+        quotedNames.add(tableElement.getName());
+      }
+    }
   }
 
   public QualifiedName getName() {
@@ -60,6 +69,11 @@ public class CreateStream extends AbstractStreamCreateStatement implements DDLSt
 
   public List<TableElement> getElements() {
     return elements;
+  }
+
+  @Override
+  public Set<String> getQuotedNames() {
+    return quotedNames;
   }
 
   @Override

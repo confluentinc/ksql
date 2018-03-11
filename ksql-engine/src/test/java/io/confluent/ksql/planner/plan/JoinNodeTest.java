@@ -101,7 +101,7 @@ public class JoinNodeTest {
       final Schema schema;
 
       public RightTable(final PlanNodeId id, Schema schema) {
-        super(id);
+        super(id, Collections.emptySet());
         this.schema = schema;
       }
       @Override

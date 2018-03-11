@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Optional;
+import java.util.Set;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
@@ -38,7 +39,8 @@ public class KsqlTable extends StructuredDataSource {
       final Field timestampField,
       final KsqlTopic ksqlTopic,
       final String stateStoreName,
-      boolean isWindowed
+      boolean isWindowed,
+      final Set<String> quotedFieldNames
   ) {
     super(
         sqlExpression,
@@ -47,7 +49,8 @@ public class KsqlTable extends StructuredDataSource {
         keyField,
         timestampField,
         DataSourceType.KTABLE,
-        ksqlTopic
+        ksqlTopic,
+        quotedFieldNames
     );
     this.stateStoreName = stateStoreName;
     this.isWindowed = isWindowed;
@@ -72,7 +75,8 @@ public class KsqlTable extends StructuredDataSource {
         timestampField,
         ksqlTopic,
         stateStoreName,
-        isWindowed
+        isWindowed,
+        quotedFieldNames
     );
   }
 
@@ -92,7 +96,8 @@ public class KsqlTable extends StructuredDataSource {
         newTimestampField.get(),
         ksqlTopic,
         stateStoreName,
-        isWindowed
+        isWindowed,
+        quotedFieldNames
     );
   }
 

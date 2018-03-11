@@ -29,6 +29,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,6 +135,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -385,7 +387,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     List<SelectItem> selectItems = new ArrayList<>();
     for (SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        selectItems.addAll(getSelectStartItems(selectItem, from));
+        selectItems.addAll(getSelectStarItems(selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
         selectItems.add((SingleColumn) selectItem);
@@ -397,7 +399,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStartItems(final SelectItem selectItem, final Relation from) {
+  private List<SelectItem> getSelectStarItems(final SelectItem selectItem, final Relation from) {
     List<SelectItem> selectItems = new ArrayList<>();
     AllColumns allColumns = (AllColumns) selectItem;
 
@@ -557,9 +559,18 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   @Override
   public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
     Expression selectItemExpression = (Expression) visit(context.expression());
-    Optional<String> alias = Optional
+    Optional<Pair<String, Boolean>> aliasPair = Optional
         .ofNullable(context.identifier())
-        .map(AstBuilder::getIdentifierText);
+        .map(AstBuilder::getIdentifierTextWithQuoteState);
+    Optional<String> alias = Optional.empty();
+    if (aliasPair.isPresent()) {
+      if (aliasPair.get().getRight()) {
+        throw new KsqlException("KSQL does not support quoted alias: " + aliasPair.get().getLeft());
+      } else {
+        alias = Optional.of(aliasPair.get().getLeft());
+      }
+    }
+
     if (!alias.isPresent()) {
       if (selectItemExpression instanceof QualifiedNameReference) {
         QualifiedNameReference
@@ -1231,10 +1242,12 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitTableElement(SqlBaseParser.TableElementContext context) {
+    Pair<String, Boolean> elementName = getIdentifierTextWithQuoteState(context.identifier());
     return new TableElement(
         getLocation(context),
-        getIdentifierText(context.identifier()),
-        getType(context.type())
+        elementName.getLeft(),
+        getType(context.type()),
+        elementName.getRight()
     );
   }
 
@@ -1360,11 +1373,22 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   public static String getIdentifierText(SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
-      return unquote(context.getText(), "\"");
+      return unquote(context.getText(), "\"").toUpperCase();
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
-      return unquote(context.getText(), "`");
+      return unquote(context.getText(), "`").toUpperCase();
     } else {
       return context.getText().toUpperCase();
+    }
+  }
+
+  public static Pair<String, Boolean> getIdentifierTextWithQuoteState(
+      SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+      return new Pair<>(unquote(context.getText(), "\"").toUpperCase(), true);
+    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
+      return new Pair<>(unquote(context.getText(), "`").toUpperCase(), true);
+    } else {
+      return new Pair<>(context.getText().toUpperCase(), false);
     }
   }
 
@@ -1582,7 +1606,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
             dataSource.schema(),
             dataSource.fields().get(0),
             null,
-            ksqlTopic
+            ksqlTopic,
+            Collections.emptySet()
         );
     return resultStream;
   }

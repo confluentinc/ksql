@@ -19,6 +19,7 @@ package io.confluent.ksql.parser.tree;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public abstract class AbstractStreamCreateStatement extends Statement {
   public AbstractStreamCreateStatement(Optional<NodeLocation> location) {
@@ -28,6 +29,8 @@ public abstract class AbstractStreamCreateStatement extends Statement {
   public abstract Map<String,Expression> getProperties();
 
   public abstract QualifiedName getName();
+
+  public abstract Set<String> getQuotedNames();
 
   public abstract List<TableElement> getElements();
 

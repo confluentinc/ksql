@@ -55,7 +55,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
       final FunctionRegistry functionRegistry,
       final Optional<Integer> limit,
       final OutputNode outputNode,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<String> quotedFieldNames
   ) {
     super(
         schema,
@@ -64,7 +65,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
         sourceSchemaKStreams,
         type,
         functionRegistry,
-        schemaRegistryClient
+        schemaRegistryClient,
+        quotedFieldNames
     );
     setOutputNode(outputNode);
     kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, limit));
@@ -83,7 +85,8 @@ public class QueuedSchemaKStream extends SchemaKStream {
         schemaKStream.functionRegistry,
         limit,
         schemaKStream.outputNode(),
-        schemaKStream.schemaRegistryClient
+        schemaKStream.schemaRegistryClient,
+        schemaKStream.getQuotedFieldNames()
     );
   }
 

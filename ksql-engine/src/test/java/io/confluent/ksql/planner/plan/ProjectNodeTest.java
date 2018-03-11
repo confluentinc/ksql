@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -41,6 +42,7 @@ import io.confluent.ksql.util.Pair;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
 
 public class ProjectNodeTest {
 
@@ -52,6 +54,11 @@ public class ProjectNodeTest {
   private final MetastoreUtil metastoreUtil = new MetastoreUtil();
   private final FunctionRegistry functionRegistry = new FunctionRegistry();
   private final HashMap<String, Object> props = new HashMap<>();
+
+  @Before
+  public void init() {
+    expect(source.getQuotedFieldNames()).andReturn(Collections.emptySet());
+  }
 
   @Test(expected = KsqlException.class)
   public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {

@@ -306,7 +306,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       tempMetaStoreForParser.putSource(
           queryEngine.getResultDatasource(
               querySpecification.getSelect(),
-              createStreamAsSelect.getName().getSuffix()
+              createStreamAsSelect.getName().getSuffix(),
+              Collections.emptySet()
           ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof CreateTableAsSelect) {
@@ -324,7 +325,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
       tempMetaStoreForParser.putSource(queryEngine.getResultDatasource(
           querySpecification.getSelect(),
-          createTableAsSelect.getName().getSuffix()
+          createTableAsSelect.getName().getSuffix(),
+          Collections.emptySet()
       ).cloneWithTimeKeyColumns());
       return new Pair<>(statementString, query);
     } else if (statement instanceof RegisterTopic) {

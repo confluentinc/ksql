@@ -574,6 +574,9 @@ public class Cli implements Closeable, AutoCloseable {
         ));
       }
       type = configKey.type;
+    } else if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)) {
+      restClient.setProperty(property, value);
+      return;
     } else if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       restClient.setProperty(property, value);
       return;

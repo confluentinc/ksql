@@ -181,7 +181,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
 
-    final Object fail = values().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
+    final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
       ksqlStreamConfigProps.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,

@@ -56,15 +56,13 @@ public class Options {
       description = "The address of the Ksql server to connect to (ex: http://confluent.io:9098)")
   private String server;
 
-  private static final String PROPERTIES_FILE_OPTION_NAME = "--properties-file";
+  private static final String CONFIGURATION_FILE_OPTION_NAME = "--config-file";
 
   @Option(
-      name = PROPERTIES_FILE_OPTION_NAME,
-      description = "A file specifying properties for Ksql and its underlying Kafka Streams "
-          + "instance(s) (can specify port number, bootstrap server, etc. "
-          + "but these options will "
-          + "be overridden if also given via  flags)")
-  private String propertiesFile;
+      name = CONFIGURATION_FILE_OPTION_NAME,
+      description = "A file specifying configs for Ksql and its underlying Kafka Streams "
+          + "instance(s). Refer to KSQL documentation for a list of available configs.")
+  private String configFile;
 
 
   @Option(
@@ -121,8 +119,8 @@ public class Options {
     return server;
   }
 
-  public Optional<String> getPropertiesFile() {
-    return Optional.ofNullable(propertiesFile);
+  public Optional<String> getConfigFile() {
+    return Optional.ofNullable(configFile);
   }
 
   public Long getStreamedQueryRowLimit() {

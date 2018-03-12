@@ -62,6 +62,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.StringUtil;
 
 public abstract class Console implements Closeable {
 
@@ -391,9 +392,9 @@ public abstract class Console implements Closeable {
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
-              topicInfo.getRegistered(),
-              Integer.toString(topicInfo.getPartitionCount()),
-              topicInfo.getReplicaInfo(),
+              Boolean.toString(topicInfo.getRegistered()),
+              Integer.toString(topicInfo.getReplicaInfo().size()),
+              getTopicReplicaInfo(topicInfo.getReplicaInfo()),
               Integer.toString(topicInfo.getConsumerCount()),
               Integer.toString(topicInfo.getConsumerGroupCount())
           )).collect(Collectors.toList());
@@ -410,6 +411,21 @@ public abstract class Console implements Closeable {
       ));
     }
     printTable(columnHeaders, rowValues, header, footer);
+  }
+
+  /**
+   * Pretty print replica info.
+   * @param replicaSizes list of replicas per partition
+   * @return single value if all values are equal, else a csv representation
+   */
+  private static String getTopicReplicaInfo(List<Integer> replicaSizes) {
+    if (replicaSizes.isEmpty()) {
+      return "0";
+    } else if (replicaSizes.stream().distinct().limit(2).count() <= 1) {
+      return String.valueOf(replicaSizes.get(0));
+    } else {
+      return StringUtil.join(", ", replicaSizes);
+    }
   }
 
   private String formatFieldType(SourceDescription.FieldSchemaInfo field, String keyField) {

@@ -15,7 +15,7 @@
       "CREATE TABLE S2 as SELECT id, max(value) FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-2147483647", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 0},
         {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0},
         {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 0},
@@ -24,7 +24,7 @@
         {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0},
         {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 0},
         {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0},
         {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0},

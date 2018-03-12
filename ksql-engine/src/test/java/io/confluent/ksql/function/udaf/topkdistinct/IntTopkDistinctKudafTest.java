@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ public class IntTopkDistinctKudafTest {
 
   private Integer[] valueArray;
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-      new TopkDistinctKudaf<>(0, 3, Integer.class);
+      new TopkDistinctKudaf<>(0, 3, Schema.INT32_SCHEMA, Integer.class);
 
   @Before
   public void setup() {
@@ -112,7 +113,7 @@ public class IntTopkDistinctKudafTest {
   public void shouldBeThreadSafe() {
     // Given:
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        new TopkDistinctKudaf<>(0, 12, Integer.class);
+        new TopkDistinctKudaf<>(0, 12, Schema.INT32_SCHEMA, Integer.class);
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 

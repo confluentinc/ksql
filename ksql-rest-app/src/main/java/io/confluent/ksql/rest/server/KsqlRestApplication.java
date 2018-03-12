@@ -140,7 +140,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       log.warn("System property {} is not set. User interface will be disabled",
           KsqlRestConfig.INSTALL_DIR_CONFIG);
       this.uiFolder = null;
-    } else if (isUiEnabled){
+    } else if (isUiEnabled) {
       this.uiFolder = ksqlInstallDir + "/ui";
     } else {
       this.uiFolder = null;

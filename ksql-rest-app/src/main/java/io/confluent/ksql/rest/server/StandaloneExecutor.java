@@ -85,7 +85,7 @@ public class StandaloneExecutor implements Executable {
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if(!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       streamsProperties.put(
           StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }

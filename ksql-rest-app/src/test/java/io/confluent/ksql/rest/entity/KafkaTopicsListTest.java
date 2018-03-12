@@ -62,7 +62,7 @@ public class KafkaTopicsListTest {
     KafkaTopicInfo first = topicsList.getTopics().iterator().next();
     assertThat(first.getConsumerGroupCount(), equalTo(1));
     assertThat(first.getConsumerCount(), equalTo(1));
-    assertThat(first.getPartitionCount(), equalTo(1));
+    assertThat(first.getReplicaInfo().size(), equalTo(1));
 
   }
 }

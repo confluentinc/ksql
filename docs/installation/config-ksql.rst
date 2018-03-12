@@ -140,11 +140,7 @@ ksql.schema.registry.url
 
 ksql.queries.file
     A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
-    Here is an example
-=======
-    # Start KSQL in standalone mode with the custom properties above
-    $ ksql http://your-ksql-server:8080 --properties-file /ksql.properties
->>>>>>> 4.1.x
+    For an example, see :ref:`<install_ksql-standalone>`.
 
 :cp-javadoc:`listeners |streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`
    The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).

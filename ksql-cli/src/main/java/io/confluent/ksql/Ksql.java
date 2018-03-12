@@ -54,8 +54,9 @@ public class Ksql {
     try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
         options.getStreamedQueryTimeoutMs(),
         restClient,
-        new JLineTerminal(options.getOutputFormat(), restClient))) {
-        cli.runInteractively();
+        new JLineTerminal(options.getOutputFormat(), restClient))
+    ) {
+      cli.runInteractively();
     }
   }
 

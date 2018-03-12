@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,13 +35,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.StringUtil;
 
 @JsonTypeName("kafka_topics")
 @JsonSubTypes({})
@@ -102,9 +101,9 @@ public class KafkaTopicsList extends KsqlEntity {
     for (TopicDescription desp : kafkaTopicDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
-          String.valueOf(registeredNames.contains(desp.name())),
-          desp.partitions().size(),
-          getTopicReplicaInfo(desp.partitions()),
+          registeredNames.contains(desp.name()),
+          desp.partitions()
+              .stream().map(partition -> partition.replicas().size()).collect(Collectors.toList()),
           topicConsumersAndGroupCount.getOrDefault(desp.name(), Arrays.asList(0, 0)).get(0),
           topicConsumersAndGroupCount.getOrDefault(desp.name(), Arrays.asList(0, 0)).get(1)
       ));
@@ -156,28 +155,6 @@ public class KafkaTopicsList extends KsqlEntity {
       registeredNames.add(ksqlTopic.getKafkaTopicName());
     }
     return registeredNames;
-  }
-
-  private static String getTopicReplicaInfo(List<TopicPartitionInfo> partitions) {
-    List<Integer> replicaSizes = new ArrayList<>(partitions.size());
-
-    for (TopicPartitionInfo partition : partitions) {
-      replicaSizes.add(partition.replicas().size());
-    }
-
-    boolean sameReplicaCount = true;
-    for (int i = 1; i < partitions.size(); i++) {
-      if (!replicaSizes.get(i).equals(replicaSizes.get(i - 1))) {
-        sameReplicaCount = false;
-        break;
-      }
-    }
-
-    if (sameReplicaCount) {
-      return partitions.size() == 0 ? "0" : String.valueOf(replicaSizes.get(0));
-    } else {
-      return StringUtil.join(", ", replicaSizes);
-    }
   }
 
   private static Map<String, TopicDescription> filterKsqlInternalTopics(

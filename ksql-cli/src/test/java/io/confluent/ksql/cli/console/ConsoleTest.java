@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.cli.console;
 
+import com.google.common.collect.ImmutableList;
+
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
@@ -111,7 +113,7 @@ public class ConsoleTest {
           new StreamsList("e", Arrays.asList(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", Arrays.asList(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
           new KsqlTopicsList("e", Arrays.asList(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
-          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", 1, "1",1, 1))),
+          new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
       terminal.printKsqlEntityList(entityList);

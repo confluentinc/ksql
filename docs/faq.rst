@@ -130,3 +130,28 @@ How do I shutdown a KSQL environment?
    .. code:: bash
 
        $ confluent destroy
+
+========================================================
+Can KQL connect to a Apache Kafka cluster over SASL_SSL?
+========================================================
+
+Yes! Internally, KSQL uses standard Kafka Consumers and Producers, which you
+can configure to connect to a secure Kafka cluster as you would for any app.
+
+For example, adding the following entries, to the property file you use to start
+KSQL, will enable KSQL to connect to a cluster secured using _PLAIN_ SASL,
+(as opposed to, say, GSSAPI / Kerberos), where the SSL certificates have been
+signed by a CA trusted by the default JVM trust store:
+
+.. code:: bash
+    security.protocol=SASL_SSL
+    sasl.mechanism=PLAIN
+    sasl.jaas.config=\
+        org.apache.kafka.common.security.plain.PlainLoginModule required `
+        username="<name of the user KSQL should use>" `
+        password="<the password>";
+
+The exact settings you will need will vary depending on what SASL mechanism your
+Kafka cluster is using and how your SSL certificates are signed. For full details,
+please refer to the `Security section of the Kafka documentation
+<http://kafka.apache.org/documentation.html#security>`__.

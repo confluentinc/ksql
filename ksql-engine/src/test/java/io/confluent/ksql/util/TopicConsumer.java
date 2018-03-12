@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -29,6 +26,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 
 public class TopicConsumer {
 
@@ -50,7 +51,7 @@ public class TopicConsumer {
     Map<K, GenericRow> result = new HashMap<>();
 
     Properties consumerConfig = new Properties();
-    consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, cluster.bootstrapServers());
+    consumerConfig.putAll(cluster.getClientProperties());
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "filter-integration-test-standard-consumer");
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 

@@ -16,11 +16,23 @@
 package io.confluent.ksql.util;
 
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import kafka.admin.AdminClient;
 import kafka.admin.ConsumerGroupCommand;
@@ -34,6 +46,7 @@ import kafka.admin.ConsumerGroupCommand;
  */
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
+  private static final Logger log = LoggerFactory.getLogger(KafkaConsumerGroupClientImpl.class);
   private static final int ADMIN_CLIENT_TIMEOUT_MS = 1000;
   private final AdminClient adminClient;
   private final KsqlConfig ksqlConfig;
@@ -49,10 +62,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
   @Override
   public List<String> listGroups() {
-    Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
-    String[] args = {
-        "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers")
-    };
+
+    String[] args = consumerGroupCommandOptions();
 
     ConsumerGroupCommand.ConsumerGroupCommandOptions opts =
         new ConsumerGroupCommand.ConsumerGroupCommandOptions(args);
@@ -65,6 +76,44 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       results.add(consumerGroupsIterator.next());
     }
     return results;
+  }
+
+  private String[] consumerGroupCommandOptions() {
+    // The ConsumerGroupCommand we use instantiates its own admin client. However, the configs
+    // for the underlying admin client can be passed only through a properties file. So we dump
+    // the admin client configs to a temporary file and then use that file to configure the
+    // underlying admin client correctly.
+    Map<String, Object> clientConfigProps = ksqlConfig.getKsqlAdminClientConfigProps();
+    try {
+      File tmpConfigFile = flushPropertiesToTempFile(clientConfigProps);
+      String[] args = {
+          "--bootstrap-server", (String) clientConfigProps.get("bootstrap.servers"),
+          "--command-config", tmpConfigFile.getAbsolutePath()
+      };
+      return args;
+    } catch (IOException e) {
+      log.error("Could not configure the list groups command.", e);
+      throw new KsqlException("Could not list groups", e);
+    }
+  }
+
+  private File flushPropertiesToTempFile(Map<String, Object> configProps) throws IOException {
+    FileAttribute<Set<PosixFilePermission>> attributes
+        = PosixFilePermissions.asFileAttribute(new HashSet<>(
+            Arrays.asList(PosixFilePermission.OWNER_WRITE,
+                          PosixFilePermission.OWNER_READ)));
+    File configFile = Files.createTempFile("ksqlclient", "properties", attributes).toFile();
+    configFile.deleteOnExit();
+
+    try(FileOutputStream outputStream = new FileOutputStream(configFile)) {
+      Properties clientProps = new Properties();
+      for (Map.Entry<String, Object> property
+          : configProps.entrySet()) {
+        clientProps.put(property.getKey(), property.getValue());
+      }
+      clientProps.store(outputStream, "Configuration properties of KSQL AdminClient");
+    }
+    return configFile;
   }
 
   @Override

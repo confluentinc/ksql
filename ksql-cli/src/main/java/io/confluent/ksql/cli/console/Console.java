@@ -445,11 +445,11 @@ public abstract class Console implements Closeable {
         ));
         header.add(String.format("%-20s : %s", "Key format", "STRING"));
         header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
-        if (source.getKafkaTopic().length() > 0) {
+        if (source.getTopic().length() > 0) {
           header.add(String.format(
               "%-20s : %s (partitions: %d, replication: %d)",
               "Kafka output topic",
-              source.getKafkaTopic(),
+              source.getTopic(),
               source.getPartitions(),
               source.getReplication()
           ));
@@ -479,7 +479,7 @@ public abstract class Console implements Closeable {
       footer.add(String.format(
           "(%s)",
           "Statistics of the local KSQL server interaction with the Kafka topic "
-          + source.getKafkaTopic()
+          + source.getTopic()
       ));
 
       if (source.getExecutionPlan().length() > 0) {

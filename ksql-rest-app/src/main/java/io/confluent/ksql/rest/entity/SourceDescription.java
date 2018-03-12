@@ -53,7 +53,7 @@ public class SourceDescription extends KsqlEntity {
   private final String errorStats;
   private final boolean extended;
   private final String serdes;
-  private final String kafkaTopic;
+  private final String topic;
   private final String topology;
   private final String executionPlan;
   private final int partitions;
@@ -73,7 +73,7 @@ public class SourceDescription extends KsqlEntity {
       @JsonProperty("errorStats") String errorStats,
       @JsonProperty("extended") boolean extended,
       @JsonProperty("serdes") String serdes,
-      @JsonProperty("kafkaTopic") String kafkaTopic,
+      @JsonProperty("topic") String topic,
       @JsonProperty("topology") String topology,
       @JsonProperty("executionPlan") String executionPlan,
       @JsonProperty("parititions") int partitions,
@@ -91,7 +91,7 @@ public class SourceDescription extends KsqlEntity {
     this.errorStats = errorStats;
     this.extended = extended;
     this.serdes = serdes;
-    this.kafkaTopic = kafkaTopic;
+    this.topic = topic;
     this.topology = topology;
     this.executionPlan = executionPlan;
     this.partitions = partitions;
@@ -218,8 +218,8 @@ public class SourceDescription extends KsqlEntity {
     return serdes;
   }
 
-  public String getKafkaTopic() {
-    return kafkaTopic;
+  public String getTopic() {
+    return topic;
   }
 
   public String getKey() {

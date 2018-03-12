@@ -38,7 +38,8 @@ interface provides a simple visual wrapper for the interactive KSQL CLI. The exp
 for local development and testing. The KSQL CLI is recommended for production environments.
 
 * By default, the KSQL Experimental UI runs on every KSQL Server and is accessible at ``http://ksqlserver:8080``
-* To disable the experimental UI you must add ``ui.enabled=false`` to the server's configuration file ``ksqlserver.properties``.
+* To disable the experimental UI you must add ``ui.enabled=false`` to the server's configuration
+file ``ksql-server.properties``.
 * The UI shares the port with KSQL's REST API, which you can configure via the ``listeners`` configuration property.
 
 ===========

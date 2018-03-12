@@ -15,7 +15,7 @@ After building the project you can run the examples by following these steps:
         
 4. Start the KSQL server using the following command:
         
-        $ ./bin/ksql-server-start config/ksqlserver.properties        
+        $ ./bin/ksql-server-start config/ksql-server.properties
 
 4. Start the KSQL CLI using the following command:
 

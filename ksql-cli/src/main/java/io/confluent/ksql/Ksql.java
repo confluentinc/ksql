@@ -46,11 +46,12 @@ public class Ksql {
         new KsqlRestClient(options.getServer(), properties);
 
     options.getUserNameAndPassword().ifPresent(
-        creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right));
+        creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
+    );
 
     final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
     versionChecker.start(KsqlModuleType.REMOTE_CLI, properties);
-    try(final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+    try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
         options.getStreamedQueryTimeoutMs(),
         restClient,
         new JLineTerminal(options.getOutputFormat(), restClient))) {

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Map;
@@ -20,7 +21,6 @@ import java.util.Map;
 import io.confluent.ksql.parser.tree.DDLStatement;
 
 public interface DDLCommandFactory {
-
   DDLCommand create(
       String sqlExpression,
       final DDLStatement ddlStatement,

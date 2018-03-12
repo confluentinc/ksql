@@ -28,7 +28,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.SourceInfo.Table;
 
-@JsonTypeInfo(use=JsonTypeInfo.Id.NAME, include=JsonTypeInfo.As.PROPERTY, property="type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(value = {
     @JsonSubTypes.Type(name = "STREAM", value = Stream.class),
     @JsonSubTypes.Type(name = "TABLE", value = Table.class),

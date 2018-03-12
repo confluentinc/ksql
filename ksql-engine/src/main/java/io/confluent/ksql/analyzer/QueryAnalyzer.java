@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -25,7 +26,6 @@ import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
 
 public class QueryAnalyzer {
-
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
 
@@ -102,8 +102,7 @@ public class QueryAnalyzer {
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
     for (Expression expression : analysis.getSelectExpressions()) {
-      aggregateAnalyzer
-          .process(expression, new AnalysisContext());
+      aggregateAnalyzer.process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
       }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.ddl.commands;
 
 import java.util.Map;
@@ -30,8 +31,12 @@ public class SetPropertyCommand implements DDLCommand {
 
   @Override
   public DDLCommandResult run(MetaStore metaStore) {
-    return new DDLCommandResult(true, "property:"
+    return new DDLCommandResult(
+        true,
+        "property:"
         + statement.getPropertyName()
-        + " set to " + statement.getPropertyValue());
+        + " set to "
+        + statement.getPropertyValue()
+    );
   }
 }

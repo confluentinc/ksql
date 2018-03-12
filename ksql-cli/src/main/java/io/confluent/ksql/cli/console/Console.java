@@ -56,6 +56,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SchemaMapper;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -265,6 +266,17 @@ public abstract class Console implements Closeable {
     return longest.length();
   }
 
+  private void printAsTable(GenericRow row) {
+    addResult(row);
+    writer().println(
+        String.join(
+            " | ",
+            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        )
+    );
+    flush();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
     List<String> header = new ArrayList<>();
     List<String> footer = new ArrayList<>();
@@ -339,7 +351,7 @@ public abstract class Console implements Closeable {
       }
       rowValues = Arrays.asList(topicInfo);
     } else if (ksqlEntity instanceof StreamsList) {
-      List<StreamsList.StreamInfo> streamInfos = ((StreamsList) ksqlEntity).getStreams();
+      List<SourceInfo.Stream> streamInfos = ((StreamsList) ksqlEntity).getStreams();
       columnHeaders = Arrays.asList("Stream Name", "Kafka Topic", "Format");
       rowValues = streamInfos.stream()
           .map(streamInfo -> Arrays.asList(streamInfo.getName(), streamInfo.getTopic(),
@@ -347,7 +359,7 @@ public abstract class Console implements Closeable {
           ))
           .collect(Collectors.toList());
     } else if (ksqlEntity instanceof TablesList) {
-      List<TablesList.TableInfo> tableInfos = ((TablesList) ksqlEntity).getTables();
+      List<SourceInfo.Table> tableInfos = ((TablesList) ksqlEntity).getTables();
       columnHeaders = Arrays.asList("Table Name", "Kafka Topic", "Format", "Windowed");
       rowValues = tableInfos.stream()
           .map(tableInfo -> Arrays.asList(
@@ -489,17 +501,6 @@ public abstract class Console implements Closeable {
     } else {
       footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
     }
-  }
-
-  private void printAsTable(GenericRow row) {
-    addResult(row);
-    writer().println(
-        String.join(
-            " | ",
-            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
-        )
-    );
-    flush();
   }
 
   private void printAsJson(Object o) throws IOException {

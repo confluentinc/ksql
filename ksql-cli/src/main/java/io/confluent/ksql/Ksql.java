@@ -35,7 +35,8 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 public class Ksql {
 
   public static void main(String[] args) throws IOException {
-    final Options options = Options.parse(args);
+    final Options options = args.length == 0 ? Options.parse("http://localhost:8080")
+                                             : Options.parse(args);
     if (options == null) {
       System.exit(-1);
     }
@@ -45,11 +46,12 @@ public class Ksql {
         new KsqlRestClient(options.getServer(), properties);
 
     options.getUserNameAndPassword().ifPresent(
-        creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right));
+        creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
+    );
 
     final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
     versionChecker.start(KsqlModuleType.REMOTE_CLI, properties);
-    try(final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
+    try (final Cli cli = new Cli(options.getStreamedQueryRowLimit(),
         options.getStreamedQueryTimeoutMs(),
         restClient,
         new JLineTerminal(options.getOutputFormat(), restClient))) {

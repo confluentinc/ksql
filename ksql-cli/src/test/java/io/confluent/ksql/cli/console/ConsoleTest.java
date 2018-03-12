@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -107,8 +108,8 @@ public class ConsoleTest {
           new Queries("e", queries),
           new SourceDescription("e", "TestSource", Collections.EMPTY_LIST, Collections.EMPTY_LIST, buildTestSchema(i), DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats", "errors", false, "avro", "kadka-topic", "topology", "executionPlan", 1, 1),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
-          new StreamsList("e", Arrays.asList(new StreamsList.StreamInfo("TestStream", "TestTopic", "AVRO"))),
-          new TablesList("e", Arrays.asList(new TablesList.TableInfo("TestTable", "TestTopic", "JSON", false))),
+          new StreamsList("e", Arrays.asList(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
+          new TablesList("e", Arrays.asList(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
           new KsqlTopicsList("e", Arrays.asList(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
           new KafkaTopicsList("e", Arrays.asList(new KafkaTopicInfo("TestKafkaTopic", "true", 1, "1",1, 1))),
           new ExecutionPlan("Test Execution Plan")

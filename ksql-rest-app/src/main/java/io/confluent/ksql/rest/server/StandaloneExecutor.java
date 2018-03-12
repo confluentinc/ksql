@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server;
 
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -57,7 +56,6 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = queriesFile;
   }
 
-
   public void start() throws Exception {
     try {
       executeStatements(readQueriesFile(queriesFile));
@@ -84,7 +82,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
-    if(!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+    if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
       properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
 
@@ -99,7 +97,6 @@ public class StandaloneExecutor implements Executable {
         queriesFile);
   }
 
-
   private void showWelcomeMessage() {
     final Console console = System.console();
     if (console == null) {
@@ -108,9 +105,11 @@ public class StandaloneExecutor implements Executable {
     try (PrintWriter writer =
              new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
       WelcomeMsgUtils.displayWelcomeMessage(80, writer);
-      writer.printf("Server %s started with query file %s. Interactive mode is disabled.\n",
+      writer.printf(
+          "Server %s started with query file %s. Interactive mode is disabled.\n",
           Version.getVersion(),
-          queriesFile);
+          queriesFile
+      );
     }
   }
 
@@ -131,8 +130,6 @@ public class StandaloneExecutor implements Executable {
       }
     }
   }
-
-
 
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();

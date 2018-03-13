@@ -16,13 +16,6 @@
 
 package io.confluent.ksql.integration;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.*;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -30,9 +23,13 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +37,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.TopicConsumer;
+import io.confluent.ksql.util.TopicProducer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -259,7 +270,7 @@ public class JsonFormatTest {
       Schema resultSchema,
       int expectedNumMessages
   ) {
-    Deserializer<Windowed<String>> keyDeserializer = new WindowedDeserializer<>(new StringDeserializer());
+    Deserializer<Windowed<String>> keyDeserializer = new TimeWindowedDeserializer<>(new StringDeserializer());
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, keyDeserializer);
   }
 

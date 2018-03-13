@@ -29,7 +29,7 @@ import io.confluent.ksql.parser.tree.Expression;
 public class DoubleMaxKudaf extends KsqlAggregateFunction<Double, Double> {
 
   DoubleMaxKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> -Double.MAX_VALUE, Schema.FLOAT64_SCHEMA,
+    super(argIndexInValue, () -> Double.NEGATIVE_INFINITY, Schema.FLOAT64_SCHEMA,
           Collections.singletonList(Schema.FLOAT64_SCHEMA)
     );
   }

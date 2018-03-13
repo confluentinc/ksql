@@ -40,7 +40,7 @@ import io.confluent.common.utils.Time;
 public class MetricCollectors {
 
 
-  private static final Map<String, MetricCollector> collectorMap = new ConcurrentHashMap<>();
+  private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
 
   static {
@@ -61,7 +61,13 @@ public class MetricCollectors {
         );
     List<MetricsReporter> reporters = new ArrayList<>();
     reporters.add(new JmxReporter("io.confluent.ksql.metrics"));
+    // Replace all static contents other than Time to ensure they are cleaned for tests that are
+    // not aware of the need to initialize/cleanup this test, in case test processes are reused.
+    // Tests aware of the class clean everything up properly to get the state into a clean state,
+    // a full, fresh instantiation here ensures something like KsqlEngineMetricsTest running after
+    // another test that used MetricsCollector without running cleanUp will behave correctly.
     metrics = new Metrics(metricConfig, reporters, new SystemTime());
+    collectorMap = new ConcurrentHashMap<>();
   }
 
   // visible for testing.

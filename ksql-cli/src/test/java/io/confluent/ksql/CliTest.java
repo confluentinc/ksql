@@ -16,6 +16,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -37,6 +38,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.*;
 
@@ -50,6 +52,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@Category({IntegrationTest.class})
 public class CliTest extends TestRunner {
 
   @ClassRule

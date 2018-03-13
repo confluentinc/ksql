@@ -290,8 +290,7 @@ public class Cli implements Closeable, AutoCloseable {
       throws IOException, InterruptedException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext :
-        new KsqlParser().getStatements(line)
-        ) {
+        new KsqlParser().getStatements(line)) {
       String statementText = KsqlEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
@@ -403,8 +402,8 @@ public class Cli implements Closeable, AutoCloseable {
         } else if (entity instanceof CommandStatusEntity
             && (
             ((CommandStatusEntity) entity).getCommandStatus().getStatus()
-                == CommandStatus.Status.ERROR
-        )) {
+                == CommandStatus.Status.ERROR)
+        ) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;

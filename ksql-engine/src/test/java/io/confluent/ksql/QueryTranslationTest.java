@@ -26,9 +26,9 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
@@ -133,7 +133,7 @@ public class QueryTranslationTest {
       if (window == null) {
         return Serdes.String().deserializer();
       }
-      return new WindowedDeserializer<>(Serdes.String().deserializer(), window.size());
+      return new TimeWindowedDeserializer(Serdes.String().deserializer(), window.size());
     }
 
     @SuppressWarnings("unchecked")

@@ -131,7 +131,8 @@ Prerequisites
 
        .. code:: bash
 
-           $ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+           $ ksql-server-start /etc/ksql/ksql-server.properties > /tmp/ksql-logs/ksql-server.log
+           2>&1 &
 
 
                       ===========================================

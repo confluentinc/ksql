@@ -379,8 +379,14 @@
         {
           "topic": "test_topic",
           "key": 0,
-          "value": "0,100,0.0",
+          "value": "0,100,-Infinity",
           "timestamp": 0
+        },
+        {
+            "topic": "test_topic",
+            "key": 0,
+            "value": "0,100,0.0",
+            "timestamp": 0
         },
         {
           "topic": "test_topic",
@@ -420,6 +426,12 @@
         }
       ],
       "outputs": [
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,-Infinity",
+          "timestamp": 0
+        },
         {
           "topic": "S2",
           "key": 0,

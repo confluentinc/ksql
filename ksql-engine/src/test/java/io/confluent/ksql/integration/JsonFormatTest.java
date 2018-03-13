@@ -27,13 +27,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+<<<<<<< HEAD
 import org.apache.kafka.test.TestUtils;
+=======
+import org.junit.experimental.categories.Category;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+>>>>>>> e1821cf... Fix integration test annotations and remove maven-surefire-plugin overrides (#924)
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -53,6 +60,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
+@Category({IntegrationTest.class})
 public class JsonFormatTest {
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";

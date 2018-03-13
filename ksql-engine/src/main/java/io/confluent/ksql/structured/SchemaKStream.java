@@ -240,7 +240,7 @@ public class SchemaKStream {
     }
 
 
-    KStream keyedKStream = kstream.selectKey((key, value) -> {
+    KStream keyedKStream = kstream.filter((key, value) -> value != null).selectKey((key, value) -> {
       String newKey =
           value
               .getColumns()

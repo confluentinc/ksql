@@ -24,9 +24,9 @@ import java.util.Optional;
 import java.util.Properties;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
-public class ServerMain {
+public class KsqlServerMain {
 
-  private static final Logger log = LoggerFactory.getLogger(ServerMain.class);
+  private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
   private static final String KSQL_REST_SERVER_DEFAULT_APP_ID = "KSQL_REST_SERVER_DEFAULT_APP_ID";
 
   public static void main(final String[] args) throws Exception {

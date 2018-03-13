@@ -31,6 +31,7 @@
     <name>KSQL Clickstream Analysis Demo</name>
 
     <properties>
+        <main-class>io.confluent.ksql.DemoTest</main-class>
         <docker.skip-build>false</docker.skip-build>
     </properties>
 

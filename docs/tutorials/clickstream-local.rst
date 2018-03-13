@@ -122,7 +122,7 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksqlserver.properties\
+        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties\
           > /tmp/ksql-logs/ksql-server.log 2>&1 &
 
     You should see the KSQL CLI welcome screen.

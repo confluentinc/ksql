@@ -25,7 +25,7 @@ To run KSQL in client-server mode:
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-server-start ksqlserver.properties
+        $ <path-to-confluent>/bin/ksql-server-start ksql-server.properties
 
 #.  Start any number of CLIs, specifying the desired KSQL server address as the ``remote`` endpoint:
 

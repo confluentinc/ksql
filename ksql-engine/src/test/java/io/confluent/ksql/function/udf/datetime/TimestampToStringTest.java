@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.stream.IntStream;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -42,7 +43,9 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
-    assertThat(result, is("2021-12-01 12:10:11.123"));
+    String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+        .format(new Date(1638360611123L));
+    assertThat(result, is(expectedResult));
   }
 
   @Test
@@ -51,7 +54,9 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    assertThat(result, is("2021-12-01T12:10:11.123Fred"));
+    String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
+        .format(new Date(1638360611123L));
+    assertThat(result, is(expectedResult));
   }
 
   @Test(expected = KsqlFunctionException.class)

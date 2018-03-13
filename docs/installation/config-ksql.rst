@@ -129,7 +129,7 @@ Here are some common configuration properties that you might want to change from
 
 ksql.command.topic.suffix
     The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands`` command topic.
-    To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``'production_commands'``, in the ``ksqlserver.properties`` file, the command topic will be named ``ksql__production_commands``.
+    To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``'production_commands'``, in the ``ksql-server.properties`` file, the command topic will be named ``ksql__production_commands``.
 
     .. code:: java
 

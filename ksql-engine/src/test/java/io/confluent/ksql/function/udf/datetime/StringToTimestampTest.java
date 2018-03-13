@@ -93,8 +93,7 @@ public class StringToTimestampTest {
           try {
             shouldCovertStringToTimestamp();
           } catch (ParseException e) {
-            e.printStackTrace();
-            Assert.fail();
+            Assert.fail(e.getMessage());
           }
           udf.evaluate("1988-01-12 10:12:13.456", "yyyy-MM-dd HH:mm:ss.SSS");
         });

@@ -316,7 +316,7 @@ public class SchemaKStream {
           SchemaUtil.getIndexInSchema(groupByExpr.toString(), getSchema()));
     }
 
-    KGroupedStream kgroupedStream = kstream.groupBy(
+    KGroupedStream kgroupedStream = kstream.filter((key, value) -> value != null).groupBy(
         (key, value) -> {
           StringBuilder newKey = new StringBuilder();
           boolean addSeparator1 = false;

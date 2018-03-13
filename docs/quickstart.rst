@@ -9,8 +9,8 @@ Quick Start
     workflow with topic management, monitoring, and using KSQL to write streaming queries against data in Kafka.
 
 KSQL Tutorials
-    - :ref:`Using KSQL to write streaming queries against data in Kafka <ksql_quickstart>`. This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
-    - :ref:`Using KSQL to Collect, Analyze, and Report Aggregate Data <ksql_clickstream>`. Learn how to use KSQL, ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
+    - :ref:`Using KSQL to write streaming queries against data in Kafka <ksql_quickstart-local>`. This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
+    - :ref:`Using KSQL to Collect, Analyze, and Report Aggregate Data <ksql_clickstream-local>`. Learn how to use KSQL, ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
 
 
 

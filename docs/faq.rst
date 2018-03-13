@@ -97,7 +97,7 @@ How do I shutdown a KSQL environment?
 =====================================
 
 -  To stop DataGen tasks that were started with the ``-daemon`` flag
-   (cf. :ref:`ksql_clickstream`).
+   (cf. :ref:`ksql_clickstream-local`).
 
    .. code:: bash
 

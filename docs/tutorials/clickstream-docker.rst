@@ -1,9 +1,9 @@
-.. _ksql-docker-clickstream:
+.. _ksql_clickstream-docker:
 
-Clickstream Analysis using Docker
-=================================
+Clickstream Data Analysis Pipeline Using KSQL (Docker)
+======================================================
 
-These steps will guide you through how to setup your environment and run the clickstream analysis demo from a Docker container. 
+These steps will guide you through how to setup your environment and run the clickstream analysis tutorial from a Docker container.
 
 **Prerequisites**
 
@@ -14,9 +14,9 @@ These steps will guide you through how to setup your environment and run the cli
 
 -  `Git <https://git-scm.com/downloads>`__
 
------------------
-Download the Demo
------------------
+---------------------
+Download the Tutorial
+---------------------
 
 Download and start the KSQL clickstream container. This container
 image is large and contains |cos|, Grafana, and Elasticsearch.
@@ -182,7 +182,7 @@ Load the Streaming Data to KSQL
             :start-line: 17
             :end-line: 38
 
-#.  Load the ``clickstream.sql`` schema file that runs the demo app.
+#.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
 
     **Important:** Before running this step, you must have already run
     ksql-datagen utility to create the clickstream data, status codes,
@@ -326,7 +326,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
         ksql>
         Exiting KSQL.
 
-2. Navigate to the demo directory in the Docker container:
+2. Navigate to the tutorial directory in the Docker container:
 
    .. code:: bash
 

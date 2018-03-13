@@ -1,12 +1,12 @@
-.. _ksql_clickstream:
+.. _ksql_clickstream-local:
 
-Clickstream Analysis Tutorial
-=============================
+Clickstream Data Analysis Pipeline Using KSQL (Local)
+=====================================================
 
 Clickstream analysis is the process of collecting, analyzing, and reporting aggregate data about the pages that are visited and
 the in what order they are visited. The path the visitor takes though a website is called the clickstream.
 
-This demo focuses on building real-time analytics of users to determine:
+This tutorial focuses on building real-time analytics of users to determine:
 
 * General website analytics, such as hit count and visitors
 * Bandwidth use
@@ -15,15 +15,15 @@ This demo focuses on building real-time analytics of users to determine:
 * Error-code occurrence and enrichment
 * Sessionization to track user-sessions and understand behavior (such as per-user-session-bandwidth, per-user-session-hits etc)
 
-The demo uses standard streaming functions (i.e., min, max, etc), as well as enrichment using child tables, stream-table join and different
+The tutorial uses standard streaming functions (i.e., min, max, etc), as well as enrichment using child tables, stream-table join and different
 types of windowing functionality.
 
-These steps will guide you through how to setup your environment and run the clickstream analysis demo.
+These steps will guide you through how to setup your environment and run the clickstream analysis tutorial.
 
 **Prerequisites**
 
 - :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
-  ZooKeeper, Schema Registry, REST Proxy, and Kafka Connect.
+  |zk|, Schema Registry, REST Proxy, and Kafka Connect.
 -  `ElasticSearch <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
 -  `Grafana <http://docs.grafana.org/installation/>`__
 -  `Git <https://git-scm.com/downloads>`__
@@ -31,11 +31,11 @@ These steps will guide you through how to setup your environment and run the cli
 -  Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on
    your local machine
 
------------------
-Download the Demo
------------------
+---------------------
+Download the Tutorial
+---------------------
 
-Clone the KSQL GitHub repository. The demo is located in the ``ksql-clickstream-demo/`` folder.
+Clone the KSQL GitHub repository. The tutorial is located in the ``ksql-clickstream-demo/`` folder.
 
 .. code:: bash
 
@@ -131,7 +131,7 @@ Load the Streaming Data to KSQL
         :start-line: 17
         :end-line: 38
 
-#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that will run the demo app.
+#.  From the the KSQL CLI, load the ``clickstream.sql`` schema file that will run the tutorial app.
 
     .. code:: bash
 
@@ -266,7 +266,7 @@ Load and View the Clickstream Data in Grafana
 
 In this step, you send the KSQL tables to Elasticsearch and Grafana and then view the Grafana output in your browser.
 
-#. Navigate to the demo directory:
+#. Navigate to the tutorial directory:
 
    .. code:: bash
 

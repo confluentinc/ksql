@@ -127,6 +127,18 @@ Here are some common configuration properties that you might want to change from
 
     ksql> SET 'cache.max.bytes.buffering'='20000000';
 
+fail.on.deserialization.error
+    Indicates whether to fail if corrupt messages are read. KSQL decodes messages at runtime when reading from a Kafka topic. The
+    decoding that KSQL uses depends on what's defined in STREAM's or TABLE's data definition as the data format for the
+    topic. If a message in the topic can't be decoded according to that data format, KSQL considers this message to be
+    corrupt. For example, a message is corrupt if KSQL expects message values to be in JSON format, but they are in
+    DELIMITED format. The default value in KSQL is ``true``. For example, to ignore corrupt messages, add this to your
+    properties file:
+
+    .. code:: java
+
+        fail.on.deserialization.error=false
+
 ksql.command.topic.suffix
     The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands`` command topic.
     To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``'production_commands'``, in the ``ksql-server.properties`` file, the command topic will be named ``ksql__production_commands``.

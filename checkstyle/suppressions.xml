@@ -7,16 +7,11 @@
 <suppressions>
 
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
-    <suppress files="(KsqlEntity|Cli|Ksql|AbstractCliCommands|CommandStore).java" checks="IndentationCheck"/>
-
-    <!-- can't work out how to resolve the issue with the do {..} while -->
-    <suppress files="CommandStore.java" checks="RightCurly"/>
+    <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
 
     <!-- Suppress some checks on all files -->
-    <suppress files="." checks="ExplicitInitializationCheck"/>
-    <suppress files="." checks="FinalClassCheck"/>
     <suppress files="." checks="AbbreviationAsWordInName"/>
-    <suppress files="." checks="AvoidEscapedUnicodeCharacters"/>
+    <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
 
     <!-- Semantics may not be well checked by rules -->
     <suppress files="." checks="ParameterNumber"/>

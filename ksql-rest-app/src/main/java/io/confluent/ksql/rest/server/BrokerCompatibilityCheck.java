@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -46,7 +47,6 @@ public class BrokerCompatibilityCheck implements Closeable {
     this.consumer = consumer;
     this.topicPartition = topicPartition;
   }
-
 
   public static BrokerCompatibilityCheck create(
       final Map<String, Object> streamsConfig,

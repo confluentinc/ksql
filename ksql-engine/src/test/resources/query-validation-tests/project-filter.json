@@ -1,0 +1,47 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "project and filter",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,zero,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "101,101,0.0",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "key": 101,
+          "value": "101",
+          "timestamp": 0
+        }
+      ]
+    }
+  ]
+}

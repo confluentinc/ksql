@@ -20,8 +20,7 @@ import io.confluent.ksql.parser.ExpressionFormatter;
 
 import java.util.Optional;
 
-public abstract class Expression
-    extends Node {
+public abstract class Expression extends Node {
 
   protected Expression(Optional<NodeLocation> location) {
     super(location);

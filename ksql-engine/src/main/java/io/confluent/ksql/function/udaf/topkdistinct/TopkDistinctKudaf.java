@@ -70,22 +70,24 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   }
 
   @Override
-  public T[] aggregate(T currentVal, T[] currentAggVal) {
+  public T[] aggregate(final T currentVal, final T[] currentAggVal) {
     if (currentVal == null) {
-      return currentAggVal;
-    }
-    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
-      return currentAggVal;
-    }
-    int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
-    if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
-      Arrays.sort(currentAggVal, comparator);
       return currentAggVal;
     }
 
     final T last = currentAggVal[currentAggVal.length - 1];
-    if (currentVal.compareTo(last) <= 0) {
+    if (last != null && currentVal.compareTo(last) <= 0) {
+      return currentAggVal;
+    }
+
+    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
+      return currentAggVal;
+    }
+
+    final int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
+    if (nullIndex != -1) {
+      currentAggVal[nullIndex] = currentVal;
+      Arrays.sort(currentAggVal, comparator);
       return currentAggVal;
     }
 
@@ -98,38 +100,35 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   @Override
   public Merger<String, T[]> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
+      final T[] merged = (T[]) Array.newInstance(ttClass, tkVal);
 
-      int
-          nullIndex1 =
-          ArrayUtil.getNullIndex(aggOne) == -1 ? tkVal : ArrayUtil.getNullIndex(aggOne);
-      int
-          nullIndex2 =
-          ArrayUtil.getNullIndex(aggTwo) == -1 ? tkVal : ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != tkVal; ++i) {
+        final T v1 = idx1 < aggOne.length ? aggOne[idx1] : null;
+        final T v2 = idx2 < aggTwo.length ? aggTwo[idx2] : null;
 
-      System.arraycopy(aggOne, 0, tempMergeTopkArray, 0, nullIndex1);
-
-      int duplicateCount = 0;
-      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
-          duplicateCount++;
+        final int result = comparator.compare(v1, v2);
+        if (result < 0) {
+          merged[i] = v1;
+          idx1++;
+        } else if (result == 0) {
+          merged[i] = v1;
+          idx1++;
+          idx2++;
         } else {
-          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
+          merged[i] = v2;
+          idx2++;
         }
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(ttClass, tempMergeTopkArray);
-      Arrays.sort(tempMergeTopkArray, comparator);
-      if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(ttClass, tempMergeTopkArray, tkVal);
-        return tempMergeTopkArray;
-      }
-      return Arrays.copyOf(tempMergeTopkArray, tkVal);
+
+      return merged;
     };
   }
 
   @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
-                                                   List<Expression> functionArguments) {
+  public KsqlAggregateFunction<T, T[]> getInstance(final Map<String, Integer> expressionNames,
+                                                   final List<Expression> functionArguments) {
     if (functionArguments.size() != 2) {
       throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
                                             + ".", functionArguments.size()));

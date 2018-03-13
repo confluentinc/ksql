@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import org.apache.kafka.streams.StreamsConfig;
@@ -45,8 +46,10 @@ public class KsqlServerMain {
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  private static Executable createExecutable(final Properties properties,
-                                             final Optional<String> queriesFile) throws Exception {
+  private static Executable createExecutable(
+      final Properties properties,
+      final Optional<String> queriesFile
+  ) throws Exception {
     if (queriesFile.isPresent()) {
       return StandaloneExecutor.create(properties, queriesFile.get());
     }

@@ -109,7 +109,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   private SchemaRegistryClient schemaRegistryClient;
 
-
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     this(
         ksqlConfig,
@@ -137,13 +136,13 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ddlCommandExec = new DDLCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, this, true));
+        new CommandFactories(topicClient, this, true)
+    );
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
     this.schemaRegistryClient = schemaRegistryClient;
-
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(
@@ -176,8 +175,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     // Multiple queries submitted as the same time should success or fail as a whole,
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
-
     MetaStore tempMetaStore = metaStore.clone();
+
     // Build query AST from the query string
     List<Pair<String, Statement>> queries = parseQueries(
         queriesString,
@@ -550,23 +549,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     topicClient.close();
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
-  }
-
-  @Override
-  public boolean terminateAllQueries() {
-    try {
-      for (QueryMetadata queryMetadata : livePersistentQueries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.close();
-        }
-        allLiveQueries.remove(queryMetadata);
-      }
-    } catch (Exception e) {
-      return false;
-    }
-
-    return true;
   }
 
   public void removeTemporaryQuery(QueryMetadata queryMetadata) {

@@ -74,20 +74,17 @@ public class SqlToJavaVisitor {
   }
 
   public String process(final Expression expression) {
-
     return formatExpression(expression);
   }
 
   private String formatExpression(final Expression expression) {
-    Pair<String, Schema>
-        expressionFormatterResult =
+    Pair<String, Schema> expressionFormatterResult =
         new SqlToJavaVisitor.Formatter(functionRegistry).process(expression, true);
     return expressionFormatterResult.getLeft();
   }
 
 
-  public class Formatter
-      extends AstVisitor<Pair<String, Schema>, Boolean> {
+  public class Formatter extends AstVisitor<Pair<String, Schema>, Boolean> {
 
     FunctionRegistry functionRegistry;
 
@@ -106,8 +103,10 @@ public class SqlToJavaVisitor {
         final Boolean unmangleNames
     ) {
       throw new UnsupportedOperationException(
-          format("not yet implemented: %s.visit%s", getClass().getName(),
-                 node.getClass().getSimpleName()
+          format(
+              "not yet implemented: %s.visit%s",
+              getClass().getName(),
+              node.getClass().getSimpleName()
           )
       );
     }
@@ -129,27 +128,18 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitBinaryLiteral(
-        BinaryLiteral node,
-        Boolean unmangleNames
-    ) {
+    protected Pair<String, Schema> visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
 
     @Override
-    protected Pair<String, Schema> visitDoubleLiteral(
-        DoubleLiteral node,
-        Boolean unmangleNames
-    ) {
+    protected Pair<String, Schema> visitDoubleLiteral(DoubleLiteral node, Boolean unmangleNames) {
       return new Pair<>(Double.toString(node.getValue()), Schema.FLOAT64_SCHEMA);
     }
 
     @Override
-    protected Pair<String, Schema> visitDecimalLiteral(
-        DecimalLiteral node,
-        Boolean unmangleNames
-    ) {
+    protected Pair<String, Schema> visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames) {
       throw new UnsupportedOperationException();
     }
 
@@ -227,10 +217,7 @@ public class SqlToJavaVisitor {
 
 
     @Override
-    protected Pair<String, Schema> visitFunctionCall(
-        FunctionCall node,
-        Boolean unmangleNames
-    ) {
+    protected Pair<String, Schema> visitFunctionCall(FunctionCall node, Boolean unmangleNames) {
       StringBuilder builder = new StringBuilder("(");
       String name = node.getName().getSuffix();
       KsqlFunction ksqlFunction = functionRegistry.getFunction(name);
@@ -275,16 +262,13 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitNotExpression(
-        NotExpression node,
-        Boolean unmangleNames
-    ) {
+    protected Pair<String, Schema> visitNotExpression(NotExpression node, Boolean unmangleNames) {
       String exprString = process(node.getValue(), unmangleNames).getLeft();
       return new Pair<>("(!" + exprString + ")", Schema.BOOLEAN_SCHEMA);
     }
 
     private String nullCheckPrefix(ComparisonExpression.Type type) {
-      switch(type) {
+      switch (type) {
         case IS_DISTINCT_FROM:
           return "(((Object)%1$s) == null || ((Object)%2$s) == null) ? "
               + "((((Object)%1$s) == null ) ^ (((Object)%2$s) == null )) : ";
@@ -328,7 +312,7 @@ public class SqlToJavaVisitor {
     }
 
     private String visitBooleanComparisonExpression(ComparisonExpression.Type type) {
-      switch(type) {
+      switch (type) {
         case EQUAL:
           return "(Boolean.compare(%1$s, %2$s) == 0)";
         case NOT_EQUAL:
@@ -348,7 +332,7 @@ public class SqlToJavaVisitor {
       Pair<String, Schema> right = process(node.getRight(), unmangleNames);
 
       String exprFormat = nullCheckPrefix(node.getType());
-      switch(left.getRight().type()) {
+      switch (left.getRight().type()) {
         case STRING:
           exprFormat += visitStringComparisonExpression(node.getType());
           break;

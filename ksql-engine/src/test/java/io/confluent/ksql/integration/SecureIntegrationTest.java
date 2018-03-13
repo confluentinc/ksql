@@ -16,8 +16,16 @@
 
 package io.confluent.ksql.integration;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.resource.Resource;
+import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -27,43 +35,56 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.testutils.secure.ClientTrustStore;
+import io.confluent.ksql.testutils.secure.Credentials;
 import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
 public class SecureIntegrationTest {
 
+  private static final String INPUT_TOPIC = "orders_topic";
+  private static final String INPUT_STREAM = "ORDERS";
+  private static final Credentials SUPER_USER = VALID_USER1;
+  private static final Credentials NORMAL_USER = VALID_USER2;
+  private static final AtomicInteger COUNTER = new AtomicInteger(0);
+
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
       EmbeddedSingleNodeKafkaCluster.newBuilder()
           .withSaslSslListenersOnly()
+          .withAcls(SUPER_USER.username)
           .build();
-
-  private static final String INPUT_TOPIC = "orders_topic";
-  private static final String INPUT_STREAM = "ORDERS";
 
   private QueryId queryId;
   private KsqlEngine ksqlEngine;
   private TopicProducer topicProducer;
   private KafkaTopicClientImpl topicClient;
+  private String outputTopic;
 
   @Before
   public void before() {
+    SECURE_CLUSTER.clearAcls();
     topicProducer = new TopicProducer(SECURE_CLUSTER);
+    outputTopic = "TEST_" + COUNTER.incrementAndGet();
   }
 
   @After
@@ -71,8 +92,12 @@ public class SecureIntegrationTest {
     if (queryId != null) {
       ksqlEngine.terminateQuery(queryId, true);
     }
-    ksqlEngine.close();
-    topicClient.close();
+    if (ksqlEngine != null) {
+      ksqlEngine.close();
+    }
+    if (topicClient != null) {
+      topicClient.close();
+    }
   }
 
   @Test
@@ -83,12 +108,75 @@ public class SecureIntegrationTest {
     // Additional Properties required for KSQL to talk to secure cluster:
     configs.put("security.protocol", "SASL_SSL");
     configs.put("sasl.mechanism", "PLAIN");
-    configs.put("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(VALID_USER1));
+    configs.put("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(SUPER_USER));
 
     givenTestSetupWithConfig(configs);
 
     // Then:
-    assertCanRunKsqlQuery();
+    assertCanRunSimpleKsqlQuery();
+  }
+
+  @Test
+  public void shouldRunQuerySimpleQueryOnKafkaClusterWithCorrectAcls() throws Exception {
+    // Given:
+    outputTopic = "SIMPLE_ACLS_TEST";
+
+    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
+                  ImmutableSet.of(AclOperation.DESCRIBE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CSAS_SIMPLE_ACLS_TEST",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
+
+    // Then:
+    assertCanRunSimpleKsqlQuery();
+  }
+
+  @Test
+  public void shouldRunQueryWithChangeLogsOnKafkaClusterWithCorrectAcls() throws Exception {
+    // Given:
+    outputTopic = "ACLS_TEST_2";
+
+    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+
+    /*
+    Currently, require wildcard access as change log topic names are not deterministic. e.g.
+
+    ksql_query_CTAS_ACLS_TEST_2-KSQL_Agg_Query_1520941259709-repartition
+
+    Issue to fix this: https://github.com/confluentinc/ksql/issues/925
+     */
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  "*",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
+                                  AclOperation.WRITE, AclOperation.DELETE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CTAS_ACLS_TEST_2",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
+
+    // Then:
+    assertCanRunRepartitioningKsqlQuery();
+  }
+
+  private void givenAllowAcl(final Credentials user,
+                             final ResourceType resourceType,
+                             final String resourceName,
+                             final Set<AclOperation> ops) {
+    SECURE_CLUSTER.addUserAcl(user, AclPermissionType.ALLOW,
+                              new Resource(resourceType, resourceName), ops);
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
@@ -99,7 +187,7 @@ public class SecureIntegrationTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
 
     topicClient = new KafkaTopicClientImpl(
-            AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps()));
+        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps()));
 
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
 
@@ -107,15 +195,31 @@ public class SecureIntegrationTest {
     execInitCreateStreamQueries();
   }
 
-  private void assertCanRunKsqlQuery() throws Exception {
-    final String queryString = String.format("CREATE STREAM TEST_1 AS SELECT * "
-                                             + "FROM %s;", INPUT_STREAM);
-    executePersistentQuery(queryString);
+  private void assertCanRunSimpleKsqlQuery() throws Exception {
+    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT * FROM %s;",
+                          outputTopic, INPUT_STREAM);
+  }
+
+  private void assertCanRunRepartitioningKsqlQuery() throws Exception {
+    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT itemid, count(*) "
+                          + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
+                          outputTopic, INPUT_STREAM);
+  }
+
+  private void assertCanRunKsqlQuery(final String queryString,
+                                     final Object... args) throws Exception {
+    executePersistentQuery(queryString, args);
 
     TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists("TEST_1"),
+        () -> topicClient.isTopicExists(this.outputTopic),
         "Wait for async topic creation"
     );
+
+    final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
+        ksqlEngine.getMetaStore().getSource(this.outputTopic).getSchema());
+
+    final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);
+    consumer.readResults(this.outputTopic, schema, 1, new ByteArrayDeserializer());
   }
 
   private Map<String, Object> getBaseKsqlConfig() {
@@ -125,6 +229,12 @@ public class SecureIntegrationTest {
     configs.put("commit.interval.ms", 0);
     configs.put("cache.max.bytes.buffering", 0);
     configs.put("auto.offset.reset", "earliest");
+    return configs;
+  }
+
+  private Map<String, Object> getKsqlConfig(final Credentials user) {
+    final Map<String, Object> configs = getBaseKsqlConfig();
+    configs.putAll(SECURE_CLUSTER.getClientProperties());
     return configs;
   }
 
@@ -147,9 +257,12 @@ public class SecureIntegrationTest {
     ksqlEngine.buildMultipleQueries(ordersStreamStr, Collections.emptyMap());
   }
 
-  private void executePersistentQuery(final String queryString) throws Exception {
+  private void executePersistentQuery(final String queryString,
+                                      final Object... params) throws Exception {
+    final String query = String.format(queryString, params);
+
     final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+        .buildMultipleQueries(query, Collections.emptyMap()).get(0);
 
     queryMetadata.getKafkaStreams().start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getId();

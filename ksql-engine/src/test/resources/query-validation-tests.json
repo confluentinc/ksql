@@ -370,6 +370,113 @@
       ]
     },
     {
+      "name": "max double group by",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,100,-Infinity",
+          "timestamp": 0
+        },
+        {
+            "topic": "test_topic",
+            "key": 0,
+            "value": "0,100,0.0",
+            "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,100,5.1",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,100.1",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,6.4",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,300.8",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,zero,2000.99",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,100,100.11",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,-Infinity",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,5.1",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 100,
+          "value": "100,100.1",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 100,
+          "value": "100,100.1",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 100,
+          "value": "100,300.8",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,2000.99",
+          "timestamp": 0
+        },
+        {
+          "topic": "S2",
+          "key": 0,
+          "value": "0,2000.99",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
       "name": "topk distinct integer",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",

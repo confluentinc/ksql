@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,6 +26,9 @@ import static org.junit.Assert.assertThat;
 public class StringTopkDistinctKudafTest {
 
   String[] valueArray;
+  private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
+          = new TopkDistinctKudaf<>(0, 3, Schema.STRING_SCHEMA, String.class);
+
   @Before
   public void setup() {
     valueArray = new String[]{"10", "30", "45", "10", "50", "60", "20", "60", "80", "35", "25",
@@ -34,7 +38,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] currentVal = new String[]{null, null, null};
     for (String d: valueArray) {
       currentVal = stringTopkDistinctKudaf.aggregate(d, currentVal);
@@ -45,7 +48,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] currentVal = new String[]{null, null, null};
     currentVal = stringTopkDistinctKudaf.aggregate("80", currentVal);
 
@@ -54,7 +56,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", "25"};
     String[] array2 = new String[]{"60", "50", "48"};
 
@@ -64,7 +65,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", null, null};
 
@@ -74,7 +74,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"50", "45", null};
     String[] array2 = new String[]{"60", "50", null};
 
@@ -84,7 +83,6 @@ public class StringTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkDistinctKudaf<String> stringTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, String.class);
     String[] array1 = new String[]{"60", null, null};
     String[] array2 = new String[]{"60", null, null};
 

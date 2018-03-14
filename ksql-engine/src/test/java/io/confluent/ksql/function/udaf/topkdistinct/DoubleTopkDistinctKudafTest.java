@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,6 +26,9 @@ import static org.junit.Assert.assertThat;
 public class DoubleTopkDistinctKudafTest {
 
   Double[] valueArray;
+  private final TopkDistinctKudaf<Double> doubleTopkDistinctKudaf
+          = new TopkDistinctKudaf<>(0, 3, Schema.FLOAT64_SCHEMA, Double.class);
+
   @Before
   public void setup() {
     valueArray = new Double[]{10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0, 25.0,
@@ -34,7 +38,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] currentVal = new Double[]{null, null, null};
     for (Double d: valueArray) {
       currentVal = doubleTopkDistinctKudaf.aggregate(d, currentVal);
@@ -45,7 +48,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] currentVal = new Double[]{null, null, null};
     currentVal = doubleTopkDistinctKudaf.aggregate(80.0, currentVal);
 
@@ -54,7 +56,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, 45.0, 25.0};
     Double[] array2 = new Double[]{60.0, 50.0, 48.0};
 
@@ -64,7 +65,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, 45.0, null};
     Double[] array2 = new Double[]{60.0, null, null};
 
@@ -74,7 +74,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithNullsDuplicates() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{50.0, 45.0, null};
     Double[] array2 = new Double[]{60.0, 50.0, null};
 
@@ -84,7 +83,6 @@ public class DoubleTopkDistinctKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    TopkDistinctKudaf<Double> doubleTopkDistinctKudaf = new TopkDistinctKudaf(0, 3, Double.class);
     Double[] array1 = new Double[]{60.0, null, null};
     Double[] array2 = new Double[]{60.0, null, null};
 

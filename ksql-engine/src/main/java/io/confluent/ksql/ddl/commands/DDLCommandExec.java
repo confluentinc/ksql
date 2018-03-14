@@ -38,26 +38,28 @@ public class DDLCommandExec {
   /**
    * execute on temp metaStore
    */
-  public DDLCommandResult tryExecute(DDLCommand ddlCommand, MetaStore tempMetaStore) {
+  public DDLCommandResult tryExecute(DDLCommand ddlCommand, MetaStore tempMetaStore,
+                                     boolean isValidatePhase) {
     if (tempMetaStore == metaStore) {
       throw new KsqlException(
           "Try to execute DDLCommand on tempMetaStore, but getting the real MetaStore."
       );
     }
-    return executeOnMetaStore(ddlCommand, tempMetaStore);
+    return executeOnMetaStore(ddlCommand, tempMetaStore, isValidatePhase);
   }
 
   /**
    * execute on real metaStore
    */
-  public DDLCommandResult execute(DDLCommand ddlCommand) {
-    return executeOnMetaStore(ddlCommand, this.metaStore);
+  public DDLCommandResult execute(DDLCommand ddlCommand, boolean isValidatePhase) {
+    return executeOnMetaStore(ddlCommand, this.metaStore, isValidatePhase);
   }
 
-  private static DDLCommandResult executeOnMetaStore(DDLCommand ddlCommand, MetaStore metaStore) {
+  private static DDLCommandResult executeOnMetaStore(DDLCommand ddlCommand, MetaStore metaStore,
+                                                     boolean isValidatePhase) {
     // TODO: create new task to run
     try {
-      return ddlCommand.run(metaStore);
+      return ddlCommand.run(metaStore, isValidatePhase);
     } catch (Exception e) {
       LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
       return new DDLCommandResult(false, ExceptionUtil.stackTraceToString(e));

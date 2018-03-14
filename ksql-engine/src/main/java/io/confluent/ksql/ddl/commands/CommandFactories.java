@@ -18,7 +18,7 @@ package io.confluent.ksql.ddl.commands;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.confluent.ksql.QueryTerminator;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DDLStatement;
@@ -37,7 +37,7 @@ public class CommandFactories implements DDLCommandFactory {
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
-      final QueryTerminator queryTerminator,
+      final SchemaRegistryClient schemaRegistryClient,
       final boolean enforceTopicExistence
   ) {
     factories.put(
@@ -69,13 +69,13 @@ public class CommandFactories implements DDLCommandFactory {
     factories.put(
         DropStream.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, queryTerminator
+            (DropStream) ddlStatement, DataSource.DataSourceType.KSTREAM, schemaRegistryClient
         )
     );
     factories.put(
         DropTable.class,
         (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, queryTerminator
+            (DropTable) ddlStatement, DataSource.DataSourceType.KTABLE, schemaRegistryClient
         )
     );
     factories.put(

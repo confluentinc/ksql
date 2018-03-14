@@ -138,7 +138,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ddlCommandExec = new DDLCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, this, true));
+        new CommandFactories(topicClient, schemaRegistryClient, true));
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -333,13 +333,13 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new RegisterTopicCommand(
               (RegisterTopic) statement
           ),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       ddlCommandExec.tryExecute(
           new RegisterTopicCommand(
               (RegisterTopic) statement
           ),
-          tempMetaStore
+          tempMetaStore, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStream) {
@@ -350,7 +350,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
@@ -359,7 +359,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStore
+          tempMetaStore, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
@@ -370,7 +370,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
@@ -379,7 +379,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStore
+          tempMetaStore, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
@@ -387,12 +387,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
           schemaRegistryClient
-      ), tempMetaStore);
+      ), tempMetaStore, false);
       ddlCommandExec.tryExecute(
           new DropSourceCommand((DropStream) statement,
                                 DataSource.DataSourceType.KSTREAM,
                                 schemaRegistryClient),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
@@ -400,19 +400,19 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
           schemaRegistryClient
-      ), tempMetaStore);
+      ), tempMetaStore, false);
       ddlCommandExec.tryExecute(
           new DropSourceCommand((DropTable) statement,
                                 DataSource.DataSourceType.KTABLE,
                                 schemaRegistryClient),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
-      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore);
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore, false);
       ddlCommandExec.tryExecute(
           new DropTopicCommand((DropTopic) statement),
-          tempMetaStoreForParser
+          tempMetaStoreForParser, false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof SetProperty) {

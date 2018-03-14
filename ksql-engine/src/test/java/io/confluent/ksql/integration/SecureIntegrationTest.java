@@ -44,6 +44,7 @@ import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.testutils.secure.ClientTrustStore;
 import io.confluent.ksql.testutils.secure.Credentials;
 import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -77,7 +78,7 @@ public class SecureIntegrationTest {
   private QueryId queryId;
   private KsqlEngine ksqlEngine;
   private TopicProducer topicProducer;
-  private KafkaTopicClientImpl topicClient;
+  private KafkaTopicClient topicClient;
   private String outputTopic;
 
   @Before
@@ -85,6 +86,9 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.clearAcls();
     topicProducer = new TopicProducer(SECURE_CLUSTER);
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
+
+    topicClient = new KafkaTopicClientImpl(AdminClient.create(
+        new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps()));
   }
 
   @After
@@ -96,12 +100,17 @@ public class SecureIntegrationTest {
       ksqlEngine.close();
     }
     if (topicClient != null) {
+      try {
+        topicClient.deleteTopics(Collections.singletonList(outputTopic));
+      } catch (final Exception e){
+        e.printStackTrace(System.err);
+      }
       topicClient.close();
     }
   }
 
   @Test
-  public void shouldRunQueryOnSecureKafkaCluster() throws Exception {
+  public void shouldRunQueryAgainstKafkaClusterOverSaslSsl() throws Exception {
     // Given:
     final Map<String, Object> configs = getBaseKsqlConfig();
 
@@ -117,7 +126,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQuerySimpleQueryOnKafkaClusterWithCorrectAcls() throws Exception {
+  public void shouldRunQuerySimpleQueryAgainstKafkaClusterWithAcls() throws Exception {
     // Given:
     outputTopic = "SIMPLE_ACLS_TEST";
 
@@ -143,29 +152,141 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryWithChangeLogsOnKafkaClusterWithCorrectAcls() throws Exception {
+  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithWildcardAcls() throws Exception {
+    // Given:
+    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "*",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
+                                  AclOperation.WRITE, AclOperation.DELETE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "*",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
+
+    // Then:
+    assertCanRunRepartitioningKsqlQuery();
+  }
+
+  @Test
+  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAcls() throws Exception {
     // Given:
     outputTopic = "ACLS_TEST_2";
 
     givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
                   ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
 
-    /*
-    Currently, require wildcard access as change log topic names are not deterministic. e.g.
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
-    ksql_query_CTAS_ACLS_TEST_2-KSQL_Agg_Query_1520941259709-repartition
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
+                  ImmutableSet.of(AclOperation.DESCRIBE));
 
-    Issue to fix this: https://github.com/confluentinc/ksql/issues/925
-     */
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
+
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "*",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
-                                  AclOperation.WRITE, AclOperation.DELETE));
+                  "ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
+                                  AclOperation.DELETE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  "ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog",
+                  ImmutableSet
+                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
+                          AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CTAS_ACLS_TEST_2",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
+
+    // Then:
+    assertCanRunRepartitioningKsqlQuery();
+  }
+
+  @Test
+  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsWhereTopicsPreexist()
+      throws Exception {
+    // Given:
+    outputTopic = "ACLS_TEST_3";
+
+    final String repartitionTopic =
+        "ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition";
+
+    final String changeLogTopic =
+        "ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog";
+
+    SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
+    SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
+    SECURE_CLUSTER.createTopic(changeLogTopic, 1, 1);
+
+    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
+                  ImmutableSet.of(AclOperation.DESCRIBE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  repartitionTopic,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  changeLogTopic,
+                  ImmutableSet
+                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CTAS_ACLS_TEST_3",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
+
+    // Then:
+    assertCanRunRepartitioningKsqlQuery();
+  }
+
+  @Test
+  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsAndCustomPrefixed() throws Exception {
+    // Given:
+    outputTopic = "ACLS_TEST_4";
+
+    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
+                  ImmutableSet.of(AclOperation.DESCRIBE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  "t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
+                                  AclOperation.DELETE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
+                  "t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog",
+                  ImmutableSet
+                      .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
+                          AclOperation.DELETE));
+
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "t4_query_CTAS_ACLS_TEST_4",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "t4_");
+    givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
     assertCanRunRepartitioningKsqlQuery();
@@ -180,16 +301,10 @@ public class SecureIntegrationTest {
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) throws Exception {
-    // Additional Properties required for KSQL to talk to test secure cluster,
-    // where SSL cert not properly signed. (Not required for proper cluster).
-    ksqlConfigs.putAll(ClientTrustStore.trustStoreProps());
-
     final KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfigs);
 
-    topicClient = new KafkaTopicClientImpl(
-        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps()));
-
-    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(
+        AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
 
     produceInitData();
     execInitCreateStreamQueries();
@@ -216,10 +331,10 @@ public class SecureIntegrationTest {
     );
 
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-        ksqlEngine.getMetaStore().getSource(this.outputTopic).getSchema());
+        ksqlEngine.getMetaStore().getSource(outputTopic).getSchema());
 
     final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);
-    consumer.readResults(this.outputTopic, schema, 1, new ByteArrayDeserializer());
+    consumer.readResults(outputTopic, schema, 1, new ByteArrayDeserializer());
   }
 
   private Map<String, Object> getBaseKsqlConfig() {
@@ -229,12 +344,16 @@ public class SecureIntegrationTest {
     configs.put("commit.interval.ms", 0);
     configs.put("cache.max.bytes.buffering", 0);
     configs.put("auto.offset.reset", "earliest");
+
+    // Additional Properties required for KSQL to talk to test secure cluster,
+    // where SSL cert not properly signed. (Not required for proper cluster).
+    configs.putAll(ClientTrustStore.trustStoreProps());
     return configs;
   }
 
   private Map<String, Object> getKsqlConfig(final Credentials user) {
     final Map<String, Object> configs = getBaseKsqlConfig();
-    configs.putAll(SECURE_CLUSTER.getClientProperties());
+    configs.putAll(SecureKafkaHelper.getSecureCredentialsConfig(user));
     return configs;
   }
 

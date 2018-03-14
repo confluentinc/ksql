@@ -167,11 +167,11 @@ The maximum parallelism depends on the number of partitions.
          against a two-partition input topic, only two servers perform the actual work, but the other eight will run an “idle”
          query.
 
-========================================================
-Can KQL connect to a Apache Kafka cluster over SASL_SSL?
-========================================================
+=================================================================================
+Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?
+=================================================================================
 
-Yes! Internally, KSQL uses standard Kafka Consumers and Producers, which you
+Yes. Internally, KSQL uses standard Kafka Consumers and Producers, which you
 can configure to connect to a secure Kafka cluster as you would for any app.
 
 For example, adding the following entries, to the property file you use to start
@@ -191,3 +191,73 @@ The exact settings you will need will vary depending on what SASL mechanism your
 Kafka cluster is using and how your SSL certificates are signed. For full details,
 please refer to the `Security section of the Kafka documentation
 <http://kafka.apache.org/documentation.html#security>`__.
+
+====================================================================
+Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
+====================================================================
+
+Interactive KSQL clusters
+-------------------------
+
+Interactive KSQL clusters currently requires that the KSQL user has open access to
+create, read, write and delete topics and use any consumer group.
+
+The required ACLs are:
+- *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
+- *CREATE* permission on the *CLUSTER*.
+- *DESCRIBE*, *READ*, *WRITE* and *DELETE* permissions on the *<any>* *TOPIC*.
+- *DESCRIBE* and *READ* permissions  on the *<any>* *GROUP*.
+
+It is still possible to restrict the KSQL user from accessing specific resources
+using *DENY* ACLs, e.g. adding a *DENY* ACL to stop KSQL queries from accessing a
+topic containing sensitive data.
+
+Non-interactive KSQL clusters
+-----------------------------
+
+Non-interactive KSQL clusters will run with much more restrictive ACLs,
+though it currently requires a little effort to work out what ACLs are required.
+This will be improved in upcoming releases.
+
+Standard ACLs
+    The KSQL user will always require:
+    - *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
+    - *DESCRIBE* permission on the *__consumer_offsets* topic.
+
+    If you would prefer KSQL to be able to create internal and/or sink topics then
+    the KSQL user should also be granted:
+    - *CREATE* permission on the *CLUSTER*.
+
+Source topics
+    For each source/input topic, the KSQL user will require *DESCRIBE* and *READ* permissions.
+    The topic should already exist when KSQL is started.
+
+Sink topics
+    For each sink/output topic, the KSQL user will require *DESCRIBE* and *WRITE* permissions.
+    If the topic does not already exist, then the user will also require *CREATE* permissions
+    on the *CLUSTER*.
+
+Change-log and repartition topics
+    The set of change-log and repartitioning topics that KSQL will require will depend on the
+    queries being executed. The easiest way to determine the list of topics is to first run
+    the queries on an open Kafka cluster and list the topics created.
+
+    All change-log and repartition topics are prefixed with  ``<value of ksql.service.id property>_query_<query id>_``
+    where the default of ``ksql.service.id`` is ``ksql_``.
+
+    The KSQL user will require a minimum of *DESCRIBE*, *READ* and *WRITE* permissions for
+    each change-log and repartition *TOPIC*.
+
+    If the KSQL user does not have *CREATE* permissions on the *CLUSTER*, then all change-log and
+    repartition topics must already exist, with the same number of partitions as the source topic,
+    and ``replication.factor`` replicas.
+
+Consumer groups
+    The set of consumer groups that KSQL will require will depend on the queries being executed.
+    The easiest way to determine the list of consumer groups is to first run the queries on an
+    open Kafka cluster and list the groups created.
+
+    All consumer groups are have a name in the format: ``<value of ksql.service.id property>_query_<query id>``
+    where the default of ``ksql.service.id`` is ``ksql_``.
+
+    The KSQL user will require a minimum of *DESCRIBE* and *READ* permissions for *GROUP*.

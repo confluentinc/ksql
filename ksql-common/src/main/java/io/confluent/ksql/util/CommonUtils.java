@@ -17,6 +17,8 @@
 package io.confluent.ksql.util;
 
 import java.net.ConnectException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CommonUtils {
   public static String getErrorMessageWithCause(Throwable e) {
@@ -45,5 +47,13 @@ public class CommonUtils {
       prefix = "\r\n" + prefix;
     }
     return msg;
+  }
+
+  public static Map<String, Object> getPropertiesWithoutPrefix(
+      String prefix, Map<String, Object> properties) {
+    return properties.keySet()
+        .stream()
+        .filter(s -> !s.startsWith(prefix))
+        .collect(Collectors.toMap(s -> s, s -> properties.get(s)));
   }
 }

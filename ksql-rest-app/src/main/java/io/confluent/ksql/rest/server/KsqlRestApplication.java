@@ -103,7 +103,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final boolean isUiEnabled;
-
+  private final ServerInfo serverInfo;
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
 
@@ -124,7 +124,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       StreamedQueryResource streamedQueryResource,
       KsqlResource ksqlResource,
       boolean isUiEnabled,
-      VersionCheckerAgent versionCheckerAgent
+      VersionCheckerAgent versionCheckerAgent,
+      ServerInfo serverInfo
   ) {
     super(config);
     this.ksqlEngine = ksqlEngine;
@@ -135,6 +136,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.ksqlResource = ksqlResource;
     this.isUiEnabled = isUiEnabled;
     this.versionChckerAgent = versionCheckerAgent;
+    this.serverInfo = serverInfo;
 
     this.commandRunnerThread = new Thread(commandRunner);
   }
@@ -142,7 +144,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   @Override
   public void setupResources(Configurable<?> config, KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(new ServerInfo(Version.getVersion())));
+    config.register(new ServerInfoResource(serverInfo));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -227,6 +229,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
              BrokerCompatibilityCheck.create(ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
       compatibilityCheck.checkCompatibility();
     }
+    final String kafkaClusterId = adminClient.describeCluster().clusterId().get();
 
     String commandTopic = restConfig.getCommandTopic();
     createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
@@ -326,7 +329,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         streamedQueryResource,
         ksqlResource,
         isUiEnabled,
-        versionCheckerAgent
+        versionCheckerAgent,
+        new ServerInfo(Version.getVersion(), kafkaClusterId)
     );
   }
 

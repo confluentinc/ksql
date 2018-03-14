@@ -230,7 +230,7 @@ public class StatementExecutor {
           ksqlEngine.executeDdlStatement(
               statementStr,
               (DDLStatement) statement,
-              command.getStreamsProperties()
+              command.getKsqlProperties()
           );
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect(
@@ -267,12 +267,12 @@ public class StatementExecutor {
 
   private void handleRunScript(Command command) throws Exception {
 
-    if (command.getStreamsProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+    if (command.getKsqlProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       String queries =
-          (String) command.getStreamsProperties().get(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
+          (String) command.getKsqlProperties().get(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          command.getStreamsProperties()
+          command.getKsqlProperties()
       );
       for (QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -336,7 +336,7 @@ public class StatementExecutor {
 
     QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        command.getStreamsProperties()
+        command.getKsqlProperties()
     ).get(0);
 
     if (queryMetadata instanceof PersistentQueryMetadata) {

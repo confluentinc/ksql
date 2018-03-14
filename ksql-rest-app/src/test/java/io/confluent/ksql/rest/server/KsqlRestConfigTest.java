@@ -27,7 +27,9 @@ import java.util.Map;
 import io.confluent.rest.RestConfig;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThat;
 
 public class KsqlRestConfigTest {
 
@@ -49,19 +51,14 @@ public class KsqlRestConfigTest {
     KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
     Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
-    assertThat(ksqlConfigProperties.size(), equalTo(6));
-    assertThat(ksqlConfigProperties.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG),
-        equalTo( "localhost:9092"));
-    assertThat(ksqlConfigProperties.get(StreamsConfig.APPLICATION_ID_CONFIG),
-        equalTo("ksql_config_test"));
-    assertThat(ksqlConfigProperties.get(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG),
-        equalTo("commands"));
-    assertThat(ksqlConfigProperties.get(RestConfig.LISTENERS_CONFIG),
-        equalTo("http://localhost:8080"));
-    assertThat(ksqlConfigProperties.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG),
-        equalTo("earliest"));
-    assertThat(ksqlConfigProperties.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        equalTo("test"));
+    Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
+    expectedKsqlConfigProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+    expectedKsqlConfigProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
+    expectedKsqlConfigProperties.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
+    expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+    expectedKsqlConfigProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    expectedKsqlConfigProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
+    assertThat(ksqlConfigProperties, equalTo(expectedKsqlConfigProperties));
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls

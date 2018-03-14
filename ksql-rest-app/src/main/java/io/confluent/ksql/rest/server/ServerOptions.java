@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.github.rvesse.airline.HelpOption;
+import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
@@ -44,12 +45,12 @@ public class ServerOptions {
 
   @Once
   @Required
-  @Option(
-      name = "--config-file",
+  @Arguments(
+      title = "config-file",
       description = "A file specifying configs for the KSQL Server, KSQL, "
           + "and its underlying Kafka Streams instance(s). Refer to KSQL "
           + "documentation for a list of available configs.")
-  private String configFile;
+  private String propertiesFile;
 
   @Option(
       name = "--queries-file",
@@ -61,7 +62,7 @@ public class ServerOptions {
       throws IOException {
 
     final Properties properties = new Properties();
-    try (final FileInputStream inputStream = new FileInputStream(configFile)) {
+    try (final FileInputStream inputStream = new FileInputStream(propertiesFile)) {
       properties.load(inputStream);
     }
 

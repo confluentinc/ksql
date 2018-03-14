@@ -35,7 +35,7 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 public class Ksql {
 
   public static void main(String[] args) throws IOException {
-    final Options options = args.length == 0 ? Options.parse("http://localhost:8080")
+    final Options options = args.length == 0 ? Options.parse("http://localhost:8088")
                                              : Options.parse(args);
     if (options == null) {
       System.exit(-1);

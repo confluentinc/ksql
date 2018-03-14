@@ -37,7 +37,7 @@ public class KsqlRestConfigTest {
     Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     return result;
   }
 

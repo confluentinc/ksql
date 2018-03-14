@@ -10,5 +10,6 @@ Pushing images is currently handled via `docker push`, and is not part of the bu
 mvn package -DskipTests  # Build local images
 
 # Build images for a private registry; trailing '/' is required:
-# mvn package -DskipTests -Ddocker.registry=docker.example.com:8080/ -Ddocker.tag=$VERSION-$BUILD_NUMBER
+# mvn package -DskipTests -Ddocker.registry=docker.example.com:8080/ -Ddocker
+.tag=$VERSION-$BUILD_NUMBER
 ```

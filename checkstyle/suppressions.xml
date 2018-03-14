@@ -16,7 +16,6 @@
     <suppress files="(PersistentQueryMetadata.java|SourceDescription.java)" checks="ParameterNumber"/>
 
     <!-- Semantics may not be well checked by rules -->
-    <!--<suppress files="." checks="BooleanExpressionComplexityCheck"/>-->
     <suppress files="." checks="NPathComplexity"/>
     <suppress files="." checks="JavaNCSSCheck"/>
     <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>

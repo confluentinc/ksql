@@ -360,8 +360,8 @@ public class PhysicalPlanBuilder {
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
   }
 
-  // protected because of test
-  protected String getServiceId() {
+  // Package private because of test
+  String getServiceId() {
     return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
            + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }

@@ -54,8 +54,7 @@ public class KsqlRestConfigTest {
     Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
     expectedKsqlConfigProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     expectedKsqlConfigProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    expectedKsqlConfigProperties.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
-    expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+    expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     expectedKsqlConfigProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     expectedKsqlConfigProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
     assertThat(ksqlConfigProperties, equalTo(expectedKsqlConfigProperties));

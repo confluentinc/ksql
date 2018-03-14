@@ -82,6 +82,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StreamsTopologyUtil;
 
 public class KsqlEngine implements Closeable, QueryTerminator {
 
@@ -483,15 +484,18 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   @Override
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
-    QueryMetadata queryMetadata = persistentQueries.remove(queryId);
-    if (queryMetadata == null) {
+    PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
+    if (persistentQueryMetadata == null) {
       return false;
     }
-    livePersistentQueries.remove(queryMetadata);
-    allLiveQueries.remove(queryMetadata);
+    livePersistentQueries.remove(persistentQueryMetadata);
+    allLiveQueries.remove(persistentQueryMetadata);
     if (closeStreams) {
-      queryMetadata.close();
+      persistentQueryMetadata.close();
+      new StreamsTopologyUtil()
+          .cleanUpInternalTopicAvroSchemas(persistentQueryMetadata, schemaRegistryClient);
     }
+
     return true;
   }
 

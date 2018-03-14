@@ -85,7 +85,7 @@ public class CliTest extends TestRunner {
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
-    commandTopicName = restServerConfig.getCommandTopic();
+    commandTopicName = restServerConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());

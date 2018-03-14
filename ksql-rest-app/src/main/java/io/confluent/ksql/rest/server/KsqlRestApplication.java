@@ -107,10 +107,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
 
-  public static String getCommandsKsqlTopicName() {
-    return COMMANDS_KSQL_TOPIC_NAME;
-  }
-
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -228,7 +224,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       compatibilityCheck.checkCompatibility();
     }
 
-    String commandTopic = restConfig.getCommandTopic();
+    String commandTopic =
+        restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();

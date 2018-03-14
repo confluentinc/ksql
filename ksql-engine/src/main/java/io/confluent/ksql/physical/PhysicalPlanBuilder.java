@@ -147,8 +147,7 @@ public class PhysicalPlanBuilder {
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-                       + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String serviceId = getServiceId();
     String
         persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();
@@ -359,6 +358,12 @@ public class PhysicalPlanBuilder {
         ProducerCollector.class.getCanonicalName()
     );
     return kafkaStreamsBuilder.buildKafkaStreams(builder, new StreamsConfig(newStreamsProperties));
+  }
+
+  // protected because of test
+  protected String getServiceId() {
+    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+           + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
   }
 }
 

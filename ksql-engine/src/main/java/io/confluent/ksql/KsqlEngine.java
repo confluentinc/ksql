@@ -333,13 +333,15 @@ public class KsqlEngine implements Closeable, QueryTerminator {
           new RegisterTopicCommand(
               (RegisterTopic) statement
           ),
-          tempMetaStoreForParser, false
+          tempMetaStoreForParser,
+          false
       );
       ddlCommandExec.tryExecute(
           new RegisterTopicCommand(
               (RegisterTopic) statement
           ),
-          tempMetaStore, false
+          tempMetaStore,
+          false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateStream) {
@@ -350,7 +352,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStoreForParser, false
+          tempMetaStoreForParser,
+          false
       );
       ddlCommandExec.tryExecute(
           new CreateStreamCommand(
@@ -359,7 +362,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStore, false
+          tempMetaStore,
+          false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof CreateTable) {
@@ -370,7 +374,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStoreForParser, false
+          tempMetaStoreForParser,
+          false
       );
       ddlCommandExec.tryExecute(
           new CreateTableCommand(
@@ -379,40 +384,45 @@ public class KsqlEngine implements Closeable, QueryTerminator {
               overriddenProperties,
               topicClient,
               enforceTopicExistence),
-          tempMetaStore, false
+          tempMetaStore,
+          false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropStream) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropStream) statement,
-          DataSource.DataSourceType.KSTREAM,
-          schemaRegistryClient
-      ), tempMetaStore, false);
-      ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropStream) statement,
-                                DataSource.DataSourceType.KSTREAM,
-                                schemaRegistryClient),
-          tempMetaStoreForParser, false
-      );
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
+                                tempMetaStore,
+                                false);
+      ddlCommandExec.tryExecute(new DropSourceCommand(
+                                    (DropStream) statement,
+                                    DataSource.DataSourceType.KSTREAM,
+                                    schemaRegistryClient),
+                                tempMetaStoreForParser,
+                                false);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTable) {
       ddlCommandExec.tryExecute(new DropSourceCommand(
-          (DropTable) statement,
-          DataSource.DataSourceType.KTABLE,
-          schemaRegistryClient
-      ), tempMetaStore, false);
-      ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropTable) statement,
-                                DataSource.DataSourceType.KTABLE,
-                                schemaRegistryClient),
-          tempMetaStoreForParser, false
-      );
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
+                                tempMetaStore,
+                                false);
+      ddlCommandExec.tryExecute(new DropSourceCommand(
+                                    (DropTable) statement,
+                                    DataSource.DataSourceType.KTABLE,
+                                    schemaRegistryClient),
+                                tempMetaStoreForParser,
+                                false);
       return new Pair<>(statementString, statement);
     } else if (statement instanceof DropTopic) {
-      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement), tempMetaStore, false);
+      ddlCommandExec.tryExecute(new DropTopicCommand((DropTopic) statement),
+                                tempMetaStore, false);
       ddlCommandExec.tryExecute(
           new DropTopicCommand((DropTopic) statement),
-          tempMetaStoreForParser, false
+          tempMetaStoreForParser,
+          false
       );
       return new Pair<>(statementString, statement);
     } else if (statement instanceof SetProperty) {

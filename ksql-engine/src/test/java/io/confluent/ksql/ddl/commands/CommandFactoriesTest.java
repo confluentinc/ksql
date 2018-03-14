@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -52,7 +53,7 @@ public class CommandFactoriesTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final CommandFactories commandFactories = new CommandFactories(
       topicClient,
-      EasyMock.createMock(QueryTerminator.class),
+      EasyMock.createMock(CachedSchemaRegistryClient.class),
       true);
   private final HashMap<String, Expression> properties = new HashMap<>();
   private String sqlExpression = "sqlExpression";

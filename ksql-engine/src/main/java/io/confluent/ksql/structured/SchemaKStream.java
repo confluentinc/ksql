@@ -132,8 +132,7 @@ public class SchemaKStream {
         kstream.mapValues(row -> {
           List<Object> newColumns = new ArrayList<>();
           for (Field schemaField : selectSchema.fields()) {
-            newColumns.add(
-                extractColumn(schemaField, row)
+            newColumns.add(extractColumn(schemaField, row)
             );
           }
           return new GenericRow(newColumns);

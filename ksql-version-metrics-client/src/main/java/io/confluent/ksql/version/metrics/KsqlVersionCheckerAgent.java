@@ -26,7 +26,7 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.PhoneHomeConfig;
 
-public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
+public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private Thread versionCheckerThread;
 
@@ -46,7 +46,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
   }
 
   @Override
-  public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
+  public  void start(KsqlModuleType moduleType, Properties ksqlProperties) {
     BaseSupportConfig ksqlVersionCheckerConfig =
         new PhoneHomeConfig(ksqlProperties, "ksql");
     if (ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
@@ -81,8 +81,9 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
   private static Thread newThread(String name, Runnable runnable) {
     Thread thread = new Thread(runnable, name);
     thread.setDaemon(true);
-    thread.setUncaughtExceptionHandler((t, e)
-        -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
+    thread.setUncaughtExceptionHandler(
+        (t, e) -> log.error("Uncaught exception in thread '{}':", t.getName(), e)
+    );
     return thread;
   }
 

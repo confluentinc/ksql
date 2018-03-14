@@ -289,8 +289,7 @@ public class Cli implements Closeable, AutoCloseable {
       throws IOException, InterruptedException, ExecutionException {
     StringBuilder consecutiveStatements = new StringBuilder();
     for (SqlBaseParser.SingleStatementContext statementContext :
-        new KsqlParser().getStatements(line)
-        ) {
+        new KsqlParser().getStatements(line)) {
       String statementText = KsqlEngine.getStatementString(statementContext);
       if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
@@ -361,23 +360,6 @@ public class Cli implements Closeable, AutoCloseable {
     );
   }
 
-  private StringBuilder unsetProperty(
-      StringBuilder consecutiveStatements,
-      SqlBaseParser.SingleStatementContext statementContext
-  ) throws IOException {
-    if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
-      consecutiveStatements = new StringBuilder();
-    }
-    SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
-        (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
-    String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
-    unsetProperty(property);
-    return consecutiveStatements;
-  }
-
   private StringBuilder printOrDisplayQueryResults(
       StringBuilder consecutiveStatements,
       SqlBaseParser.SingleStatementContext statementContext,
@@ -395,14 +377,6 @@ public class Cli implements Closeable, AutoCloseable {
       handlePrintedTopic(statementText);
     }
     return consecutiveStatements;
-  }
-
-  private void setProperty(SqlBaseParser.SingleStatementContext statementContext) {
-    SqlBaseParser.SetPropertyContext setPropertyContext =
-        (SqlBaseParser.SetPropertyContext) statementContext.statement();
-    String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
-    String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
-    setProperty(property, value);
   }
 
   private void listProperties(String statementText) throws IOException {
@@ -427,8 +401,8 @@ public class Cli implements Closeable, AutoCloseable {
         } else if (entity instanceof CommandStatusEntity
             && (
             ((CommandStatusEntity) entity).getCommandStatus().getStatus()
-                == CommandStatus.Status.ERROR
-        )) {
+                == CommandStatus.Status.ERROR)
+        ) {
           String fullMessage = ((CommandStatusEntity) entity).getCommandStatus().getMessage();
           terminal.printError(fullMessage.split("\n")[0], fullMessage);
           noErrorFromServer = false;
@@ -541,6 +515,14 @@ public class Cli implements Closeable, AutoCloseable {
     }
   }
 
+  private void setProperty(SqlBaseParser.SingleStatementContext statementContext) {
+    SqlBaseParser.SetPropertyContext setPropertyContext =
+        (SqlBaseParser.SetPropertyContext) statementContext.statement();
+    String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
+    String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
+    setProperty(property, value);
+  }
+
   private void setProperty(String property, String value) {
     String parsedProperty;
     ConfigDef.Type type;
@@ -609,6 +591,23 @@ public class Cli implements Closeable, AutoCloseable {
         parsedValue
     );
     terminal.flush();
+  }
+
+  private StringBuilder unsetProperty(
+      StringBuilder consecutiveStatements,
+      SqlBaseParser.SingleStatementContext statementContext
+  ) throws IOException {
+    if (consecutiveStatements.length() != 0) {
+      printKsqlResponse(
+          restClient.makeKsqlRequest(consecutiveStatements.toString())
+      );
+      consecutiveStatements = new StringBuilder();
+    }
+    SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
+        (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
+    String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
+    unsetProperty(property);
+    return consecutiveStatements;
   }
 
   private void unsetProperty(String property) {

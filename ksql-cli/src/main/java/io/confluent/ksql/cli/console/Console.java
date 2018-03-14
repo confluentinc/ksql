@@ -62,6 +62,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.StringUtil;
 
 public abstract class Console implements Closeable {
 
@@ -266,6 +267,17 @@ public abstract class Console implements Closeable {
     return longest.length();
   }
 
+  private void printAsTable(GenericRow row) {
+    addResult(row);
+    writer().println(
+        String.join(
+            " | ",
+            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        )
+    );
+    flush();
+  }
+
   private void printAsTable(KsqlEntity ksqlEntity) {
     List<String> header = new ArrayList<>();
     List<String> footer = new ArrayList<>();
@@ -380,9 +392,9 @@ public abstract class Console implements Closeable {
       rowValues = topicInfos.stream()
           .map(topicInfo -> Arrays.asList(
               topicInfo.getName(),
-              topicInfo.getRegistered(),
-              Integer.toString(topicInfo.getPartitionCount()),
-              topicInfo.getReplicaInfo(),
+              Boolean.toString(topicInfo.getRegistered()),
+              Integer.toString(topicInfo.getReplicaInfo().size()),
+              getTopicReplicaInfo(topicInfo.getReplicaInfo()),
               Integer.toString(topicInfo.getConsumerCount()),
               Integer.toString(topicInfo.getConsumerGroupCount())
           )).collect(Collectors.toList());
@@ -399,6 +411,21 @@ public abstract class Console implements Closeable {
       ));
     }
     printTable(columnHeaders, rowValues, header, footer);
+  }
+
+  /**
+   * Pretty print replica info.
+   * @param replicaSizes list of replicas per partition
+   * @return single value if all values are equal, else a csv representation
+   */
+  private static String getTopicReplicaInfo(List<Integer> replicaSizes) {
+    if (replicaSizes.isEmpty()) {
+      return "0";
+    } else if (replicaSizes.stream().distinct().limit(2).count() <= 1) {
+      return String.valueOf(replicaSizes.get(0));
+    } else {
+      return StringUtil.join(", ", replicaSizes);
+    }
   }
 
   private String formatFieldType(SourceDescription.FieldSchemaInfo field, String keyField) {
@@ -434,11 +461,11 @@ public abstract class Console implements Closeable {
         ));
         header.add(String.format("%-20s : %s", "Key format", "STRING"));
         header.add(String.format("%-20s : %s", "Value format", source.getSerdes()));
-        if (source.getKafkaTopic().length() > 0) {
+        if (source.getTopic().length() > 0) {
           header.add(String.format(
               "%-20s : %s (partitions: %d, replication: %d)",
               "Kafka output topic",
-              source.getKafkaTopic(),
+              source.getTopic(),
               source.getPartitions(),
               source.getReplication()
           ));
@@ -468,7 +495,7 @@ public abstract class Console implements Closeable {
       footer.add(String.format(
           "(%s)",
           "Statistics of the local KSQL server interaction with the Kafka topic "
-          + source.getKafkaTopic()
+          + source.getTopic()
       ));
 
       if (source.getExecutionPlan().length() > 0) {
@@ -490,17 +517,6 @@ public abstract class Console implements Closeable {
     } else {
       footer.add("For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
     }
-  }
-
-  private void printAsTable(GenericRow row) {
-    addResult(row);
-    writer().println(
-        String.join(
-            " | ",
-            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
-        )
-    );
-    flush();
   }
 
   private void printAsJson(Object o) throws IOException {

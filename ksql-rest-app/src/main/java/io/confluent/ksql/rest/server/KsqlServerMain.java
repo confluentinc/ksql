@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.rest.server;
 
 import org.apache.kafka.streams.StreamsConfig;
@@ -23,9 +24,9 @@ import java.util.Optional;
 import java.util.Properties;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 
-public class ServerMain {
+public class KsqlServerMain {
 
-  private static final Logger log = LoggerFactory.getLogger(ServerMain.class);
+  private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
   private static final String KSQL_REST_SERVER_DEFAULT_APP_ID = "KSQL_REST_SERVER_DEFAULT_APP_ID";
 
   public static void main(final String[] args) throws Exception {
@@ -45,8 +46,10 @@ public class ServerMain {
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  private static Executable createExecutable(final Properties properties,
-                                             final Optional<String> queriesFile) throws Exception {
+  private static Executable createExecutable(
+      final Properties properties,
+      final Optional<String> queriesFile
+  ) throws Exception {
     if (queriesFile.isPresent()) {
       return StandaloneExecutor.create(properties, queriesFile.get());
     }

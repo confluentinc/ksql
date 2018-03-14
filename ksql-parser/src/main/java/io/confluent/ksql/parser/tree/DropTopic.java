@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.parser.tree;
 
 import java.util.Objects;
@@ -20,8 +21,7 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-public class DropTopic
-    extends Statement implements DDLStatement {
+public class DropTopic extends Statement implements DDLStatement {
 
   private final QualifiedName topicName;
   private final boolean exists;

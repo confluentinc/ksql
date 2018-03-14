@@ -192,6 +192,24 @@ Kafka cluster is using and how your SSL certificates are signed. For full detail
 please refer to the `Security section of the Kafka documentation
 <http://kafka.apache.org/documentation.html#security>`__.
 
+====================================
+Will KSQL work with Confluent Cloud?
+====================================
+
+Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward.
+To do so, add the following to the KSQL configuration file, (ksql-server.properties):
+
+... code:: bash
+    bootstrap.servers=<a comma separated list of the the ccloud broker endpoints. eg. r0.great-app.confluent.aws.prod.cloud:9092,r1.great-app.confluent.aws.prod.cloud:9093,r2.great-app.confluent.aws.prod.cloud:9094>
+    ksql.sink.replicas=3
+    replication.factor=3
+    security.protocol=SASL_SSL
+    sasl.mechanism=PLAIN
+    sasl.jaas.config=\
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="<confluent cloud access key>" \
+        password="<confluent cloud secret>";
+
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 ====================================================================

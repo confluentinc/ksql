@@ -24,7 +24,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlException;
 
 
-public class DropSourceCommand implements DDLCommand {
+public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;
   private final DataSource.DataSourceType dataSourceType;
@@ -41,7 +41,7 @@ public class DropSourceCommand implements DDLCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore) {
     StructuredDataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       throw new KsqlException("Source " + sourceName + " does not exist.");
@@ -58,6 +58,6 @@ public class DropSourceCommand implements DDLCommand {
     dropTopicCommand.run(metaStore);
     metaStore.deleteSource(sourceName);
     queryTerminator.terminateQueryForEntity(sourceName);
-    return new DDLCommandResult(true, "Source " + sourceName + " was dropped");
+    return new DdlCommandResult(true, "Source " + sourceName + " was dropped");
   }
 }

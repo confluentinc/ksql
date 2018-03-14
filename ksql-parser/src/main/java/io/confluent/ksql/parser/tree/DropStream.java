@@ -22,7 +22,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DropStream
-    extends AbstractStreamDropStatement implements DDLStatement {
+    extends AbstractStreamDropStatement implements DdlStatement {
 
   private final QualifiedName streamName;
   private final boolean exists;

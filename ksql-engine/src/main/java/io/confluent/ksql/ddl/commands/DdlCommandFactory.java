@@ -14,10 +14,16 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.ddl.commands;
 
-/**
- * A Marker interface to signal that a Statement is a DDLStatement
- */
-public interface DDLStatement {
+import java.util.Map;
+
+import io.confluent.ksql.parser.tree.DdlStatement;
+
+public interface DdlCommandFactory {
+  DdlCommand create(
+      String sqlExpression,
+      final DdlStatement ddlStatement,
+      final Map<String, Object> properties
+  );
 }

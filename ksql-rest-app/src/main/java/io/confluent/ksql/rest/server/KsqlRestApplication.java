@@ -241,13 +241,13 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
         new StringLiteral(commandTopic)
     );
 
-    ksqlEngine.getDDLCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
     )));
 
-    ksqlEngine.getDDLCommandExec().execute(new CreateStreamCommand(
+    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
         new CreateStream(
             QualifiedName.of(COMMANDS_STREAM_NAME),

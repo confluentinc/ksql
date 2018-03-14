@@ -31,13 +31,13 @@ public class SerDeUtil {
 
     SchemaBuilder inferredSchema = SchemaBuilder.struct().name(avroSchema.getName());
     for (org.apache.avro.Schema.Field avroField: avroSchema.getFields()) {
-      inferredSchema.field(avroField.name(), getKSQLSchemaForAvroSchema(avroField.schema()));
+      inferredSchema.field(avroField.name(), getKsqlSchemaForAvroSchema(avroField.schema()));
     }
 
     return inferredSchema.build();
   }
 
-  private static Schema getKSQLSchemaForAvroSchema(org.apache.avro.Schema avroSchema) {
+  private static Schema getKsqlSchemaForAvroSchema(org.apache.avro.Schema avroSchema) {
     switch (avroSchema.getType()) {
       case INT:
         return Schema.INT32_SCHEMA;
@@ -51,19 +51,19 @@ public class SerDeUtil {
       case STRING:
         return Schema.STRING_SCHEMA;
       case ARRAY:
-        return SchemaBuilder.array(getKSQLSchemaForAvroSchema(avroSchema.getElementType()));
+        return SchemaBuilder.array(getKsqlSchemaForAvroSchema(avroSchema.getElementType()));
       case MAP:
         return SchemaBuilder.map(Schema.STRING_SCHEMA,
-                                 getKSQLSchemaForAvroSchema(avroSchema.getValueType()));
+                                 getKsqlSchemaForAvroSchema(avroSchema.getValueType()));
       case UNION:
         List<org.apache.avro.Schema> schemaList = avroSchema.getTypes();
         if (schemaList.size() == 1) {
-          return getKSQLSchemaForAvroSchema(schemaList.get(0));
+          return getKsqlSchemaForAvroSchema(schemaList.get(0));
         } else if (schemaList.size() == 2) {
           if (schemaList.get(0).getType() == org.apache.avro.Schema.Type.NULL) {
-            return getKSQLSchemaForAvroSchema(schemaList.get(1));
+            return getKsqlSchemaForAvroSchema(schemaList.get(1));
           } else if (schemaList.get(1).getType() == org.apache.avro.Schema.Type.NULL) {
-            return getKSQLSchemaForAvroSchema(schemaList.get(0));
+            return getKsqlSchemaForAvroSchema(schemaList.get(0));
           }
         }
         throw new KsqlException(String.format("Union type cannot have more than two types and "

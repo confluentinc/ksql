@@ -40,9 +40,9 @@ import javax.ws.rs.core.Response;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DDLCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandExec;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommand;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -444,7 +444,7 @@ public class KsqlResource {
       );
     }
 
-    DDLCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
+    DdlCommandTask ddlCommandTask = ddlCommandTasks.get(statement.getClass());
     if (ddlCommandTask != null) {
       try {
         String executionPlan = ddlCommandTask.execute(statement, statementText, properties);
@@ -476,13 +476,13 @@ public class KsqlResource {
     throw new KsqlException("Cannot FIND execution plan for this statement:" + statement);
   }
 
-  private interface DDLCommandTask {
+  private interface DdlCommandTask {
 
     String execute(Statement statement, String statementText, Map<String, Object> properties)
         throws Exception;
   }
 
-  private Map<Class, DDLCommandTask> ddlCommandTasks = new HashMap<>();
+  private Map<Class, DdlCommandTask> ddlCommandTasks = new HashMap<>();
 
   private void registerDdlCommandTasks() {
     ddlCommandTasks.put(
@@ -530,7 +530,7 @@ public class KsqlResource {
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
       RegisterTopicCommand registerTopicCommand =
           new RegisterTopicCommand((RegisterTopic) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
+      new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
       return statement.toString();
     });
 
@@ -543,7 +543,7 @@ public class KsqlResource {
               ksqlEngine.getTopicClient(),
               true
           );
-      executeDDLCommand(createStreamCommand);
+      executeDdlCommand(createStreamCommand);
       return statement.toString();
     });
 
@@ -556,13 +556,13 @@ public class KsqlResource {
               ksqlEngine.getTopicClient(),
               true
           );
-      executeDDLCommand(createTableCommand);
+      executeDdlCommand(createTableCommand);
       return statement.toString();
     });
 
     ddlCommandTasks.put(DropTopic.class, (statement, statementText, properties) -> {
       DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
+      new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
       return statement.toString();
     });
 
@@ -572,7 +572,7 @@ public class KsqlResource {
           DataSource.DataSourceType.KSTREAM,
           ksqlEngine
       );
-      executeDDLCommand(dropSourceCommand);
+      executeDdlCommand(dropSourceCommand);
       return statement.toString();
     });
 
@@ -582,7 +582,7 @@ public class KsqlResource {
           DataSource.DataSourceType.KTABLE,
           ksqlEngine
       );
-      executeDDLCommand(dropSourceCommand);
+      executeDdlCommand(dropSourceCommand);
       return statement.toString();
     });
 
@@ -601,8 +601,8 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  private void executeDDLCommand(DDLCommand ddlCommand) {
-    DDLCommandResult ddlCommandResult = new DDLCommandExec(
+  private void executeDdlCommand(DdlCommand ddlCommand) {
+    DdlCommandResult ddlCommandResult = new DdlCommandExec(
         ksqlEngine
             .getMetaStore()
             .clone()).execute(ddlCommand);

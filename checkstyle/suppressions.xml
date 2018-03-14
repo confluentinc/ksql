@@ -9,8 +9,6 @@
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
     <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
 
-    <!-- Suppress some checks on all files -->
-    <suppress files="." checks="AbbreviationAsWordInName"/>
     <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
 
     <!-- Semantics may not be well checked by rules -->

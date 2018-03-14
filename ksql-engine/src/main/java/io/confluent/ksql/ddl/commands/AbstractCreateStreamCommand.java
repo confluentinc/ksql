@@ -40,7 +40,7 @@ import io.confluent.ksql.util.StringUtil;
 /**
  * Base class of create table/stream command
  */
-abstract class AbstractCreateStreamCommand implements DDLCommand {
+abstract class AbstractCreateStreamCommand implements DdlCommand {
 
   String sqlExpression;
   String sourceName;

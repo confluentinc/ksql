@@ -60,7 +60,7 @@ public class KafkaEmbedded {
   /**
    * Creates and starts an embedded Kafka broker.
    *
-   * @param config Broker configuration settings.  Used to modify, for example, on what listeners
+   * @param config Broker configuration settings.  Used to modify, for example, the listeners
    *               the broker should use.  Note that you cannot change some settings such as
    *               `log.dirs`.
    */

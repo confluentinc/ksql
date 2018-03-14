@@ -77,18 +77,19 @@ public class SecureIntegrationTest {
 
   private QueryId queryId;
   private KsqlEngine ksqlEngine;
-  private TopicProducer topicProducer;
+  private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     SECURE_CLUSTER.clearAcls();
-    topicProducer = new TopicProducer(SECURE_CLUSTER);
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
     topicClient = new KafkaTopicClientImpl(AdminClient.create(
         new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps()));
+
+    produceInitData();
   }
 
   @After
@@ -306,7 +307,6 @@ public class SecureIntegrationTest {
     ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(
         AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
 
-    produceInitData();
     execInitCreateStreamQueries();
   }
 
@@ -358,6 +358,10 @@ public class SecureIntegrationTest {
   }
 
   private void produceInitData() throws Exception {
+    if (topicClient.isTopicExists(INPUT_TOPIC)) {
+      return;
+    }
+
     topicClient.createTopic(INPUT_TOPIC, 1, (short) 1);
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();

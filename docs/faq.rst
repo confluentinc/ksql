@@ -171,13 +171,13 @@ The maximum parallelism depends on the number of partitions.
 Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?
 =================================================================================
 
-Yes. Internally, KSQL uses standard Kafka Consumers and Producers, which you
-can configure to connect to a secure Kafka cluster as you would for any app.
+Yes. Internally, KSQL uses standard Kafka consumers and producers.
+The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
 
-For example, adding the following entries, to the property file you use to start
-KSQL, will enable KSQL to connect to a cluster secured using _PLAIN_ SASL,
-(as opposed to, say, GSSAPI / Kerberos), where the SSL certificates have been
-signed by a CA trusted by the default JVM trust store:
+For example, you can add the following entries to the KSQL server configuration file
+(ksqlserver.properties). This configuration enables KSQL to connect to a secure Kafka
+cluster using _PLAIN_ SASL (other options include GSSAPI / Kerberos), where the SSL
+certificates have been signed by a CA trusted by the default JVM trust store:
 
 .. code:: bash
     security.protocol=SASL_SSL

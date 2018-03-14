@@ -27,6 +27,7 @@ import org.apache.kafka.common.resource.Resource;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.kafka.test.TestUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -270,8 +271,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static void createServerJaasConfig() {
     try {
       final String jaasConfigContent = createJaasConfigContent();
-      final File jaasConfig = File.createTempFile("jaas_conf", null);
-      jaasConfig.deleteOnExit();
+      final File jaasConfig = TestUtils.tempFile();
       Files.write(jaasConfigContent, jaasConfig, StandardCharsets.UTF_8);
 
       System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jaasConfig.getAbsolutePath());

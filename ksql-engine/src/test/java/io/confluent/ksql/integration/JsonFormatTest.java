@@ -39,6 +39,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -53,23 +54,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 public class JsonFormatTest {
-
-  private MetaStore metaStore;
-  private KsqlEngine ksqlEngine;
-  private TopicProducer topicProducer;
-  private TopicConsumer topicConsumer;
-
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
-
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
 
+  @ClassRule
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+
+  private MetaStore metaStore;
+  private KsqlEngine ksqlEngine;
+  private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
+  private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
+
   private AdminClient adminClient;
   private QueryId queryId;
-  private KafkaTopicClientImpl topicClient;
+  private KafkaTopicClient topicClient;
 
   @Before
   public void before() throws Exception {
@@ -85,8 +85,6 @@ public class JsonFormatTest {
     topicClient = new KafkaTopicClientImpl(adminClient);
     ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
     metaStore = ksqlEngine.getMetaStore();
-    topicProducer = new TopicProducer(CLUSTER);
-    topicConsumer = new TopicConsumer(CLUSTER);
 
     createInitTopics();
     produceInitData();

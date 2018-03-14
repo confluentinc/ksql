@@ -71,7 +71,7 @@ After you have configured your properties file, start KSQL with your properties 
 
 .. tip:: The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named ``ksql__production_commands``.
 
-For more information, see :ref:`<install_ksql-standalone>`.
+For more information, see :ref:`install_ksql-standalone`.
 
 Setting Per-Session Properties
 ------------------------------
@@ -100,6 +100,8 @@ Here are some common configuration properties that you might want to change from
    .. code:: bash
 
     ksql> SET 'auto.offset.reset'='earliest';
+
+   For more information, see :ref:`kafka_consumer`.
 
 :cp-javadoc:`bootstrap.servers |clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`
    A list of host and port pairs that is used for establishing the initial connection to the Kafka cluster. This list should be
@@ -138,14 +140,9 @@ ksql.command.topic.suffix
 ksql.schema.registry.url
     The Schema Registry URL path to connect KSQL to.
 
-<<<<<<< HEAD
-    # Start KSQL in standalone mode with the custom properties above
-    $ ksql http://your-ksql-server:8088 --properties-file ./ksql.properties
-=======
 ksql.queries.file
     A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
     For an example, see :ref:`<install_ksql-standalone>`.
->>>>>>> upstream/4.1.x
 
 :cp-javadoc:`listeners |streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`
    The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).

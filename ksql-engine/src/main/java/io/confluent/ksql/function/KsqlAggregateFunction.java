@@ -28,7 +28,7 @@ import io.confluent.ksql.util.KsqlException;
 
 public abstract class KsqlAggregateFunction<V, A> {
   private final int argIndexInValue;
-  private final Supplier<A> intialValueSupplier;
+  private final Supplier<A> initialValueSupplier;
   private final Schema returnType;
   private final List<Schema> arguments;
 
@@ -38,12 +38,12 @@ public abstract class KsqlAggregateFunction<V, A> {
 
   public KsqlAggregateFunction(
       final int argIndexInValue,
-      final Supplier<A> intialValueSupplier,
+      final Supplier<A> initialValueSupplier,
       final Schema returnType,
       final List<Schema> arguments
   ) {
     this.argIndexInValue = argIndexInValue;
-    this.intialValueSupplier = intialValueSupplier;
+    this.initialValueSupplier = initialValueSupplier;
     this.returnType = returnType;
     this.arguments = arguments;
   }
@@ -62,8 +62,8 @@ public abstract class KsqlAggregateFunction<V, A> {
 
   public abstract A aggregate(V currentVal, A currentAggVal);
 
-  public Supplier<A> getIntialValueSupplier() {
-    return intialValueSupplier;
+  public Supplier<A> getInitialValueSupplier() {
+    return initialValueSupplier;
   }
 
   public int getArgIndexInValue() {

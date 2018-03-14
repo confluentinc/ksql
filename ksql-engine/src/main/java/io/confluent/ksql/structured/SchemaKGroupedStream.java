@@ -69,15 +69,12 @@ public class SchemaKGroupedStream {
       final Initializer initializer,
       final UdafAggregator aggregator,
       final WindowExpression windowExpression,
-      final Serde<GenericRow> topicValueSerDe,
-      final String storeName
-  ) {
+      final Serde<GenericRow> topicValueSerDe) {
     final KTable aggKtable;
     if (windowExpression != null) {
       final Materialized<String, GenericRow, ?> materialized
-          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>as(storeName)
-          .withKeySerde(Serdes.String())
-          .withValueSerde(topicValueSerDe);
+          = Materialized.<String, GenericRow, WindowStore<Bytes, byte[]>>with(
+              Serdes.String(), topicValueSerDe);
 
       final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
       aggKtable = ksqlWindowExpression.applyAggregate(

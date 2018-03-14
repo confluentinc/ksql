@@ -17,7 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 
@@ -29,20 +29,7 @@ public class KsqlRestConfig extends RestConfig {
   public static final String COMMAND_PRODUCER_PREFIX  = "ksql.server.command.producer.";
 
   public static final String
-      COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.server.command.topic.suffix";
-  public static final ConfigDef.Type
-      COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
-  public static final String
-      COMMAND_TOPIC_SUFFIX_DEFAULT = "commands";
-  public static final ConfigDef.Importance
-      COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
-  public static final String
-      COMMAND_TOPIC_SUFFIX_DOC =
-          "A suffix to append to the end of the name of the Kafka topic to use for distributing "
-              + "commands";
-
-  public static final String
-      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "ksql.server.query.stream.disconnect.check";
+      STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
   public static final ConfigDef.Type
       STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
@@ -84,12 +71,6 @@ public class KsqlRestConfig extends RestConfig {
 
   static {
     CONFIG_DEF = baseConfigDef().define(
-        COMMAND_TOPIC_SUFFIX_CONFIG,
-        COMMAND_TOPIC_SUFFIX_TYPE,
-        COMMAND_TOPIC_SUFFIX_DEFAULT,
-        COMMAND_TOPIC_SUFFIX_IMPORTANCE,
-        COMMAND_TOPIC_SUFFIX_DOC
-    ).define(
         STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_DEFAULT,
@@ -141,11 +122,11 @@ public class KsqlRestConfig extends RestConfig {
     return getOriginals();
   }
 
-  public String getCommandTopic() {
+  public String getCommandTopic(String ksqlServiceId) {
     return String.format(
-        "%s_%s",
-        KsqlConfig.KSQL_SERVICE_ID_DEFAULT,
-        getString(COMMAND_TOPIC_SUFFIX_CONFIG)
+        "%s-%s",
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ksqlServiceId
     );
   }
 

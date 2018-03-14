@@ -34,7 +34,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.util.OptionsParser;
 import io.confluent.ksql.util.Pair;
 
-@Command(name = "cli", description = "KSQL CLI")
+@Command(name = "ksql", description = "KSQL CLI")
 public class Options {
 
   private static final String STREAMED_QUERY_ROW_LIMIT_OPTION_NAME = "--query-row-limit";

@@ -43,10 +43,6 @@ public class ArrayContainsKudf
           .disable(CANONICALIZE_FIELD_NAMES);
 
   @Override
-  public void init() {
-  }
-
-  @Override
   public Object evaluate(Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("ARRAY_CONTAINS udf should have two input argument. "

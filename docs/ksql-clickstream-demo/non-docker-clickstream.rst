@@ -131,7 +131,8 @@ Prerequisites
 
        .. code:: bash
 
-           $ ksql-server-start /etc/ksql/ksqlserver.properties > /tmp/ksql-logs/ksql-server.log 2>&1 &
+           $ ksql-server-start /etc/ksql/ksql-server.properties > /tmp/ksql-logs/ksql-server.log
+           2>&1 &
 
 
                       ===========================================
@@ -153,7 +154,7 @@ Prerequisites
 
        .. code:: bash
 
-          $ ksql http://localhost:8080
+          $ ksql http://localhost:8088
 
        You should now be in the KSQL CLI.
 

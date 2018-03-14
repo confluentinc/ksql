@@ -21,6 +21,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,8 +38,7 @@ public class KsqlRestConfigTest {
     Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
-    result.put(KsqlRestConfig.COMMAND_TOPIC_SUFFIX_CONFIG, "commands");
-    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+    result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     return result;
   }
 
@@ -79,4 +79,12 @@ public class KsqlRestConfigTest {
     assertEquals(COMMIT_INTERVAL_MS, originals1.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     assertEquals(COMMIT_INTERVAL_MS, originals2.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
   }
+
+  @Test
+  public void ensureCorrectCommandTopicName() {
+    KsqlRestConfig config = new KsqlRestConfig(getBaseProperties());
+    String commandTopicName = config.getCommandTopic("TestKSql");
+    assertThat(commandTopicName, equalTo("_confluent-ksql--TestKSql"));
+  }
+
 }

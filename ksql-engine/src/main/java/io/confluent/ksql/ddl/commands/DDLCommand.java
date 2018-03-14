@@ -20,6 +20,6 @@ import io.confluent.ksql.metastore.MetaStore;
 
 public interface DDLCommand {
 
-  DDLCommandResult run(MetaStore metaStore);
+  DDLCommandResult run(MetaStore metaStore, boolean isValidatePhase);
 
 }

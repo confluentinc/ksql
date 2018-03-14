@@ -386,10 +386,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
-          this
+          schemaRegistryClient
       ), tempMetaStore);
       ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropStream) statement, DataSource.DataSourceType.KSTREAM, this),
+          new DropSourceCommand((DropStream) statement,
+                                DataSource.DataSourceType.KSTREAM,
+                                schemaRegistryClient),
           tempMetaStoreForParser
       );
       return new Pair<>(statementString, statement);
@@ -397,10 +399,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
       ddlCommandExec.tryExecute(new DropSourceCommand(
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
-          this
+          schemaRegistryClient
       ), tempMetaStore);
       ddlCommandExec.tryExecute(
-          new DropSourceCommand((DropTable) statement, DataSource.DataSourceType.KTABLE, this),
+          new DropSourceCommand((DropTable) statement,
+                                DataSource.DataSourceType.KTABLE,
+                                schemaRegistryClient),
           tempMetaStoreForParser
       );
       return new Pair<>(statementString, statement);

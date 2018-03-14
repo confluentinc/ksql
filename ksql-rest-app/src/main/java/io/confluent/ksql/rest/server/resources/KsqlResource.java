@@ -530,7 +530,7 @@ public class KsqlResource {
     ddlCommandTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
       RegisterTopicCommand registerTopicCommand =
           new RegisterTopicCommand((RegisterTopic) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand, true);
       return statement.toString();
     });
 
@@ -562,7 +562,7 @@ public class KsqlResource {
 
     ddlCommandTasks.put(DropTopic.class, (statement, statementText, properties) -> {
       DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
-      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand);
+      new DDLCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand, true);
       return statement.toString();
     });
 
@@ -570,7 +570,7 @@ public class KsqlResource {
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           (DropStream) statement,
           DataSource.DataSourceType.KSTREAM,
-          ksqlEngine
+          ksqlEngine.getSchemaRegistryClient()
       );
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
@@ -580,7 +580,7 @@ public class KsqlResource {
       DropSourceCommand dropSourceCommand = new DropSourceCommand(
           (DropTable) statement,
           DataSource.DataSourceType.KTABLE,
-          ksqlEngine
+          ksqlEngine.getSchemaRegistryClient()
       );
       executeDDLCommand(dropSourceCommand);
       return statement.toString();
@@ -605,7 +605,7 @@ public class KsqlResource {
     DDLCommandResult ddlCommandResult = new DDLCommandExec(
         ksqlEngine
             .getMetaStore()
-            .clone()).execute(ddlCommand);
+            .clone()).execute(ddlCommand, true);
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
     }

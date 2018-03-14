@@ -49,6 +49,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -146,7 +147,8 @@ public class PhysicalPlanBuilder {
           resultStream.getClass().getCanonicalName()
       ));
     }
-    String serviceId = ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
+    String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+                       + ksqlConfig.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG).toString();
     String
         persistanceQueryPrefix =
         ksqlConfig.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).toString();

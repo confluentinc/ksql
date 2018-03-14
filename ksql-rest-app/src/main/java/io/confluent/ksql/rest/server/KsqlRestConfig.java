@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 
@@ -32,8 +33,6 @@ public class KsqlRestConfig extends RestConfig {
   public static final String KSQL_STREAMS_PREFIX       = "ksql.core.streams.";
   public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
   public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
-
-  public static final String KSQL_COMMAND_TOPIC_PREFIX = "_confluent-ksql";
 
   public static final String
       COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.command.topic.suffix";
@@ -151,7 +150,7 @@ public class KsqlRestConfig extends RestConfig {
   public String getCommandTopic(String ksqlServiceId) {
     return String.format(
         "%s-%s",
-        KSQL_COMMAND_TOPIC_PREFIX,
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
         ksqlServiceId
     );
   }

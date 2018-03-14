@@ -138,9 +138,14 @@ ksql.command.topic.suffix
 ksql.schema.registry.url
     The Schema Registry URL path to connect KSQL to.
 
+<<<<<<< HEAD
+    # Start KSQL in standalone mode with the custom properties above
+    $ ksql http://your-ksql-server:8088 --properties-file ./ksql.properties
+=======
 ksql.queries.file
     A file that specifies a predefined set of queries for the KSQL Server, KSQL, and its underlying Kafka Streams instances.
     For an example, see :ref:`<install_ksql-standalone>`.
+>>>>>>> upstream/4.1.x
 
 :cp-javadoc:`listeners |streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`
    The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).

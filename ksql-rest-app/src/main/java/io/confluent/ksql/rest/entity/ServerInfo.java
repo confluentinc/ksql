@@ -29,14 +29,22 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class ServerInfo {
   private final String version;
+  private final String kafkaClusterId;
 
   @JsonCreator
-  public ServerInfo(@JsonProperty("version") String version) {
+  public ServerInfo(
+      @JsonProperty("version") String version,
+      @JsonProperty("kafkaClusterId") String kafkaClusterId) {
     this.version = version;
+    this.kafkaClusterId = kafkaClusterId;
   }
 
   public String getVersion() {
     return version;
+  }
+
+  public String getKafkaClusterId() {
+    return kafkaClusterId;
   }
 
   @Override
@@ -44,15 +52,17 @@ public class ServerInfo {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ServerInfo)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ServerInfo serverInfo1 = (ServerInfo) o;
-    return Objects.equals(getVersion(), serverInfo1.getVersion());
+    ServerInfo that = (ServerInfo) o;
+    return Objects.equals(version, that.version)
+           && Objects.equals(kafkaClusterId, that.kafkaClusterId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getVersion());
+
+    return Objects.hash(version, kafkaClusterId);
   }
 }

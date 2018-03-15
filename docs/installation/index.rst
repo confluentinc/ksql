@@ -33,6 +33,7 @@ For advanced installation and configuration, see the following topics.
     client-server
     standalone
     server-config/index
+    ccloud-ksql
     upgrading
     
 

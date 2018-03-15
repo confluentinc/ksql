@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.testutils.secure;
 
+import org.apache.kafka.test.TestUtils;
+
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -40,11 +42,9 @@ final class KeyStoreUtil {
    */
   static Path createTemporaryStore(final String name, final String base64EncodedStore) {
     try {
-      final byte[] decoded = Base64.getDecoder()
-          .decode(base64EncodedStore.getBytes(StandardCharsets.UTF_8));
+      final byte[] decoded = Base64.getDecoder().decode(base64EncodedStore);
 
-      final File tempFile = File.createTempFile(name, ".jks");
-      tempFile.deleteOnExit();
+      final File tempFile = TestUtils.tempFile();
 
       Files.write(tempFile.toPath(), decoded);
 

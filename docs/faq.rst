@@ -279,3 +279,29 @@ Consumer groups
     where the default of ``ksql.service.id`` is ``ksql_``.
 
     The KSQL user will require a minimum of *DESCRIBE* and *READ* permissions for *GROUP*.
+
+======================================================
+Will KSQL work with a HTTPS Confluent Schema Registry?
+======================================================
+
+KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS.
+To achieve this you will need to:
+
+-  Specifiy the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
+   KSQL configuration file:
+
+    ... code:: bash
+        ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
+
+-  If the Schema Registry's SSL certificate is not signed by a CA that is recognised by the JVM
+   by default, then you will need to provide a suitable truststore via the ``KSQL_OPTS``
+   environment variable:
+
+   ... code:: bash
+      $ export KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store>
+                          -Djavax.net.ssl.trustStorePassword=<store-password>"
+
+   or on the commandline when starting KSQL:
+
+   ... code:: bash
+      $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>

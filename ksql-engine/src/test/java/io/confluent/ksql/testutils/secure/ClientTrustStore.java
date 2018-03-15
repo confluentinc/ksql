@@ -60,7 +60,7 @@ public final class ClientTrustStore {
     );
   }
 
-  private static String trustStorePath() {
+  public static String trustStorePath() {
     final Path path = trustStorePath.updateAndGet(existing -> {
       if (existing != null) {
         return existing;

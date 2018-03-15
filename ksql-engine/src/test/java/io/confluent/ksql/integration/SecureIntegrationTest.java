@@ -24,8 +24,6 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.Resource;
 import org.apache.kafka.common.resource.ResourceType;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +35,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
@@ -50,12 +51,12 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static org.hamcrest.Matchers.greaterThan;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -121,32 +122,6 @@ public class SecureIntegrationTest {
     configs.put("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(SUPER_USER));
 
     givenTestSetupWithConfig(configs);
-
-    // Then:
-    assertCanRunSimpleKsqlQuery();
-  }
-
-  @Test
-  public void shouldRunQuerySimpleQueryAgainstKafkaClusterWithAcls() throws Exception {
-    // Given:
-    outputTopic = "SIMPLE_ACLS_TEST";
-
-    givenAllowAcl(NORMAL_USER, ResourceType.CLUSTER, "kafka-cluster",
-                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, INPUT_TOPIC,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, outputTopic,
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.TOPIC, "__consumer_offsets",
-                  ImmutableSet.of(AclOperation.DESCRIBE));
-
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CSAS_SIMPLE_ACLS_TEST",
-                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
-
-    givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
 
     // Then:
     assertCanRunSimpleKsqlQuery();
@@ -293,6 +268,31 @@ public class SecureIntegrationTest {
     assertCanRunRepartitioningKsqlQuery();
   }
 
+  // Requires correctly configured schema-registry running
+  //@Test
+  public void shouldRunQueryAgainstSecureSchemaRegistry() throws Exception {
+    // Given:
+    final HostnameVerifier existing = HttpsURLConnection.getDefaultHostnameVerifier();
+    HttpsURLConnection.setDefaultHostnameVerifier(
+        (hostname, sslSession) -> hostname.equals("localhost"));
+
+    try {
+      System.setProperty("javax.net.ssl.trustStore", ClientTrustStore.trustStorePath());
+      System.setProperty("javax.net.ssl.trustStorePassword", "password");
+
+      final Map<String, Object> ksqlConfig = getKsqlConfig(SUPER_USER);
+      ksqlConfig.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://localhost:8481");
+      givenTestSetupWithConfig(ksqlConfig);
+
+      // Then:
+      assertCanRunKsqlQuery("CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS "
+                            + "SELECT * FROM %s;",
+                            outputTopic, INPUT_STREAM);
+    } finally {
+      HttpsURLConnection.setDefaultHostnameVerifier(existing);
+    }
+  }
+
   private void givenAllowAcl(final Credentials user,
                              final ResourceType resourceType,
                              final String resourceName,
@@ -330,11 +330,8 @@ public class SecureIntegrationTest {
         "Wait for async topic creation"
     );
 
-    final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-        ksqlEngine.getMetaStore().getSource(outputTopic).getSchema());
-
     final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);
-    consumer.readResults(outputTopic, schema, 1, new ByteArrayDeserializer());
+    consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
   }
 
   private Map<String, Object> getBaseKsqlConfig() {

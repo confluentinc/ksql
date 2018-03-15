@@ -58,7 +58,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -244,7 +244,7 @@ public class KsqlResource {
   }
 
   private boolean isExecutableDdlStatement(Statement statement) {
-    return statement instanceof DDLStatement && !(statement instanceof SetProperty);
+    return statement instanceof DdlStatement && !(statement instanceof SetProperty);
   }
 
   /**

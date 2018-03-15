@@ -28,7 +28,7 @@ After KSQL is started, your terminal should resemble this.
 For advanced installation and configuration, see the following topics.
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     architecture
     installing

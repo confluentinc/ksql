@@ -11,9 +11,84 @@ communicating with the Kafka cluster. KSQL can be configured for:
 - :ref:`SASL for authentication <kafka_sasl_auth>`
 - :ref:`HTTPS for Confluent Schema Registry <schema_registry_http_https>`
 
-Here are the steps to configure KSQL security:
+-------------------------------------------------
+Using KSQL with an Apache Kafka Secured with ACLs
+-------------------------------------------------
 
-#.  Add these configuration settings to the ``/etc/ksql/ksql-server.properties`` file.
+You can use KSQL with Apache Kafka clusters that are secured with ACLs. The behavior depends on whether the cluster is
+interactive or non-interactive.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Interactive KSQL clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Interactive KSQL clusters require that the KSQL user has open access to create, read, write and delete topics and
+use any consumer group.
+
+The required ACLs are:
+
+- *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
+- *CREATE* permission on the *CLUSTER*.
+- DESCRIBE*, *READ*, *WRITE* and *DELETE* permissions on the *<any>* *TOPIC*.
+- *DESCRIBE* and *READ* permissions  on the *<any>* *GROUP*.
+
+It is still possible to restrict the KSQL user from accessing specific resources using *DENY* ACLs. For example, you can add a
+*DENY* ACL to stop KSQL queries from accessing a topic that contains sensitive data.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Non-Interactive KSQL clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Non-interactive KSQL clusters will run with much more restrictive ACLs, though it currently requires a little effort to
+work out what ACLs are required. This will be improved in future KSQL releases.
+
+Standard ACLs
+    The KSQL user always requires:
+
+    - *DESCRIBE_CONFIGS* permission on the *CLUSTER*.
+    - *DESCRIBE* permission on the *__consumer_offsets* topic.
+
+    If you want KSQL to create internal and sink topics then the KSQL user should also be granted:
+
+    - *CREATE* permission on the *CLUSTER*.
+
+Source topics
+    KSQL users require *DESCRIBE* and *READ* permissions for each source and input topic. The topic should already exist
+    when KSQL is started.
+
+Sink topics
+    KSQL users require *DESCRIBE* and *WRITE* permissions ror each sink and output topic. If the topic does not already
+    exist, the user also requires *CREATE* permissions on the *CLUSTER*.
+
+Change-log and repartition topics
+    The set of changelog and repartitioning topics that KSQL requires depends on the queries being executed. The easiest
+    way to determine the list of required topics is to first run the queries on an open Kafka cluster and list the topics
+    that are created.
+
+    All changelog and repartition topics are prefixed with  ``<value of ksql.service.id property>_query_<query id>_`` where
+    the default of ``ksql.service.id`` is ``ksql_``.
+
+    KSQL users require a minimum of *DESCRIBE*, *READ* and *WRITE* permissions for each changelog and repartition *TOPIC*.
+
+    If the KSQL user does not have *CREATE* permissions on the *CLUSTER*, then all changelog and repartition topics must
+    already exist, with the same number of partitions as the source topic, and ``replication.factor`` replicas.
+
+Consumer groups
+    The set of consumer groups that KSQL requires depends on the queries that are being executed. The easiest way to
+    determine the list of consumer groups is to first run the queries on an open Kafka cluster and list the groups created.
+
+    Consumer group names are formatted like ``<value of ksql.service.id property>_query_<query id>``, where the default
+    of ``ksql.service.id`` is ``ksql_``.
+
+    KSQL users require a minimum of *DESCRIBE* and *READ* permissions for *GROUP*.
+
+-----------------------------
+Configuring Security for KSQL
+-----------------------------
+
+Here are the general steps to configure KSQL security:
+
+#.  Add your configuration settings to the ``/etc/ksql/ksql-server.properties`` file.
 
     .. code:: bash
 
@@ -57,6 +132,9 @@ Here are the steps to configure KSQL security:
         consumer.confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="client" password="client-secret";
         consumer.confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 
+    The exact settings you need depend on what SASL mechanism your Kafka cluster is using and how your SSL certificates
+    are signed. For full details, see the `Security section of the Kafka documentation <http://kafka.apache.org/documentation.html#security>`__.
+
 #.  Start KSQL server with your configuration file specified.
 
     .. code:: bash
@@ -77,9 +155,9 @@ Here are the steps to configure KSQL security:
                             -Djavax.net.ssl.keyStore=/etc/kafka/secrets/kafka.client.keystore.jks
                             -Djavax.net.ssl.keyStorePassword=confluent"
 
-----------
+^^^^^^^^^^
 Next Steps
-----------
+^^^^^^^^^^
 
 See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__
 and try out the :ref:`Monitoring Kafka streaming ETL deployments <cp-demo>` tutorial.

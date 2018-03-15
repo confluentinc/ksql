@@ -20,6 +20,7 @@ if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-silent.properties" 
 fi
 
 EXTRA_ARGS="-name ksql-server -loggc"
+export KSQL_INSTALL_DIR=$base_dir
 
 # TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
 # so that useful defaults for bootstrap server, port, etc. can be established here

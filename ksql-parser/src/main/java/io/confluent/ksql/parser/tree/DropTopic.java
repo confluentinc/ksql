@@ -21,7 +21,7 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-public class DropTopic extends Statement implements DDLStatement {
+public class DropTopic extends Statement implements DdlStatement {
 
   private final QualifiedName topicName;
   private final boolean exists;

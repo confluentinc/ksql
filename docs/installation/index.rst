@@ -28,11 +28,11 @@ After KSQL is started, your terminal should resemble this.
 For advanced installation and configuration, see the following topics.
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
 
     client-server
     standalone
-    config-ksql
+    server-config/index
     upgrading
     
 

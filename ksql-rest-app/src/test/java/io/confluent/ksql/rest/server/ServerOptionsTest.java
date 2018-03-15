@@ -67,7 +67,7 @@ public class ServerOptionsTest {
   public void shouldOverrideFilePropertiesWithSystemProperties() throws IOException {
     final Properties sysProperties = new Properties();
     sysProperties.setProperty("bootstrap.servers", "blah:9092");
-    sysProperties.setProperty("listeners", "http://localhost:8080");
+    sysProperties.setProperty("listeners", "http://localhost:8088");
 
     final File propsFile = TestUtils.tempFile();
     try (final PrintWriter writer =
@@ -81,7 +81,7 @@ public class ServerOptionsTest {
 
     final Properties properties = options.loadProperties(() -> sysProperties);
     assertThat(properties.getProperty("bootstrap.servers"), equalTo("blah:9092"));
-    assertThat(properties.getProperty("listeners"), equalTo("http://localhost:8080"));
+    assertThat(properties.getProperty("listeners"), equalTo("http://localhost:8088"));
     assertThat(properties.get("num.stream.threads"), equalTo("1"));
   }
 }

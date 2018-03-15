@@ -315,3 +315,5 @@ queries.
    .. code:: bash
 
        ksql> exit
+
+

@@ -53,10 +53,12 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DDLStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -70,6 +72,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -207,15 +210,9 @@ public class KsqlResource {
       return getStatementExecutionPlan(explain, statementText);
     } else if (statement instanceof RunScript) {
       return distributeStatement(statementText, statement, streamsProperties);
-    } else if (statement instanceof RegisterTopic
-               || statement instanceof CreateStream
-               || statement instanceof CreateTable
-               || statement instanceof CreateStreamAsSelect
-               || statement instanceof CreateTableAsSelect
+    } else if (isExecutableDdlStatement(statement)
+               || statement instanceof CreateAsSelect
                || statement instanceof TerminateQuery
-               || statement instanceof DropTopic
-               || statement instanceof DropStream
-               || statement instanceof DropTable
     ) {
       if (statement instanceof AbstractStreamCreateStatement) {
         AbstractStreamCreateStatement streamCreateStatement = (AbstractStreamCreateStatement)
@@ -244,6 +241,10 @@ public class KsqlResource {
         ));
       }
     }
+  }
+
+  private boolean isExecutableDdlStatement(Statement statement) {
+    return statement instanceof DDLStatement && !(statement instanceof SetProperty);
   }
 
   /**

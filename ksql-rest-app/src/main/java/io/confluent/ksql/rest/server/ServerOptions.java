@@ -47,8 +47,9 @@ public class ServerOptions {
   @Required
   @Arguments(
       title = "config-file",
-      description = "A file specifying properties for the KSQL Server, KSQL, "
-          + "and its underlying Kafka Streams instance(s)")
+      description = "A file specifying configs for the KSQL Server, KSQL, "
+          + "and its underlying Kafka Streams instance(s). Refer to KSQL "
+          + "documentation for a list of available configs.")
   private String propertiesFile;
 
   @Option(

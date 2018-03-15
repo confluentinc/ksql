@@ -19,7 +19,7 @@ After building the project you can run the examples by following these steps:
 
 4. Start the KSQL CLI using the following command:
 
-        $ ./bin/ksql http://localhost:8080
+        $ ./bin/ksql http://localhost:8088
 
 
 You will be able to run the provided queries and see the results. The data gen module will continuously push new messages to the topics until you terminate them

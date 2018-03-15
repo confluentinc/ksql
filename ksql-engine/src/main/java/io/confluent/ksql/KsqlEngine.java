@@ -555,11 +555,12 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.allLiveQueries.remove(queryMetadata);
   }
 
+
   public DdlCommandResult executeDdlStatement(
       String sqlExpression, final DdlStatement statement,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> overriddenProperties
   ) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   public SchemaRegistryClient getSchemaRegistryClient() {

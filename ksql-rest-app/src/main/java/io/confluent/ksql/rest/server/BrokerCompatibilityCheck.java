@@ -36,7 +36,7 @@ import io.confluent.ksql.util.KsqlException;
 
 public class BrokerCompatibilityCheck implements Closeable {
 
-  private static final String KSQL_COMPATIBILITY_CHECK = "__ksql_compatibility_check";
+  private static final String KSQL_COMPATIBILITY_CHECK = "_confluent-ksql_compatibility_check";
   private final Consumer<?, ?> consumer;
   private final TopicPartition topicPartition;
 

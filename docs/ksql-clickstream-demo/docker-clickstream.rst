@@ -145,7 +145,7 @@ Prerequisites
 
        .. code:: bash
 
-           $ ksql http://localhost:8080
+           $ ksql http://localhost:8088
 
        You should now be in the KSQL CLI.
 

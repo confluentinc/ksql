@@ -107,10 +107,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
 
-  public static String getCommandsKsqlTopicName() {
-    return COMMANDS_KSQL_TOPIC_NAME;
-  }
-
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -214,10 +210,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
-    ksqlConfProperties.putAll(restConfig.getCommandProducerProperties());
-    ksqlConfProperties.putAll(restConfig.getKsqlStreamsProperties());
-    ksqlConfProperties.putAll(restConfig.getOriginals());
+    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
 
@@ -231,7 +224,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
     final String kafkaClusterId = adminClient.describeCluster().clusterId().get();
 
-    String commandTopic = restConfig.getCommandTopic();
+    String commandTopic =
+        restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     createCommandTopicIfNecessary(restConfig, topicClient, commandTopic);
 
     Map<String, Expression> commandTopicProperties = new HashMap<>();

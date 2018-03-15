@@ -35,11 +35,10 @@ You can connect KSQL to your |cp| Kafka cluster in |ccloud|.
         producer.request.timeout.ms=300000
         producer.max.block.ms=9223372036854775807
 
-#.  Start or restart |cp|.
+#.  Restart the KSQL server. The steps do this are dependent on your environment.
 
-    .. code::
-
-        $ <path-to-confluent>/confluent start
+    - If you are using the Confluent CLI, see :ref:`cli-command-reference`.
+    - If you are running |cp| in a production environment, use ``ksql-server-stop && ksql-server-start``.
 
 
 For more information, see :ref:`cloud-quickstart`.

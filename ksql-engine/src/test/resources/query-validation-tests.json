@@ -370,6 +370,34 @@
       ]
     },
     {
+      "name": "partition by with null value",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": null, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "partition by with null partition by value",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,,1", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+      ]
+    },
+    {
       "name": "max double group by",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
@@ -537,6 +565,26 @@
         {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"c\",\"b\",\"a\"],\"ID\":0}", "timestamp": 0},
         {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"c\",\"b\",\"a\"],\"ID\":0}", "timestamp": 0},
         {"topic": "S2", "key": 0, "value": "{\"TOPK\":[\"d\",\"c\",\"b\"],\"ID\":0}", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "count group by value",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT name, count(*) FROM test group by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": null, "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": "zero", "value": "zero,1", "timestamp": 0},
+        {"topic": "S2", "key": "zero", "value": "zero,2", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,1", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,2", "timestamp": 0}
       ]
     }
   ]

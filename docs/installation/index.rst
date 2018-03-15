@@ -32,6 +32,7 @@ For advanced installation and configuration, see the following topics.
 
     client-server
     standalone
+    ccloud-ksql
     config-ksql
     upgrading
     

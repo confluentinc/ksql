@@ -34,7 +34,7 @@ Here is an example ``ksql-server.properties`` file:
 
         bootstrap.servers=localhost:9092
         ksql.command.topic.suffix=commands
-        listeners=http://localhost:8080
+        listeners=http://localhost:8088
 
 After you have configured your properties file, start KSQL with your properties file specified.
 
@@ -61,7 +61,7 @@ Here is an example ``ksql-server.properties`` file:
 
         bootstrap.servers=localhost:9092
         ksql.command.topic.suffix=commands
-        listeners=http://localhost:8080
+        listeners=http://localhost:8088
 
 After you have configured your properties file, start KSQL with your properties file specified.
 

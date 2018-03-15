@@ -9,13 +9,11 @@
     <!-- Checkstyle 6.19 doesn't like properly-formatted annotations -->
     <suppress files="KsqlEntity.java" checks="IndentationCheck"/>
 
-    <!-- Suppress some checks on all files -->
-    <suppress files="." checks="AbbreviationAsWordInName"/>
     <suppress files="JsonPathTokenizer.java" checks="AvoidEscapedUnicodeCharacters"/>
 
+    <suppress files="(PersistentQueryMetadata.java|SourceDescription.java)" checks="ParameterNumber"/>
+
     <!-- Semantics may not be well checked by rules -->
-    <suppress files="." checks="ParameterNumber"/>
-    <suppress files="." checks="BooleanExpressionComplexityCheck"/>
     <suppress files="." checks="NPathComplexity"/>
     <suppress files="." checks="JavaNCSSCheck"/>
     <suppress files="." checks="ClassDataAbstractionCouplingCheck"/>

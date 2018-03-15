@@ -14,23 +14,10 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.parser.tree;
 
-public class DDLCommandResult {
-
-  private final boolean success;
-  private final String message;
-
-  public DDLCommandResult(boolean success, String message) {
-    this.success = success;
-    this.message = message;
-  }
-
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public String getMessage() {
-    return message;
-  }
+/**
+ * A Marker interface to signal that a Statement is a DDLStatement
+ */
+public interface DdlStatement {
 }

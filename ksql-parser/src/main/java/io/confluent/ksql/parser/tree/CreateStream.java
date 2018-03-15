@@ -27,7 +27,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class CreateStream extends AbstractStreamCreateStatement implements DDLStatement {
+public class CreateStream extends AbstractStreamCreateStatement implements DdlStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;

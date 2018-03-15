@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.google.common.base.Preconditions;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -52,9 +54,10 @@ public class KafkaTopicsList extends KsqlEntity {
   @JsonCreator
   public KafkaTopicsList(
       @JsonProperty("statementText") String statementText,
-      @JsonProperty("kafka_topics") Collection<KafkaTopicInfo> topics
+      @JsonProperty("topics") Collection<KafkaTopicInfo> topics
   ) {
     super(statementText);
+    Preconditions.checkNotNull(topics, "topics field must not be null");
     this.topics = topics;
   }
 

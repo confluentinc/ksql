@@ -56,8 +56,7 @@ public class StreamsTopologyUtil {
         schemaRegistryClient.deleteSubject(internalTopicSubject);
       }
     } catch (Exception e) {
-      throw new KsqlException("Could not clean up the schema registry for internal topics for "
-                              + "query: " + queryMetadata.getQueryApplicationId(), e);
+      // Do nothing! Schema registry clean up is best effort!
     }
 
   }

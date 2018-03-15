@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Optional;
 
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,6 +27,7 @@ import java.util.List;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
@@ -122,6 +125,25 @@ public class KsqlEngineTest {
 
     assertThat(parsedStatements.size(), equalTo(3));
 
+  }
+
+  @Test
+  public void shouldCleanUpSchemaRegistry() throws Exception {
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries("create table bar with (value_format = 'avro') as select * "
+                                   + "from "
+                                   + "test2;" +
+                                   "create table foo as select * from test2;",
+                                          Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    Assert.assertTrue(schemaRegistryClient.getAllSubjects().contains("BAR-value"));
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
+    Assert.assertFalse(schemaRegistryClient.getAllSubjects().contains("BAR-value"));
   }
 
 }

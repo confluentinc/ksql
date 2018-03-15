@@ -84,7 +84,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StreamsTopologyUtil;
 
-public class KsqlEngine implements Closeable, QueryTerminator {
+public class KsqlEngine implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
@@ -496,7 +496,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return ddlCommandExec;
   }
 
-  @Override
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
     PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
     if (persistentQueryMetadata == null) {
@@ -511,25 +510,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     }
 
     return true;
-  }
-
-  @Override
-  public void terminateQueryForEntity(final String entity) {
-    final Optional<PersistentQueryMetadata> query = persistentQueries.values()
-        .stream()
-        .filter(persistentQueryMetadata -> persistentQueryMetadata
-            .getEntity()
-            .equalsIgnoreCase(entity))
-        .findFirst();
-
-    if (query.isPresent()) {
-      final PersistentQueryMetadata metadata = query.get();
-      log.info("Terminating persistent query {}", metadata.getId());
-      metadata.close();
-      persistentQueries.remove(metadata.getId());
-      livePersistentQueries.remove(metadata);
-      allLiveQueries.remove(metadata);
-    }
   }
 
   public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
@@ -568,23 +548,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     topicClient.close();
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
-  }
-
-  @Override
-  public boolean terminateAllQueries() {
-    try {
-      for (QueryMetadata queryMetadata : livePersistentQueries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.close();
-        }
-        allLiveQueries.remove(queryMetadata);
-      }
-    } catch (Exception e) {
-      return false;
-    }
-
-    return true;
   }
 
   public void removeTemporaryQuery(QueryMetadata queryMetadata) {

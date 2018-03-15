@@ -16,14 +16,21 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
+public class DdlCommandResult {
 
-import io.confluent.ksql.parser.tree.DDLStatement;
+  private final boolean success;
+  private final String message;
 
-public interface DDLCommandFactory {
-  DDLCommand create(
-      String sqlExpression,
-      final DDLStatement ddlStatement,
-      final Map<String, Object> properties
-  );
+  public DdlCommandResult(boolean success, String message) {
+    this.success = success;
+    this.message = message;
+  }
+
+  public boolean isSuccess() {
+    return success;
+  }
+
+  public String getMessage() {
+    return message;
+  }
 }

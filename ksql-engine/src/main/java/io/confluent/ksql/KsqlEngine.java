@@ -44,8 +44,8 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandExec;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -60,7 +60,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -96,7 +96,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
-  private final DDLCommandExec ddlCommandExec;
+  private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
@@ -133,7 +133,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ksqlConfig = ksqlConfig;
     this.metaStore = metaStore;
     this.topicClient = topicClient;
-    this.ddlCommandExec = new DDLCommandExec(this.metaStore);
+    this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
         new CommandFactories(topicClient, this, true)
@@ -476,7 +476,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return topicClient;
   }
 
-  public DDLCommandExec getDDLCommandExec() {
+  public DdlCommandExec getDdlCommandExec() {
     return ddlCommandExec;
   }
 
@@ -555,8 +555,9 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.allLiveQueries.remove(queryMetadata);
   }
 
-  public DDLCommandResult executeDdlStatement(
-      String sqlExpression, final DDLStatement statement,
+
+  public DdlCommandResult executeDdlStatement(
+      String sqlExpression, final DdlStatement statement,
       final Map<String, Object> overriddenProperties
   ) {
     return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);

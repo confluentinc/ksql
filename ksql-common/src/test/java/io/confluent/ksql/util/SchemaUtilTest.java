@@ -27,7 +27,7 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -266,13 +266,13 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectSqlType() {
-    String sqlType1 = SchemaUtil.getSQLTypeName(Schema.BOOLEAN_SCHEMA);
-    String sqlType2 = SchemaUtil.getSQLTypeName(Schema.INT32_SCHEMA);
-    String sqlType3 = SchemaUtil.getSQLTypeName(Schema.INT64_SCHEMA);
-    String sqlType4 = SchemaUtil.getSQLTypeName(Schema.FLOAT64_SCHEMA);
-    String sqlType5 = SchemaUtil.getSQLTypeName(Schema.STRING_SCHEMA);
-    String sqlType6 = SchemaUtil.getSQLTypeName(SchemaBuilder.array(Schema.FLOAT64_SCHEMA));
-    String sqlType7 = SchemaUtil.getSQLTypeName(SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
+    String sqlType1 = SchemaUtil.getSqlTypeName(Schema.BOOLEAN_SCHEMA);
+    String sqlType2 = SchemaUtil.getSqlTypeName(Schema.INT32_SCHEMA);
+    String sqlType3 = SchemaUtil.getSqlTypeName(Schema.INT64_SCHEMA);
+    String sqlType4 = SchemaUtil.getSqlTypeName(Schema.FLOAT64_SCHEMA);
+    String sqlType5 = SchemaUtil.getSqlTypeName(Schema.STRING_SCHEMA);
+    String sqlType6 = SchemaUtil.getSqlTypeName(SchemaBuilder.array(Schema.FLOAT64_SCHEMA));
+    String sqlType7 = SchemaUtil.getSqlTypeName(SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA));
 
     assertThat("Invalid SQL type.", sqlType1, equalTo("BOOLEAN"));
     assertThat("Invalid SQL type.", sqlType2, equalTo("INT"));

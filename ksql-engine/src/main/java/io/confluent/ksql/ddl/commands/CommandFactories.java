@@ -22,7 +22,7 @@ import java.util.Map;
 import io.confluent.ksql.QueryTerminator;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -32,9 +32,9 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
-public class CommandFactories implements DDLCommandFactory {
+public class CommandFactories implements DdlCommandFactory {
 
-  private final Map<Class<? extends DDLStatement>, DDLCommandFactory> factories = new HashMap<>();
+  private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
 
   public CommandFactories(
       final KafkaTopicClient topicClient,
@@ -95,9 +95,9 @@ public class CommandFactories implements DDLCommandFactory {
   }
 
   @Override
-  public DDLCommand create(
+  public DdlCommand create(
       String sqlExpression,
-      final DDLStatement ddlStatement,
+      final DdlStatement ddlStatement,
       final Map<String, Object> properties
   ) {
     if (!factories.containsKey(ddlStatement.getClass())) {

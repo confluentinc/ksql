@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
@@ -66,5 +67,51 @@ public class KsqlConfigTest {
     assertThat(result, nullValue());
   }
 
+  @Test
+  public void shouldSetStreamsConfigProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("100"));
+  }
 
+  @Test
+  public void shouldSetPrefixedStreamsConfigProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("100"));
+  }
+
+  @Test
+  public void shouldCloneWithKsqlPropertyOverwrite() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test"));
+    final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-2"));
+    Object result = ksqlConfigClone.getKsqlConfigProps().get(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    assertThat(result, equalTo("test-2"));
+  }
+
+  @Test
+  public void shouldCloneWithStreamPropertyOverwrite() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
+        Collections.singletonMap(
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
+    Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("200"));
+  }
+
+  @Test
+  public void shouldCloneWithPrefixedStreamPropertyOverwrite() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "100"));
+    final KsqlConfig ksqlConfigClone = ksqlConfig.cloneWithPropertyOverwrite(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "200"));
+    Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, equalTo("200"));
+  }
 }

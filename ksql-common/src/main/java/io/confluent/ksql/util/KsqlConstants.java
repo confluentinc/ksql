@@ -18,6 +18,8 @@ package io.confluent.ksql.util;
 
 public class KsqlConstants {
 
+  public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
 
@@ -36,4 +38,5 @@ public class KsqlConstants {
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
 
+  public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
 }

@@ -132,8 +132,7 @@ public class SchemaKStream {
         kstream.mapValues(row -> {
           List<Object> newColumns = new ArrayList<>();
           for (Field schemaField : selectSchema.fields()) {
-            newColumns.add(
-                row.getColumns().get(SchemaUtil.getFieldIndexByName(schema, schemaField.name()))
+            newColumns.add(extractColumn(schemaField, row)
             );
           }
           return new GenericRow(newColumns);
@@ -239,14 +238,13 @@ public class SchemaKStream {
       return this;
     }
 
-    KStream keyedKStream = kstream.selectKey((key, value) -> {
-      String newKey =
-          value
-              .getColumns()
-              .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()))
-              .toString();
-      return newKey;
-    }).mapValues((key, row) -> {
+    KStream keyedKStream = kstream.filter((key, value) ->
+        value != null
+            && extractColumn(newKeyField, value) != null
+    ).selectKey((key, value) ->
+        extractColumn(newKeyField, value)
+            .toString()
+    ).mapValues((key, row) -> {
       if (updateRowKey) {
         row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
       }
@@ -262,6 +260,12 @@ public class SchemaKStream {
         functionRegistry,
         schemaRegistryClient
     );
+  }
+
+  private Object extractColumn(Field newKeyField, GenericRow value) {
+    return value
+        .getColumns()
+        .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()));
   }
 
   private String fieldNameFromExpression(Expression expression) {
@@ -315,7 +319,7 @@ public class SchemaKStream {
           SchemaUtil.getIndexInSchema(groupByExpr.toString(), getSchema()));
     }
 
-    KGroupedStream kgroupedStream = kstream.groupBy(
+    KGroupedStream kgroupedStream = kstream.filter((key, value) -> value != null).groupBy(
         (key, value) -> {
           StringBuilder newKey = new StringBuilder();
           boolean addSeparator1 = false;

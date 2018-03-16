@@ -112,7 +112,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     return COMMANDS_STREAM_NAME;
   }
 
-  public KsqlRestApplication(
+  private KsqlRestApplication(
       KsqlEngine ksqlEngine,
       KsqlRestConfig config,
       CommandRunner commandRunner,
@@ -134,16 +134,18 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
-    final String ksqlInstallDir = System.getenv("KSQL_INSTALL_DIR");
-    if (ksqlInstallDir == null && isUiEnabled) {
-      log.info("environment variable KSQL_INSTALL_DIR is not defined. "
-          + "User interface will be disabled");
-      this.isUiEnabled = false;
+    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+
+    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
+      log.warn("System property {} is not set. User interface will be disabled",
+          KsqlRestConfig.INSTALL_DIR_CONFIG);
       this.uiFolder = null;
-    } else {
+    } else if (isUiEnabled){
       this.uiFolder = ksqlInstallDir + "/ui";
-      this.isUiEnabled = isUiEnabled;
+    } else {
+      this.uiFolder = null;
     }
+    this.isUiEnabled = isUiEnabled && uiFolder != null;
   }
 
   @Override

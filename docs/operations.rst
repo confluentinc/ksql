@@ -3,9 +3,19 @@
 KSQL Operations
 ===============
 
+================================================
+Local Development and Testing with Confluent CLI
+================================================
+
+For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more information,
+see the :ref:`quickstart`.
+
+.. include:: ../../includes/installation.rst
+    :start-line: 34
+    :end-line: 37
 
 =============================
-Capacity planning and scaling
+Capacity Planning and Scaling
 =============================
 
 TBD
@@ -61,6 +71,12 @@ Your output should resemble:
     messages-consumed-max: 103397.81191436431
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
+
+===================================
+Starting and Stopping KSQL Clusters
+===================================
+
+TBD
 
 ===============
 Troubleshooting

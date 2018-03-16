@@ -1,0 +1,66 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "partition by with projection select some",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "partition by with projection select all",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0,zero,50", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "partition by with null value",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": null, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "partition by with null partition by value",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,,1", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+      ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.errors;
 
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -29,14 +30,18 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
   private static final Logger log = LoggerFactory.getLogger(StreamThread.class);
 
   @Override
-  public DeserializationHandlerResponse handle(final ProcessorContext context,
-                                               final ConsumerRecord<byte[], byte[]> record,
-                                               final Exception exception) {
+  public DeserializationHandlerResponse handle(
+      final ProcessorContext context,
+      final ConsumerRecord<byte[], byte[]> record,
+      final Exception exception
+  ) {
 
-    log.warn("Exception caught during Deserialization, "
-            + "taskId: {}, topic: {}, partition: {}, offset: {}",
-            context.taskId(), record.topic(), record.partition(), record.offset(),
-            exception);
+    log.warn(
+        "Exception caught during Deserialization, "
+        + "taskId: {}, topic: {}, partition: {}, offset: {}",
+        context.taskId(), record.topic(), record.partition(), record.offset(),
+        exception
+    );
 
     MetricCollectors.recordError(record.topic());
     return DeserializationHandlerResponse.CONTINUE;

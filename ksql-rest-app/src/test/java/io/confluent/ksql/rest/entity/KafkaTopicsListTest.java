@@ -31,7 +31,8 @@ public class KafkaTopicsListTest {
     Collection<KsqlTopic> ksqlTopics = Collections.emptyList();
     // represent the full list of topics
     Map<String, TopicDescription> topicDescriptions = new HashMap<>();
-    TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, new Node(1, "", 8080), Collections.emptyList(), Collections.emptyList());
+    TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, new Node(1, "", 8088),
+                                                                   Collections.emptyList(), Collections.emptyList());
     topicDescriptions.put("test-topic", new TopicDescription("test-topic", false, Collections.singletonList(topicPartitionInfo)));
 
 
@@ -61,7 +62,7 @@ public class KafkaTopicsListTest {
     KafkaTopicInfo first = topicsList.getTopics().iterator().next();
     assertThat(first.getConsumerGroupCount(), equalTo(1));
     assertThat(first.getConsumerCount(), equalTo(1));
-    assertThat(first.getPartitionCount(), equalTo(1));
+    assertThat(first.getReplicaInfo().size(), equalTo(1));
 
   }
 }

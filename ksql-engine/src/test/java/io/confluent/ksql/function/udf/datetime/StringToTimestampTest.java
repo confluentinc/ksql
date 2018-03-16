@@ -16,9 +16,11 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
 
@@ -37,21 +39,25 @@ public class StringToTimestampTest {
   }
 
   @Test
-  public void shouldCovertStringToTimestamp() {
+  public void shouldCovertStringToTimestamp() throws ParseException {
     // When:
     final Object result = udf.evaluate("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
-    assertThat(result, is(1638360611123L));
+    long expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+        .parse("2021-12-01 12:10:11.123").getTime();
+    assertThat(result, is(expectedResult));
   }
 
   @Test
-  public void shouldSupportEmbeddedChars() {
+  public void shouldSupportEmbeddedChars() throws ParseException {
     // When:
     final Object result = udf.evaluate("2021-12-01T12:10:11.123Fred", "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    assertThat(result, is(1638360611123L));
+    long expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
+        .parse("2021-12-01T12:10:11.123Fred").getTime();
+    assertThat(result, is(expectedResult));
   }
 
   @Test(expected = KsqlFunctionException.class)
@@ -84,7 +90,11 @@ public class StringToTimestampTest {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> {
-          shouldCovertStringToTimestamp();
+          try {
+            shouldCovertStringToTimestamp();
+          } catch (ParseException e) {
+            Assert.fail(e.getMessage());
+          }
           udf.evaluate("1988-01-12 10:12:13.456", "yyyy-MM-dd HH:mm:ss.SSS");
         });
   }

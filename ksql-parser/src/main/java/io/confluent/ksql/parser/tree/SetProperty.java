@@ -22,7 +22,7 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class SetProperty extends Statement implements DDLStatement {
+public class SetProperty extends Statement implements DdlStatement {
 
   private final String propertyName;
   private final String propertyValue;

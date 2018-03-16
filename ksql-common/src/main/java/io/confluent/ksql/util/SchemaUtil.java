@@ -256,7 +256,7 @@ public class SchemaUtil {
     return stringBuilder.toString();
   }
 
-  public static String getSQLTypeName(Schema schema) {
+  public static String getSqlTypeName(Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "INT";
@@ -270,12 +270,12 @@ public class SchemaUtil {
       case STRING:
         return "VARCHAR";
       case ARRAY:
-        return "ARRAY<" + getSQLTypeName(schema.valueSchema()) + ">";
+        return "ARRAY<" + getSqlTypeName(schema.valueSchema()) + ">";
       case MAP:
         return "MAP<"
-               + getSQLTypeName(schema.keySchema())
+               + getSqlTypeName(schema.keySchema())
                + ","
-               + getSQLTypeName(schema.valueSchema())
+               + getSqlTypeName(schema.valueSchema())
                + ">";
       default:
         throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));

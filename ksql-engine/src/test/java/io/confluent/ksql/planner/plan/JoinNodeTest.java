@@ -80,7 +80,7 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldBuildSourceNode() throws Exception {
+  public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -89,9 +89,8 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() throws Exception {
+  public void shouldBuildTableNodeWithCorrectAutoCommitOffsetPolicy() {
 
-    StreamsBuilder streamsBuilder = mock(StreamsBuilder.class);
     KsqlConfig ksqlConfig = mock(KsqlConfig.class);
     KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
     MetastoreUtil metastoreUtil = mock(MetastoreUtil.class);
@@ -150,12 +149,11 @@ public class JoinNodeTest {
   @Test
   public void shouldHaveLeftJoin() {
     final Topology topology = builder.build();
-    System.out.println(topology.describe());
     final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000013");
+        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
     final List<String> predecessors = leftJoin.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KSTREAM-REDUCE-STATE-STORE-0000000003")));
-    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000012")));
+    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000013")));
   }
 
   @Test

@@ -137,27 +137,20 @@ timestamp and message key, respectively.
 
 The WITH clause supports the following properties:
 
-+--------------+-------------------------------------------------------+
-| Property     | Description                                           |
-+==============+=======================================================+
-| KAFKA_TOPIC  | The name of the Kafka topic that backs this stream.   |
-| (required)   | The topic must already exist in Kafka.                |
-+--------------+-------------------------------------------------------+
-| VALUE_FORMAT | Specifies the serialization format of the message     |
-| (required)   | value in the topic. Supported formats: ``JSON``,      |
-|              | ``DELIMITED``, and ``AVRO``                           |
-+--------------+-------------------------------------------------------+
-| KEY          | Associates the message key in the Kafka topic with a  |
-|              | column in the KSQL stream.                            |
-+--------------+-------------------------------------------------------+
-| TIMESTAMP    | Associates a field within the message value in the    |
-|              | Kafka topic with the `ROWTIME` column in the KSQL     |
-|              | stream.                                               |
-|              | If not supplied, the timestamp of the Kafka message,  |
-|              | from the source stream, will be used.                 |
-|              | Time-based operations such as windowing will process  |
-|              | a record according to the timestamp in `ROWTIME`.     |
-+--------------+-------------------------------------------------------+
+========================= ============================================================================================
+Property                  Description
+========================= ============================================================================================
+ KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka.
+ VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
+                          | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
+ KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream.
+ TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
+                          | in the KSQL stream. If not supplied, the timestamp of the Kafka message, from the source
+                          | stream, will be used. Time-based operations such as windowing will process
+                          | a record according to the timestamp in ``ROWTIME``.
+========================= ============================================================================================
+
+
 
 
 .. include:: includes/ksql-includes.rst
@@ -202,27 +195,18 @@ timestamp and message key, respectively.
 
 The WITH clause supports the following properties:
 
-+--------------+-------------------------------------------------------+
-| Property     | Description                                           |
-+==============+=======================================================+
-| KAFKA_TOPIC  | The name of the Kafka topic that backs this table.    |
-| (required)   | The topic must already exist in Kafka.                |
-+--------------+-------------------------------------------------------+
-| VALUE_FORMAT | Specifies the serialization format of the message     |
-| (required)   | value in the topic. Supported formats: ``JSON``,      |
-|              | ``DELIMITED``, and ``AVRO``.                          |
-+--------------+-------------------------------------------------------+
-| KEY          | Associates the message key in the Kafka topic with a  |
-|              | column in the KSQL table.                             |
-+--------------+-------------------------------------------------------+
-| TIMESTAMP    | Associates a field within the message value in the    |
-|              | Kafka topic with the `ROWTIME` column in the KSQL     |
-|              | table.                                                |
-|              | If not supplied, the timestamp of the Kafka message,  |
-|              | from the source stream, will be used.                 |
-|              | Time-based operations such as windowing will process  |
-|              | a record according to the timestamp in `ROWTIME`.     |
-+--------------+-------------------------------------------------------+
+========================= ============================================================================================
+Property                  Description
+========================= ============================================================================================
+ KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.
+ VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
+                          | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
+ KEY                      | Associates the message key in the Kafka topic with a column in the KSQL table.
+ TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
+                          | in the KSQL table. If not supplied, the timestamp of the Kafka message, from the source
+                          | stream, will be used. Time-based operations such as windowing will process
+                          | a record according to the timestamp in ``ROWTIME``.
+========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
     :start-line: 2
@@ -261,37 +245,23 @@ have the specified column as its key.
 
 The WITH clause supports the following properties:
 
-+--------------+-------------------------------------------------------+
-| Property     | Description                                           |
-+==============+=======================================================+
-| KAFKA_TOPIC  | The name of the Kafka topic that backs this stream.   |
-|              | If this property is not set, then the name of the     |
-|              | stream will be used as default.                       |
-+--------------+-------------------------------------------------------+
-| VALUE_FORMAT | Specifies the serialization format of the message     |
-|              | value in the topic. Supported formats: ``JSON``,      |
-|              | ``DELIMITED``, and ``AVRO``. If this property is not  |
-|              | set, then the format of the input stream/table is     |
-|              | used.                                                 |
-+--------------+-------------------------------------------------------+
-| PARTITIONS   | The number of partitions in the backing topic.        |
-|              | If this property is not set, then the number of       |
-|              | partitions is taken from the value of the             |
-|              | ``ksql.sink.partitions`` property, which defaults to  |
-|              | 4 partitions.                                         |
-|              | The ``ksql.sink.partitions`` property can be set in   |
-|              | the properties file the KSQL server is started with,  |
-|              | or by using the ``SET`` statement.                    |
-+--------------+-------------------------------------------------------+
-| REPLICAS     | The replication factor for the topic. If this         |
-|              | property is not set, then the number of replicas of   |
-|              | the input stream/table will be used.                  |
-+--------------+-------------------------------------------------------+
-| TIMESTAMP    | Associates a field within the source stream with the  |
-|              | timestamp of messages produced to Kafka.              |
-|              | If not supplied, the ``ROWTIME`` of the source stream |
-|              | will be used.                                         |
-+--------------+-------------------------------------------------------+
+========================= ============================================================================================
+Property                  Description
+========================= ============================================================================================
+ KAFKA_TOPIC              | The name of the Kafka topic that backs this stream. If this property is not set, then the
+                          | name of the stream will be used as default.
+ VALUE_FORMAT             | Specifies the serialization format of the message value in the topic. Supported formats:
+                          | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not
+                          | set, then the format of the input stream/table is used.
+ PARTITIONS               | The number of partitions in the backing topic. If this property is not set, then the number
+                          | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which 
+                          | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the
+                          | properties file the KSQL server is started with, or by using the ``SET`` statement.
+ REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
+                          | replicas of the input stream or table will be used.
+ TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
+                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+========================= ============================================================================================
 
 .. include:: includes/ksql-includes.rst
     :start-line: 2
@@ -322,37 +292,23 @@ stream the result of the SELECT query as a changelog into the topic.
 
 The WITH clause supports the following properties:
 
-+--------------+-------------------------------------------------------+
-| Property     | Description                                           |
-+==============+=======================================================+
-| KAFKA_TOPIC  | The name of the Kafka topic that backs this table. If |
-|              | this property is not set, then the name of the table  |
-|              | will be used as default.                              |
-+--------------+-------------------------------------------------------+
-| VALUE_FORMAT | Specifies the serialization format of the message     |
-|              | value in the topic. Supported formats: ``JSON``,      |
-|              | ``DELIMITED``, and ``AVRO``. If this property is not  |
-|              | set, then the format of the input stream/table is     |
-|              | used.                                                 |
-+--------------+-------------------------------------------------------+
-| PARTITIONS   | The number of partitions in the backing topic.        |
-|              | If this property is not set, then the number of       |
-|              | partitions is taken from the value of the             |
-|              | ``ksql.sink.partitions`` property, which defaults to  |
-|              | 4 partitions.                                         |
-|              | The ``ksql.sink.partitions`` property can be set in   |
-|              | the properties file the KSQL server is started with,  |
-|              | or by using the ``SET`` statement.                    |
-+--------------+-------------------------------------------------------+
-| REPLICAS     | The replication factor for the topic. If this         |
-|              | property is not set, then the number of replicas of   |
-|              | the input stream/table will be used.                  |
-+--------------+-------------------------------------------------------+
-| TIMESTAMP    | Associates a field within the source stream with the  |
-|              | timestamp of messages produced to Kafka.              |
-|              | If not supplied, the ``ROWTIME`` of the source stream |
-|              | will be used.                                         |
-+--------------+-------------------------------------------------------+
+========================= ============================================================================================
+Property                  Description
+========================= ============================================================================================
+ KAFKA_TOPIC              | The name of the Kafka topic that backs this table. If this property is not set, then the
+                          | name of the table will be used as default.
+ VALUE_FORMAT             | Specifies the serialization format of the message value in the topic. Supported formats:
+                          | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not
+                          | set, then the format of the input stream or table is used.
+ PARTITIONS               | The number of partitions in the backing topic. If this property is not set, then the number
+                          | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which
+                          | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the
+                          | properties file the KSQL server is started with, or by using the ``SET`` statement.
+ REPLICAS                 | The replication factor for the topic. If this property is not set, then the number of
+                          | replicas of the input stream or table will be used.
+ TIMESTAMP                | Associates a field within the source stream with the timestamp of messages produced to
+                          | Kafka. If not supplied, the ``ROWTIME`` of the source stream will be used.
+========================= ============================================================================================
 
 .. note::
     - To use Avro, you must have Confluent Schema Registry enabled and set ``ksql.schema.registry.url`` in your KSQL configuration file.
@@ -548,8 +504,8 @@ In the above statements from_item is one of the following:
 -  ``table_name [ [ AS ] alias]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
-The WHERE clause can refer to any column defined for a stream or table, including the two implicit columns `ROWTIME`
-and `ROWKEY`.
+The WHERE clause can refer to any column defined for a stream or table, including the two implicit columns ``ROWTIME``
+and ``ROWKEY``.
 
 Example:
 
@@ -753,91 +709,46 @@ they are explicitly terminated.
 Scalar functions
 ================
 
-+------------+----------------------------------+----------------------+
-| Function   | Example                          | Description          |
-+============+==================================+======================+
-| ABS        | ``ABS(col1)``                    | The absolute value   |
-|            |                                  | of a value           |
-+------------+----------------------------------+----------------------+
-| CEIL       | ``CEIL(col1)``                   | The ceiling of a     |
-|            |                                  | value                |
-+------------+----------------------------------+----------------------+
-| CONCAT     | ``CONCAT(col1, '_hello')``       | Concatenate two      |
-|            |                                  | strings              |
-+------------+----------------------------------+----------------------+
-| EXTRACTJSO | ``EXTRACTJSONFIELD(message, '$.l | Given a string       |
-| NFIELD     | og.cloud')``                     | column in JSON       |
-|            |                                  | format, extract the  |
-|            |                                  | field that matches   |
-+------------+----------------------------------+----------------------+
-| ARRAYCONTA | ``ARRAYCONTAINS('[1, 2, 3]', 3)` | Given JSON or AVRO   |
-| INS        | `                                | array checks if a    |
-|            |                                  | search value         |
-|            |                                  | contains in it.      |
-+------------+----------------------------------+----------------------+
-| FLOOR      | ``FLOOR(col1)``                  | The floor of a value |
-+------------+----------------------------------+----------------------+
-| LCASE      | ``LCASE(col1)``                  | Convert a string to  |
-|            |                                  | lowercase            |
-+------------+----------------------------------+----------------------+
-| LEN        | ``LEN(col1)``                    | The length of a      |
-|            |                                  | string               |
-+------------+----------------------------------+----------------------+
-| RANDOM     | ``RANDOM()``                     | Return a random      |
-|            |                                  | DOUBLE value between |
-|            |                                  | 0 and 1.0            |
-+------------+----------------------------------+----------------------+
-| ROUND      | ``ROUND(col1)``                  | Round a value to the |
-|            |                                  | nearest BIGINT value |
-+------------+----------------------------------+----------------------+
-| STRINGTOTI | ``STRINGTOTIMESTAMP(col1, 'yyyy- | Converts a string    |
-| MESTAMP    | MM-dd HH:mm:ss.SSS')``           | value in the given   |
-|            |                                  | format into the      |
-|            |                                  | BIGINT value         |
-|            |                                  | representing the     |
-|            |                                  | timestamp.           |
-+------------+----------------------------------+----------------------+
-| SUBSTRING  | ``SUBSTRING(col1, 2, 5)``        | Return the substring |
-|            |                                  | with the start and   |
-|            |                                  | end indices          |
-+------------+----------------------------------+----------------------+
-| TIMESTAMPT | ``TIMESTAMPTOSTRING(ROWTIME, 'yy | Converts a BIGINT    |
-| OSTRING    | yy-MM-dd HH:mm:ss.SSS')``        | timestamp value into |
-|            |                                  | the string           |
-|            |                                  | representation of    |
-|            |                                  | the timestamp in the |
-|            |                                  | given format.        |
-+------------+----------------------------------+----------------------+
-| TRIM       | ``TRIM(col1)``                   | Trim the spaces from |
-|            |                                  | the beginning and    |
-|            |                                  | end of a string      |
-+------------+----------------------------------+----------------------+
-| UCASE      | ``UCASE(col1)``                  | Convert a string to  |
-|            |                                  | uppercase            |
-+------------+----------------------------------+----------------------+
+========================= ========================================================= ================================================
+Function                  Example                                                   Description
+========================= ========================================================= ================================================
+ABS                       ``ABS(col1)``                                             | The absolute value of a value
+ARRAYCONTAINS             ``ARRAYCONTAINS('[1, 2, 3]', 3)``                         | Given JSON or AVRO array checks if a search
+                                                                                    | value contains in it.
+CEIL                      ``CEIL(col1)``                                            | The ceiling of a value
+CONCAT                    ``CONCAT(col1, '_hello')``                                | Concatenate two strings
+EXTRACTJSONFIELD          ``EXTRACTJSONFIELD(message, '$.log.cloud')``              | Given a string column in JSON format, extract
+                                                                                    | the field that matches
+FLOOR                     ``FLOOR(col1)``                                           | The floor of a value
+LCASE                     ``LCASE(col1)``                                           | Convert a string to lowercase
+LEN                       ``LEN(col1)``                                             | The length of a string
+RANDOM                    ``RANDOM()``                                              | Return a random DOUBLE value between 0 and 1.0
+ROUND                     ``ROUND(col1)``                                           | Round a value to the nearest BIGINT value
+STRINGTOTIMESTAMP         ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS')``    | Converts a string value in the given
+                                                                                    | format into the BIGINT value
+                                                                                    | that represents the timestamp.
+SUBSTRING                 ``SUBSTRING(col1, 2, 5)``                                 | Return the substring with the start and end
+                                                                                    | indices
+TIMESTAMPTOSTRING         ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS')`` | Converts a BIGINT timestamp value into the
+                                                                                    | string representation of the timestamp in
+                                                                                    | the given format.
+TRIM                      ``TRIM(col1)``                                            | Trim the spaces from the beginning and end of
+                                                                                    | a string
+UCASE                     ``UCASE(col1)``                                           | Convert a string to uppercase
+========================= ========================================================= ================================================
 
 ===================
 Aggregate functions
 ===================
 
-+--------+-------------------+------------------------------------------+
-| Functi | Example           | Description                              |
-| on     |                   |                                          |
-+========+===================+==========================================+
-| COUNT  | ``COUNT(col1)``   | Count the number of rows                 |
-+--------+-------------------+------------------------------------------+
-| MAX    | ``MAX(col1)``     | Return the maximum value for a given     |
-|        |                   | column and window                        |
-+--------+-------------------+------------------------------------------+
-| MIN    | ``MIN(col1)``     | Return the minimum value for a given     |
-|        |                   | column and window                        |
-+--------+-------------------+------------------------------------------+
-| SUM    | ``SUM(col1)``     | Sums the column values                   |
-+--------+-------------------+------------------------------------------+
-| TOPK   | ``TOPK(col1, k)`` | Return the TopK values for the given     |
-|        |                   | column and window                        |
-+--------+-------------------+------------------------------------------+
-| TOPKDI | ``TOPKDISTINCT(   | Return the distinct TopK values for the  |
-| STINCT | col1, k)``        | given column and window                  |
-+--------+-------------------+------------------------------------------+
+========================= ========================== ===================================================================
+Function                  Example                    Description
+========================= ========================== ===================================================================
+COUNT                     ``COUNT(col1)``            Count the number of rows
+MAX                       ``MAX(col1)``              Return the maximum value for a given column and window
+MIN                       ``MIN(col1)``              Return the minimum value for a given column and window
+SUM                       ``SUM(col1)``              Sums the column values
+TOPK                      ``TOPK(col1, k)``          Return the TopK values for the given column and window
+TOPKDISTINCT              ``TOPKDISTINCT(col1, k)``  Return the distinct TopK values for the given column and window
+========================= ========================== ===================================================================
 

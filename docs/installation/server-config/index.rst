@@ -10,7 +10,8 @@ Configuring KSQL Server
     ccloud-ksql
     avro-schema
 
-Configuration parameters can be set for KSQL queries, the Kafka Admin Client, the KSQL Server, the Kafka Streams API, the Kafka Producer, and the Kafka Consumer. 
+KSQL configuration parameters can be set for Admin Client, KSQL Query, KSQL Server, Kafka Streams, and Kafka Clients. The
+KSQL Server parameters are configured via the ``/etc/ksql/ksql-server.properties`` file.
 
 These can all be configured via a properties file. 
 
@@ -163,10 +164,10 @@ ksql.service.id
 ^^^^^^^^^^^^^^^
 
 The service ID of the KSQL server. By default, the service ID of KSQL servers is ``default_``. This determines the prefix of
-the internal topics created by KSQL. With the default value for ``ksql.service.id``, the prefix for KSQL internal topics will be 
-``_confluent-ksql-default_``. One example of an internal topic is the command topic, which distributes queries across a KSQL 
-server pool. With the default ``ksql.service.id``, the command topic would be ``_confluent-ksql-default__command_topic``. On 
-the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will 
+the internal topics created by KSQL. With the default value for ``ksql.service.id``, the prefix for KSQL internal topics will be
+``_confluent-ksql-default_``. One example of an internal topic is the command topic, which distributes queries across a KSQL
+server pool. With the default ``ksql.service.id``, the command topic would be ``_confluent-ksql-default__command_topic``. On
+the other hand, if you set ``ksql.service.id`` to ``production_deployment_``, the KSQL command topic will
 be ``_confluent-ksql-production_deployment__command_topic``.
 
 You can configure ``ksql.service.id`` so that your environment has isolated pools of KSQL servers sharing the same underlying 
@@ -195,7 +196,7 @@ The default number of partitions for the topics created by KSQL. The default is 
 ksql.sink.replicas
 ^^^^^^^^^^^^^^^^^^
 
-The default number of replicas for the topics created by KSQL. The default is one. 
+The default number of replicas for the topics created by KSQL. The default is one.
 
 .. _ksql-listeners:
 
@@ -272,7 +273,7 @@ When deploying KSQL to production, the following settings are recommended in you
 
     # Set the batch expiry to Long.MAX_VALUE to ensure that queries will not
     # terminate if the underlying Kafka cluster is unavailable for a period of
-    # time.  
+    # time.
     producer.confluent.batch.expiry.ms=9223372036854775807
 
     # Allows more frequent retries of requests when there are failures,
@@ -281,7 +282,7 @@ When deploying KSQL to production, the following settings are recommended in you
 
     # Set the maximum allowable time for the producer to block to
     # Long.MAX_VALUE. This allows KSQL to pause processing if the underlying
-    # Kafka cluster is unavailable.  
+    # Kafka cluster is unavailable.
     producer.max.block.ms=9223372036854775807
 
     # Set the replication factor for internal topics, the command topic, and
@@ -293,10 +294,9 @@ When deploying KSQL to production, the following settings are recommended in you
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.
     ksql.streams.state.dir=/some/non-temporary-storage-path/
-    
+
     # Bump the number of replicas for state storage for stateful operations
     # like aggregations and joins. By having two replicas (one main and one
     # standby) recovery from node failures is quicker since the state doesn't
     # have to be rebuilt from scratch.
     ksql.streams.num.standby.replicas=1
-

@@ -30,7 +30,8 @@ For advanced installation and configuration, see the following topics.
 .. toctree::
     :maxdepth: 1
 
-    client-server
+    architecture
+    installing
     standalone
     server-config/index
     upgrading

@@ -136,7 +136,7 @@ Define ``bootstrap.servers`` in the :ref:`KSQL server config <common-configs>`.
 How do I add KSQL servers to an existing KSQL cluster?
 ======================================================
 
-Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`install_ksql-client-server`.
+Start the additional servers by using the existing Kafka cluster name as defined in ``bootstrap.servers`` and command topic name (``ksql.command.topic.suffix``). For more information, see :ref:`install_ksql-server`.
 
 ====================================================================================
 How can I secure KSQL servers for production and prevent interactive client access?

@@ -3,31 +3,23 @@
 Installation and Configuration
 ------------------------------
 
-KSQL is a component of |cp| and is automatically installed and running when you install |cp|. For |cp| installation,
-see the :ref:`quickstart`.
+KSQL is a component of |cp| and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
+as a part of the |cp| bundle.
+
+KSQL must have access to a running Kafka cluster, which can be on prem, |ccloud|, etc.
 
 Interoperability
+    KSQL code is open source `https://github.com/confluentinc/ksql <https://github.com/confluentinc/ksql>`_. 
+
     .. include:: ../../../includes/installation.rst
         :start-line: 84
         :end-line: 95
 
+Docker support
+    You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
+    production. These images are coming soon.
 
-To start the KSQL CLI, enter this command:
-
-.. code:: bash
-
-    $ <path-to-confluent>/bin/ksql
-
-After KSQL is started, your terminal should resemble this.
-
-.. include:: ../../includes/ksql-includes.rst
-    :start-line: 17
-    :end-line: 38
-
-
-For advanced installation and configuration, see the following topics.
-
-.. toctree::
+.. toctree:: Contents
     :maxdepth: 1
 
     architecture

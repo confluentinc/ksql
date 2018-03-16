@@ -24,6 +24,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.util.resource.Resource;
@@ -79,6 +80,7 @@ import io.confluent.ksql.rest.util.ZipUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -239,11 +241,15 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
     KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
 
-    try (BrokerCompatibilityCheck compatibilityCheck =
-             BrokerCompatibilityCheck.create(ksqlConfig.getKsqlStreamConfigProps(), topicClient)) {
-      compatibilityCheck.checkCompatibility();
+    final String kafkaClusterId;
+    try {
+      kafkaClusterId = adminClient.describeCluster().clusterId().get();
+    } catch (final UnsupportedVersionException e) {
+      throw new KsqlException(
+          "The kafka brokers are incompatible with. "
+          + "KSQL requires broker versions >= 0.10.1.x"
+      );
     }
-    final String kafkaClusterId = adminClient.describeCluster().clusterId().get();
 
     String commandTopic =
         restConfig.getCommandTopic(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));

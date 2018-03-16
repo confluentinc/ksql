@@ -27,7 +27,6 @@ import java.util.List;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
@@ -39,7 +38,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-import static org.easymock.EasyMock.mock;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -130,20 +129,37 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpSchemaRegistry() throws Exception {
     final List<QueryMetadata> queries
-        = ksqlEngine.buildMultipleQueries("create table bar with (value_format = 'avro') as select * "
-                                   + "from "
-                                   + "test2;" +
-                                   "create table foo as select * from test2;",
-                                          Collections.emptyMap());
+        = ksqlEngine.buildMultipleQueries(
+            "create table bar with (value_format = 'avro') as select * from test2;"
+            + "create table foo as select * from test2;",
+            Collections.emptyMap());
     Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
     ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
 
-    Assert.assertTrue(schemaRegistryClient.getAllSubjects().contains("BAR-value"));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(true));
     ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
-    Assert.assertFalse(schemaRegistryClient.getAllSubjects().contains("BAR-value"));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicSchemasFromSchemaRegistry() throws Exception {
+    final List<QueryMetadata> queries
+        = ksqlEngine.buildMultipleQueries(
+        "create stream s1  with (value_format = 'avro') as select * from test1;"
+        + "create table t1 as select col1, count(*) from s1 group by col1;",
+        Collections.emptyMap());
+    Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(true));
+    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
+    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
   }
 
 }

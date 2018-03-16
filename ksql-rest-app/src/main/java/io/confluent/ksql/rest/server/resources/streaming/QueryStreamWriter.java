@@ -31,14 +31,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.StreamingOutput;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.StreamsTopologyUtil;
 
 class QueryStreamWriter implements StreamingOutput {
 
@@ -116,8 +114,7 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
-      new StreamsTopologyUtil()
-          .cleanUpInternalTopicAvroSchemas(queryMetadata, ksqlEngine.getSchemaRegistryClient());
+      queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
     }
   }
 

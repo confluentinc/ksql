@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 
@@ -24,7 +26,12 @@ import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class QueryMetadata {
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
@@ -93,6 +100,36 @@ public class QueryMetadata {
       log.error("Could not clean up the query with application id: {}. Query status is: {}",
                 queryApplicationId, kafkaStreams.state());
     }
+  }
+
+  private Set<String> getInternalTopicSet(
+      SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+
+    Set<String> internalTopicNames = new HashSet<>();
+    Collection<String> allSubjects = schemaRegistryClient.getAllSubjects();
+
+    final String suffix1 = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
+                           + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    final String suffix2 = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
+                           + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    return schemaRegistryClient.getAllSubjects().stream()
+        .filter(subjectName -> subjectName.startsWith(getQueryApplicationId()))
+        .filter(subjectName -> subjectName.endsWith(suffix1) || subjectName.endsWith(suffix2))
+        .collect(Collectors.toSet());
+  }
+
+
+  public void cleanUpInternalTopicAvroSchemas(SchemaRegistryClient schemaRegistryClient) {
+    try {
+      Set<String> internalToicSubjects = getInternalTopicSet(schemaRegistryClient);
+      for (String internalTopicSubject: internalToicSubjects) {
+        schemaRegistryClient.deleteSubject(internalTopicSubject);
+      }
+    } catch (Exception e) {
+      // Do nothing! Schema registry clean up is best effort!
+    }
+
   }
 
   @Override

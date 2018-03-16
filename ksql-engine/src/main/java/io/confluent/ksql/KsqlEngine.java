@@ -82,7 +82,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StreamsTopologyUtil;
 
 public class KsqlEngine implements Closeable {
 
@@ -505,8 +504,7 @@ public class KsqlEngine implements Closeable {
     allLiveQueries.remove(persistentQueryMetadata);
     if (closeStreams) {
       persistentQueryMetadata.close();
-      new StreamsTopologyUtil()
-          .cleanUpInternalTopicAvroSchemas(persistentQueryMetadata, schemaRegistryClient);
+      persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
     }
 
     return true;

@@ -41,7 +41,7 @@ public class Ksql {
       System.exit(-1);
     }
 
-    final Properties properties = loadProperties(options.getPropertiesFile());
+    final Properties properties = loadProperties(options.getConfigFile());
     final KsqlRestClient restClient =
         new KsqlRestClient(options.getServer(), properties);
 

@@ -61,7 +61,7 @@ public abstract class TestRunner {
         finalResults.clear();
         finalResults.addAll(actualResult.data);
         return actualResult.data.containsAll(expectedResult.data);
-      }, 10000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
+      }, 30000, "Did not get the expected result '" + expectedResult + ", in a timely fashion.");
     } catch (AssertionError e) {
       throw new AssertionError(
           "CLI test runner command result mismatch expected: " + expectedResult + ", actual: " + finalResults, e);

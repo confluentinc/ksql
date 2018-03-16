@@ -76,7 +76,7 @@ Can I use KSQL with my favorite data format (e.g. JSON, Avro)?
 
 KSQL currently supports formats:
 
--  DELIMITED (e.g. CSV)
+-  DELIMITED (e.g. comma-separated value)
 -  JSON
 -  Avro (requires Confluent Schema Registry and setting ``ksql.schema.registry.url`` in the KSQL configuration file)
 

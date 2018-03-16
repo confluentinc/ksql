@@ -19,7 +19,6 @@ package io.confluent.ksql.ddl.commands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KsqlException;
 
@@ -62,7 +61,7 @@ public class DDLCommandExec {
       return ddlCommand.run(metaStore, isValidatePhase);
     } catch (Exception e) {
       LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
-      return new DDLCommandResult(false, ExceptionUtil.stackTraceToString(e));
+      return new DDLCommandResult(false, e.getMessage());
     }
   }
 }

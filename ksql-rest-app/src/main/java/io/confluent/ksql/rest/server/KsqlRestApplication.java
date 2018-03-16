@@ -208,10 +208,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
       throws Exception {
 
     Map<String, Object> ksqlConfProperties = new HashMap<>();
-    ksqlConfProperties.putAll(restConfig.getCommandConsumerProperties());
-    ksqlConfProperties.putAll(restConfig.getCommandProducerProperties());
-    ksqlConfProperties.putAll(restConfig.getKsqlStreamsProperties());
-    ksqlConfProperties.putAll(restConfig.getOriginals());
+    ksqlConfProperties.putAll(restConfig.getKsqlConfigProperties());
 
     KsqlConfig ksqlConfig = new KsqlConfig(ksqlConfProperties);
 

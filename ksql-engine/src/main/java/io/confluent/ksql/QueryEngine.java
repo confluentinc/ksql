@@ -55,7 +55,6 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AvroUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryMetadata;
@@ -139,7 +138,7 @@ class QueryEngine {
   List<QueryMetadata> buildPhysicalPlans(
       final List<Pair<String, PlanNode>> logicalPlans,
       final List<Pair<String, Statement>> statementList,
-      final Map<String, Object> overriddenStreamsProperties,
+      final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
   ) throws Exception {
 
@@ -157,12 +156,12 @@ class QueryEngine {
         handleDdlStatement(
             statementPlanPair.getLeft(),
             (DDLStatement) statement,
-            overriddenStreamsProperties
+            overriddenProperties
         );
       } else {
         buildQueryPhysicalPlan(
             physicalPlans, statementPlanPair,
-            overriddenStreamsProperties, updateMetastore
+            overriddenProperties, updateMetastore
         );
       }
 
@@ -173,21 +172,20 @@ class QueryEngine {
   private void buildQueryPhysicalPlan(
       final List<QueryMetadata> physicalPlans,
       final Pair<String, PlanNode> statementPlanPair,
-      final Map<String, Object> overriddenStreamsProperties,
+      final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
   ) throws Exception {
 
     final StreamsBuilder builder = new StreamsBuilder();
-    final KsqlConfig ksqlConfigClone = ksqlEngine.getKsqlConfig().clone();
 
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
-        ksqlConfigClone.cloneWithPropertyOverwrite(overriddenStreamsProperties),
+        ksqlEngine.getKsqlConfig().cloneWithPropertyOverwrite(overriddenProperties),
         ksqlEngine.getTopicClient(),
         new MetastoreUtil(),
         ksqlEngine.getFunctionRegistry(),
-        overriddenStreamsProperties,
+        overriddenProperties,
         updateMetastore,
         ksqlEngine.getMetaStore(),
         ksqlEngine.getSchemaRegistryClient()

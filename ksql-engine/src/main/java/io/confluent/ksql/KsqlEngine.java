@@ -554,9 +554,9 @@ public class KsqlEngine implements Closeable {
 
   public DDLCommandResult executeDdlStatement(
       String sqlExpression, final DDLStatement statement,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> overriddenProperties
   ) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   public SchemaRegistryClient getSchemaRegistryClient() {

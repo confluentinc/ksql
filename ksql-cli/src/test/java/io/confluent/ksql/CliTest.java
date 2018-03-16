@@ -16,7 +16,8 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.cli.LocalCli;
+import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -37,17 +38,21 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.*;
 
 import static io.confluent.ksql.TestResult.build;
 import static io.confluent.ksql.util.KsqlConfig.*;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@Category({IntegrationTest.class})
 public class CliTest extends TestRunner {
 
   @ClassRule
@@ -62,7 +67,7 @@ public class CliTest extends TestRunner {
 
   private static final TestResult.OrderedResult EMPTY_RESULT = build("");
 
-  private static LocalCli localCli;
+  private static Cli localCli;
   private static TestTerminal terminal;
   private static String commandTopicName;
   private static TopicProducer topicProducer;
@@ -83,7 +88,7 @@ public class CliTest extends TestRunner {
     terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
     KsqlRestConfig restServerConfig = new KsqlRestConfig(defaultServerProperties());
-    commandTopicName = restServerConfig.getCommandTopic();
+    commandTopicName = restServerConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
@@ -94,12 +99,11 @@ public class CliTest extends TestRunner {
 
     restServer.start();
 
-    localCli = new LocalCli(
+    localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
         STREAMED_QUERY_TIMEOUT_MS,
         restClient,
-        terminal,
-        restServer
+        terminal
     );
 
     TestRunner.setup(localCli, terminal);
@@ -215,20 +219,45 @@ public class CliTest extends TestRunner {
   }
 
   @Test
+  public void testPrint() throws InterruptedException {
+
+    Thread wait = new Thread(() -> {
+        CliTest.this.run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false);
+    });
+
+    wait.start();
+    Thread.sleep(1000);
+    wait.interrupt();
+
+    String terminalOutput = terminal.getOutputString();
+    assertThat(terminalOutput, containsString("Format:JSON"));
+  }
+
+  @Test
   public void testPropertySetUnset() {
     test("set 'application.id' = 'Test_App'", EMPTY_RESULT);
     test("set 'producer.batch.size' = '16384'", EMPTY_RESULT);
     test("set 'max.request.size' = '1048576'", EMPTY_RESULT);
     test("set 'consumer.max.poll.records' = '500'", EMPTY_RESULT);
     test("set 'enable.auto.commit' = 'true'", EMPTY_RESULT);
-    test("set 'AVROSCHEMA' = 'schema'", EMPTY_RESULT);
+    test("set 'ksql.streams.application.id' = 'Test_App'", EMPTY_RESULT);
+    test("set 'ksql.streams.producer.batch.size' = '16384'", EMPTY_RESULT);
+    test("set 'ksql.streams.max.request.size' = '1048576'", EMPTY_RESULT);
+    test("set 'ksql.streams.consumer.max.poll.records' = '500'", EMPTY_RESULT);
+    test("set 'ksql.streams.enable.auto.commit' = 'true'", EMPTY_RESULT);
+    test("set 'ksql.service.id' = 'test'", EMPTY_RESULT);
 
     test("unset 'application.id'", EMPTY_RESULT);
     test("unset 'producer.batch.size'", EMPTY_RESULT);
     test("unset 'max.request.size'", EMPTY_RESULT);
     test("unset 'consumer.max.poll.records'", EMPTY_RESULT);
     test("unset 'enable.auto.commit'", EMPTY_RESULT);
-    test("unset 'AVROSCHEMA'", EMPTY_RESULT);
+    test("unset 'ksql.streams.application.id'", EMPTY_RESULT);
+    test("unset 'ksql.streams.producer.batch.size'", EMPTY_RESULT);
+    test("unset 'ksql.streams.max.request.size'", EMPTY_RESULT);
+    test("unset 'ksql.streams.consumer.max.poll.records'", EMPTY_RESULT);
+    test("unset 'ksql.streams.enable.auto.commit'", EMPTY_RESULT);
+    test("unset 'ksql.service.id'", EMPTY_RESULT);
 
     testListOrShow("properties", build(validStartUpConfigs()), false);
   }
@@ -392,5 +421,18 @@ public class CliTest extends TestRunner {
   @Test
   public void shouldHandleRegisterTopic() throws Exception {
     localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServer() {
+    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+  }
+
+  @Test
+  public void shouldRegisterRemoteCommand() {
+    new Cli(1L, 1L, new KsqlRestClient("xxxx", Collections.emptyMap()), terminal);
+    assertThat(terminal.getCliSpecificCommands().get("server"),
+        instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
 }

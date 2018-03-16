@@ -44,8 +44,8 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DDLCommandExec;
-import io.confluent.ksql.ddl.commands.DDLCommandResult;
+import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.ddl.commands.DropTopicCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -60,7 +60,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DDLStatement;
+import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -96,7 +96,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
 
   private final MetaStore metaStore;
   private final KafkaTopicClient topicClient;
-  private final DDLCommandExec ddlCommandExec;
+  private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> livePersistentQueries;
@@ -108,7 +108,6 @@ public class KsqlEngine implements Closeable, QueryTerminator {
   private final FunctionRegistry functionRegistry;
 
   private SchemaRegistryClient schemaRegistryClient;
-
 
   public KsqlEngine(final KsqlConfig ksqlConfig, final KafkaTopicClient topicClient) {
     this(
@@ -134,16 +133,16 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     this.ksqlConfig = ksqlConfig;
     this.metaStore = metaStore;
     this.topicClient = topicClient;
-    this.ddlCommandExec = new DDLCommandExec(this.metaStore);
+    this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.queryEngine = new QueryEngine(
         this,
-        new CommandFactories(topicClient, this, true));
+        new CommandFactories(topicClient, this, true)
+    );
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.functionRegistry = new FunctionRegistry();
     this.schemaRegistryClient = schemaRegistryClient;
-
     this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     aggregateMetricsCollector.scheduleAtFixedRate(
@@ -176,8 +175,8 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     // Multiple queries submitted as the same time should success or fail as a whole,
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
-
     MetaStore tempMetaStore = metaStore.clone();
+
     // Build query AST from the query string
     List<Pair<String, Statement>> queries = parseQueries(
         queriesString,
@@ -477,7 +476,7 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     return topicClient;
   }
 
-  public DDLCommandExec getDDLCommandExec() {
+  public DdlCommandExec getDdlCommandExec() {
     return ddlCommandExec;
   }
 
@@ -552,32 +551,16 @@ public class KsqlEngine implements Closeable, QueryTerminator {
     aggregateMetricsCollector.shutdown();
   }
 
-  @Override
-  public boolean terminateAllQueries() {
-    try {
-      for (QueryMetadata queryMetadata : livePersistentQueries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMetadata.close();
-        }
-        allLiveQueries.remove(queryMetadata);
-      }
-    } catch (Exception e) {
-      return false;
-    }
-
-    return true;
-  }
-
   public void removeTemporaryQuery(QueryMetadata queryMetadata) {
     this.allLiveQueries.remove(queryMetadata);
   }
 
-  public DDLCommandResult executeDdlStatement(
-      String sqlExpression, final DDLStatement statement,
-      final Map<String, Object> streamsProperties
+
+  public DdlCommandResult executeDdlStatement(
+      String sqlExpression, final DdlStatement statement,
+      final Map<String, Object> overriddenProperties
   ) {
-    return queryEngine.handleDdlStatement(sqlExpression, statement, streamsProperties);
+    return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   public SchemaRegistryClient getSchemaRegistryClient() {

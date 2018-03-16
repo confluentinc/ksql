@@ -31,7 +31,7 @@ import io.confluent.ksql.util.StringUtil;
 
 import java.util.Map;
 
-public class RegisterTopicCommand implements DDLCommand {
+public class RegisterTopicCommand implements DdlCommand {
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe topicSerDe;
@@ -88,11 +88,11 @@ public class RegisterTopicCommand implements DDLCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(MetaStore metaStore) {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
-        return new DDLCommandResult(true,
+        return new DdlCommandResult(true,
                                     "Topic is not registered because it already registered"
                                           + ".");
       } else {
@@ -106,6 +106,6 @@ public class RegisterTopicCommand implements DDLCommand {
     // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
-    return new DDLCommandResult(true, "Topic registered");
+    return new DdlCommandResult(true, "Topic registered");
   }
 }

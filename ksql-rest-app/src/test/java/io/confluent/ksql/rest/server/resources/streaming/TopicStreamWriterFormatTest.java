@@ -41,7 +41,8 @@ public class TopicStreamWriterFormatTest {
      */
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     expect(schemaRegistryClient.register(anyString(), anyObject())).andReturn(1);
-    expect(schemaRegistryClient.getBySubjectAndId(anyString(), anyInt())).andReturn(schema);
+    expect(schemaRegistryClient.getById(anyInt())).andReturn(schema);
+
     replay(schemaRegistryClient);
 
 

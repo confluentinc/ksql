@@ -23,7 +23,7 @@ This part of the quick start will guide you through the steps to setup a Kafka c
 1.  Clone the Confluent KSQL repository.
 
     ```bash
-    $ git clone git@github.com:confluentinc/ksql.git
+    $ git clone https://github.com/confluentinc/ksql.git
     ```
 
 2.  Change directory to the quickstart and launch the KSQL quick start in Docker.

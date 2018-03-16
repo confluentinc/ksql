@@ -20,31 +20,28 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
+import java.util.List;
 import java.util.Objects;
 
 @JsonSubTypes({})
 public class KafkaTopicInfo {
 
   private final String name;
-  private final String registered;
-  private final int partitionCount;
-  private final String replicaInfo;
+  private final boolean registered;
+  private final List<Integer> replicaInfo;
   private final int consumerGroupCount;
   private final int consumerCount;
-
 
   @JsonCreator
   public KafkaTopicInfo(
       @JsonProperty("name") String name,
-      @JsonProperty("registered") String registered,
-      @JsonProperty("partitionCount") int partitionCount,
-      @JsonProperty("replicaInfo") String replicaInfo,
+      @JsonProperty("registered") boolean registered,
+      @JsonProperty("replicaInfo") List<Integer> replicaInfo,
       @JsonProperty("consumerCount") int consumerCount,
       @JsonProperty("consumerGroupCount") int consumerGroupCount
   ) {
     this.name = name;
     this.registered = registered;
-    this.partitionCount = partitionCount;
     this.replicaInfo = replicaInfo;
     this.consumerGroupCount = consumerGroupCount;
     this.consumerCount = consumerCount;
@@ -54,15 +51,11 @@ public class KafkaTopicInfo {
     return name;
   }
 
-  public String getRegistered() {
+  public boolean getRegistered() {
     return registered;
   }
 
-  public int getPartitionCount() {
-    return partitionCount;
-  }
-
-  public String getReplicaInfo() {
+  public List<Integer> getReplicaInfo() {
     return replicaInfo;
   }
 

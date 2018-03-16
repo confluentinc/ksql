@@ -37,14 +37,9 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_INT;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 
-public class ArrayContainsKudf
-        implements Kudf {
-  private static final JsonFactory JSON_FACTORY = new JsonFactory()
-          .disable(CANONICALIZE_FIELD_NAMES);
-
-  @Override
-  public void init() {
-  }
+public class ArrayContainsKudf implements Kudf {
+  private static final JsonFactory JSON_FACTORY =
+      new JsonFactory().disable(CANONICALIZE_FIELD_NAMES);
 
   @Override
   public Object evaluate(Object... args) {
@@ -53,9 +48,9 @@ public class ArrayContainsKudf
           + "Given: " + Arrays.toString(args));
     }
     Object searchValue = args[1];
-    if(args[0] instanceof String) {
+    if (args[0] instanceof String) {
       return jsonStringArrayContains(searchValue, (String) args[0]);
-    } else if(args[0] instanceof Object[]) {
+    } else if (args[0] instanceof Object[]) {
       return ArrayUtil.containsValue(searchValue, (Object[]) args[0]);
     }
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
@@ -80,26 +75,24 @@ public class ArrayContainsKudf
         if (valueType == token) {
           if (valueType == VALUE_NULL && searchValue == null) {
             return true;
-          } else if ((valueType == VALUE_STRING)
-                  && parser.getText().equals(searchValue)) {
+          } else if ((valueType == VALUE_STRING) && parser.getText().equals(searchValue)) {
             return true;
-          } else if((valueType == VALUE_FALSE || valueType == VALUE_TRUE)
+          } else if ((valueType == VALUE_FALSE || valueType == VALUE_TRUE)
                   && (parser.getBooleanValue() == (boolean)searchValue)) {
             return true;
-          } else if((valueType == VALUE_NUMBER_INT)) {
-            if(searchValue instanceof Integer && parser.getIntValue() == (int) searchValue) {
+          } else if ((valueType == VALUE_NUMBER_INT)) {
+            if (searchValue instanceof Integer && parser.getIntValue() == (int) searchValue) {
               return true;
-            } else if(searchValue instanceof Long && parser.getLongValue() == (long) searchValue) {
+            } else if (searchValue instanceof Long && parser.getLongValue() == (long) searchValue) {
               return true;
             }
-          } else if((valueType == VALUE_NUMBER_FLOAT)
-                  && parser.getDoubleValue() == (double)searchValue) {
+          } else if ((valueType == VALUE_NUMBER_FLOAT)
+                     && parser.getDoubleValue() == (double)searchValue) {
             return true;
           }
         }
       }
-    }
-    catch (IOException e) {
+    } catch (IOException e) {
       throw new KsqlException("Invalid JSON format: " + jsonArray, e);
     }
     return false;
@@ -109,15 +102,15 @@ public class ArrayContainsKudf
    * Returns JsonToken type of the targetValue
    */
   private JsonToken getType(Object searchValue) {
-    if(searchValue instanceof Long || searchValue instanceof Integer) {
+    if (searchValue instanceof Long || searchValue instanceof Integer) {
       return VALUE_NUMBER_INT;
-    } else if(searchValue instanceof Double) {
+    } else if (searchValue instanceof Double) {
       return VALUE_NUMBER_FLOAT;
-    } else if(searchValue instanceof String) {
+    } else if (searchValue instanceof String) {
       return VALUE_STRING;
-    } else if(searchValue == null) {
+    } else if (searchValue == null) {
       return VALUE_NULL;
-    } else if(searchValue instanceof Boolean) {
+    } else if (searchValue instanceof Boolean) {
       boolean value = (boolean) searchValue;
       return value ? VALUE_TRUE : VALUE_FALSE;
     }

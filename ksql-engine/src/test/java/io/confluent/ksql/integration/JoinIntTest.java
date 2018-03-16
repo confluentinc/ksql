@@ -1,5 +1,6 @@
 package io.confluent.ksql.integration;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
@@ -12,7 +13,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -147,7 +147,8 @@ public class JoinIntTest {
         }
       }
       return success;
-    }, 60000, "failed to complete join correctly");
+    }, IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS * 2 + 30000,
+        "failed to complete join correctly");
   }
 
   @Test

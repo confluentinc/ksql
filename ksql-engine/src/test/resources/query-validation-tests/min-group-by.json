@@ -1,0 +1,88 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "min integer group by",
+      "statements": [
+      "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+      "CREATE TABLE S2 as SELECT id, min(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-2147483647", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2000", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-2147483647", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "min long group by",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, min(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-1000000", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-9223372036854775807", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,-1000000", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-1000000", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-9223372036854775807", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-9223372036854775807", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "min double group by",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, min(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,100,1.7976931348623157E308", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,5.1", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100.1", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,6.4", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300.8", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-1.7976931348623157E308", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100.11", "timestamp": 0}
+
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,1.7976931348623157E308", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,5.1", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,100.1", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6.4", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,6.4", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-1.7976931348623157E308", "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": "0,-1.7976931348623157E308", "timestamp": 0}
+      ]
+    }
+  ]
+}

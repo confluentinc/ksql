@@ -10,8 +10,7 @@
         <format>dir</format>
         <format>tgz</format>
     </formats>
-    <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>ksql</baseDirectory>
+    <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
             <directory>${project.parent.basedir}</directory>
@@ -23,8 +22,6 @@
                 <include>NOTICE*</include>
                 <include>licenses/</include>
                 <include>notices/</include>
-                <include>bin/</include>
-                <include>config/</include>
             </includes>
         </fileSet>
         <fileSet>
@@ -36,7 +33,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.parent.basedir}/config</directory>
-            <outputDirectory>config/</outputDirectory>
+            <outputDirectory>etc/ksql/</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -53,6 +50,10 @@
                  dependencies happen to be missing in the assembly you may want to
                  disable transitive filtering. -->
             <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+                <exclude>io.confluent:rest-utils</exclude>
+                <exclude>io.confluent:common-*</exclude>
+            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>

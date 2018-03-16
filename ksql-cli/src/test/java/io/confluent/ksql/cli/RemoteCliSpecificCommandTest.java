@@ -37,7 +37,7 @@ public class RemoteCliSpecificCommandTest {
 
   private final StringWriter out = new StringWriter();
   private final KsqlRestClient restClient = new KsqlRestClient("xxxx", Collections.emptyMap());
-  private final RemoteCli.RemoteCliSpecificCommand command = new RemoteCli.RemoteCliSpecificCommand(restClient, new PrintWriter(out));
+  private final Cli.RemoteServerSpecificCommand command = new Cli.RemoteServerSpecificCommand(restClient, new PrintWriter(out));
 
   @Test
   public void shouldRestClientServerAddressWhenNonEmptyStringArg() {
@@ -61,14 +61,14 @@ public class RemoteCliSpecificCommandTest {
 
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
-    final RemoteCli.RemoteCliSpecificCommand command = new RemoteCli.RemoteCliSpecificCommand(
+    final Cli.RemoteServerSpecificCommand command = new Cli.RemoteServerSpecificCommand(
         new KsqlRestClient("xxxx", Collections.emptyMap()) {
           @Override
           public RestResponse<ServerInfo> getServerInfo() {
             return RestResponse.erroneous(new ErrorMessage("it is broken", Collections.emptyList()));
           }
         }, new PrintWriter(out));
-    command.execute("http://localhost:8080");
+    command.execute("http://localhost:8088");
 
     assertThat(out.toString(), containsString("it is broken"));
   }
@@ -76,8 +76,8 @@ public class RemoteCliSpecificCommandTest {
   @Test
   public void shouldPrintHelp() {
     command.printHelp();
-    assertThat(out.toString(), containsString("server:          Show the current server"));
-    assertThat(out.toString(), containsString("server <server>: Change the current server to <server>"));
+    assertThat(out.toString(), containsString("server:\n\tShow the current server"));
+    assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
   }
 
 }

@@ -296,7 +296,7 @@ When deploying KSQL to production, the following settings are recommended in you
     # Set the replication factor for internal topics, the command topic, and
     # output topics to be 3 for better fault tolerance and durability.
     ksql.streams.replication.factor=3
-    ksql.server.sink.replicas=3
+    ksql.sink.replicas=3
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.

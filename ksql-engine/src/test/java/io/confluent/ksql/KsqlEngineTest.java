@@ -30,6 +30,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -155,11 +156,14 @@ public class KsqlEngineTest {
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
-    ksqlEngine.getSchemaRegistryClient().register("BAR-value", schema);
+    ksqlEngine.getSchemaRegistryClient().register("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value", schema);
+    ksqlEngine.getSchemaRegistryClient().register("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value", schema);
 
-    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(true));
-    ksqlEngine.buildMultipleQueries("DROP TABLE bar;", Collections.emptyMap());
-    assertThat(schemaRegistryClient.getAllSubjects().contains("BAR-value"), equalTo(false));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(true));
+    ksqlEngine.terminateQuery(new QueryId("CTAS_T1"), true);
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog-value"), equalTo(false));
+    assertThat(schemaRegistryClient.getAllSubjects().contains("_confluent-ksql-ksql_query_CTAS_T1-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition-value"), equalTo(false));
   }
 
 }

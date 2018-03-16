@@ -75,7 +75,7 @@
         <airline.version>2.2.0</airline.version>
         <antlr.version>4.7</antlr.version>
         <csv.version>1.4</csv.version>
-        <guava.version>21.0</guava.version>
+        <guava.version>24.0-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
         <java.version>8</java.version>

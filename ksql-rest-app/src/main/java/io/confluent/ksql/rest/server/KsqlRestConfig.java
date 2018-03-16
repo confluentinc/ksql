@@ -66,6 +66,9 @@ public class KsqlRestConfig extends RestConfig {
   public static final String
           UI_ENABLED_DOC =
           "Flag to disable the KQL UI. It is enabled by default";
+  public static final String INSTALL_DIR_CONFIG = "ksql.server.install.dir";
+  public static final String INSTALL_DIR_DOC
+      = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -88,6 +91,12 @@ public class KsqlRestConfig extends RestConfig {
         UI_ENABLED_DEFAULT,
         UI_ENABLED_IMPORTANCE,
         UI_ENABLED_DOC
+    ).define(
+        INSTALL_DIR_CONFIG,
+        ConfigDef.Type.STRING,
+        "",
+        ConfigDef.Importance.LOW,
+        INSTALL_DIR_DOC
     );
   }
 

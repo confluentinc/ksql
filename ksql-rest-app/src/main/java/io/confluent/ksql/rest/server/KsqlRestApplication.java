@@ -37,6 +37,7 @@ import java.io.Console;
 import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +93,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
-  private static final String UI_FOLDER = "./ui";
   private static final String EXPANDED_FOLDER = "/expanded";
   private static AdminClient adminClient;
 
@@ -103,6 +103,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final boolean isUiEnabled;
+  private final String uiFolder;
 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
@@ -111,7 +112,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     return COMMANDS_STREAM_NAME;
   }
 
-  public KsqlRestApplication(
+  private KsqlRestApplication(
       KsqlEngine ksqlEngine,
       KsqlRestConfig config,
       CommandRunner commandRunner,
@@ -129,10 +130,22 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     this.statusResource = statusResource;
     this.streamedQueryResource = streamedQueryResource;
     this.ksqlResource = ksqlResource;
-    this.isUiEnabled = isUiEnabled;
+
     this.versionChckerAgent = versionCheckerAgent;
 
     this.commandRunnerThread = new Thread(commandRunner);
+    final String ksqlInstallDir = config.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+
+    if (ksqlInstallDir == null || ksqlInstallDir.trim().isEmpty() && isUiEnabled) {
+      log.warn("System property {} is not set. User interface will be disabled",
+          KsqlRestConfig.INSTALL_DIR_CONFIG);
+      this.uiFolder = null;
+    } else if (isUiEnabled){
+      this.uiFolder = ksqlInstallDir + "/ui";
+    } else {
+      this.uiFolder = null;
+    }
+    this.isUiEnabled = isUiEnabled && uiFolder != null;
   }
 
   @Override
@@ -149,10 +162,16 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   public ResourceCollection getStaticResources() {
     log.info("User interface enabled: {}", isUiEnabled);
     if (isUiEnabled) {
-      return new ResourceCollection(Resource.newClassPathResource(UI_FOLDER + EXPANDED_FOLDER));
-    } else {
-      return super.getStaticResources();
+      try {
+        return new ResourceCollection(
+            Resource.newResource("file://" + this.uiFolder + EXPANDED_FOLDER));
+      } catch (MalformedURLException e) {
+        log.error("Unable to load ui from {}", this.uiFolder + EXPANDED_FOLDER, e);
+      }
     }
+
+    return super.getStaticResources();
+
   }
 
   @Override
@@ -358,21 +377,21 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
   }
 
-  private static void loadUiWar() {
-    final File uiFolder = new File(UI_FOLDER);
+  private void loadUiWar() {
+    final File uiFolder = new File(this.uiFolder);
     log.info("Loading UI-WAR from {}", uiFolder.getAbsolutePath());
 
     final File[] files = uiFolder
         .listFiles((dir, name) -> name.endsWith(".war"));
 
     if (files != null) {
-      Arrays.stream(files).forEach(KsqlRestApplication::unzipWar);
+      Arrays.stream(files).forEach(war -> KsqlRestApplication.unzipWar(war, uiFolder));
     }
   }
 
-  private static void unzipWar(final File warFile) {
+  private static void unzipWar(final File warFile, final File uiFolder) {
     try {
-      ZipUtil.unzip(warFile, new File(UI_FOLDER + EXPANDED_FOLDER));
+      ZipUtil.unzip(warFile, new File(uiFolder, EXPANDED_FOLDER));
       log.info("Expand WAR file '{}'", warFile.getPath());
     } catch (final Exception e) {
       log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);

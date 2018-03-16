@@ -1,6 +1,6 @@
 .. _tuning_ksql:
 
-When deploying KSQL to production, we recommend adding the following settings to your ``/etc/ksql/ksql-server.properties`` file:
+When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 
 .. code:: bash
 

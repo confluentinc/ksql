@@ -389,9 +389,9 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     }
   }
 
-  private static void unzipWar(final File warFile, File uiFolder) {
+  private static void unzipWar(final File warFile, final File uiFolder) {
     try {
-      ZipUtil.unzip(warFile, new File(uiFolder + EXPANDED_FOLDER));
+      ZipUtil.unzip(warFile, new File(uiFolder, EXPANDED_FOLDER));
       log.info("Expand WAR file '{}'", warFile.getPath());
     } catch (final Exception e) {
       log.warn("Failed to unzip WAR file: " + warFile.getPath(), e);

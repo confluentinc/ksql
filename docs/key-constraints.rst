@@ -1,0 +1,44 @@
+.. _ksql_key_constraints:
+
+============
+Message Keys
+============
+
+The `CREATE STREAM` and `CREATE TABLE` statements allow the user to specify the column that corresponds to the Kafka message key by setting the `KEY` property of the `WITH` clause. For example:
+
+.. code:: sql
+
+    CREATE TABLE users (registertime bigint, gender varchar, regionid varchar, userid varchar) WITH (KAFKA_TOPIC=‘users', VALUE_FORMAT=‘JSON', KEY = 'userid');
+
+
+In the case of tables, the `KEY` property is required.
+
+In the case of streams, the `KEY` property is optional. KSQL uses it as a hint to determine if a repartition can be avoided when performing aggregations and joins.
+
+In either case, when setting `KEY` the user must be sure that the following is true:
+
+    - The type of the column set in `KEY` must be `STRING` or `VARCHAR`.
+    - The value in the message key must be the same as the value in the column set in `KEY`.
+
+If those constraints are not met, then the results of aggregation and join queries may be incorrect. However, with a couple extra steps you can still use KSQL if your data doesn't meet the first requirement. The following section explains how.
+
+===============================================
+What To Do If Your Key Is In A Different Format
+===============================================
+
+Streams
+-------
+
+For streams, just leave out the `KEY` property from the `WITH` clause. KSQL will take care of repartitioning the stream for you using the value(s) from the `GROUP BY` columns for aggregates, and the join predicate for joins.
+
+Tables
+------
+
+For tables, you can still use KSQL if the record key is not in the required format as long as the record key is a unary function of the value in the desired key column. To do so, first create a stream to have KSQL write the record key, and then declare the table on the output topic of the stream:
+
+.. code:: sql
+
+    CREATE STREAM users_stream (userid INT, username STRING, city STRING, email STRING) WITH (KAFKA_TOPIC=‘users’, VALUE_FORMAT=‘JSON’);
+    CREATE STREAM users_with_key WITH(KAFKA_TOPIC=‘users_with_key’) AS SELECT * FROM users_stream PARTITION BY userid;
+    CREATE TABLE users (userid INT, username STRING, city STRING, email STRING) WITH (KAFKA_TOPIC=‘users_with_key’, VALUE_FORMAT=‘JSON’, KEY=‘userid’);
+

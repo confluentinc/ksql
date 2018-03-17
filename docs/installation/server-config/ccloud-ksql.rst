@@ -5,6 +5,8 @@ Using KSQL with |ccloud|
 
 You can connect KSQL to your |cp| Kafka cluster in |ccloud|.
 
+The KSQL servers must be configured to use |ccloud|. The KSQL CLI does not require configuration.
+
 **Prerequisites**
 
 - :ref:`Confluent Platform <installing_cp>`

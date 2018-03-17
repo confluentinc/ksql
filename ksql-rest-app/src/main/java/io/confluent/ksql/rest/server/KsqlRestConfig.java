@@ -47,7 +47,7 @@ public class KsqlRestConfig extends RestConfig {
   public static final ConfigDef.Type
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
-      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 1000L;
+      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 5000L;
   public static final ConfigDef.Importance
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String

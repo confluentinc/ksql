@@ -143,7 +143,7 @@ Property                  Description
  KAFKA_TOPIC (required)   | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka.
  VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
- KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream. You must be sure that the record key corresponds to the value in the key column and is in the right format. For more information, see :ref:`ksql_key_restraints`
+ KEY                      | Associates the message key in the Kafka topic with a column in the KSQL stream. You must be sure that the record key corresponds to the value in the key column and is in the right format. For more information, see :ref:`ksql_key_constraints`
  TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
                           | in the KSQL stream. If not supplied, the timestamp of the Kafka message, from the source
                           | stream, will be used. Time-based operations such as windowing will process
@@ -202,7 +202,7 @@ Property                  Description
  VALUE_FORMAT (required)  | Specifies the serialization format of the message value in the topic. Supported formats:
                           | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.
  KEY                      | Associates the message key in the Kafka topic with a column in the KSQL table. You must be sure that the record key corresponds to the value in the key column and is in
-the right format. For more information, see :ref:`ksql_key_restraints`
+the right format. For more information, see :ref:`ksql_key_constraints`
  TIMESTAMP                | Associates a field within the message value in the Kafka topic with the ``ROWTIME`` column
                           | in the KSQL table. If not supplied, the timestamp of the Kafka message, from the source
                           | stream, will be used. Time-based operations such as windowing will process

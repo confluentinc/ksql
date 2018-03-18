@@ -505,10 +505,10 @@ public class Cli implements Closeable, AutoCloseable {
         try {
           topicPrintFuture.get();
         } catch (CancellationException exception) {
+          topicResponse.getResponse().close();
           terminal.writer().println("Topic printing ceased");
           terminal.flush();
         }
-        topicResponse.getResponse().close();
       }
     } else {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());

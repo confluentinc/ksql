@@ -1,7 +1,7 @@
 .. _install_cli-config:
 
-KSQL CLI Configuration
-======================
+Configuring KSQL CLI
+====================
 
     
 

@@ -14,13 +14,11 @@ see the :ref:`quickstart`.
     :start-line: 34
     :end-line: 37
 
-=============================
-Capacity Planning and Scaling
-=============================
+===================================
+Starting and Stopping KSQL Clusters
+===================================
 
 TBD
-
-
 
 ============
 Healthchecks
@@ -72,9 +70,9 @@ Your output should resemble:
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
 
-===================================
-Starting and Stopping KSQL Clusters
-===================================
+=============================
+Capacity Planning and Scaling
+=============================
 
 TBD
 

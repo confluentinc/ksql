@@ -41,11 +41,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-<<<<<<< HEAD
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.StringUtil;
-=======
->>>>>>> ef41a33... proper typing for KafkaTopicInfo
 
 @JsonTypeName("kafka_topics")
 @JsonSubTypes({})

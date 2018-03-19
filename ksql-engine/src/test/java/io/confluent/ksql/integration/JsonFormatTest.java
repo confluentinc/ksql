@@ -22,18 +22,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-<<<<<<< HEAD
 import org.apache.kafka.test.TestUtils;
-=======
 import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
->>>>>>> e1821cf... Fix integration test annotations and remove maven-surefire-plugin overrides (#924)
 
 import java.util.Arrays;
 import java.util.Collections;

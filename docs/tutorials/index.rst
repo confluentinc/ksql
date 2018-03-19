@@ -12,7 +12,6 @@ KSQL Tutorials and Examples
     clickstream-local
     examples
 
-
 KSQL Basics
     This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 

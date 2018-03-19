@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,10 @@
 
 package io.confluent.ksql.testutils;
 
-import kafka.admin.AdminUtils;
-import kafka.admin.RackAwareMode;
-import kafka.server.KafkaConfig;
-import kafka.server.KafkaConfig$;
-import kafka.server.KafkaServer;
-import kafka.utils.TestUtils;
-import kafka.utils.ZKStringSerializer$;
-import kafka.utils.ZkUtils;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.kafka.common.network.ListenerName;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -35,6 +28,14 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+
+import kafka.admin.AdminUtils;
+import kafka.admin.RackAwareMode;
+import kafka.server.KafkaConfig;
+import kafka.server.KafkaServer;
+import kafka.utils.TestUtils;
+import kafka.utils.ZKStringSerializer$;
+import kafka.utils.ZkUtils;
 
 /**
  * Runs an in-memory, "embedded" instance of a Kafka broker, which listens at `127.0.0.1:9092` by
@@ -60,51 +61,50 @@ public class KafkaEmbedded {
   /**
    * Creates and starts an embedded Kafka broker.
    *
-   * @param config Broker configuration settings.  Used to modify, for example, on which port the
-   *               broker should listen to.  Note that you cannot change some settings such as
-   *               `log.dirs`, `port`.
+   * @param config Broker configuration settings.  Used to modify, for example, the listeners
+   *               the broker should use.  Note that you cannot change some settings such as
+   *               `log.dirs`.
    */
-  public KafkaEmbedded(Properties config) throws IOException {
-    tmpFolder = new TemporaryFolder();
-    tmpFolder.create();
-    logDir = tmpFolder.newFolder();
-    effectiveConfig = effectiveConfigFrom(config);
-    boolean loggingEnabled = true;
+  public KafkaEmbedded(final Properties config) throws IOException {
+    this.tmpFolder = new TemporaryFolder();
+    this.tmpFolder.create();
+    this.logDir = tmpFolder.newFolder();
+    this.effectiveConfig = effectiveConfigFrom(config, logDir);
 
-    KafkaConfig kafkaConfig = new KafkaConfig(effectiveConfig, loggingEnabled);
+    final KafkaConfig kafkaConfig = new KafkaConfig(effectiveConfig, true);
     log.debug("Starting embedded Kafka broker (with log.dirs={} and ZK ensemble at {}) ...",
         logDir, zookeeperConnect());
+
     kafka = TestUtils.createServer(kafkaConfig, new SystemTime());
     log.debug("Startup of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
         brokerList(), zookeeperConnect());
-  }
-
-  private Properties effectiveConfigFrom(Properties initialConfig) throws IOException {
-    Properties effectiveConfig = new Properties();
-    effectiveConfig.put(KafkaConfig$.MODULE$.BrokerIdProp(), 0);
-    effectiveConfig.put(KafkaConfig$.MODULE$.HostNameProp(), "127.0.0.1");
-    effectiveConfig.put(KafkaConfig$.MODULE$.PortProp(), "9092");
-    effectiveConfig.put(KafkaConfig$.MODULE$.NumPartitionsProp(), 1);
-    effectiveConfig.put(KafkaConfig$.MODULE$.AutoCreateTopicsEnableProp(), true);
-    effectiveConfig.put(KafkaConfig$.MODULE$.MessageMaxBytesProp(), 1000000);
-    effectiveConfig.put(KafkaConfig$.MODULE$.ControlledShutdownEnableProp(), true);
-
-    effectiveConfig.putAll(initialConfig);
-    effectiveConfig.setProperty(KafkaConfig$.MODULE$.LogDirProp(), logDir.getAbsolutePath());
-    return effectiveConfig;
   }
 
   /**
    * This broker's `metadata.broker.list` value.  Example: `127.0.0.1:9092`.
    *
    * You can use this to tell Kafka producers and consumers how to connect to this instance.
+   *
+   * This version returns the port of the first listener.
+   * @return the broker list
    */
   public String brokerList() {
-    ListenerName listenerName = kafka.config().advertisedListeners().apply(0).listenerName();
-    return String.join(":", kafka.config().hostName(), Integer.toString(kafka.boundPort
-        (listenerName)));
+    final ListenerName listenerName = kafka.config().advertisedListeners().apply(0).listenerName();
+    return kafka.config().hostName() + ":" + kafka.boundPort(listenerName);
   }
 
+  /**
+   * The broker's `metadata.broker.list` value.  Example: `127.0.0.1:9092`.
+   *
+   * You can use this to tell Kafka producers and consumers how to connect to this instance.
+   *
+   * @param securityProtocol the security protocol the returned broker list should use.
+   * @return the broker list
+   */
+  public String brokerList(final SecurityProtocol securityProtocol) {
+    return kafka.config().hostName() + ":"
+           + kafka.boundPort(new ListenerName(securityProtocol.toString()));
+  }
 
   /**
    * The ZooKeeper connection string aka `zookeeper.connect`.
@@ -170,10 +170,23 @@ public class KafkaEmbedded {
         DEFAULT_ZK_SESSION_TIMEOUT_MS,
         DEFAULT_ZK_CONNECTION_TIMEOUT_MS,
         ZKStringSerializer$.MODULE$);
-    boolean isSecure = false;
-    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect()), isSecure);
+    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect()), false);
     AdminUtils.createTopic(zkUtils, topic, partitions, replication, topicConfig, RackAwareMode.Enforced$.MODULE$);
     zkClient.close();
   }
 
+  private static Properties effectiveConfigFrom(Properties initialConfig, File logDir) throws IOException {
+    final Properties effectiveConfig = new Properties();
+    effectiveConfig.put(KafkaConfig.BrokerIdProp(), 0);
+    effectiveConfig.put(KafkaConfig.HostNameProp(), "127.0.0.1");
+    effectiveConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
+    effectiveConfig.put(KafkaConfig.NumPartitionsProp(), 1);
+    effectiveConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    effectiveConfig.put(KafkaConfig.MessageMaxBytesProp(), 1_000_000);
+    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), true);
+
+    effectiveConfig.putAll(initialConfig);
+    effectiveConfig.put(KafkaConfig.LogDirProp(), logDir.getAbsolutePath());
+    return effectiveConfig;
+  }
 }

@@ -6,7 +6,9 @@ Configuring KSQL Server
 .. toctree::
     :maxdepth: 1
 
+    security
     ccloud-ksql
+    avro-schema
 
 You can set the default properties for KSQL, :cp-javadoc:`Kafka’s Streams |streams/javadocs/index.html`, Kafka’s
 :cp-javadoc:`producer client |clients/javadocs/org/apache/kafka/clients/producer/ProducerConfig.html` and

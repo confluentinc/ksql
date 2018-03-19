@@ -51,7 +51,7 @@ You can only connect to one KSQL server at a time. The KSQL CLI does not support
     :align: center
 
 .. tip:: For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more
-information, see :ref:`quickstart`.
+    information, see :ref:`quickstart`.
 
 Follow these instructions to start KSQL server.
 
@@ -60,7 +60,7 @@ Follow these instructions to start KSQL server.
     API or the Kafka producer and consumer would understand. For a description of common configurations, see :ref:`configuring-ksql`.
 
     .. tip:: KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, KSQL servers
-use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix``
+             use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix``
              setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named
              ``ksql__production_commands``.
 

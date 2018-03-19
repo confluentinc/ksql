@@ -13,6 +13,8 @@ The KSQL servers must be configured to use |ccloud|. The KSQL CLI does not requi
 
 #.  Customize your ``/etc/ksql/ksql-server.properties`` properties file.
 
+    .. tip:: Only the KSQL Server must be configured to work with |ccloud|. The KSQL CLI does not require any additional configuration.
+
     .. code:: bash
 
         # a comma separated list of the the ccloud broker endpoints.

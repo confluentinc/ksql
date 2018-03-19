@@ -28,7 +28,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-clickstream-demo</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -45,6 +45,11 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-tools</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>

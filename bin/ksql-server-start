@@ -21,6 +21,14 @@ fi
 
 EXTRA_ARGS="-name ksql-server -loggc"
 
+if [ -z "$KSQL_OPTS" ]; then
+  KSQL_OPTS=-Dksql.server.install.dir=$base_dir
+else
+  KSQL_OPTS="${KSQL_OPTS} -Dksql.server.install.dir=$base_dir"
+fi
+
+export KSQL_OPTS
+
 # TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
 # so that useful defaults for bootstrap server, port, etc. can be established here
 

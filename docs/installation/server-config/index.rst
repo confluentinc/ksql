@@ -3,6 +3,12 @@
 Configuring KSQL Server
 -----------------------
 
+.. toctree::
+
+    security
+    ccloud-ksql
+    avro-schema
+
 You can set the default properties for KSQL, :cp-javadoc:`Kafka’s Streams |streams/javadocs/index.html`, Kafka’s
 :cp-javadoc:`producer client |clients/javadocs/org/apache/kafka/clients/producer/ProducerConfig.html` and
 :cp-javadoc:`consumer client |clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html`, and admin client properties in the ``/etc/ksql/ksql-server.properties`` file.

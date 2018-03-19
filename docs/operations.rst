@@ -3,14 +3,29 @@
 KSQL Operations
 ===============
 
+================================================
+Local Development and Testing with Confluent CLI
+================================================
 
-=============================
-Capacity planning and scaling
-=============================
+For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more information,
+see the :ref:`quickstart`.
 
-TBD
+.. include:: ../../includes/installation.rst
+    :start-line: 34
+    :end-line: 37
 
+===================================
+Starting and Stopping KSQL Clusters
+===================================
 
+KSQL provides start and stop scripts.
+
+ksql-server-start
+    This script starts the KSQL server. It requires a server configuration file as an argument and is located in the ``/bin`` directory
+    of your |cp| installation. For more information, see :ref:`install_ksql-server`.
+
+ksql-server-stop
+    This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.
 
 ============
 Healthchecks
@@ -66,20 +81,11 @@ Your output should resemble:
 
 For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
 
-===================================
-Starting and Stopping KSQL Clusters
-===================================
+=============================
+Capacity Planning and Scaling
+=============================
 
-KSQL provides start and stop scripts.
-
-ksql-server-start
-    This script starts the KSQL server. It requires a server configuration file as an argument and is located in the ``/bin`` directory
-    of your |cp| installation. For more information, see :ref:`install_ksql-server`.
-
-ksql-server-stop
-    This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.
-
-
+TBD
 
 ===============
 Troubleshooting

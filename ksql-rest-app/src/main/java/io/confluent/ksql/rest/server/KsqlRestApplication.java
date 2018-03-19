@@ -103,12 +103,8 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final boolean isUiEnabled;
-<<<<<<< HEAD
   private final String uiFolder;
-
-=======
   private final ServerInfo serverInfo;
->>>>>>> 7032379... KSQL-739 return kafka cluster id as part of server info (#932)
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionChckerAgent;
 

@@ -175,7 +175,7 @@ Yes. Internally, KSQL uses standard Kafka consumers and producers.
 The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
 
 For example, you can add the following entries to the KSQL server configuration file
-(ksqlserver.properties). This configuration enables KSQL to connect to a secure Kafka
+(ksql-server.properties). This configuration enables KSQL to connect to a secure Kafka
 cluster using _PLAIN_ SASL (other options include GSSAPI / Kerberos), where the SSL
 certificates have been signed by a CA trusted by the default JVM trust store:
 
@@ -210,6 +210,8 @@ To do so, add the following to the KSQL configuration file, (ksql-server.propert
         username="<confluent cloud access key>" \
         password="<confluent cloud secret>";
 
+For more information, see :ref:`install_ksql-ccloud`.
+
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 ====================================================================
@@ -217,7 +219,7 @@ Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 Interactive KSQL clusters
 -------------------------
 
-Interactive KSQL clusters currently requires that the KSQL user has open access to
+Interactive KSQL clusters currently require that the KSQL user has open access to
 create, read, write and delete topics and use any consumer group.
 
 The required ACLs are:
@@ -287,7 +289,7 @@ Will KSQL work with a HTTPS Confluent Schema Registry?
 KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS.
 To achieve this you will need to:
 
--  Specifiy the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
+-  Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
    KSQL configuration file:
 
     ... code:: bash

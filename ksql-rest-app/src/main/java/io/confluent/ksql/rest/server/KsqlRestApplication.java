@@ -163,7 +163,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     if (isUiEnabled) {
       try {
         return new ResourceCollection(
-            Resource.newResource("file://" + this.uiFolder + EXPANDED_FOLDER));
+            Resource.newResource(new File(this.uiFolder, EXPANDED_FOLDER).getCanonicalFile()));
       } catch (Exception e) {
         log.error("Unable to load ui from {}. You can disable the ui by setting {} to false",
             this.uiFolder + EXPANDED_FOLDER,

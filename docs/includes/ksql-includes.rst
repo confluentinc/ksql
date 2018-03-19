@@ -316,4 +316,11 @@ queries.
 
        ksql> exit
 
+.. enable JMX metrics
 
+To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
+
+.. code:: bash
+
+    $ export JMX_PORT=1099 && \
+      <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties

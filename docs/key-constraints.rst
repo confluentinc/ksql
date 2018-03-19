@@ -17,10 +17,10 @@ In the case of streams, the `KEY` property is optional. KSQL uses it as a hint t
 
 In either case, when setting `KEY` the user must be sure that the following is true:
 
-    - The type of the column set in `KEY` must be `STRING` or `VARCHAR`.
-    - The value in the message key must be the same as the value in the column set in `KEY`.
+    - `KEY` must be set to a column of type `STRING` or `VARCHAR`.
+    - The value in the message key must be the same as the value in the column set in `KEY` for every record.
 
-If those constraints are not met, then the results of aggregation and join queries may be incorrect. However, with a couple extra steps you can still use KSQL if your data doesn't meet the first requirement. The following section explains how.
+If those constraints are not met, then the results of aggregation and join queries may be incorrect. However, if your data doesn't meet the fist requirement, you can still use KSQL with a couple extra steps. The following section explains how.
 
 ===============================================
 What To Do If Your Key Is In A Different Format

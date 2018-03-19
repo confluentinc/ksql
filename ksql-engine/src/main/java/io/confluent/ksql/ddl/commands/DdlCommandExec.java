@@ -59,11 +59,7 @@ public class DdlCommandExec {
       return ddlCommand.run(metaStore);
     } catch (Exception e) {
       LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand), e);
-<<<<<<< HEAD:ksql-engine/src/main/java/io/confluent/ksql/ddl/commands/DDLCommandExec.java
-      return new DDLCommandResult(false, e.getMessage());
-=======
-      return new DdlCommandResult(false, ExceptionUtil.stackTraceToString(e));
->>>>>>> 41eeb16... remove AbbreviationAsWordInName suppression (#937):ksql-engine/src/main/java/io/confluent/ksql/ddl/commands/DdlCommandExec.java
+      return new DdlCommandResult(false, e.getMessage());
     }
   }
 }

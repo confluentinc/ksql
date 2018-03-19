@@ -78,7 +78,7 @@ Using KSQL with a secured Confluent Schema Registry
 
 If you are using KSQL with HTTPS to Confluent Schema Registry, you must set the ``ksql.schema.registry.url`` to HTTPS
 (as shown in the example configuration) and set the ``KSQL_OPTS`` environment variable to define the credentials to use
-when communicating with the Confluent Schema Registry:
+when communicating with the Confluent Schema Registry. This must be run before starting the KSQL server.
 
 .. code:: bash
 
@@ -96,7 +96,7 @@ You can use KSQL with Apache Kafka clusters that are secured with ACLs. The beha
 interactive or non-interactive.
 
 .. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`streams_developer-guide_interactive-queries`.
+         non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Interactive KSQL clusters

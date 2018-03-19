@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 
@@ -26,26 +25,38 @@ import java.util.Objects;
 
 @JsonSubTypes({})
 public class Command {
-  private final String statement;
-  private final Map<String, Object> streamsProperties;
+  private String statement;
+  private Map<String, Object> ksqlProperties;
 
-  @JsonCreator
-  public Command(
-      @JsonProperty("statement") String statement,
-      @JsonProperty("streamsProperties") Map<String, Object> streamsProperties
+  public Command(String statement,
+                 Map<String, Object> ksqlProperties
   ) {
     this.statement = statement;
-    this.streamsProperties = streamsProperties;
+    this.ksqlProperties = ksqlProperties;
   }
 
+  public Command() {
+    this.statement = "";
+    this.ksqlProperties = null;
+  }
+
+  @JsonProperty("statement")
   public String getStatement() {
     return statement;
   }
 
-  public Map<String, Object> getStreamsProperties() {
-    return new HashMap<>(streamsProperties);
+  public void setStatement(String statement) {
+    this.statement = statement;
   }
 
+  @JsonProperty("streamsProperties")
+  public Map<String, Object> getKsqlProperties() {
+    return new HashMap<>(ksqlProperties);
+  }
+
+  public void setKsqlProperties(Map<String, Object> ksqlProperties) {
+    this.ksqlProperties = ksqlProperties;
+  }
 
   @Override
   public boolean equals(Object o) {
@@ -57,19 +68,19 @@ public class Command {
     }
     Command command = (Command) o;
     return Objects.equals(getStatement(), command.getStatement())
-        && Objects.equals(getStreamsProperties(), command.getStreamsProperties());
+        && Objects.equals(getKsqlProperties(), command.getKsqlProperties());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, streamsProperties);
+    return Objects.hash(statement, ksqlProperties);
   }
 
   @Override
   public String toString() {
     return "Command{"
         + "statement='" + statement + '\''
-        + ", streamsProperties=" + streamsProperties
+        + ", ksqlProperties=" + ksqlProperties
         + '}';
   }
 }

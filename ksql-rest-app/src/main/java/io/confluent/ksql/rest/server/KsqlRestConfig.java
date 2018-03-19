@@ -17,35 +17,16 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.common.config.ConfigDef;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 
 import java.util.Map;
 
-// Although it would be nice to somehow extend the functionality of this class to encompass that of
-// the KsqlConfig, there is no clean way to do so since the KsqlConfig inherits from the Kafka
-// AbstractConfig class, and the RestConfig inherits from the Confluent AbstractConfig class. Making
-// the two get along and play nicely together in one class is more work than it's worth, so any and
-// all validation to be performed by the KsqlConfig class will be handled outside of this one.
 public class KsqlRestConfig extends RestConfig {
 
-  public static final String KSQL_STREAMS_PREFIX       = "ksql.core.streams.";
-  public static final String COMMAND_CONSUMER_PREFIX  = "ksql.command.consumer.";
-  public static final String COMMAND_PRODUCER_PREFIX  = "ksql.command.producer.";
-
-  public static final String
-      COMMAND_TOPIC_SUFFIX_CONFIG = "ksql.command.topic.suffix";
-  public static final ConfigDef.Type
-      COMMAND_TOPIC_SUFFIX_TYPE = ConfigDef.Type.STRING;
-  public static final String
-      COMMAND_TOPIC_SUFFIX_DEFAULT = "commands";
-  public static final ConfigDef.Importance
-      COMMAND_TOPIC_SUFFIX_IMPORTANCE = ConfigDef.Importance.LOW;
-  public static final String
-      COMMAND_TOPIC_SUFFIX_DOC =
-          "A suffix to append to the end of the name of the Kafka topic to use for distributing "
-              + "commands";
+  public static final String COMMAND_CONSUMER_PREFIX  = "ksql.server.command.consumer.";
+  public static final String COMMAND_PRODUCER_PREFIX  = "ksql.server.command.producer.";
 
   public static final String
       STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG = "query.stream.disconnect.check";
@@ -62,11 +43,11 @@ public class KsqlRestConfig extends RestConfig {
               + "order to avoid keeping the created streams job alive longer than necessary";
 
   public static final String
-      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG = "command.response.timeout.ms";
+      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG = "ksql.server.command.response.timeout.ms";
   public static final ConfigDef.Type
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_TYPE = ConfigDef.Type.LONG;
   public static final Long
-      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 1000L;
+      DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DEFAULT = 5000L;
   public static final ConfigDef.Importance
       DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   public static final String
@@ -75,7 +56,7 @@ public class KsqlRestConfig extends RestConfig {
               + "returning a response";
 
   public static final String
-          UI_ENABLED_CONFIG = "ui.enabled";
+          UI_ENABLED_CONFIG = "ksql.server.ui.enabled";
   public static final ConfigDef.Type
           UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
   public static final String
@@ -85,17 +66,14 @@ public class KsqlRestConfig extends RestConfig {
   public static final String
           UI_ENABLED_DOC =
           "Flag to disable the KQL UI. It is enabled by default";
+  public static final String INSTALL_DIR_CONFIG = "ksql.server.install.dir";
+  public static final String INSTALL_DIR_DOC
+      = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
   private static final ConfigDef CONFIG_DEF;
 
   static {
     CONFIG_DEF = baseConfigDef().define(
-        COMMAND_TOPIC_SUFFIX_CONFIG,
-        COMMAND_TOPIC_SUFFIX_TYPE,
-        COMMAND_TOPIC_SUFFIX_DEFAULT,
-        COMMAND_TOPIC_SUFFIX_IMPORTANCE,
-        COMMAND_TOPIC_SUFFIX_DOC
-    ).define(
         STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_TYPE,
         STREAMED_QUERY_DISCONNECT_CHECK_MS_DEFAULT,
@@ -113,6 +91,12 @@ public class KsqlRestConfig extends RestConfig {
         UI_ENABLED_DEFAULT,
         UI_ENABLED_IMPORTANCE,
         UI_ENABLED_DOC
+    ).define(
+        INSTALL_DIR_CONFIG,
+        ConfigDef.Type.STRING,
+        "",
+        ConfigDef.Importance.LOW,
+        INSTALL_DIR_DOC
     );
   }
 
@@ -143,15 +127,15 @@ public class KsqlRestConfig extends RestConfig {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 
-  public Map<String, Object> getKsqlStreamsProperties() {
-    return getPropertiesWithOverrides(KSQL_STREAMS_PREFIX);
+  public Map<String, Object> getKsqlConfigProperties() {
+    return getOriginals();
   }
 
-  public String getCommandTopic() {
+  public String getCommandTopic(String ksqlServiceId) {
     return String.format(
-        "%s_%s",
-        KsqlConfig.KSQL_SERVICE_ID_DEFAULT,
-        getString(COMMAND_TOPIC_SUFFIX_CONFIG)
+        "%s-%s",
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ksqlServiceId
     );
   }
 

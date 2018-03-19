@@ -83,7 +83,7 @@ public class KsqlResourceTest {
     SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(TestKsqlResourceUtil.getDefaultKsqlConfig());
-    KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlStreamsProperties());
+    KsqlConfig ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     ksqlEngine = new KsqlEngine(ksqlConfig, new MockKafkaTopicClient(), schemaRegistryClient, new MetaStoreImpl());
   }
 
@@ -148,7 +148,7 @@ public class KsqlResourceTest {
       configMap.put("cache.max.bytes.buffering", 0);
       configMap.put("auto.offset.reset", "earliest");
       configMap.put("ksql.command.topic.suffix", "commands");
-      configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8080");
+      configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
 
       Properties properties = new Properties();
       properties.putAll(configMap);
@@ -449,7 +449,8 @@ public class KsqlResourceTest {
     assertThat("Incorrect drop statement.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
-    assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Incompatible data source type is STREAM, but statement was DROP TABLE"));
+    assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
+                                                                   + " is STREAM, but statement was DROP TABLE"));
   }
 
   @Test
@@ -462,7 +463,8 @@ public class KsqlResourceTest {
     assertThat("Incorrect drop statement.", result.size(), equalTo(1));
     assertThat(result.get(0), instanceOf(ErrorMessageEntity.class));
     ErrorMessageEntity errorMessageEntity = (ErrorMessageEntity) result.get(0);
-    assertTrue(errorMessageEntity.getErrorMessage().getMessage().contains("Incompatible data source type is TABLE, but statement was DROP STREAM"));
+    assertTrue(errorMessageEntity.getErrorMessage().getMessage().equalsIgnoreCase("Incompatible data source type"
+                                                                   + " is TABLE, but statement was DROP STREAM"));
   }
 
   @Test

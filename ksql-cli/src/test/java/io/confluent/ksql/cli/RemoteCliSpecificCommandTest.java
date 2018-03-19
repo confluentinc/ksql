@@ -68,7 +68,7 @@ public class RemoteCliSpecificCommandTest {
             return RestResponse.erroneous(new ErrorMessage("it is broken", Collections.emptyList()));
           }
         }, new PrintWriter(out));
-    command.execute("http://localhost:8080");
+    command.execute("http://localhost:8088");
 
     assertThat(out.toString(), containsString("it is broken"));
   }

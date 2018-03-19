@@ -127,7 +127,7 @@ Load the Streaming Data to KSQL
 
     You should see the KSQL CLI welcome screen.
 
-    .. include:: ../../includes/ksql-includes.rst
+    .. include:: ../includes/ksql-includes.rst
         :start-line: 17
         :end-line: 38
 
@@ -317,7 +317,7 @@ In this step, you send the KSQL tables to Elasticsearch and Grafana and then vie
     **Important:** If you already have Grafana UI open, you may need to enter the specific clickstream URL as
     `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_.
 
-    .. image:: ../../img/grafana-success.png
+    .. image:: ../img/grafana-success.png
 
 This dashboard demonstrates a series of streaming functionality where the title of each panel describes the type of stream
 processing required to generate the data. For example, the large chart in the middle is showing web-resource requests on a per-username basis

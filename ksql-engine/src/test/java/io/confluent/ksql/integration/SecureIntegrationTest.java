@@ -24,6 +24,7 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.Resource;
 import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -65,6 +66,7 @@ public class SecureIntegrationTest {
 
   private static final String INPUT_TOPIC = "orders_topic";
   private static final String INPUT_STREAM = "ORDERS";
+  private static final Credentials ALL_USERS = new Credentials("*", "ignored");
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
@@ -72,7 +74,9 @@ public class SecureIntegrationTest {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
       EmbeddedSingleNodeKafkaCluster.newBuilder()
-          .withSaslSslListenersOnly()
+          .withoutPlainListeners()
+          .withSaslSslListeners()
+          .withSslListeners()
           .withAcls(SUPER_USER.username)
           .build();
 
@@ -104,7 +108,7 @@ public class SecureIntegrationTest {
     if (topicClient != null) {
       try {
         topicClient.deleteTopics(Collections.singletonList(outputTopic));
-      } catch (final Exception e){
+      } catch (final Exception e) {
         e.printStackTrace(System.err);
       }
       topicClient.close();
@@ -112,11 +116,39 @@ public class SecureIntegrationTest {
   }
 
   @Test
+  public void shouldRunQueryAgainstKafkaClusterOverSsl() throws Exception {
+    // Given:
+    givenAllowAcl(ALL_USERS, ResourceType.CLUSTER, "kafka-cluster",
+                  ImmutableSet.of(AclOperation.DESCRIBE_CONFIGS, AclOperation.CREATE));
+
+    givenAllowAcl(ALL_USERS, ResourceType.TOPIC, "*",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ,
+                                  AclOperation.WRITE, AclOperation.DELETE));
+
+    givenAllowAcl(ALL_USERS, ResourceType.GROUP, "*",
+                  ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
+
+    final Map<String, Object> configs = getBaseKsqlConfig();
+    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                SECURE_CLUSTER.bootstrapServers(SecurityProtocol.SSL));
+
+    // Additional Properties required for KSQL to talk to cluster over SSL:
+    configs.put("security.protocol", "SSL");
+    configs.put("ssl.truststore.location", ClientTrustStore.trustStorePath());
+    configs.put("ssl.truststore.password", ClientTrustStore.trustStorePassword());
+
+    givenTestSetupWithConfig(configs);
+
+    // Then:
+    assertCanRunSimpleKsqlQuery();
+  }
+
+  @Test
   public void shouldRunQueryAgainstKafkaClusterOverSaslSsl() throws Exception {
     // Given:
     final Map<String, Object> configs = getBaseKsqlConfig();
 
-    // Additional Properties required for KSQL to talk to secure cluster:
+    // Additional Properties required for KSQL to talk to secure cluster using SSL and SASL:
     configs.put("security.protocol", "SASL_SSL");
     configs.put("sasl.mechanism", "PLAIN");
     configs.put("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(SUPER_USER));
@@ -164,17 +196,17 @@ public class SecureIntegrationTest {
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition",
+                  "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog",
+                  "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CTAS_ACLS_TEST_2",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_2",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -190,10 +222,10 @@ public class SecureIntegrationTest {
     outputTopic = "ACLS_TEST_3";
 
     final String repartitionTopic =
-        "ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition";
+        "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition";
 
     final String changeLogTopic =
-        "ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog";
+        "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog";
 
     SECURE_CLUSTER.createTopic(outputTopic, 4, 1);
     SECURE_CLUSTER.createTopic(repartitionTopic, 1, 1);
@@ -220,7 +252,7 @@ public class SecureIntegrationTest {
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "ksql_query_CTAS_ACLS_TEST_3",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-ksql_query_CTAS_ACLS_TEST_3",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     givenTestSetupWithConfig(getKsqlConfig(NORMAL_USER));
@@ -230,7 +262,8 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsAndCustomPrefixed() throws Exception {
+  public void shouldRunQueryWithChangeLogsAgainstKafkaClusterWithAclsAndCustomPrefixed()
+      throws Exception {
     // Given:
     outputTopic = "ACLS_TEST_4";
 
@@ -247,17 +280,17 @@ public class SecureIntegrationTest {
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.WRITE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000005-repartition",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ, AclOperation.WRITE,
                                   AclOperation.DELETE));
 
     givenAllowAcl(NORMAL_USER, ResourceType.TOPIC,
-                  "t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000005-changelog",
+                  "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4-KSTREAM-AGGREGATE-STATE-STORE-0000000006-changelog",
                   ImmutableSet
                       .of(AclOperation.DESCRIBE, /* READ for recovery, */ AclOperation.WRITE,
                           AclOperation.DELETE));
 
-    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "t4_query_CTAS_ACLS_TEST_4",
+    givenAllowAcl(NORMAL_USER, ResourceType.GROUP, "_confluent-ksql-t4_query_CTAS_ACLS_TEST_4",
                   ImmutableSet.of(AclOperation.DESCRIBE, AclOperation.READ));
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
@@ -293,11 +326,11 @@ public class SecureIntegrationTest {
     }
   }
 
-  private void givenAllowAcl(final Credentials user,
+  private void givenAllowAcl(final Credentials credentials,
                              final ResourceType resourceType,
                              final String resourceName,
                              final Set<AclOperation> ops) {
-    SECURE_CLUSTER.addUserAcl(user, AclPermissionType.ALLOW,
+    SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW,
                               new Resource(resourceType, resourceName), ops);
   }
 

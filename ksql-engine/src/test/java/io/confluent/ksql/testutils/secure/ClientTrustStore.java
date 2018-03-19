@@ -56,10 +56,20 @@ public final class ClientTrustStore {
   public static Map<String, ?> trustStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath(),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PASSWORD
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword()
     );
   }
 
+  /**
+   * @return the password used to secure the trust store.
+   */
+  public static String trustStorePassword() {
+    return TRUSTSTORE_PASSWORD;
+  }
+
+  /**
+   * @return the path to the temporary trust store.
+   */
   public static String trustStorePath() {
     final Path path = trustStorePath.updateAndGet(existing -> {
       if (existing != null) {

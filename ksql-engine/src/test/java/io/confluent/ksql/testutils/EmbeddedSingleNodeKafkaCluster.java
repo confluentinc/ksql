@@ -26,6 +26,7 @@ import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.Resource;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
 import org.apache.kafka.test.TestUtils;
 import org.junit.rules.ExternalResource;
@@ -156,6 +157,16 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
+   * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
+   *
+   * You can use this to tell Kafka producers how to connect to this cluster.
+   * @param securityProtocol the security protocol to select.
+   */
+  public String bootstrapServers(final SecurityProtocol securityProtocol) {
+    return broker.brokerList(securityProtocol);
+  }
+
+  /**
    * Common properties that clients will need to connect to the cluster.
    *
    * This includes any SASL / SSL related settings.
@@ -214,17 +225,17 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Writes the supplied ACL information to ZK, where it will be picked up by the brokes authorizer.
    *
-   * @param credentials the who.
+   * @param username    the who.
    * @param permission  the allow|deny.
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final Credentials credentials,
+  public void addUserAcl(final String username,
                          final AclPermissionType permission,
                          final Resource resource,
                          final Set<AclOperation> ops) {
 
-    final KafkaPrincipal principal = new KafkaPrincipal("User", credentials.username);
+    final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
 
     final Set<Acl> javaAcls = ops.stream()
@@ -259,7 +270,6 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private Properties effectiveBrokerConfigFrom() {
     Properties effectiveConfig = new Properties();
-    effectiveConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
@@ -300,10 +310,16 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder() {
       brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), SimpleAclAuthorizer.class.getName());
       brokerConfig.put(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(), true);
+      brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
     }
 
-    public Builder withSaslSslListenersOnly() {
-      brokerConfig.put(KafkaConfig.ListenersProp(), "SASL_SSL://:0");
+    public Builder withoutPlainListeners() {
+      removeListenersProp("PLAINTEXT");
+      return this;
+    }
+
+    public Builder withSaslSslListeners() {
+      addListenersProp("SASL_SSL");
       brokerConfig.put(KafkaConfig.SaslEnabledMechanismsProp(), "PLAIN");
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(), SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
@@ -311,6 +327,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());
+      return this;
+    }
+
+    public Builder withSslListeners() {
+      addListenersProp("SSL");
       return this;
     }
 
@@ -325,6 +346,19 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     public EmbeddedSingleNodeKafkaCluster build() {
       return new EmbeddedSingleNodeKafkaCluster(brokerConfig, clientConfig);
+    }
+
+    private void addListenersProp(String listenerType) {
+      final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
+      brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
+    }
+
+    private void removeListenersProp(String listenerType) {
+      final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
+      final String replacement = Arrays.stream(current.split(","))
+          .filter(part -> !part.startsWith(listenerType + "://"))
+          .collect(Collectors.joining(","));
+      brokerConfig.put(KafkaConfig.ListenersProp(), replacement);
     }
   }
 }

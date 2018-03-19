@@ -167,6 +167,28 @@ The maximum parallelism depends on the number of partitions.
          against a two-partition input topic, only two servers perform the actual work, but the other eight will run an “idle”
          query.
 
+=====================================================
+Can KSQL connect to an Apache Kafka cluster over SSL?
+=====================================================
+
+Yes. Internally, KSQL uses standard Kafka consumers and producers.
+The procedure to securely connect KSQL to Kafka is the same as connecting any app to Kafka.
+
+For example, you can add the following entries to the KSQL server configuration file
+(ksql-server.properties). This configuration enables KSQL to connect to a Kafka
+cluster over SSL, given a trust store that will validate the SSL certificates being used
+by the Kafka Brokers.
+
+.. code:: bash
+    security.protocol=SSL
+    ssl.truststore.location=<path to trust store that trusts broker certificates>
+    ssl.truststore.password=<trust store secret>
+
+The exact settings you will need will vary depending on the security settings the Kafka brokers
+are using and how your SSL certificates are signed. For full details, please refer to the
+`Security section of the Kafka documentation
+<http://kafka.apache.org/documentation.html#security>`__.
+
 =================================================================================
 Can KSQL connect to an Apache Kafka cluster over SSL and authenticate using SASL?
 =================================================================================
@@ -262,7 +284,8 @@ Change-log and repartition topics
     queries being executed. The easiest way to determine the list of topics is to first run
     the queries on an open Kafka cluster and list the topics created.
 
-    All change-log and repartition topics are prefixed with  ``<value of ksql.service.id property>_query_<query id>_``
+    All change-log and repartition topics are prefixed with
+    ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>_``
     where the default of ``ksql.service.id`` is ``ksql_``.
 
     The KSQL user will require a minimum of *DESCRIBE*, *READ* and *WRITE* permissions for
@@ -277,7 +300,8 @@ Consumer groups
     The easiest way to determine the list of consumer groups is to first run the queries on an
     open Kafka cluster and list the groups created.
 
-    All consumer groups are have a name in the format: ``<value of ksql.service.id property>_query_<query id>``
+    All consumer groups are have a name in the format:
+    ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``
     where the default of ``ksql.service.id`` is ``ksql_``.
 
     The KSQL user will require a minimum of *DESCRIBE* and *READ* permissions for *GROUP*.

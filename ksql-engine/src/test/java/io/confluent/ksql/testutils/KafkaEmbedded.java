@@ -19,6 +19,7 @@ package io.confluent.ksql.testutils;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.kafka.common.network.ListenerName;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -83,10 +84,26 @@ public class KafkaEmbedded {
    * This broker's `metadata.broker.list` value.  Example: `127.0.0.1:9092`.
    *
    * You can use this to tell Kafka producers and consumers how to connect to this instance.
+   *
+   * This version returns the port of the first listener.
+   * @return the broker list
    */
   public String brokerList() {
     final ListenerName listenerName = kafka.config().advertisedListeners().apply(0).listenerName();
     return kafka.config().hostName() + ":" + kafka.boundPort(listenerName);
+  }
+
+  /**
+   * The broker's `metadata.broker.list` value.  Example: `127.0.0.1:9092`.
+   *
+   * You can use this to tell Kafka producers and consumers how to connect to this instance.
+   *
+   * @param securityProtocol the security protocol the returned broker list should use.
+   * @return the broker list
+   */
+  public String brokerList(final SecurityProtocol securityProtocol) {
+    return kafka.config().hostName() + ":"
+           + kafka.boundPort(new ListenerName(securityProtocol.toString()));
   }
 
   /**

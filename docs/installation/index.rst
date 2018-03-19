@@ -1,7 +1,7 @@
 .. _install_ksql:
 
-Installing KSQL
----------------
+Installation and Configuration
+------------------------------
 
 KSQL is a component of |cp| and is automatically installed and running when you install |cp|. For |cp| installation,
 see the :ref:`quickstart`.
@@ -30,9 +30,12 @@ For advanced installation and configuration, see the following topics.
 .. toctree::
     :maxdepth: 1
 
-    client-server
+    architecture
+    installing
     standalone
     server-config/index
+    cli-config
+    common-scenarios
     upgrading
     
 

@@ -138,6 +138,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     if (broker != null) {
       broker.stop();
     }
+    if (authorizer != null) {
+      authorizer.close();
+    }
     try {
       if (zookeeper != null) {
         zookeeper.stop();

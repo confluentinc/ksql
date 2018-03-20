@@ -19,15 +19,9 @@ CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varcha
 DROP TABLE events_per_min;
 CREATE table events_per_min AS SELECT userid, count(*) AS events FROM clickstream window  TUMBLING (size 10 second) GROUP BY userid;
 
--- VIEW - Enrich with rowTime
-DROP TABLE events_per_min_ts;
-CREATE TABLE events_per_min_ts AS SELECT rowTime AS event_ts, * FROM events_per_min;
-
 -- VIEW
 DROP TABLE events_per_min_max_avg;
-DROP TABLE events_per_min_max_avg_ts;
 CREATE TABLE events_per_min_max_avg AS SELECT userid, min(events) AS min, max(events) AS max, sum(events)/count(events) AS avg from events_per_min  WINDOW TUMBLING (size 10 second) GROUP BY userid;
-CREATE TABLE events_per_min_max_avg_ts AS SELECT rowTime AS event_ts, * FROM events_per_min_max_avg;
 
 
 -- 3. BUILD STATUS_CODES
@@ -35,19 +29,9 @@ CREATE TABLE events_per_min_max_avg_ts AS SELECT rowTime AS event_ts, * FROM eve
 DROP TABLE clickstream_codes;
 CREATE TABLE clickstream_codes (code int, definition varchar) with (key='code', kafka_topic = 'clickstream_codes', value_format = 'json');
 
--- Add _TS for Timeseries storage
-DROP TABLE clickstream_codes_ts;
-CREATE table clickstream_codes_ts AS SELECT rowTime AS event_ts, * FROM clickstream_codes;
-
-
 -- 4. BUILD PAGE_VIEWS
 DROP TABLE pages_per_min;
 CREATE TABLE pages_per_min AS SELECT userid, count(*) AS pages FROM clickstream WINDOW HOPPING (size 10 second, advance by 5 second) WHERE request like '%html%' GROUP BY userid ;
-
- -- Add _TS for Timeseries storage
-DROP TABLE pages_per_min_ts;
-CREATE TABLE pages_per_min_ts AS SELECT rowTime AS event_ts, * FROM pages_per_min;
-
 
 ----------------------------------------------------------------------------------------------------------------------------
 -- URL STATUS CODES (Join AND Alert)
@@ -58,27 +42,18 @@ CREATE TABLE pages_per_min_ts AS SELECT rowTime AS event_ts, * FROM pages_per_mi
 -- Use 'HAVING' Filter to show ERROR codes > 400 where count > 5
 DROP TABLE ERRORS_PER_MIN_ALERT;
 CREATE TABLE ERRORS_PER_MIN_ALERT AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 30 second, advance by 20 second) WHERE status > 400 GROUP BY status HAVING count(*) > 5 AND count(*) is not NULL;
-DROP TABLE ERRORS_PER_MIN_ALERT_TS;
-CREATE TABLE ERRORS_PER_MIN_ALERT_TS AS SELECT rowTime AS event_ts, * FROM ERRORS_PER_MIN_ALERT;
-
 
 DROP TABLE ERRORS_PER_MIN;
 CREATE table ERRORS_PER_MIN AS SELECT status, count(*) AS errors FROM clickstream window HOPPING ( size 10 second, advance by 5  second) WHERE status > 400 GROUP BY status;
-DROP TABLE ERRORS_PER_MIN_TS;
-CREATE TABLE ERRORS_PER_MIN_TS AS SELECT rowTime AS event_ts, * FROM ERRORS_PER_MIN;
-
 
 -- VIEW - Enrich Codes with errors with Join to Status-Code definition
 DROP STREAM ENRICHED_ERROR_CODES;
 DROP TABLE ENRICHED_ERROR_CODES_COUNT;
-DROP STREAM ENRICHED_ERROR_CODES_TS;
 
 --Join using a STREAM
 CREATE STREAM ENRICHED_ERROR_CODES AS SELECT code, definition FROM clickstream LEFT JOIN clickstream_codes ON clickstream.status = clickstream_codes.code;
 -- Aggregate (count&groupBy) using a TABLE-Window
 CREATE TABLE ENRICHED_ERROR_CODES_COUNT AS SELECT code, definition, COUNT(*) AS count FROM ENRICHED_ERROR_CODES WINDOW TUMBLING (size 30 second) GROUP BY code, definition HAVING COUNT(*) > 1;
--- Enrich w rowTime timestamp to support timeseries search
-CREATE TABLE ENRICHED_ERROR_CODES_TS AS SELECT rowTime AS EVENT_TS, * FROM ENRICHED_ERROR_CODES_COUNT;
 
 
 ----------------------------------------------------------------------------------------------------------------------------
@@ -120,11 +95,6 @@ CREATE STREAM USER_CLICKSTREAM AS SELECT userid, u.username, ip, u.city, request
 DROP TABLE USER_IP_ACTIVITY;
 CREATE TABLE USER_IP_ACTIVITY AS SELECT username, ip, city, COUNT(*) AS count FROM USER_CLICKSTREAM WINDOW TUMBLING (size 60 second) GROUP BY username, ip, city HAVING COUNT(*) > 1;
 
--- Enrich w rowTime timestamp to support timeseries search
-DROP TABLE USER_IP_ACTIVITY_TS;
-CREATE TABLE USER_IP_ACTIVITY_TS AS SELECT rowTime AS EVENT_TS, * FROM USER_IP_ACTIVITY;
-
-
 ----------------------------------------------------------------------------------------------------------------------------
 -- User session monitoring
 --
@@ -133,10 +103,7 @@ CREATE TABLE USER_IP_ACTIVITY_TS AS SELECT rowTime AS EVENT_TS, * FROM USER_IP_A
 ----------------------------------------------------------------------------------------------------------------------------
 
 DROP TABLE CLICK_USER_SESSIONS;
-DROP TABLE CLICK_USER_SESSIONS_TS;
 CREATE TABLE CLICK_USER_SESSIONS AS SELECT username, count(*) AS events FROM USER_CLICKSTREAM window SESSION (300 second) GROUP BY username;
-CREATE TABLE CLICK_USER_SESSIONS_TS AS SELECT rowTime AS event_ts, * FROM CLICK_USER_SESSIONS;
-
 
 ----------------------------------------------------------------------------------------------------------------------------
 -- Blog Article tracking user-session and bandwidth
@@ -148,11 +115,6 @@ CREATE TABLE CLICK_USER_SESSIONS_TS AS SELECT rowTime AS event_ts, * FROM CLICK_
 --DROP TABLE PER_USER_KBYTES;
 --CREATE TABLE PER_USER_KBYTES AS SELECT username, sum(bytes)/1024 AS kbytes FROM USER_CLICKSTREAM window SESSION (300 second) GROUP BY username;
 
---DROP TABLE PER_USER_KBYTES_TS;
---CREATE TABLE PER_USER_KBYTES_TS AS select rowTime AS event_ts, kbytes, username FROM PER_USER_KBYTES WHERE ip IS NOT NULL;
-
 --DROP TABLE MALICIOUS_USER_SESSIONS;
 --CREATE TABLE MALICIOUS_USER_SESSIONS AS SELECT username, ip,  sum(bytes)/1024 AS kbytes FROM USER_CLICKSTREAM window SESSION (300 second) GROUP BY username, ip  HAVING sum(bytes)/1024 > 50;
---CREATE TABLE MALICIOUS_USER_SESSIONS_TS AS select rowTime AS event_ts, ip, username, kbytes FROM MALICIOUS_USER_SESSIONS;
-
 

@@ -11,3 +11,10 @@ curl -X "POST" "http://localhost:3000/api/dashboards/db" \
 	     --user admin:admin \
 	     --data-binary @clickstream-analysis-dashboard.json
 
+
+echo ""
+echo ""
+echo "Navigate to:"
+echo "  http://localhost:3000/dashboard/db/click-stream-analysis (non-docker)"
+echo "or"
+echo "  http://localhost:33000/dashboard/db/click-stream-analysis (docker)"

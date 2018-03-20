@@ -306,5 +306,5 @@ When deploying KSQL to production, the following settings are recommended in you
     # like aggregations and joins. By having two replicas (one main and one
     # standby) recovery from node failures is quicker since the state doesn't
     # have to be rebuilt from scratch.
-    ksql.streams.num.standby.replicas=2
+    ksql.streams.num.standby.replicas=1
 

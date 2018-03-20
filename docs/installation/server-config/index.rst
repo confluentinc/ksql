@@ -83,6 +83,14 @@ After you have configured your properties file, start KSQL with your properties 
 
 For more information, see :ref:`install_ksql-standalone`.
 
+-----------
+JMX Metrics
+-----------
+
+.. include:: ../../includes/ksql-includes.rst
+    :start-line: 320
+    :end-line: 327
+
 -----------------------------
 KSQL Configuration Parameters
 -----------------------------

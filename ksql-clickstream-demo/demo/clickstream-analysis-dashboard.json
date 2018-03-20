@@ -43,8 +43,8 @@
         "pluginName": "Elasticsearch"
       },
       {
-        "name": "enriched_error_codes",
-        "label": "enriched_error_codes",
+        "name": "enriched_error_codes_count",
+        "label": "enriched_error_codes_count",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
@@ -749,7 +749,7 @@
                 "value": "Max"
               }
             ],
-            "datasource": "enriched_error_codes",
+            "datasource": "enriched_error_codes_count",
             "fontSize": "100%",
             "id": 9,
             "links": [],

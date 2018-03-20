@@ -340,7 +340,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
        Charting  CLICK_USER_SESSIONS
        Charting  USER_IP_ACTIVITY
        Charting  CLICKSTREAM_STATUS_CODES
-       Charting  ENRICHED_ERROR_CODES
+       Charting  ENRICHED_ERROR_CODES_COUNT
        Charting  ERRORS_PER_MIN_ALERT
        Charting  ERRORS_PER_MIN
        Charting  EVENTS_PER_MIN_MAX_AVG
@@ -359,20 +359,18 @@ Send the KSQL tables to Elasticsearch and Grafana.
    .. code:: bash
 
        Loading Grafana ClickStream Dashboard
-       {"slug":"click-stream-analysis","status":"success","version":5}
+       {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}
 
        Navigate to:
-          http://localhost:3000/dashboard/db/click-stream-analysis (non-docker)
+          http://localhost:3000/d/VhmK8Mkik/click-stream-analysis (non-docker)
        or
-          http://localhost:33000/dashboard/db/click-stream-analysis (docker)
+          http://localhost:33000/d/VhmK8Mkik/click-stream-analysis (docker)
 
-#.  Go to your browser and view the Grafana output at
-    `http://localhost:33000/dashboard/db/click-stream-analysis <http://localhost:33000/dashboard/db/click-stream-analysis>`_. You can
-    login with user ID ``admin`` and password ``admin``.
+#.  Open your your browser using the second url output from the previous step's command.
+    You can login with user ID ``admin`` and password ``admin``.
 
     **Important:** If you already have Grafana UI open, you may need to
-    enter the specific clickstream URL:
-    http://localhost:33000/dashboard/db/click-stream-analysis.
+    enter the specific clickstream URL output by the previous step
 
     .. image:: ../img/grafana-success.png
        :alt: Grafana UI success

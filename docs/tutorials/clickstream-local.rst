@@ -24,12 +24,14 @@ These steps will guide you through how to setup your environment and run the cli
 
 - :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
   |zk|, Schema Registry, REST Proxy, and Kafka Connect.
--  `ElasticSearch <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
--  `Grafana <http://docs.grafana.org/installation/>`__
+-  `ElasticSearch v5.6 <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
+-  `Grafana v5.0 <http://docs.grafana.org/installation/>`__
 -  `Git <https://git-scm.com/downloads>`__
 -  `Maven <https://maven.apache.org/install.html>`__
 -  Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on
    your local machine
+
+Note: This demo has been tested with ElasticSearch v5.6.8 and Grafana v5.0.3. Mileage with other versions may vary.
 
 ---------------------
 Download the Tutorial
@@ -56,8 +58,8 @@ Configure and Start Elastic and Grafana
 #.  Start the Elastic and Grafana servers. ElasticSearch should be running on the default port 9200. Grafana
     should be running on the default port 3000.
 
-    -  `Start Elastic <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
-    -  `Start Grafana <http://docs.grafana.org/installation/>`__
+    -  `Start Elastic 5.6 <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
+    -  `Start Grafana 5.0 <http://docs.grafana.org/installation/>`__
 
 
 ---------------------------
@@ -279,7 +281,7 @@ In this step, you send the KSQL tables to Elasticsearch and Grafana and then vie
        Charting  CLICK_USER_SESSIONS
        Charting  USER_IP_ACTIVITY
        Charting  CLICKSTREAM_STATUS_CODES
-       Charting  ENRICHED_ERROR_CODES
+       Charting  ENRICHED_ERROR_CODES_COUNT
        Charting  ERRORS_PER_MIN_ALERT
        Charting  ERRORS_PER_MIN
        Charting  EVENTS_PER_MIN_MAX_AVG
@@ -298,17 +300,18 @@ In this step, you send the KSQL tables to Elasticsearch and Grafana and then vie
    .. code:: bash
 
        Loading Grafana ClickStream Dashboard
-       {"slug":"click-stream-analysis","status":"success","version":1}
+       {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}
 
        Navigate to:
-          http://localhost:3000/dashboard/db/click-stream-analysis (non-docker)
+          http://localhost:3000/d/VhmK8Mkik/click-stream-analysis (non-docker)
        or
-          http://localhost:33000/dashboard/db/click-stream-analysis (docker)
+          http://localhost:33000/d/VhmK8Mkik/click-stream-analysis (docker)
 
-#.  Go to your browser and view the Grafana output at `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_. You can login with user ID ``admin`` and password ``admin``.
+#.  Open your your browser using the first url output from the previous step's command.
+    You can login with user ID ``admin`` and password ``admin``.
 
-    **Important:** If you already have Grafana UI open, you may need to enter the specific clickstream URL as
-    `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_.
+    **Important:** If you already have Grafana UI open, you may need to
+    enter the specific clickstream URL output by the previous step
 
     .. image:: ../img/grafana-success.png
 

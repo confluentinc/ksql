@@ -38,3 +38,4 @@ This table shows the version compatibility matrix of which Kafka clusters can be
 |    Apache Kafka    | 0.10.1 and later | 0.11.0 and later | 0.11.0 and later | 0.11.0 and later |
 | Confluent Platform | 3.1.0 and later  | 3.3.0 and later  | 3.3.0 and later  | 3.3.0 and later  | 
 
+

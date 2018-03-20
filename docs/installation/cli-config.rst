@@ -3,9 +3,6 @@
 Configuring KSQL CLI
 ====================
 
-Connecting the CLI to a Cluster
--------------------------------
-
 You can connect the KSQL CLI to one KSQL server per cluster.
 
 .. important:: There is no automatic failover of your CLI session to another KSQL server if the original server that the

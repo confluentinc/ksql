@@ -39,7 +39,7 @@ The KSQL servers must be configured to use |ccloud|. The KSQL CLI does not requi
         producer.request.timeout.ms=300000
         producer.max.block.ms=9223372036854775807
 
-#.  Restart the KSQL server. The steps do this are dependent on your environment.
+#.  Restart the KSQL server. The steps to do this are dependent on your environment.
 
     - If you are using the Confluent CLI, see :ref:`cli-command-reference`.
     - If you are running |cp| in a production environment, use ``ksql-server-stop && ksql-server-start``.

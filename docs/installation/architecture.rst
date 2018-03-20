@@ -1,4 +1,0 @@
-.. _architecture:
-
-KSQL Architecture
------------------

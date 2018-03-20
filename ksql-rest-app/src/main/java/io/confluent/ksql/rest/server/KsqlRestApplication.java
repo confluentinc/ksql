@@ -38,7 +38,6 @@ import java.io.Console;
 import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -170,9 +169,12 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     if (isUiEnabled) {
       try {
         return new ResourceCollection(
-            Resource.newResource("file://" + this.uiFolder + EXPANDED_FOLDER));
-      } catch (MalformedURLException e) {
-        log.error("Unable to load ui from {}", this.uiFolder + EXPANDED_FOLDER, e);
+            Resource.newResource(new File(this.uiFolder, EXPANDED_FOLDER).getCanonicalFile()));
+      } catch (Exception e) {
+        log.error("Unable to load ui from {}. You can disable the ui by setting {} to false",
+            this.uiFolder + EXPANDED_FOLDER,
+            KsqlRestConfig.UI_ENABLED_CONFIG,
+            e);
       }
     }
 

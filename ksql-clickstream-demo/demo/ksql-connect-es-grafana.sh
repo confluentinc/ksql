@@ -19,6 +19,8 @@ echo "Connecting:" $table_name
 ./elastic-dynamic-template.sh
 
 # Tell Kafka to send this Table-Topic to Elastic
+# Note the addition of the FilterNulls transform, which converts null values to null records, which Connect ignores.
+# Note the addition of the ExtractTimestamp transform, which exposes the Kafka record's timestamp to Elastic in a field called EVENT_TS.
 echo "Adding Kafka Connect Elastic Source es_sink_$TABLE_NAME:"
 echo
 echo

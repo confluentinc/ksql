@@ -25,6 +25,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 
@@ -47,7 +48,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String STREAM_INTERNAL_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
-  public static final String FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "fail.on.deserialization.error";
+  public static final String
+      FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
@@ -73,6 +75,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
   public static final boolean defaultAvroSchemaUnionNull = true;
+  public static final String KSQL_STREAMS_PREFIX      = "ksql.streams.";
 
   Map<String, Object> ksqlConfigProps;
   Map<String, Object> ksqlStreamConfigProps;
@@ -144,13 +147,29 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     ;
   }
 
+  private static Map<String, Object> commonConfigs(Map<String, Object> props) {
+    return CommonUtils.getPropertiesWithoutPrefix(KSQL_CONFIG_PROPERTY_PREFIX, props);
+  }
+
+  private static Map<String, Object> propertiesWithPrefix(
+      Map<String, Object> props, String prefix) {
+    AbstractConfig abstractConfig = new AbstractConfig(new ConfigDef(), props);
+    return abstractConfig.originalsWithPrefix(prefix);
+  }
+
+
+  private void applyStreamsConfig(Map<String, Object> props) {
+    ksqlStreamConfigProps.putAll(commonConfigs(props));
+    ksqlStreamConfigProps.putAll(propertiesWithPrefix(props, KSQL_STREAMS_PREFIX));
+  }
 
   public KsqlConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
 
     ksqlConfigProps = new HashMap<>();
     ksqlStreamConfigProps = new HashMap<>();
-    ksqlConfigProps.putAll(super.values());
+
+    ksqlConfigProps.putAll(this.values());
 
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
         .defaultAutoOffsetRestConfig);
@@ -162,20 +181,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     ksqlStreamConfigProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
 
-    for (Map.Entry<?, ?> entry : originals().entrySet()) {
-      final String key = entry.getKey().toString();
-      if (!key.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
-        ksqlStreamConfigProps.put(key, entry.getValue());
-      }
-    }
-
-    final Object fail = props.get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
+    final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
     if (fail == null || !Boolean.parseBoolean(fail.toString())) {
       ksqlStreamConfigProps.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
+
+    applyStreamsConfig(originals());
   }
 
   public Map<String, Object> getKsqlConfigProps() {
@@ -208,6 +222,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public void put(String propertyName, Object propertyValue) {
     if (propertyName.toLowerCase().startsWith(KSQL_CONFIG_PROPERTY_PREFIX)) {
       ksqlConfigProps.put(propertyName, propertyValue);
+    } else if (propertyName.startsWith(KSQL_STREAMS_PREFIX)) {
+      ksqlStreamConfigProps.put(
+          propertyName.substring(KSQL_STREAMS_PREFIX.length()), propertyValue);
     } else {
       ksqlStreamConfigProps.put(propertyName, propertyValue);
     }
@@ -215,16 +232,21 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public KsqlConfig clone() {
     Map<String, Object> clonedProperties = new HashMap<>();
-    clonedProperties.putAll(ksqlConfigProps);
-    clonedProperties.putAll(ksqlStreamConfigProps);
+    clonedProperties.putAll(originals());
     return new KsqlConfig(clonedProperties);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(Map<String, Object> props) {
     Map<String, Object> clonedProperties = new HashMap<>();
     clonedProperties.putAll(ksqlConfigProps);
-    clonedProperties.putAll(ksqlStreamConfigProps);
+    clonedProperties.putAll(
+        ksqlStreamConfigProps.entrySet().stream()
+            .collect(Collectors.toMap(e -> KSQL_STREAMS_PREFIX + e.getKey(), e -> e.getValue())));
     clonedProperties.putAll(props);
-    return new KsqlConfig(clonedProperties);
+    KsqlConfig clone = new KsqlConfig(clonedProperties);
+    // re-apply streams configs so that any un-prefixed overwrite settings
+    // take precedence over older prefixed settings
+    clone.applyStreamsConfig(props);
+    return clone;
   }
 }

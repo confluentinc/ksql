@@ -242,7 +242,7 @@ public class AggregateNode extends PlanNode {
             ),
             aggValToValColumnMap
         ), getWindowExpression(),
-        aggValueGenericRowSerde,    "KSQL_Agg_Query_" + System.currentTimeMillis()
+        aggValueGenericRowSerde
     );
 
     SchemaKTable result = new SchemaKTable(

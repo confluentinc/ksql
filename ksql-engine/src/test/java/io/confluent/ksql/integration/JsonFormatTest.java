@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.integration;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -32,6 +32,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.kafka.test.TestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,39 +53,35 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 public class JsonFormatTest {
-
-  private MetaStore metaStore;
-  private KsqlEngine ksqlEngine;
-  private TopicProducer topicProducer;
-  private TopicConsumer topicConsumer;
-
-  private Map<String, GenericRow> inputData;
-  private Map<String, RecordMetadata> inputRecordsMetadata;
-
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
-
   private static final String inputTopic = "orders_topic";
   private static final String inputStream = "ORDERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
 
-  private static final Logger log = LoggerFactory.getLogger(JsonFormatTest.class);
+  @ClassRule
+  public static final EmbeddedSingleNodeKafkaCluster CLUSTER = new EmbeddedSingleNodeKafkaCluster();
+
+  private MetaStore metaStore;
+  private KsqlEngine ksqlEngine;
+  private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
+  private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
+
   private AdminClient adminClient;
   private QueryId queryId;
-
+  private KafkaTopicClient topicClient;
 
   @Before
   public void before() throws Exception {
-
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("application.id", "KSQL");
@@ -90,32 +91,31 @@ public class JsonFormatTest {
 
     KsqlConfig ksqlConfig = new KsqlConfig(configMap);
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    ksqlEngine = new KsqlEngine(ksqlConfig, new KafkaTopicClientImpl(adminClient));
+    topicClient = new KafkaTopicClientImpl(adminClient);
+    ksqlEngine = new KsqlEngine(ksqlConfig, topicClient);
     metaStore = ksqlEngine.getMetaStore();
-    topicProducer = new TopicProducer(CLUSTER);
-    topicConsumer = new TopicConsumer(CLUSTER);
 
     createInitTopics();
     produceInitData();
     execInitCreateStreamQueries();
-
   }
 
   private void createInitTopics() {
-    ksqlEngine.getTopicClient().createTopic(inputTopic, 1, (short)1);
-    ksqlEngine.getTopicClient().createTopic(messageLogTopic, 1, (short)1);
+    topicClient.createTopic(inputTopic, 1, (short)1);
+    topicClient.createTopic(messageLogTopic, 1, (short)1);
   }
 
   private void produceInitData() throws Exception {
     OrderDataProvider orderDataProvider = new OrderDataProvider();
-    inputData = orderDataProvider.data();
-    inputRecordsMetadata = topicProducer.produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
+
+    topicProducer
+            .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
     Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.STRING_SCHEMA).build();
 
-    GenericRow messageRow = new GenericRow(Arrays.asList
-            ("{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-                    + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+    GenericRow messageRow = new GenericRow(Collections.singletonList(
+        "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
+        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
 
     Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -138,13 +138,11 @@ public class JsonFormatTest {
   }
 
   @After
-  public void after() throws Exception {
-    adminClient.close();
-    ksqlEngine.close();
+  public void after() {
     terminateQuery();
+    ksqlEngine.close();
+    adminClient.close();
   }
-
-
 
   //@Test
   public void testSelectDateTimeUDFs() throws Exception {
@@ -166,18 +164,15 @@ public class JsonFormatTest {
         whereClause
     );
 
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-    queryId = queryMetadata.getId();
+    executePersistentQuery(queryString);
 
     Schema resultSchema = SchemaUtil
         .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814l,
+    expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
         "2017-07-24 23:01:54.814",
-        1500962514814l)));
+        1500962514814L)));
 
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
@@ -191,22 +186,16 @@ public class JsonFormatTest {
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
         streamName, resultPartitionCount, inputStream);
-    PersistentQueryMetadata queryMetadata =
-            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-    queryId = queryMetadata.getId();
+    executePersistentQuery(queryString);
 
-    KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
+    TestUtils.waitForCondition(
+        () -> topicClient.isTopicExists(streamName),
+        "Wait for async topic creation"
+    );
 
-    /*
-     * It may take several seconds after AdminClient#createTopics returns
-     * success for all the brokers to become aware that the topics have been created.
-     * During this time, AdminClient#listTopics may not return information about the new topics.
-     */
-    log.info("Wait for the created topic to appear in the topic list...");
-    Thread.sleep(2000);
-
-    Assert.assertTrue(kafkaTopicClient.isTopicExists(streamName));
+    assertThat(
+        topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
+        hasSize(3));
   }
 
   @Test
@@ -218,16 +207,13 @@ public class JsonFormatTest {
             + "FROM %s;",
         streamName, messageLogStream);
 
-    PersistentQueryMetadata queryMetadata =
-        (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-    queryId = queryMetadata.getId();
+    executePersistentQuery(queryString);
 
     Schema resultSchema = SchemaUtil
             .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Arrays.asList("aws")));
+    expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
 
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
@@ -243,35 +229,29 @@ public class JsonFormatTest {
                     + "FROM %s;",
             streamName, messageLogStream);
 
-    PersistentQueryMetadata queryMetadata =
-            (PersistentQueryMetadata) ksqlEngine.buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
-    queryMetadata.getKafkaStreams().start();
-    queryId = queryMetadata.getId();
+    executePersistentQuery(queryString);
 
     Schema resultSchema = SchemaUtil
             .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Arrays.asList("first")));
+    expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
 
     Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
 
-  //*********************************************************//
+  private void executePersistentQuery(String queryString) throws Exception {
+    final QueryMetadata queryMetadata = ksqlEngine
+        .buildMultipleQueries(queryString, Collections.emptyMap()).get(0);
+
+    queryMetadata.getKafkaStreams().start();
+    queryId = ((PersistentQueryMetadata)queryMetadata).getId();
+  }
 
   private Map<String, GenericRow> readNormalResults(String resultTopic, Schema resultSchema, int expectedNumMessages) {
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
-  }
-
-  private Map<Windowed<String>, GenericRow> readWindowedResults(
-      String resultTopic,
-      Schema resultSchema,
-      int expectedNumMessages
-  ) {
-    Deserializer<Windowed<String>> keyDeserializer = new TimeWindowedDeserializer<>(new StringDeserializer());
-    return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, keyDeserializer);
   }
 
   private void terminateQuery() {

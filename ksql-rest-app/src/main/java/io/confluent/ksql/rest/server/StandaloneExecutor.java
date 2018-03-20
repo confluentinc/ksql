@@ -30,6 +30,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -82,11 +83,13 @@ public class StandaloneExecutor implements Executable {
   }
 
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
-    if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
+    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+      streamsProperties.put(
+          StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
 
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final KsqlEngine ksqlEngine = new KsqlEngine(
         ksqlConfig,
         new KafkaTopicClientImpl(

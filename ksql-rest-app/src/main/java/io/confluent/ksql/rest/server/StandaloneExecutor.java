@@ -30,6 +30,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -82,11 +83,13 @@ public class StandaloneExecutor implements Executable {
   }
 
   public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
-    if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
+    if (!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+      streamsProperties.put(
+          StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
     }
 
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final KsqlEngine ksqlEngine = new KsqlEngine(
         ksqlConfig,
         new KafkaTopicClientImpl(
@@ -97,7 +100,6 @@ public class StandaloneExecutor implements Executable {
         queriesFile);
   }
 
-
   private void showWelcomeMessage() {
     final Console console = System.console();
     if (console == null) {
@@ -106,9 +108,11 @@ public class StandaloneExecutor implements Executable {
     try (PrintWriter writer =
              new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
       WelcomeMsgUtils.displayWelcomeMessage(80, writer);
-      writer.printf("Server %s started with query file %s. Interactive mode is disabled.\n",
+      writer.printf(
+          "Server %s started with query file %s. Interactive mode is disabled.\n",
           Version.getVersion(),
-          queriesFile);
+          queriesFile
+      );
     }
   }
 

@@ -135,7 +135,7 @@ public class KsqlRestConfig extends RestConfig {
 
   public String getCommandTopic(String ksqlServiceId) {
     return String.format(
-        "%s-%s_%s",
+        "%s%s_%s",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
         ksqlServiceId,
         COMMAND_TOPIC_SUFFIX

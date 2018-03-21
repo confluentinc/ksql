@@ -343,6 +343,25 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testCreateStreamWithTopicWithStruct() throws Exception {
+    String
+        queryStr =
+        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
+        + "double, arraycol array<double>, mapcol map<varchar, double>, "
+        + "order_address STRUCT < number VARCHAR, street VARCHAR, zip INTEGER, city "
+        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+    Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0);
+    Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
+    CreateStream createStream = (CreateStream)statement;
+    Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 7);
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(6).getType()
+        .toString().equalsIgnoreCase("STRUCT<NUMBER VARCHAR,STREET VARCHAR,ZIP INTEGER,CITY VARCHAR,STATE VARCHAR>"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
+  }
+
+  @Test
   public void testCreateStream() throws Exception {
     String
         queryStr =

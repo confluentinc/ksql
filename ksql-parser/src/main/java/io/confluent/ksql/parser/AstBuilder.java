@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -95,6 +96,7 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -117,6 +119,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
@@ -126,6 +129,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
@@ -134,6 +138,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -1037,6 +1042,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new Row(getLocation(context), visit(context.expression(), Expression.class));
   }
 
+  @Override
+  public Node visitStructConstructor(SqlBaseParser.StructConstructorContext context) {
+    return new Struct(getLocation(context), visit(context.expression(), null));
+  }
 
   @Override
   public Node visitCast(SqlBaseParser.CastContext context) {
@@ -1044,7 +1053,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
-        getType(context.type()),
+        getType(context.type()).toString(),
         isTryCast
     );
   }
@@ -1477,54 +1486,66 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  private static String getType(SqlBaseParser.TypeContext type) {
+  private static Type getType(SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
       String signature = baseTypeToString(type.baseType());
-      if (!type.typeParameter().isEmpty()) {
-        String typeParameterSignature = type
-            .typeParameter()
-            .stream()
-            .map(AstBuilder::typeParameterToString)
-            .collect(Collectors.joining(","));
-        signature += "(" + typeParameterSignature + ")";
-      }
-      return signature;
+
+
+//      if (!type.typeParameter().isEmpty()) {
+//        String typeParameterSignature = type
+//            .typeParameter()
+//            .stream()
+//            .map(AstBuilder::typeParameterToString)
+//            .collect(Collectors.joining(","));
+//        signature += "(" + typeParameterSignature + ")";
+//      }
+      PrimitiveType t = getPrimitiveType(signature);
+      return t;
     }
 
     if (type.ARRAY() != null) {
-      return "ARRAY(" + getType(type.type(0)) + ")";
+//      return "ARRAY(" + getType(type.type(0)) + ")";
+      return new Array(getType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-      return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
+//      return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
+      return new io.confluent.ksql.parser.tree.Map(getType(type.type(0)));
     }
 
-    if (type.ROW() != null) {
-      StringBuilder builder = new StringBuilder("(");
+    if (type.STRUCT() != null) {
+//      StringBuilder builder = new StringBuilder("<");
+//      for (int i = 0; i < type.identifier().size(); i++) {
+//        if (i != 0) {
+//          builder.append(",");
+//        }
+//        builder.append(getIdentifierText(type.identifier(i)))
+//            .append(" ")
+//            .append(getType(type.type(i)));
+//      }
+//      builder.append(">");
+//      return "STRUCT" + builder.toString();
+      List<Pair<String, Type>> structItems = new ArrayList<>();
       for (int i = 0; i < type.identifier().size(); i++) {
-        if (i != 0) {
-          builder.append(",");
-        }
-        builder.append(getIdentifierText(type.identifier(i)))
-            .append(" ")
-            .append(getType(type.type(i)));
+        String itemName = getIdentifierText(type.identifier(i));
+        Type itemType = getType(type.type(i));
+        structItems.add(new Pair<>(itemName, itemType));
       }
-      builder.append(")");
-      return "ROW" + builder.toString();
+      return new Struct(structItems);
     }
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
   }
 
-  private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter) {
-    if (typeParameter.INTEGER_VALUE() != null) {
-      return typeParameter.INTEGER_VALUE().toString();
-    }
-    if (typeParameter.type() != null) {
-      return getType(typeParameter.type());
-    }
-    throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
-  }
+//  private static String typeParameterToString(SqlBaseParser.TypeParameterContext typeParameter) {
+//    if (typeParameter.INTEGER_VALUE() != null) {
+//      return typeParameter.INTEGER_VALUE().toString();
+//    }
+//    if (typeParameter.type() != null) {
+//      return getType(typeParameter.type());
+//    }
+//    throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText());
+//  }
 
   private static String baseTypeToString(SqlBaseParser.BaseTypeContext baseType) {
     if (baseType.identifier() != null) {
@@ -1595,6 +1616,24 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     public InvalidColumnReferenceException(String message, Throwable cause) {
       super(message, cause);
+    }
+  }
+
+  private static PrimitiveType getPrimitiveType(String typeName) {
+    switch (typeName) {
+      case "BOOLEAN":
+        return new PrimitiveType(Type.KsqlType.BOOLEAN);
+      case "INTEGER":
+        return new PrimitiveType(Type.KsqlType.INTEGER);
+      case "BIGINT":
+        return new PrimitiveType(Type.KsqlType.BIGINT);
+      case "DOUBLE":
+        return new PrimitiveType(Type.KsqlType.DOUBLE);
+      case "VARCHAR":
+      case "STRING":
+        return new PrimitiveType(Type.KsqlType.STRING);
+      default:
+        throw new KsqlException("Invalid primitive column type: " + typeName);
     }
   }
 }

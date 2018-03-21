@@ -57,6 +57,7 @@ import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
@@ -331,6 +332,14 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitRow(Row node, C context) {
+    for (Expression expression : node.getItems()) {
+      process(expression, context);
+    }
+    return null;
+  }
+
+  @Override
+  protected R visitStruct(Struct node, C context) {
     for (Expression expression : node.getItems()) {
       process(expression, context);
     }

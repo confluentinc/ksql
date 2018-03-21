@@ -270,6 +270,10 @@ public abstract class DefaultAstVisitor<R, C>
     return visitNode(node, context);
   }
 
+  protected R visitStruct(Struct node, C context) {
+    return visitNode(node, context);
+  }
+
   protected R visitTableSubquery(TableSubquery node, C context) {
     return visitQueryBody(node, context);
   }

@@ -24,12 +24,14 @@ These steps will guide you through how to setup your environment and run the cli
 
 - :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
   |zk|, Schema Registry, REST Proxy, and Kafka Connect.
--  `ElasticSearch <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
--  `Grafana <http://docs.grafana.org/installation/>`__
+-  `ElasticSearch v5.6 <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
+-  `Grafana v5.0 <http://docs.grafana.org/installation/>`__
 -  `Git <https://git-scm.com/downloads>`__
 -  `Maven <https://maven.apache.org/install.html>`__
 -  Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on
    your local machine
+
+Note: This demo has been tested with ElasticSearch v5.6.8 and Grafana v5.0.3. Mileage with other versions may vary.
 
 ---------------------
 Download the Tutorial
@@ -56,8 +58,8 @@ Configure and Start Elastic and Grafana
 #.  Start the Elastic and Grafana servers. ElasticSearch should be running on the default port 9200. Grafana
     should be running on the default port 3000.
 
-    -  `Start Elastic <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
-    -  `Start Grafana <http://docs.grafana.org/installation/>`__
+    -  `Start Elastic 5.6 <https://www.elastic.co/guide/en/elasticsearch/guide/current/running-elasticsearch.html>`__
+    -  `Start Grafana 5.0 <http://docs.grafana.org/installation/>`__
 
 
 ---------------------------
@@ -123,7 +125,7 @@ Load the Streaming Data to KSQL
     .. code:: bash
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties\
-          > /tmp/ksql-logs/ksql-server.log 2>&1 &
+          > /tmp/ksql-server.log 2>&1 &
 
     You should see the KSQL CLI welcome screen.
 
@@ -167,7 +169,6 @@ Verify the data
         -----------------------------------------------------------------------------
          WEB_USERS                  | clickstream_users          | JSON   | false
          ERRORS_PER_MIN_ALERT       | ERRORS_PER_MIN_ALERT       | JSON   | true
-         CLICKSTREAM_CODES_TS       | CLICKSTREAM_CODES_TS       | JSON   | false
          USER_IP_ACTIVITY           | USER_IP_ACTIVITY           | JSON   | true
          CLICKSTREAM_CODES          | clickstream_codes          | JSON   | false
          PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
@@ -191,15 +192,7 @@ Verify the data
          Stream Name               | Kafka Topic               | Format
         ----------------------------------------------------------------
          USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON
-         EVENTS_PER_MIN_MAX_AVG_TS | EVENTS_PER_MIN_MAX_AVG_TS | JSON
-         ERRORS_PER_MIN_TS         | ERRORS_PER_MIN_TS         | JSON
-         EVENTS_PER_MIN_TS         | EVENTS_PER_MIN_TS         | JSON
          ENRICHED_ERROR_CODES      | ENRICHED_ERROR_CODES      | JSON
-         ERRORS_PER_MIN_ALERT_TS   | ERRORS_PER_MIN_ALERT_TS   | JSON
-         CLICK_USER_SESSIONS_TS    | CLICK_USER_SESSIONS_TS    | JSON
-         PAGES_PER_MIN_TS          | PAGES_PER_MIN_TS          | JSON
-         ENRICHED_ERROR_CODES_TS   | ENRICHED_ERROR_CODES_TS   | JSON
-         USER_IP_ACTIVITY_TS       | USER_IP_ACTIVITY_TS       | JSON
          CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
          CLICKSTREAM               | clickstream               | JSON
 
@@ -226,17 +219,18 @@ Verify the data
 
     .. code:: bash
 
-        ksql> SELECT * FROM EVENTS_PER_MIN_TS LIMIT 5;
+        ksql> SELECT * FROM EVENTS_PER_MIN LIMIT 5;
 
     Your output should resemble:
 
     .. code:: bash
 
-        1503585450000 | 29 : | 1503585450000 | 29 | 19
-        1503585450000 | 37 : | 1503585450000 | 37 | 25
-        1503585450000 | 8 : | 1503585450000 | 8 | 35
-        1503585450000 | 36 : | 1503585450000 | 36 | 14
-        1503585450000 | 24 : | 1503585450000 | 24 | 22
+        1521108180000 | 6 : Window{start=1521108180000 end=-} | 6 | 24
+        1521108180000 | 4 : Window{start=1521108180000 end=-} | 4 | 23
+        1521108180000 | 35 : Window{start=1521108180000 end=-} | 35 | 20
+        1521108180000 | 5 : Window{start=1521108180000 end=-} | 5 | 24
+        1521108180000 | 9 : Window{start=1521108180000 end=-} | 9 | 19
+        1521108180000 | 34 : Window{start=1521108180000 end=-} | 34 | 18
         LIMIT reached for the partition.
         Query terminated
 
@@ -284,20 +278,16 @@ In this step, you send the KSQL tables to Elasticsearch and Grafana and then vie
 
        Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
        Logging to: /tmp/ksql-connect.log
-       Charting  CLICK_USER_SESSIONS_TS
-       Charting  USER_IP_ACTIVITY_TS
-       Charting  CLICKSTREAM_STATUS_CODES_TS
-       Charting  ENRICHED_ERROR_CODES_TS
-       Charting  ERRORS_PER_MIN_ALERT_TS
-       Charting  ERRORS_PER_MIN_TS
-       Charting  EVENTS_PER_MIN_MAX_AVG_TS
-       Charting  EVENTS_PER_MIN_TS
-       Charting  PAGES_PER_MIN_TS
-       Navigate to http://localhost:3000/dashboard/db/click-stream-analysis
-
-   **Important:** The ``http://localhost:3000/`` URL is only
-   available inside the container. We will access the dashboard with
-   a slightly different URL, after running the next command.
+       Charting  CLICK_USER_SESSIONS
+       Charting  USER_IP_ACTIVITY
+       Charting  CLICKSTREAM_STATUS_CODES
+       Charting  ENRICHED_ERROR_CODES_COUNT
+       Charting  ERRORS_PER_MIN_ALERT
+       Charting  ERRORS_PER_MIN
+       Charting  EVENTS_PER_MIN_MAX_AVG
+       Charting  EVENTS_PER_MIN
+       Charting  PAGES_PER_MIN
+       Done
 
 #. Load the dashboard into Grafana.
 
@@ -310,12 +300,18 @@ In this step, you send the KSQL tables to Elasticsearch and Grafana and then vie
    .. code:: bash
 
        Loading Grafana ClickStream Dashboard
-       {"slug":"click-stream-analysis","status":"success","version":1}
+       {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}
 
-#.  Go to your browser and view the Grafana output at `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_. You can login with user ID ``admin`` and password ``admin``.
+       Navigate to:
+          http://localhost:3000/d/VhmK8Mkik/click-stream-analysis (non-docker)
+       or
+          http://localhost:33000/d/VhmK8Mkik/click-stream-analysis (docker)
 
-    **Important:** If you already have Grafana UI open, you may need to enter the specific clickstream URL as
-    `http://localhost:3000/dashboard/db/click-stream-analysis <http://localhost:3000/dashboard/db/click-stream-analysis>`_.
+#.  Open your your browser using the first url output from the previous step's command.
+    You can login with user ID ``admin`` and password ``admin``.
+
+    **Important:** If you already have Grafana UI open, you may need to
+    enter the specific clickstream URL output by the previous step
 
     .. image:: ../img/grafana-success.png
 
@@ -326,8 +322,7 @@ is named after the streams and tables captured in the ``clickstream-schema.sql``
 
 Things to try
     * Understand how the ``clickstream-schema.sql`` file is structured. We use a **DataGen.KafkaTopic.clickstream -> Stream -> Table** (for window &
-      analytics with group-by) -> Table (to Add EVENT_TS for time-index) ->
-      ElasticSearch/Connect topic
+      analytics with group-by) -> ElasticSearch/Connect topic
     * Run the KSQL CLI ``LIST TOPICS;`` command to see where data is persisted
     * Run the KSQL CLI ``history`` command
 

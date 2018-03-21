@@ -77,7 +77,7 @@ Follow these instructions to start KSQL server.
 
     .. code:: bash
 
-        $ <path-to-confluent>/bin/ksql-server-start ksql-server.properties
+        $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 
 

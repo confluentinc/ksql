@@ -4,6 +4,7 @@ Configuring KSQL Server
 -----------------------
 
 .. toctree::
+    :maxdepth: 1
 
     security
     ccloud-ksql

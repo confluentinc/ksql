@@ -180,6 +180,7 @@ cluster over SSL, given a trust store that will validate the SSL certificates be
 by the Kafka Brokers.
 
 .. code:: bash
+
     security.protocol=SSL
     ssl.truststore.location=<path to trust store that trusts broker certificates>
     ssl.truststore.password=<trust store secret>
@@ -202,6 +203,7 @@ cluster using _PLAIN_ SASL (other options include GSSAPI / Kerberos), where the 
 certificates have been signed by a CA trusted by the default JVM trust store:
 
 .. code:: bash
+
     security.protocol=SASL_SSL
     sasl.mechanism=PLAIN
     sasl.jaas.config=\
@@ -221,7 +223,8 @@ Will KSQL work with Confluent Cloud?
 Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward.
 To do so, add the following to the KSQL configuration file, (ksql-server.properties):
 
-... code:: bash
+.. code:: bash
+
     bootstrap.servers=<a comma separated list of the the ccloud broker endpoints. eg. r0.great-app.confluent.aws.prod.cloud:9092,r1.great-app.confluent.aws.prod.cloud:9093,r2.great-app.confluent.aws.prod.cloud:9094>
     ksql.sink.replicas=3
     replication.factor=3
@@ -316,18 +319,21 @@ To achieve this you will need to:
 -  Specify the HTTPS endpoint in the ``ksql.schema.registry.url`` setting in the
    KSQL configuration file:
 
-    ... code:: bash
+    .. code:: bash
+
         ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
 -  If the Schema Registry's SSL certificate is not signed by a CA that is recognised by the JVM
    by default, then you will need to provide a suitable truststore via the ``KSQL_OPTS``
    environment variable:
 
-   ... code:: bash
+   .. code:: bash
+
       $ export KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store>
                           -Djavax.net.ssl.trustStorePassword=<store-password>"
 
    or on the commandline when starting KSQL:
 
-   ... code:: bash
+   .. code:: bash
+
       $ KSQL_OPTS="-Djavax.net.ssl.trustStore=<path-to-trust-store> -Djavax.net.ssl.trustStorePassword=<store-password>" ksql-server-start <props>

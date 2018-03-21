@@ -54,7 +54,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
   public static final String
-      KSQL_SERVICE_ID_DEFAULT = "ksql_";
+      KSQL_SERVICE_ID_DEFAULT = "default_";
 
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";

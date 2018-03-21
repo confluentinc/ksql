@@ -108,13 +108,16 @@ public class StandaloneExecutor implements Executable {
     if (console == null) {
       return;
     }
-    try (PrintWriter writer =
-             new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
-      WelcomeMsgUtils.displayWelcomeMessage(80, writer);
-      writer.printf("Server %s started with query file %s. Interactive mode is disabled.\n",
-          Version.getVersion(),
-          queriesFile);
-    }
+
+    final PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+
+    WelcomeMsgUtils.displayWelcomeMessage(80, writer);
+    writer.printf("Server %s started with query file %s. Interactive mode is disabled.%n",
+                  Version.getVersion(),
+                  queriesFile);
+
+    writer.flush();
   }
 
   private void executeStatements(final String queries) throws Exception {
@@ -126,7 +129,7 @@ public class StandaloneExecutor implements Executable {
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
-                + "\nOnly CREATE statements can run in standalone mode.",
+            + "%nOnly CREATE statements can run in standalone mode.",
             queryMetadata.getStatementString()
         );
         System.err.println(message);

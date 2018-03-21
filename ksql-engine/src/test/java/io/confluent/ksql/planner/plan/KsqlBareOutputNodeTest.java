@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -122,7 +121,6 @@ public class KsqlBareOutputNodeTest {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
         new FunctionRegistry(),
         new HashMap<>(), new MockSchemaRegistryClient());
   }

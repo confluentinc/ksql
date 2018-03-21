@@ -216,26 +216,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     String leftAlias = left.getAlias();
     String rightAlias = right.getAlias();
 
-    JoinNode.Type joinType;
-    switch (node.getType()) {
-      case INNER:
-        joinType = JoinNode.Type.INNER;
-        break;
-      case LEFT:
-        joinType = JoinNode.Type.LEFT;
-        break;
-      case RIGHT:
-        joinType = JoinNode.Type.RIGHT;
-        break;
-      case CROSS:
-        joinType = JoinNode.Type.CROSS;
-        break;
-      case FULL:
-        joinType = JoinNode.Type.FULL;
-        break;
-      default:
-        throw new KsqlException("Join type is not supported: " + node.getType().name());
-    }
+    JoinNode.Type joinType = getJoinType(node);
 
     if (!node.getCriteria().isPresent()) {
       throw new KsqlException(String.format(
@@ -294,6 +275,30 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         );
     analysis.setJoin(joinNode);
     return null;
+  }
+
+  private JoinNode.Type getJoinType(Join node) {
+    JoinNode.Type joinType;
+    switch (node.getType()) {
+      case INNER:
+        joinType = JoinNode.Type.INNER;
+        break;
+      case LEFT:
+        joinType = JoinNode.Type.LEFT;
+        break;
+      case RIGHT:
+        joinType = JoinNode.Type.RIGHT;
+        break;
+      case CROSS:
+        joinType = JoinNode.Type.CROSS;
+        break;
+      case FULL:
+        joinType = JoinNode.Type.FULL;
+        break;
+      default:
+        throw new KsqlException("Join type is not supported: " + node.getType().name());
+    }
+    return joinType;
   }
 
   /**

@@ -290,11 +290,12 @@ When deploying KSQL to production, the following settings are recommended in you
 
     # Set the maximum allowable time for the producer to block to
     # Long.MAX_VALUE. This allows KSQL to pause processing if the underlying
-    # kafka cluster is unavailable.  
+    # Kafka cluster is unavailable.  
     producer.max.block.ms=9223372036854775807
 
     # Set the replication factor for internal topics, the command topic, and
-    # output topics to be 3 for better fault tolerance and durability.
+    # output topics to be 3 for better fault tolerance and durability. Note:
+    # the value 3 requires at least 3 brokers in your kafka cluster.
     ksql.streams.replication.factor=3
     ksql.sink.replicas=3
 

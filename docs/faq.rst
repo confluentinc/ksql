@@ -78,7 +78,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro (requires Confluent Schema Registry and setting ``ksql.schema.registry.url`` in the KSQL configuration file)
+-  Avro (requires Confluent Schema Registry and :ref:`setting ``ksql.schema.registry.url`` in the KSQL configuration file <install_ksql-avro-schema>`)
 
 *Support for Apache Avro is expected soon.*
 
@@ -149,9 +149,9 @@ flag. For more information, see :ref:`common-configs`.
 How do I use Avro data and integrate with Confluent Schema Registry?
 ====================================================================
 
-Configure the ``ksql.schema.registry.url`` to point to Schema Registry (see :ref:`common-configs`).
+Configure the ``ksql.schema.registry.url`` to point to Schema Registry (see :ref:`install_ksql-avro-schema`).
 
-.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cpe|.
+.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with Confluent Platform Enterprise.
 
 =========================
 How can I scale out KSQL?

@@ -70,6 +70,8 @@ public class KsqlRestConfig extends RestConfig {
   public static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
+  public static final String COMMAND_TOPIC_SUFFIX = "command_topic";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -133,9 +135,10 @@ public class KsqlRestConfig extends RestConfig {
 
   public String getCommandTopic(String ksqlServiceId) {
     return String.format(
-        "%s-%s",
+        "%s-%s_%s",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-        ksqlServiceId
+        ksqlServiceId,
+        COMMAND_TOPIC_SUFFIX
     );
   }
 

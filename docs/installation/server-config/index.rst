@@ -162,6 +162,8 @@ To assign a server to a different pool, change the ``ksql.command.topic.suffix``
 
     ksql.command.topic.suffix=production_commands
 
+.. _ksql-schema-registry-url:
+
 ^^^^^^^^^^^^^^^^^^^^^^^^
 ksql.schema.registry.url
 ^^^^^^^^^^^^^^^^^^^^^^^^

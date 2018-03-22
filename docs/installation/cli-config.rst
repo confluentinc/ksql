@@ -21,13 +21,11 @@ Configuring Per-session Properties
 
 Here are some common KSQL CLI properties that you can customize:
 
-- ksql.streams.auto.offset.reset
-- ksql.streams.cache.max.bytes.buffering
-- ksql.streams.num.stream.threads
-- ksql.sink.partitions
-- ksql.sink.replicas
-
-For more information, see :ref:``.
+- :ref:`ksql.streams.auto.offset.reset <ksql-auto-offset-reset>`
+- :ref:`ksql.streams.cache.max.bytes.buffering <streams_developer-guide_optional-configs>`
+- :ref:`ksql.streams.num.stream.threads <streams_developer-guide_optional-configs>`
+- :ref:`ksql.sink.partitions <ksql-sink-partitions>`
+- :ref:`ksql.sink.replicas <ksql-sink-replicas>`
 
 
 

@@ -30,7 +30,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v0.5, Server v0.5 located at http://localhost:8090
+        CLI v4.1, Server v4.1 located at http://localhost:8090
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

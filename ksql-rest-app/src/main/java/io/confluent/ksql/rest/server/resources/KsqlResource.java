@@ -292,7 +292,7 @@ public class KsqlResource {
       return KafkaTopicsList.build(
           statementText,
           getKsqlTopics(),
-          client.describeTopics(client.listTopicNames()),
+          client.describeTopics(client.listNonInternalTopicNames()),
           ksqlEngine.getKsqlConfig(),
           kafkaConsumerGroupClient
       );

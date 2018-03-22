@@ -196,7 +196,7 @@ public class KafkaTopicClientTest {
     expect(adminClient.describeConfigs(anyObject())).andReturn(getDescribeConfigsResult());
     replay(adminClient);
     KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    Set<String> names = kafkaTopicClient.listTopicNames();
+    Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
   }

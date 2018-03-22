@@ -9,32 +9,25 @@ You can connect the KSQL CLI to one KSQL server per cluster.
                CLI is connected to becomes unavailable. Any persistent queries you executed will continue to run in the
                KSQL cluster.
 
-Configuring Per-session Properties
-----------------------------------
-
-Configure KSQL with the ``/etc/ksql/ksql-server.properties`` file. A property remains in effect for the remainder of the KSQL
-CLI session, or until you issue another SET statement to change it. The syntax of properties files follow Java conventions.
-Here is the basic syntax.
-
-.. code:: java
-
-    <property-name>=<property-value>
-
-Here is an example ``ksql-server.properties`` file:
-
-.. code:: java
-
-        bootstrap.servers=localhost:9092
-        ksql.command.topic.suffix=commands
-        listeners=http://localhost:8088
-
-After you have configured your properties file, start KSQL with your properties file specified.
+To connect the KSQL CLI to a cluster, run this command with your KSQL Server URL specified (default is ``http://localhost:8088``):
 
 .. code:: bash
 
-    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+    $ <path-to-confluent>/bin/ksql <ksql-server-URL>
 
-.. tip:: The KSQL server command topic determines the resource pool. By default, KSQL servers use the ``ksql__commands``
-         command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix`` setting. For
-         example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named
-         ``ksql__production_commands``.
+
+Configuring Per-session Properties
+----------------------------------
+
+Here are some common KSQL CLI properties that you can customize:
+
+- ksql.streams.auto.offset.reset
+- ksql.streams.cache.max.bytes.buffering
+- ksql.streams.num.stream.threads
+- ksql.sink.partitions
+- ksql.sink.replicas
+
+For more information, see :ref:``.
+
+
+

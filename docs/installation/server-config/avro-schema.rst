@@ -15,11 +15,11 @@ Supported functionality
 
 KSQL currently supports Avro data in the Kafka message values.
 
-The following functionality is not yet supported:
+The following functionality is not supported yet:
 
 -  Message keys in Avro format are not supported. Message keys in KSQL are always interpreted as STRING format, which means
    KSQL will ignore Avro schemas that have been registered for message keys.
--  Avro schemas with nested fields are not supported. This is because KSQL does not yet support nested columns.
+-  Avro schemas with nested fields are not supported yet. This is because KSQL does not yet support nested columns.
 
 Configuring KSQL for Avro
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -34,10 +34,14 @@ Using Avro in KSQL
 ^^^^^^^^^^^^^^^^^^
 
 Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql.schema.registry.url`` is set correctly
-in the KSQL properties file. |sr| is :ref:`installed by default <quickstart>` with |cpe|.
+in the KSQL properties file. |sr| is :ref:`installed by default <quickstart>` with |cp|.
 
 - Read from Kafka topics with Avro-formatted data by using ``CREATE STREAM`` and ``CREATE TABLE`` statements.
-- Write Avro-formatted data into Kafka topics by using ``CREATE STREAM AS`` and ``CREATE TABLE AS`` statements.
+- Write Avro-formatted data into Kafka topics by using ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements.
+- Create derived streams and tables from existing streams and tables with ``CREATE STREAM AS SELECT`` and
+  ``CREATE TABLE AS SELECT`` statements.
+- Convert data to different formats with ``CREATE STREAM AS SELECT`` and ``CREATE TABLE AS SELECT`` statements. For example,
+  you can convert a stream from Avro to JSON.
 
 Example: Create a new stream ``pageviews`` by reading from a Kafka topic with Avro-formatted messages.
     .. code:: sql

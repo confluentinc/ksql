@@ -80,8 +80,6 @@ KSQL currently supports formats:
 -  JSON
 -  Avro (requires Confluent Schema Registry and :ref:`setting ``ksql.schema.registry.url`` in the KSQL configuration file <install_ksql-avro-schema>`)
 
-*Support for Apache Avro is expected soon.*
-
 ====================================
 Is KSQL fully compliant to ANSI SQL?
 ====================================
@@ -151,7 +149,7 @@ How do I use Avro data and integrate with Confluent Schema Registry?
 
 Configure the ``ksql.schema.registry.url`` to point to Schema Registry (see :ref:`install_ksql-avro-schema`).
 
-.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with Confluent Platform Enterprise.
+.. important:: To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
 
 =========================
 How can I scale out KSQL?

@@ -290,17 +290,48 @@ zipcode for each user:
              regionid \
       FROM pageviews_enriched;
 
-Running KSQL
-------------
+Running Single KSQL Statements From the Command Line
+----------------------------------------------------
 
-KSQL supports client mode and server mode.
+In addition to using the KSQL CLI or launching KSQL servers with the ``--queries-file`` configuration, you can also execute
+KSQL statements from directly your terminal. This can be useful for scripting.
 
-Additionally, you can also instruct KSQL to execute a single statement
-from the command line. The following example command runs the given
-``SELECT`` statement and show the results in the terminal. In this
-particular case, the query will run until 5 records have been found, and
-then terminate.
+The following examples show common usage:
 
-.. code:: shell
+-   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
-    $ ksql http://localhost:8088 --exec "SELECT * FROM pageviews LIMIT 5;"
+    .. code:: bash
+
+        $ ksql <<EOF
+        > SHOW TOPICS;
+        > SHOW STREAMS;
+        > exit
+        > EOF
+
+-   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
+    an explicitly defined KSQL server endpoint.
+
+    .. code:: bash
+
+        $ ksql http://localhost:8088 <<< "SHOW TOPICS;
+        SHOW STREAMS;
+        exit"
+
+-   This example creates a stream from a predefined script (``application.sql``) using the ``RUN SCRIPT`` command and
+    then runs a query by using the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) feature.
+
+    .. code:: bash
+
+        $ cat /path/to/local/application.sql
+        CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
+
+    .. code:: bash
+
+        $ ksql http://localhost:8088 <<EOF
+        > RUN SCRIPT '/path/to/local/application.sql';
+        > exit
+        > EOF
+
+    .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, such as running persistent queries (CREATE
+              STREAM, CREATE TABLE), and setting configuration options (SET statement). It cannot show output for statements,
+              such as ``SHOW TOPICS`` or ``SHOW STREAMS``.

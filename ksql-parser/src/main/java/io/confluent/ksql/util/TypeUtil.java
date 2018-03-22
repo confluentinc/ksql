@@ -49,15 +49,17 @@ public class TypeUtil {
       case MAP:
         return new Map(getKsqlType(schema.valueSchema()));
       case STRUCT:
-        return new Struct(getStructItems((org.apache.kafka.connect.data.Struct) schema.schema()));
+        return new Struct(getStructItems(schema));
 
       default:
         throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
     }
   }
 
-  private static List<Pair<String, Type>> getStructItems(org.apache.kafka.connect.data.Struct
-                                                             struct) {
+  private static List<Pair<String, Type>> getStructItems(Schema struct) {
+    if (struct.type() != Schema.Type.STRUCT) {
+      return null;
+    }
     List<Pair<String, Type>> itemList = new ArrayList<>();
     for (Field field: struct.schema().fields()) {
       itemList.add(new Pair<>(field.name(), getKsqlType(field.schema())));

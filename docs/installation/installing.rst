@@ -6,11 +6,14 @@ Installing KSQL
 KSQL is a component of |cp| and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
 as a part of the |cp| bundle.
 
-KSQL must have access to a running Kafka cluster, which can be on prem, |ccloud|, etc.
+KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
     You can deploy KSQL in Docker, however the current release does not yet ship with ready-to-use KSQL Docker images for
     production. These images are coming soon.
+
+.. contents::
+    :local:
 
 .. _install_ksql-cli:
 
@@ -32,6 +35,57 @@ After KSQL is started, your terminal should resemble this.
     :start-line: 17
     :end-line: 38
 
+Tip
+    You can view the KSQL CLI startup script help by running ``<path-to-confluent>/bin/ksql --help``.
+
+         .. code:: bash
+
+                NAME
+                        ksql - KSQL CLI
+
+                SYNOPSIS
+                        ksql [ --config-file <configFile> ] [ {-h | --help} ]
+                                [ --output <outputFormat> ]
+                                [ --query-row-limit <streamedQueryRowLimit> ]
+                                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
+
+                OPTIONS
+                        --config-file <configFile>
+                            A file specifying configs for Ksql and its underlying Kafka Streams
+                            instance(s). Refer to KSQL documentation for a list of available
+                            configs.
+
+                        -h, --help
+                            Display help information
+
+                        --output <outputFormat>
+                            The output format to use (either 'JSON' or 'TABULAR'; can be changed
+                            during REPL as well; defaults to TABULAR)
+
+                        --query-row-limit <streamedQueryRowLimit>
+                            An optional maximum number of rows to read from streamed queries
+
+                            This options value must fall in the following range: value >= 1
+
+
+                        --query-timeout <streamedQueryTimeoutMs>
+                            An optional time limit (in milliseconds) for streamed queries
+
+                            This options value must fall in the following range: value >= 1
+
+
+                        --
+                            This option can be used to separate command-line options from the
+                            list of arguments (useful when arguments might be mistaken for
+                            command-line options)
+
+                        <server>
+                            The address of the Ksql server to connect to (ex:
+                            http://confluent.io:9098)
+
+                            This option may occur a maximum of 1 times
+
+
 .. _install_ksql-server:
 
 ------------------------
@@ -50,26 +104,21 @@ You can only connect to one KSQL server at a time. The KSQL CLI does not support
 .. image:: ../img/client-server.png
     :align: center
 
-.. tip:: For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more
-    information, see :ref:`quickstart`.
+Follow these instructions to start KSQL server using the ``ksql-server-start`` script.
 
-Follow these instructions to start KSQL server.
+Tip
+    For development and testing purposes, you can also use Confluent CLI to start |cp|, including KSQL, on a single host.
+    For more information, see :ref:`quickstart`.
 
-#.  Customize the KSQL ``ksql-server.properties`` file.  By default, the configuration file is located at ``/etc/ksql/ksql-server.properties``.
-    The required parameters are ``bootstrap.servers`` and ``listeners``. You can also set any property the Kafka Streams
-    API or the Kafka producer and consumer would understand. For a description of common configurations, see :ref:`configuring-ksql`.
-
-    .. tip:: KSQL servers that share the same ``command`` topic belong to the same resource pool. By default, KSQL servers
-             use the ``ksql__commands`` command topic. To assign a server to a different pool, change the ``ksql.command.topic.suffix``
-             setting. For example, if you change to ``ksql.command.topic.suffix = production_commands``, the command topic will be named
-             ``ksql__production_commands``.
+#.  Customize the KSQL ``<path-to-confluent>/etc/ksql/ksql-server.properties`` file.  The required parameters are ``bootstrap.servers``
+    and ``listeners``. You can also set any property the Kafka Streams API or the Kafka producer and consumer would understand.
+    For a description of common configurations, see :ref:`configuring-ksql`.
 
     Here are the default settings:
 
     .. code:: bash
 
         bootstrap.servers=localhost:9092
-        ksql.command.topic.suffix=commands
         listeners=http://localhost:8080
         ui.enabled=true
 
@@ -78,6 +127,36 @@ Follow these instructions to start KSQL server.
     .. code:: bash
 
         $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+.. tip:: You can view the KSQL server startup script help by running ``<path-to-confluent>/bin/ksql-server-start --help``.
+
+         .. code:: bash
+
+                NAME
+                        server - KSQL Cluster
+
+                SYNOPSIS
+                        server [ {-h | --help} ] [ --queries-file <queriesFile> ] [--]
+                                <config-file>
+
+                OPTIONS
+                        -h, --help
+                            Display help information
+
+                        --queries-file <queriesFile>
+                            Path to the query file on the local machine.
+
+                        --
+                            This option can be used to separate command-line options from the
+                            list of arguments (useful when arguments might be mistaken for
+                            command-line options)
+
+                        <config-file>
+                            A file specifying configs for the KSQL Server, KSQL, and its
+                            underlying Kafka Streams instance(s). Refer to KSQL documentation
+                            for a list of available configs.
+
+                            This option may occur a maximum of 1 times
 
 
 
